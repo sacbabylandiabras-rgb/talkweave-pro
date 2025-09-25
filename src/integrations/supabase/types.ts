@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      auto_response_config: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string
+        }
+        Relationships: []
+      }
+      auto_responses: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          keyword: string
+          response: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          keyword: string
+          response: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          keyword?: string
+          response?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      message_logs: {
+        Row: {
+          created_at: string
+          id: string
+          keyword_matched: string | null
+          message_received: string | null
+          phone: string
+          response_sent: string | null
+          timestamp: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          keyword_matched?: string | null
+          message_received?: string | null
+          phone: string
+          response_sent?: string | null
+          timestamp?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          keyword_matched?: string | null
+          message_received?: string | null
+          phone?: string
+          response_sent?: string | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

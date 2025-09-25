@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
-
-// Mock data para demonstração - em produção seria conectado ao Supabase
-const STORAGE_KEYS = {
-  RESPONSES: 'auto_responses',
-  CONFIG: 'auto_response_config',
-  LOGS: 'message_logs'
-}
+import { supabase } from '@/integrations/supabase/client'
 
 export interface AutoResponse {
-  id: number
+  id: string
   keyword: string
   response: string
   active: boolean
@@ -18,7 +12,7 @@ export interface AutoResponse {
 }
 
 export interface AutoResponseConfig {
-  id: number
+  id: string
   active: boolean
   webhook_url: string
   updated_at: string
@@ -33,40 +27,16 @@ export const useAutoResponse = () => {
   const fetchResponses = async () => {
     try {
       setLoading(true)
-      const stored = localStorage.getItem(STORAGE_KEYS.RESPONSES)
-      const data = stored ? JSON.parse(stored) : [
-        {
-          id: 1,
-          keyword: "horário",
-          response: "Nosso horário de funcionamento é de segunda a sexta, das 8h às 18h.",
-          active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          keyword: "preço",
-          response: "Para informações sobre preços, entre em contato com nossa equipe comercial.",
-          active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 3,
-          keyword: "localização",
-          response: "Estamos localizados na Rua das Flores, 123 - Centro, São Paulo - SP",
-          active: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]
+      const { data, error } = await supabase
+        .from('auto_responses')
+        .select('*')
+        .order('created_at', { ascending: false })
       
-      if (!stored) {
-        localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(data))
-      }
+      if (error) throw error
       
-      setResponses(data)
+      setResponses(data || [])
     } catch (error) {
+      console.error('Erro ao carregar respostas:', error)
       toast({
         title: 'Erro ao carregar respostas',
         description: 'Não foi possível carregar as respostas automáticas',
@@ -79,17 +49,12 @@ export const useAutoResponse = () => {
 
   const fetchConfig = async () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.CONFIG)
-      const data = stored ? JSON.parse(stored) : {
-        id: 1,
-        active: false,
-        webhook_url: `${window.location.origin}/supabase/functions/v1/webhook-zapi`,
-        updated_at: new Date().toISOString()
-      }
+      const { data, error } = await supabase
+        .from('auto_response_config')
+        .select('*')
+        .single()
       
-      if (!stored) {
-        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(data))
-      }
+      if (error) throw error
       
       setConfig(data)
     } catch (error) {
@@ -100,18 +65,20 @@ export const useAutoResponse = () => {
   const addResponse = async (keyword: string, response: string) => {
     try {
       setLoading(true)
-      const newResponse: AutoResponse = {
-        id: Date.now(),
-        keyword: keyword.trim(),
-        response: response.trim(),
-        active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-
-      const updatedResponses = [newResponse, ...responses]
-      setResponses(updatedResponses)
-      localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(updatedResponses))
+      
+      const { data, error } = await supabase
+        .from('auto_responses')
+        .insert({
+          keyword: keyword.trim(),
+          response: response.trim(),
+          active: true
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      setResponses(prev => [data, ...prev])
       
       toast({
         title: 'Resposta adicionada',
@@ -120,6 +87,7 @@ export const useAutoResponse = () => {
 
       return true
     } catch (error) {
+      console.error('Erro ao adicionar resposta:', error)
       toast({
         title: 'Erro ao adicionar resposta',
         description: 'Não foi possível criar a resposta automática',
@@ -131,17 +99,22 @@ export const useAutoResponse = () => {
     }
   }
 
-  const updateResponse = async (id: number, updates: Partial<AutoResponse>) => {
+  const updateResponse = async (id: string, updates: Partial<AutoResponse>) => {
     try {
       setLoading(true)
-      const updatedResponses = responses.map(r => 
-        r.id === id 
-          ? { ...r, ...updates, updated_at: new Date().toISOString() }
-          : r
-      )
       
-      setResponses(updatedResponses)
-      localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(updatedResponses))
+      const { data, error } = await supabase
+        .from('auto_responses')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      setResponses(prev => 
+        prev.map(r => r.id === id ? data : r)
+      )
       
       toast({
         title: 'Resposta atualizada',
@@ -150,6 +123,7 @@ export const useAutoResponse = () => {
 
       return true
     } catch (error) {
+      console.error('Erro ao atualizar resposta:', error)
       toast({
         title: 'Erro ao atualizar resposta',
         description: 'Não foi possível atualizar a resposta automática',
@@ -161,12 +135,18 @@ export const useAutoResponse = () => {
     }
   }
 
-  const deleteResponse = async (id: number) => {
+  const deleteResponse = async (id: string) => {
     try {
       setLoading(true)
-      const updatedResponses = responses.filter(r => r.id !== id)
-      setResponses(updatedResponses)
-      localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(updatedResponses))
+      
+      const { error } = await supabase
+        .from('auto_responses')
+        .delete()
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      setResponses(prev => prev.filter(r => r.id !== id))
       
       toast({
         title: 'Resposta removida',
@@ -175,6 +155,7 @@ export const useAutoResponse = () => {
 
       return true
     } catch (error) {
+      console.error('Erro ao remover resposta:', error)
       toast({
         title: 'Erro ao remover resposta',
         description: 'Não foi possível remover a resposta automática',
@@ -190,14 +171,16 @@ export const useAutoResponse = () => {
     try {
       if (!config) return false
       
-      const updatedConfig = {
-        ...config,
-        active,
-        updated_at: new Date().toISOString()
-      }
-
-      setConfig(updatedConfig)
-      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(updatedConfig))
+      const { data, error } = await supabase
+        .from('auto_response_config')
+        .update({ active })
+        .eq('id', config.id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      setConfig(data)
       
       toast({
         title: active ? 'Sistema ativado' : 'Sistema desativado',
@@ -206,6 +189,7 @@ export const useAutoResponse = () => {
 
       return true
     } catch (error) {
+      console.error('Erro ao atualizar configuração:', error)
       toast({
         title: 'Erro ao atualizar configuração',
         description: 'Não foi possível atualizar a configuração do sistema',
@@ -217,35 +201,17 @@ export const useAutoResponse = () => {
 
   const getLogs = async (limit = 50) => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.LOGS)
-      const logs = stored ? JSON.parse(stored) : []
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(limit)
       
-      // Mock de alguns logs para demonstração
-      if (logs.length === 0) {
-        const mockLogs = [
-          {
-            id: 1,
-            phone: '5511999999999',
-            message_received: 'Qual o horário de vocês?',
-            keyword_matched: 'horário',
-            response_sent: 'Nosso horário de funcionamento é de segunda a sexta, das 8h às 18h.',
-            timestamp: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: 2,
-            phone: '5511888888888',
-            message_received: 'Quanto custa o produto?',
-            keyword_matched: 'preço',
-            response_sent: 'Para informações sobre preços, entre em contato com nossa equipe comercial.',
-            timestamp: new Date(Date.now() - 7200000).toISOString()
-          }
-        ]
-        localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(mockLogs))
-        return mockLogs.slice(0, limit)
-      }
+      if (error) throw error
       
-      return logs.slice(0, limit)
+      return data || []
     } catch (error) {
+      console.error('Erro ao carregar logs:', error)
       toast({
         title: 'Erro ao carregar logs',
         description: 'Não foi possível carregar o histórico de mensagens',

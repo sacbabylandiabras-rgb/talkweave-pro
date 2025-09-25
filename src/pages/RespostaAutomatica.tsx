@@ -23,7 +23,7 @@ const RespostaAutomatica = () => {
   } = useAutoResponse();
 
   const [novaResposta, setNovaResposta] = useState({ keyword: '', response: '' });
-  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editandoResposta, setEditandoResposta] = useState({ keyword: '', response: '' });
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -36,7 +36,7 @@ const RespostaAutomatica = () => {
     }
   };
 
-  const handleEditResponse = async (id: number) => {
+  const handleEditResponse = async (id: string) => {
     if (!editandoResposta.keyword.trim() || !editandoResposta.response.trim()) return;
     
     const success = await updateResponse(id, {
