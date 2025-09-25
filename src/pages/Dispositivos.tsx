@@ -408,8 +408,14 @@ const Dispositivos = () => {
                       </div>
                     </div>
 
-                    {/* Código de Pareamento Visual - APENAS quando há QR Code VÁLIDO */}
-                    {qrCode && qrCode.length > 100 && qrCode.includes('@') && !qrCode.includes('"connected"') && (
+                    {/* Código de Pareamento Visual - APENAS quando há QR Code 100% VÁLIDO */}
+                    {qrCode && 
+                     qrCode.length > 200 && 
+                     qrCode.includes('@') && 
+                     qrCode.includes(',') && 
+                     !qrCode.includes('"connected"') && 
+                     !qrCode.includes('true') && 
+                     !qrCode.includes('false') && (
                       <div className="mt-4 pt-4 border-t">
                         <p className="text-sm text-muted-foreground mb-4 text-center">
                           📱 Código de pareamento para {phoneNumber}:
@@ -418,17 +424,35 @@ const Dispositivos = () => {
                           <code className="text-2xl font-mono tracking-widest font-bold text-primary">
                             {(() => {
                               try {
-                                // Só extrair se for um QR Code real do WhatsApp
+                                console.log('=== EXTRAINDO CÓDIGO ===');
+                                console.log('QR Code para extração:', qrCode.substring(0, 100));
+                                
+                                // Método 1: Formato padrão WhatsApp 1@código,servidor,token
                                 const parts = qrCode.split(',');
                                 if (parts[0] && parts[0].includes('@')) {
-                                  const afterAt = parts[0].split('@')[1];
+                                  const beforeComma = parts[0]; // ex: "1@ABCD1234"
+                                  const afterAt = beforeComma.split('@')[1];
                                   if (afterAt && afterAt.length >= 8) {
-                                    return afterAt.substring(0, 8).toUpperCase();
+                                    const extractedCode = afterAt.substring(0, 8).toUpperCase();
+                                    console.log('Código extraído método 1:', extractedCode);
+                                    return extractedCode;
                                   }
                                 }
-                                return 'AGUARDE...';
+                                
+                                console.log('Método 1 falhou, tentando método 2...');
+                                // Método 2: Procurar por padrão específico
+                                const codeMatch = qrCode.match(/1@([A-Z0-9]{8,})/);
+                                if (codeMatch && codeMatch[1]) {
+                                  const extractedCode = codeMatch[1].substring(0, 8);
+                                  console.log('Código extraído método 2:', extractedCode);
+                                  return extractedCode;
+                                }
+                                
+                                console.log('Todos os métodos falharam');
+                                return 'ERRO_EXTRAÇÃO';
                               } catch (e) {
-                                return 'PROCESSANDO...';
+                                console.error('Erro na extração:', e);
+                                return 'ERRO_PROCESSO';
                               }
                             })()}
                           </code>
@@ -445,13 +469,17 @@ const Dispositivos = () => {
                                         return afterAt.substring(0, 8).toUpperCase();
                                       }
                                     }
+                                    const codeMatch = qrCode.match(/1@([A-Z0-9]{8,})/);
+                                    if (codeMatch && codeMatch[1]) {
+                                      return codeMatch[1].substring(0, 8);
+                                    }
                                     return '';
                                   } catch (e) {
                                     return '';
                                   }
                                 })();
                                 
-                                if (code && code !== 'AGUARDE...' && code !== 'PROCESSANDO...' && code.length === 8) {
+                                if (code && code.length === 8 && !code.includes('ERRO')) {
                                   navigator.clipboard.writeText(code);
                                   toast({
                                     title: "✅ Código copiado!",
@@ -460,7 +488,7 @@ const Dispositivos = () => {
                                 } else {
                                   toast({
                                     title: "❌ Código inválido",
-                                    description: "Aguarde o código ser gerado corretamente",
+                                    description: "Não foi possível extrair código válido",
                                     variant: "destructive"
                                   });
                                 }
@@ -481,14 +509,23 @@ const Dispositivos = () => {
                       </div>
                     )}
 
-                    {/* Mensagem quando QR Code é inválido */}
-                    {qrCode && (qrCode.length <= 100 || !qrCode.includes('@') || qrCode.includes('"connected"')) && (
+                    {/* Mensagem quando QR Code é inválido ou não há código */}
+                    {qrCode && !(
+                      qrCode.length > 200 && 
+                      qrCode.includes('@') && 
+                      qrCode.includes(',') && 
+                      !qrCode.includes('"connected"') && 
+                      !qrCode.includes('true') && 
+                      !qrCode.includes('false')
+                    ) && (
                       <div className="mt-4 pt-4 border-t text-center">
                         <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg">
                           <p className="text-sm text-destructive font-medium mb-2">⚠️ Código não disponível</p>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            A API retornou: {qrCode.substring(0, 100)}...
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            A instância pode estar conectada ou há problema na geração do código.
-                            Tente desconectar primeiro ou reiniciar a instância.
+                            Tente: 1) Reiniciar instância 2) Aguardar alguns segundos 3) Desconectar primeiro
                           </p>
                         </div>
                       </div>
