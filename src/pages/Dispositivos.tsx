@@ -363,9 +363,20 @@ const Dispositivos = () => {
                             if (phoneNumber.length >= 10) {
                               toast({
                                 title: "📱 Número verificado",
-                                description: "Agora gere o QR Code para conectar esta instância ao número " + phoneNumber,
+                                description: "Gerando código de pareamento para o número " + phoneNumber,
                               });
-                              fetchQRCode();
+                              // Gerar QR Code e automaticamente mostrar o código
+                              fetchQRCode().then(() => {
+                                // Aguardar um pouco e mostrar o código
+                                setTimeout(() => {
+                                  if (qrCode && qrCode.length > 50) {
+                                    toast({
+                                      title: "✅ Código de pareamento gerado",
+                                      description: "Use o código abaixo no WhatsApp deste número: " + phoneNumber,
+                                    });
+                                  }
+                                }, 1500);
+                              });
                             } else {
                               toast({
                                 title: "❌ Número inválido",
@@ -377,15 +388,16 @@ const Dispositivos = () => {
                           disabled={loading || phoneNumber.length < 10}
                         >
                           <Phone className="w-4 h-4 mr-1" />
-                          Verificar
+                          Gerar Código
                         </Button>
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
                       <p className="font-medium mb-1">ℹ️ Como funciona:</p>
                       <p>1. Digite o número que será usado nesta instância</p>
-                      <p>2. Clique em "Verificar" para validar</p>
-                      <p>3. Escaneie o QR Code com esse número no WhatsApp</p>
+                      <p>2. Clique em "Gerar Código" para criar o código de pareamento</p>
+                      <p>3. Use o código gerado no WhatsApp deste número</p>
+                      <p>4. Vá em Aparelhos conectados → Conectar com código</p>
                     </div>
                   </div>
                 )}
