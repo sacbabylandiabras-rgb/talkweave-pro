@@ -2,107 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ZapLynx WhatsApp SaaS - Modern & Professional Design System */
+/* ZapLynx - Design System Limpo sem amarelos */
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 30 41% 9%;
+    --background: 255 255 255;
+    --foreground: 15 23 42;
 
-    --card: 0 0% 100%;
-    --card-foreground: 30 41% 9%;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 30 41% 9%;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
 
-    /* ZapLynx Brand Colors - Red/Orange theme */
-    --primary: 9 100% 64%;
-    --primary-foreground: 0 0% 100%;
-    --primary-light: 14 100% 70%;
-    --primary-dark: 4 100% 58%;
+    /* ZapLynx - Cores da marca (laranja/vermelho) */
+    --primary: 239 68 68;
+    --primary-foreground: 255 255 255;
+    --primary-light: 248 113 113;
+    --primary-dark: 220 38 38;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 30 41% 9%;
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 59 130 246;
+    --accent-foreground: 255 255 255;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
 
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
 
-    --warning: 43 96% 56%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 249 115 22;
+    --warning-foreground: 255 255 255;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 9 100% 64%;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 239 68 68;
 
     --radius: 0.75rem;
 
-    /* Sidebar specific colors for light mode */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 30 41% 15%;
-    --sidebar-primary: 9 100% 64%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 30 41% 15%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 9 100% 64%;
+    /* Sidebar */
+    --sidebar-background: 255 255 255;
+    --sidebar-foreground: 15 23 42;
+    --sidebar-primary: 239 68 68;
+    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-accent: 248 250 252;
+    --sidebar-accent-foreground: 15 23 42;
+    --sidebar-border: 226 232 240;
+    --sidebar-ring: 239 68 68;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --background: 2 6 23;
+    --foreground: 248 250 252;
 
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
+    --card: 2 6 23;
+    --card-foreground: 248 250 252;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 2 6 23;
+    --popover-foreground: 248 250 252;
 
-    /* ZapLynx Brand Colors for dark mode */
-    --primary: 14 100% 70%;
-    --primary-foreground: 0 0% 100%;
-    --primary-light: 18 100% 75%;
-    --primary-dark: 9 100% 64%;
+    --primary: 248 113 113;
+    --primary-foreground: 255 255 255;
+    --primary-light: 252 165 165;
+    --primary-dark: 239 68 68;
 
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 213 31% 91%;
+    --secondary: 30 41 59;
+    --secondary-foreground: 248 250 252;
 
-    --muted: 215 28% 17%;
-    --muted-foreground: 217 11% 65%;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 213 31% 91%;
+    --accent: 59 130 246;
+    --accent-foreground: 248 250 252;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 213 31% 91%;
+    --destructive: 220 38 38;
+    --destructive-foreground: 248 250 252;
 
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
 
-    --warning: 43 96% 56%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 249 115 22;
+    --warning-foreground: 255 255 255;
 
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 14 100% 70%;
+    --border: 30 41 59;
+    --input: 30 41 59;
+    --ring: 248 113 113;
 
-    /* Sidebar specific colors for dark mode */
-    --sidebar-background: 224 71% 4%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 14 100% 70%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 215 28% 17%;
-    --sidebar-ring: 14 100% 70%;
+    --sidebar-background: 2 6 23;
+    --sidebar-foreground: 248 250 252;
+    --sidebar-primary: 248 113 113;
+    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-accent: 30 41 59;
+    --sidebar-accent-foreground: 248 250 252;
+    --sidebar-border: 30 41 59;
+    --sidebar-ring: 248 113 113;
   }
 }
 
@@ -116,22 +114,22 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Custom scrollbar */
+  /* Scrollbar personalizada */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   
   ::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
+    background: rgb(var(--muted));
   }
   
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
+    background: rgb(var(--muted-foreground) / 0.3);
     border-radius: 3px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    background: rgb(var(--muted-foreground) / 0.5);
   }
 }
