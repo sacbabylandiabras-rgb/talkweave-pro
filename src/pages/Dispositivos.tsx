@@ -37,19 +37,26 @@ const Dispositivos = () => {
       setQrCode(null);
       setQrCodeImage(null);
       
+      console.log('=== INICIANDO BUSCA QR CODE ===');
       const qrData = await getQRCode();
-      console.log('QR Data recebido:', qrData);
+      console.log('=== RESPOSTA COMPLETA DA API ===');
+      console.log('qrData completo:', JSON.stringify(qrData, null, 2));
+      console.log('qrData.data:', qrData.data);
+      console.log('qrData.data?.value:', qrData.data?.value);
+      console.log('qrData.data?.connected:', qrData.data?.connected);
+      console.log('==================================');
       
       if (qrData.data && qrData.data.value && typeof qrData.data.value === 'string' && qrData.data.value.length > 50) {
         const qrValue = qrData.data.value;
         setQrCode(qrValue);
         
         // Debug: Ver o formato do QR Code
-        console.log('=== QR CODE DEBUG ===');
+        console.log('=== QR CODE VÁLIDO ENCONTRADO ===');
         console.log('QR Code completo:', qrValue);
-        console.log('Primeiros 100 chars:', qrValue.substring(0, 100));
         console.log('Tamanho:', qrValue.length);
-        console.log('====================');
+        console.log('Contém @:', qrValue.includes('@'));
+        console.log('Primeiros 100 chars:', qrValue.substring(0, 100));
+        console.log('================================');
         
         // Gerar imagem do QR Code a partir da string
         try {
@@ -62,38 +69,46 @@ const Dispositivos = () => {
             }
           });
           setQrCodeImage(qrImageDataURL);
-          console.log('QR Code gerado como imagem:', qrImageDataURL.substring(0, 50) + '...');
+          console.log('QR Code imagem gerada com sucesso');
           toast({
             title: "✅ QR Code gerado",
             description: "Escaneie com seu WhatsApp para conectar"
           });
         } catch (qrError) {
-          console.error('Erro ao gerar QR Code:', qrError);
+          console.error('Erro ao gerar imagem do QR Code:', qrError);
           toast({
-            title: "❌ Erro ao gerar QR Code",
-            description: "Tente novamente em alguns segundos",
+            title: "❌ Erro ao gerar imagem QR Code",
+            description: "Mas o código de pareamento pode estar disponível",
+          });
+        }
+      } else {
+        console.log('=== QR CODE INVÁLIDO ===');
+        console.log('Motivos possíveis:');
+        console.log('- qrData.data existe?', !!qrData.data);
+        console.log('- qrData.data.value existe?', !!qrData.data?.value);
+        console.log('- É string?', typeof qrData.data?.value);
+        console.log('- Tamanho suficiente?', qrData.data?.value?.length || 0);
+        console.log('- Dispositivo conectado?', qrData.data?.connected);
+        console.log('======================');
+        
+        if (qrData.data && qrData.data.connected === true) {
+          toast({
+            title: "⚠️ Dispositivo já conectado",
+            description: "Use o botão 'Desconectar' primeiro para gerar novo QR Code",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "❌ QR Code indisponível", 
+            description: "Instância pode estar inicializando. Tente em alguns segundos ou reinicie.",
             variant: "destructive"
           });
         }
-      } else if (qrData.data && qrData.data.connected === true) {
-        // Dispositivo conectado - não há QR Code
-        console.log('Dispositivo conectado, sem QR Code disponível');
-        toast({
-          title: "⚠️ Dispositivo já conectado",
-          description: "Use o botão 'Desconectar' primeiro se quiser gerar novo QR Code",
-          variant: "destructive"
-        });
-      } else {
-        // Resposta inesperada ou inválida
-        console.log('Resposta inválida da API:', qrData);
-        toast({
-          title: "❌ QR Code indisponível", 
-          description: "Tente reiniciar a instância ou aguarde alguns segundos",
-          variant: "destructive"
-        });
       }
     } catch (error) {
-      console.error('Erro ao buscar QR Code:', error);
+      console.error('=== ERRO NA BUSCA QR CODE ===');
+      console.error('Erro completo:', error);
+      console.error('=============================');
       toast({
         title: "❌ Erro de conexão",
         description: "Verifique sua conexão e tente novamente",
