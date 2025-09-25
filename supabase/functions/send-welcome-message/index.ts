@@ -83,9 +83,9 @@ serve(async (req) => {
     const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
     console.log('Z-API Credentials check:', {
-      instanceId: zapiInstanceId ? 'SET' : 'MISSING',
-      token: zapiToken ? 'SET' : 'MISSING',
-      clientToken: zapiClientToken ? 'SET' : 'MISSING'
+      instanceId: zapiInstanceId ? `SET (${zapiInstanceId})` : 'MISSING',
+      token: zapiToken ? `SET (${zapiToken})` : 'MISSING',
+      clientToken: zapiClientToken ? `SET (${zapiClientToken})` : 'MISSING'
     });
 
     if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
