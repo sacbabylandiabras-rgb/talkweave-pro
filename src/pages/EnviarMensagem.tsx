@@ -29,7 +29,7 @@ const EnviarMensagem = () => {
   const [errors, setErrors] = useState<{phone?: string, message?: string}>({});
   
   // Estados para botões de ação (agora com todas as opções)
-  const [botoesAcao, setBotoesAcao] = useState([{id: "1", type: "REPLY" as "CALL" | "URL" | "REPLY" | "OPTION" | "COPY", label: "", phone: "", url: "", copyText: ""}]);
+  const [botoesAcao, setBotoesAcao] = useState([{id: "1", type: "REPLY" as "CALL" | "URL" | "REPLY" | "OPTION" | "COPY", label: "", phone: "", url: "", copyText: "", replyText: ""}]);
   
   // Estados para lista de opções
   const [tituloLista, setTituloLista] = useState("");
@@ -74,6 +74,7 @@ const EnviarMensagem = () => {
         if (btn.type === "CALL" && btn.phone.trim() === "") return false;
         if (btn.type === "URL" && btn.url.trim() === "") return false;
         if (btn.type === "COPY" && btn.copyText.trim() === "") return false;
+        if (btn.type === "REPLY" && btn.replyText.trim() === "") return false;
         return true;
       });
       
@@ -90,7 +91,8 @@ const EnviarMensagem = () => {
           label: btn.label,
           ...(btn.type === "CALL" && { phone: btn.phone }),
           ...(btn.type === "URL" && { url: btn.url }),
-          ...(btn.type === "COPY" && { copyText: btn.copyText })
+          ...(btn.type === "COPY" && { copyText: btn.copyText }),
+          ...(btn.type === "REPLY" && { replyText: btn.replyText })
         })),
         titulo || undefined,
         rodape || undefined
@@ -101,7 +103,7 @@ const EnviarMensagem = () => {
       setMensagem("");
       setTitulo("");
       setRodape("");
-      setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
+      setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: "", replyText: ""}]);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: {phone?: string, message?: string} = {};
@@ -155,7 +157,7 @@ const EnviarMensagem = () => {
   };
 
   const addActionButton = () => {
-    setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
+    setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: "", copyText: "", replyText: ""}]);
   };
 
   const removeActionButton = (index: number) => {
@@ -413,9 +415,18 @@ const EnviarMensagem = () => {
                           )}
 
                           {botao.type === "REPLY" && (
-                            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                              💡 Este botão enviará o texto como resposta quando clicado
-                            </p>
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Texto da resposta</Label>
+                              <Input
+                                placeholder="Texto que será enviado como resposta"
+                                value={botao.replyText}
+                                onChange={(e) => updateActionButton(index, 'replyText', e.target.value)}
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                💡 Este texto será enviado automaticamente quando o usuário clicar no botão
+                              </p>
+                            </div>
                           )}
 
                           {botao.type === "OPTION" && (
