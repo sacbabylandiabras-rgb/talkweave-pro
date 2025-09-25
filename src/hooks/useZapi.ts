@@ -79,6 +79,162 @@ export const useZapi = () => {
     }
   };
 
+  const sendButtonList = async (phone: string, message: string, buttons: Array<{id: string, label: string}>) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          message: message,
+          buttonList: {
+            buttons: buttons
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar mensagem com botões');
+      }
+
+      toast({
+        title: "Mensagem com botões enviada!",
+        description: "A mensagem foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar mensagem com botões:', error);
+      toast({
+        title: "Erro ao enviar mensagem", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendButtonActions = async (
+    phone: string, 
+    message: string, 
+    buttons: Array<{id: string, type: 'CALL' | 'URL' | 'REPLY', label: string, phone?: string, url?: string}>,
+    title?: string,
+    footer?: string
+  ) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-actions`;
+      
+      const payload: any = {
+        phone: phone,
+        message: message,
+        buttonActions: buttons
+      };
+
+      if (title) payload.title = title;
+      if (footer) payload.footer = footer;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar mensagem com botões de ação');
+      }
+
+      toast({
+        title: "Mensagem com botões de ação enviada!",
+        description: "A mensagem foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar mensagem com botões de ação:', error);
+      toast({
+        title: "Erro ao enviar mensagem", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOptionList = async (
+    phone: string, 
+    message: string, 
+    optionList: {
+      title: string,
+      buttonLabel: string,
+      options: Array<{id: string, title: string, description: string}>
+    }
+  ) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          message: message,
+          optionList: optionList
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar lista de opções');
+      }
+
+      toast({
+        title: "Lista de opções enviada!",
+        description: "A mensagem foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar lista de opções:', error);
+      toast({
+        title: "Erro ao enviar mensagem", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getDeviceStatus = async () => {
     setLoading(true);
     const config = getZAPIConfig();
@@ -320,6 +476,9 @@ export const useZapi = () => {
 
   return {
     sendMessage,
+    sendButtonList,
+    sendButtonActions,
+    sendOptionList,
     getDeviceStatus,
     getQRCode,
     getPairingCode,
