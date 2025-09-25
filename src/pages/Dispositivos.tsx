@@ -238,20 +238,7 @@ const Dispositivos = () => {
                   <PowerOff className="w-3 h-3" />
                   Desconectar
                 </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    onClick={() => setShowConnectOptions(!showConnectOptions)} 
-                    disabled={loading}
-                    className="flex items-center gap-2"
-                  >
-                    <QrCode className="w-3 h-3" />
-                    Conectar Dispositivo
-                  </Button>
-                </div>
-              )}
+              ) : null}
               
               <Button 
                 variant="outline" 
@@ -280,10 +267,10 @@ const Dispositivos = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Opções de Conexão */}
-            {showConnectOptions && !isConnected && (
+            {/* Opções de Conexão - Mostrar sempre quando desconectado */}
+            {!isConnected && (
               <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-4">🔗 Escolha como conectar:</h4>
+                <h4 className="font-medium mb-4">🔗 Conectar dispositivo:</h4>
                 
                 {/* Abas de escolha */}
                 <div className="flex justify-center mb-4">
