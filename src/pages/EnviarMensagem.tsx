@@ -28,10 +28,7 @@ const EnviarMensagem = () => {
   const [rodape, setRodape] = useState("");
   const [errors, setErrors] = useState<{phone?: string, message?: string}>({});
   
-  // Estados para botões simples
-  const [botoes, setBotoes] = useState([{id: "1", label: ""}]);
-  
-  // Estados para botões de ação
+  // Estados para botões de ação (agora único tipo de botão)
   const [botoesAcao, setBotoesAcao] = useState([{id: "1", type: "REPLY" as "CALL" | "URL" | "REPLY", label: "", phone: "", url: ""}]);
   
   // Estados para lista de opções
@@ -39,7 +36,7 @@ const EnviarMensagem = () => {
   const [labelBotaoLista, setLabelBotaoLista] = useState("Ver opções");
   const [opcoes, setOpcoes] = useState([{id: "1", title: "", description: ""}]);
   
-  const { sendMessage, sendButtonList, sendButtonActions, sendOptionList, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, loading } = useZapi();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,36 +50,6 @@ const EnviarMensagem = () => {
       // Limpar formulário após envio bem-sucedido
       setNumero("");
       setMensagem("");
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors: {phone?: string, message?: string} = {};
-        error.errors.forEach((err) => {
-          if (err.path[0] === 'phone') fieldErrors.phone = err.message;
-          if (err.path[0] === 'message') fieldErrors.message = err.message;
-        });
-        setErrors(fieldErrors);
-      }
-    }
-  };
-
-  const handleSendButtonList = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
-      setErrors({});
-      
-      const validButtons = botoes.filter(btn => btn.label.trim() !== "");
-      if (validButtons.length === 0) {
-        throw new Error("Adicione pelo menos um botão com texto");
-      }
-      
-      await sendButtonList(validatedData.phone, validatedData.message, validButtons);
-      
-      // Limpar formulário após envio bem-sucedido
-      setNumero("");
-      setMensagem("");
-      setBotoes([{id: "1", label: ""}]);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: {phone?: string, message?: string} = {};
@@ -185,22 +152,6 @@ const EnviarMensagem = () => {
     }
   };
 
-  const addButton = () => {
-    setBotoes([...botoes, {id: (botoes.length + 1).toString(), label: ""}]);
-  };
-
-  const removeButton = (index: number) => {
-    if (botoes.length > 1) {
-      setBotoes(botoes.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateButton = (index: number, field: string, value: string) => {
-    const newBotoes = [...botoes];
-    newBotoes[index] = {...newBotoes[index], [field]: value};
-    setBotoes(newBotoes);
-  };
-
   const addActionButton = () => {
     setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: ""}]);
   };
@@ -241,26 +192,22 @@ const EnviarMensagem = () => {
       </div>
 
       <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Texto
           </TabsTrigger>
           <TabsTrigger value="botoes" className="flex items-center gap-2">
             <MousePointer className="w-4 h-4" />
-            Botões
-          </TabsTrigger>
-          <TabsTrigger value="acoes" className="flex items-center gap-2">
-            <Send className="w-4 h-4" />
-            Ações
+            Botões Interativos
           </TabsTrigger>
           <TabsTrigger value="lista" className="flex items-center gap-2">
             <List className="w-4 h-4" />
-            Lista
+            Lista de Opções
           </TabsTrigger>
           <TabsTrigger value="massa" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Em Massa
+            Envio em Massa
           </TabsTrigger>
         </TabsList>
 
@@ -323,15 +270,15 @@ const EnviarMensagem = () => {
           </Card>
         </TabsContent>
 
-        {/* Mensagem com Botões Simples */}
+        {/* Botões Interativos Completos */}
         <TabsContent value="botoes" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Mensagem com Botões</CardTitle>
-              <CardDescription>Envie mensagem com botões de resposta rápida</CardDescription>
+              <CardTitle>Mensagem com Botões Interativos</CardTitle>
+              <CardDescription>Envie mensagem com botões para responder, ligar, abrir links + título e rodapé</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleSendButtonList}>
+              <form onSubmit={handleSendButtonActions}>
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="numero-botoes">Número do WhatsApp</Label>
@@ -347,100 +294,11 @@ const EnviarMensagem = () => {
                       <p className="text-sm text-destructive mt-1">{errors.phone}</p>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="mensagem-botoes">Mensagem</Label>
-                    <Textarea 
-                      id="mensagem-botoes"
-                      placeholder="Digite sua pergunta aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
-                      value={mensagem}
-                      onChange={(e) => setMensagem(e.target.value)}
-                    />
-                    {errors.message && (
-                      <p className="text-sm text-destructive mt-1">{errors.message}</p>
-                    )}
-                  </div>
                   
                   <div>
-                    <Label>Botões de Resposta</Label>
-                    <div className="space-y-2 mt-2">
-                      {botoes.map((botao, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            placeholder={`Botão ${index + 1}`}
-                            value={botao.label}
-                            onChange={(e) => updateButton(index, 'label', e.target.value)}
-                          />
-                          {botoes.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeButton(index)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addButton}
-                        className="flex items-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Adicionar Botão
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
-                    {loading ? (
-                      <>Enviando...</>
-                    ) : (
-                      <>
-                        <MousePointer className="w-4 h-4" />
-                        Enviar com Botões
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Mensagem com Botões de Ação */}
-        <TabsContent value="acoes" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mensagem com Botões de Ação</CardTitle>
-              <CardDescription>Envie mensagem com botões para ligar, abrir links ou responder</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleSendButtonActions}>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="numero-acoes">Número do WhatsApp</Label>
+                    <Label htmlFor="titulo-botoes">Título (opcional)</Label>
                     <Input 
-                      id="numero-acoes" 
-                      type="tel"
-                      placeholder="5511999999999"
-                      className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
-                      value={numero}
-                      onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
-                    />
-                    {errors.phone && (
-                      <p className="text-sm text-destructive mt-1">{errors.phone}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="titulo">Título (opcional)</Label>
-                    <Input 
-                      id="titulo" 
+                      id="titulo-botoes" 
                       placeholder="Título da mensagem"
                       value={titulo}
                       onChange={(e) => setTitulo(e.target.value)}
@@ -448,9 +306,9 @@ const EnviarMensagem = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="mensagem-acoes">Mensagem</Label>
+                    <Label htmlFor="mensagem-botoes">Mensagem</Label>
                     <Textarea 
-                      id="mensagem-acoes"
+                      id="mensagem-botoes"
                       placeholder="Digite sua mensagem aqui..."
                       className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
@@ -462,9 +320,9 @@ const EnviarMensagem = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="rodape">Rodapé (opcional)</Label>
+                    <Label htmlFor="rodape-botoes">Rodapé (opcional)</Label>
                     <Input 
-                      id="rodape" 
+                      id="rodape-botoes" 
                       placeholder="Texto do rodapé"
                       value={rodape}
                       onChange={(e) => setRodape(e.target.value)}
@@ -472,28 +330,32 @@ const EnviarMensagem = () => {
                   </div>
                   
                   <div>
-                    <Label>Botões de Ação</Label>
+                    <Label>Botões Interativos</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Configure botões para resposta rápida, fazer ligações ou abrir links
+                    </p>
                     <div className="space-y-4 mt-2">
                       {botoesAcao.map((botao, index) => (
-                        <div key={index} className="border rounded-lg p-4 space-y-3">
+                        <div key={index} className="border rounded-lg p-4 space-y-3 bg-muted/30">
                           <div className="flex gap-2 items-center">
                             <Select
                               value={botao.type}
                               onValueChange={(value: "CALL" | "URL" | "REPLY") => updateActionButton(index, 'type', value)}
                             >
-                              <SelectTrigger className="w-32">
+                              <SelectTrigger className="w-40">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="REPLY">Resposta</SelectItem>
-                                <SelectItem value="CALL">Ligar</SelectItem>
-                                <SelectItem value="URL">Link</SelectItem>
+                                <SelectItem value="REPLY">📋 Resposta Rápida</SelectItem>
+                                <SelectItem value="CALL">📞 Ligar</SelectItem>
+                                <SelectItem value="URL">🌐 Abrir Link</SelectItem>
                               </SelectContent>
                             </Select>
                             <Input
                               placeholder="Texto do botão"
                               value={botao.label}
                               onChange={(e) => updateActionButton(index, 'label', e.target.value)}
+                              className="flex-1"
                             />
                             {botoesAcao.length > 1 && (
                               <Button
@@ -508,19 +370,33 @@ const EnviarMensagem = () => {
                           </div>
                           
                           {botao.type === "CALL" && (
-                            <Input
-                              placeholder="Número para ligar (ex: 5511999999999)"
-                              value={botao.phone}
-                              onChange={(e) => updateActionButton(index, 'phone', e.target.value.replace(/\D/g, ''))}
-                            />
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Número para ligação</Label>
+                              <Input
+                                placeholder="5511999999999"
+                                value={botao.phone}
+                                onChange={(e) => updateActionButton(index, 'phone', e.target.value.replace(/\D/g, ''))}
+                                className="mt-1"
+                              />
+                            </div>
                           )}
                           
                           {botao.type === "URL" && (
-                            <Input
-                              placeholder="URL (ex: https://example.com)"
-                              value={botao.url}
-                              onChange={(e) => updateActionButton(index, 'url', e.target.value)}
-                            />
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Link de destino</Label>
+                              <Input
+                                placeholder="https://example.com"
+                                value={botao.url}
+                                onChange={(e) => updateActionButton(index, 'url', e.target.value)}
+                                className="mt-1"
+                              />
+                            </div>
+                          )}
+
+                          {botao.type === "REPLY" && (
+                            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                              💡 Este botão enviará o texto como resposta quando clicado
+                            </p>
                           )}
                         </div>
                       ))}
@@ -542,8 +418,8 @@ const EnviarMensagem = () => {
                       <>Enviando...</>
                     ) : (
                       <>
-                        <Send className="w-4 h-4" />
-                        Enviar com Botões de Ação
+                        <MousePointer className="w-4 h-4" />
+                        Enviar com Botões Interativos
                       </>
                     )}
                   </Button>
@@ -670,49 +546,161 @@ const EnviarMensagem = () => {
           </Card>
         </TabsContent>
 
-        {/* Envio em Massa - mantido como estava */}
+        {/* Envio em Massa com Template */}
         <TabsContent value="massa" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Envio em Massa</CardTitle>
-              <CardDescription>Envie mensagens para múltiplos contatos</CardDescription>
+              <CardDescription>Envie mensagens para múltiplos contatos usando lista ou planilha</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
+                  <li>Baixe o modelo de planilha abaixo</li>
+                  <li>Preencha com os números e nomes dos contatos</li>
+                  <li>Salve como arquivo CSV</li>
+                  <li>Faça o upload do arquivo ou cole a lista manualmente</li>
+                </ol>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Modelo de Planilha
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Baixe o modelo para organizar seus contatos
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      // Criar CSV de exemplo
+                      const csvContent = `nome,telefone
+João Silva,5511999999999
+Maria Santos,5511888888888
+Pedro Costa,5511777777777`;
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      link.href = URL.createObjectURL(blob);
+                      link.download = 'modelo_contatos_whatsapp.csv';
+                      link.click();
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Baixar Modelo CSV
+                  </Button>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Upload de Planilha
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Faça upload do arquivo CSV preenchido
+                  </p>
+                  <Input
+                    type="file"
+                    accept=".csv,.txt"
+                    className="w-full"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const csvData = event.target?.result as string;
+                          // Processar CSV e extrair números
+                          const lines = csvData.split('\n');
+                          const contacts = lines
+                            .slice(1) // Pular cabeçalho
+                            .map(line => {
+                              const [nome, telefone] = line.split(',');
+                              return telefone?.trim();
+                            })
+                            .filter(phone => phone && phone.length >= 10)
+                            .join('\n');
+                          setContatos(contacts);
+                        };
+                        reader.readAsText(file);
+                      }
+                    }}
+                  />
+                </Card>
+              </div>
+
               <div>
-                <Label htmlFor="contatos-massa">Lista de Contatos</Label>
+                <Label htmlFor="contatos-massa">
+                  Lista de Contatos
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (Um número por linha ou separados por vírgula)
+                  </span>
+                </Label>
                 <Textarea 
                   id="contatos-massa"
-                  placeholder="Digite os números separados por vírgula ou quebra de linha
-+55 11 99999-9999
-+55 11 88888-8888
-+55 11 77777-7777"
-                  className="mt-1 min-h-[120px]"
+                  placeholder="Digite ou cole os números aqui:
+5511999999999
+5511888888888
+5511777777777
+
+Ou separados por vírgula:
+5511999999999, 5511888888888, 5511777777777"
+                  className="mt-2 min-h-[140px] font-mono text-sm"
                   value={contatos}
                   onChange={(e) => setContatos(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {contatos ? `${contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length} números válidos encontrados` : 'Nenhum número adicionado'}
+                </p>
               </div>
+              
               <div>
-                <Label htmlFor="mensagem-massa">Mensagem</Label>
+                <Label htmlFor="mensagem-massa">Mensagem para Envio</Label>
                 <Textarea 
                   id="mensagem-massa"
-                  placeholder="Digite sua mensagem aqui..."
-                  className="mt-1 min-h-[120px]"
+                  placeholder="Digite sua mensagem aqui...
+
+Você pode usar variáveis:
+- {nome} para o nome do contato
+- {numero} para o número do contato"
+                  className="mt-2 min-h-[120px]"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  💡 Use {`{nome}`} e {`{numero}`} para personalizar a mensagem
+                </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Importar Lista
-                </Button>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Usar Modelo
+              
+              <div className="border-t pt-4">
+                <div className="flex gap-2 mb-4">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Image className="w-4 h-4" />
+                    Anexar Mídia
+                  </Button>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Usar Modelo
+                  </Button>
+                </div>
+                
+                <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    ⚠️ <strong>Importante:</strong> O envio em massa deve respeitar as políticas do WhatsApp. 
+                    Recomendamos intervalos entre envios e verificar se os números aceitam mensagens comerciais.
+                  </p>
+                </div>
+                
+                <Button className="w-full flex items-center gap-2" size="lg">
+                  <Send className="w-4 h-4" />
+                  Iniciar Envio em Massa
+                  <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
+                    {contatos ? contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length : 0} contatos
+                  </span>
                 </Button>
               </div>
-              <Button className="w-full flex items-center gap-2">
-                <Send className="w-4 h-4" />
-                Enviar para Todos
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
