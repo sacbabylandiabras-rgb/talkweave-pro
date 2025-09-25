@@ -23,6 +23,8 @@ const Modelos = () => {
     name: "",
     category: "",
     content: "",
+    header: "",
+    footer: "",
     variables: [] as string[],
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
   });
@@ -31,6 +33,8 @@ const Modelos = () => {
     name: "",
     category: "",
     content: "",
+    header: "",
+    footer: "",
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
   });
   const [campaignData, setCampaignData] = useState({

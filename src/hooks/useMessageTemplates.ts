@@ -7,6 +7,8 @@ export interface MessageTemplate {
   name: string;
   category: string;
   content: string;
+  header?: string;
+  footer?: string;
   variables: string[];
   usage_count: number;
   active: boolean;
