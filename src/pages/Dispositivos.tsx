@@ -63,7 +63,14 @@ const Dispositivos = () => {
     }
   }, [deviceStatus?.connected]);
 
-  const isOnline = deviceStatus?.connected === true;
+  const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
+  const needsConnection = !deviceStatus?.session || deviceStatus?.error?.includes("not connected");
+
+  console.log('=== DEBUG STATUS ===');
+  console.log('deviceStatus:', deviceStatus);
+  console.log('isOnline:', isOnline);
+  console.log('needsConnection:', needsConnection);
+  console.log('==================');
 
   return (
     <div className="space-y-6">
@@ -81,7 +88,7 @@ const Dispositivos = () => {
             )}
             Atualizar Status
           </Button>
-          {!isOnline && (
+          {needsConnection && (
             <Button variant="outline" className="flex items-center gap-2" onClick={fetchQRCode} disabled={loading}>
               <QrCode className="w-4 h-4" />
               Gerar QR Code
@@ -154,7 +161,7 @@ const Dispositivos = () => {
               </div>
             )}
 
-            {!isOnline && qrCodeImage && (
+            {needsConnection && qrCodeImage && (
               <div className="mt-4 p-4 bg-background border rounded-lg text-center">
                 <h4 className="font-medium mb-4">📱 Escolha como conectar:</h4>
                 
@@ -245,7 +252,7 @@ const Dispositivos = () => {
               </div>
             )}
 
-            {!isOnline && !qrCodeImage && qrCode && (
+            {needsConnection && !qrCodeImage && qrCode && (
               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   QR Code recebido, gerando imagem...
