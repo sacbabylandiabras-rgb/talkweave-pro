@@ -267,10 +267,10 @@ const Dispositivos = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Opções de Conexão - Mostrar sempre quando desconectado */}
+            {/* Opções de Conexão - Na parte de cima quando desconectado */}
             {!isConnected && (
-              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-4">🔗 Conectar dispositivo:</h4>
+              <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
+                <h4 className="font-medium mb-4 text-center">🔗 Conectar dispositivo WhatsApp</h4>
                 
                 {/* Abas de escolha */}
                 <div className="flex justify-center mb-4">
@@ -301,6 +301,7 @@ const Dispositivos = () => {
                       onClick={fetchQRCode} 
                       disabled={loading}
                       className="mb-4"
+                      size="lg"
                     >
                       <QrCode className="w-4 h-4 mr-2" />
                       Gerar QR Code
@@ -356,44 +357,9 @@ const Dispositivos = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Status da Instância</p>
-                <p className="font-semibold capitalize">
-                  {deviceStatus?.status || 'Desconhecido'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Bateria</p>
-                <p className="font-semibold">
-                  {deviceStatus?.battery || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Conexão</p>
-                <p className="font-semibold">
-                  {isOnline ? 'Conectado' : 'Desconectado'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Última Verificação</p>
-                <p className="font-semibold">
-                  {new Date().toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-            
-            {deviceStatus && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Informações Detalhadas:</h4>
-                <pre className="text-xs text-muted-foreground overflow-auto">
-                  {JSON.stringify(deviceStatus, null, 2)}
-                </pre>
-              </div>
-            )}
-
+            {/* QR Code Visual - Aparece logo depois das opções */}
             {needsQRCode && qrCodeImage && (
-              <div className="mt-4 p-4 bg-background border rounded-lg text-center">
+              <div className="mb-6 p-4 bg-background border rounded-lg text-center">
                 <h4 className="font-medium mb-4">📱 Escolha como conectar:</h4>
                 
                 {/* Abas para QR Code e Código */}
@@ -534,11 +500,48 @@ const Dispositivos = () => {
             )}
 
             {needsQRCode && !qrCodeImage && qrCode && (
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   QR Code recebido, gerando imagem...
                 </p>
                 <code className="text-xs break-all">{qrCode.substring(0, 100)}...</code>
+              </div>
+            )}
+
+            {/* Informações detalhadas embaixo */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Status da Instância</p>
+                <p className="font-semibold capitalize">
+                  {deviceStatus?.status || 'Desconhecido'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Bateria</p>
+                <p className="font-semibold">
+                  {deviceStatus?.battery || 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Conexão</p>
+                <p className="font-semibold">
+                  {isOnline ? 'Conectado' : 'Desconectado'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Última Verificação</p>
+                <p className="font-semibold">
+                  {new Date().toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+            
+            {deviceStatus && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Informações Detalhadas:</h4>
+                <pre className="text-xs text-muted-foreground overflow-auto">
+                  {JSON.stringify(deviceStatus, null, 2)}
+                </pre>
               </div>
             )}
           </CardContent>
