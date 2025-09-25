@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
+import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const messageSchema = z.object({
@@ -37,6 +38,7 @@ const EnviarMensagem = () => {
   const [opcoes, setOpcoes] = useState([{id: "1", title: "", description: ""}]);
   
   const { sendMessage, sendButtonActions, sendOptionList, loading } = useZapi();
+  const { toast } = useToast();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -601,23 +603,22 @@ const EnviarMensagem = () => {
                     Modelo de Planilha
                   </h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Baixe o modelo para organizar seus contatos
+                    Exemplo simples sem cabeçalho
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      // Criar CSV de exemplo
-                      const csvContent = `nome,telefone
-João Silva,5511999999999
+                      // Criar CSV de exemplo mais simples
+                      const csvContent = `João Silva,5511999999999
 Maria Santos,5511888888888
 Pedro Costa,5511777777777`;
                       
                       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                       const link = document.createElement('a');
                       link.href = URL.createObjectURL(blob);
-                      link.download = 'modelo_contatos_whatsapp.csv';
+                      link.download = 'modelo_contatos_simples.csv';
                       link.click();
                     }}
                   >
@@ -632,8 +633,19 @@ Pedro Costa,5511777777777`;
                     Upload de Planilha
                   </h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Faça upload do arquivo CSV preenchido
+                    Aceita qualquer planilha CSV com números de telefone
                   </p>
+                  <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800 mb-3">
+                    <p className="text-sm text-green-800 dark:text-green-200 font-medium mb-1">
+                      ✅ Formatos aceitos:
+                    </p>
+                    <ul className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                      <li>• Coluna A: Nomes, Coluna B: Telefones</li>
+                      <li>• Separadores: vírgula, ponto-vírgula ou tab</li>  
+                      <li>• Com ou sem cabeçalho</li>
+                      <li>• Detecta automaticamente números válidos</li>
+                    </ul>
+                  </div>
                   <Input
                     type="file"
                     accept=".csv,.txt"
@@ -644,17 +656,70 @@ Pedro Costa,5511777777777`;
                         const reader = new FileReader();
                         reader.onload = (event) => {
                           const csvData = event.target?.result as string;
-                          // Processar CSV e extrair números
-                          const lines = csvData.split('\n');
-                          const contacts = lines
-                            .slice(1) // Pular cabeçalho
-                            .map(line => {
-                              const [nome, telefone] = line.split(',');
-                              return telefone?.trim();
-                            })
-                            .filter(phone => phone && phone.length >= 10)
-                            .join('\n');
-                          setContatos(contacts);
+                          
+                          // Processar CSV de forma mais inteligente
+                          const lines = csvData.split('\n').filter(line => line.trim() !== '');
+                          
+                          let processedContacts: string[] = [];
+                          let hasHeader = false;
+                          
+                          // Detectar se primeira linha é cabeçalho
+                          if (lines.length > 0) {
+                            const firstLine = lines[0].toLowerCase();
+                            hasHeader = firstLine.includes('nome') || firstLine.includes('name') || 
+                                       firstLine.includes('telefone') || firstLine.includes('phone') ||
+                                       firstLine.includes('contato') || firstLine.includes('contact');
+                          }
+                          
+                          const dataLines = hasHeader ? lines.slice(1) : lines;
+                          
+                          dataLines.forEach((line, index) => {
+                            // Tentar diferentes separadores
+                            let parts: string[] = [];
+                            if (line.includes(',')) {
+                              parts = line.split(',');
+                            } else if (line.includes(';')) {
+                              parts = line.split(';');
+                            } else if (line.includes('\t')) {
+                              parts = line.split('\t');
+                            } else {
+                              // Se só tem um valor, assumir que é telefone
+                              parts = [line];
+                            }
+                            
+                            // Procurar por números de telefone nas colunas
+                            let phoneFound = false;
+                            for (const part of parts) {
+                              const cleaned = part.trim().replace(/\D/g, '');
+                              if (cleaned.length >= 10 && cleaned.length <= 15) {
+                                processedContacts.push(cleaned);
+                                phoneFound = true;
+                                break; // Pegar apenas o primeiro número válido da linha
+                              }
+                            }
+                            
+                            // Se não encontrou número válido, tentar extrair da linha inteira
+                            if (!phoneFound) {
+                              const lineNumbers = line.match(/\d{10,15}/g);
+                              if (lineNumbers && lineNumbers.length > 0) {
+                                processedContacts.push(lineNumbers[0]);
+                              }
+                            }
+                          });
+                          
+                          if (processedContacts.length > 0) {
+                            setContatos(processedContacts.join('\n'));
+                            toast({
+                              title: "✅ Planilha processada!",
+                              description: `${processedContacts.length} números válidos encontrados${hasHeader ? ' (cabeçalho detectado)' : ''}`,
+                            });
+                          } else {
+                            toast({
+                              title: "⚠️ Nenhum número encontrado",
+                              description: "Verifique se a planilha contém números de telefone válidos (10-15 dígitos)",
+                              variant: "destructive"
+                            });
+                          }
                         };
                         reader.readAsText(file);
                       }
