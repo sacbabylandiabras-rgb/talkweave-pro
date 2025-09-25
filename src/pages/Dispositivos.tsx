@@ -46,6 +46,13 @@ const Dispositivos = () => {
       if (qrData.data && qrData.data.value) {
         setQrCode(qrData.data.value);
         
+        // Debug: Ver o formato do QR Code
+        console.log('=== QR CODE DEBUG ===');
+        console.log('QR Code completo:', qrData.data.value);
+        console.log('Primeiros 50 chars:', qrData.data.value.substring(0, 50));
+        console.log('Dividido por vírgula:', qrData.data.value.split(','));
+        console.log('====================');
+        
         // Gerar imagem do QR Code a partir da string
         try {
           const qrImageDataURL = await QRCodeLib.toDataURL(qrData.data.value, {
@@ -359,14 +366,49 @@ const Dispositivos = () => {
                     </p>
                     <div className="bg-muted p-4 rounded-lg mb-4">
                       <code className="text-lg font-mono tracking-wider">
-                        {qrCode ? qrCode.split(',')[0].substring(2, 12) : 'Gerando...'}
+                        {qrCode ? (
+                          // Extrair código de pareamento real do QR Code
+                          (() => {
+                            try {
+                              // QR Code do WhatsApp geralmente tem formato: 1@<código>,<servidor>,<token>,...
+                              const parts = qrCode.split(',');
+                              if (parts[0] && parts[0].includes('@')) {
+                                // Pegar a parte depois do @ e antes da vírgula
+                                const afterAt = parts[0].split('@')[1];
+                                if (afterAt && afterAt.length >= 8) {
+                                  // Pegar os primeiros 8 caracteres para o código de pareamento
+                                  return afterAt.substring(0, 8).toUpperCase();
+                                }
+                              }
+                              // Se não conseguir extrair, mostrar uma parte do QR code original
+                              return qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
+                            } catch (e) {
+                              return 'Gerando...';
+                            }
+                          })()
+                        ) : 'Gerando...'}
                       </code>
                       <Button
                         variant="outline"
                         size="sm"
                         className="ml-2"
                         onClick={() => {
-                          const code = qrCode ? qrCode.split(',')[0].substring(2, 12) : '';
+                          const code = qrCode ? (
+                            (() => {
+                              try {
+                                const parts = qrCode.split(',');
+                                if (parts[0] && parts[0].includes('@')) {
+                                  const afterAt = parts[0].split('@')[1];
+                                  if (afterAt && afterAt.length >= 8) {
+                                    return afterAt.substring(0, 8).toUpperCase();
+                                  }
+                                }
+                                return qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
+                              } catch (e) {
+                                return '';
+                              }
+                            })()
+                          ) : '';
                           navigator.clipboard.writeText(code);
                           toast({
                             title: "✅ Código copiado!",
