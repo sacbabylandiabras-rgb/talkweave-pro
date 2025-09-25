@@ -261,74 +261,57 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
+      const { instanceId, token, clientToken } = getZAPIConfig();
+      const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/phone-code/${phoneNumber}`;
+      
+      console.log('Gerando código de pareamento Z-API para:', phoneNumber);
+      
       toast({
-        title: "🔍 Gerando código real",
-        description: "Processando solicitação no servidor...",
+        title: "🔍 Gerando código Z-API",
+        description: "Processando solicitação...",
       });
       
-      // Usar edge function para gerar código real
-      const response = await fetch('/api/get-pairing-code', {
-        method: 'POST',
+      const response = await fetch(zapiUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phoneNumber: phoneNumber
-        })
+          'Client-Token': clientToken
+        }
       });
-      
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: Falha no servidor`);
-      }
       
       const result = await response.json();
       
-      if (result.success && result.data) {
+      if (response.ok && result.code) {
         toast({
-          title: "✅ Código REAL gerado!",
-          description: `Código: ${result.data.code} - Válido por 10 minutos`,
+          title: "🎯 Código Z-API gerado!",
+          description: `Código: ${result.code}`,
+          variant: "default"
         });
-        
-        // Simular processo de verificação em tempo real
-        setTimeout(() => {
-          toast({
-            title: "📱 Código ativo",
-            description: "Digite o código no WhatsApp para conectar",
-          });
-        }, 2000);
         
         return { 
           success: true, 
           data: { 
-            code: result.data.code,
+            code: result.code,
             isReal: true,
-            expiresAt: result.data.expiresAt,
-            method: 'backend'
+            method: 'zapi'
           } 
         };
       } else {
-        throw new Error("Falha ao gerar código no servidor");
+        throw new Error(result.error || "Falha ao gerar código na Z-API");
       }
       
     } catch (error) {
-      console.error('Erro ao gerar código de pareamento real:', error);
-      
-      // Fallback: gerar código local se servidor falhar
-      const fallbackCode = Math.floor(10000000 + Math.random() * 90000000).toString();
+      console.error('Erro ao gerar código de pareamento Z-API:', error);
       
       toast({
-        title: "⚡ Código gerado localmente",
-        description: `Código: ${fallbackCode} (servidor indisponível)`,
+        title: "❌ Erro ao gerar código",
+        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive"
       });
       
       return { 
-        success: true, 
-        data: { 
-          code: fallbackCode,
-          isReal: false,
-          method: 'fallback'
-        } 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       };
     } finally {
       setLoading(false);

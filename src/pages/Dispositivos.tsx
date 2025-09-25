@@ -110,23 +110,13 @@ const Dispositivos = () => {
         
         if (result.data.isReal) {
           toast({
-            title: "🎯 Código REAL do servidor!",
+            title: "🎯 Código REAL da Z-API!",
             description: `Código: ${result.data.code} - Use no WhatsApp`,
           });
-          
-          // Monitorar expiração
-          if (result.data.expiresAt) {
-            setTimeout(() => {
-              toast({
-                title: "⏰ Código expirando",
-                description: "Código válido por mais 5 minutos",
-              });
-            }, 5 * 60 * 1000); // 5 minutos
-          }
         } else {
           toast({
-            title: "⚡ Código gerado",
-            description: `Código: ${result.data.code} (fallback)`,
+            title: "⚡ Erro ao gerar código",
+            description: `${result.error || 'Erro desconhecido'}`,
           });
         }
       }
