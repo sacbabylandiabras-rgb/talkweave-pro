@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const ConfiguracaoZAPI = () => {
   const [instanceId, setInstanceId] = useState("3E6DD0DEED00C0FD52197AE2AD17DA62");
-  const [token, setToken] = useState("9E09CAB81F22452F5954C6C2");
+  const [token, setToken] = useState("9E09CAB81F22425F5954C6C2");
   const [clientToken, setClientToken] = useState("Fd1c0871baaa5449db5ea1628166c0566S");
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [statusInfo, setStatusInfo] = useState<any>(null);

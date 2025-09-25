@@ -7,10 +7,10 @@ const getZAPIConfig = () => {
   if (saved) {
     return JSON.parse(saved);
   }
-  // Fallback para as credenciais antigas
+  // Credenciais atualizadas da imagem
   return {
     instanceId: '3E6DD0DEED00C0FD52197AE2AD17DA62',
-    token: '9E09CAB81F22452F5954C6C2',
+    token: '9E09CAB81F22425F5954C6C2',
     clientToken: 'Fd1c0871baaa5449db5ea1628166c0566S'
   };
 };
