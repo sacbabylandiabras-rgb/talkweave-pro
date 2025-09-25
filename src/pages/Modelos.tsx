@@ -77,11 +77,13 @@ const Modelos = () => {
         name: newTemplate.name,
         category: newTemplate.category,
         content: newTemplate.content,
+        header: newTemplate.header,
+        footer: newTemplate.footer,
         variables,
         buttons: newTemplate.buttons,
       });
 
-      setNewTemplate({ name: "", category: "", content: "", variables: [], buttons: [] });
+      setNewTemplate({ name: "", category: "", content: "", header: "", footer: "", variables: [], buttons: [] });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -148,6 +150,8 @@ const Modelos = () => {
       name: template.name,
       category: template.category,
       content: template.content,
+      header: template.header || "",
+      footer: template.footer || "",
       buttons: template.buttons || [],
     });
     setEditingTemplate(template.id);
@@ -174,12 +178,14 @@ const Modelos = () => {
         name: editFormData.name,
         category: editFormData.category,
         content: editFormData.content,
+        header: editFormData.header,
+        footer: editFormData.footer,
         variables,
         buttons: editFormData.buttons,
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", content: "", buttons: [] });
+      setEditFormData({ name: "", category: "", content: "", header: "", footer: "", buttons: [] });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -187,7 +193,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", content: "", buttons: [] });
+    setEditFormData({ name: "", category: "", content: "", header: "", footer: "", buttons: [] });
   };
 
   const addButton = (isEdit = false) => {
@@ -493,6 +499,19 @@ const Modelos = () => {
                     placeholder="Ex: Vendas, Suporte"
                   />
                 </div>
+                
+                <div>
+                  <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
+                  <Input
+                    id="template-header"
+                    value={newTemplate.header}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
+                    placeholder="Ex: Oferta Especial"
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
+                </div>
+                
                 <div>
                   <Label htmlFor="template-content">Conteúdo do Modelo</Label>
                   <Textarea
@@ -502,6 +521,18 @@ const Modelos = () => {
                     placeholder="Digite o conteúdo do modelo..."
                     rows={4}
                   />
+                </div>
+                
+                <div>
+                  <Label htmlFor="template-footer">Rodapé da Mensagem (opcional)</Label>
+                  <Input
+                    id="template-footer"
+                    value={newTemplate.footer}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, footer: e.target.value }))}
+                    placeholder="Ex: Empresa XYZ - www.exemplo.com"
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Aparece no final da mensagem no WhatsApp</p>
                 </div>
 
                 <ButtonEditor buttons={newTemplate.buttons} />
@@ -577,8 +608,18 @@ const Modelos = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 p-3 rounded-lg mb-3">
+              <div className="bg-muted/50 p-3 rounded-lg mb-3 space-y-2">
+                {template.header && (
+                  <div className="text-xs font-semibold text-primary border-b pb-1">
+                    📋 {template.header}
+                  </div>
+                )}
                 <p className="text-sm">{template.content}</p>
+                {template.footer && (
+                  <div className="text-xs text-muted-foreground border-t pt-1">
+                    {template.footer}
+                  </div>
+                )}
               </div>
               
               {/* Ações rápidas */}
@@ -683,6 +724,19 @@ const Modelos = () => {
                 placeholder="Ex: Vendas, Suporte"
               />
             </div>
+            
+            <div>
+              <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
+              <Input
+                id="edit-template-header"
+                value={editFormData.header}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
+                placeholder="Ex: Oferta Especial"
+                maxLength={60}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
+            </div>
+            
             <div>
               <Label htmlFor="edit-template-content">Conteúdo do Modelo</Label>
               <Textarea
@@ -692,6 +746,18 @@ const Modelos = () => {
                 placeholder="Digite o conteúdo do modelo..."
                 rows={4}
               />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-template-footer">Rodapé da Mensagem (opcional)</Label>
+              <Input
+                id="edit-template-footer"
+                value={editFormData.footer}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, footer: e.target.value }))}
+                placeholder="Ex: Empresa XYZ - www.exemplo.com"
+                maxLength={60}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Aparece no final da mensagem no WhatsApp</p>
             </div>
 
             <ButtonEditor buttons={editFormData.buttons} isEdit={true} />

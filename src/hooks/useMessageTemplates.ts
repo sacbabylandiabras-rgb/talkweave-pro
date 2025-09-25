@@ -37,6 +37,8 @@ export const useMessageTemplates = () => {
         name: item.name,
         category: item.category,
         content: item.content,
+        header: item.header || "",
+        footer: item.footer || "",
         variables: Array.isArray(item.variables) ? item.variables.filter(v => typeof v === 'string') : [],
         usage_count: item.usage_count || 0,
         active: item.active || false,
@@ -60,6 +62,8 @@ export const useMessageTemplates = () => {
     name: string;
     category: string;
     content: string;
+    header?: string;
+    footer?: string;
     variables?: string[];
     buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
   }) => {
@@ -70,6 +74,8 @@ export const useMessageTemplates = () => {
           name: templateData.name,
           category: templateData.category,
           content: templateData.content,
+          header: templateData.header,
+          footer: templateData.footer,
           variables: templateData.variables || [],
           buttons: templateData.buttons || [],
         })
@@ -83,6 +89,8 @@ export const useMessageTemplates = () => {
         name: data.name,
         category: data.category,
         content: data.content,
+        header: data.header || "",
+        footer: data.footer || "",
         variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : [],
         usage_count: data.usage_count || 0,
         active: data.active || false,
@@ -125,6 +133,8 @@ export const useMessageTemplates = () => {
             name: data.name,
             category: data.category,
             content: data.content,
+            header: data.header || template.header || "",
+            footer: data.footer || template.footer || "",
             variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : template.variables,
             usage_count: data.usage_count || template.usage_count,
             active: data.active !== undefined ? data.active : template.active,
@@ -183,6 +193,8 @@ export const useMessageTemplates = () => {
         name: `${template.name} (Cópia)`,
         category: template.category,
         content: template.content,
+        header: template.header,
+        footer: template.footer,
         variables: template.variables,
         buttons: template.buttons || [],
       };
