@@ -1,0 +1,250 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  category: string;
+  content: string;
+  variables: string[];
+  usage_count: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const useMessageTemplates = () => {
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTemplates((data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        content: item.content,
+        variables: Array.isArray(item.variables) ? item.variables.filter(v => typeof v === 'string') : [],
+        usage_count: item.usage_count || 0,
+        active: item.active || false,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      })));
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar modelos de mensagem",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTemplate = async (templateData: {
+    name: string;
+    category: string;
+    content: string;
+    variables?: string[];
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('message_templates')
+        .insert({
+          name: templateData.name,
+          category: templateData.category,
+          content: templateData.content,
+          variables: templateData.variables || [],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTemplates(prev => [{
+        id: data.id,
+        name: data.name,
+        category: data.category,
+        content: data.content,
+        variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : [],
+        usage_count: data.usage_count || 0,
+        active: data.active || false,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      }, ...prev]);
+      toast({
+        title: "Sucesso",
+        description: "Modelo criado com sucesso",
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao criar modelo",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const updateTemplate = async (id: string, updates: Partial<MessageTemplate>) => {
+    try {
+      const { data, error } = await supabase
+        .from('message_templates')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTemplates(prev => 
+        prev.map(template => 
+          template.id === id ? { 
+            id: data.id,
+            name: data.name,
+            category: data.category,
+            content: data.content,
+            variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : template.variables,
+            usage_count: data.usage_count || template.usage_count,
+            active: data.active !== undefined ? data.active : template.active,
+            created_at: data.created_at || template.created_at,
+            updated_at: data.updated_at || template.updated_at,
+          } : template
+        )
+      );
+
+      toast({
+        title: "Sucesso",
+        description: "Modelo atualizado com sucesso",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error updating template:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar modelo",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deleteTemplate = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .update({ active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTemplates(prev => prev.filter(template => template.id !== id));
+      toast({
+        title: "Sucesso",
+        description: "Modelo removido com sucesso",
+      });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover modelo",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const duplicateTemplate = async (template: MessageTemplate) => {
+    try {
+      const newTemplate = {
+        name: `${template.name} (Cópia)`,
+        category: template.category,
+        content: template.content,
+        variables: template.variables,
+      };
+
+      return await createTemplate(newTemplate);
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      throw error;
+    }
+  };
+
+  const incrementUsage = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .update({ 
+          usage_count: (templates.find(t => t.id === id)?.usage_count || 0) + 1
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTemplates(prev => 
+        prev.map(template => 
+          template.id === id 
+            ? { ...template, usage_count: template.usage_count + 1 }
+            : template
+        )
+      );
+    } catch (error) {
+      console.error('Error incrementing usage:', error);
+    }
+  };
+
+  const getUniqueCategories = () => {
+    const categories = templates.map(template => template.category);
+    return [...new Set(categories)];
+  };
+
+  const filterByCategory = (category: string) => {
+    if (category === 'Todos') return templates;
+    return templates.filter(template => template.category === category);
+  };
+
+  const processVariables = (content: string, variables: Record<string, string>) => {
+    let processedContent = content;
+    
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{${key}}`, 'g');
+      processedContent = processedContent.replace(regex, value);
+    });
+
+    return processedContent;
+  };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  return {
+    templates,
+    loading,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+    duplicateTemplate,
+    incrementUsage,
+    getUniqueCategories,
+    filterByCategory,
+    processVariables,
+    refetch: loadTemplates,
+  };
+};

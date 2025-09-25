@@ -65,6 +65,103 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_sends: {
+        Row: {
+          campaign_id: string
+          contact_name: string | null
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          message_content: string
+          phone: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_id: string
+          contact_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content: string
+          phone: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          contact_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content?: string
+          phone?: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          recurrence_pattern: string | null
+          schedule_type: string | null
+          scheduled_at: string | null
+          status: string | null
+          target_audience: Json | null
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_logs: {
         Row: {
           created_at: string
@@ -92,6 +189,42 @@ export type Database = {
           phone?: string
           response_sent?: string | null
           timestamp?: string
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          active: boolean | null
+          category: string
+          content: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          active?: boolean | null
+          category: string
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          usage_count?: number | null
+          variables?: Json | null
         }
         Relationships: []
       }
