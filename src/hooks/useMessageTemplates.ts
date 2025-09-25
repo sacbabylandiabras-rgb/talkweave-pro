@@ -40,6 +40,7 @@ export const useMessageTemplates = () => {
         active: item.active || false,
         created_at: item.created_at,
         updated_at: item.updated_at,
+        buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -85,6 +86,7 @@ export const useMessageTemplates = () => {
         active: data.active || false,
         created_at: data.created_at,
         updated_at: data.updated_at,
+        buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
       }, ...prev]);
       toast({
         title: "Sucesso",
@@ -126,6 +128,7 @@ export const useMessageTemplates = () => {
             active: data.active !== undefined ? data.active : template.active,
             created_at: data.created_at || template.created_at,
             updated_at: data.updated_at || template.updated_at,
+            buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : template.buttons || [],
           } : template
         )
       );
@@ -179,6 +182,7 @@ export const useMessageTemplates = () => {
         category: template.category,
         content: template.content,
         variables: template.variables,
+        buttons: template.buttons || [],
       };
 
       return await createTemplate(newTemplate);

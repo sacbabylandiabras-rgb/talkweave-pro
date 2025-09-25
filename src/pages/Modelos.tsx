@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle } from "lucide-react";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +74,7 @@ const Modelos = () => {
         category: newTemplate.category,
         content: newTemplate.content,
         variables,
+        buttons: newTemplate.buttons,
       });
 
       setNewTemplate({ name: "", category: "", content: "", variables: [], buttons: [] });
@@ -184,6 +185,157 @@ const Modelos = () => {
     setEditingTemplate(null);
     setEditFormData({ name: "", category: "", content: "", buttons: [] });
   };
+
+  const addButton = (isEdit = false) => {
+    const newButton = {
+      id: Date.now().toString(),
+      text: "",
+      type: 'reply' as 'reply' | 'url' | 'call',
+      value: "",
+    };
+    
+    if (isEdit) {
+      setEditFormData(prev => ({
+        ...prev,
+        buttons: [...prev.buttons, newButton]
+      }));
+    } else {
+      setNewTemplate(prev => ({
+        ...prev,
+        buttons: [...prev.buttons, newButton]
+      }));
+    }
+  };
+
+  const updateButton = (index: number, field: string, value: string, isEdit = false) => {
+    if (isEdit) {
+      setEditFormData(prev => ({
+        ...prev,
+        buttons: prev.buttons.map((btn, i) => 
+          i === index ? { ...btn, [field]: value } : btn
+        )
+      }));
+    } else {
+      setNewTemplate(prev => ({
+        ...prev,
+        buttons: prev.buttons.map((btn, i) => 
+          i === index ? { ...btn, [field]: value } : btn
+        )
+      }));
+    }
+  };
+
+  const removeButton = (index: number, isEdit = false) => {
+    if (isEdit) {
+      setEditFormData(prev => ({
+        ...prev,
+        buttons: prev.buttons.filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewTemplate(prev => ({
+        ...prev,
+        buttons: prev.buttons.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const ButtonEditor = ({ buttons, isEdit = false }: { buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, isEdit?: boolean }) => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>Botões de Ação</Label>
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm" 
+          onClick={() => addButton(isEdit)}
+          disabled={buttons.length >= 3}
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Adicionar Botão
+        </Button>
+      </div>
+      
+      {buttons.map((button, index) => (
+        <div key={button.id} className="border rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Botão {index + 1}</span>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => removeButton(index, isEdit)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Texto do Botão</Label>
+              <Input
+                placeholder="Ex: Confirmar Pedido"
+                value={button.text}
+                onChange={(e) => updateButton(index, 'text', e.target.value, isEdit)}
+                maxLength={20}
+              />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select 
+                value={button.type} 
+                onValueChange={(value) => updateButton(index, 'type', value, isEdit)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reply">
+                    <div className="flex items-center">
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Resposta Rápida
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="url">
+                    <div className="flex items-center">
+                      <Link className="w-4 h-4 mr-2" />
+                      Link/URL
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="call">
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Ligar
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {(button.type === 'url' || button.type === 'call') && (
+            <div>
+              <Label>{button.type === 'url' ? 'URL' : 'Número de Telefone'}</Label>
+              <Input
+                placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
+                value={button.value || ''}
+                onChange={(e) => updateButton(index, 'value', e.target.value, isEdit)}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+      
+      {buttons.length === 0 && (
+        <div className="text-center py-4 text-muted-foreground text-sm">
+          Nenhum botão adicionado. Clique em "Adicionar Botão" para criar um.
+        </div>
+      )}
+      
+      <div className="bg-muted/50 p-2 rounded text-xs text-muted-foreground">
+        💡 Máximo 3 botões por modelo. Botões de resposta rápida enviam texto automático, links abrem URLs e botões de ligar iniciam chamadas.
+      </div>
+    </div>
+  );
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
@@ -338,6 +490,9 @@ const Modelos = () => {
                     rows={4}
                   />
                 </div>
+
+                <ButtonEditor buttons={newTemplate.buttons} />
+
                 <div className="bg-muted/50 p-3 rounded-lg">
                   <h4 className="text-sm font-medium mb-1">Variáveis Disponíveis:</h4>
                   <div className="text-xs text-muted-foreground space-y-1">
@@ -447,6 +602,22 @@ const Modelos = () => {
                   </div>
                 </div>
               )}
+
+              {template.buttons && template.buttons.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-muted-foreground mb-1">Botões configurados:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {template.buttons.map((button, index) => (
+                      <Badge key={index} variant="outline" className="text-xs flex items-center gap-1">
+                        {button.type === 'reply' && <MessageCircle className="w-3 h-3" />}
+                        {button.type === 'url' && <Link className="w-3 h-3" />}
+                        {button.type === 'call' && <Phone className="w-3 h-3" />}
+                        {button.text || 'Botão sem texto'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -504,6 +675,9 @@ const Modelos = () => {
                 rows={4}
               />
             </div>
+
+            <ButtonEditor buttons={editFormData.buttons} isEdit={true} />
+
             <div className="bg-muted/50 p-3 rounded-lg">
               <h4 className="text-sm font-medium mb-1">Variáveis Disponíveis:</h4>
               <div className="text-xs text-muted-foreground space-y-1">
