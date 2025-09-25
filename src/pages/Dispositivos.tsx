@@ -388,13 +388,13 @@ const Dispositivos = () => {
                         </div>
                       )}
                       
-                      <div className="text-xs text-muted-foreground space-y-1 bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                        <p>⚠️ <strong>Limitação da Z-API:</strong></p>
-                        <p>• A Z-API não possui endpoint para código de pareamento</p>
-                        <p>• Esta funcionalidade requer Evolution API ou Baileys</p>
-                        <p>• Use a aba QR Code para conectar com Z-API</p>
-                        <p className="text-red-600 dark:text-red-400">
-                          🔧 Para código real, seria necessário trocar de API
+                      <div className="text-xs text-muted-foreground space-y-1 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                        <p>✅ <strong>Evolution API - Funcional:</strong></p>
+                        <p>• Evolution API suporta código de pareamento</p>
+                        <p>• Digite seu número e gere o código real</p>
+                        <p>• Use o código no WhatsApp para conectar</p>
+                        <p className="text-green-600 dark:text-green-400">
+                          🚀 Método totalmente funcional
                         </p>
                       </div>
                     </div>

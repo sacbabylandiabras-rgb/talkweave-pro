@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 // Função para obter configurações do localStorage
-const getZAPIConfig = () => {
-  const saved = localStorage.getItem('zapLynx_zapi_config');
+const getEvolutionConfig = () => {
+  const saved = localStorage.getItem('zapLynx_evolution_config');
   if (saved) {
     return JSON.parse(saved);
   }
-  // Credenciais atualizadas da imagem
+  // Configuração padrão Evolution API
   return {
-    instanceId: '3E6DD0DEED00C0FD52197AE2AD17DA62',
-    token: '9E09CAB81F22425F5954C6C2',
-    clientToken: 'Fd1c0871baaa5449db5ea1628166c0566S'
+    baseUrl: 'https://evolution-api.com', // Será atualizado com a URL real
+    instanceName: 'zaplynx-instance',
+    apiKey: 'evolution-api-key' // Será atualizado
   };
 };
 
@@ -21,7 +21,7 @@ export const useZapi = () => {
 
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
@@ -81,17 +81,17 @@ export const useZapi = () => {
 
   const getDeviceStatus = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
-      console.log('Buscando status do dispositivo Z-API:', url);
+      const url = `${config.baseUrl}/instance/connectionState/${config.instanceName}`;
+      console.log('Buscando status do dispositivo Evolution API:', url);
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+          'apikey': config.apiKey
         },
       });
 
@@ -104,18 +104,19 @@ export const useZapi = () => {
         if (data.message) errorMessage += `: ${data.message}`;
         if (data.error) errorMessage += `: ${data.error}`;
         
-        if (response.status === 400 && data.error === 'Instance not found') {
-          errorMessage = '❌ Instância Z-API não encontrada! Verifique suas credenciais na página "Config Z-API".';
-        } else if (response.status === 404) {
-          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
-        } else if (response.status === 401) {
-          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
-        }
-        
         throw new Error(errorMessage);
       }
 
-      return { success: true, data };
+      // Mapear resposta da Evolution API para formato esperado
+      const mappedData = {
+        connected: data.state === 'open',
+        session: data.state === 'open', 
+        created: Date.now(),
+        error: data.state !== 'open' ? 'You are not connected.' : null,
+        smartphoneConnected: data.state === 'open'
+      };
+
+      return { success: true, data: mappedData };
     } catch (error) {
       console.error('Erro ao buscar status:', error);
       toast({
@@ -131,17 +132,17 @@ export const useZapi = () => {
 
   const getQRCode = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/qr-code`;
-      console.log('Buscando QR Code da Z-API:', url);
+      const url = `${config.baseUrl}/instance/connect/${config.instanceName}`;
+      console.log('Buscando QR Code da Evolution API:', url);
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+          'apikey': config.apiKey
         },
       });
 
@@ -154,18 +155,16 @@ export const useZapi = () => {
         if (data.message) errorMessage += `: ${data.message}`;
         if (data.error) errorMessage += `: ${data.error}`;
         
-        if (response.status === 400 && data.error === 'Instance not found') {
-          errorMessage = '❌ Instância Z-API não encontrada! Acesse "Config Z-API" no menu e atualize suas credenciais.';
-        } else if (response.status === 404) {
-          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
-        } else if (response.status === 401) {
-          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
-        }
-        
         throw new Error(errorMessage);
       }
 
-      return { success: true, data };
+      // Evolution API retorna { code: "qr-string", pairingCode: "XXXX", count: 1 }
+      return { success: true, data: { 
+        value: data.code, 
+        pairingCode: data.pairingCode,
+        connected: data.state === 'open' || false,
+        session: data.state === 'open' || false
+      } };
     } catch (error) {
       console.error('Erro ao buscar QR Code:', error);
       toast({
@@ -181,7 +180,7 @@ export const useZapi = () => {
 
   const disconnectDevice = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
@@ -228,7 +227,7 @@ export const useZapi = () => {
 
   const restartInstance = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/restart`;
@@ -275,23 +274,19 @@ export const useZapi = () => {
 
   const getPairingCode = async (phoneNumber: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
+    const config = getEvolutionConfig();
     
     try {
-      // Nota: Este endpoint pode não existir na Z-API atual
-      // Vamos tentar o endpoint pairing-code baseado em outras APIs similares
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/pairing-code`;
-      console.log('Buscando código de pareamento Z-API:', url);
+      // Evolution API: o mesmo endpoint /instance/connect retorna tanto QR quanto pairing code
+      const url = `${config.baseUrl}/instance/connect/${config.instanceName}`;
+      console.log('Buscando código de pareamento Evolution API:', url);
       
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phoneNumber
-        })
+          'apikey': config.apiKey
+        }
       });
 
       console.log('Pairing code response status:', response.status);
@@ -299,16 +294,6 @@ export const useZapi = () => {
       console.log('Pairing code data:', data);
 
       if (!response.ok) {
-        // Se o endpoint não existir (404), informar que não há suporte
-        if (response.status === 404 || response.status === 400) {
-          toast({
-            title: "⚠️ Funcionalidade não disponível",
-            description: "A Z-API atualmente só suporta conexão via QR Code. Use a aba QR Code para conectar.",
-            variant: "destructive"
-          });
-          return { success: false, error: "Endpoint não encontrado" };
-        }
-        
         let errorMessage = `Erro ${response.status}`;
         if (data.message) errorMessage += `: ${data.message}`;
         if (data.error) errorMessage += `: ${data.error}`;
@@ -316,12 +301,22 @@ export const useZapi = () => {
         throw new Error(errorMessage);
       }
 
-      return { success: true, data };
+      // Evolution API retorna { pairingCode: "XXXX", code: "qr-string", count: 1 }
+      if (data.pairingCode) {
+        toast({
+          title: "✅ Código de pareamento gerado",
+          description: `Código: ${data.pairingCode}`,
+        });
+        return { success: true, data: { code: data.pairingCode } };
+      } else {
+        throw new Error("Pairing code não encontrado na resposta");
+      }
+
     } catch (error) {
       console.error('Erro ao buscar código de pareamento:', error);
       toast({
-        title: "❌ Método não suportado",
-        description: "A Z-API atualmente só suporta conexão via QR Code",
+        title: "❌ Erro ao gerar código",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       });
       throw error;
