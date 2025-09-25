@@ -393,8 +393,8 @@ const Dispositivos = () => {
                       </div>
                     </div>
 
-                    {/* Código de Pareamento Visual - quando há QR Code */}
-                    {qrCode && qrCode.length > 20 && !qrCode.includes('"connected"') && (
+                    {/* Código de Pareamento Visual - APENAS quando há QR Code VÁLIDO */}
+                    {qrCode && qrCode.length > 100 && qrCode.includes('@') && !qrCode.includes('"connected"') && (
                       <div className="mt-4 pt-4 border-t">
                         <p className="text-sm text-muted-foreground mb-4 text-center">
                           📱 Código de pareamento para {phoneNumber}:
@@ -403,6 +403,7 @@ const Dispositivos = () => {
                           <code className="text-2xl font-mono tracking-widest font-bold text-primary">
                             {(() => {
                               try {
+                                // Só extrair se for um QR Code real do WhatsApp
                                 const parts = qrCode.split(',');
                                 if (parts[0] && parts[0].includes('@')) {
                                   const afterAt = parts[0].split('@')[1];
@@ -410,10 +411,9 @@ const Dispositivos = () => {
                                     return afterAt.substring(0, 8).toUpperCase();
                                   }
                                 }
-                                const match = qrCode.match(/[A-Z0-9]{8,}/);
-                                return match ? match[0].substring(0, 8) : 'PROCESSANDO...';
+                                return 'AGUARDE...';
                               } catch (e) {
-                                return 'GERANDO...';
+                                return 'PROCESSANDO...';
                               }
                             })()}
                           </code>
@@ -430,18 +430,23 @@ const Dispositivos = () => {
                                         return afterAt.substring(0, 8).toUpperCase();
                                       }
                                     }
-                                    const match = qrCode.match(/[A-Z0-9]{8,}/);
-                                    return match ? match[0].substring(0, 8) : '';
+                                    return '';
                                   } catch (e) {
                                     return '';
                                   }
                                 })();
                                 
-                                if (code && code !== 'PROCESSANDO...' && code !== 'GERANDO...') {
+                                if (code && code !== 'AGUARDE...' && code !== 'PROCESSANDO...' && code.length === 8) {
                                   navigator.clipboard.writeText(code);
                                   toast({
                                     title: "✅ Código copiado!",
                                     description: "Cole no WhatsApp do número " + phoneNumber,
+                                  });
+                                } else {
+                                  toast({
+                                    title: "❌ Código inválido",
+                                    description: "Aguarde o código ser gerado corretamente",
+                                    variant: "destructive"
                                   });
                                 }
                               }}
@@ -457,6 +462,19 @@ const Dispositivos = () => {
                           <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
                           <p>4. Escolha <strong>"Conectar com código"</strong></p>
                           <p>5. Digite o código acima</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mensagem quando QR Code é inválido */}
+                    {qrCode && (qrCode.length <= 100 || !qrCode.includes('@') || qrCode.includes('"connected"')) && (
+                      <div className="mt-4 pt-4 border-t text-center">
+                        <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg">
+                          <p className="text-sm text-destructive font-medium mb-2">⚠️ Código não disponível</p>
+                          <p className="text-xs text-muted-foreground">
+                            A instância pode estar conectada ou há problema na geração do código.
+                            Tente desconectar primeiro ou reiniciar a instância.
+                          </p>
                         </div>
                       </div>
                     )}
