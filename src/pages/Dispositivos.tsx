@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
+import QRCodeLib from 'qrcode';
 
 const Dispositivos = () => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const { getDeviceStatus, getQRCode, loading } = useZapi();
 
   const fetchDeviceStatus = async () => {
@@ -22,8 +24,28 @@ const Dispositivos = () => {
   const fetchQRCode = async () => {
     try {
       const qrData = await getQRCode();
-      if (qrData.data && qrData.data.qrcode) {
-        setQrCode(qrData.data.qrcode);
+      console.log('QR Data recebido:', qrData);
+      
+      if (qrData.data && qrData.data.value) {
+        setQrCode(qrData.data.value);
+        
+        // Gerar imagem do QR Code a partir da string
+        try {
+          const qrImageDataURL = await QRCodeLib.toDataURL(qrData.data.value, {
+            width: 256,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          setQrCodeImage(qrImageDataURL);
+          console.log('QR Code gerado como imagem:', qrImageDataURL.substring(0, 50) + '...');
+        } catch (qrError) {
+          console.error('Erro ao gerar QR Code:', qrError);
+        }
+      } else {
+        console.log('Estrutura inesperada da resposta:', qrData);
       }
     } catch (error) {
       console.error('Erro ao buscar QR Code:', error);
@@ -32,7 +54,7 @@ const Dispositivos = () => {
 
   useEffect(() => {
     fetchDeviceStatus();
-    // Se o dispositivo não estiver conectado, buscar QR Code
+    // Se o dispositivo não estiver conectado, buscar QR Code automaticamente
     if (deviceStatus?.connected === false) {
       fetchQRCode();
     }
@@ -129,19 +151,41 @@ const Dispositivos = () => {
               </div>
             )}
 
-            {!isOnline && qrCode && (
+            {!isOnline && qrCodeImage && (
               <div className="mt-4 p-4 bg-background border rounded-lg text-center">
-                <h4 className="font-medium mb-4">Escaneie o QR Code para conectar:</h4>
-                <div className="flex justify-center">
+                <h4 className="font-medium mb-4">📱 Escaneie o QR Code para conectar:</h4>
+                <div className="flex justify-center mb-4">
                   <img 
-                    src={qrCode} 
+                    src={qrCodeImage} 
                     alt="QR Code para conectar WhatsApp" 
                     className="w-64 h-64 border rounded-lg"
                   />
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Abra o WhatsApp no seu celular e escaneie este código
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>1. Abra o WhatsApp no seu celular</p>
+                  <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                  <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                  <p>4. Escaneie este código</p>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={fetchQRCode}
+                  disabled={loading}
+                >
+                  🔄 Renovar QR Code
+                </Button>
+              </div>
+            )}
+
+            {!isOnline && !qrCodeImage && qrCode && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  QR Code recebido, gerando imagem...
                 </p>
+                <code className="text-xs break-all">{qrCode.substring(0, 100)}...</code>
               </div>
             )}
           </CardContent>
