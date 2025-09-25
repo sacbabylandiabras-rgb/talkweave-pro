@@ -13,7 +13,7 @@ import { useCampaigns } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 
 const Modelos = () => {
-  const { templates, loading, createTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
+  const { templates, loading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
   const { createCampaign } = useCampaigns();
   const { toast } = useToast();
   
@@ -25,6 +25,11 @@ const Modelos = () => {
     variables: [] as string[],
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    category: "",
+    content: "",
+  });
   const [campaignData, setCampaignData] = useState({
     name: "",
     description: "",
@@ -123,6 +128,51 @@ const Modelos = () => {
     } catch (error) {
       console.error('Error creating campaign:', error);
     }
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setEditFormData({
+      name: template.name,
+      category: template.category,
+      content: template.content,
+    });
+    setEditingTemplate(template.id);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editFormData.name || !editFormData.category || !editFormData.content) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Extract variables from content
+      const variableMatches = editFormData.content.match(/{([^}]+)}/g);
+      const variables = variableMatches 
+        ? variableMatches.map(match => match.slice(1, -1))
+        : [];
+
+      await updateTemplate(editingTemplate!, {
+        name: editFormData.name,
+        category: editFormData.category,
+        content: editFormData.content,
+        variables,
+      });
+
+      setEditingTemplate(null);
+      setEditFormData({ name: "", category: "", content: "" });
+    } catch (error) {
+      console.error('Error updating template:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTemplate(null);
+    setEditFormData({ name: "", category: "", content: "" });
   };
 
   if (loading) {
@@ -320,7 +370,7 @@ const Modelos = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setEditingTemplate(template.id)}
+                    onClick={() => handleEditTemplate(template)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -368,6 +418,66 @@ const Modelos = () => {
           </Card>
         )}
       </div>
+
+      {/* Dialog de Edição */}
+      <Dialog open={!!editingTemplate} onOpenChange={() => handleCancelEdit()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Modelo</DialogTitle>
+            <DialogDescription>
+              Modifique as informações do modelo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-template-name">Nome do Modelo</Label>
+              <Input
+                id="edit-template-name"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Ex: Saudação Personalizada"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-template-category">Categoria</Label>
+              <Input
+                id="edit-template-category"
+                value={editFormData.category}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="Ex: Vendas, Suporte"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-template-content">Conteúdo do Modelo</Label>
+              <Textarea
+                id="edit-template-content"
+                value={editFormData.content}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Digite o conteúdo do modelo..."
+                rows={4}
+              />
+            </div>
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <h4 className="text-sm font-medium mb-1">Variáveis Disponíveis:</h4>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div><code>{"{nome}"}</code> - Nome do contato</div>
+                <div><code>{"{empresa}"}</code> - Nome da empresa</div>
+                <div><code>{"{data}"}</code> - Data atual</div>
+                <div><code>{"{hora}"}</code> - Hora atual</div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateTemplate}>
+              <Save className="w-4 h-4 mr-2" />
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
