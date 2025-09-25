@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search } from "lucide-react";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ const Modelos = () => {
   const { toast } = useToast();
   
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [searchTerm, setSearchTerm] = useState("");
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     category: "",
@@ -40,9 +41,14 @@ const Modelos = () => {
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
 
   const categories = ["Todos", ...new Set(templates.map(t => t.category))];
-  const filteredTemplates = selectedCategory === "Todos" 
-    ? templates 
-    : templates.filter(t => t.category === selectedCategory);
+  const filteredTemplates = templates.filter(template => {
+    const matchesCategory = selectedCategory === "Todos" || template.category === selectedCategory;
+    const matchesSearch = searchTerm === "" || 
+      template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      template.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      template.category.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const handleCreateTemplate = async () => {
     if (!newTemplate.name || !newTemplate.category || !newTemplate.content) {
@@ -184,6 +190,17 @@ const Modelos = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Modelos de Mensagem</h1>
         <p className="text-muted-foreground">Gerencie e organize seus modelos de mensagem</p>
+      </div>
+
+      {/* Campo de busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          placeholder="Buscar modelos por nome, categoria ou conteúdo..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       <div className="flex justify-between items-center">
@@ -365,7 +382,7 @@ const Modelos = () => {
                     onClick={() => handleDuplicateTemplate(template)}
                   >
                     <Copy className="w-4 h-4" />
-                    Duplicar
+                    <span className="hidden sm:inline">Duplicar</span>
                   </Button>
                   <Button 
                     variant="outline" 
@@ -373,21 +390,47 @@ const Modelos = () => {
                     onClick={() => handleEditTemplate(template)}
                   >
                     <Edit className="w-4 h-4" />
+                    <span className="hidden sm:inline">Editar</span>
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="destructive" 
                     size="sm"
                     onClick={() => handleDeleteTemplate(template.id)}
                   >
                     <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Excluir</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 p-3 rounded-lg">
+              <div className="bg-muted/50 p-3 rounded-lg mb-3">
                 <p className="text-sm">{template.content}</p>
               </div>
+              
+              {/* Ações rápidas */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => {
+                    setCampaignData(prev => ({ ...prev, template_id: template.id }));
+                    setShowCampaignDialog(true);
+                  }}
+                >
+                  <Send className="w-4 h-4 mr-1" />
+                  Usar em Campanha
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => navigator.clipboard.writeText(template.content)}
+                >
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copiar Texto
+                </Button>
+              </div>
+
               {template.variables && template.variables.length > 0 && (
                 <div className="mt-3">
                   <p className="text-xs text-muted-foreground mb-1">Variáveis utilizadas:</p>
