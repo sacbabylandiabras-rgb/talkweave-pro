@@ -270,8 +270,8 @@ export const useZapi = () => {
       // Simular delay realista
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Gerar código no formato real do WhatsApp (6 dígitos para SMS)
-      const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Gerar código no formato real do WhatsApp (8 dígitos)
+      const pairingCode = Math.floor(10000000 + Math.random() * 90000000).toString();
       
       toast({
         title: "✅ Código de pareamento gerado",
