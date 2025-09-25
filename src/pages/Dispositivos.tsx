@@ -29,6 +29,16 @@ const Dispositivos = () => {
       const qrData = await getQRCode();
       console.log('QR Data recebido:', qrData);
       
+      // Se já está conectado, precisa desconectar primeiro
+      if (qrData.data && qrData.data.connected === true) {
+        toast({
+          title: "⚠️ Dispositivo já conectado",
+          description: "Desconecte o WhatsApp Web atual antes de gerar novo QR Code",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       if (qrData.data && qrData.data.value) {
         setQrCode(qrData.data.value);
         
@@ -44,14 +54,33 @@ const Dispositivos = () => {
           });
           setQrCodeImage(qrImageDataURL);
           console.log('QR Code gerado como imagem:', qrImageDataURL.substring(0, 50) + '...');
+          toast({
+            title: "✅ QR Code gerado",
+            description: "Escaneie com seu WhatsApp para conectar"
+          });
         } catch (qrError) {
           console.error('Erro ao gerar QR Code:', qrError);
+          toast({
+            title: "❌ Erro ao gerar QR Code",
+            description: "Tente novamente em alguns segundos",
+            variant: "destructive"
+          });
         }
       } else {
         console.log('Estrutura inesperada da resposta:', qrData);
+        toast({
+          title: "❌ QR Code não disponível",
+          description: "Tente atualizar o status e gerar novamente",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Erro ao buscar QR Code:', error);
+      toast({
+        title: "❌ Erro de conexão",
+        description: "Verifique sua conexão e tente novamente",
+        variant: "destructive"
+      });
     }
   };
 
