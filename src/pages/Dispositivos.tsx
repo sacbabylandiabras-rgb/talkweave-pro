@@ -97,11 +97,13 @@ const Dispositivos = () => {
   }, [deviceStatus?.connected]);
 
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
-  const needsConnection = !deviceStatus?.session || deviceStatus?.error?.includes("not connected");
+  const isConnected = deviceStatus?.connected === true;
+  const needsConnection = !isConnected;
 
   console.log('=== DEBUG STATUS ===');
   console.log('deviceStatus:', deviceStatus);
   console.log('isOnline:', isOnline);
+  console.log('isConnected:', isConnected);
   console.log('needsConnection:', needsConnection);
   console.log('==================');
 
@@ -207,7 +209,23 @@ const Dispositivos = () => {
                 Atualizar Status
               </Button>
               
-              {needsConnection ? (
+              {isConnected ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    toast({
+                      title: "⚠️ Desconectar dispositivo",
+                      description: "Vá no WhatsApp Web e desconecte manualmente este dispositivo",
+                    });
+                  }}
+                >
+                  <PowerOff className="w-3 h-3" />
+                  Desconectar
+                </Button>
+              ) : (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -217,16 +235,6 @@ const Dispositivos = () => {
                 >
                   <QrCode className="w-3 h-3" />
                   Conectar Device
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                >
-                  <PowerOff className="w-3 h-3" />
-                  Desconectar
                 </Button>
               )}
               
