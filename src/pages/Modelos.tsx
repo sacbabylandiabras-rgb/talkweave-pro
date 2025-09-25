@@ -344,8 +344,13 @@ const Modelos = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Modelos de Mensagem</h1>
-        <p className="text-muted-foreground">Gerencie e organize seus modelos de mensagem</p>
+        <div className="flex items-center gap-3 mb-2">
+          <FileText className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Modelos de Mensagem</h1>
+            <p className="text-muted-foreground">Gerencie e organize seus modelos de mensagem personalizados</p>
+          </div>
+        </div>
       </div>
 
       {/* Campo de busca */}
@@ -454,11 +459,14 @@ const Modelos = () => {
                 Novo Modelo
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Novo Modelo</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Criar Novo Modelo
+                </DialogTitle>
                 <DialogDescription>
-                  Adicione um novo modelo de mensagem
+                  Configure um novo modelo de mensagem com texto personalizado e botões interativos
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -503,11 +511,11 @@ const Modelos = () => {
                   </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-6 border-t">
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateTemplate}>
+                <Button onClick={handleCreateTemplate} className="w-full sm:w-auto">
                   <Save className="w-4 h-4 mr-2" />
                   Salvar Modelo
                 </Button>
@@ -639,11 +647,14 @@ const Modelos = () => {
 
       {/* Dialog de Edição */}
       <Dialog open={!!editingTemplate} onOpenChange={() => handleCancelEdit()}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Modelo</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Editar Modelo
+            </DialogTitle>
             <DialogDescription>
-              Modifique as informações do modelo
+              Modifique as configurações do modelo de mensagem
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -688,11 +699,11 @@ const Modelos = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancelEdit}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-6 border-t">
+            <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleUpdateTemplate}>
+            <Button onClick={handleUpdateTemplate} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
               Salvar Alterações
             </Button>
