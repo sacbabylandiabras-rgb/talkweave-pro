@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip } from "lucide-react";
+import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import MediaModelSection from "@/components/envio/MediaModelSection";
 
 const messageSchema = z.object({
   phone: z.string()
@@ -41,11 +42,12 @@ const EnviarMensagem = () => {
   const [arquivoMidia, setArquivoMidia] = useState<File | null>(null);
   const [legenda, setLegenda] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
-  
+  const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
+
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
   
-  // Modelos pré-definidos (vem da página Modelos)
+  // Modelos pré-definidos
   const modelosDisponiveis = [
     {
       id: 1,
@@ -259,6 +261,144 @@ const EnviarMensagem = () => {
     }
   };
 
+  // Função para envio em massa com delay
+  const handleSendMassa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!contatos.trim()) {
+      toast({
+        title: "Lista vazia",
+        description: "Adicione pelo menos um contato para enviar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!mensagem.trim()) {
+      toast({
+        title: "Mensagem vazia",
+        description: "Digite uma mensagem para enviar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Processar lista de contatos
+      const linhas = contatos.split('\n').filter(linha => linha.trim());
+      const contatosProcessados = [];
+      
+      for (const linha of linhas) {
+        const parts = linha.split(/[,;\t]/).map(p => p.trim());
+        let nome = '';
+        let telefone = '';
+        
+        // Detectar automaticamente qual parte é o telefone
+        for (const part of parts) {
+          const numeroLimpo = part.replace(/\D/g, '');
+          if (numeroLimpo.length >= 10 && numeroLimpo.length <= 15) {
+            telefone = numeroLimpo;
+            nome = parts.find(p => p !== part)?.trim() || `Contato ${contatosProcessados.length + 1}`;
+            break;
+          }
+        }
+        
+        if (telefone) {
+          contatosProcessados.push({ nome, telefone });
+        }
+      }
+
+      if (contatosProcessados.length === 0) {
+        toast({
+          title: "Nenhum contato válido",
+          description: "Verifique se os números têm entre 10 e 15 dígitos",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Iniciando envio em massa",
+        description: `Enviando para ${contatosProcessados.length} contatos com delay de ${delay}s`,
+      });
+
+      let enviados = 0;
+      let erros = 0;
+
+      for (let i = 0; i < contatosProcessados.length; i++) {
+        const contato = contatosProcessados[i];
+        
+        try {
+          // Personalizar mensagem
+          let mensagemPersonalizada = mensagem
+            .replace(/\{nome\}/g, contato.nome)
+            .replace(/\{numero\}/g, contato.telefone);
+
+          // Verificar se há mídia anexada
+          if (arquivoMidia) {
+            const base64File = await convertToBase64(arquivoMidia);
+            const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+            
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+            const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+            const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+            
+            const isImage = imageExtensions.includes(fileExtension || '');
+            const isVideo = videoExtensions.includes(fileExtension || '');
+            const isAudio = audioExtensions.includes(fileExtension || '');
+
+            if (isImage) {
+              await sendImage(contato.telefone, base64File, legenda || mensagemPersonalizada);
+            } else if (isVideo) {
+              await sendVideo(contato.telefone, base64File, legenda || mensagemPersonalizada);
+            } else if (isAudio) {
+              await sendAudio(contato.telefone, base64File, legenda || mensagemPersonalizada);
+            } else {
+              await sendDocument(contato.telefone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
+            }
+          } else {
+            await sendMessage(contato.telefone, mensagemPersonalizada);
+          }
+          
+          enviados++;
+          
+          toast({
+            title: `Enviado para ${contato.nome}`,
+            description: `Progresso: ${i + 1}/${contatosProcessados.length}`,
+          });
+
+          // Delay entre mensagens (exceto na última)
+          if (i < contatosProcessados.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, delay * 1000));
+          }
+          
+        } catch (error) {
+          erros++;
+          console.error(`Erro ao enviar para ${contato.nome}:`, error);
+        }
+      }
+
+      toast({
+        title: "Envio em massa concluído!",
+        description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
+        variant: enviados > 0 ? "default" : "destructive"
+      });
+
+      // Limpar formulário
+      setMensagem("");
+      setContatos("");
+      setArquivoMidia(null);
+      setLegenda("");
+
+    } catch (error) {
+      toast({
+        title: "Erro no envio em massa",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive"
+      });
+    }
+  };
+
   const addActionButton = () => {
     setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
   };
@@ -447,121 +587,32 @@ const EnviarMensagem = () => {
                     </p>
                   </div>
                   
-                  {/* Seção de Mídia e Modelos */}
-                  <div className="border-t pt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Anexar Mídia */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Paperclip className="w-4 h-4" />
-                          Anexar Mídia
-                        </h4>
-                        <div className="space-y-3">
-                          <Input
-                            type="file"
-                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (file.size > 64 * 1024 * 1024) { // 64MB limit
-                                  toast({
-                                    title: "Arquivo muito grande",
-                                    description: "O arquivo deve ter no máximo 64MB",
-                                    variant: "destructive"
-                                  });
-                                  return;
-                                }
-                                setArquivoMidia(file);
-                              }
-                            }}
-                            className="text-sm"
-                          />
-                          {arquivoMidia && (
-                            <div className="bg-muted p-2 rounded text-sm">
-                              <p className="font-medium">{arquivoMidia.name}</p>
-                              <p className="text-muted-foreground">
-                                {(arquivoMidia.size / (1024 * 1024)).toFixed(2)} MB
-                              </p>
-                            </div>
-                          )}
-                          <Input
-                            placeholder="Legenda da mídia (opcional)"
-                            value={legenda}
-                            onChange={(e) => setLegenda(e.target.value)}
-                          />
-                          {arquivoMidia && (
-                            <Button
-                              type="button"
-                              onClick={handleSendWithMedia}
-                              disabled={loading}
-                              className="w-full flex items-center gap-2"
-                              variant="outline"
-                            >
-                              {loading ? (
-                                <>Enviando...</>
-                              ) : (
-                                <>
-                                  <Upload className="w-4 h-4" />
-                                  Enviar com Mídia
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </Card>
-
-                      {/* Usar Modelo */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Usar Modelo
-                        </h4>
-                        <div className="space-y-3">
-                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um modelo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {modelosDisponiveis.map((modelo) => (
-                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
-                                  <div>
-                                    <p className="font-medium">{modelo.nome}</p>
-                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {modeloSelecionado && (
-                            <div className="bg-muted p-3 rounded text-sm">
-                              <p className="font-medium mb-1">Preview:</p>
-                              <p className="text-muted-foreground">
-                                {modelosDisponiveis.find(m => m.id.toString() === modeloSelecionado)?.conteudo}
-                              </p>
-                            </div>
-                          )}
-                          <Button
-                            type="button"
-                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-                            disabled={!modeloSelecionado}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            Aplicar Modelo
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-                  </div>
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
                       <>Enviando...</>
                     ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Enviar Mensagem
-                      </>
+                      arquivoMidia ? (
+                        <>
+                          <Paperclip className="w-4 h-4" />
+                          Enviar com Mídia
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Enviar Mensagem
+                        </>
+                      )
                     )}
                   </Button>
                 </div>
@@ -741,84 +792,16 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
-                  {/* Seção de Mídia e Modelos para Botões */}
-                  <div className="border-t pt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Anexar Mídia */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Paperclip className="w-4 h-4" />
-                          Anexar Mídia
-                        </h4>
-                        <div className="space-y-3">
-                          <Input
-                            type="file"
-                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (file.size > 64 * 1024 * 1024) {
-                                  toast({
-                                    title: "Arquivo muito grande",
-                                    description: "O arquivo deve ter no máximo 64MB",
-                                    variant: "destructive"
-                                  });
-                                  return;
-                                }
-                                setArquivoMidia(file);
-                              }
-                            }}
-                            className="text-sm"
-                          />
-                          {arquivoMidia && (
-                            <div className="bg-muted p-2 rounded text-sm">
-                              📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
-                            </div>
-                          )}
-                          <Input
-                            placeholder="Legenda para mídia (opcional)"
-                            value={legenda}
-                            onChange={(e) => setLegenda(e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
-                      </Card>
-
-                      {/* Usar Modelo */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Usar Modelo
-                        </h4>
-                        <div className="space-y-3">
-                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um modelo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {modelosDisponiveis.map((modelo) => (
-                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
-                                  <div>
-                                    <p className="font-medium">{modelo.nome}</p>
-                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-                            disabled={!modeloSelecionado}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            Aplicar ao Texto Principal
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-                  </div>
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
@@ -937,84 +920,16 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
-                  {/* Seção de Mídia e Modelos para Lista */}
-                  <div className="border-t pt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Anexar Mídia */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Paperclip className="w-4 h-4" />
-                          Anexar Mídia
-                        </h4>
-                        <div className="space-y-3">
-                          <Input
-                            type="file"
-                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (file.size > 64 * 1024 * 1024) {
-                                  toast({
-                                    title: "Arquivo muito grande",
-                                    description: "O arquivo deve ter no máximo 64MB",
-                                    variant: "destructive"
-                                  });
-                                  return;
-                                }
-                                setArquivoMidia(file);
-                              }
-                            }}
-                            className="text-sm"
-                          />
-                          {arquivoMidia && (
-                            <div className="bg-muted p-2 rounded text-sm">
-                              📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
-                            </div>
-                          )}
-                          <Input
-                            placeholder="Legenda para mídia (opcional)"
-                            value={legenda}
-                            onChange={(e) => setLegenda(e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
-                      </Card>
-
-                      {/* Usar Modelo */}
-                      <Card className="p-4">
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Usar Modelo
-                        </h4>
-                        <div className="space-y-3">
-                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um modelo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {modelosDisponiveis.map((modelo) => (
-                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
-                                  <div>
-                                    <p className="font-medium">{modelo.nome}</p>
-                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-                            disabled={!modeloSelecionado}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            Aplicar ao Texto Principal
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-                  </div>
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
@@ -1040,264 +955,182 @@ const EnviarMensagem = () => {
               <CardDescription>Envie mensagens para múltiplos contatos usando lista ou planilha</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
-                  <li>Baixe o modelo de planilha abaixo</li>
-                  <li>Preencha com os números e nomes dos contatos</li>
-                  <li>Salve como arquivo CSV</li>
-                  <li>Faça o upload do arquivo ou cole a lista manualmente</li>
-                </ol>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Modelo de Planilha
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Exemplo simples sem cabeçalho
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      // Criar CSV de exemplo mais simples
-                      const csvContent = `João Silva,5511999999999
-Maria Santos,5511888888888
-Pedro Costa,5511777777777`;
-                      
-                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                      const link = document.createElement('a');
-                      link.href = URL.createObjectURL(blob);
-                      link.download = 'modelo_contatos_simples.csv';
-                      link.click();
-                    }}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Baixar Modelo CSV
-                  </Button>
-                </Card>
-
-                <Card className="p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Upload de Planilha
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Aceita qualquer planilha CSV com números de telefone
-                  </p>
-                  <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800 mb-3">
-                    <p className="text-sm text-green-800 dark:text-green-200 font-medium mb-1">
-                      ✅ Formatos aceitos:
-                    </p>
-                    <ul className="text-xs text-green-700 dark:text-green-300 space-y-1">
-                      <li>• Coluna A: Nomes, Coluna B: Telefones</li>
-                      <li>• Separadores: vírgula, ponto-vírgula ou tab</li>  
-                      <li>• Com ou sem cabeçalho</li>
-                      <li>• Detecta automaticamente números válidos</li>
-                    </ul>
+              <form onSubmit={handleSendMassa}>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
+                      <li>Baixe o modelo de planilha abaixo</li>
+                      <li>Preencha com os números e nomes dos contatos</li>
+                      <li>Salve como arquivo CSV</li>
+                      <li>Faça o upload do arquivo ou cole a lista manualmente</li>
+                    </ol>
                   </div>
-                  <Input
-                    type="file"
-                    accept=".csv,.txt"
-                    className="w-full"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          const csvData = event.target?.result as string;
-                          
-                          // Processar CSV de forma mais inteligente
-                          const lines = csvData.split('\n').filter(line => line.trim() !== '');
-                          
-                          let processedContacts: string[] = [];
-                          let hasHeader = false;
-                          
-                          // Detectar se primeira linha é cabeçalho
-                          if (lines.length > 0) {
-                            const firstLine = lines[0].toLowerCase();
-                            hasHeader = firstLine.includes('nome') || firstLine.includes('name') || 
-                                       firstLine.includes('telefone') || firstLine.includes('phone') ||
-                                       firstLine.includes('contato') || firstLine.includes('contact');
-                          }
-                          
-                          const dataLines = hasHeader ? lines.slice(1) : lines;
-                          
-                          dataLines.forEach((line, index) => {
-                            // Tentar diferentes separadores
-                            let parts: string[] = [];
-                            if (line.includes(',')) {
-                              parts = line.split(',');
-                            } else if (line.includes(';')) {
-                              parts = line.split(';');
-                            } else if (line.includes('\t')) {
-                              parts = line.split('\t');
-                            } else {
-                              // Se só tem um valor, assumir que é telefone
-                              parts = [line];
-                            }
-                            
-                            // Procurar por números de telefone nas colunas
-                            let phoneFound = false;
-                            for (const part of parts) {
-                              const cleaned = part.trim().replace(/\D/g, '');
-                              if (cleaned.length >= 10 && cleaned.length <= 15) {
-                                processedContacts.push(cleaned);
-                                phoneFound = true;
-                                break; // Pegar apenas o primeiro número válido da linha
-                              }
-                            }
-                            
-                            // Se não encontrou número válido, tentar extrair da linha inteira
-                            if (!phoneFound) {
-                              const lineNumbers = line.match(/\d{10,15}/g);
-                              if (lineNumbers && lineNumbers.length > 0) {
-                                processedContacts.push(lineNumbers[0]);
-                              }
-                            }
-                          });
-                          
-                          if (processedContacts.length > 0) {
-                            setContatos(processedContacts.join('\n'));
-                            toast({
-                              title: "✅ Planilha processada!",
-                              description: `${processedContacts.length} números válidos encontrados${hasHeader ? ' (cabeçalho detectado)' : ''}`,
-                            });
-                          } else {
-                            toast({
-                              title: "⚠️ Nenhum número encontrado",
-                              description: "Verifique se a planilha contém números de telefone válidos (10-15 dígitos)",
-                              variant: "destructive"
-                            });
-                          }
-                        };
-                        reader.readAsText(file);
-                      }
-                    }}
-                  />
-                </Card>
-              </div>
 
-              <div>
-                <Label htmlFor="contatos-massa">
-                  Lista de Contatos
-                  <span className="text-sm text-muted-foreground ml-2">
-                    (Um número por linha ou separados por vírgula)
-                  </span>
-                </Label>
-                <Textarea 
-                  id="contatos-massa"
-                  placeholder="Digite ou cole os números aqui:
-5511999999999
-5511888888888
-5511777777777
-
-Ou separados por vírgula:
-5511999999999, 5511888888888, 5511777777777"
-                  className="mt-2 min-h-[140px] font-mono text-sm"
-                  value={contatos}
-                  onChange={(e) => setContatos(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {contatos ? `${contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length} números válidos encontrados` : 'Nenhum número adicionado'}
-                </p>
-              </div>
-              
-              <div>
-                <Label htmlFor="mensagem-massa">Mensagem para Envio</Label>
-                <Textarea 
-                  id="mensagem-massa"
-                  placeholder="Digite sua mensagem aqui...
-
-Você pode usar variáveis:
-- {nome} para o nome do contato
-- {numero} para o número do contato"
-                  className="mt-2 min-h-[120px]"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  💡 Use {`{nome}`} e {`{numero}`} para personalizar a mensagem
-                </p>
-              </div>
-              
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  {/* Anexar Mídia para Massa */}
-                  <Card className="p-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <Paperclip className="w-4 h-4" />
-                      Anexar Mídia
-                    </h4>
-                    <Button variant="outline" size="sm" className="w-full" disabled>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Em breve: Massa + Mídia
-                    </Button>
-                  </Card>
-
-                  {/* Usar Modelo para Massa */}
-                  <Card className="p-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Usar Modelo
-                    </h4>
-                    <div className="space-y-3">
-                      <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um modelo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {modelosDisponiveis.map((modelo) => (
-                            <SelectItem key={modelo.id} value={modelo.id.toString()}>
-                              <div>
-                                <p className="font-medium">{modelo.nome}</p>
-                                <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Modelo de Planilha
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Exemplo simples sem cabeçalho
+                      </p>
                       <Button
                         type="button"
-                        onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-                        disabled={!modeloSelecionado}
                         variant="outline"
                         className="w-full"
+                        onClick={() => {
+                          const csvContent = `João Silva,5511999999999
+Maria Santos,5511888888888
+Pedro Costa,5511777777777`;
+                          
+                          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                          const link = document.createElement('a');
+                          link.href = URL.createObjectURL(blob);
+                          link.download = 'modelo_contatos_simples.csv';
+                          link.click();
+                          
+                          toast({
+                            title: "📥 Modelo baixado!",
+                            description: "Arquivo CSV de exemplo foi baixado",
+                          });
+                        }}
                       >
-                        Aplicar à Mensagem
+                        Baixar Modelo CSV
                       </Button>
-                    </div>
-                  </Card>
-                </div>
-                
-                <div className="flex gap-2 mb-4">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Image className="w-4 h-4" />
-                    Anexar Mídia
+                    </Card>
+
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload de Arquivo
+                      </h4>
+                      <Input
+                        type="file"
+                        accept=".csv,.txt"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const text = event.target?.result as string;
+                              setContatos(text);
+                              
+                              const linhas = text.split('\n').filter(l => l.trim());
+                              const totalContatos = linhas.length;
+                              
+                              toast({
+                                title: "Arquivo carregado!",
+                                description: `${totalContatos} linhas detectadas`,
+                              });
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                        className="mb-3"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Formatos aceitos: CSV, TXT
+                      </p>
+                    </Card>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="contatos-massa">Lista de Contatos</Label>
+                    <Textarea
+                      id="contatos-massa"
+                      placeholder={`Cole ou digite seus contatos aqui:
+João Silva,5511999999999
+Maria Santos,5511888888888
+Pedro Costa,5511777777777
+
+Formatos aceitos:
+• Nome,Telefone
+• Telefone,Nome  
+• Nome;Telefone
+• Telefone;Nome
+• Nome    Telefone (separado por tab)`}
+                      className="mt-1 min-h-[120px] font-mono text-sm"
+                      value={contatos}
+                      onChange={(e) => setContatos(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      📊 Contatos detectados: {contatos ? contatos.split(/[\n,;]/).filter(n => n.trim().length >= 10).length : 0}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="mensagem-massa">Mensagem do Template</Label>
+                    <Textarea 
+                      id="mensagem-massa"
+                      placeholder="Olá {nome}! Esta é uma mensagem personalizada para o número {numero}."
+                      className="mt-1 min-h-[120px]"
+                      value={mensagem}
+                      onChange={(e) => setMensagem(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      💡 Use {`{nome}`} e {`{numero}`} para personalizar a mensagem
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="delay-massa" className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Delay entre Mensagens (segundos)
+                    </Label>
+                    <Input
+                      id="delay-massa"
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={delay}
+                      onChange={(e) => setDelay(parseInt(e.target.value) || 2)}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recomendado: 2-5 segundos para evitar bloqueios
+                    </p>
+                  </div>
+
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
+                  
+                  <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      ⚠️ <strong>Importante:</strong> O envio em massa deve respeitar as políticas do WhatsApp. 
+                      Recomendamos intervalos entre envios e verificar se os números aceitam mensagens comerciais.
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !contatos.trim() || !mensagem.trim()}
+                    className="w-full flex items-center gap-2" 
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>Enviando...</>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Iniciar Envio em Massa
+                        <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
+                          {contatos ? contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length : 0} contatos
+                        </span>
+                      </>
+                    )}
                   </Button>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Usar Modelo
-                  </Button>
                 </div>
-                
-                <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-4">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    ⚠️ <strong>Importante:</strong> O envio em massa deve respeitar as políticas do WhatsApp. 
-                    Recomendamos intervalos entre envios e verificar se os números aceitam mensagens comerciais.
-                  </p>
-                </div>
-                
-                <Button className="w-full flex items-center gap-2" size="lg">
-                  <Send className="w-4 h-4" />
-                  Iniciar Envio em Massa
-                  <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
-                    {contatos ? contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length : 0} contatos
-                  </span>
-                </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
