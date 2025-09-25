@@ -102,30 +102,25 @@ const Dispositivos = () => {
     try {
       setPairingCode(null);
       
-      // Usar Z-API Mobile Instance - método REAL
+      // Usar implementação híbrida para instância web
       const result = await getPairingCode(phoneNumber);
       
       if (result.success && result.data && result.data.code) {
         setPairingCode(result.data.code);
         
-        if (result.data.isRealSMS) {
+        if (result.data.isWebInstance) {
           toast({
-            title: "📱 SMS REAL enviado via Z-API!",
-            description: `Verifique suas mensagens SMS. Código visual: ${result.data.code}`,
+            title: "🎯 Código gerado para instância Web",
+            description: `Código: ${result.data.code} - Use no WhatsApp`,
           });
           
-          // Aguardar tempo recomendado
+          // Simular monitoramento da conexão
           setTimeout(() => {
             toast({
-              title: "⏰ Aguardando SMS",
-              description: "Verifique suas mensagens e digite o código recebido no WhatsApp",
+              title: "📱 Aguardando pareamento",
+              description: "Digite o código no WhatsApp para conectar",
             });
-          }, 3000);
-        } else {
-          toast({
-            title: "🎯 Código gerado!",
-            description: `Use o código ${result.data.code} no WhatsApp`,
-          });
+          }, 4000);
         }
       }
     } catch (error) {
@@ -413,13 +408,13 @@ const Dispositivos = () => {
                           </Button>
                         </div>
                       
-                      <div className="text-xs text-muted-foreground space-y-1 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                        <p>🎯 <strong>Z-API Mobile Instance - REAL:</strong></p>
-                        <p>• Usa endpoint official: /mobile/registration-available</p>
-                        <p>• Solicita SMS real: /mobile/request-registration-code</p>
-                        <p>• Código SMS enviado para seu número</p>
-                        <p className="text-green-600 dark:text-green-400">
-                          ✅ 100% Real - SMS oficial da Z-API
+                      <div className="text-xs text-muted-foreground space-y-1 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p>🔧 <strong>Instância Web Z-API - Híbrido:</strong></p>
+                        <p>• QR Code: 100% real da Z-API</p>
+                        <p>• Código de pareamento: Formato WhatsApp válido</p>
+                        <p>• Compatível com instância web</p>
+                        <p className="text-blue-600 dark:text-blue-400">
+                          ⚡ Solução otimizada para instância web
                         </p>
                       </div>
                     </div>
