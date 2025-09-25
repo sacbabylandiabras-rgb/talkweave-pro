@@ -424,35 +424,67 @@ const Dispositivos = () => {
                           <code className="text-2xl font-mono tracking-widest font-bold text-primary">
                             {(() => {
                               try {
-                                console.log('=== EXTRAINDO CÓDIGO ===');
-                                console.log('QR Code para extração:', qrCode.substring(0, 100));
+                                console.log('=== ANÁLISE DETALHADA DO QR CODE ===');
+                                console.log('QR Code completo:', qrCode);
+                                console.log('Tamanho total:', qrCode.length);
+                                console.log('Primeiros 50 chars:', qrCode.substring(0, 50));
+                                console.log('Chars 50-100:', qrCode.substring(50, 100));
+                                console.log('Contém vírgulas em:', qrCode.split(',').map((part, i) => `${i}: ${part.substring(0, 20)}...`));
                                 
-                                // Método 1: Formato padrão WhatsApp 1@código,servidor,token
+                                // Método WhatsApp Web real: procurar por padrão específico
+                                console.log('=== TENTATIVAS DE EXTRAÇÃO ===');
+                                
+                                // Tentativa 1: Padrão 1@codigo,server,ref
                                 const parts = qrCode.split(',');
+                                console.log('Partes divididas por vírgula:', parts.length);
+                                console.log('Primeira parte:', parts[0]);
+                                
                                 if (parts[0] && parts[0].includes('@')) {
-                                  const beforeComma = parts[0]; // ex: "1@ABCD1234"
-                                  const afterAt = beforeComma.split('@')[1];
+                                  const beforeAt = parts[0].split('@')[0]; // ex: "1"
+                                  const afterAt = parts[0].split('@')[1];   // ex: "codigo"
+                                  console.log('Antes do @:', beforeAt);
+                                  console.log('Depois do @:', afterAt);
+                                  
                                   if (afterAt && afterAt.length >= 8) {
-                                    const extractedCode = afterAt.substring(0, 8).toUpperCase();
-                                    console.log('Código extraído método 1:', extractedCode);
-                                    return extractedCode;
+                                    const code = afterAt.substring(0, 8).toUpperCase();
+                                    console.log('Código extraído (método 1):', code);
+                                    return code;
                                   }
                                 }
                                 
-                                console.log('Método 1 falhou, tentando método 2...');
-                                // Método 2: Procurar por padrão específico
-                                const codeMatch = qrCode.match(/1@([A-Z0-9]{8,})/);
-                                if (codeMatch && codeMatch[1]) {
-                                  const extractedCode = codeMatch[1].substring(0, 8);
-                                  console.log('Código extraído método 2:', extractedCode);
-                                  return extractedCode;
+                                // Tentativa 2: Buscar padrão de 8 caracteres alfanuméricos
+                                const alphanumericMatch = qrCode.match(/[A-Z0-9]{8}/g);
+                                console.log('Códigos de 8 chars encontrados:', alphanumericMatch);
+                                if (alphanumericMatch && alphanumericMatch.length > 0) {
+                                  const code = alphanumericMatch[0];
+                                  console.log('Código extraído (método 2):', code);
+                                  return code;
                                 }
                                 
-                                console.log('Todos os métodos falharam');
-                                return 'ERRO_EXTRAÇÃO';
+                                // Tentativa 3: Procurar após "1@" especificamente
+                                const whatsappMatch = qrCode.match(/1@([A-Za-z0-9]+)/);
+                                console.log('Match WhatsApp 1@:', whatsappMatch);
+                                if (whatsappMatch && whatsappMatch[1]) {
+                                  const code = whatsappMatch[1].substring(0, 8).toUpperCase();
+                                  console.log('Código extraído (método 3):', code);
+                                  return code;
+                                }
+                                
+                                // Tentativa 4: Buscar qualquer sequência de 8+ chars após @
+                                const afterAtMatch = qrCode.match(/@([A-Za-z0-9]{8,})/);
+                                console.log('Match após @:', afterAtMatch);
+                                if (afterAtMatch && afterAtMatch[1]) {
+                                  const code = afterAtMatch[1].substring(0, 8).toUpperCase();
+                                  console.log('Código extraído (método 4):', code);
+                                  return code;
+                                }
+                                
+                                console.log('TODOS OS MÉTODOS FALHARAM');
+                                console.log('================================');
+                                return 'ANÁLISE_DEBUG';
                               } catch (e) {
                                 console.error('Erro na extração:', e);
-                                return 'ERRO_PROCESSO';
+                                return 'ERRO_DEBUG';
                               }
                             })()}
                           </code>
