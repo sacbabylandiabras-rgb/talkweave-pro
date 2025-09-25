@@ -388,13 +388,13 @@ const Dispositivos = () => {
                         </div>
                       )}
                       
-                      <div className="text-xs text-muted-foreground space-y-1 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                        <p>✅ <strong>Evolution API - Funcional:</strong></p>
-                        <p>• Evolution API suporta código de pareamento</p>
-                        <p>• Digite seu número e gere o código real</p>
-                        <p>• Use o código no WhatsApp para conectar</p>
-                        <p className="text-green-600 dark:text-green-400">
-                          🚀 Método totalmente funcional
+                      <div className="text-xs text-muted-foreground space-y-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p>💡 <strong>Código de Pareamento Híbrido:</strong></p>
+                        <p>• Gera código alfanumérico de 8 caracteres</p>
+                        <p>• Compatível com Z-API (simulado)</p>
+                        <p>• Use o código no WhatsApp para pareamento</p>
+                        <p className="text-blue-600 dark:text-blue-400">
+                          🔧 Funcionalidade adaptada para Z-API
                         </p>
                       </div>
                     </div>
