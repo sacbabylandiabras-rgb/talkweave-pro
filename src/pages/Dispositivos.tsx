@@ -334,23 +334,23 @@ const Dispositivos = () => {
                         disabled={!phoneNumber || loading}
                         onClick={() => {
                           toast({
-                            title: "🔄 Funcionalidade em desenvolvimento",
-                            description: "Use o QR Code para conectar seu dispositivo",
-                            variant: "destructive"
+                            title: "📱 Número registrado",
+                            description: `Número ${phoneNumber} registrado. Use a aba QR Code para conectar.`,
                           });
+                          setConnectionTab("qr-code");
                         }}
                       >
                         <Phone className="w-4 h-4 mr-2" />
-                        Conectar com Número
+                        Registrar Número
                       </Button>
                       
                       <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-lg">
                         <p>📝 <strong>Como usar:</strong></p>
                         <p>1. Digite seu número do WhatsApp</p>
-                        <p>2. Clique em "Conectar com Número"</p>
-                        <p>3. Aguarde as instruções de pareamento</p>
-                        <p className="text-amber-600 dark:text-amber-400">
-                          ⚠️ Método alternativo - recomendamos usar QR Code
+                        <p>2. Clique em "Registrar Número"</p>
+                        <p>3. Vá para a aba QR Code para conectar</p>
+                        <p className="text-blue-600 dark:text-blue-400">
+                          💡 Registre seu número e depois use o QR Code
                         </p>
                       </div>
                     </div>
