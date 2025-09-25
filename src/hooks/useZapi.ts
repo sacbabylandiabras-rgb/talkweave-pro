@@ -272,10 +272,69 @@ export const useZapi = () => {
       setLoading(false);
     }
   };
+
+  const getPairingCode = async (phoneNumber: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      // Nota: Este endpoint pode não existir na Z-API atual
+      // Vamos tentar o endpoint pairing-code baseado em outras APIs similares
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/pairing-code`;
+      console.log('Buscando código de pareamento Z-API:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phoneNumber
+        })
+      });
+
+      console.log('Pairing code response status:', response.status);
+      const data = await response.json();
+      console.log('Pairing code data:', data);
+
+      if (!response.ok) {
+        // Se o endpoint não existir (404), informar que não há suporte
+        if (response.status === 404 || response.status === 400) {
+          toast({
+            title: "⚠️ Funcionalidade não disponível",
+            description: "A Z-API atualmente só suporta conexão via QR Code. Use a aba QR Code para conectar.",
+            variant: "destructive"
+          });
+          return { success: false, error: "Endpoint não encontrado" };
+        }
+        
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao buscar código de pareamento:', error);
+      toast({
+        title: "❌ Método não suportado",
+        description: "A Z-API atualmente só suporta conexão via QR Code",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     getDeviceStatus,
     getQRCode,
+    getPairingCode,
     disconnectDevice,
     restartInstance,
     loading,

@@ -18,7 +18,8 @@ const Dispositivos = () => {
   const [tempName, setTempName] = useState("ZapLynx Instance");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectionTab, setConnectionTab] = useState("qr-code");
-  const { getDeviceStatus, getQRCode, disconnectDevice, restartInstance, loading } = useZapi();
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const { getDeviceStatus, getQRCode, getPairingCode, disconnectDevice, restartInstance, loading } = useZapi();
   const { toast } = useToast();
 
   const fetchDeviceStatus = async () => {
@@ -85,6 +86,35 @@ const Dispositivos = () => {
         description: "Verifique sua conexão e tente novamente",
         variant: "destructive"
       });
+    }
+  };
+
+  const fetchPairingCode = async () => {
+    if (!phoneNumber) {
+      toast({
+        title: "❌ Número obrigatório",
+        description: "Digite seu número do WhatsApp primeiro",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setPairingCode(null);
+      const result = await getPairingCode(phoneNumber);
+      
+      if (result.success && result.data) {
+        // Se receber um código de pareamento
+        if (result.data.code) {
+          setPairingCode(result.data.code);
+          toast({
+            title: "✅ Código gerado",
+            description: "Use este código no seu WhatsApp para conectar"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar código:', error);
     }
   };
 
@@ -332,17 +362,29 @@ const Dispositivos = () => {
                       <Button 
                         className="w-full" 
                         disabled={!phoneNumber || loading}
-                        onClick={() => {
-                          toast({
-                            title: "📱 Número registrado",
-                            description: `Número ${phoneNumber} registrado. Use a aba QR Code para conectar.`,
-                          });
-                          setConnectionTab("qr-code");
-                        }}
+                        onClick={fetchPairingCode}
                       >
                         <Phone className="w-4 h-4 mr-2" />
-                        Registrar Número
+                        Gerar Código de Pareamento
                       </Button>
+                      
+                      {pairingCode && (
+                        <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
+                            <div className="text-2xl font-mono font-bold tracking-wider bg-background border rounded-lg py-3 px-4">
+                              {pairingCode}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <p>1. Abra o WhatsApp no seu celular</p>
+                            <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                            <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                            <p>4. Selecione <strong>"Conectar com código de telefone"</strong></p>
+                            <p>5. Digite este código: <strong>{pairingCode}</strong></p>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-lg">
                         <p>📝 <strong>Como usar:</strong></p>
