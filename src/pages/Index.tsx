@@ -15,6 +15,7 @@ import ApanhadorGrupos from "./ApanhadorGrupos";
 import Relatorio from "./Relatorio";
 import MensagensRecebidas from "./MensagensRecebidas";
 import Contexto from "./Contexto";
+import ConfiguracaoZAPI from "./ConfiguracaoZAPI";
 
 const Index = () => {
   const [activeItem, setActiveItem] = useState("painel");
@@ -45,6 +46,8 @@ const Index = () => {
         return <MensagensRecebidas />;
       case "contexto":
         return <Contexto />;
+      case "configuracao-zapi":
+        return <ConfiguracaoZAPI />;
       case "painel":
       default:
         return (

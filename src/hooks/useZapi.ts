@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-// Temporário: Credenciais Z-API diretamente (não recomendado para produção)
-const ZAPI_CONFIG = {
-  instanceId: '3E6DD0DEED00C0FD52197AE2AD17DA62',
-  token: '9E09CAB81F22452F5954C6C2',
-  clientToken: 'Fd1c0871baaa5449db5ea1628166c0566S'
+// Função para obter configurações do localStorage
+const getZAPIConfig = () => {
+  const saved = localStorage.getItem('zapLynx_zapi_config');
+  if (saved) {
+    return JSON.parse(saved);
+  }
+  // Fallback para as credenciais antigas
+  return {
+    instanceId: '3E6DD0DEED00C0FD52197AE2AD17DA62',
+    token: '9E09CAB81F22452F5954C6C2',
+    clientToken: 'Fd1c0871baaa5449db5ea1628166c0566S'
+  };
 };
 
 export const useZapi = () => {
@@ -14,15 +21,17 @@ export const useZapi = () => {
 
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
+    const config = getZAPIConfig();
+    
     try {
-      const url = `https://api.z-api.io/instances/${ZAPI_CONFIG.instanceId}/token/${ZAPI_CONFIG.token}/send-text`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       console.log('Enviando mensagem para Z-API:', url);
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': ZAPI_CONFIG.clientToken
+          'Client-Token': config.clientToken
         },
         body: JSON.stringify({
           phone: phone,
@@ -35,7 +44,10 @@ export const useZapi = () => {
       console.log('Dados da resposta:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro ao enviar mensagem'}`);
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -47,7 +59,7 @@ export const useZapi = () => {
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       toast({
-        title: "Erro ao enviar mensagem",
+        title: "Erro ao enviar mensagem", 
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
@@ -59,15 +71,17 @@ export const useZapi = () => {
 
   const getDeviceStatus = async () => {
     setLoading(true);
+    const config = getZAPIConfig();
+    
     try {
-      const url = `https://api.z-api.io/instances/${ZAPI_CONFIG.instanceId}/token/${ZAPI_CONFIG.token}/status`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
       console.log('Buscando status do dispositivo Z-API:', url);
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': ZAPI_CONFIG.clientToken
+          'Client-Token': config.clientToken
         },
       });
 
@@ -76,7 +90,10 @@ export const useZapi = () => {
       console.log('Status data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro ao buscar status'}`);
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        throw new Error(errorMessage);
       }
 
       return { success: true, data };
@@ -95,15 +112,17 @@ export const useZapi = () => {
 
   const getQRCode = async () => {
     setLoading(true);
+    const config = getZAPIConfig();
+    
     try {
-      const url = `https://api.z-api.io/instances/${ZAPI_CONFIG.instanceId}/token/${ZAPI_CONFIG.token}/qr-code`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/qr-code`;
       console.log('Buscando QR Code da Z-API:', url);
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': ZAPI_CONFIG.clientToken
+          'Client-Token': config.clientToken
         },
       });
 
@@ -112,7 +131,10 @@ export const useZapi = () => {
       console.log('QR Code data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro ao buscar QR Code'}`);
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        throw new Error(errorMessage);
       }
 
       return { success: true, data };
