@@ -82,12 +82,19 @@ serve(async (req) => {
     const zapiToken = Deno.env.get('ZAPI_TOKEN');
     const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
+    console.log('Z-API Credentials check:', {
+      instanceId: zapiInstanceId ? 'SET' : 'MISSING',
+      token: zapiToken ? 'SET' : 'MISSING',
+      clientToken: zapiClientToken ? 'SET' : 'MISSING'
+    });
+
     if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
       throw new Error('Missing Z-API credentials');
     }
 
     // Enviar mensagem via Z-API
     const zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+    console.log('Sending to Z-API URL:', zapiUrl);
     
     const zapiResponse = await fetch(zapiUrl, {
       method: 'POST',
@@ -101,10 +108,20 @@ serve(async (req) => {
       }),
     });
 
+    console.log('Z-API Response Status:', zapiResponse.status);
+
     if (!zapiResponse.ok) {
       const errorText = await zapiResponse.text();
-      console.error('Z-API error:', errorText);
-      throw new Error(`Z-API request failed: ${zapiResponse.status}`);
+      console.error('Z-API error response:', errorText);
+      
+      let errorMessage = `Z-API request failed: ${zapiResponse.status}`;
+      if (zapiResponse.status === 404) {
+        errorMessage = 'Instância Z-API não encontrada. Verifique se a instância está ativa em developer.z-api.io';
+      } else if (zapiResponse.status === 401) {
+        errorMessage = 'Token Z-API inválido. Verifique suas credenciais.';
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const zapiResult = await zapiResponse.json();
