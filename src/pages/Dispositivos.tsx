@@ -392,6 +392,85 @@ const Dispositivos = () => {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Código de Pareamento Visual - quando há QR Code */}
+                    {qrCode && qrCode.length > 20 && !qrCode.includes('"connected"') && (
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-sm text-muted-foreground mb-4 text-center">
+                          📱 Código de pareamento para {phoneNumber}:
+                        </p>
+                        <div className="bg-primary/10 border border-primary/20 p-6 rounded-lg text-center">
+                          <code className="text-2xl font-mono tracking-widest font-bold text-primary">
+                            {(() => {
+                              try {
+                                const parts = qrCode.split(',');
+                                if (parts[0] && parts[0].includes('@')) {
+                                  const afterAt = parts[0].split('@')[1];
+                                  if (afterAt && afterAt.length >= 8) {
+                                    return afterAt.substring(0, 8).toUpperCase();
+                                  }
+                                }
+                                const match = qrCode.match(/[A-Z0-9]{8,}/);
+                                return match ? match[0].substring(0, 8) : 'PROCESSANDO...';
+                              } catch (e) {
+                                return 'GERANDO...';
+                              }
+                            })()}
+                          </code>
+                          <div className="mt-4">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                const code = (() => {
+                                  try {
+                                    const parts = qrCode.split(',');
+                                    if (parts[0] && parts[0].includes('@')) {
+                                      const afterAt = parts[0].split('@')[1];
+                                      if (afterAt && afterAt.length >= 8) {
+                                        return afterAt.substring(0, 8).toUpperCase();
+                                      }
+                                    }
+                                    const match = qrCode.match(/[A-Z0-9]{8,}/);
+                                    return match ? match[0].substring(0, 8) : '';
+                                  } catch (e) {
+                                    return '';
+                                  }
+                                })();
+                                
+                                if (code && code !== 'PROCESSANDO...' && code !== 'GERANDO...') {
+                                  navigator.clipboard.writeText(code);
+                                  toast({
+                                    title: "✅ Código copiado!",
+                                    description: "Cole no WhatsApp do número " + phoneNumber,
+                                  });
+                                }
+                              }}
+                            >
+                              📋 Copiar Código
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-4 space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                          <p className="font-medium">Como usar no WhatsApp ({phoneNumber}):</p>
+                          <p>1. Abra o WhatsApp neste número</p>
+                          <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                          <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                          <p>4. Escolha <strong>"Conectar com código"</strong></p>
+                          <p>5. Digite o código acima</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Aguardando código */}
+                    {!qrCode && loading && (
+                      <div className="mt-4 pt-4 border-t text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span className="text-sm text-muted-foreground">Gerando código para {phoneNumber}...</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
                       <p className="font-medium mb-1">ℹ️ Como funciona:</p>
                       <p>1. Digite o número que será usado nesta instância</p>
