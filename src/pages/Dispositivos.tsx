@@ -214,7 +214,7 @@ const Dispositivos = () => {
                 Atualizar Status
               </Button>
               
-              {isConnected && (
+              {isConnected ? (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -235,11 +235,9 @@ const Dispositivos = () => {
                   <PowerOff className="w-3 h-3" />
                   Desconectar
                 </Button>
-              )}
-              
-              {needsQRCode && (
+              ) : (
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
                   onClick={fetchQRCode} 
                   disabled={loading}
