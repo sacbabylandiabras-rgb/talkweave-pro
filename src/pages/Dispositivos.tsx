@@ -33,22 +33,27 @@ const Dispositivos = () => {
 
   const fetchQRCode = async () => {
     try {
+      // Limpar QR Code anterior
+      setQrCode(null);
+      setQrCodeImage(null);
+      
       const qrData = await getQRCode();
       console.log('QR Data recebido:', qrData);
       
-      if (qrData.data && qrData.data.value) {
-        setQrCode(qrData.data.value);
+      if (qrData.data && qrData.data.value && typeof qrData.data.value === 'string' && qrData.data.value.length > 50) {
+        const qrValue = qrData.data.value;
+        setQrCode(qrValue);
         
         // Debug: Ver o formato do QR Code
         console.log('=== QR CODE DEBUG ===');
-        console.log('QR Code completo:', qrData.data.value);
-        console.log('Primeiros 50 chars:', qrData.data.value.substring(0, 50));
-        console.log('Dividido por vírgula:', qrData.data.value.split(','));
+        console.log('QR Code completo:', qrValue);
+        console.log('Primeiros 100 chars:', qrValue.substring(0, 100));
+        console.log('Tamanho:', qrValue.length);
         console.log('====================');
         
         // Gerar imagem do QR Code a partir da string
         try {
-          const qrImageDataURL = await QRCodeLib.toDataURL(qrData.data.value, {
+          const qrImageDataURL = await QRCodeLib.toDataURL(qrValue, {
             width: 256,
             margin: 2,
             color: {
@@ -71,7 +76,7 @@ const Dispositivos = () => {
           });
         }
       } else if (qrData.data && qrData.data.connected === true) {
-        // Só mostra esse erro se realmente estiver conectado
+        // Dispositivo conectado - não há QR Code
         console.log('Dispositivo conectado, sem QR Code disponível');
         toast({
           title: "⚠️ Dispositivo já conectado",
@@ -79,10 +84,11 @@ const Dispositivos = () => {
           variant: "destructive"
         });
       } else {
-        console.log('Estrutura inesperada da resposta:', qrData);
+        // Resposta inesperada ou inválida
+        console.log('Resposta inválida da API:', qrData);
         toast({
-          title: "❌ Erro ao gerar QR Code", 
-          description: "Tente novamente ou verifique o status da instância",
+          title: "❌ QR Code indisponível", 
+          description: "Tente reiniciar a instância ou aguarde alguns segundos",
           variant: "destructive"
         });
       }
