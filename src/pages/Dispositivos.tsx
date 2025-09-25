@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 
 const Dispositivos = () => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
-  const { getDeviceStatus, loading } = useZapi();
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const { getDeviceStatus, getQRCode, loading } = useZapi();
 
   const fetchDeviceStatus = async () => {
     try {
@@ -18,9 +19,24 @@ const Dispositivos = () => {
     }
   };
 
+  const fetchQRCode = async () => {
+    try {
+      const qrData = await getQRCode();
+      if (qrData.data && qrData.data.qrcode) {
+        setQrCode(qrData.data.qrcode);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar QR Code:', error);
+    }
+  };
+
   useEffect(() => {
     fetchDeviceStatus();
-  }, []);
+    // Se o dispositivo não estiver conectado, buscar QR Code
+    if (deviceStatus?.connected === false) {
+      fetchQRCode();
+    }
+  }, [deviceStatus?.connected]);
 
   const isOnline = deviceStatus?.connected === true;
 
@@ -31,14 +47,22 @@ const Dispositivos = () => {
           <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
           <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
         </div>
-        <Button className="flex items-center gap-2" onClick={fetchDeviceStatus} disabled={loading}>
-          {loading ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
+        <div className="flex gap-2">
+          <Button className="flex items-center gap-2" onClick={fetchDeviceStatus} disabled={loading}>
+            {loading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            Atualizar Status
+          </Button>
+          {!isOnline && (
+            <Button variant="outline" className="flex items-center gap-2" onClick={fetchQRCode} disabled={loading}>
+              <QrCode className="w-4 h-4" />
+              Gerar QR Code
+            </Button>
           )}
-          Atualizar Status
-        </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -102,6 +126,22 @@ const Dispositivos = () => {
                 <pre className="text-xs text-muted-foreground overflow-auto">
                   {JSON.stringify(deviceStatus, null, 2)}
                 </pre>
+              </div>
+            )}
+
+            {!isOnline && qrCode && (
+              <div className="mt-4 p-4 bg-background border rounded-lg text-center">
+                <h4 className="font-medium mb-4">Escaneie o QR Code para conectar:</h4>
+                <div className="flex justify-center">
+                  <img 
+                    src={qrCode} 
+                    alt="QR Code para conectar WhatsApp" 
+                    className="w-64 h-64 border rounded-lg"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Abra o WhatsApp no seu celular e escaneie este código
+                </p>
               </div>
             )}
           </CardContent>
