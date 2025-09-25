@@ -8,7 +8,7 @@ const Index = () => {
   const [activeItem, setActiveItem] = useState("painel");
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Sidebar */}
       <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
       

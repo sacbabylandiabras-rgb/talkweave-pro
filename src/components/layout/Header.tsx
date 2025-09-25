@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 
 export function Header() {
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
+    <header className="bg-card/95 backdrop-blur-sm border-b border-border px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Painel</h1>
-          <p className="text-muted-foreground">Visão geral do seu WhatsApp SaaS</p>
+          <p className="text-muted-foreground">Visão geral do seu ZapLynx SaaS</p>
         </div>
         
         <div className="flex items-center gap-4">

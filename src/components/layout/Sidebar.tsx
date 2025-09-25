@@ -14,6 +14,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoImage } from "./LogoImage";
 
 interface SidebarProps {
   activeItem?: string;
@@ -38,15 +39,13 @@ const menuItems = [
 
 export function Sidebar({ activeItem = "painel", onItemClick }: SidebarProps) {
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col">
+    <div className="w-64 bg-card/95 backdrop-blur-sm border-r border-border h-screen flex flex-col shadow-lg">
       {/* Header */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <LogoImage className="w-10 h-10 object-contain" />
           <div>
-            <h1 className="font-bold text-lg text-foreground">WhatsApp SaaS</h1>
+            <h1 className="font-bold text-lg text-foreground">ZapLynx</h1>
             <p className="text-xs text-muted-foreground">v5.0.6</p>
           </div>
         </div>
