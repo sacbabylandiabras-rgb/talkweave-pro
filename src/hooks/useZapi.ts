@@ -129,7 +129,7 @@ export const useZapi = () => {
   const sendButtonActions = async (
     phone: string, 
     message: string, 
-    buttons: Array<{id: string, type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY', label: string, phone?: string, url?: string, copyText?: string, replyText?: string}>,
+    buttons: Array<{id: string, type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY', label: string, phone?: string, url?: string, copyText?: string}>,
     title?: string,
     footer?: string
   ) => {
@@ -157,10 +157,8 @@ export const useZapi = () => {
             // Para botão COPY, usar a URL especial do WhatsApp
             buttonData.type = "URL";
             buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText)}`;
-          } else if (btn.type === "REPLY" && btn.replyText) {
-            // Para botão REPLY, o replyText será o que aparece quando clicado
-            buttonData.replyText = btn.replyText;
           }
+          // Para REPLY e OPTION, só precisamos do id, type e label
           
           return buttonData;
         })
