@@ -28,8 +28,8 @@ const EnviarMensagem = () => {
   const [rodape, setRodape] = useState("");
   const [errors, setErrors] = useState<{phone?: string, message?: string}>({});
   
-  // Estados para botões de ação (agora único tipo de botão)
-  const [botoesAcao, setBotoesAcao] = useState([{id: "1", type: "REPLY" as "CALL" | "URL" | "REPLY", label: "", phone: "", url: ""}]);
+  // Estados para botões de ação (agora com todas as opções)
+  const [botoesAcao, setBotoesAcao] = useState([{id: "1", type: "REPLY" as "CALL" | "URL" | "REPLY" | "OPTION" | "COPY", label: "", phone: "", url: "", copyText: ""}]);
   
   // Estados para lista de opções
   const [tituloLista, setTituloLista] = useState("");
@@ -73,6 +73,7 @@ const EnviarMensagem = () => {
         if (btn.label.trim() === "") return false;
         if (btn.type === "CALL" && btn.phone.trim() === "") return false;
         if (btn.type === "URL" && btn.url.trim() === "") return false;
+        if (btn.type === "COPY" && btn.copyText.trim() === "") return false;
         return true;
       });
       
@@ -88,7 +89,8 @@ const EnviarMensagem = () => {
           type: btn.type,
           label: btn.label,
           ...(btn.type === "CALL" && { phone: btn.phone }),
-          ...(btn.type === "URL" && { url: btn.url })
+          ...(btn.type === "URL" && { url: btn.url }),
+          ...(btn.type === "COPY" && { copyText: btn.copyText })
         })),
         titulo || undefined,
         rodape || undefined
@@ -99,7 +101,7 @@ const EnviarMensagem = () => {
       setMensagem("");
       setTitulo("");
       setRodape("");
-      setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: ""}]);
+      setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: {phone?: string, message?: string} = {};
@@ -153,7 +155,7 @@ const EnviarMensagem = () => {
   };
 
   const addActionButton = () => {
-    setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: ""}]);
+    setBotoesAcao([...botoesAcao, {id: (botoesAcao.length + 1).toString(), type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
   };
 
   const removeActionButton = (index: number) => {
@@ -340,15 +342,17 @@ const EnviarMensagem = () => {
                           <div className="flex gap-2 items-center">
                             <Select
                               value={botao.type}
-                              onValueChange={(value: "CALL" | "URL" | "REPLY") => updateActionButton(index, 'type', value)}
+                              onValueChange={(value: "CALL" | "URL" | "REPLY" | "OPTION" | "COPY") => updateActionButton(index, 'type', value)}
                             >
                               <SelectTrigger className="w-40">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="REPLY">📋 Resposta Rápida</SelectItem>
-                                <SelectItem value="CALL">📞 Ligar</SelectItem>
                                 <SelectItem value="URL">🌐 Abrir Link</SelectItem>
+                                <SelectItem value="CALL">📞 Ligar</SelectItem>
+                                <SelectItem value="OPTION">📝 Opção</SelectItem>
+                                <SelectItem value="COPY">📄 Copiar Texto</SelectItem>
                               </SelectContent>
                             </Select>
                             <Input
@@ -393,9 +397,30 @@ const EnviarMensagem = () => {
                             </div>
                           )}
 
+                          {botao.type === "COPY" && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Texto para copiar</Label>
+                              <Input
+                                placeholder="Código ou texto a ser copiado"
+                                value={botao.copyText}
+                                onChange={(e) => updateActionButton(index, 'copyText', e.target.value)}
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                💡 Este texto será copiado automaticamente quando o usuário clicar no botão
+                              </p>
+                            </div>
+                          )}
+
                           {botao.type === "REPLY" && (
                             <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
                               💡 Este botão enviará o texto como resposta quando clicado
+                            </p>
+                          )}
+
+                          {botao.type === "OPTION" && (
+                            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                              💡 Este botão funcionará como uma opção de escolha rápida
                             </p>
                           )}
                         </div>
