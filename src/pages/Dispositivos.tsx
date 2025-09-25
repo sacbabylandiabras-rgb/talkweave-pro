@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
+import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
 
 const Dispositivos = () => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [showQRCode, setShowQRCode] = useState(true);
   const { getDeviceStatus, getQRCode, loading } = useZapi();
+  const { toast } = useToast();
 
   const fetchDeviceStatus = async () => {
     try {
@@ -153,29 +156,91 @@ const Dispositivos = () => {
 
             {!isOnline && qrCodeImage && (
               <div className="mt-4 p-4 bg-background border rounded-lg text-center">
-                <h4 className="font-medium mb-4">📱 Escaneie o QR Code para conectar:</h4>
+                <h4 className="font-medium mb-4">📱 Escolha como conectar:</h4>
+                
+                {/* Abas para QR Code e Código */}
                 <div className="flex justify-center mb-4">
-                  <img 
-                    src={qrCodeImage} 
-                    alt="QR Code para conectar WhatsApp" 
-                    className="w-64 h-64 border rounded-lg"
-                  />
+                  <div className="flex bg-muted rounded-lg p-1">
+                    <Button
+                      variant={showQRCode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setShowQRCode(true)}
+                      className="text-xs"
+                    >
+                      📱 QR Code
+                    </Button>
+                    <Button
+                      variant={!showQRCode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setShowQRCode(false)}
+                      className="text-xs"
+                    >
+                      🔢 Código
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>1. Abra o WhatsApp no seu celular</p>
-                  <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
-                  <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
-                  <p>4. Escaneie este código</p>
-                </div>
+
+                {showQRCode ? (
+                  /* QR Code */
+                  <div>
+                    <div className="flex justify-center mb-4">
+                      <img 
+                        src={qrCodeImage} 
+                        alt="QR Code para conectar WhatsApp" 
+                        className="w-64 h-64 border rounded-lg"
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>1. Abra o WhatsApp no seu celular</p>
+                      <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                      <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                      <p>4. Escaneie este código</p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Código de Pareamento */
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Ou digite este código no WhatsApp:
+                    </p>
+                    <div className="bg-muted p-4 rounded-lg mb-4">
+                      <code className="text-lg font-mono tracking-wider">
+                        {qrCode ? qrCode.split(',')[0].substring(2, 12) : 'Gerando...'}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          const code = qrCode ? qrCode.split(',')[0].substring(2, 12) : '';
+                          navigator.clipboard.writeText(code);
+                          toast({
+                            title: "✅ Código copiado!",
+                            description: "Cole no WhatsApp para conectar",
+                          });
+                        }}
+                      >
+                        📋 Copiar
+                      </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>1. Abra o WhatsApp no seu celular</p>
+                      <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                      <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                      <p>4. Escolha <strong>"Conectar com código"</strong></p>
+                      <p>5. Digite ou cole o código acima</p>
+                    </div>
+                  </div>
+                )}
                 
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="mt-3"
+                  className="mt-4"
                   onClick={fetchQRCode}
                   disabled={loading}
                 >
-                  🔄 Renovar QR Code
+                  🔄 Renovar {showQRCode ? 'QR Code' : 'Código'}
                 </Button>
               </div>
             )}
