@@ -77,15 +77,15 @@ serve(async (req) => {
     message = message.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
     message = message.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
 
-    // Obter credenciais da Z-API
-    const zapiInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const zapiToken = Deno.env.get('ZAPI_TOKEN');
-    const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    // Obter credenciais da Z-API - teste com credenciais fixas que funcionam no frontend
+    const zapiInstanceId = '3E6DD0DEED00C0FD52197AE2AD17DA62';
+    const zapiToken = '9E09CAB81F22425F5954C6C2';
+    const zapiClientToken = 'Fd1c0871baaa5449db5ea1628166c0566S';
 
-    console.log('Z-API Credentials check:', {
-      instanceId: zapiInstanceId ? `SET (${zapiInstanceId})` : 'MISSING',
-      token: zapiToken ? `SET (${zapiToken})` : 'MISSING',
-      clientToken: zapiClientToken ? `SET (${zapiClientToken})` : 'MISSING'
+    console.log('Using hardcoded Z-API Credentials:', {
+      instanceId: zapiInstanceId,
+      token: zapiToken, 
+      clientToken: zapiClientToken
     });
 
     if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
