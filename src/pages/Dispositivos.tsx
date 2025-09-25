@@ -34,7 +34,7 @@ const Dispositivos = () => {
       console.log('QR Data recebido:', qrData);
       
       // Se já está conectado, precisa desconectar primeiro
-      if (qrData.data && qrData.data.connected === true) {
+      if (qrData.data && qrData.data.connected === true && !qrData.data.value) {
         toast({
           title: "⚠️ Dispositivo já conectado",
           description: "Desconecte o WhatsApp Web atual antes de gerar novo QR Code",
@@ -81,9 +81,12 @@ const Dispositivos = () => {
         console.log('Estrutura inesperada da resposta:', qrData);
         toast({
           title: "❌ QR Code não disponível",
-          description: "Tente atualizar o status e gerar novamente",
+          description: "Desconecte o dispositivo primeiro para gerar um novo QR Code",
           variant: "destructive"
         });
+        // Limpar QR Code anterior se não há um válido
+        setQrCode(null);
+        setQrCodeImage(null);
       }
     } catch (error) {
       console.error('Erro ao buscar QR Code:', error);
@@ -366,7 +369,7 @@ const Dispositivos = () => {
                     </p>
                     <div className="bg-muted p-4 rounded-lg mb-4">
                       <code className="text-lg font-mono tracking-wider">
-                        {qrCode ? (
+                        {qrCode && qrCode.length > 20 ? (
                           // Extrair código de pareamento real do QR Code
                           (() => {
                             try {
@@ -381,12 +384,13 @@ const Dispositivos = () => {
                                 }
                               }
                               // Se não conseguir extrair, mostrar uma parte do QR code original
-                              return qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
+                              const cleanCode = qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
+                              return cleanCode.length >= 6 ? cleanCode : 'INDISPONÍVEL';
                             } catch (e) {
-                              return 'Gerando...';
+                              return 'ERRO';
                             }
                           })()
-                        ) : 'Gerando...'}
+                        ) : 'Desconecte primeiro'}
                       </code>
                       <Button
                         variant="outline"
