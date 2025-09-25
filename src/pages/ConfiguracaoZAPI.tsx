@@ -21,7 +21,12 @@ const ConfiguracaoZAPI = () => {
     
     try {
       const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/status`;
-      console.log('Testando conexão Z-API:', url);
+      console.log('=== DEBUG Z-API ===');
+      console.log('URL completa:', url);
+      console.log('Instance ID:', instanceId);
+      console.log('Token:', token);
+      console.log('Client Token:', clientToken);
+      console.log('==================');
       
       const response = await fetch(url, {
         method: 'GET',
@@ -31,31 +36,56 @@ const ConfiguracaoZAPI = () => {
         },
       });
 
+      console.log('Status da resposta:', response.status);
+      console.log('Headers da resposta:', Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
-      console.log('Resposta do teste:', data);
+      console.log('Dados completos da resposta:', data);
 
       if (response.ok) {
         setStatus('success');
         setStatusInfo(data);
         toast({
-          title: "Conexão bem-sucedida!",
-          description: "Credenciais Z-API válidas.",
+          title: "✅ Conexão bem-sucedida!",
+          description: `Status: ${data.status || 'Conectado'}`,
         });
       } else {
         setStatus('error');
-        setStatusInfo(data);
+        setStatusInfo({
+          ...data,
+          debug: {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+          }
+        });
+        
+        let errorMsg = `Erro ${response.status}`;
+        if (data.error) errorMsg += `: ${data.error}`;
+        if (data.message) errorMsg += ` - ${data.message}`;
+        
         toast({
-          title: "Erro na conexão",
-          description: data.message || `Erro ${response.status}`,
+          title: "❌ Erro na conexão",
+          description: errorMsg,
           variant: "destructive",
         });
       }
     } catch (error) {
       setStatus('error');
-      console.error('Erro ao testar conexão:', error);
+      setStatusInfo({ 
+        error: 'Network Error', 
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        debug: {
+          instanceId,
+          token: token.substring(0, 10) + '...',
+          clientToken: clientToken.substring(0, 10) + '...',
+        }
+      });
+      console.error('Erro completo:', error);
       toast({
-        title: "Erro ao testar conexão",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
+        title: "❌ Erro ao testar conexão",
+        description: error instanceof Error ? error.message : "Erro de rede",
         variant: "destructive",
       });
     }
@@ -158,29 +188,59 @@ const ConfiguracaoZAPI = () => {
         </CardContent>
       </Card>
 
-      {statusInfo && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Resposta da Z-API</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto">
-              {JSON.stringify(statusInfo, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resposta da Z-API</CardTitle>
+          <CardDescription>
+            {status === 'success' ? 'Conexão bem-sucedida!' : 'Detalhes do erro para debug'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-96">
+            {JSON.stringify(statusInfo, null, 2)}
+          </pre>
+          
+          {status === 'error' && (
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <h4 className="font-medium text-destructive mb-2">🔍 Possíveis soluções:</h4>
+              <ul className="text-sm space-y-1 text-destructive/80">
+                <li>• Verifique se a instância está ATIVA no painel Z-API</li>
+                <li>• Confirme se não há espaços extras nas credenciais</li>
+                <li>• Teste se a instância não expirou ou foi pausada</li>
+                <li>• Verifique se o Client Token está correto</li>
+                <li>• Tente recriar a instância se necessário</li>
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Como obter suas credenciais Z-API</CardTitle>
+          <CardTitle>⚠️ Problemas Comuns</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>1. Acesse o painel da Z-API em <strong>https://developer.z-api.io</strong></p>
-          <p>2. Faça login na sua conta</p>
-          <p>3. Vá em <strong>Instâncias</strong> e selecione sua instância</p>
-          <p>4. Copie o <strong>Instance ID</strong>, <strong>Token</strong> e <strong>Client Token</strong></p>
-          <p>5. Cole aqui e teste a conexão</p>
+        <CardContent className="space-y-3 text-sm">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="font-medium text-amber-800 mb-1">Instance not found (Error 400)</p>
+            <p className="text-amber-700">1. Instância foi desativada ou expirou</p>
+            <p className="text-amber-700">2. Instance ID incorreto</p>
+            <p className="text-amber-700">3. Conta Z-API suspensa</p>
+          </div>
+          
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="font-medium text-blue-800 mb-1">Como verificar no painel Z-API:</p>
+            <p className="text-blue-700">1. Acesse https://developer.z-api.io</p>
+            <p className="text-blue-700">2. Vá em "Instâncias" → Sua instância</p>
+            <p className="text-blue-700">3. Verifique se o status está "ATIVA"</p>
+            <p className="text-blue-700">4. Copie as credenciais novamente</p>
+          </div>
+
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="font-medium text-green-800 mb-1">Se o problema persistir:</p>
+            <p className="text-green-700">• Tente recriar a instância no painel Z-API</p>
+            <p className="text-green-700">• Entre em contato com o suporte da Z-API</p>
+            <p className="text-green-700">• Verifique se sua conta não está em débito</p>
+          </div>
         </CardContent>
       </Card>
     </div>
