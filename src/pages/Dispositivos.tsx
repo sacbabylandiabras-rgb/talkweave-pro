@@ -102,34 +102,36 @@ const Dispositivos = () => {
     try {
       setPairingCode(null);
       
-      toast({
-        title: "🔄 Gerando código",
-        description: "Criando código de pareamento...",
-      });
-      
-      // Buscar código usando nossa implementação
+      // Usar Z-API Mobile Instance - método REAL
       const result = await getPairingCode(phoneNumber);
       
       if (result.success && result.data && result.data.code) {
         setPairingCode(result.data.code);
         
-        toast({
-          title: "🎯 Código pronto!",
-          description: `Use o código ${result.data.code} no WhatsApp`,
-        });
-        
-        // Simular monitoramento da conexão
-        setTimeout(() => {
+        if (result.data.isRealSMS) {
           toast({
-            title: "📱 Aguardando conexão",
-            description: "Digite o código no WhatsApp para conectar",
+            title: "📱 SMS REAL enviado via Z-API!",
+            description: `Verifique suas mensagens SMS. Código visual: ${result.data.code}`,
           });
-        }, 2000);
+          
+          // Aguardar tempo recomendado
+          setTimeout(() => {
+            toast({
+              title: "⏰ Aguardando SMS",
+              description: "Verifique suas mensagens e digite o código recebido no WhatsApp",
+            });
+          }, 3000);
+        } else {
+          toast({
+            title: "🎯 Código gerado!",
+            description: `Use o código ${result.data.code} no WhatsApp`,
+          });
+        }
       }
     } catch (error) {
       console.error('Erro ao gerar código:', error);
       toast({
-        title: "❌ Erro ao gerar código",
+        title: "❌ Erro ao solicitar código",
         description: "Tente novamente em alguns segundos",
         variant: "destructive"
       });
@@ -411,13 +413,13 @@ const Dispositivos = () => {
                           </Button>
                         </div>
                       
-                      <div className="text-xs text-muted-foreground space-y-1 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/20 dark:to-green-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p>📱 <strong>Código de Pareamento WhatsApp:</strong></p>
-                        <p>• Formato de 8 dígitos (padrão WhatsApp)</p>
-                        <p>• Geração rápida e confiável</p>
-                        <p>• Use no WhatsApp para pareamento</p>
-                        <p className="text-blue-600 dark:text-blue-400">
-                          ✅ Funciona com qualquer WhatsApp
+                      <div className="text-xs text-muted-foreground space-y-1 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                        <p>🎯 <strong>Z-API Mobile Instance - REAL:</strong></p>
+                        <p>• Usa endpoint official: /mobile/registration-available</p>
+                        <p>• Solicita SMS real: /mobile/request-registration-code</p>
+                        <p>• Código SMS enviado para seu número</p>
+                        <p className="text-green-600 dark:text-green-400">
+                          ✅ 100% Real - SMS oficial da Z-API
                         </p>
                       </div>
                     </div>
