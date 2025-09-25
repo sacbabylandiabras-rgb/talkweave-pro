@@ -16,7 +16,7 @@ const Dispositivos = () => {
   const [instanceName, setInstanceName] = useState("ZapLynx Instance");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("ZapLynx Instance");
-  const { getDeviceStatus, getQRCode, disconnectDevice, loading } = useZapi();
+  const { getDeviceStatus, getQRCode, disconnectDevice, restartInstance, loading } = useZapi();
   const { toast } = useToast();
 
   const fetchDeviceStatus = async () => {
@@ -250,6 +250,17 @@ const Dispositivos = () => {
                 size="sm" 
                 disabled={loading}
                 className="flex items-center gap-2"
+                onClick={async () => {
+                  try {
+                    await restartInstance();
+                    // Atualizar status após reiniciar
+                    setTimeout(() => {
+                      fetchDeviceStatus();
+                    }, 3000); // 3 segundos para dar tempo do restart
+                  } catch (error) {
+                    console.error('Erro ao reiniciar instância:', error);
+                  }
+                }}
               >
                 <RotateCcw className="w-3 h-3" />
                 Reiniciar Instância

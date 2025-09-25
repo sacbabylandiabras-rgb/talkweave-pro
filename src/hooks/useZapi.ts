@@ -226,11 +226,58 @@ export const useZapi = () => {
     }
   };
 
+  const restartInstance = async () => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/restart`;
+      console.log('Reiniciando instância Z-API:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+      });
+
+      console.log('Restart response status:', response.status);
+      const data = await response.json();
+      console.log('Restart data:', data);
+
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "✅ Instância reiniciada",
+        description: "A instância foi reiniciada com sucesso. Aguarde alguns segundos para reconectar."
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao reiniciar instância:', error);
+      toast({
+        title: "Erro ao reiniciar instância",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
   return {
     sendMessage,
     getDeviceStatus,
     getQRCode,
     disconnectDevice,
+    restartInstance,
     loading,
   };
 };
