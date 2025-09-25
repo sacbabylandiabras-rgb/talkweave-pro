@@ -16,7 +16,7 @@ const Dispositivos = () => {
   const [instanceName, setInstanceName] = useState("ZapLynx Instance");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("ZapLynx Instance");
-  const { getDeviceStatus, getQRCode, loading } = useZapi();
+  const { getDeviceStatus, getQRCode, disconnectDevice, loading } = useZapi();
   const { toast } = useToast();
 
   const fetchDeviceStatus = async () => {
@@ -98,13 +98,13 @@ const Dispositivos = () => {
 
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
   const isConnected = deviceStatus?.connected === true;
-  const needsConnection = !isConnected;
+  const needsQRCode = !deviceStatus?.session || deviceStatus?.error?.includes("not connected");
 
   console.log('=== DEBUG STATUS ===');
   console.log('deviceStatus:', deviceStatus);
   console.log('isOnline:', isOnline);
   console.log('isConnected:', isConnected);
-  console.log('needsConnection:', needsConnection);
+  console.log('needsQRCode:', needsQRCode);
   console.log('==================');
 
   return (
@@ -209,23 +209,30 @@ const Dispositivos = () => {
                 Atualizar Status
               </Button>
               
-              {isConnected ? (
+              {isConnected && (
                 <Button 
                   variant="outline" 
                   size="sm" 
                   disabled={loading}
                   className="flex items-center gap-2"
-                  onClick={() => {
-                    toast({
-                      title: "⚠️ Desconectar dispositivo",
-                      description: "Vá no WhatsApp Web e desconecte manualmente este dispositivo",
-                    });
+                  onClick={async () => {
+                    try {
+                      await disconnectDevice();
+                      // Atualizar status após desconectar
+                      setTimeout(() => {
+                        fetchDeviceStatus();
+                      }, 1000);
+                    } catch (error) {
+                      console.error('Erro ao desconectar:', error);
+                    }
                   }}
                 >
                   <PowerOff className="w-3 h-3" />
                   Desconectar
                 </Button>
-              ) : (
+              )}
+              
+              {needsQRCode && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -234,7 +241,7 @@ const Dispositivos = () => {
                   className="flex items-center gap-2"
                 >
                   <QrCode className="w-3 h-3" />
-                  Conectar Device
+                  Gerar QR Code
                 </Button>
               )}
               
@@ -290,7 +297,7 @@ const Dispositivos = () => {
               </div>
             )}
 
-            {needsConnection && qrCodeImage && (
+            {needsQRCode && qrCodeImage && (
               <div className="mt-4 p-4 bg-background border rounded-lg text-center">
                 <h4 className="font-medium mb-4">📱 Escolha como conectar:</h4>
                 
@@ -381,7 +388,7 @@ const Dispositivos = () => {
               </div>
             )}
 
-            {needsConnection && !qrCodeImage && qrCode && (
+            {needsQRCode && !qrCodeImage && qrCode && (
               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   QR Code recebido, gerando imagem...

@@ -179,10 +179,58 @@ export const useZapi = () => {
     }
   };
 
+  const disconnectDevice = async () => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
+      console.log('Desconectando dispositivo Z-API:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+      });
+
+      console.log('Disconnect response status:', response.status);
+      const data = await response.json();
+      console.log('Disconnect data:', data);
+
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "✅ Dispositivo desconectado",
+        description: "Dispositivo desconectado com sucesso. Você pode reconectar usando o QR Code."
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao desconectar dispositivo:', error);
+      toast({
+        title: "Erro ao desconectar",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     getDeviceStatus,
     getQRCode,
+    disconnectDevice,
     loading,
   };
 };
