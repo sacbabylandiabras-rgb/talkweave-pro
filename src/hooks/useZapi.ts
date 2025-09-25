@@ -292,6 +292,96 @@ export const useZapi = () => {
     }
   };
 
+  const sendVideo = async (phone: string, video: string, caption?: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-video`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          video: video,
+          caption: caption || ''
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar vídeo');
+      }
+
+      toast({
+        title: "Vídeo enviado!",
+        description: "O vídeo foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar vídeo:', error);
+      toast({
+        title: "Erro ao enviar vídeo", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendAudio = async (phone: string, audio: string, caption?: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-audio`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          audio: audio,
+          caption: caption || ''
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar áudio');
+      }
+
+      toast({
+        title: "Áudio enviado!",
+        description: "O áudio foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar áudio:', error);
+      toast({
+        title: "Erro ao enviar áudio", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getDeviceStatus = async () => {
     setLoading(true);
     const config = getZAPIConfig();
@@ -590,6 +680,8 @@ export const useZapi = () => {
     sendButtonActions,
     sendOptionList,
     sendImage,
+    sendVideo,
+    sendAudio,
     sendDocument,
     getDeviceStatus,
     getQRCode,

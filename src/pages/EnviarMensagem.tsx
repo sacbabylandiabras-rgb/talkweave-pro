@@ -42,7 +42,7 @@ const EnviarMensagem = () => {
   const [legenda, setLegenda] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendDocument, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
   
   // Modelos pré-definidos (vem da página Modelos)
@@ -115,7 +115,40 @@ const EnviarMensagem = () => {
       if (validButtons.length === 0) {
         throw new Error("Adicione pelo menos um botão válido");
       }
+
+      // Verificar se há mídia anexada
+      if (arquivoMidia) {
+        const base64File = await convertToBase64(arquivoMidia);
+        const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+        
+        // Categorizar tipos de arquivo
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+        const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+        
+        const isImage = imageExtensions.includes(fileExtension || '');
+        const isVideo = videoExtensions.includes(fileExtension || '');
+        const isAudio = audioExtensions.includes(fileExtension || '');
+
+        // Primeiro enviar a mídia
+        if (isImage) {
+          await sendImage(validatedData.phone, base64File, legenda || '');
+        } else if (isVideo) {
+          await sendVideo(validatedData.phone, base64File, legenda || '');
+        } else if (isAudio) {
+          await sendAudio(validatedData.phone, base64File, legenda || '');
+        } else {
+          await sendDocument(
+            validatedData.phone,
+            base64File,
+            arquivoMidia.name,
+            fileExtension || 'txt',
+            legenda || ''
+          );
+        }
+      }
       
+      // Enviar os botões interativos
       await sendButtonActions(
         validatedData.phone, 
         validatedData.message, 
@@ -137,6 +170,8 @@ const EnviarMensagem = () => {
       setTitulo("");
       setRodape("");
       setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
+      setArquivoMidia(null);
+      setLegenda("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: {phone?: string, message?: string} = {};
@@ -164,7 +199,40 @@ const EnviarMensagem = () => {
       if (!tituloLista.trim()) {
         throw new Error("Título da lista é obrigatório");
       }
+
+      // Verificar se há mídia anexada
+      if (arquivoMidia) {
+        const base64File = await convertToBase64(arquivoMidia);
+        const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+        
+        // Categorizar tipos de arquivo
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+        const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+        
+        const isImage = imageExtensions.includes(fileExtension || '');
+        const isVideo = videoExtensions.includes(fileExtension || '');
+        const isAudio = audioExtensions.includes(fileExtension || '');
+
+        // Primeiro enviar a mídia
+        if (isImage) {
+          await sendImage(validatedData.phone, base64File, legenda || '');
+        } else if (isVideo) {
+          await sendVideo(validatedData.phone, base64File, legenda || '');
+        } else if (isAudio) {
+          await sendAudio(validatedData.phone, base64File, legenda || '');
+        } else {
+          await sendDocument(
+            validatedData.phone,
+            base64File,
+            arquivoMidia.name,
+            fileExtension || 'txt',
+            legenda || ''
+          );
+        }
+      }
       
+      // Enviar a lista de opções
       await sendOptionList(validatedData.phone, validatedData.message, {
         title: tituloLista,
         buttonLabel: labelBotaoLista,
@@ -177,6 +245,8 @@ const EnviarMensagem = () => {
       setTituloLista("");
       setLabelBotaoLista("Ver opções");
       setOpcoes([{id: "1", title: "", description: ""}]);
+      setArquivoMidia(null);
+      setLegenda("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: {phone?: string, message?: string} = {};
@@ -251,13 +321,23 @@ const EnviarMensagem = () => {
       const base64File = await convertToBase64(arquivoMidia);
       const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
       
-      // Verificar se é imagem ou documento
-      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      // Categorizar tipos de arquivo
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+      const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+      const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+      
       const isImage = imageExtensions.includes(fileExtension || '');
+      const isVideo = videoExtensions.includes(fileExtension || '');
+      const isAudio = audioExtensions.includes(fileExtension || '');
 
       if (isImage) {
         await sendImage(validatedData.phone, base64File, legenda || mensagem);
+      } else if (isVideo) {
+        await sendVideo(validatedData.phone, base64File, legenda || mensagem);
+      } else if (isAudio) {
+        await sendAudio(validatedData.phone, base64File, legenda || mensagem);
       } else {
+        // Documentos: PDF, DOC, DOCX, TXT, ZIP, etc.
         await sendDocument(
           validatedData.phone,
           base64File,
@@ -670,10 +750,38 @@ const EnviarMensagem = () => {
                           <Paperclip className="w-4 h-4" />
                           Anexar Mídia
                         </h4>
-                        <Button variant="outline" size="sm" className="w-full" disabled>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Em breve: Botões + Mídia
-                        </Button>
+                        <div className="space-y-3">
+                          <Input
+                            type="file"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 64 * 1024 * 1024) {
+                                  toast({
+                                    title: "Arquivo muito grande",
+                                    description: "O arquivo deve ter no máximo 64MB",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                setArquivoMidia(file);
+                              }
+                            }}
+                            className="text-sm"
+                          />
+                          {arquivoMidia && (
+                            <div className="bg-muted p-2 rounded text-sm">
+                              📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
+                            </div>
+                          )}
+                          <Input
+                            placeholder="Legenda para mídia (opcional)"
+                            value={legenda}
+                            onChange={(e) => setLegenda(e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
                       </Card>
 
                       {/* Usar Modelo */}
@@ -838,10 +946,38 @@ const EnviarMensagem = () => {
                           <Paperclip className="w-4 h-4" />
                           Anexar Mídia
                         </h4>
-                        <Button variant="outline" size="sm" className="w-full" disabled>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Em breve: Lista + Mídia
-                        </Button>
+                        <div className="space-y-3">
+                          <Input
+                            type="file"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 64 * 1024 * 1024) {
+                                  toast({
+                                    title: "Arquivo muito grande",
+                                    description: "O arquivo deve ter no máximo 64MB",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                setArquivoMidia(file);
+                              }
+                            }}
+                            className="text-sm"
+                          />
+                          {arquivoMidia && (
+                            <div className="bg-muted p-2 rounded text-sm">
+                              📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
+                            </div>
+                          )}
+                          <Input
+                            placeholder="Legenda para mídia (opcional)"
+                            value={legenda}
+                            onChange={(e) => setLegenda(e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
                       </Card>
 
                       {/* Usar Modelo */}
