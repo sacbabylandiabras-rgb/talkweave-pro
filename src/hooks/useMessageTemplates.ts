@@ -12,6 +12,7 @@ export interface MessageTemplate {
   active: boolean;
   created_at: string;
   updated_at: string;
+  buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
 }
 
 export const useMessageTemplates = () => {
@@ -57,6 +58,7 @@ export const useMessageTemplates = () => {
     category: string;
     content: string;
     variables?: string[];
+    buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
   }) => {
     try {
       const { data, error } = await supabase
@@ -66,6 +68,7 @@ export const useMessageTemplates = () => {
           category: templateData.category,
           content: templateData.content,
           variables: templateData.variables || [],
+          buttons: templateData.buttons || [],
         })
         .select()
         .single();

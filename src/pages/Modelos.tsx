@@ -24,12 +24,14 @@ const Modelos = () => {
     category: "",
     content: "",
     variables: [] as string[],
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
     category: "",
     content: "",
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
   });
   const [campaignData, setCampaignData] = useState({
     name: "",
@@ -74,7 +76,7 @@ const Modelos = () => {
         variables,
       });
 
-      setNewTemplate({ name: "", category: "", content: "", variables: [] });
+      setNewTemplate({ name: "", category: "", content: "", variables: [], buttons: [] });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -141,6 +143,7 @@ const Modelos = () => {
       name: template.name,
       category: template.category,
       content: template.content,
+      buttons: template.buttons || [],
     });
     setEditingTemplate(template.id);
   };
@@ -167,10 +170,11 @@ const Modelos = () => {
         category: editFormData.category,
         content: editFormData.content,
         variables,
+        buttons: editFormData.buttons,
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", content: "" });
+      setEditFormData({ name: "", category: "", content: "", buttons: [] });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -178,7 +182,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", content: "" });
+    setEditFormData({ name: "", category: "", content: "", buttons: [] });
   };
 
   if (loading) {
