@@ -1,0 +1,144 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface WelcomeMessageRequest {
+  phone: string;
+  contactName?: string;
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { phone, contactName }: WelcomeMessageRequest = await req.json();
+
+    if (!phone) {
+      return new Response(
+        JSON.stringify({ error: 'Phone number is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    console.log('Processing welcome message for phone:', phone);
+
+    // Verificar se a mensagem de boas-vindas está ativa
+    const { data: config, error: configError } = await supabase
+      .from('welcome_message_config')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (configError || !config || !config.active) {
+      console.log('Welcome message is not active or config not found');
+      return new Response(
+        JSON.stringify({ message: 'Welcome message not active' }),
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Verificar se já enviamos boas-vindas para este número
+    const { data: alreadySent } = await supabase
+      .from('welcome_message_sent')
+      .select('phone')
+      .eq('phone', phone)
+      .maybeSingle();
+
+    if (alreadySent) {
+      console.log('Welcome message already sent to this phone');
+      return new Response(
+        JSON.stringify({ message: 'Welcome message already sent' }),
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Processar variáveis na mensagem
+    let message = config.message;
+    if (contactName) {
+      message = message.replace(/{nome}/g, contactName);
+    }
+    message = message.replace(/{empresa}/g, 'Nossa Empresa');
+    message = message.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
+    message = message.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
+
+    // Obter credenciais da Z-API
+    const zapiInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
+    const zapiToken = Deno.env.get('ZAPI_TOKEN');
+    const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+
+    if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
+      throw new Error('Missing Z-API credentials');
+    }
+
+    // Enviar mensagem via Z-API
+    const zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+    
+    const zapiResponse = await fetch(zapiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Client-Token': zapiClientToken,
+      },
+      body: JSON.stringify({
+        phone: phone,
+        message: message,
+      }),
+    });
+
+    if (!zapiResponse.ok) {
+      const errorText = await zapiResponse.text();
+      console.error('Z-API error:', errorText);
+      throw new Error(`Z-API request failed: ${zapiResponse.status}`);
+    }
+
+    const zapiResult = await zapiResponse.json();
+    console.log('Welcome message sent successfully:', zapiResult);
+
+    // Marcar como enviado
+    await supabase
+      .from('welcome_message_sent')
+      .insert({ phone });
+
+    // Log da mensagem
+    await supabase
+      .from('message_logs')
+      .insert({
+        phone,
+        message_received: 'NEW_CONTACT',
+        keyword_matched: 'WELCOME_MESSAGE',
+        response_sent: message,
+      });
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Welcome message sent successfully',
+        zapiResponse: zapiResult 
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    );
+
+  } catch (error) {
+    console.error('Error in send-welcome-message function:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    );
+  }
+});

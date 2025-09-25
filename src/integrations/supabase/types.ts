@@ -95,6 +95,48 @@ export type Database = {
         }
         Relationships: []
       }
+      welcome_message_config: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          message: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          message?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      welcome_message_sent: {
+        Row: {
+          id: string
+          phone: string
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          phone: string
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          phone?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

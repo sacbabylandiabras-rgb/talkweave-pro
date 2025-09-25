@@ -1,14 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { MessageSquareHeart, Save, Eye } from "lucide-react";
+import { MessageSquareHeart, Save, Eye, Send } from "lucide-react";
+import { useWelcomeMessage } from "@/hooks/useWelcomeMessage";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const MensagemBoasVindas = () => {
-  const [ativo, setAtivo] = useState(true);
+  const { config, stats, loading, saveConfig, sendWelcomeMessage } = useWelcomeMessage();
+  const [ativo, setAtivo] = useState(false);
   const [mensagem, setMensagem] = useState("Olá! 👋 Bem-vindo à nossa empresa! Como podemos ajudá-lo hoje?");
+  const [testPhone, setTestPhone] = useState("");
+  const [testName, setTestName] = useState("");
+
+  useEffect(() => {
+    if (config) {
+      setAtivo(config.active);
+      setMensagem(config.message);
+    }
+  }, [config]);
+
+  const handleSave = async () => {
+    await saveConfig(ativo, mensagem);
+  };
+
+  const handleTest = async () => {
+    if (testPhone) {
+      await sendWelcomeMessage(testPhone, testName || undefined);
+      setTestPhone("");
+      setTestName("");
+    }
+  };
+
+  const renderPreview = () => {
+    let preview = mensagem;
+    preview = preview.replace(/{nome}/g, testName || "João");
+    preview = preview.replace(/{empresa}/g, "Nossa Empresa");
+    preview = preview.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
+    preview = preview.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
+    return preview;
+  };
 
   return (
     <div className="space-y-6">
@@ -65,13 +99,69 @@ const MensagemBoasVindas = () => {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Visualizar
-            </Button>
-            <Button className="flex items-center gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Visualizar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Pré-visualização da Mensagem</DialogTitle>
+                  <DialogDescription>
+                    Veja como a mensagem aparecerá para o cliente
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="whitespace-pre-wrap">{renderPreview()}</p>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Testar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Testar Mensagem de Boas-vindas</DialogTitle>
+                  <DialogDescription>
+                    Envie uma mensagem de teste para um número específico
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="test-phone">Número de telefone</Label>
+                    <Input
+                      id="test-phone"
+                      placeholder="5511999999999"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="test-name">Nome (opcional)</Label>
+                    <Input
+                      id="test-name"
+                      placeholder="Nome do contato"
+                      value={testName}
+                      onChange={(e) => setTestName(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleTest} className="w-full">
+                    Enviar Teste
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button onClick={handleSave} disabled={loading} className="flex items-center gap-2">
               <Save className="w-4 h-4" />
-              Salvar Configurações
+              {loading ? "Salvando..." : "Salvar Configurações"}
             </Button>
           </div>
         </CardContent>
@@ -85,15 +175,15 @@ const MensagemBoasVindas = () => {
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-primary">127</p>
+              <p className="text-2xl font-bold text-primary">{stats.sent}</p>
               <p className="text-sm text-muted-foreground">Mensagens Enviadas</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-primary">98</p>
+              <p className="text-2xl font-bold text-primary">{stats.viewed}</p>
               <p className="text-sm text-muted-foreground">Visualizadas</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-primary">45</p>
+              <p className="text-2xl font-bold text-primary">{stats.replied}</p>
               <p className="text-sm text-muted-foreground">Respondidas</p>
             </div>
           </div>
