@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode, Power, PowerOff, RotateCcw, Edit2, Check, X } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
@@ -12,6 +13,9 @@ const Dispositivos = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(true);
+  const [instanceName, setInstanceName] = useState("ZapLynx Instance");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState("ZapLynx Instance");
   const { getDeviceStatus, getQRCode, loading } = useZapi();
   const { toast } = useToast();
 
@@ -103,27 +107,9 @@ const Dispositivos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
-          <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
-        </div>
-        <div className="flex gap-2">
-          <Button className="flex items-center gap-2" onClick={fetchDeviceStatus} disabled={loading}>
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Atualizar Status
-          </Button>
-          {needsConnection && (
-            <Button variant="outline" className="flex items-center gap-2" onClick={fetchQRCode} disabled={loading}>
-              <QrCode className="w-4 h-4" />
-              Gerar QR Code
-            </Button>
-          )}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
+        <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
       </div>
 
       <div className="grid gap-4">
@@ -132,8 +118,62 @@ const Dispositivos = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Smartphone className="w-8 h-8 text-primary" />
-                <div>
-                  <CardTitle className="text-lg">ZapLynx Instance</CardTitle>
+                <div className="flex-1">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="text-lg font-semibold h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setInstanceName(tempName);
+                            setIsEditingName(false);
+                            toast({ title: "✅ Nome atualizado!" });
+                          }
+                          if (e.key === 'Escape') {
+                            setTempName(instanceName);
+                            setIsEditingName(false);
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setInstanceName(tempName);
+                          setIsEditingName(false);
+                          toast({ title: "✅ Nome atualizado!" });
+                        }}
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setTempName(instanceName);
+                          setIsEditingName(false);
+                        }}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{instanceName}</CardTitle>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setIsEditingName(true);
+                          setTempName(instanceName);
+                        }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                   <CardDescription>
                     {deviceStatus?.phone || 'Aguardando conexão...'}
                   </CardDescription>
@@ -147,10 +187,62 @@ const Dispositivos = () => {
                     <><WifiOff className="w-3 h-3 mr-1" /> Offline</>
                   )}
                 </Badge>
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4" />
-                </Button>
               </div>
+            </div>
+            
+            {/* Controles da Instância */}
+            <div className="flex flex-wrap gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchDeviceStatus} 
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                {loading ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Atualizar Status
+              </Button>
+              
+              {needsConnection ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchQRCode} 
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <QrCode className="w-3 h-3" />
+                  Conectar Device
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <PowerOff className="w-3 h-3" />
+                  Desconectar
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reiniciar Instância
+              </Button>
+              
+              <Button variant="outline" size="sm">
+                <Settings className="w-3 h-3" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
