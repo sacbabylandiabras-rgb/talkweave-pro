@@ -100,39 +100,21 @@ const Dispositivos = () => {
     }
 
     try {
-      setPairingCode(null);
+      // Tentar o endpoint real da Z-API (sabemos que vai falhar)
+      const result = await getPairingCode(phoneNumber);
       
-      // Gerar código simulado de 8 dígitos
-      const generatedCode = Math.floor(10000000 + Math.random() * 90000000).toString();
-      
-      // Simular um delay de carregamento
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setPairingCode(generatedCode);
-      
-      toast({
-        title: "✅ Código gerado com sucesso",
-        description: `Código ${generatedCode} gerado para ${phoneNumber}`,
-      });
-      
-      // Tentar conectar em background (simulação)
-      setTimeout(async () => {
-        try {
-          await fetchDeviceStatus();
-          toast({
-            title: "🔄 Verificando conexão",
-            description: "Aguardando pareamento no WhatsApp...",
-          });
-        } catch (error) {
-          console.log('Status check after pairing code generation');
-        }
-      }, 3000);
-      
+      if (result.success && result.data && result.data.code) {
+        setPairingCode(result.data.code);
+        toast({
+          title: "✅ Código gerado",
+          description: "Use este código no seu WhatsApp para conectar"
+        });
+      }
     } catch (error) {
-      console.error('Erro ao gerar código:', error);
+      console.error('Erro ao buscar código:', error);
       toast({
-        title: "❌ Erro ao gerar código",
-        description: "Tente novamente ou use o QR Code",
+        title: "❌ Z-API não suporta código de pareamento",
+        description: "Use o QR Code na outra aba para conectar seu WhatsApp",
         variant: "destructive"
       });
     }
@@ -406,13 +388,13 @@ const Dispositivos = () => {
                         </div>
                       )}
                       
-                      <div className="text-xs text-muted-foreground space-y-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p>💡 <strong>Alternativa Z-API:</strong></p>
-                        <p>1. Digite seu número e gere o código</p>
-                        <p>2. Use o código no WhatsApp para pareamento</p>
-                        <p>3. O sistema tentará conectar automaticamente</p>
-                        <p className="text-blue-600 dark:text-blue-400">
-                          ✨ Funcionalidade otimizada para Z-API
+                      <div className="text-xs text-muted-foreground space-y-1 bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                        <p>⚠️ <strong>Limitação da Z-API:</strong></p>
+                        <p>• A Z-API não possui endpoint para código de pareamento</p>
+                        <p>• Esta funcionalidade requer Evolution API ou Baileys</p>
+                        <p>• Use a aba QR Code para conectar com Z-API</p>
+                        <p className="text-red-600 dark:text-red-400">
+                          🔧 Para código real, seria necessário trocar de API
                         </p>
                       </div>
                     </div>
