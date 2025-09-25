@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode, Power, PowerOff, RotateCcw, Edit2, Check, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Smartphone, Wifi, WifiOff, Plus, Settings, RefreshCw, QrCode, Power, PowerOff, RotateCcw, Edit2, Check, X, Phone } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
@@ -13,6 +14,8 @@ const Dispositivos = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(true);
+  const [showConnectOptions, setShowConnectOptions] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [instanceName, setInstanceName] = useState("ZapLynx Instance");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("ZapLynx Instance");
@@ -236,16 +239,18 @@ const Dispositivos = () => {
                   Desconectar
                 </Button>
               ) : (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={fetchQRCode} 
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                >
-                  <QrCode className="w-3 h-3" />
-                  Gerar QR Code
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => setShowConnectOptions(!showConnectOptions)} 
+                    disabled={loading}
+                    className="flex items-center gap-2"
+                  >
+                    <QrCode className="w-3 h-3" />
+                    Conectar Dispositivo
+                  </Button>
+                </div>
               )}
               
               <Button 
@@ -275,6 +280,95 @@ const Dispositivos = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Opções de Conexão */}
+            {showConnectOptions && !isConnected && (
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-4">🔗 Escolha como conectar:</h4>
+                
+                {/* Abas de escolha */}
+                <div className="flex justify-center mb-4">
+                  <div className="flex bg-muted rounded-lg p-1">
+                    <Button
+                      variant={showQRCode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setShowQRCode(true)}
+                      className="text-xs"
+                    >
+                      📱 QR Code
+                    </Button>
+                    <Button
+                      variant={!showQRCode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setShowQRCode(false)}
+                      className="text-xs"
+                    >
+                      📞 Com Número
+                    </Button>
+                  </div>
+                </div>
+
+                {showQRCode ? (
+                  /* Conectar via QR Code */
+                  <div className="text-center">
+                    <Button 
+                      onClick={fetchQRCode} 
+                      disabled={loading}
+                      className="mb-4"
+                    >
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Gerar QR Code
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Clique para gerar o QR Code e escaneie com seu WhatsApp
+                    </p>
+                  </div>
+                ) : (
+                  /* Conectar via Número */
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="phoneNumber">Número do WhatsApp</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="phoneNumber"
+                          placeholder="Ex: 5511999999999"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={() => {
+                            if (phoneNumber.length >= 10) {
+                              toast({
+                                title: "📱 Número verificado",
+                                description: "Agora gere o QR Code para conectar esta instância ao número " + phoneNumber,
+                              });
+                              fetchQRCode();
+                            } else {
+                              toast({
+                                title: "❌ Número inválido",
+                                description: "Digite um número válido com DDD (Ex: 5511999999999)",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                          disabled={loading || phoneNumber.length < 10}
+                        >
+                          <Phone className="w-4 h-4 mr-1" />
+                          Verificar
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                      <p className="font-medium mb-1">ℹ️ Como funciona:</p>
+                      <p>1. Digite o número que será usado nesta instância</p>
+                      <p>2. Clique em "Verificar" para validar</p>
+                      <p>3. Escaneie o QR Code com esse número no WhatsApp</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Status da Instância</p>
