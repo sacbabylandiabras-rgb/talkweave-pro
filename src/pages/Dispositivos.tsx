@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Settings, Phone } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
@@ -15,6 +16,8 @@ const Dispositivos = () => {
   const [instanceName, setInstanceName] = useState("ZapLynx Instance");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("ZapLynx Instance");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [connectionTab, setConnectionTab] = useState("qr-code");
   const { getDeviceStatus, getQRCode, disconnectDevice, restartInstance, loading } = useZapi();
   const { toast } = useToast();
 
@@ -253,48 +256,106 @@ const Dispositivos = () => {
               <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
                 <h4 className="font-medium mb-4 text-center">🔗 Conectar dispositivo WhatsApp</h4>
                 
-                <div className="text-center space-y-4">
-                  {!qrCodeImage ? (
-                    <div>
-                      <Button 
-                        onClick={fetchQRCode} 
-                        disabled={loading}
-                        size="lg"
-                      >
-                        <QrCode className="w-4 h-4 mr-2" />
-                        Gerar QR Code
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Clique para gerar o QR Code e escaneie com seu WhatsApp
-                      </p>
+                <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="qr-code" className="flex items-center gap-2">
+                      <QrCode className="w-4 h-4" />
+                      QR Code
+                    </TabsTrigger>
+                    <TabsTrigger value="phone-number" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Com Número
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="qr-code" className="space-y-4">
+                    <div className="text-center space-y-4">
+                      {!qrCodeImage ? (
+                        <div>
+                          <Button 
+                            onClick={fetchQRCode} 
+                            disabled={loading}
+                            size="lg"
+                          >
+                            <QrCode className="w-4 h-4 mr-2" />
+                            Gerar QR Code
+                          </Button>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Clique para gerar o QR Code e escaneie com seu WhatsApp
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex justify-center mb-4">
+                            <img 
+                              src={qrCodeImage} 
+                              alt="QR Code para conectar WhatsApp" 
+                              className="w-64 h-64 border rounded-lg"
+                            />
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p>1. Abra o WhatsApp no seu celular</p>
+                            <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
+                            <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                            <p>4. Escaneie este código</p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-4"
+                            onClick={fetchQRCode}
+                            disabled={loading}
+                          >
+                            🔄 Renovar QR Code
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex justify-center mb-4">
-                        <img 
-                          src={qrCodeImage} 
-                          alt="QR Code para conectar WhatsApp" 
-                          className="w-64 h-64 border rounded-lg"
+                  </TabsContent>
+                  
+                  <TabsContent value="phone-number" className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Número do WhatsApp</label>
+                        <Input
+                          type="tel"
+                          placeholder="Ex: 5511999999999"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          className="text-center"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Digite o número com código do país (Ex: 5511999999999)
+                        </p>
                       </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>1. Abra o WhatsApp no seu celular</p>
-                        <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
-                        <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
-                        <p>4. Escaneie este código</p>
-                      </div>
+                      
                       <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-4"
-                        onClick={fetchQRCode}
-                        disabled={loading}
+                        className="w-full" 
+                        disabled={!phoneNumber || loading}
+                        onClick={() => {
+                          toast({
+                            title: "🔄 Funcionalidade em desenvolvimento",
+                            description: "Use o QR Code para conectar seu dispositivo",
+                            variant: "destructive"
+                          });
+                        }}
                       >
-                        🔄 Renovar QR Code
+                        <Phone className="w-4 h-4 mr-2" />
+                        Conectar com Número
                       </Button>
+                      
+                      <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-lg">
+                        <p>📝 <strong>Como usar:</strong></p>
+                        <p>1. Digite seu número do WhatsApp</p>
+                        <p>2. Clique em "Conectar com Número"</p>
+                        <p>3. Aguarde as instruções de pareamento</p>
+                        <p className="text-amber-600 dark:text-amber-400">
+                          ⚠️ Método alternativo - recomendamos usar QR Code
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
 
