@@ -459,8 +459,8 @@ const Modelos = () => {
                 Novo Modelo
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Criar Novo Modelo
@@ -469,7 +469,8 @@ const Modelos = () => {
                   Configure um novo modelo de mensagem com texto personalizado e botões interativos
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
+              
+              <div className="flex-1 overflow-y-auto space-y-4 py-4">
                 <div>
                   <Label htmlFor="template-name">Nome do Modelo</Label>
                   <Input
@@ -511,7 +512,7 @@ const Modelos = () => {
                   </div>
                 </div>
               </div>
-              
+
               <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="w-full sm:w-auto">
                   Cancelar
