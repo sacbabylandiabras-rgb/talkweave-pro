@@ -201,20 +201,12 @@ export const useZapi = () => {
     }
   };
 
-  const sendOptionList = async (
-    phone: string, 
-    message: string, 
-    optionList: {
-      title: string,
-      buttonLabel: string,
-      options: Array<{id: string, title: string, description: string}>
-    }
-  ) => {
+  const sendImage = async (phone: string, image: string, caption?: string) => {
     setLoading(true);
     const config = getZAPIConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-image`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -224,27 +216,73 @@ export const useZapi = () => {
         },
         body: JSON.stringify({
           phone: phone,
-          message: message,
-          optionList: optionList
+          image: image,
+          caption: caption || ''
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar lista de opções');
+        throw new Error(data.error || 'Erro ao enviar imagem');
       }
 
       toast({
-        title: "Lista de opções enviada!",
-        description: "A mensagem foi enviada com sucesso.",
+        title: "Imagem enviada!",
+        description: "A imagem foi enviada com sucesso.",
       });
 
       return data;
     } catch (error) {
-      console.error('Erro ao enviar lista de opções:', error);
+      console.error('Erro ao enviar imagem:', error);
       toast({
-        title: "Erro ao enviar mensagem", 
+        title: "Erro ao enviar imagem", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendDocument = async (phone: string, document: string, filename: string, extension: string, caption?: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-document/${extension}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          document: document,
+          filename: filename,
+          caption: caption || ''
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar documento');
+      }
+
+      toast({
+        title: "Documento enviado!",
+        description: "O documento foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar documento:', error);
+      toast({
+        title: "Erro ao enviar documento", 
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
@@ -493,11 +531,66 @@ export const useZapi = () => {
     }
   };
 
+  const sendOptionList = async (
+    phone: string, 
+    message: string, 
+    optionList: {
+      title: string,
+      buttonLabel: string,
+      options: Array<{id: string, title: string, description: string}>
+    }
+  ) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({
+          phone: phone,
+          message: message,
+          optionList: optionList
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar lista de opções');
+      }
+
+      toast({
+        title: "Lista de opções enviada!",
+        description: "A mensagem foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar lista de opções:', error);
+      toast({
+        title: "Erro ao enviar mensagem", 
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
     sendButtonActions,
     sendOptionList,
+    sendImage,
+    sendDocument,
     getDeviceStatus,
     getQRCode,
     getPairingCode,

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer } from "lucide-react";
+import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -37,8 +37,41 @@ const EnviarMensagem = () => {
   const [labelBotaoLista, setLabelBotaoLista] = useState("Ver opções");
   const [opcoes, setOpcoes] = useState([{id: "1", title: "", description: ""}]);
   
-  const { sendMessage, sendButtonActions, sendOptionList, loading } = useZapi();
+  // Estados para mídia e modelos
+  const [arquivoMidia, setArquivoMidia] = useState<File | null>(null);
+  const [legenda, setLegenda] = useState("");
+  const [modeloSelecionado, setModeloSelecionado] = useState("");
+  
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendDocument, loading } = useZapi();
   const { toast } = useToast();
+  
+  // Modelos pré-definidos (vem da página Modelos)
+  const modelosDisponiveis = [
+    {
+      id: 1,
+      nome: "Saudação Comercial",
+      categoria: "Saudação",
+      conteudo: "Olá! Obrigado por entrar em contato conosco. Como podemos ajudá-lo hoje?"
+    },
+    {
+      id: 2,
+      nome: "Informações de Produto",
+      categoria: "Vendas", 
+      conteudo: "Nosso produto oferece as seguintes funcionalidades: {lista_funcionalidades}. Gostaria de saber mais detalhes?"
+    },
+    {
+      id: 3,
+      nome: "Agendamento",
+      categoria: "Atendimento",
+      conteudo: "Para agendar uma reunião, por favor nos informe sua disponibilidade. Nossos horários são de segunda a sexta, das 9h às 17h."
+    },
+    {
+      id: 4,
+      nome: "Suporte Técnico", 
+      categoria: "Suporte",
+      conteudo: "Recebemos sua solicitação de suporte. Nossa equipe técnica entrará em contato em até 24 horas."
+    }
+  ];
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +221,81 @@ const EnviarMensagem = () => {
     setOpcoes(newOpcoes);
   };
 
+  // Função para converter arquivo para base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Função para enviar mensagem com mídia
+  const handleSendWithMedia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!arquivoMidia) {
+      toast({
+        title: "Nenhum arquivo selecionado",
+        description: "Selecione um arquivo para enviar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
+      setErrors({});
+
+      const base64File = await convertToBase64(arquivoMidia);
+      const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+      
+      // Verificar se é imagem ou documento
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const isImage = imageExtensions.includes(fileExtension || '');
+
+      if (isImage) {
+        await sendImage(validatedData.phone, base64File, legenda || mensagem);
+      } else {
+        await sendDocument(
+          validatedData.phone,
+          base64File,
+          arquivoMidia.name,
+          fileExtension || 'txt',
+          legenda || mensagem
+        );
+      }
+
+      // Limpar formulário
+      setNumero("");
+      setMensagem("");
+      setLegenda("");
+      setArquivoMidia(null);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: {phone?: string, message?: string} = {};
+        error.errors.forEach((err) => {
+          if (err.path[0] === 'phone') fieldErrors.phone = err.message;
+          if (err.path[0] === 'message') fieldErrors.message = err.message;
+        });
+        setErrors(fieldErrors);
+      }
+    }
+  };
+
+  // Função para aplicar modelo
+  const aplicarModelo = (modeloId: string) => {
+    const modelo = modelosDisponiveis.find(m => m.id.toString() === modeloId);
+    if (modelo) {
+      setMensagem(modelo.conteudo);
+      toast({
+        title: "Modelo aplicado!",
+        description: `Modelo "${modelo.nome}" foi aplicado à mensagem`,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -258,6 +366,114 @@ const EnviarMensagem = () => {
                       {mensagem.length}/4096 caracteres
                     </p>
                   </div>
+                  
+                  {/* Seção de Mídia e Modelos */}
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Anexar Mídia */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          Anexar Mídia
+                        </h4>
+                        <div className="space-y-3">
+                          <Input
+                            type="file"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 64 * 1024 * 1024) { // 64MB limit
+                                  toast({
+                                    title: "Arquivo muito grande",
+                                    description: "O arquivo deve ter no máximo 64MB",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                setArquivoMidia(file);
+                              }
+                            }}
+                            className="text-sm"
+                          />
+                          {arquivoMidia && (
+                            <div className="bg-muted p-2 rounded text-sm">
+                              <p className="font-medium">{arquivoMidia.name}</p>
+                              <p className="text-muted-foreground">
+                                {(arquivoMidia.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          )}
+                          <Input
+                            placeholder="Legenda da mídia (opcional)"
+                            value={legenda}
+                            onChange={(e) => setLegenda(e.target.value)}
+                          />
+                          {arquivoMidia && (
+                            <Button
+                              type="button"
+                              onClick={handleSendWithMedia}
+                              disabled={loading}
+                              className="w-full flex items-center gap-2"
+                              variant="outline"
+                            >
+                              {loading ? (
+                                <>Enviando...</>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4" />
+                                  Enviar com Mídia
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Usar Modelo */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Usar Modelo
+                        </h4>
+                        <div className="space-y-3">
+                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelosDisponiveis.map((modelo) => (
+                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
+                                  <div>
+                                    <p className="font-medium">{modelo.nome}</p>
+                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {modeloSelecionado && (
+                            <div className="bg-muted p-3 rounded text-sm">
+                              <p className="font-medium mb-1">Preview:</p>
+                              <p className="text-muted-foreground">
+                                {modelosDisponiveis.find(m => m.id.toString() === modeloSelecionado)?.conteudo}
+                              </p>
+                            </div>
+                          )}
+                          <Button
+                            type="button"
+                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
+                            disabled={!modeloSelecionado}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Aplicar Modelo
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                  
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
                       <>Enviando...</>
@@ -445,6 +661,57 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
+                  {/* Seção de Mídia e Modelos para Botões */}
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Anexar Mídia */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          Anexar Mídia
+                        </h4>
+                        <Button variant="outline" size="sm" className="w-full" disabled>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Em breve: Botões + Mídia
+                        </Button>
+                      </Card>
+
+                      {/* Usar Modelo */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Usar Modelo
+                        </h4>
+                        <div className="space-y-3">
+                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelosDisponiveis.map((modelo) => (
+                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
+                                  <div>
+                                    <p className="font-medium">{modelo.nome}</p>
+                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
+                            disabled={!modeloSelecionado}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Aplicar ao Texto Principal
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                  
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
                       <>Enviando...</>
@@ -559,6 +826,57 @@ const EnviarMensagem = () => {
                         <Plus className="w-4 h-4" />
                         Adicionar Opção
                       </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Seção de Mídia e Modelos para Lista */}
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Anexar Mídia */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          Anexar Mídia
+                        </h4>
+                        <Button variant="outline" size="sm" className="w-full" disabled>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Em breve: Lista + Mídia
+                        </Button>
+                      </Card>
+
+                      {/* Usar Modelo */}
+                      <Card className="p-4">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Usar Modelo
+                        </h4>
+                        <div className="space-y-3">
+                          <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelosDisponiveis.map((modelo) => (
+                                <SelectItem key={modelo.id} value={modelo.id.toString()}>
+                                  <div>
+                                    <p className="font-medium">{modelo.nome}</p>
+                                    <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
+                            disabled={!modeloSelecionado}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Aplicar ao Texto Principal
+                          </Button>
+                        </div>
+                      </Card>
                     </div>
                   </div>
                   
@@ -770,6 +1088,54 @@ Você pode usar variáveis:
               </div>
               
               <div className="border-t pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Anexar Mídia para Massa */}
+                  <Card className="p-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      Anexar Mídia
+                    </h4>
+                    <Button variant="outline" size="sm" className="w-full" disabled>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Em breve: Massa + Mídia
+                    </Button>
+                  </Card>
+
+                  {/* Usar Modelo para Massa */}
+                  <Card className="p-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Usar Modelo
+                    </h4>
+                    <div className="space-y-3">
+                      <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um modelo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {modelosDisponiveis.map((modelo) => (
+                            <SelectItem key={modelo.id} value={modelo.id.toString()}>
+                              <div>
+                                <p className="font-medium">{modelo.nome}</p>
+                                <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
+                        disabled={!modeloSelecionado}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Aplicar à Mensagem
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+                
                 <div className="flex gap-2 mb-4">
                   <Button variant="outline" className="flex items-center gap-2">
                     <Image className="w-4 h-4" />
