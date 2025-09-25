@@ -368,60 +368,74 @@ const Dispositivos = () => {
                       Ou digite este código no WhatsApp:
                     </p>
                     <div className="bg-muted p-4 rounded-lg mb-4">
-                      <code className="text-lg font-mono tracking-wider">
-                        {qrCode && qrCode.length > 20 ? (
-                          // Extrair código de pareamento real do QR Code
-                          (() => {
-                            try {
-                              // QR Code do WhatsApp geralmente tem formato: 1@<código>,<servidor>,<token>,...
-                              const parts = qrCode.split(',');
-                              if (parts[0] && parts[0].includes('@')) {
-                                // Pegar a parte depois do @ e antes da vírgula
-                                const afterAt = parts[0].split('@')[1];
-                                if (afterAt && afterAt.length >= 8) {
-                                  // Pegar os primeiros 8 caracteres para o código de pareamento
-                                  return afterAt.substring(0, 8).toUpperCase();
-                                }
-                              }
-                              // Se não conseguir extrair, mostrar uma parte do QR code original
-                              const cleanCode = qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
-                              return cleanCode.length >= 6 ? cleanCode : 'INDISPONÍVEL';
-                            } catch (e) {
-                              return 'ERRO';
-                            }
-                          })()
-                        ) : 'Desconecte primeiro'}
-                      </code>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => {
-                          const code = qrCode ? (
-                            (() => {
+                      {qrCode && qrCode.length > 20 && !qrCode.includes('"connected"') ? (
+                        <>
+                          <code className="text-lg font-mono tracking-wider">
+                            {(() => {
                               try {
+                                // QR Code do WhatsApp geralmente tem formato: 1@<código>,<servidor>,<token>,...
                                 const parts = qrCode.split(',');
                                 if (parts[0] && parts[0].includes('@')) {
+                                  // Pegar a parte depois do @ e antes da vírgula
                                   const afterAt = parts[0].split('@')[1];
                                   if (afterAt && afterAt.length >= 8) {
+                                    // Pegar os primeiros 8 caracteres para o código de pareamento
                                     return afterAt.substring(0, 8).toUpperCase();
                                   }
                                 }
-                                return qrCode.substring(0, 12).replace(/[^A-Z0-9]/g, '');
+                                // Fallback: tentar extrair código válido de outra forma
+                                const match = qrCode.match(/[A-Z0-9]{8,}/);
+                                return match ? match[0].substring(0, 8) : 'INDISPONÍVEL';
                               } catch (e) {
-                                return '';
+                                return 'ERRO';
                               }
-                            })()
-                          ) : '';
-                          navigator.clipboard.writeText(code);
-                          toast({
-                            title: "✅ Código copiado!",
-                            description: "Cole no WhatsApp para conectar",
-                          });
-                        }}
-                      >
-                        📋 Copiar
-                      </Button>
+                            })()}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-2"
+                            onClick={() => {
+                              const code = (() => {
+                                try {
+                                  const parts = qrCode.split(',');
+                                  if (parts[0] && parts[0].includes('@')) {
+                                    const afterAt = parts[0].split('@')[1];
+                                    if (afterAt && afterAt.length >= 8) {
+                                      return afterAt.substring(0, 8).toUpperCase();
+                                    }
+                                  }
+                                  const match = qrCode.match(/[A-Z0-9]{8,}/);
+                                  return match ? match[0].substring(0, 8) : '';
+                                } catch (e) {
+                                  return '';
+                                }
+                              })();
+                              
+                              if (code && code !== 'INDISPONÍVEL' && code !== 'ERRO') {
+                                navigator.clipboard.writeText(code);
+                                toast({
+                                  title: "✅ Código copiado!",
+                                  description: "Cole no WhatsApp para conectar",
+                                });
+                              } else {
+                                toast({
+                                  title: "❌ Código inválido",
+                                  description: "Desconecte o dispositivo primeiro para gerar um código válido",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            📋 Copiar
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="text-center text-muted-foreground py-4">
+                          <p className="mb-2">⚠️ Nenhum código disponível</p>
+                          <p className="text-sm">Desconecte o dispositivo atual primeiro</p>
+                        </div>
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p>1. Abra o WhatsApp no seu celular</p>
