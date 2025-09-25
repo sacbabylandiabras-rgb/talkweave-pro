@@ -46,7 +46,17 @@ export const useZapi = () => {
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}`;
         if (data.message) errorMessage += `: ${data.message}`;
-        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        // Mensagens específicas para erros comuns
+        if (response.status === 400 && data.error === 'Instance not found') {
+          errorMessage = '❌ Instância Z-API não encontrada! Verifique suas credenciais na página "Config Z-API" no menu lateral.';
+        } else if (response.status === 404) {
+          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
+        } else if (response.status === 401) {
+          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -92,7 +102,16 @@ export const useZapi = () => {
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}`;
         if (data.message) errorMessage += `: ${data.message}`;
-        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        if (response.status === 400 && data.error === 'Instance not found') {
+          errorMessage = '❌ Instância Z-API não encontrada! Verifique suas credenciais na página "Config Z-API".';
+        } else if (response.status === 404) {
+          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
+        } else if (response.status === 401) {
+          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -133,7 +152,16 @@ export const useZapi = () => {
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}`;
         if (data.message) errorMessage += `: ${data.message}`;
-        if (response.status === 404) errorMessage = 'Instância não encontrada. Verifique suas credenciais Z-API.';
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        if (response.status === 400 && data.error === 'Instance not found') {
+          errorMessage = '❌ Instância Z-API não encontrada! Acesse "Config Z-API" no menu e atualize suas credenciais.';
+        } else if (response.status === 404) {
+          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
+        } else if (response.status === 401) {
+          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
+        }
+        
         throw new Error(errorMessage);
       }
 
