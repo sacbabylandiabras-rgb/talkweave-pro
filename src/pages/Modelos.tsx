@@ -257,7 +257,11 @@ const Modelos = () => {
           type="button" 
           variant="outline" 
           size="sm" 
-          onClick={() => addButton(isEdit)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addButton(isEdit);
+          }}
           disabled={buttons.length >= 3}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -273,7 +277,11 @@ const Modelos = () => {
               type="button" 
               variant="ghost" 
               size="sm" 
-              onClick={() => removeButton(index, isEdit)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                removeButton(index, isEdit);
+              }}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -282,18 +290,24 @@ const Modelos = () => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label>Texto do Botão</Label>
-              <Input
-                placeholder="Ex: Confirmar Pedido"
-                value={button.text}
-                onChange={(e) => updateButton(index, 'text', e.target.value, isEdit)}
-                maxLength={20}
-              />
+                <Input
+                  placeholder="Ex: Confirmar Pedido"
+                  value={button.text}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateButton(index, 'text', e.target.value, isEdit);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  maxLength={20}
+                />
             </div>
             <div>
               <Label>Tipo</Label>
               <Select 
                 value={button.type} 
-                onValueChange={(value) => updateButton(index, 'type', value, isEdit)}
+                onValueChange={(value) => {
+                  updateButton(index, 'type', value, isEdit);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -325,10 +339,14 @@ const Modelos = () => {
           {(button.type === 'url' || button.type === 'call') && (
             <div>
               <Label>{button.type === 'url' ? 'URL' : 'Número de Telefone'}</Label>
-              <Input
+               <Input
                 placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
                 value={button.value || ''}
-                onChange={(e) => updateButton(index, 'value', e.target.value, isEdit)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  updateButton(index, 'value', e.target.value, isEdit);
+                }}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           )}
