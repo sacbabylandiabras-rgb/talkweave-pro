@@ -498,7 +498,7 @@ const Modelos = () => {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto space-y-4 py-4">
+              <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4">
                 <div>
                   <Label htmlFor="template-name">Nome do Modelo</Label>
                   <Input
@@ -564,13 +564,13 @@ const Modelos = () => {
                     <div><code>{"{hora}"}</code> - Hora atual</div>
                   </div>
                 </div>
-              </div>
+              </form>
 
               <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="w-full sm:w-auto">
+                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateTemplate} className="w-full sm:w-auto">
+                <Button type="button" onClick={handleCreateTemplate} className="w-full sm:w-auto">
                   <Save className="w-4 h-4 mr-2" />
                   Salvar Modelo
                 </Button>
@@ -723,7 +723,7 @@ const Modelos = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto space-y-4 py-4">
+          <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4">
             <div>
               <Label htmlFor="edit-template-name">Nome do Modelo</Label>
               <Input
@@ -789,13 +789,13 @@ const Modelos = () => {
                 <div><code>{"{hora}"}</code> - Hora atual</div>
               </div>
             </div>
-          </div>
+          </form>
           
           <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleUpdateTemplate} className="w-full sm:w-auto">
+            <Button type="button" onClick={handleUpdateTemplate} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
               Salvar Alterações
             </Button>
