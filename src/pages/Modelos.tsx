@@ -218,20 +218,21 @@ const Modelos = () => {
   };
 
   const updateButton = (index: number, field: string, value: string, isEdit = false) => {
+    console.log('updateButton called:', { index, field, value, isEdit });
     if (isEdit) {
-      setEditFormData(prev => ({
-        ...prev,
-        buttons: prev.buttons.map((btn, i) => 
-          i === index ? { ...btn, [field]: value } : btn
-        )
-      }));
+      setEditFormData(prev => {
+        const newButtons = [...prev.buttons];
+        newButtons[index] = { ...newButtons[index], [field]: value };
+        console.log('Updated edit buttons:', newButtons);
+        return { ...prev, buttons: newButtons };
+      });
     } else {
-      setNewTemplate(prev => ({
-        ...prev,
-        buttons: prev.buttons.map((btn, i) => 
-          i === index ? { ...btn, [field]: value } : btn
-        )
-      }));
+      setNewTemplate(prev => {
+        const newButtons = [...prev.buttons];
+        newButtons[index] = { ...newButtons[index], [field]: value };
+        console.log('Updated new template buttons:', newButtons);
+        return { ...prev, buttons: newButtons };
+      });
     }
   };
 
@@ -249,28 +250,33 @@ const Modelos = () => {
     }
   };
 
-  const ButtonEditor = ({ buttons, isEdit = false }: { buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, isEdit?: boolean }) => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label>Botões de Ação</Label>
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="sm" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            addButton(isEdit);
-          }}
-          disabled={buttons.length >= 3}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Adicionar Botão
-        </Button>
-      </div>
+  const ButtonEditor = ({ buttons, isEdit = false }: { buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, isEdit?: boolean }) => {
+    console.log('ButtonEditor render:', { buttonsLength: buttons.length, isEdit });
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Botões de Ação</Label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              addButton(isEdit);
+            }}
+            disabled={buttons.length >= 3}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Adicionar Botão
+          </Button>
+        </div>
       
-      {buttons.map((button, index) => (
-        <div key={button.id} className="border rounded-lg p-3 space-y-2">
+        {buttons.map((button, index) => {
+          console.log('Rendering button:', { index, buttonId: button.id, text: button.text, type: button.type });
+          return (
+            <div key={`${button.id}-${index}`} className="border rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Botão {index + 1}</span>
             <Button 
@@ -369,23 +375,25 @@ const Modelos = () => {
                     e.preventDefault();
                   }
                 }}
-              />
-            </div>
-          )}
-        </div>
-      ))}
-      
-      {buttons.length === 0 && (
-        <div className="text-center py-4 text-muted-foreground text-sm">
-          Nenhum botão adicionado. Clique em "Adicionar Botão" para criar um.
-        </div>
-      )}
-      
-      <div className="bg-muted/50 p-2 rounded text-xs text-muted-foreground">
-        💡 Máximo 3 botões por modelo. Botões de resposta rápida enviam texto automático, links abrem URLs e botões de ligar iniciam chamadas.
+               />
+             </div>
+           )}
+         </div>
+         );
+       })}
+       
+       {buttons.length === 0 && (
+         <div className="text-center py-4 text-muted-foreground text-sm">
+           Nenhum botão adicionado. Clique em "Adicionar Botão" para criar um.
+         </div>
+       )}
+       
+       <div className="bg-muted/50 p-2 rounded text-xs text-muted-foreground">
+         💡 Máximo 3 botões por modelo. Botões de resposta rápida enviam texto automático, links abrem URLs e botões de ligar iniciam chamadas.
+       </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
