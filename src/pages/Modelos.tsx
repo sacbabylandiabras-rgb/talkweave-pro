@@ -294,10 +294,21 @@ const Modelos = () => {
                   placeholder="Ex: Confirmar Pedido"
                   value={button.text}
                   onChange={(e) => {
+                    console.log('Button text input onChange:', e.target.value);
                     e.stopPropagation();
                     updateButton(index, 'text', e.target.value, isEdit);
                   }}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    console.log('Button text input onClick');
+                    e.stopPropagation();
+                  }}
+                  onKeyDown={(e) => {
+                    console.log('Button text input onKeyDown:', e.key);
+                    e.stopPropagation();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
                   maxLength={20}
                 />
             </div>
@@ -343,10 +354,21 @@ const Modelos = () => {
                 placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
                 value={button.value || ''}
                 onChange={(e) => {
+                  console.log('Button value input onChange:', e.target.value);
                   e.stopPropagation();
                   updateButton(index, 'value', e.target.value, isEdit);
                 }}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  console.log('Button value input onClick');
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  console.log('Button value input onKeyDown:', e.key);
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
           )}
@@ -480,7 +502,10 @@ const Modelos = () => {
             </DialogContent>
           </Dialog>
           
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <Dialog open={showCreateDialog} onOpenChange={(open) => {
+            console.log('Create dialog onOpenChange:', open);
+            setShowCreateDialog(open);
+          }}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -711,7 +736,10 @@ const Modelos = () => {
       </div>
 
       {/* Dialog de Edição */}
-      <Dialog open={!!editingTemplate} onOpenChange={() => handleCancelEdit()}>
+      <Dialog open={!!editingTemplate} onOpenChange={(open) => {
+        console.log('Edit dialog onOpenChange:', open, 'editing template:', editingTemplate);
+        if (!open) handleCancelEdit();
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
