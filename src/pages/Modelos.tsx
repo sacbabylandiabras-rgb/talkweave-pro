@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,149 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle } from "lucide-react";
+
+// Componente ButtonEditor separado e memoizado para evitar re-renders
+const ButtonEditor = memo(({ 
+  buttons, 
+  isEdit = false, 
+  onAddButton, 
+  onUpdateButton, 
+  onRemoveButton 
+}: { 
+  buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, 
+  isEdit?: boolean,
+  onAddButton: (isEdit: boolean) => void,
+  onUpdateButton: (index: number, field: string, value: string, isEdit: boolean) => void,
+  onRemoveButton: (index: number, isEdit: boolean) => void
+}) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>Botões de Ação</Label>
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAddButton(isEdit);
+          }}
+          disabled={buttons.length >= 3}
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Adicionar Botão
+        </Button>
+      </div>
+    
+      {buttons.map((button, index) => (
+        <div key={button.id} className="border rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Botão {index + 1}</span>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemoveButton(index, isEdit);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Texto do Botão</Label>
+              <Input
+                placeholder="Ex: Confirmar Pedido"
+                value={button.text}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onUpdateButton(index, 'text', e.target.value, isEdit);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
+                maxLength={20}
+              />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select 
+                value={button.type} 
+                onValueChange={(value) => {
+                  onUpdateButton(index, 'type', value, isEdit);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reply">
+                    <div className="flex items-center">
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Resposta Rápida
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="url">
+                    <div className="flex items-center">
+                      <Link className="w-4 h-4 mr-2" />
+                      Link/URL
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="call">
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Ligar
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {(button.type === 'url' || button.type === 'call') && (
+            <div>
+              <Label>{button.type === 'url' ? 'URL' : 'Número de Telefone'}</Label>
+              <Input
+                placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
+                value={button.value || ''}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onUpdateButton(index, 'value', e.target.value, isEdit);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+      
+      {buttons.length === 0 && (
+        <div className="text-center py-4 text-muted-foreground text-sm">
+          Nenhum botão adicionado. Clique em "Adicionar Botão" para criar um.
+        </div>
+      )}
+      
+      <div className="bg-muted/50 p-2 rounded text-xs text-muted-foreground">
+        💡 Máximo 3 botões por modelo. Botões de resposta rápida enviam texto automático, links abrem URLs e botões de ligar iniciam chamadas.
+      </div>
+    </div>
+  );
+});
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
@@ -196,7 +339,7 @@ const Modelos = () => {
     setEditFormData({ name: "", category: "", content: "", header: "", footer: "", buttons: [] });
   };
 
-  const addButton = (isEdit = false) => {
+  const addButton = useCallback((isEdit = false) => {
     const newButton = {
       id: Date.now().toString(),
       text: "",
@@ -215,28 +358,25 @@ const Modelos = () => {
         buttons: [...prev.buttons, newButton]
       }));
     }
-  };
+  }, []);
 
-  const updateButton = (index: number, field: string, value: string, isEdit = false) => {
-    console.log('updateButton called:', { index, field, value, isEdit });
+  const updateButton = useCallback((index: number, field: string, value: string, isEdit = false) => {
     if (isEdit) {
       setEditFormData(prev => {
         const newButtons = [...prev.buttons];
         newButtons[index] = { ...newButtons[index], [field]: value };
-        console.log('Updated edit buttons:', newButtons);
         return { ...prev, buttons: newButtons };
       });
     } else {
       setNewTemplate(prev => {
         const newButtons = [...prev.buttons];
         newButtons[index] = { ...newButtons[index], [field]: value };
-        console.log('Updated new template buttons:', newButtons);
         return { ...prev, buttons: newButtons };
       });
     }
-  };
+  }, []);
 
-  const removeButton = (index: number, isEdit = false) => {
+  const removeButton = useCallback((index: number, isEdit = false) => {
     if (isEdit) {
       setEditFormData(prev => ({
         ...prev,
@@ -248,152 +388,8 @@ const Modelos = () => {
         buttons: prev.buttons.filter((_, i) => i !== index)
       }));
     }
-  };
+  }, []);
 
-  const ButtonEditor = ({ buttons, isEdit = false }: { buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, isEdit?: boolean }) => {
-    console.log('ButtonEditor render:', { buttonsLength: buttons.length, isEdit });
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Botões de Ação</Label>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              addButton(isEdit);
-            }}
-            disabled={buttons.length >= 3}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar Botão
-          </Button>
-        </div>
-      
-        {buttons.map((button, index) => {
-          console.log('Rendering button:', { index, buttonId: button.id, text: button.text, type: button.type });
-          return (
-            <div key={`${button.id}-${index}`} className="border rounded-lg p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Botão {index + 1}</span>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                removeButton(index, isEdit);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Texto do Botão</Label>
-                <Input
-                  placeholder="Ex: Confirmar Pedido"
-                  value={button.text}
-                  onChange={(e) => {
-                    console.log('Button text input onChange:', e.target.value);
-                    e.stopPropagation();
-                    updateButton(index, 'text', e.target.value, isEdit);
-                  }}
-                  onClick={(e) => {
-                    console.log('Button text input onClick');
-                    e.stopPropagation();
-                  }}
-                  onKeyDown={(e) => {
-                    console.log('Button text input onKeyDown:', e.key);
-                    e.stopPropagation();
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                    }
-                  }}
-                  maxLength={20}
-                />
-            </div>
-            <div>
-              <Label>Tipo</Label>
-              <Select 
-                value={button.type} 
-                onValueChange={(value) => {
-                  updateButton(index, 'type', value, isEdit);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="reply">
-                    <div className="flex items-center">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Resposta Rápida
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="url">
-                    <div className="flex items-center">
-                      <Link className="w-4 h-4 mr-2" />
-                      Link/URL
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="call">
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Ligar
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {(button.type === 'url' || button.type === 'call') && (
-            <div>
-              <Label>{button.type === 'url' ? 'URL' : 'Número de Telefone'}</Label>
-               <Input
-                placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
-                value={button.value || ''}
-                onChange={(e) => {
-                  console.log('Button value input onChange:', e.target.value);
-                  e.stopPropagation();
-                  updateButton(index, 'value', e.target.value, isEdit);
-                }}
-                onClick={(e) => {
-                  console.log('Button value input onClick');
-                  e.stopPropagation();
-                }}
-                onKeyDown={(e) => {
-                  console.log('Button value input onKeyDown:', e.key);
-                  e.stopPropagation();
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                  }
-                }}
-               />
-             </div>
-           )}
-         </div>
-         );
-       })}
-       
-       {buttons.length === 0 && (
-         <div className="text-center py-4 text-muted-foreground text-sm">
-           Nenhum botão adicionado. Clique em "Adicionar Botão" para criar um.
-         </div>
-       )}
-       
-       <div className="bg-muted/50 p-2 rounded text-xs text-muted-foreground">
-         💡 Máximo 3 botões por modelo. Botões de resposta rápida enviam texto automático, links abrem URLs e botões de ligar iniciam chamadas.
-       </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
@@ -510,10 +506,7 @@ const Modelos = () => {
             </DialogContent>
           </Dialog>
           
-          <Dialog open={showCreateDialog} onOpenChange={(open) => {
-            console.log('Create dialog onOpenChange:', open);
-            setShowCreateDialog(open);
-          }}>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -586,7 +579,13 @@ const Modelos = () => {
                   <p className="text-xs text-muted-foreground mt-1">Aparece no final da mensagem no WhatsApp</p>
                 </div>
 
-                <ButtonEditor buttons={newTemplate.buttons} />
+                <ButtonEditor 
+                  buttons={newTemplate.buttons} 
+                  isEdit={false} 
+                  onAddButton={addButton}
+                  onUpdateButton={updateButton}
+                  onRemoveButton={removeButton}
+                />
 
                 <div className="bg-muted/50 p-3 rounded-lg">
                   <h4 className="text-sm font-medium mb-1">Variáveis Disponíveis:</h4>
@@ -745,7 +744,6 @@ const Modelos = () => {
 
       {/* Dialog de Edição */}
       <Dialog open={!!editingTemplate} onOpenChange={(open) => {
-        console.log('Edit dialog onOpenChange:', open, 'editing template:', editingTemplate);
         if (!open) handleCancelEdit();
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
@@ -814,7 +812,13 @@ const Modelos = () => {
               <p className="text-xs text-muted-foreground mt-1">Aparece no final da mensagem no WhatsApp</p>
             </div>
 
-            <ButtonEditor buttons={editFormData.buttons} isEdit={true} />
+                          <ButtonEditor 
+                            buttons={editFormData.buttons} 
+                            isEdit={true} 
+                            onAddButton={addButton}
+                            onUpdateButton={updateButton}
+                            onRemoveButton={removeButton}
+                          />
 
             <div className="bg-muted/50 p-3 rounded-lg">
               <h4 className="text-sm font-medium mb-1">Variáveis Disponíveis:</h4>
