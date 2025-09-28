@@ -4,53 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Search, Plus, MessageSquare, Phone, Mail, Filter } from "lucide-react";
+import { Users, Search, Plus, MessageSquare, Phone, Mail, Filter, RefreshCw } from "lucide-react";
+import { useContacts } from "@/hooks/useContacts";
 
 const Contatos = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const contatos = [
-    {
-      id: 1,
-      nome: "João Silva",
-      numero: "+55 11 99999-9999",
-      email: "joao@email.com",
-      ultimaMensagem: "Olá, gostaria de mais informações",
-      status: "ativo",
-      dataUltimaMensagem: "2024-01-15",
-      tags: ["Cliente", "VIP"]
-    },
-    {
-      id: 2,
-      nome: "Maria Santos",
-      numero: "+55 11 88888-8888",
-      email: "maria@email.com",
-      ultimaMensagem: "Obrigada pelo atendimento!",
-      status: "inativo",
-      dataUltimaMensagem: "2024-01-14",
-      tags: ["Lead", "Interessado"]
-    },
-    {
-      id: 3,
-      nome: "Pedro Costa",
-      numero: "+55 11 77777-7777",
-      email: "pedro@email.com",
-      ultimaMensagem: "Quando vocês abrem?",
-      status: "ativo",
-      dataUltimaMensagem: "2024-01-16",
-      tags: ["Novo"]
-    },
-    {
-      id: 4,
-      nome: "Ana Oliveira",
-      numero: "+55 11 66666-6666",
-      email: "ana@email.com",
-      ultimaMensagem: "Preciso de suporte técnico",
-      status: "bloqueado",
-      dataUltimaMensagem: "2024-01-13",
-      tags: ["Suporte"]
-    }
-  ];
+  const { contacts, stats, loading, refetch } = useContacts();
+
+  const filteredContacts = contacts.filter(contact => 
+    contact.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,80 +37,108 @@ const Contatos = () => {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input 
-            placeholder="Buscar contatos por nome, número ou email..."
+            placeholder="Buscar contatos por nome, número ou mensagem..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2"
+          onClick={refetch}
+          disabled={loading}
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
         <Button variant="outline" className="flex items-center gap-2">
           <Filter className="w-4 h-4" />
           Filtros
         </Button>
-        <Button className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Contato
-        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {contatos.map((contato) => (
-          <Card key={contato.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contato.nome}`} />
-                  <AvatarFallback>{contato.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{contato.nome}</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Badge variant={getStatusColor(contato.status)}>
-                      {contato.status}
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="ml-2">Carregando contatos...</span>
+        </div>
+      ) : filteredContacts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+            <Users className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Nenhum contato encontrado</h3>
+            <p className="text-muted-foreground mb-4">
+              {searchTerm ? 'Nenhum contato corresponde à sua busca.' : 'Ainda não há contatos que interagiram com seu número.'}
+            </p>
+            <Button onClick={refetch} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar lista
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredContacts.map((contato) => (
+            <Card key={contato.phone} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contato.phone}`} />
+                    <AvatarFallback>
+                      {contato.name?.split(' ').map(n => n[0]).join('') || 'C'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{contato.name || 'Contato'}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Badge variant={getStatusColor(contato.status)}>
+                        {contato.status}
+                      </Badge>
+                      <span className="text-xs">
+                        {contato.messageCount} mensagem{contato.messageCount !== 1 ? 's' : ''}
+                      </span>
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{contato.phone}</span>
+                  </div>
+                </div>
+
+                {contato.lastMessage && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Última interação:</p>
+                    <p className="text-sm text-muted-foreground italic">"{contato.lastMessage}"</p>
+                    <p className="text-xs text-muted-foreground">
+                      {contato.lastMessageDate ? new Date(contato.lastMessageDate).toLocaleDateString('pt-BR') : ''}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1">
+                  {contato.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
                     </Badge>
-                  </CardDescription>
+                  ))}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{contato.numero}</span>
+
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" className="flex-1 flex items-center gap-1">
+                    <MessageSquare className="w-4 h-4" />
+                    Mensagem
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span>{contato.email}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Última mensagem:</p>
-                <p className="text-sm text-muted-foreground italic">"{contato.ultimaMensagem}"</p>
-                <p className="text-xs text-muted-foreground">{contato.dataUltimaMensagem}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-1">
-                {contato.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" className="flex-1 flex items-center gap-1">
-                  <MessageSquare className="w-4 h-4" />
-                  Mensagem
-                </Button>
-                <Button variant="outline" size="sm">
-                  Editar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -157,19 +150,19 @@ const Contatos = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-primary">156</p>
+              <p className="text-2xl font-bold text-primary">{stats.total}</p>
               <p className="text-sm text-muted-foreground">Total de Contatos</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-600">98</p>
+              <p className="text-2xl font-bold text-green-600">{stats.active}</p>
               <p className="text-sm text-muted-foreground">Ativos</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-yellow-600">45</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.inactive}</p>
               <p className="text-sm text-muted-foreground">Inativos</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-600">13</p>
+              <p className="text-2xl font-bold text-red-600">{stats.blocked}</p>
               <p className="text-sm text-muted-foreground">Bloqueados</p>
             </div>
           </div>
