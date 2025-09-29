@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 // Função para obter configurações do localStorage
 const getZAPIConfig = () => {
@@ -469,21 +468,30 @@ export const useZapi = () => {
 
   const disconnectDevice = async () => {
     setLoading(true);
+    const config = getZAPIConfig();
     
     try {
-      console.log('Chamando edge function disconnect-device...');
-      const { data, error } = await supabase.functions.invoke('disconnect-device');
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
+      console.log('Desconectando dispositivo Z-API:', url);
       
-      console.log('Resposta da edge function:', { data, error });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+      });
 
-      if (error) {
-        console.error('Erro da edge function:', error);
-        throw new Error(error.message || 'Erro ao desconectar dispositivo');
-      }
+      console.log('Disconnect response status:', response.status);
+      const data = await response.json();
+      console.log('Disconnect data:', data);
 
-      if (!data?.success) {
-        console.error('Função retornou erro:', data);
-        throw new Error(data?.error || 'Erro ao desconectar dispositivo');
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -491,7 +499,7 @@ export const useZapi = () => {
         description: "Dispositivo desconectado com sucesso. Você pode reconectar usando o QR Code."
       });
 
-      return data;
+      return { success: true, data };
     } catch (error) {
       console.error('Erro ao desconectar dispositivo:', error);
       toast({
@@ -507,21 +515,30 @@ export const useZapi = () => {
 
   const restartInstance = async () => {
     setLoading(true);
+    const config = getZAPIConfig();
     
     try {
-      console.log('Chamando edge function restart-instance...');
-      const { data, error } = await supabase.functions.invoke('restart-instance');
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/restart`;
+      console.log('Reiniciando instância Z-API:', url);
       
-      console.log('Resposta da edge function:', { data, error });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+      });
 
-      if (error) {
-        console.error('Erro da edge function:', error);
-        throw new Error(error.message || 'Erro ao reiniciar instância');
-      }
+      console.log('Restart response status:', response.status);
+      const data = await response.json();
+      console.log('Restart data:', data);
 
-      if (!data?.success) {
-        console.error('Função retornou erro:', data);
-        throw new Error(data?.error || 'Erro ao reiniciar instância');
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -529,7 +546,7 @@ export const useZapi = () => {
         description: "A instância foi reiniciada com sucesso. Aguarde alguns segundos para reconectar."
       });
 
-      return data;
+      return { success: true, data };
     } catch (error) {
       console.error('Erro ao reiniciar instância:', error);
       toast({

@@ -1,16 +1,1 @@
 project_id = "yodgjxdekuraxquxkxhx"
-
-[functions.disconnect-device]
-verify_jwt = false
-
-[functions.restart-instance]
-verify_jwt = false
-
-[functions.get-device-status]
-verify_jwt = false
-
-[functions.get-qr-code]
-verify_jwt = false
-
-[functions.get-pairing-code]
-verify_jwt = false
