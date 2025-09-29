@@ -471,14 +471,19 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
+      console.log('Chamando edge function disconnect-device...');
       const { data, error } = await supabase.functions.invoke('disconnect-device');
+      
+      console.log('Resposta da edge function:', { data, error });
 
       if (error) {
+        console.error('Erro da edge function:', error);
         throw new Error(error.message || 'Erro ao desconectar dispositivo');
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao desconectar dispositivo');
+      if (!data?.success) {
+        console.error('Função retornou erro:', data);
+        throw new Error(data?.error || 'Erro ao desconectar dispositivo');
       }
 
       toast({
@@ -504,14 +509,19 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
+      console.log('Chamando edge function restart-instance...');
       const { data, error } = await supabase.functions.invoke('restart-instance');
+      
+      console.log('Resposta da edge function:', { data, error });
 
       if (error) {
+        console.error('Erro da edge function:', error);
         throw new Error(error.message || 'Erro ao reiniciar instância');
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao reiniciar instância');
+      if (!data?.success) {
+        console.error('Função retornou erro:', data);
+        throw new Error(data?.error || 'Erro ao reiniciar instância');
       }
 
       toast({

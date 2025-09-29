@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  console.log('Disconnect device function called');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -11,7 +13,14 @@ serve(async (req) => {
     const token = Deno.env.get('ZAPI_TOKEN')
     const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')
 
+    console.log('Credentials check:', {
+      hasInstanceId: !!instanceId,
+      hasToken: !!token,
+      hasClientToken: !!clientToken
+    });
+
     if (!instanceId || !token || !clientToken) {
+      console.error('Missing credentials');
       return new Response(
         JSON.stringify({ error: 'Z-API credentials not configured' }),
         { 
@@ -22,6 +31,7 @@ serve(async (req) => {
     }
 
     const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/disconnect`
+    console.log('Calling Z-API disconnect...');
 
     const zapiResponse = await fetch(zapiUrl, {
       method: 'GET',
@@ -32,8 +42,10 @@ serve(async (req) => {
     })
 
     const zapiData = await zapiResponse.json()
+    console.log('Z-API response:', { status: zapiResponse.status, data: zapiData });
 
     if (!zapiResponse.ok) {
+      console.error('Z-API returned error:', zapiData);
       return new Response(
         JSON.stringify({ error: 'Failed to disconnect device', details: zapiData }),
         { 
@@ -51,6 +63,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Function error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
       { 
