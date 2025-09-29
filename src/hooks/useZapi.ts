@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Função para obter configurações do localStorage
 const getZAPIConfig = () => {
@@ -468,30 +469,16 @@ export const useZapi = () => {
 
   const disconnectDevice = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
-      console.log('Desconectando dispositivo Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-      });
+      const { data, error } = await supabase.functions.invoke('disconnect-device');
 
-      console.log('Disconnect response status:', response.status);
-      const data = await response.json();
-      console.log('Disconnect data:', data);
+      if (error) {
+        throw new Error(error.message || 'Erro ao desconectar dispositivo');
+      }
 
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        throw new Error(errorMessage);
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao desconectar dispositivo');
       }
 
       toast({
@@ -499,7 +486,7 @@ export const useZapi = () => {
         description: "Dispositivo desconectado com sucesso. Você pode reconectar usando o QR Code."
       });
 
-      return { success: true, data };
+      return data;
     } catch (error) {
       console.error('Erro ao desconectar dispositivo:', error);
       toast({
@@ -515,30 +502,16 @@ export const useZapi = () => {
 
   const restartInstance = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/restart`;
-      console.log('Reiniciando instância Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-      });
+      const { data, error } = await supabase.functions.invoke('restart-instance');
 
-      console.log('Restart response status:', response.status);
-      const data = await response.json();
-      console.log('Restart data:', data);
+      if (error) {
+        throw new Error(error.message || 'Erro ao reiniciar instância');
+      }
 
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        throw new Error(errorMessage);
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao reiniciar instância');
       }
 
       toast({
@@ -546,7 +519,7 @@ export const useZapi = () => {
         description: "A instância foi reiniciada com sucesso. Aguarde alguns segundos para reconectar."
       });
 
-      return { success: true, data };
+      return data;
     } catch (error) {
       console.error('Erro ao reiniciar instância:', error);
       toast({
