@@ -15,8 +15,12 @@ import MediaModelSection from "@/components/envio/MediaModelSection";
 const messageSchema = z.object({
   phone: z.string()
     .min(10, "Número deve ter pelo menos 10 dígitos")
-    .max(15, "Número deve ter no máximo 15 dígitos")
-    .regex(/^\d+$/, "Número deve conter apenas dígitos"),
+    .refine((val) => {
+      // Aceita números normais (10-15 dígitos) ou números com @lid
+      const normalPhone = /^\d{10,15}$/.test(val);
+      const lidPhone = /^\d+@lid$/.test(val);
+      return normalPhone || lidPhone;
+    }, "Número inválido. Use 10-15 dígitos ou formato 123456789@lid"),
   message: z.string()
     .min(1, "Mensagem não pode estar vazia")
     .max(4096, "Mensagem deve ter no máximo 4096 caracteres")
@@ -293,8 +297,16 @@ const EnviarMensagem = () => {
         let nome = '';
         let telefone = '';
         
-        // Detectar automaticamente qual parte é o telefone
+        // Detectar automaticamente qual parte é o telefone (com ou sem @lid)
         for (const part of parts) {
+          // Verificar se tem @lid (canal WhatsApp Business)
+          if (part.includes('@lid')) {
+            telefone = part;
+            nome = parts.find(p => p !== part)?.trim() || `Contato ${contatosProcessados.length + 1}`;
+            break;
+          }
+          
+          // Número normal sem @lid
           const numeroLimpo = part.replace(/\D/g, '');
           if (numeroLimpo.length >= 10 && numeroLimpo.length <= 15) {
             telefone = numeroLimpo;
