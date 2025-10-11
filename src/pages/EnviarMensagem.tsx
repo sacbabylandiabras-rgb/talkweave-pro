@@ -1056,8 +1056,13 @@ Formatos aceitos:
                       onChange={(e) => setMensagem(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      💡 Use {`{nome}`} e {`{numero}`} para personalizar a mensagem
+                      💡 Use {"{nome}"} e {"{numero}"} para personalizar a mensagem
                     </p>
+                    {mensagem && (
+                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs text-green-700 dark:text-green-300">
+                        ✓ Mensagem configurada e pronta para envio
+                      </div>
+                    )}
                   </div>
 
                   <div>
