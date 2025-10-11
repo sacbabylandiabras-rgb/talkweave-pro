@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { TopMetrics } from "@/components/dashboard/TopMetrics";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import Dispositivos from "./Dispositivos";
+import Perfil from "./Perfil";
 import EnviarMensagem from "./EnviarMensagem";
 import MensagemBoasVindas from "./MensagemBoasVindas";
 import RespostaAutomatica from "./RespostaAutomatica";
@@ -24,6 +25,8 @@ const Index = () => {
     switch (activeItem) {
       case "dispositivos":
         return <Dispositivos />;
+      case "perfil":
+        return <Perfil />;
       case "enviar-mensagem":
         return <EnviarMensagem />;
       case "mensagem-boas-vindas":

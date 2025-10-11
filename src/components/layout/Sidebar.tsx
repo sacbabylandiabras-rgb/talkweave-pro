@@ -12,7 +12,8 @@ import {
   BarChart3, 
   MessageSquareReply,
   MessageCircle,
-  Settings
+  Settings,
+  UserCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
@@ -25,6 +26,7 @@ interface SidebarProps {
 const menuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone },
+  { id: "perfil", label: "Perfil", icon: UserCircle },
   { id: "enviar-mensagem", label: "Enviar mensagem", icon: Send },
   { id: "mensagem-boas-vindas", label: "Mensagem de boas-vindas", icon: MessageSquareHeart },
   { id: "resposta-automatica", label: "Resposta automática", icon: MessageSquareText },

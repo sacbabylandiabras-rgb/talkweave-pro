@@ -674,6 +674,102 @@ export const useZapi = () => {
     }
   };
 
+  const updateProfileName = async (name: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/update-profile-name`;
+      console.log('Atualizando nome do perfil Z-API:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      console.log('Update profile name response status:', response.status);
+      const data = await response.json();
+      console.log('Update profile name data:', data);
+
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "✅ Nome atualizado",
+        description: "O nome do perfil foi atualizado com sucesso."
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao atualizar nome do perfil:', error);
+      toast({
+        title: "Erro ao atualizar nome",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfilePicture = async (imageUrl: string) => {
+    setLoading(true);
+    const config = getZAPIConfig();
+    
+    try {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/update-profile-picture`;
+      console.log('Atualizando foto do perfil Z-API:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': config.clientToken
+        },
+        body: JSON.stringify({ picture: imageUrl }),
+      });
+
+      console.log('Update profile picture response status:', response.status);
+      const data = await response.json();
+      console.log('Update profile picture data:', data);
+
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}`;
+        if (data.message) errorMessage += `: ${data.message}`;
+        if (data.error) errorMessage += `: ${data.error}`;
+        
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "✅ Foto atualizada",
+        description: "A foto de perfil foi atualizada com sucesso."
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao atualizar foto do perfil:', error);
+      toast({
+        title: "Erro ao atualizar foto",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
@@ -688,6 +784,8 @@ export const useZapi = () => {
     getPairingCode,
     disconnectDevice,
     restartInstance,
+    updateProfileName,
+    updateProfilePicture,
     loading,
   };
 };
