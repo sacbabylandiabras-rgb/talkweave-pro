@@ -82,18 +82,24 @@ const MediaModelSection = ({
           </h4>
           <div className="space-y-3">
             <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um modelo" />
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder={modelosDisponiveis.length === 0 ? "Nenhum modelo disponível" : "Selecione um modelo"} />
               </SelectTrigger>
-              <SelectContent>
-                {modelosDisponiveis.map((modelo) => (
-                  <SelectItem key={modelo.id} value={modelo.id}>
-                    <div>
-                      <p className="font-medium">{modelo.name}</p>
-                      <p className="text-xs text-muted-foreground">{modelo.category}</p>
-                    </div>
-                  </SelectItem>
-                ))}
+              <SelectContent className="bg-popover z-[100]">
+                {modelosDisponiveis.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum modelo cadastrado
+                  </div>
+                ) : (
+                  modelosDisponiveis.map((modelo) => (
+                    <SelectItem key={modelo.id} value={modelo.id} className="bg-background hover:bg-accent">
+                      <div>
+                        <p className="font-medium">{modelo.name}</p>
+                        <p className="text-xs text-muted-foreground">{modelo.category}</p>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             
@@ -112,7 +118,7 @@ const MediaModelSection = ({
             <Button
               type="button"
               onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-              disabled={!modeloSelecionado}
+              disabled={!modeloSelecionado || modelosDisponiveis.length === 0}
               variant="outline"
               className="w-full"
             >

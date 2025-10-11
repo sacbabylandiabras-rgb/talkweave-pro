@@ -51,7 +51,7 @@ const EnviarMensagem = () => {
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
-  const { templates: modelosDisponiveis } = useMessageTemplates();
+  const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
