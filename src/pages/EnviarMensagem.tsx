@@ -10,6 +10,8 @@ import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, 
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 
@@ -52,6 +54,7 @@ const EnviarMensagem = () => {
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
+  const { createCampaign } = useCampaigns();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,16 +306,33 @@ const EnviarMensagem = () => {
         return;
       }
 
+      // Criar campanha automaticamente
+      const dataAtual = new Date().toLocaleString('pt-BR');
+      const nomeCampanha = `Envio em Massa - ${dataAtual}`;
+      
+      const campanha = await createCampaign({
+        name: nomeCampanha,
+        description: `Envio em massa para ${contatosProcessados.length} contatos`,
+        template_id: modeloSelecionado || undefined,
+        target_audience: { 
+          contacts: contatosProcessados.map(c => ({ phone: c.telefone, name: c.nome }))
+        },
+        schedule_type: 'immediate',
+      });
+
       toast({
-        title: "Iniciando envio em massa",
-        description: `Enviando para ${contatosProcessados.length} contatos com delay de ${delay}s`,
+        title: "Campanha criada!",
+        description: `Iniciando envio para ${contatosProcessados.length} contatos com delay de ${delay}s`,
       });
 
       let enviados = 0;
       let erros = 0;
+      const campaignSends: any[] = [];
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         const contato = contatosProcessados[i];
+        let sendStatus = 'failed';
+        let errorMessage = null;
         
         try {
           // Buscar dados do modelo selecionado
@@ -382,6 +402,7 @@ const EnviarMensagem = () => {
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
+          sendStatus = 'sent';
           enviados++;
           
           toast({
@@ -396,9 +417,33 @@ const EnviarMensagem = () => {
           
         } catch (error) {
           erros++;
+          sendStatus = 'failed';
+          errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
           console.error(`Erro ao enviar para ${contato.nome}:`, error);
         }
+        
+        // Registrar o envio na campanha
+        campaignSends.push({
+          campaign_id: campanha.id,
+          phone: contato.telefone,
+          contact_name: contato.nome,
+          message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
+          status: sendStatus,
+          sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+          error_message: errorMessage
+        });
       }
+      
+      // Salvar todos os registros de envio no banco
+      if (campaignSends.length > 0) {
+        await supabase.from('campaign_sends').insert(campaignSends);
+      }
+      
+      // Atualizar status da campanha
+      await supabase
+        .from('campaigns')
+        .update({ status: 'completed' })
+        .eq('id', campanha.id);
 
       toast({
         title: "Envio em massa concluído!",
