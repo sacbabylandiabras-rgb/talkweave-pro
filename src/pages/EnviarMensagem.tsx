@@ -315,6 +315,11 @@ const EnviarMensagem = () => {
         const contato = contatosProcessados[i];
         
         try {
+          // Buscar dados do modelo selecionado
+          const modeloData = modeloSelecionado 
+            ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
+            : null;
+
           // Personalizar mensagem
           let mensagemPersonalizada = mensagem
             .replace(/\{nome\}/g, contato.nome)
@@ -342,7 +347,26 @@ const EnviarMensagem = () => {
             } else {
               await sendDocument(contato.telefone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
             }
-          } else {
+          }
+          
+          // Verificar se o modelo tem botões e enviá-los
+          if (modeloData?.buttons && modeloData.buttons.length > 0) {
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada,
+              modeloData.buttons.map((btn: any) => ({
+                id: btn.id || btn.text,
+                type: btn.type || "REPLY",
+                label: btn.text || btn.label,
+                ...(btn.type === "CALL" && btn.phone && { phone: btn.phone }),
+                ...(btn.type === "URL" && btn.url && { url: btn.url }),
+                ...(btn.type === "COPY" && btn.copyText && { copyText: btn.copyText })
+              })),
+              modeloData.header || undefined,
+              modeloData.footer || undefined
+            );
+          } else if (!arquivoMidia) {
+            // Se não tem botões nem mídia, enviar mensagem simples
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
