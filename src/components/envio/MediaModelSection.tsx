@@ -81,7 +81,13 @@ const MediaModelSection = ({
             Usar Modelo
           </h4>
           <div className="space-y-3">
-            <Select value={modeloSelecionado} onValueChange={setModeloSelecionado}>
+            <Select 
+              value={modeloSelecionado} 
+              onValueChange={(value) => {
+                setModeloSelecionado(value);
+                aplicarModelo(value);
+              }}
+            >
               <SelectTrigger className="bg-background">
                 <SelectValue placeholder={modelosDisponiveis.length === 0 ? "Nenhum modelo disponível" : "Selecione um modelo"} />
               </SelectTrigger>
@@ -114,16 +120,6 @@ const MediaModelSection = ({
                 )}
               </div>
             )}
-            
-            <Button
-              type="button"
-              onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
-              disabled={!modeloSelecionado || modelosDisponiveis.length === 0}
-              variant="outline"
-              className="w-full"
-            >
-              Aplicar ao Texto Principal
-            </Button>
           </div>
         </Card>
       </div>
