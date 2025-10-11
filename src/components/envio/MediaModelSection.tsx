@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Paperclip, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MessageTemplate } from "@/hooks/useMessageTemplates";
 
 interface MediaModelSectionProps {
   arquivoMidia: File | null;
@@ -13,12 +14,7 @@ interface MediaModelSectionProps {
   modeloSelecionado: string;
   setModeloSelecionado: (value: string) => void;
   aplicarModelo: (modeloId: string) => void;
-  modelosDisponiveis: Array<{
-    id: number;
-    nome: string;
-    categoria: string;
-    conteudo: string;
-  }>;
+  modelosDisponiveis: MessageTemplate[];
 }
 
 const MediaModelSection = ({
@@ -89,10 +85,10 @@ const MediaModelSection = ({
               </SelectTrigger>
               <SelectContent>
                 {modelosDisponiveis.map((modelo) => (
-                  <SelectItem key={modelo.id} value={modelo.id.toString()}>
+                  <SelectItem key={modelo.id} value={modelo.id}>
                     <div>
-                      <p className="font-medium">{modelo.nome}</p>
-                      <p className="text-xs text-muted-foreground">{modelo.categoria}</p>
+                      <p className="font-medium">{modelo.name}</p>
+                      <p className="text-xs text-muted-foreground">{modelo.category}</p>
                     </div>
                   </SelectItem>
                 ))}

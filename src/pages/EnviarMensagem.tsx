@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
+import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 
@@ -50,34 +51,7 @@ const EnviarMensagem = () => {
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
-  
-  // Modelos pré-definidos
-  const modelosDisponiveis = [
-    {
-      id: 1,
-      nome: "Saudação Comercial",
-      categoria: "Saudação",
-      conteudo: "Olá! Obrigado por entrar em contato conosco. Como podemos ajudá-lo hoje?"
-    },
-    {
-      id: 2,
-      nome: "Informações de Produto",
-      categoria: "Vendas", 
-      conteudo: "Nosso produto oferece as seguintes funcionalidades: {lista_funcionalidades}. Gostaria de saber mais detalhes?"
-    },
-    {
-      id: 3,
-      nome: "Agendamento",
-      categoria: "Atendimento",
-      conteudo: "Para agendar uma reunião, por favor nos informe sua disponibilidade. Nossos horários são de segunda a sexta, das 9h às 17h."
-    },
-    {
-      id: 4,
-      nome: "Suporte Técnico", 
-      categoria: "Suporte",
-      conteudo: "Recebemos sua solicitação de suporte. Nossa equipe técnica entrará em contato em até 24 horas."
-    }
-  ];
+  const { templates: modelosDisponiveis } = useMessageTemplates();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -518,12 +492,12 @@ const EnviarMensagem = () => {
 
   // Função para aplicar modelo
   const aplicarModelo = (modeloId: string) => {
-    const modelo = modelosDisponiveis.find(m => m.id.toString() === modeloId);
+    const modelo = modelosDisponiveis.find(m => m.id === modeloId);
     if (modelo) {
-      setMensagem(modelo.conteudo);
+      setMensagem(modelo.content);
       toast({
         title: "Modelo aplicado!",
-        description: `Modelo "${modelo.nome}" foi aplicado à mensagem`,
+        description: `Modelo "${modelo.name}" foi aplicado à mensagem`,
       });
     }
   };
