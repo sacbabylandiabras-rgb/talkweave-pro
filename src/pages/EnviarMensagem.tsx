@@ -1047,22 +1047,64 @@ Formatos aceitos:
                   </div>
 
                   <div>
-                    <Label htmlFor="mensagem-massa">Mensagem do Template</Label>
-                    <Textarea 
-                      id="mensagem-massa"
-                      placeholder="Olá {nome}! Esta é uma mensagem personalizada para o número {numero}."
-                      className="mt-1 min-h-[120px]"
-                      value={mensagem}
-                      onChange={(e) => setMensagem(e.target.value)}
-                    />
+                    <Label htmlFor="mensagem-massa">Prévia da Mensagem</Label>
+                    {modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado) ? (
+                      <div className="mt-1 border rounded-lg bg-white dark:bg-gray-900 p-4 space-y-3">
+                        {/* Header */}
+                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.header && (
+                          <div className="font-bold text-sm border-b pb-2">
+                            📋 {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.header}
+                          </div>
+                        )}
+                        
+                        {/* Content */}
+                        <div className="whitespace-pre-wrap text-sm">
+                          {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.content}
+                        </div>
+                        
+                        {/* Footer */}
+                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.footer && (
+                          <div className="text-xs text-muted-foreground border-t pt-2">
+                            {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.footer}
+                          </div>
+                        )}
+                        
+                        {/* Buttons */}
+                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.buttons && 
+                         modelosDisponiveis.find(m => m.id === modeloSelecionado)!.buttons!.length > 0 && (
+                          <div className="space-y-2 pt-2 border-t">
+                            {modelosDisponiveis.find(m => m.id === modeloSelecionado)!.buttons!.map((button: any, index: number) => (
+                              <div 
+                                key={index}
+                                className="w-full py-2 px-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded text-center text-sm font-medium text-blue-600 dark:text-blue-300"
+                              >
+                                {button.text}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Variables info */}
+                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.variables && 
+                         modelosDisponiveis.find(m => m.id === modeloSelecionado)!.variables.length > 0 && (
+                          <div className="text-xs text-muted-foreground italic pt-2 border-t">
+                            💡 Variáveis disponíveis: {modelosDisponiveis.find(m => m.id === modeloSelecionado)!.variables.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Textarea 
+                        id="mensagem-massa"
+                        placeholder="Selecione um modelo acima para visualizar a prévia da mensagem"
+                        className="mt-1 min-h-[120px]"
+                        value={mensagem}
+                        onChange={(e) => setMensagem(e.target.value)}
+                        disabled
+                      />
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       💡 Use {"{nome}"} e {"{numero}"} para personalizar a mensagem
                     </p>
-                    {mensagem && (
-                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs text-green-700 dark:text-green-300">
-                        ✓ Mensagem configurada e pronta para envio
-                      </div>
-                    )}
                   </div>
 
                   <div>
