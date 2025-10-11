@@ -28,6 +28,8 @@ const MediaModelSection = ({
   modelosDisponiveis
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
+  
+  const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado);
 
   return (
     <div className="border-t pt-4 space-y-4">
@@ -94,6 +96,19 @@ const MediaModelSection = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            {modeloAtual && (
+              <div className="bg-muted p-3 rounded text-sm space-y-2">
+                <p className="font-medium text-xs text-muted-foreground">Prévia do Modelo:</p>
+                <p className="whitespace-pre-wrap">{modeloAtual.content}</p>
+                {modeloAtual.variables && modeloAtual.variables.length > 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Variáveis: {modeloAtual.variables.join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
+            
             <Button
               type="button"
               onClick={() => modeloSelecionado && aplicarModelo(modeloSelecionado)}
