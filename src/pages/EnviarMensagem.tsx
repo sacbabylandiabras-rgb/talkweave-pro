@@ -354,14 +354,26 @@ const EnviarMensagem = () => {
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada,
-              modeloData.buttons.map((btn: any) => ({
-                id: btn.id || btn.text,
-                type: btn.type || "REPLY",
-                label: btn.text || btn.label,
-                ...(btn.type === "CALL" && btn.phone && { phone: btn.phone }),
-                ...(btn.type === "URL" && btn.url && { url: btn.url }),
-                ...(btn.type === "COPY" && btn.copyText && { copyText: btn.copyText })
-              })),
+              modeloData.buttons.map((btn: any) => {
+                // Normalizar o formato do botão para o esperado pela API
+                const buttonType = (btn.type || 'REPLY').toUpperCase();
+                const buttonData: any = {
+                  id: btn.id || btn.text || Math.random().toString(),
+                  type: buttonType,
+                  label: btn.text || btn.label || 'Botão'
+                };
+                
+                // Mapear propriedades específicas de cada tipo de botão
+                if (buttonType === "CALL" && (btn.phone || btn.value)) {
+                  buttonData.phone = btn.phone || btn.value;
+                } else if (buttonType === "URL" && (btn.url || btn.value)) {
+                  buttonData.url = btn.url || btn.value;
+                } else if (buttonType === "COPY" && (btn.copyText || btn.value)) {
+                  buttonData.copyText = btn.copyText || btn.value;
+                }
+                
+                return buttonData;
+              }),
               modeloData.header || undefined,
               modeloData.footer || undefined
             );
