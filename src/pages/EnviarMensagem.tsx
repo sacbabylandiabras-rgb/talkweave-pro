@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +51,7 @@ const EnviarMensagem = () => {
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
-  const [cancelarEnvio, setCancelarEnvio] = useState(false);
+  const cancelarEnvioRef = useRef(false);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
@@ -248,7 +248,7 @@ const EnviarMensagem = () => {
   const handleSendMassa = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    setCancelarEnvio(false);
+    cancelarEnvioRef.current = false;
     setEnviandoEmMassa(true);
     
     if (!contatos.trim()) {
@@ -336,7 +336,7 @@ const EnviarMensagem = () => {
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado
-        if (cancelarEnvio) {
+        if (cancelarEnvioRef.current) {
           toast({
             title: "Envio cancelado",
             description: `Cancelado pelo usuário. ${enviados} mensagens enviadas.`,
@@ -460,7 +460,7 @@ const EnviarMensagem = () => {
         .update({ status: 'completed' })
         .eq('id', campanha.id);
 
-      if (!cancelarEnvio) {
+      if (!cancelarEnvioRef.current) {
         toast({
           title: "Envio em massa concluído!",
           description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
@@ -482,7 +482,7 @@ const EnviarMensagem = () => {
       });
     } finally {
       setEnviandoEmMassa(false);
-      setCancelarEnvio(false);
+      cancelarEnvioRef.current = false;
     }
   };
 
@@ -1269,7 +1269,7 @@ Formatos aceitos:
                       <Button 
                         type="button"
                         variant="destructive" 
-                        onClick={() => setCancelarEnvio(true)}
+                        onClick={() => cancelarEnvioRef.current = true}
                         className="w-full flex items-center gap-2"
                         size="lg"
                       >
