@@ -50,6 +50,8 @@ const EnviarMensagem = () => {
   const [legenda, setLegenda] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
+  const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
+  const [cancelarEnvio, setCancelarEnvio] = useState(false);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
@@ -246,6 +248,9 @@ const EnviarMensagem = () => {
   const handleSendMassa = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    setCancelarEnvio(false);
+    setEnviandoEmMassa(true);
+    
     if (!contatos.trim()) {
       toast({
         title: "Lista vazia",
@@ -330,6 +335,16 @@ const EnviarMensagem = () => {
       const campaignSends: any[] = [];
 
       for (let i = 0; i < contatosProcessados.length; i++) {
+        // Verificar se o envio foi cancelado
+        if (cancelarEnvio) {
+          toast({
+            title: "Envio cancelado",
+            description: `Cancelado pelo usuário. ${enviados} mensagens enviadas.`,
+            variant: "destructive"
+          });
+          break;
+        }
+        
         const contato = contatosProcessados[i];
         let sendStatus = 'failed';
         let errorMessage = null;
@@ -445,11 +460,13 @@ const EnviarMensagem = () => {
         .update({ status: 'completed' })
         .eq('id', campanha.id);
 
-      toast({
-        title: "Envio em massa concluído!",
-        description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
-        variant: enviados > 0 ? "default" : "destructive"
-      });
+      if (!cancelarEnvio) {
+        toast({
+          title: "Envio em massa concluído!",
+          description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
+          variant: enviados > 0 ? "default" : "destructive"
+        });
+      }
 
       // Limpar formulário
       setMensagem("");
@@ -463,6 +480,9 @@ const EnviarMensagem = () => {
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       });
+    } finally {
+      setEnviandoEmMassa(false);
+      setCancelarEnvio(false);
     }
   };
 
@@ -1225,24 +1245,38 @@ Formatos aceitos:
                     </p>
                   </div>
                   
-                  <Button 
-                    type="submit" 
-                    disabled={loading || !contatos.trim() || !mensagem.trim()}
-                    className="w-full flex items-center gap-2" 
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>Enviando...</>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Iniciar Envio em Massa
-                        <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
-                          {contatos ? contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length : 0} contatos
-                        </span>
-                      </>
+                  <div className="space-y-2">
+                    <Button 
+                      type="submit" 
+                      disabled={loading || enviandoEmMassa || !contatos.trim() || !mensagem.trim()}
+                      className="w-full flex items-center gap-2" 
+                      size="lg"
+                    >
+                      {loading || enviandoEmMassa ? (
+                        <>Enviando...</>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Iniciar Envio em Massa
+                          <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
+                            {contatos ? contatos.split(/[\n,]/).filter(n => n.trim().length >= 10).length : 0} contatos
+                          </span>
+                        </>
+                      )}
+                    </Button>
+                    
+                    {enviandoEmMassa && (
+                      <Button 
+                        type="button"
+                        variant="destructive" 
+                        onClick={() => setCancelarEnvio(true)}
+                        className="w-full flex items-center gap-2"
+                        size="lg"
+                      >
+                        ❌ Cancelar Envio em Andamento
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
               </form>
             </CardContent>
