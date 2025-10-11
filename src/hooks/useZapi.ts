@@ -727,16 +727,16 @@ export const useZapi = () => {
     const config = getZAPIConfig();
     
     try {
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/update-profile-picture`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-picture`;
       console.log('Atualizando foto do perfil Z-API:', url);
       
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Client-Token': config.clientToken
         },
-        body: JSON.stringify({ picture: imageUrl }),
+        body: JSON.stringify({ value: imageUrl }),
       });
 
       console.log('Update profile picture response status:', response.status);
