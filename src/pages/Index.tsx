@@ -9,6 +9,7 @@ import EnviarMensagem from "./EnviarMensagem";
 import MensagemBoasVindas from "./MensagemBoasVindas";
 import RespostaAutomatica from "./RespostaAutomatica";
 import Modelos from "./Modelos";
+import Campanhas from "./Campanhas";
 import Contatos from "./Contatos";
 import CancelarAssinaturas from "./CancelarAssinaturas";
 import FiltroNumero from "./FiltroNumero";
@@ -35,6 +36,8 @@ const Index = () => {
         return <RespostaAutomatica />;
       case "modelos":
         return <Modelos />;
+      case "campanhas":
+        return <Campanhas />;
       case "contatos":
         return <Contatos />;
       case "cancelar-assinaturas":

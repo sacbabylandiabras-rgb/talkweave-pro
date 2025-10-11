@@ -13,7 +13,8 @@ import {
   MessageSquareReply,
   MessageCircle,
   Settings,
-  UserCircle
+  UserCircle,
+  Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
@@ -31,6 +32,7 @@ const menuItems = [
   { id: "mensagem-boas-vindas", label: "Mensagem de boas-vindas", icon: MessageSquareHeart },
   { id: "resposta-automatica", label: "Resposta automática", icon: MessageSquareText },
   { id: "modelos", label: "Modelos", icon: FileText },
+  { id: "campanhas", label: "Campanhas", icon: Megaphone },
   { id: "contatos", label: "Contatos", icon: Users },
   { id: "cancelar-assinaturas", label: "Cancelar assinaturas", icon: UserX },
   { id: "filtro-numero", label: "Filtro de Número", icon: Filter },
