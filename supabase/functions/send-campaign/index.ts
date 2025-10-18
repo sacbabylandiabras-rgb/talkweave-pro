@@ -79,7 +79,6 @@ serve(async (req) => {
     }
 
     const results = [];
-    const campaignSends: CampaignSendRecord[] = [];
     
     // Get delay from campaign or use default of 2 seconds
     const delayMs = (campaign.delay_seconds || 2) * 1000;
@@ -184,7 +183,18 @@ serve(async (req) => {
         console.error(`Error sending to ${contact.phone}:`, error);
       }
 
-      campaignSends.push(campaignSend!);
+      // Save to database IMMEDIATELY after each send (for real-time progress tracking)
+      if (campaignSend) {
+        const { error: insertError } = await supabase
+          .from('campaign_sends')
+          .insert([campaignSend]);
+
+        if (insertError) {
+          console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
+        } else {
+          console.log(`Saved campaign send record for ${contact.phone}`);
+        }
+      }
 
       // Add delay BETWEEN messages (after sending and before next iteration)
       // Skip delay after the last message
@@ -192,15 +202,6 @@ serve(async (req) => {
         console.log(`Waiting ${campaign.delay_seconds || 2} seconds before next message...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
-    }
-
-    // Save all campaign sends to database
-    const { error: insertsError } = await supabase
-      .from('campaign_sends')
-      .insert(campaignSends);
-
-    if (insertsError) {
-      console.error('Error saving campaign sends:', insertsError);
     }
 
     // Update campaign status
