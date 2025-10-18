@@ -19,7 +19,6 @@ const Admin = () => {
   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
@@ -58,35 +57,33 @@ const Admin = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setCurrentUserId(session.user.id);
+      } else {
+        navigate("/auth");
       }
-      setIsInitializing(false);
     };
 
     getCurrentUser();
-  }, []);
+  }, [navigate]);
 
+  // Se não é admin E terminou de carregar, redireciona
   useEffect(() => {
-    if (isInitializing) return;
-    
-    if (!currentUserId) {
-      navigate("/auth");
-      return;
-    }
-    
-    if (roleLoading) return;
-    
-    if (!isAdmin) {
+    if (currentUserId && !roleLoading && !isAdmin) {
       navigate("/dashboard");
     }
-  }, [isInitializing, isAdmin, roleLoading, currentUserId, navigate]);
+  }, [currentUserId, roleLoading, isAdmin, navigate]);
 
-  // Mostra loading enquanto inicializa ou carrega role
-  if (isInitializing || roleLoading || !currentUserId) {
+  // Mostra loading
+  if (!currentUserId || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Se não é admin, não renderiza nada (vai redirecionar)
+  if (!isAdmin) {
+    return null;
   }
 
   return (
