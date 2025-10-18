@@ -138,20 +138,33 @@ serve(async (req) => {
           
           // Format buttons for Z-API
           const formattedButtons = campaign.template.buttons.map((btn: any) => {
+            // Normalize button type to uppercase
+            const btnType = (btn.type || 'url').toUpperCase();
+            
             const buttonData: any = {
-              id: btn.id || Date.now().toString(),
-              type: btn.type || 'URL',
               label: btn.text || btn.label
             };
             
-            // Add type-specific fields
-            if (btn.type === 'CALL' && btn.phone) {
-              buttonData.phone = btn.phone;
-            } else if (btn.type === 'URL' && (btn.url || btn.value)) {
-              buttonData.url = btn.url || btn.value;
-            } else if (btn.type === 'COPY' && btn.copyText) {
+            // Z-API only supports: CALL, URL, REPLY
+            if (btnType === 'CALL') {
+              buttonData.type = 'CALL';
+              buttonData.phone = btn.phone || btn.value;
+            } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+              // OPTION maps to REPLY in Z-API
+              buttonData.type = 'REPLY';
+            } else if (btnType === 'COPY') {
+              // COPY is implemented as URL with special WhatsApp link
               buttonData.type = 'URL';
-              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText)}`;
+              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
+            } else {
+              // Default to URL type
+              buttonData.type = 'URL';
+              buttonData.url = btn.url || btn.value || 'https://z-api.io';
+            }
+            
+            // Optional ID
+            if (btn.id) {
+              buttonData.id = btn.id;
             }
             
             return buttonData;
@@ -162,9 +175,16 @@ serve(async (req) => {
             message: fullMessage,
             buttonActions: formattedButtons
           };
+          
+          // Add optional title and footer if present
+          if (campaign.template.header) {
+            requestBody.title = campaign.template.header;
+          }
+          if (campaign.template.footer) {
+            requestBody.footer = campaign.template.footer;
+          }
 
           console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
-          console.log(`Button request body:`, JSON.stringify(requestBody, null, 2));
         } else {
           // Send simple text message
           zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
@@ -190,9 +210,6 @@ serve(async (req) => {
         // Try to parse JSON response, but handle empty responses
         try {
           const responseText = await zapiResponse.text();
-          console.log(`Z-API response status: ${zapiResponse.status}`);
-          console.log(`Z-API response text:`, responseText);
-          
           if (responseText && responseText.trim()) {
             zapiResult = JSON.parse(responseText);
           }
@@ -221,11 +238,7 @@ serve(async (req) => {
             error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
           });
 
-          console.error(`Failed to send message to ${contact.phone}:`, {
-            status: zapiResponse.status,
-            statusText: zapiResponse.statusText,
-            result: zapiResult
-          });
+          console.error(`Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
         }
 
       } catch (error) {
