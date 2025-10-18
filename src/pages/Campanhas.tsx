@@ -31,7 +31,8 @@ const Campanhas = () => {
     deleteCampaign, 
     duplicateCampaign,
     getCampaignStats,
-    sendCampaign 
+    sendCampaign,
+    refetch
   } = useCampaigns();
   
   const { toast } = useToast();
@@ -70,11 +71,13 @@ const Campanhas = () => {
 
   const handlePauseCampaign = async (id: string) => {
     await pauseCampaign(id);
+    await refetch();
   };
 
   const handleResumeCampaign = async (id: string) => {
     try {
       await resumeCampaign(id);
+      await refetch();
     } catch (error) {
       console.error('Error resuming campaign:', error);
     }
@@ -93,6 +96,7 @@ const Campanhas = () => {
   const handleCancelCampaign = async () => {
     if (campaignToCancel) {
       await cancelCampaign(campaignToCancel);
+      await refetch();
       setCancelDialogOpen(false);
       setCampaignToCancel(null);
     }
@@ -124,8 +128,11 @@ const Campanhas = () => {
       setSendingCampaignId(campaign.id);
       setShowProgressDialog(true);
 
-      // Start sending
+      // Start sending (this will update status to 'active' internally)
       await sendCampaign(campaign.id, campaign.target_audience.contacts);
+      
+      // Force refresh to show updated status and pause button
+      await refetch();
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
