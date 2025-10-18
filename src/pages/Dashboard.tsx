@@ -91,8 +91,8 @@ const Dashboard = () => {
         return (
           <div className="space-y-8">
             <TopMetrics />
-            <VolumeChart />
             <StatsGrid />
+            <VolumeChart />
           </div>
         );
     }
