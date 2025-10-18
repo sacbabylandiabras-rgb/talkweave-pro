@@ -26,6 +26,7 @@ interface SidebarProps {
   activeItem?: string;
   onItemClick?: (item: string) => void;
   userId?: string;
+  navigate?: ReturnType<typeof useNavigate>;
 }
 
 const menuItems = [
@@ -41,14 +42,14 @@ const menuItems = [
   { id: "configuracao-zapi", label: "Config Z-API", icon: Settings },
 ];
 
-export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarProps) {
+export function Sidebar({ activeItem = "painel", onItemClick, userId, navigate: navigateProp }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
-  const navigate = useNavigate();
+  const defaultNavigate = useNavigate();
+  const navigate = navigateProp || defaultNavigate;
 
   const handleItemClick = (itemId: string) => {
     if (itemId === "admin") {
-      // Força navegação direta pela URL
-      window.location.href = "/admin";
+      navigate("/admin");
       return;
     }
     onItemClick?.(itemId);
