@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ['nodejs', 'bun']
+nixPkgs = ['nodejs']
 
 [phases.install]
-cmds = ['rm -f bun.lockb', 'bun install']
+cmds = ['npm install']
 
 [phases.build]
-cmds = ['bun run build']
+cmds = ['npm run build']
 
 [start]
-cmd = 'bun run preview --host 0.0.0.0 --port $PORT'
+cmd = 'npm run preview -- --host 0.0.0.0 --port $PORT'
