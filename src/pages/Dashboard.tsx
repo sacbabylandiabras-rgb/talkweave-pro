@@ -109,7 +109,7 @@ const Dashboard = () => {
     <div className="flex h-screen bg-background">
       <Sidebar activeItem={activeItem} onItemClick={setActiveItem} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+        <Header onNavigate={setActiveItem} />
         <main className="flex-1 overflow-auto p-8">
           {renderContent()}
         </main>
