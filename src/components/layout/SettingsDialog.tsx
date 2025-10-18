@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings, Moon, Sun, Globe, Bell, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -14,7 +15,8 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [theme, setTheme] = useState("light");
+  const { theme: currentTheme, setTheme: setAppTheme } = useTheme();
+  const [theme, setTheme] = useState(currentTheme || "light");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [campaignAlerts, setCampaignAlerts] = useState(true);
@@ -22,7 +24,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [twoFactor, setTwoFactor] = useState(false);
   const [activityLog, setActivityLog] = useState(true);
 
+  useEffect(() => {
+    if (currentTheme) {
+      setTheme(currentTheme);
+    }
+  }, [currentTheme]);
+
   const handleSaveSettings = () => {
+    setAppTheme(theme);
     toast({
       title: "Configurações salvas",
       description: "Suas preferências foram atualizadas com sucesso.",
