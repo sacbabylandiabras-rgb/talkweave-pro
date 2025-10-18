@@ -7,7 +7,10 @@ export const useUserRole = (userId: string | undefined) => {
 
   useEffect(() => {
     const checkRole = async () => {
+      console.log('useUserRole - Verificando role para userId:', userId);
+      
       if (!userId) {
+        console.log('useUserRole - userId indefinido');
         setIsAdmin(false);
         setLoading(false);
         return;
@@ -21,11 +24,15 @@ export const useUserRole = (userId: string | undefined) => {
           .eq("role", "admin")
           .maybeSingle();
 
+        console.log('useUserRole - Resultado da query:', { data, error });
+
         if (error && error.code !== "PGRST116") {
           console.error("Error checking role:", error);
         }
 
-        setIsAdmin(!!data);
+        const hasAdmin = !!data;
+        console.log('useUserRole - É admin?', hasAdmin);
+        setIsAdmin(hasAdmin);
       } catch (error) {
         console.error("Error in checkRole:", error);
         setIsAdmin(false);
