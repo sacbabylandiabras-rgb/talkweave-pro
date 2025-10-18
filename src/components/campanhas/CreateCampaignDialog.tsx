@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus } from "lucide-react";
+import Papa from "papaparse";
 
 interface CreateCampaignDialogProps {
   open: boolean;
@@ -32,6 +33,9 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     contact_selection: "all",
     specific_contacts: "",
   });
+
+  const [importedContacts, setImportedContacts] = useState<Array<{ phone: string; name: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.template_id) {
@@ -56,13 +60,24 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       // Prepare contacts based on selection
       let targetContacts = [];
       if (formData.contact_selection === "all") {
-        targetContacts = contacts.map(c => ({ phone: c.phone, name: c.name }));
-      } else {
+        targetContacts = contacts.map(c => ({ phone: c.phone, name: c.name || "Cliente" }));
+      } else if (formData.contact_selection === "manual") {
         targetContacts = formData.specific_contacts
           .split('\n')
           .map(line => line.trim())
           .filter(line => line)
           .map(phone => ({ phone, name: "Cliente" }));
+      } else if (formData.contact_selection === "import") {
+        targetContacts = importedContacts;
+      }
+
+      if (targetContacts.length === 0) {
+        toast({
+          title: "Erro",
+          description: "Adicione pelo menos um contato à campanha",
+          variant: "destructive",
+        });
+        return;
       }
 
       await createCampaign({
@@ -92,6 +107,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         contact_selection: "all",
         specific_contacts: "",
       });
+      setImportedContacts([]);
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -100,6 +116,58 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         description: "Erro ao criar campanha. Tente novamente.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    if (fileExtension === 'csv' || fileExtension === 'txt') {
+      // Parse CSV
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const parsedContacts = results.data.map((row: any) => ({
+            phone: row.telefone || row.phone || row.numero || row.Telefone || row.Phone || row.Numero || "",
+            name: row.nome || row.name || row.Name || row.Nome || "Cliente",
+          })).filter(c => c.phone);
+
+          setImportedContacts(parsedContacts);
+          toast({
+            title: "Sucesso",
+            description: `${parsedContacts.length} contatos importados`,
+          });
+        },
+        error: (error) => {
+          console.error('Error parsing CSV:', error);
+          toast({
+            title: "Erro",
+            description: "Erro ao ler o arquivo CSV",
+            variant: "destructive",
+          });
+        }
+      });
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      toast({
+        title: "Formato não suportado",
+        description: "Por favor, exporte sua planilha como CSV",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Formato inválido",
+        description: "Por favor, envie um arquivo CSV",
+        variant: "destructive",
+      });
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -229,19 +297,40 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               <Label htmlFor="contact_selection">Selecionar Contatos</Label>
               <Select
                 value={formData.contact_selection}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, contact_selection: value }))}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ ...prev, contact_selection: value }));
+                  if (value !== "import") {
+                    setImportedContacts([]);
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os Contatos ({contacts.length})</SelectItem>
-                  <SelectItem value="specific">Números Específicos</SelectItem>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Todos os Contatos ({contacts.length})
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="manual">
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="w-4 h-4" />
+                      Adicionar Manualmente
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="import">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Importar Planilha (CSV)
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.contact_selection === "specific" && (
+            {formData.contact_selection === "manual" && (
               <div>
                 <Label htmlFor="specific_contacts">Lista de Números</Label>
                 <Textarea
@@ -254,6 +343,78 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                 <p className="text-xs text-muted-foreground mt-1">
                   Digite um número por linha no formato: 5511999999999
                 </p>
+              </div>
+            )}
+
+            {formData.contact_selection === "import" && (
+              <div className="space-y-3">
+                <div>
+                  <Label>Importar Arquivo CSV</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={handleFileUpload}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Escolher
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Formato CSV com colunas: telefone, nome (opcional)
+                  </p>
+                </div>
+
+                {importedContacts.length > 0 && (
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {importedContacts.length} contatos importados
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setImportedContacts([])}
+                      >
+                        Limpar
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {importedContacts.slice(0, 5).map((contact, idx) => (
+                        <div key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span className="font-mono">{contact.phone}</span>
+                          <span>-</span>
+                          <span>{contact.name}</span>
+                        </div>
+                      ))}
+                      {importedContacts.length > 5 && (
+                        <p className="text-xs text-muted-foreground italic">
+                          e mais {importedContacts.length - 5} contatos...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">
+                    💡 Formato do arquivo CSV:
+                  </p>
+                  <pre className="text-xs text-blue-700 dark:text-blue-300 font-mono">
+{`telefone,nome
+5511999999999,João Silva
+5511888888888,Maria Santos`}
+                  </pre>
+                </div>
               </div>
             )}
           </div>
