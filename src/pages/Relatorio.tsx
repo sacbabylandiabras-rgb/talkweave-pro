@@ -1,83 +1,167 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Download, TrendingUp, TrendingDown, Calendar, Users, MessageSquare, Send } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Calendar, Users, MessageSquare, Send, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface ReportStats {
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalContacts: number;
+  totalMessages: number;
+  deliveryRate: number;
+}
+
+interface CampaignReport {
+  id: string;
+  name: string;
+  created_at: string;
+  status: string;
+  sent: number;
+  delivered: number;
+  failed: number;
+  total: number;
+  deliveryRate: number;
+}
 
 const Relatorio = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ReportStats>({
+    totalSent: 0,
+    totalDelivered: 0,
+    totalFailed: 0,
+    totalContacts: 0,
+    totalMessages: 0,
+    deliveryRate: 0,
+  });
+  const [campaignReports, setCampaignReports] = useState<CampaignReport[]>([]);
+  const [templateStats, setTemplateStats] = useState<Array<{ name: string; usage: number }>>([]);
+
+  useEffect(() => {
+    loadReportData();
+  }, []);
+
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+
+      // Get all campaign sends
+      const { data: sends, error: sendsError } = await supabase
+        .from('campaign_sends')
+        .select('*');
+
+      if (sendsError) throw sendsError;
+
+      // Calculate overall stats
+      const totalSent = sends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
+      const totalDelivered = sends?.filter(s => s.status === 'delivered').length || 0;
+      const totalFailed = sends?.filter(s => s.status === 'failed').length || 0;
+      const totalMessages = sends?.length || 0;
+      const deliveryRate = totalMessages > 0 ? (totalSent / totalMessages) * 100 : 0;
+
+      // Get unique contacts
+      const uniquePhones = new Set(sends?.map(s => s.phone) || []);
+      const totalContacts = uniquePhones.size;
+
+      setStats({
+        totalSent,
+        totalDelivered,
+        totalFailed,
+        totalContacts,
+        totalMessages,
+        deliveryRate,
+      });
+
+      // Get campaigns with their stats
+      const { data: campaigns, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (campaignsError) throw campaignsError;
+
+      // Calculate stats for each campaign
+      const campaignReportsData = await Promise.all(
+        (campaigns || []).map(async (campaign) => {
+          const campaignSends = sends?.filter(s => s.campaign_id === campaign.id) || [];
+          const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
+          const delivered = campaignSends.filter(s => s.status === 'delivered').length;
+          const failed = campaignSends.filter(s => s.status === 'failed').length;
+          const total = campaignSends.length;
+          const rate = total > 0 ? (sent / total) * 100 : 0;
+
+          return {
+            id: campaign.id,
+            name: campaign.name,
+            created_at: campaign.created_at,
+            status: campaign.status,
+            sent,
+            delivered,
+            failed,
+            total,
+            deliveryRate: rate,
+          };
+        })
+      );
+
+      setCampaignReports(campaignReportsData);
+
+      // Get template usage stats
+      const { data: templates, error: templatesError } = await supabase
+        .from('message_templates')
+        .select('name, usage_count')
+        .order('usage_count', { ascending: false })
+        .limit(5);
+
+      if (templatesError) throw templatesError;
+
+      setTemplateStats(templates?.map(t => ({ name: t.name, usage: t.usage_count || 0 })) || []);
+
+    } catch (error) {
+      console.error('Error loading report data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const metricas = [
     {
-      titulo: "Mensagens Enviadas",
-      valor: "12,847",
-      variacao: "+12%",
-      tipo: "alta",
+      titulo: "Total de Mensagens",
+      valor: stats.totalMessages.toLocaleString('pt-BR'),
       icon: Send,
-      periodo: "Este mês"
+      periodo: "Total de envios"
     },
     {
       titulo: "Taxa de Entrega",
-      valor: "94.2%",
-      variacao: "+2.1%",
-      tipo: "alta",
+      valor: `${stats.deliveryRate.toFixed(1)}%`,
       icon: TrendingUp,
-      periodo: "Últimos 30 dias"
+      periodo: "Sucesso nos envios"
     },
     {
-      titulo: "Contatos Ativos",
-      valor: "3,456",
-      variacao: "-1.2%",
-      tipo: "baixa",
+      titulo: "Contatos Alcançados",
+      valor: stats.totalContacts.toLocaleString('pt-BR'),
       icon: Users,
-      periodo: "Este mês"
+      periodo: "Únicos"
     },
     {
-      titulo: "Taxa de Resposta",
-      valor: "23.8%",
-      variacao: "+4.3%",
-      tipo: "alta",
+      titulo: "Mensagens Recebidas",
+      valor: "Em breve",
       icon: MessageSquare,
-      periodo: "Últimos 30 dias"
+      periodo: "Via webhook"
     }
-  ];
-
-  const campanhas = [
-    {
-      id: 1,
-      nome: "Campanha Black Friday",
-      data: "2024-01-15",
-      enviadas: 2500,
-      entregues: 2350,
-      visualizadas: 1890,
-      respondidas: 567,
-      taxa_conversao: "22.7%",
-      status: "concluída"
-    },
-    {
-      id: 2,
-      nome: "Lançamento Produto X",
-      data: "2024-01-10",
-      enviadas: 1800,
-      entregues: 1720,
-      visualizadas: 1340,
-      respondidas: 298,
-      taxa_conversao: "16.6%",
-      status: "concluída"
-    },
-    {
-      id: 3,
-      nome: "Promoção Fim de Ano",
-      data: "2024-01-08",
-      enviadas: 3200,
-      entregues: 3050,
-      visualizadas: 2456,
-      respondidas: 734,
-      taxa_conversao: "22.9%",
-      status: "concluída"
-    }
-  ];
-
-  const dispositivosPerformance = [
-    { dispositivo: "WhatsApp Principal", mensagens: 8500, taxa_entrega: "96.2%" },
-    { dispositivo: "WhatsApp Suporte", mensagens: 4347, taxa_entrega: "92.1%" }
   ];
 
   return (
@@ -89,13 +173,12 @@ const Relatorio = () => {
 
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={loadReportData}>
             <Calendar className="w-4 h-4" />
-            Últimos 30 dias
+            Atualizar Dados
           </Button>
-          <Button variant="outline">Personalizar Período</Button>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" disabled>
           <Download className="w-4 h-4" />
           Exportar Relatório
         </Button>
@@ -112,17 +195,7 @@ const Relatorio = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{metrica.valor}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={metrica.tipo === 'alta' ? 'default' : 'destructive'}>
-                    {metrica.tipo === 'alta' ? (
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3 mr-1" />
-                    )}
-                    {metrica.variacao}
-                  </Badge>
-                  <p className="text-xs text-muted-foreground">{metrica.periodo}</p>
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">{metrica.periodo}</p>
               </CardContent>
             </Card>
           );
@@ -133,26 +206,43 @@ const Relatorio = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
-            Desempenho por Dispositivo
+            Resumo Geral de Envios
           </CardTitle>
-          <CardDescription>Comparativo de performance entre dispositivos</CardDescription>
+          <CardDescription>Estatísticas detalhadas dos envios</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {dispositivosPerformance.map((dispositivo, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">{dispositivo.dispositivo}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {dispositivo.mensagens.toLocaleString()} mensagens enviadas
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-lg">{dispositivo.taxa_entrega}</p>
-                  <p className="text-sm text-muted-foreground">Taxa de Entrega</p>
-                </div>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/10">
+              <div>
+                <h3 className="font-medium text-green-600 dark:text-green-400">Mensagens Enviadas com Sucesso</h3>
+                <p className="text-sm text-muted-foreground">
+                  Enviadas + Entregues
+                </p>
               </div>
-            ))}
+              <div className="text-right">
+                <p className="font-semibold text-2xl text-green-600 dark:text-green-400">
+                  {stats.totalSent.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-sm text-muted-foreground">de {stats.totalMessages.toLocaleString('pt-BR')}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-red-500/10">
+              <div>
+                <h3 className="font-medium text-red-600 dark:text-red-400">Falhas no Envio</h3>
+                <p className="text-sm text-muted-foreground">
+                  Mensagens que falharam
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-2xl text-red-600 dark:text-red-400">
+                  {stats.totalFailed.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {stats.totalMessages > 0 ? ((stats.totalFailed / stats.totalMessages) * 100).toFixed(1) : 0}% do total
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -162,111 +252,93 @@ const Relatorio = () => {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Campanhas Recentes</CardTitle>
-              <CardDescription>Resultados das últimas campanhas enviadas</CardDescription>
+              <CardDescription>Resultados das últimas campanhas</CardDescription>
             </div>
-            <Button variant="outline">Ver Todas</Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {campanhas.map((campanha) => (
-              <div key={campanha.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium">{campanha.nome}</h3>
-                    <p className="text-sm text-muted-foreground">{campanha.data}</p>
+          {campaignReports.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma campanha encontrada
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {campaignReports.map((campanha) => (
+                <div key={campanha.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-medium">{campanha.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <Badge variant={
+                      campanha.status === 'completed' ? 'default' : 
+                      campanha.status === 'active' ? 'secondary' :
+                      campanha.status === 'paused' ? 'outline' : 
+                      'destructive'
+                    }>
+                      {campanha.status === 'completed' ? 'Concluída' :
+                       campanha.status === 'active' ? 'Ativa' :
+                       campanha.status === 'paused' ? 'Pausada' :
+                       campanha.status === 'cancelled' ? 'Cancelada' : 'Rascunho'}
+                    </Badge>
                   </div>
-                  <Badge variant="outline">{campanha.status}</Badge>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Total</p>
+                      <p className="font-semibold">{campanha.total.toLocaleString('pt-BR')}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Enviadas</p>
+                      <p className="font-semibold text-green-600 dark:text-green-400">
+                        {campanha.sent.toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Falhas</p>
+                      <p className="font-semibold text-red-600 dark:text-red-400">
+                        {campanha.failed.toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Taxa de Sucesso</p>
+                      <p className="font-semibold text-primary">{campanha.deliveryRate.toFixed(1)}%</p>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Enviadas</p>
-                    <p className="font-semibold">{campanha.enviadas.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Entregues</p>
-                    <p className="font-semibold">{campanha.entregues.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Visualizadas</p>
-                    <p className="font-semibold">{campanha.visualizadas.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Respondidas</p>
-                    <p className="font-semibold">{campanha.respondidas.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Taxa de Conversão</p>
-                    <p className="font-semibold text-primary">{campanha.taxa_conversao}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Horários de Maior Engajamento</CardTitle>
-            <CardDescription>Melhores horários para envio</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>09:00 - 11:00</span>
-                <Badge>Alto engajamento</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>14:00 - 16:00</span>
-                <Badge>Alto engajamento</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>19:00 - 21:00</span>
-                <Badge variant="secondary">Médio engajamento</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>22:00 - 08:00</span>
-                <Badge variant="destructive">Baixo engajamento</Badge>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Modelos de Mensagem</CardTitle>
+          <CardDescription>Modelos mais utilizados em campanhas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {templateStats.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum template utilizado ainda
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Modelos de Mensagem</CardTitle>
-            <CardDescription>Modelos com melhor performance</CardDescription>
-          </CardHeader>
-          <CardContent>
+          ) : (
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>Saudação Comercial</span>
-                <div className="text-right">
-                  <p className="font-semibold">28.5%</p>
-                  <p className="text-xs text-muted-foreground">Taxa de resposta</p>
+              {templateStats.map((template, index) => (
+                <div key={index} className="flex justify-between items-center p-3 border rounded-lg">
+                  <span className="font-medium">{template.name}</span>
+                  <div className="text-right">
+                    <p className="font-semibold text-primary">{template.usage}</p>
+                    <p className="text-xs text-muted-foreground">Usos</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Promoção Especial</span>
-                <div className="text-right">
-                  <p className="font-semibold">24.2%</p>
-                  <p className="text-xs text-muted-foreground">Taxa de resposta</p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Agendamento</span>
-                <div className="text-right">
-                  <p className="font-semibold">19.8%</p>
-                  <p className="text-xs text-muted-foreground">Taxa de resposta</p>
-                </div>
-              </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
