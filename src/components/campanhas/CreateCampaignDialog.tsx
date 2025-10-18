@@ -32,6 +32,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     recurrence_pattern: "",
     contact_selection: "all",
     specific_contacts: "",
+    delay_seconds: 2,
   });
 
   const [importedContacts, setImportedContacts] = useState<Array<{ phone: string; name: string }>>([]);
@@ -88,8 +89,9 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         scheduled_at: formData.scheduled_at || null,
         recurrence_pattern: formData.recurrence_pattern || null,
         target_audience: { contacts: targetContacts },
-      status: formData.schedule_type === "immediate" ? "active" : "draft",
-    } as any);
+        status: formData.schedule_type === "immediate" ? "active" : "draft",
+        delay_seconds: formData.delay_seconds,
+      } as any);
 
       toast({
         title: "Sucesso",
@@ -106,6 +108,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         recurrence_pattern: "",
         contact_selection: "all",
         specific_contacts: "",
+        delay_seconds: 2,
       });
       setImportedContacts([]);
       onOpenChange(false);
@@ -231,7 +234,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Agendamento</h3>
+              <h3 className="text-sm font-semibold">Agendamento e Envio</h3>
             </div>
             
             <div>
@@ -284,6 +287,21 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                 </Select>
               </div>
             )}
+
+            <div>
+              <Label htmlFor="delay_seconds">Intervalo entre Envios (segundos)</Label>
+              <Input
+                id="delay_seconds"
+                type="number"
+                min="1"
+                max="60"
+                value={formData.delay_seconds}
+                onChange={(e) => setFormData(prev => ({ ...prev, delay_seconds: parseInt(e.target.value) || 2 }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Recomendado: 2-5 segundos. Valores menores podem causar bloqueios.
+              </p>
+            </div>
           </div>
 
           {/* Público-Alvo */}

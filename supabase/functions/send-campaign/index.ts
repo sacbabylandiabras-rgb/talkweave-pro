@@ -80,6 +80,10 @@ serve(async (req) => {
 
     const results = [];
     const campaignSends: CampaignSendRecord[] = [];
+    
+    // Get delay from campaign or use default of 2 seconds
+    const delayMs = (campaign.delay_seconds || 2) * 1000;
+    console.log(`Using delay of ${campaign.delay_seconds || 2} seconds between messages`);
 
     // Process each contact
     for (const contact of contacts) {
@@ -155,8 +159,10 @@ serve(async (req) => {
           console.error(`Failed to send message to ${contact.phone}:`, zapiResult);
         }
 
-        // Add delay between messages to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Add delay between messages to avoid rate limiting (using campaign's configured delay)
+        if (contacts.indexOf(contact) < contacts.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
 
       } catch (error) {
         if (!campaignSend) {

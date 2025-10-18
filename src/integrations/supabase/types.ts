@@ -115,6 +115,7 @@ export type Database = {
       campaigns: {
         Row: {
           created_at: string
+          delay_seconds: number | null
           description: string | null
           id: string
           name: string
@@ -128,6 +129,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delay_seconds?: number | null
           description?: string | null
           id?: string
           name: string
@@ -141,6 +143,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delay_seconds?: number | null
           description?: string | null
           id?: string
           name?: string

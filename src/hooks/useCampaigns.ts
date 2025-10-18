@@ -13,6 +13,7 @@ export interface Campaign {
   schedule_type: 'immediate' | 'scheduled' | 'recurring';
   scheduled_at?: string;
   recurrence_pattern?: string;
+  delay_seconds?: number;
   created_at: string;
   updated_at: string;
   template?: MessageTemplate;
@@ -94,6 +95,7 @@ export const useCampaigns = () => {
     schedule_type?: 'immediate' | 'scheduled' | 'recurring';
     scheduled_at?: string;
     recurrence_pattern?: string;
+    delay_seconds?: number;
   }) => {
     try {
       const { data, error } = await supabase
@@ -106,6 +108,7 @@ export const useCampaigns = () => {
           schedule_type: campaignData.schedule_type || 'immediate',
           scheduled_at: campaignData.scheduled_at,
           recurrence_pattern: campaignData.recurrence_pattern,
+          delay_seconds: campaignData.delay_seconds || 2,
         })
         .select(`
           *,
