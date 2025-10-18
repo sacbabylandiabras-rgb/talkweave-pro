@@ -47,7 +47,8 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
 
   const handleItemClick = (itemId: string) => {
     if (itemId === "admin") {
-      navigate("/admin");
+      // Força navegação direta pela URL
+      window.location.href = "/admin";
       return;
     }
     onItemClick?.(itemId);
