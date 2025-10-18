@@ -92,8 +92,7 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
       {/* Footer */}
       <div className="p-4 border-t border-border">
         <p className="text-xs text-muted-foreground text-center">
-          © 2025 Feito com amor<br />
-          Por WA
+          © 2025 ZapLynx
         </p>
       </div>
     </div>
