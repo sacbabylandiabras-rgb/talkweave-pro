@@ -152,12 +152,10 @@ const ButtonEditor = memo(({
   );
 });
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
-import { useCampaigns } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 
 const Modelos = () => {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
-  const { createCampaign } = useCampaigns();
   const { toast } = useToast();
   
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -180,14 +178,7 @@ const Modelos = () => {
     footer: "",
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
   });
-  const [campaignData, setCampaignData] = useState({
-    name: "",
-    description: "",
-    template_id: "",
-    contacts: "",
-  });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
 
   const categories = ["Todos", ...new Set(templates.map(t => t.category))];
   const filteredTemplates = templates.filter(template => {
@@ -251,42 +242,6 @@ const Modelos = () => {
     }
   };
 
-  const handleCreateCampaign = async () => {
-    if (!campaignData.name || !campaignData.template_id) {
-      toast({
-        title: "Erro",
-        description: "Nome da campanha e modelo são obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Parse contacts (simple format: phone numbers separated by commas)
-      const contacts = campaignData.contacts
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line)
-        .map(phone => ({ phone, name: `Cliente` }));
-
-      const campaign = await createCampaign({
-        name: campaignData.name,
-        description: campaignData.description,
-        template_id: campaignData.template_id,
-        target_audience: { contacts },
-      });
-
-      setCampaignData({ name: "", description: "", template_id: "", contacts: "" });
-      setShowCampaignDialog(false);
-
-      toast({
-        title: "Sucesso",
-        description: "Campanha criada! Você pode gerenciá-la na seção de Campanhas",
-      });
-    } catch (error) {
-      console.error('Error creating campaign:', error);
-    }
-  };
 
   const handleEditTemplate = (template: any) => {
     setEditFormData({
@@ -432,80 +387,6 @@ const Modelos = () => {
           ))}
         </div>
         <div className="flex gap-2">
-          <Dialog open={showCampaignDialog} onOpenChange={setShowCampaignDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Send className="w-4 h-4" />
-                Nova Campanha
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Criar Nova Campanha</DialogTitle>
-                <DialogDescription>
-                  Crie uma campanha usando um modelo de mensagem
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="campaign-name">Nome da Campanha</Label>
-                  <Input
-                    id="campaign-name"
-                    value={campaignData.name}
-                    onChange={(e) => setCampaignData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Promoção Black Friday"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="campaign-template">Modelo</Label>
-                  <Select
-                    value={campaignData.template_id}
-                    onValueChange={(value) => setCampaignData(prev => ({ ...prev, template_id: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um modelo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="campaign-description">Descrição (opcional)</Label>
-                  <Textarea
-                    id="campaign-description"
-                    value={campaignData.description}
-                    onChange={(e) => setCampaignData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Descreva o objetivo da campanha"
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="campaign-contacts">Lista de Contatos</Label>
-                  <Textarea
-                    id="campaign-contacts"
-                    value={campaignData.contacts}
-                    onChange={(e) => setCampaignData(prev => ({ ...prev, contacts: e.target.value }))}
-                    placeholder="Digite os números (um por linha)&#10;5511999999999&#10;5511888888888"
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCampaignDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateCampaign}>
-                  Criar Campanha
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -674,17 +555,6 @@ const Modelos = () => {
               
               {/* Ações rápidas */}
               <div className="flex flex-wrap gap-2 mb-3">
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  onClick={() => {
-                    setCampaignData(prev => ({ ...prev, template_id: template.id }));
-                    setShowCampaignDialog(true);
-                  }}
-                >
-                  <Send className="w-4 h-4 mr-1" />
-                  Usar em Campanha
-                </Button>
                 <Button 
                   variant="secondary" 
                   size="sm"

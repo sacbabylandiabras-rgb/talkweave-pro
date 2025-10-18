@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCampaigns } from "@/hooks/useCampaigns";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3 } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 
 const Campanhas = () => {
   const { 
@@ -19,6 +20,7 @@ const Campanhas = () => {
   } = useCampaigns();
   
   const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
@@ -68,19 +70,34 @@ const Campanhas = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
-        <p className="text-muted-foreground">Gerencie suas campanhas de mensagens</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
+          <p className="text-muted-foreground">Gerencie suas campanhas de mensagens</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nova Campanha
+        </Button>
       </div>
+
+      <CreateCampaignDialog 
+        open={showCreateDialog} 
+        onOpenChange={setShowCreateDialog} 
+      />
 
       <div className="grid gap-4">
         {campaigns.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                Nenhuma campanha criada ainda. Crie sua primeira campanha na página de Modelos!
+              <p className="text-muted-foreground mb-4">
+                Nenhuma campanha criada ainda. Crie sua primeira campanha agora!
               </p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeira Campanha
+              </Button>
             </CardContent>
           </Card>
         ) : (
