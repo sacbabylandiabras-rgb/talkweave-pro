@@ -17,42 +17,31 @@ import {
   Megaphone,
   ShieldCheck
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface SidebarProps {
   activeItem?: string;
-  onItemClick?: (item: string) => void;
   userId?: string;
 }
 
 const menuItems = [
-  { id: "painel", label: "Painel", icon: LayoutDashboard },
-  { id: "dispositivos", label: "Dispositivos", icon: Smartphone },
-  { id: "perfil", label: "Perfil", icon: UserCircle },
-  { id: "enviar-mensagem", label: "Enviar mensagem", icon: Send },
-  { id: "modelos", label: "Modelos", icon: FileText },
-  { id: "campanhas", label: "Campanhas", icon: Megaphone },
-  { id: "contatos", label: "Contatos", icon: Users },
-  { id: "relatorio", label: "Relatório", icon: BarChart3 },
-  { id: "admin", label: "Administração", icon: ShieldCheck },
-  { id: "configuracao-zapi", label: "Config Z-API", icon: Settings },
+  { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
+  { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
+  { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil" },
+  { id: "enviar-mensagem", label: "Enviar mensagem", icon: Send, path: "/enviar-mensagem" },
+  { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
+  { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
+  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+  { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
+  { id: "admin", label: "Administração", icon: ShieldCheck, path: "/admin" },
+  { id: "configuracao-zapi", label: "Config Z-API", icon: Settings, path: "/configuracao-zapi" },
 ];
 
-export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarProps) {
+export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
-  const navigate = useNavigate();
-
-  const handleItemClick = (itemId: string) => {
-    if (itemId === "admin") {
-      // Navegar para a rota /admin
-      navigate("/admin");
-      return;
-    }
-    onItemClick?.(itemId);
-  };
 
   return (
     <div className="w-64 bg-card/95 backdrop-blur-sm border-r border-border h-screen flex flex-col shadow-lg">
@@ -81,15 +70,11 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
             
             return (
               <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleItemClick(item.id);
-                  }}
+                <Link
+                  to={item.path}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    "hover:bg-muted/50 cursor-pointer",
+                    "hover:bg-muted/50",
                     isActive
                       ? "bg-primary/10 text-primary border-l-4 border-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -97,7 +82,7 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{item.label}</span>
-                </button>
+                </Link>
               </li>
             );
           })}
