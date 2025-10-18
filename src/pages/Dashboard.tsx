@@ -27,12 +27,15 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("dashboard");
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string>();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
+      } else {
+        setUserId(session.user.id);
       }
       setLoading(false);
     };
@@ -42,6 +45,8 @@ const Dashboard = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         navigate("/auth");
+      } else {
+        setUserId(session.user.id);
       }
     });
 
@@ -102,7 +107,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
+      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-auto p-8">

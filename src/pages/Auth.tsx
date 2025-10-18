@@ -52,7 +52,7 @@ const Auth = () => {
       // Validar inputs
       authSchema.parse({ email: email.trim(), password });
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
       });
@@ -72,6 +72,29 @@ const Auth = () => {
           });
         }
         return;
+      }
+
+      // Verificar se o usuário está ativo
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("is_active")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Erro ao verificar perfil:", profileError);
+        }
+
+        if (profile && !profile.is_active) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Conta desativada",
+            description: "Sua conta foi desativada. Entre em contato com o administrador.",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       toast({

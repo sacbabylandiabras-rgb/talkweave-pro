@@ -19,10 +19,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface SidebarProps {
   activeItem?: string;
   onItemClick?: (item: string) => void;
+  userId?: string;
 }
 
 const menuItems = [
@@ -45,7 +47,9 @@ const menuItems = [
   { id: "configuracao-zapi", label: "Config Z-API", icon: Settings },
 ];
 
-export function Sidebar({ activeItem = "painel", onItemClick }: SidebarProps) {
+export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarProps) {
+  const { isAdmin, loading } = useUserRole(userId);
+
   return (
     <div className="w-64 bg-card/95 backdrop-blur-sm border-r border-border h-screen flex flex-col shadow-lg">
       {/* Header */}
@@ -63,6 +67,11 @@ export function Sidebar({ activeItem = "painel", onItemClick }: SidebarProps) {
       <nav className="flex-1 py-4">
         <ul className="space-y-1 px-3">
           {menuItems.map((item) => {
+            // Ocultar item de admin para não-admins
+            if (item.id === "admin" && !loading && !isAdmin) {
+              return null;
+            }
+
             const Icon = item.icon;
             const isActive = activeItem === item.id;
             

@@ -1,198 +1,77 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Loader2, ShieldCheck, User, Mail, Calendar } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-interface Profile {
-  id: string;
-  email: string;
-  full_name: string;
-  is_active: boolean;
-  created_at: string;
-  roles: string[];
-}
+import { useAdminUsers } from "@/hooks/useAdminUsers";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Admin = () => {
-  const { isAdmin, loading: roleLoading } = useUserRole();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState<string>();
+  const { isAdmin, loading: roleLoading } = useUserRole(currentUserId);
+  const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
 
   useEffect(() => {
-    if (!roleLoading && isAdmin) {
-      loadProfiles();
-    } else if (!roleLoading && !isAdmin) {
-      setLoading(false);
-    }
-  }, [isAdmin, roleLoading]);
-
-  const loadProfiles = async () => {
-    try {
-      setLoading(true);
-      
-      // Buscar todos os profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Buscar todos os roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Combinar dados
-      const profilesWithRoles = profilesData?.map(profile => ({
-        ...profile,
-        roles: rolesData
-          ?.filter(r => r.user_id === profile.id)
-          .map(r => r.role) || []
-      })) || [];
-
-      setProfiles(profilesWithRoles);
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar usuários",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleActive = async (userId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !currentStatus })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Status atualizado",
-        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso`
-      });
-
-      loadProfiles();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar status",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const toggleAdminRole = async (userId: string, isCurrentlyAdmin: boolean) => {
-    try {
-      if (isCurrentlyAdmin) {
-        // Remover role admin
-        const { error } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId)
-          .eq('role', 'admin');
-
-        if (error) throw error;
-
-        toast({
-          title: "Role removido",
-          description: "Permissões de admin removidas"
-        });
-      } else {
-        // Adicionar role admin
-        const { error } = await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role: 'admin' });
-
-        if (error) throw error;
-
-        toast({
-          title: "Role adicionado",
-          description: "Usuário promovido a administrador"
-        });
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
       }
+      setCurrentUserId(session.user.id);
+    };
 
-      loadProfiles();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar permissões",
-        description: error.message,
-        variant: "destructive"
-      });
+    checkAuth();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!roleLoading && !isAdmin && currentUserId) {
+      navigate("/dashboard");
     }
-  };
+  }, [isAdmin, roleLoading, currentUserId, navigate]);
 
-  if (roleLoading) {
+  if (roleLoading || usersLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Acesso Negado</CardTitle>
-            <CardDescription className="text-center">
-              Você não tem permissão para acessar esta página
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Administração de Usuários</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie contas e permissões de usuários
-          </p>
+          <h1 className="text-3xl font-bold">Painel de Administração</h1>
+          <p className="text-muted-foreground mt-1">Gerencie usuários e permissões do sistema</p>
         </div>
-        <Button onClick={loadProfiles} variant="outline">
-          Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/dashboard")} variant="outline" size="sm">
+            Voltar ao Dashboard
+          </Button>
+          <Button onClick={refetch} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Usuários Cadastrados ({profiles.length})
-          </CardTitle>
+          <CardTitle>Usuários Cadastrados</CardTitle>
+          <CardDescription>
+            Total de {users.length} usuário{users.length !== 1 ? "s" : ""} no sistema
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -202,70 +81,80 @@ const Admin = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Roles</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      Nenhum usuário encontrado
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell>{user.full_name || "-"}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {user.roles.map((role) => (
+                          <Badge
+                            key={role}
+                            variant={role === "admin" ? "default" : "secondary"}
+                          >
+                            {role === "admin" ? "Administrador" : "Usuário"}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(user.created_at), "dd/MM/yyyy HH:mm", {
+                        locale: ptBR
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.is_active ? "default" : "destructive"}>
+                        {user.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant={user.roles.includes("admin") ? "destructive" : "default"}
+                          onClick={() => toggleAdminRole(user.id, user.roles)}
+                          disabled={user.id === currentUserId}
+                        >
+                          {user.roles.includes("admin") ? (
+                            <>
+                              <ShieldOff className="w-4 h-4 mr-1" />
+                              Remover Admin
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-4 h-4 mr-1" />
+                              Tornar Admin
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          disabled={user.id === currentUserId}
+                        >
+                          {user.is_active ? (
+                            <>
+                              <UserX className="w-4 h-4 mr-1" />
+                              Desativar
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              Ativar
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  profiles.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          {profile.email || 'Sem email'}
-                        </div>
-                      </TableCell>
-                      <TableCell>{profile.full_name || '-'}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {profile.roles.includes('admin') && (
-                            <Badge variant="destructive" className="gap-1">
-                              <ShieldCheck className="w-3 h-3" />
-                              Admin
-                            </Badge>
-                          )}
-                          {profile.roles.includes('user') && (
-                            <Badge variant="secondary">Usuário</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={profile.is_active}
-                            onCheckedChange={() => toggleActive(profile.id, profile.is_active)}
-                          />
-                          <span className="text-sm">
-                            {profile.is_active ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(profile.created_at).toLocaleDateString('pt-BR')}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant={profile.roles.includes('admin') ? 'outline' : 'default'}
-                          size="sm"
-                          onClick={() => toggleAdminRole(profile.id, profile.roles.includes('admin'))}
-                        >
-                          {profile.roles.includes('admin') ? 'Remover Admin' : 'Tornar Admin'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
