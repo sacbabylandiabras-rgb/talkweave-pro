@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCampaigns } from "@/hooks/useCampaigns";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle } from "lucide-react";
+import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
+import { useToast } from "@/hooks/use-toast";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
+import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,11 +29,16 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    getCampaignStats 
+    getCampaignStats,
+    sendCampaign 
   } = useCampaigns();
+  
+  const { toast } = useToast();
   
   const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
 
@@ -88,6 +95,28 @@ const Campanhas = () => {
     setCancelDialogOpen(true);
   };
 
+  const handleEditCampaign = (campaign: Campaign) => {
+    setEditingCampaign(campaign);
+    setShowEditDialog(true);
+  };
+
+  const handleSendCampaign = async (campaign: Campaign) => {
+    if (!campaign.target_audience?.contacts || campaign.target_audience.contacts.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Esta campanha não possui contatos configurados",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await sendCampaign(campaign.id, campaign.target_audience.contacts);
+    } catch (error) {
+      console.error('Error sending campaign:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -112,6 +141,12 @@ const Campanhas = () => {
       <CreateCampaignDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
+      />
+
+      <EditCampaignDialog 
+        open={showEditDialog} 
+        onOpenChange={setShowEditDialog}
+        campaign={editingCampaign}
       />
 
       <div className="grid gap-4">
@@ -148,6 +183,31 @@ const Campanhas = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Botão Editar - sempre disponível para draft, paused */}
+                    {(campaign.status === 'draft' || campaign.status === 'paused') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditCampaign(campaign)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                    )}
+
+                    {/* Botão Enviar - para draft */}
+                    {campaign.status === 'draft' && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleSendCampaign(campaign)}
+                      >
+                        <Send className="w-4 h-4 mr-1" />
+                        Enviar
+                      </Button>
+                    )}
+                    
+                    {/* Botões para campanhas ativas */}
                     {campaign.status === 'active' && (
                       <>
                         <Button
@@ -170,6 +230,7 @@ const Campanhas = () => {
                       </>
                     )}
                     
+                    {/* Botões para campanhas pausadas */}
                     {campaign.status === 'paused' && (
                       <>
                         <Button
@@ -192,7 +253,8 @@ const Campanhas = () => {
                       </>
                     )}
                     
-                    {(campaign.status === 'draft' || campaign.status === 'completed' || campaign.status === 'cancelled') && (
+                    {/* Botão Duplicar - para completed e cancelled */}
+                    {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -203,6 +265,7 @@ const Campanhas = () => {
                       </Button>
                     )}
                     
+                    {/* Botão Deletar - sempre disponível */}
                     <Button
                       variant="destructive"
                       size="sm"
