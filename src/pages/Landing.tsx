@@ -39,7 +39,7 @@ const Landing = () => {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <img src={zaplynxLogo} alt="ZapLynx" className="h-12 w-auto" />
+            <img src={zaplynxLogo} alt="ZapLynx" className="h-16 w-auto" />
           </div>
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => navigate("/auth")}>
@@ -56,7 +56,7 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-3xl mx-auto space-y-8">
           <div className="flex justify-center mb-6">
-            <img src={zaplynxLogo} alt="ZapLynx" className="h-24 w-auto" />
+            <img src={zaplynxLogo} alt="ZapLynx" className="h-32 md:h-40 w-auto" />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
             Gerencie suas mensagens do{" "}
