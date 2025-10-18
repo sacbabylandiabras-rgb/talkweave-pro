@@ -89,6 +89,31 @@ serve(async (req) => {
       const contact = contacts[i];
       let campaignSend: CampaignSendRecord | undefined;
       
+      // CHECK IF CAMPAIGN WAS PAUSED before processing this contact
+      const { data: currentCampaign } = await supabase
+        .from('campaigns')
+        .select('status')
+        .eq('id', campaignId)
+        .single();
+      
+      if (currentCampaign?.status === 'paused') {
+        console.log(`Campaign ${campaignId} was paused. Stopping at contact ${i + 1}/${contacts.length}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: `Campaign paused after ${i} contacts`,
+            paused: true,
+            results: {
+              total: contacts.length,
+              processed: i,
+              sent: results.filter(r => r.success).length,
+              failed: results.filter(r => !r.success).length,
+            }
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      
       try {
         // Check if this contact was already processed successfully
         const { data: existingSend } = await supabase

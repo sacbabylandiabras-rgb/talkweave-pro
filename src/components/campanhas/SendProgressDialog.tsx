@@ -35,21 +35,32 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   const handlePause = async () => {
     if (campaignId) {
       try {
+        console.log('🛑 PAUSANDO CAMPANHA:', campaignId);
+        
         // Update campaign status to paused
-        await supabase
+        const { error } = await supabase
           .from('campaigns')
           .update({ status: 'paused' })
           .eq('id', campaignId);
         
+        if (error) {
+          console.error('❌ Erro ao pausar no banco:', error);
+          throw error;
+        }
+        
+        console.log('✅ Status atualizado para "paused" no banco de dados');
         setIsPaused(true);
         
         // Call the onPause callback if provided
         if (onPause) {
+          console.log('📞 Chamando callback onPause para atualizar lista');
           onPause();
         }
       } catch (error) {
-        console.error('Error pausing campaign:', error);
+        console.error('❌ Error pausing campaign:', error);
       }
+    } else {
+      console.warn('⚠️ Tentativa de pausar sem campaignId');
     }
   };
 
