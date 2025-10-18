@@ -179,10 +179,16 @@ const Campanhas = () => {
           if (!open) {
             setSendingCampaignId(null);
             setTotalContactsCount(0);
+            // Refresh campaigns list when closing
+            refetch();
           }
         }}
         campaignId={sendingCampaignId}
         totalContacts={totalContactsCount}
+        onPause={() => {
+          // Refresh campaigns after pause
+          refetch();
+        }}
       />
 
       <div className="grid gap-4">

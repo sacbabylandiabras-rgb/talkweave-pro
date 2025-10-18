@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, Clock, Send } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Send, Pause } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaignId: string | null;
   totalContacts: number;
+  onPause?: () => void;
 }
 
 interface Stats {
@@ -20,7 +21,7 @@ interface Stats {
   failed: number;
 }
 
-export function SendProgressDialog({ open, onOpenChange, campaignId, totalContacts }: SendProgressDialogProps) {
+export function SendProgressDialog({ open, onOpenChange, campaignId, totalContacts, onPause }: SendProgressDialogProps) {
   const [stats, setStats] = useState<Stats>({
     total: 0,
     pending: totalContacts,
@@ -29,6 +30,28 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     failed: 0,
   });
   const [isComplete, setIsComplete] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const handlePause = async () => {
+    if (campaignId) {
+      try {
+        // Update campaign status to paused
+        await supabase
+          .from('campaigns')
+          .update({ status: 'paused' })
+          .eq('id', campaignId);
+        
+        setIsPaused(true);
+        
+        // Call the onPause callback if provided
+        if (onPause) {
+          onPause();
+        }
+      } catch (error) {
+        console.error('Error pausing campaign:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!open || !campaignId) {
@@ -40,6 +63,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         failed: 0,
       });
       setIsComplete(false);
+      setIsPaused(false);
       return;
     }
 
@@ -83,12 +107,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isComplete ? "Envio Concluído!" : "Enviando Campanha..."}
+            {isComplete ? "Envio Concluído!" : isPaused ? "Campanha Pausada" : "Enviando Campanha..."}
           </DialogTitle>
           <DialogDescription>
             {isComplete 
               ? "A campanha foi enviada com sucesso" 
-              : "Aguarde enquanto as mensagens são enviadas"}
+              : isPaused
+                ? "A campanha foi pausada. Você pode retomá-la na lista de campanhas"
+                : "Aguarde enquanto as mensagens são enviadas"}
           </DialogDescription>
         </DialogHeader>
 
@@ -155,16 +181,35 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             </div>
           )}
 
-          {/* Loading indicator */}
-          {!isComplete && (
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              <span>Enviando mensagens...</span>
+          {/* Loading indicator or Pause button */}
+          {!isComplete && !isPaused && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <span>Enviando mensagens...</span>
+              </div>
+              <div className="flex justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePause}
+                  className="gap-2"
+                >
+                  <Pause className="w-4 h-4" />
+                  Pausar Campanha
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isPaused && (
+            <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 p-3 rounded-lg">
+              <Pause className="w-4 h-4" />
+              <span>Campanha pausada com sucesso</span>
             </div>
           )}
         </div>
 
-        {isComplete && (
+        {(isComplete || isPaused) && (
           <div className="flex justify-end">
             <Button onClick={() => onOpenChange(false)}>
               Fechar
