@@ -31,6 +31,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<Admin />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dispositivos" element={<Dispositivos />} />
@@ -41,7 +42,6 @@ const App = () => (
               <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
               <Route path="/relatorio" element={<Relatorio />} />
               <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
-              <Route path="/admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
