@@ -19,6 +19,7 @@ const Admin = () => {
   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
@@ -55,28 +56,32 @@ const Admin = () => {
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Admin - Session:', session?.user.id);
       if (session) {
         setCurrentUserId(session.user.id);
       }
+      setIsInitializing(false);
     };
 
     getCurrentUser();
   }, []);
 
   useEffect(() => {
-    console.log('Admin - Check:', { roleLoading, currentUserId, isAdmin });
-    // Só redireciona se já terminou de carregar o role E temos o userId E não é admin
-    if (!roleLoading && currentUserId && !isAdmin) {
-      console.log('Admin - Redirecionando para dashboard (não é admin)');
-      navigate("/dashboard");
-    } else if (!roleLoading && currentUserId && isAdmin) {
-      console.log('Admin - Usuário é admin, permanecendo na página');
+    if (isInitializing) return;
+    
+    if (!currentUserId) {
+      navigate("/auth");
+      return;
     }
-  }, [isAdmin, roleLoading, currentUserId, navigate]);
+    
+    if (roleLoading) return;
+    
+    if (!isAdmin) {
+      navigate("/dashboard");
+    }
+  }, [isInitializing, isAdmin, roleLoading, currentUserId, navigate]);
 
-  // Mostra loading enquanto verifica autenticação E permissões
-  if (!currentUserId || roleLoading) {
+  // Mostra loading enquanto inicializa ou carrega role
+  if (isInitializing || roleLoading || !currentUserId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
