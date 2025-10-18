@@ -86,7 +86,8 @@ serve(async (req) => {
     console.log(`Using delay of ${campaign.delay_seconds || 2} seconds between messages`);
 
     // Process each contact
-    for (const contact of contacts) {
+    for (let i = 0; i < contacts.length; i++) {
+      const contact = contacts[i];
       let campaignSend: CampaignSendRecord | undefined;
       
       try {
@@ -159,11 +160,6 @@ serve(async (req) => {
           console.error(`Failed to send message to ${contact.phone}:`, zapiResult);
         }
 
-        // Add delay between messages to avoid rate limiting (using campaign's configured delay)
-        if (contacts.indexOf(contact) < contacts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-
       } catch (error) {
         if (!campaignSend) {
           campaignSend = {
@@ -189,6 +185,13 @@ serve(async (req) => {
       }
 
       campaignSends.push(campaignSend!);
+
+      // Add delay BETWEEN messages (after sending and before next iteration)
+      // Skip delay after the last message
+      if (i < contacts.length - 1) {
+        console.log(`Waiting ${campaign.delay_seconds || 2} seconds before next message...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
 
     // Save all campaign sends to database
