@@ -173,7 +173,17 @@ serve(async (req) => {
           body: JSON.stringify(requestBody),
         });
 
-        const zapiResult = await zapiResponse.json();
+        let zapiResult: any = {};
+        
+        // Try to parse JSON response, but handle empty responses
+        try {
+          const responseText = await zapiResponse.text();
+          if (responseText && responseText.trim()) {
+            zapiResult = JSON.parse(responseText);
+          }
+        } catch (parseError) {
+          console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
+        }
 
         if (zapiResponse.ok) {
           campaignSend.status = 'sent';
