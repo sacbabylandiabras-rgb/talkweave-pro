@@ -31,10 +31,12 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   });
   const [isComplete, setIsComplete] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isPausing, setIsPausing] = useState(false);
 
   const handlePause = async () => {
-    if (campaignId) {
+    if (campaignId && !isPausing) {
       try {
+        setIsPausing(true);
         console.log('🛑 PAUSANDO CAMPANHA:', campaignId);
         
         // Update campaign status to paused
@@ -58,9 +60,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         }
       } catch (error) {
         console.error('❌ Error pausing campaign:', error);
+        setIsPausing(false);
       }
     } else {
-      console.warn('⚠️ Tentativa de pausar sem campaignId');
+      console.warn('⚠️ Tentativa de pausar sem campaignId ou já pausando');
     }
   };
 
@@ -75,6 +78,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       });
       setIsComplete(false);
       setIsPaused(false);
+      setIsPausing(false);
       return;
     }
 
@@ -203,10 +207,11 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
                 <Button 
                   variant="outline" 
                   onClick={handlePause}
+                  disabled={isPausing}
                   className="gap-2"
                 >
                   <Pause className="w-4 h-4" />
-                  Pausar Campanha
+                  {isPausing ? 'Pausando...' : 'Pausar Campanha'}
                 </Button>
               </div>
             </div>

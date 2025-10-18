@@ -89,33 +89,42 @@ serve(async (req) => {
       const contact = contacts[i];
       let campaignSend: CampaignSendRecord | undefined;
       
-      // CHECK IF CAMPAIGN WAS PAUSED before processing this contact
-      const { data: currentCampaign } = await supabase
-        .from('campaigns')
-        .select('status')
-        .eq('id', campaignId)
-        .single();
-      
-      if (currentCampaign?.status === 'paused') {
-        console.log(`Campaign ${campaignId} was paused. Stopping at contact ${i + 1}/${contacts.length}`);
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            message: `Campaign paused after ${i} contacts`,
-            paused: true,
-            results: {
-              total: contacts.length,
-              processed: i,
-              sent: results.filter(r => r.success).length,
-              failed: results.filter(r => !r.success).length,
-            }
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        );
-      }
-      
       try {
-        // Check if this contact was already processed successfully
+        // CHECK IF CAMPAIGN WAS PAUSED - FIRST PRIORITY
+        const { data: currentCampaign } = await supabase
+          .from('campaigns')
+          .select('status')
+          .eq('id', campaignId)
+          .single();
+        
+        console.log(`[${i + 1}/${contacts.length}] Checking campaign status: ${currentCampaign?.status}`);
+        
+        if (currentCampaign?.status === 'paused') {
+          console.log(`🛑 Campaign ${campaignId} was PAUSED. Stopping at contact ${i + 1}/${contacts.length}`);
+          
+          // Update campaign status to ensure it stays paused
+          await supabase
+            .from('campaigns')
+            .update({ status: 'paused' })
+            .eq('id', campaignId);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              message: `Campaign paused after processing ${i} contacts`,
+              paused: true,
+              results: {
+                total: contacts.length,
+                processed: i,
+                sent: results.filter(r => r.success).length,
+                failed: results.filter(r => !r.success).length,
+              }
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+        
+        // Then check if this contact was already processed successfully
         const { data: existingSend } = await supabase
           .from('campaign_sends')
           .select('status')
@@ -125,7 +134,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existingSend) {
-          console.log(`Contact ${contact.phone} already processed, skipping`);
+          console.log(`✓ Contact ${contact.phone} already processed, skipping`);
           results.push({
             phone: contact.phone,
             success: true,
@@ -133,6 +142,8 @@ serve(async (req) => {
           });
           continue;
         }
+        
+        console.log(`📤 [${i + 1}/${contacts.length}] Processing contact: ${contact.phone}`);
 
         // Process message template with variables
         let messageContent = campaign.template.content;
