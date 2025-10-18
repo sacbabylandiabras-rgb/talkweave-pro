@@ -90,6 +90,25 @@ serve(async (req) => {
       let campaignSend: CampaignSendRecord | undefined;
       
       try {
+        // Check if this contact was already processed successfully
+        const { data: existingSend } = await supabase
+          .from('campaign_sends')
+          .select('status')
+          .eq('campaign_id', campaignId)
+          .eq('phone', contact.phone)
+          .in('status', ['sent', 'delivered'])
+          .maybeSingle();
+
+        if (existingSend) {
+          console.log(`Contact ${contact.phone} already processed, skipping`);
+          results.push({
+            phone: contact.phone,
+            success: true,
+            messageId: 'already-sent',
+          });
+          continue;
+        }
+
         // Process message template with variables
         let messageContent = campaign.template.content;
         

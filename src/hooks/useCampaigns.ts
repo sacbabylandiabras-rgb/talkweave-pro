@@ -291,8 +291,16 @@ export const useCampaigns = () => {
 
       if (error) throw error;
 
+      // Get total contacts from campaign
+      const campaign = campaigns.find(c => c.id === campaignId);
+      const totalContacts = campaign?.target_audience?.contacts?.length || 0;
+      const processedCount = data.length;
+      const remaining = Math.max(0, totalContacts - processedCount);
+
       const stats = {
         total: data.length,
+        totalContacts,
+        remaining,
         pending: data.filter(send => send.status === 'pending').length,
         sent: data.filter(send => send.status === 'sent').length,
         delivered: data.filter(send => send.status === 'delivered').length,
@@ -304,6 +312,8 @@ export const useCampaigns = () => {
       console.error('Error getting campaign stats:', error);
       return {
         total: 0,
+        totalContacts: 0,
+        remaining: 0,
         pending: 0,
         sent: 0,
         delivered: 0,
@@ -317,7 +327,59 @@ export const useCampaigns = () => {
   };
 
   const resumeCampaign = async (id: string) => {
-    return await updateCampaign(id, { status: 'active' });
+    try {
+      // Get campaign data to access contacts
+      const campaign = campaigns.find(c => c.id === id);
+      if (!campaign || !campaign.target_audience?.contacts) {
+        throw new Error('Campaign or contacts not found');
+      }
+
+      // Get already processed contacts
+      const { data: processedSends, error: sendsError } = await supabase
+        .from('campaign_sends')
+        .select('phone, status')
+        .eq('campaign_id', id)
+        .in('status', ['sent', 'delivered']);
+
+      if (sendsError) throw sendsError;
+
+      // Filter out already processed contacts
+      const processedPhones = new Set(
+        processedSends?.map(send => send.phone) || []
+      );
+      
+      const remainingContacts = campaign.target_audience.contacts.filter(
+        (contact: any) => !processedPhones.has(contact.phone)
+      );
+
+      if (remainingContacts.length === 0) {
+        toast({
+          title: "Aviso",
+          description: "Todos os contatos já foram processados nesta campanha",
+          variant: "default",
+        });
+        // Mark as completed
+        return await updateCampaign(id, { status: 'completed' });
+      }
+
+      // Resume sending only to remaining contacts
+      await sendCampaign(id, remainingContacts);
+      
+      toast({
+        title: "Campanha Retomada",
+        description: `Retomando envio para ${remainingContacts.length} contatos restantes`,
+      });
+
+      return await updateCampaign(id, { status: 'active' });
+    } catch (error) {
+      console.error('Error resuming campaign:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao retomar campanha",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const cancelCampaign = async (id: string) => {

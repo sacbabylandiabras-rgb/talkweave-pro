@@ -73,7 +73,11 @@ const Campanhas = () => {
   };
 
   const handleResumeCampaign = async (id: string) => {
-    await resumeCampaign(id);
+    try {
+      await resumeCampaign(id);
+    } catch (error) {
+      console.error('Error resuming campaign:', error);
+    }
   };
 
   const handleDeleteCampaign = async (id: string) => {
@@ -259,12 +263,12 @@ const Campanhas = () => {
                     {campaign.status === 'paused' && (
                       <>
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
                           onClick={() => handleResumeCampaign(campaign.id)}
                         >
                           <Play className="w-4 h-4 mr-1" />
-                          Retomar
+                          Retomar de onde parou
                         </Button>
                         <Button
                           variant="outline"
@@ -330,11 +334,17 @@ const Campanhas = () => {
                 </div>
 
                 {campaignStats[campaign.id] && (
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-2 p-3 bg-muted/30 rounded-lg">
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{campaignStats[campaign.id].total}</div>
-                      <div className="text-xs text-muted-foreground">Total</div>
+                      <div className="text-2xl font-bold">{campaignStats[campaign.id].totalContacts}</div>
+                      <div className="text-xs text-muted-foreground">Total Contatos</div>
                     </div>
+                    {campaign.status === 'paused' && campaignStats[campaign.id].remaining > 0 && (
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">{campaignStats[campaign.id].remaining}</div>
+                        <div className="text-xs text-muted-foreground">Restantes</div>
+                      </div>
+                    )}
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-600">{campaignStats[campaign.id].pending}</div>
                       <div className="text-xs text-muted-foreground">Pendentes</div>
