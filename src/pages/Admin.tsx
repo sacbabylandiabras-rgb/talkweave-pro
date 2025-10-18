@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
 import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -15,7 +14,6 @@ import { EditUserDialog } from "@/components/admin/EditUserDialog";
 const Admin = () => {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
-  const { isAdmin, loading: roleLoading } = useUserRole(currentUserId);
   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -57,33 +55,17 @@ const Admin = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setCurrentUserId(session.user.id);
-      } else {
-        navigate("/auth");
       }
     };
-
     getCurrentUser();
-  }, [navigate]);
+  }, []);
 
-  // Se não é admin E terminou de carregar, redireciona
-  useEffect(() => {
-    if (currentUserId && !roleLoading && !isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [currentUserId, roleLoading, isAdmin, navigate]);
-
-  // Mostra loading
-  if (!currentUserId || roleLoading) {
+  if (usersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  // Se não é admin, não renderiza nada (vai redirecionar)
-  if (!isAdmin) {
-    return null;
   }
 
   return (
