@@ -55,6 +55,7 @@ const Admin = () => {
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Admin - Session:', session?.user.id);
       if (session) {
         setCurrentUserId(session.user.id);
       }
@@ -64,8 +65,10 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
+    console.log('Admin - Check:', { roleLoading, currentUserId, isAdmin });
     // Só redireciona se já terminou de carregar E confirmou que não é admin
     if (!roleLoading && currentUserId && !isAdmin) {
+      console.log('Admin - Redirecionando para dashboard (não é admin)');
       navigate("/dashboard");
     }
   }, [isAdmin, roleLoading, currentUserId, navigate]);
