@@ -71,7 +71,8 @@ const Admin = () => {
     }
   }, [isAdmin, roleLoading, currentUserId, navigate]);
 
-  if (roleLoading || usersLoading) {
+  // Mostra loading enquanto verifica autenticação E permissões
+  if (roleLoading || usersLoading || !currentUserId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -79,6 +80,7 @@ const Admin = () => {
     );
   }
 
+  // Se não é admin, retorna null (o redirect vai acontecer)
   if (!isAdmin) {
     return null;
   }
