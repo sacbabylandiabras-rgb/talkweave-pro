@@ -30,7 +30,7 @@ export const useUserRole = (userId: string | undefined) => {
           console.error("Error checking role:", error);
         }
 
-        const hasAdmin = !!data;
+        const hasAdmin = data && data.role === 'admin';
         console.log('useUserRole - É admin?', hasAdmin);
         setIsAdmin(hasAdmin);
       } catch (error) {
