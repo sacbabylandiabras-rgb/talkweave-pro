@@ -153,6 +153,7 @@ serve(async (req) => {
           };
 
           console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
+          console.log(`Button request body:`, JSON.stringify(requestBody, null, 2));
         } else {
           // Send simple text message
           zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
@@ -178,6 +179,9 @@ serve(async (req) => {
         // Try to parse JSON response, but handle empty responses
         try {
           const responseText = await zapiResponse.text();
+          console.log(`Z-API response status: ${zapiResponse.status}`);
+          console.log(`Z-API response text:`, responseText);
+          
           if (responseText && responseText.trim()) {
             zapiResult = JSON.parse(responseText);
           }
@@ -185,7 +189,7 @@ serve(async (req) => {
           console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
         }
 
-        if (zapiResponse.ok) {
+        if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
           campaignSend.status = 'sent';
           campaignSend.sent_at = new Date().toISOString();
           
@@ -198,15 +202,19 @@ serve(async (req) => {
           console.log(`Message sent successfully to ${contact.phone}`);
         } else {
           campaignSend.status = 'failed';
-          campaignSend.error_message = zapiResult.error || 'Z-API request failed';
+          campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
           
           results.push({
             phone: contact.phone,
             success: false,
-            error: zapiResult.error || 'Z-API request failed',
+            error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
           });
 
-          console.error(`Failed to send message to ${contact.phone}:`, zapiResult);
+          console.error(`Failed to send message to ${contact.phone}:`, {
+            status: zapiResponse.status,
+            statusText: zapiResponse.statusText,
+            result: zapiResult
+          });
         }
 
       } catch (error) {
