@@ -53,17 +53,15 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const getCurrentUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
+      if (session) {
+        setCurrentUserId(session.user.id);
       }
-      setCurrentUserId(session.user.id);
     };
 
-    checkAuth();
-  }, [navigate]);
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     // Só redireciona se já terminou de carregar E confirmou que não é admin
