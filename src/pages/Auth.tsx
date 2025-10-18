@@ -150,11 +150,14 @@ const Auth = () => {
       }
 
       toast({
-        title: "Conta criada com sucesso!",
-        description: "Verifique seu email para confirmar o cadastro"
+        title: "✅ Conta criada com sucesso!",
+        description: "📧 Verifique sua caixa de entrada (e spam) e clique no link de confirmação do email antes de fazer login.",
+        duration: 10000
       });
       
-      setActiveTab("login");
+      // Limpar campos
+      setEmail("");
+      setPassword("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -234,6 +237,11 @@ const Auth = () => {
               </TabsContent>
 
               <TabsContent value="signup">
+                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    📧 <strong>Importante:</strong> Após criar sua conta, você receberá um email de confirmação. Verifique sua caixa de entrada (e spam) antes de fazer login.
+                  </p>
+                </div>
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
