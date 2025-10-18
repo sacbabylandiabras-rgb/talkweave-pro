@@ -17,6 +17,7 @@ import {
   Megaphone,
   ShieldCheck
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -42,6 +43,15 @@ const menuItems = [
 
 export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
+  const navigate = useNavigate();
+
+  const handleItemClick = (itemId: string) => {
+    if (itemId === "admin") {
+      navigate("/admin");
+    } else {
+      onItemClick?.(itemId);
+    }
+  };
 
   return (
     <div className="w-64 bg-card/95 backdrop-blur-sm border-r border-border h-screen flex flex-col shadow-lg">
@@ -71,7 +81,7 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onItemClick?.(item.id)}
+                  onClick={() => handleItemClick(item.id)}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     "hover:bg-muted/50",

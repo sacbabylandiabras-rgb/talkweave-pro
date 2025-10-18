@@ -85,8 +85,6 @@ const Dashboard = () => {
         return <FiltroNumero />;
       case "apanhador-grupos":
         return <ApanhadorGrupos />;
-      case "admin":
-        return <Admin />;
       default:
         return (
           <div className="space-y-8">
