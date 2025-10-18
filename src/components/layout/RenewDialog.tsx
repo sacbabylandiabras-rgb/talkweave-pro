@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 interface RenewDialogProps {
   open: boolean;
@@ -49,6 +50,17 @@ const plans = [
 ];
 
 export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
+  const handleRenew = (planName: string) => {
+    toast({
+      title: "Renovação iniciada",
+      description: `Você está sendo redirecionado para o checkout do plano ${planName}.`,
+    });
+    // Aqui você implementaria a integração com o gateway de pagamento
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 2000);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -97,6 +109,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
                 <Button
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
+                  onClick={() => handleRenew(plan.name)}
                 >
                   Renovar Agora
                 </Button>

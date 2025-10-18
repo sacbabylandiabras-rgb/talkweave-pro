@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Bell, Check, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 interface Notification {
   id: string;
@@ -46,6 +48,8 @@ interface NotificationsDialogProps {
 }
 
 export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogProps) {
+  const [notifications, setNotifications] = useState(mockNotifications);
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "success": return "bg-green-500";
@@ -53,6 +57,22 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
       case "error": return "bg-red-500";
       default: return "bg-blue-500";
     }
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    toast({
+      title: "Notificações marcadas como lidas",
+      description: "Todas as notificações foram marcadas como lidas.",
+    });
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
+    toast({
+      title: "Notificações limpas",
+      description: "Todas as notificações foram removidas.",
+    });
   };
 
   return (
@@ -70,7 +90,13 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
         
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-3">
-            {mockNotifications.map((notification) => (
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Nenhuma notificação</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`p-4 rounded-lg border ${
@@ -91,20 +117,23 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2 pt-4 border-t">
-          <Button variant="outline" size="sm" className="flex-1">
-            <Check className="w-4 h-4 mr-2" />
-            Marcar todas como lidas
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1">
-            <X className="w-4 h-4 mr-2" />
-            Limpar todas
-          </Button>
-        </div>
+        {notifications.length > 0 && (
+          <div className="flex gap-2 pt-4 border-t">
+            <Button variant="outline" size="sm" className="flex-1" onClick={markAllAsRead}>
+              <Check className="w-4 h-4 mr-2" />
+              Marcar todas como lidas
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={clearAll}>
+              <X className="w-4 h-4 mr-2" />
+              Limpar todas
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
