@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
+import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,9 @@ const Campanhas = () => {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
+  const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
+  const [totalContactsCount, setTotalContactsCount] = useState(0);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
@@ -111,9 +115,17 @@ const Campanhas = () => {
     }
 
     try {
+      // Set up progress dialog
+      setTotalContactsCount(campaign.target_audience.contacts.length);
+      setSendingCampaignId(campaign.id);
+      setShowProgressDialog(true);
+
+      // Start sending
       await sendCampaign(campaign.id, campaign.target_audience.contacts);
     } catch (error) {
       console.error('Error sending campaign:', error);
+      setShowProgressDialog(false);
+      setSendingCampaignId(null);
     }
   };
 
@@ -147,6 +159,19 @@ const Campanhas = () => {
         open={showEditDialog} 
         onOpenChange={setShowEditDialog}
         campaign={editingCampaign}
+      />
+
+      <SendProgressDialog 
+        open={showProgressDialog}
+        onOpenChange={(open) => {
+          setShowProgressDialog(open);
+          if (!open) {
+            setSendingCampaignId(null);
+            setTotalContactsCount(0);
+          }
+        }}
+        campaignId={sendingCampaignId}
+        totalContacts={totalContactsCount}
       />
 
       <div className="grid gap-4">
