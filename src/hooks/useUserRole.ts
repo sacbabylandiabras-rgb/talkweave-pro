@@ -14,18 +14,20 @@ export const useUserRole = (userId: string | undefined) => {
       }
 
       try {
+        // Busca TODAS as roles do usuário
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", userId)
-          .eq("role", "admin")
-          .maybeSingle();
+          .eq("user_id", userId);
 
-        if (error && error.code !== "PGRST116") {
+        if (error) {
           console.error("Error checking role:", error);
+          setIsAdmin(false);
+        } else {
+          // Verifica se existe alguma role 'admin' na lista
+          const hasAdminRole = data?.some(r => r.role === 'admin') || false;
+          setIsAdmin(hasAdminRole);
         }
-
-        setIsAdmin(data?.role === 'admin');
       } catch (error) {
         console.error("Error in checkRole:", error);
         setIsAdmin(false);
