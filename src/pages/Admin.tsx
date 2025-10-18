@@ -6,16 +6,40 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useAdminUsers } from "@/hooks/useAdminUsers";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw } from "lucide-react";
+import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { EditUserDialog } from "@/components/admin/EditUserDialog";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
   const { isAdmin, loading: roleLoading } = useUserRole(currentUserId);
   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEditUser = (user: UserProfile) => {
+    setEditingUser(user);
+    setEditDialogOpen(true);
+  };
+
+  const getSubscriptionBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      active: "default",
+      pending: "secondary",
+      expired: "destructive",
+      cancelled: "outline",
+    };
+    const labels: Record<string, string> = {
+      active: "Pago",
+      pending: "Pendente",
+      expired: "Expirado",
+      cancelled: "Cancelado",
+    };
+    return <Badge variant={variants[status] || "secondary"}>{labels[status] || status}</Badge>;
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -81,7 +105,8 @@ const Admin = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Roles</TableHead>
-                  <TableHead>Cadastro</TableHead>
+                  <TableHead>Assinatura</TableHead>
+                  <TableHead>Z-API</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -98,15 +123,20 @@ const Admin = () => {
                             key={role}
                             variant={role === "admin" ? "default" : "secondary"}
                           >
-                            {role === "admin" ? "Administrador" : "Usuário"}
+                            {role === "admin" ? "Admin" : "User"}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
+                    <TableCell>{getSubscriptionBadge(user.subscription_status)}</TableCell>
                     <TableCell>
-                      {format(new Date(user.created_at), "dd/MM/yyyy HH:mm", {
-                        locale: ptBR
-                      })}
+                      {user.zapi_instance_id ? (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {user.zapi_instance_id}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Não configurado</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_active ? "default" : "destructive"}>
@@ -117,6 +147,14 @@ const Admin = () => {
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
                           variant={user.roles.includes("admin") ? "destructive" : "default"}
                           onClick={() => toggleAdminRole(user.id, user.roles)}
                           disabled={user.id === currentUserId}
@@ -124,12 +162,12 @@ const Admin = () => {
                           {user.roles.includes("admin") ? (
                             <>
                               <ShieldOff className="w-4 h-4 mr-1" />
-                              Remover Admin
+                              Remove
                             </>
                           ) : (
                             <>
                               <Shield className="w-4 h-4 mr-1" />
-                              Tornar Admin
+                              Admin
                             </>
                           )}
                         </Button>
@@ -160,6 +198,13 @@ const Admin = () => {
           </div>
         </CardContent>
       </Card>
+
+      <EditUserDialog
+        user={editingUser}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={refetch}
+      />
     </div>
   );
 };

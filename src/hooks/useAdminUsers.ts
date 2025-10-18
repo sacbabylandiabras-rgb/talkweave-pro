@@ -9,6 +9,11 @@ export interface UserProfile {
   is_active: boolean;
   created_at: string;
   roles: string[];
+  subscription_status: 'active' | 'pending' | 'expired' | 'cancelled';
+  subscription_expires_at: string | null;
+  zapi_instance_id: string | null;
+  zapi_token: string | null;
+  zapi_client_token: string | null;
 }
 
 export const useAdminUsers = () => {
@@ -23,7 +28,7 @@ export const useAdminUsers = () => {
       // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, email, full_name, is_active, created_at, subscription_status, subscription_expires_at, zapi_instance_id, zapi_token, zapi_client_token")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -42,6 +47,11 @@ export const useAdminUsers = () => {
         full_name: profile.full_name || "",
         is_active: profile.is_active,
         created_at: profile.created_at,
+        subscription_status: (profile.subscription_status as any) || 'pending',
+        subscription_expires_at: profile.subscription_expires_at,
+        zapi_instance_id: profile.zapi_instance_id,
+        zapi_token: profile.zapi_token,
+        zapi_client_token: profile.zapi_client_token,
         roles: roles
           ?.filter((r) => r.user_id === profile.id)
           .map((r) => r.role) || []

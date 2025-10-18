@@ -248,7 +248,12 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean
+          subscription_expires_at: string | null
+          subscription_status: string | null
           updated_at: string
+          zapi_client_token: string | null
+          zapi_instance_id: string | null
+          zapi_token: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -257,7 +262,12 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean
+          subscription_expires_at?: string | null
+          subscription_status?: string | null
           updated_at?: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -266,7 +276,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean
+          subscription_expires_at?: string | null
+          subscription_status?: string | null
           updated_at?: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Relationships: []
       }
