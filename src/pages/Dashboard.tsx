@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { TopMetrics } from "@/components/dashboard/TopMetrics";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
+import { VolumeChart } from "@/components/dashboard/VolumeChart";
 import Dispositivos from "./Dispositivos";
 import Perfil from "./Perfil";
 import Campanhas from "./Campanhas";
@@ -88,10 +89,11 @@ const Dashboard = () => {
         return <Admin />;
       default:
         return (
-          <>
+          <div className="space-y-8">
             <TopMetrics />
+            <VolumeChart />
             <StatsGrid />
-          </>
+          </div>
         );
     }
   };
