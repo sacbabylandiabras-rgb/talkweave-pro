@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 
@@ -24,6 +24,17 @@ const Admin = () => {
     setEditingUser(user);
     setEditDialogOpen(true);
   };
+
+  // Estatísticas dos usuários
+  const stats = useMemo(() => {
+    const total = users.length;
+    const active = users.filter(u => u.subscription_status === 'active').length;
+    const pending = users.filter(u => u.subscription_status === 'pending').length;
+    const withZapi = users.filter(u => u.zapi_instance_id).length;
+    const expired = users.filter(u => u.subscription_status === 'expired').length;
+
+    return { total, active, pending, withZapi, expired };
+  }, [users]);
 
   const getSubscriptionBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -77,7 +88,7 @@ const Admin = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Painel de Administração</h1>
-          <p className="text-muted-foreground mt-1">Gerencie usuários e permissões do sistema</p>
+          <p className="text-muted-foreground mt-1">Gerencie usuários, assinaturas e chaves Z-API</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => navigate("/dashboard")} variant="outline" size="sm">
@@ -90,11 +101,70 @@ const Admin = () => {
         </div>
       </div>
 
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Cadastrados no sistema</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pagos</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">Assinaturas ativas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <p className="text-xs text-muted-foreground">Aguardando pagamento</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expirados</CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats.expired}</div>
+            <p className="text-xs text-muted-foreground">Assinaturas vencidas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Z-API Configurados</CardTitle>
+            <Key className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withZapi}</div>
+            <p className="text-xs text-muted-foreground">Chaves configuradas</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabela de usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuários Cadastrados</CardTitle>
+          <CardTitle>Gerenciamento de Usuários</CardTitle>
           <CardDescription>
-            Total de {users.length} usuário{users.length !== 1 ? "s" : ""} no sistema
+            Gerencie status de pagamento, permissões e configurações Z-API de todos os usuários
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,8 +174,9 @@ const Admin = () => {
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Roles</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Assinatura</TableHead>
+                  <TableHead>Validade</TableHead>
                   <TableHead>Z-API</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -114,26 +185,46 @@ const Admin = () => {
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span>{user.email}</span>
+                        {user.id === currentUserId && (
+                          <Badge variant="outline" className="w-fit text-xs mt-1">Você</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{user.full_name || "-"}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        {user.roles.map((role) => (
-                          <Badge
-                            key={role}
-                            variant={role === "admin" ? "default" : "secondary"}
-                          >
-                            {role === "admin" ? "Admin" : "User"}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Badge variant={user.roles.includes("admin") ? "default" : "secondary"}>
+                        {user.roles.includes("admin") ? "Administrador" : "Usuário"}
+                      </Badge>
                     </TableCell>
                     <TableCell>{getSubscriptionBadge(user.subscription_status)}</TableCell>
                     <TableCell>
+                      {user.subscription_expires_at ? (
+                        <div className="flex flex-col text-sm">
+                          <span>{format(new Date(user.subscription_expires_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(user.subscription_expires_at), { 
+                              addSuffix: true, 
+                              locale: ptBR 
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {user.zapi_instance_id ? (
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {user.zapi_instance_id}
-                        </Badge>
+                        <div className="flex flex-col">
+                          <Badge variant="outline" className="font-mono text-xs w-fit">
+                            {user.zapi_instance_id}
+                          </Badge>
+                          {user.zapi_token && (
+                            <span className="text-xs text-green-600 mt-1">✓ Configurado</span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">Não configurado</span>
                       )}
