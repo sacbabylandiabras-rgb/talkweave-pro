@@ -47,7 +47,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing campaign ${campaignId} for ${contacts.length} contacts`);
+    console.log(`🚀 Processing campaign ${campaignId} for ${contacts.length} contacts`);
 
     // Get campaign and template details
     const { data: campaign, error: campaignError } = await supabase
@@ -72,7 +72,7 @@ serve(async (req) => {
     const zapiToken = '9E09CAB81F22425F5954C6C2';
     const zapiClientToken = 'Fd1c0871baaa5449db5ea1628166c0566S';
 
-    console.log('Using Z-API credentials for campaign');
+    console.log('✅ Using Z-API credentials for campaign');
 
     if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
       throw new Error('Missing Z-API credentials');
@@ -82,7 +82,7 @@ serve(async (req) => {
     
     // Get delay from campaign or use default of 2 seconds
     const delayMs = (campaign.delay_seconds || 2) * 1000;
-    console.log(`Using delay of ${campaign.delay_seconds || 2} seconds between messages`);
+    console.log(`⏱️  DELAY CONFIGURADO: ${campaign.delay_seconds || 2} segundos (${delayMs}ms) entre mensagens`);
 
     // Process each contact
     for (let i = 0; i < contacts.length; i++) {
@@ -328,8 +328,11 @@ serve(async (req) => {
       // Add delay BETWEEN messages (after sending and before next iteration)
       // Skip delay after the last message
       if (i < contacts.length - 1) {
-        console.log(`Waiting ${campaign.delay_seconds || 2} seconds before next message...`);
+        console.log(`⏳ Aguardando ${campaign.delay_seconds || 2} segundos antes da próxima mensagem...`);
+        const startWait = Date.now();
         await new Promise(resolve => setTimeout(resolve, delayMs));
+        const endWait = Date.now();
+        console.log(`✅ Delay concluído! Esperou ${Math.round((endWait - startWait) / 1000)}s`);
       }
     }
 

@@ -382,10 +382,13 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
-      // Just update status to active without sending - let the edge function handle it
+      // Just update status to active
       await updateCampaign(id, { status: 'active' });
       
-      // Send to remaining contacts
+      console.log(`🔄 Retomando campanha ${id} com ${remainingContacts.length} contatos restantes`);
+      console.log('⚠️ IMPORTANTE: A edge function vai processar sequencialmente com delay entre cada envio');
+      
+      // Send to remaining contacts - this will process them sequentially with delays
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         body: {
           campaignId: id,
@@ -393,8 +396,12 @@ export const useCampaigns = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao invocar edge function:', error);
+        throw error;
+      }
 
+      console.log('✅ Edge function invocada com sucesso:', data);
       return data;
     } catch (error) {
       console.error('Error resuming campaign:', error);
