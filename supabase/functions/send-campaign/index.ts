@@ -175,14 +175,6 @@ serve(async (req) => {
             message: fullMessage,
             buttonActions: formattedButtons
           };
-          
-          // Add optional title and footer if present
-          if (campaign.template.header) {
-            requestBody.title = campaign.template.header;
-          }
-          if (campaign.template.footer) {
-            requestBody.footer = campaign.template.footer;
-          }
 
           console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
         } else {
