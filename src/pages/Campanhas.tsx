@@ -3,17 +3,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCampaigns } from "@/hooks/useCampaigns";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Campanhas = () => {
   const { 
     campaigns, 
     loading, 
     pauseCampaign, 
-    resumeCampaign, 
+    resumeCampaign,
+    cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
     getCampaignStats 
@@ -21,6 +32,8 @@ const Campanhas = () => {
   
   const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
@@ -35,6 +48,8 @@ const Campanhas = () => {
         return <Badge className="bg-yellow-500">Pausada</Badge>;
       case 'completed':
         return <Badge className="bg-blue-500">Concluída</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500">Cancelada</Badge>;
       case 'draft':
         return <Badge variant="outline">Rascunho</Badge>;
       default:
@@ -58,6 +73,19 @@ const Campanhas = () => {
 
   const handleDuplicateCampaign = async (campaign: any) => {
     await duplicateCampaign(campaign);
+  };
+
+  const handleCancelCampaign = async () => {
+    if (campaignToCancel) {
+      await cancelCampaign(campaignToCancel);
+      setCancelDialogOpen(false);
+      setCampaignToCancel(null);
+    }
+  };
+
+  const openCancelDialog = (campaignId: string) => {
+    setCampaignToCancel(campaignId);
+    setCancelDialogOpen(true);
   };
 
   if (loading) {
@@ -120,32 +148,61 @@ const Campanhas = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {campaign.status === 'active' ? (
+                    {campaign.status === 'active' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePauseCampaign(campaign.id)}
+                        >
+                          <Pause className="w-4 h-4 mr-1" />
+                          Pausar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCancelDialog(campaign.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Cancelar
+                        </Button>
+                      </>
+                    )}
+                    
+                    {campaign.status === 'paused' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleResumeCampaign(campaign.id)}
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Retomar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCancelDialog(campaign.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Cancelar
+                        </Button>
+                      </>
+                    )}
+                    
+                    {(campaign.status === 'draft' || campaign.status === 'completed' || campaign.status === 'cancelled') && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handlePauseCampaign(campaign.id)}
+                        onClick={() => handleDuplicateCampaign(campaign)}
                       >
-                        <Pause className="w-4 h-4 mr-1" />
-                        Pausar
+                        <Copy className="w-4 h-4 mr-1" />
+                        Duplicar
                       </Button>
-                    ) : campaign.status === 'paused' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleResumeCampaign(campaign.id)}
-                      >
-                        <Play className="w-4 h-4 mr-1" />
-                        Retomar
-                      </Button>
-                    ) : null}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDuplicateCampaign(campaign)}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                    )}
+                    
                     <Button
                       variant="destructive"
                       size="sm"
@@ -223,6 +280,24 @@ const Campanhas = () => {
           ))
         )}
       </div>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar esta campanha? Esta ação não pode ser desfeita.
+              Os envios que já foram realizados não serão afetados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelCampaign} className="bg-red-600 hover:bg-red-700">
+              Sim, Cancelar Campanha
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

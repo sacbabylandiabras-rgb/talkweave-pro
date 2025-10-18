@@ -8,7 +8,7 @@ export interface Campaign {
   name: string;
   description?: string;
   template_id?: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
   target_audience: Record<string, any>;
   schedule_type: 'immediate' | 'scheduled' | 'recurring';
   scheduled_at?: string;
@@ -317,6 +317,10 @@ export const useCampaigns = () => {
     return await updateCampaign(id, { status: 'active' });
   };
 
+  const cancelCampaign = async (id: string) => {
+    return await updateCampaign(id, { status: 'cancelled' });
+  };
+
   const duplicateCampaign = async (campaign: Campaign) => {
     try {
       const newCampaign = {
@@ -349,6 +353,7 @@ export const useCampaigns = () => {
     getCampaignStats,
     pauseCampaign,
     resumeCampaign,
+    cancelCampaign,
     duplicateCampaign,
     refetch: loadCampaigns,
   };
