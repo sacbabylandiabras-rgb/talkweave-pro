@@ -8,16 +8,12 @@ export const useUserRole = (userId: string | undefined) => {
   useEffect(() => {
     const checkRole = async () => {
       if (!userId) {
-        console.log('[useUserRole] No userId provided');
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
-      console.log('[useUserRole] Checking role for userId:', userId);
-
       try {
-        // Force a fresh query without cache
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
@@ -25,15 +21,11 @@ export const useUserRole = (userId: string | undefined) => {
           .eq("role", "admin")
           .maybeSingle();
 
-        console.log('[useUserRole] Query result:', { data, error });
-
         if (error && error.code !== "PGRST116") {
           console.error("Error checking role:", error);
         }
 
-        const hasAdminRole = !!data;
-        console.log('[useUserRole] Is admin?', hasAdminRole);
-        setIsAdmin(hasAdminRole);
+        setIsAdmin(!!data);
       } catch (error) {
         console.error("Error in checkRole:", error);
         setIsAdmin(false);
@@ -56,7 +48,6 @@ export const useUserRole = (userId: string | undefined) => {
           filter: `user_id=eq.${userId}`
         },
         () => {
-          console.log('[useUserRole] Role changed, rechecking...');
           checkRole();
         }
       )

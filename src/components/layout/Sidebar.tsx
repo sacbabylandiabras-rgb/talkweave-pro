@@ -46,11 +46,13 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarP
   const navigate = useNavigate();
 
   const handleItemClick = (itemId: string) => {
+    console.log('[Sidebar] Clicked on:', itemId);
     if (itemId === "admin") {
+      console.log('[Sidebar] Navigating to /admin');
       navigate("/admin");
-    } else {
-      onItemClick?.(itemId);
+      return;
     }
+    onItemClick?.(itemId);
   };
 
   return (
