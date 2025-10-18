@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle, Zap, Shield, TrendingUp } from "lucide-react";
+import zaplynxLogo from "@/assets/zaplynx-logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -38,10 +39,7 @@ const Landing = () => {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-xl">WhatsApp Manager</span>
+            <img src={zaplynxLogo} alt="ZapLynx" className="h-12 w-auto" />
           </div>
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => navigate("/auth")}>
@@ -57,6 +55,9 @@ const Landing = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-3xl mx-auto space-y-8">
+          <div className="flex justify-center mb-6">
+            <img src={zaplynxLogo} alt="ZapLynx" className="h-24 w-auto" />
+          </div>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
             Gerencie suas mensagens do{" "}
             <span className="text-primary">WhatsApp</span> em escala
@@ -139,7 +140,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t py-8 mt-20">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2025 WhatsApp Manager. Todos os direitos reservados.</p>
+          <p>&copy; 2025 ZapLynx. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

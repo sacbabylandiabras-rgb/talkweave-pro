@@ -185,7 +185,7 @@ const Auth = () => {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">WhatsApp Manager</CardTitle>
+            <CardTitle className="text-2xl">ZapLynx</CardTitle>
             <CardDescription>
               Gerencie suas mensagens de forma profissional
             </CardDescription>
