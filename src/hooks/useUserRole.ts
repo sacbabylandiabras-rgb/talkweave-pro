@@ -14,12 +14,13 @@ export const useUserRole = (userId: string | undefined) => {
       }
 
       try {
+        // Force a fresh query without cache
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", userId)
           .eq("role", "admin")
-          .single();
+          .maybeSingle();
 
         if (error && error.code !== "PGRST116") {
           console.error("Error checking role:", error);
@@ -35,6 +36,27 @@ export const useUserRole = (userId: string | undefined) => {
     };
 
     checkRole();
+
+    // Set up realtime subscription for role changes
+    const channel = supabase
+      .channel('user_roles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles',
+          filter: `user_id=eq.${userId}`
+        },
+        () => {
+          checkRole();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   return { isAdmin, loading };
