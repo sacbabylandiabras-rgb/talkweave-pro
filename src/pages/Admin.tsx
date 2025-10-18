@@ -66,7 +66,9 @@ const Admin = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && currentUserId) {
+    // Só redireciona se já terminou de carregar E confirmou que não é admin
+    if (!roleLoading && currentUserId && !isAdmin) {
+      console.log("Não é admin, redirecionando...");
       navigate("/dashboard");
     }
   }, [isAdmin, roleLoading, currentUserId, navigate]);
@@ -78,11 +80,6 @@ const Admin = () => {
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  // Se não é admin, retorna null (o redirect vai acontecer)
-  if (!isAdmin) {
-    return null;
   }
 
   return (

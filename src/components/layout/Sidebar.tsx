@@ -26,7 +26,6 @@ interface SidebarProps {
   activeItem?: string;
   onItemClick?: (item: string) => void;
   userId?: string;
-  navigate?: ReturnType<typeof useNavigate>;
 }
 
 const menuItems = [
@@ -42,13 +41,13 @@ const menuItems = [
   { id: "configuracao-zapi", label: "Config Z-API", icon: Settings },
 ];
 
-export function Sidebar({ activeItem = "painel", onItemClick, userId, navigate: navigateProp }: SidebarProps) {
+export function Sidebar({ activeItem = "painel", onItemClick, userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
-  const defaultNavigate = useNavigate();
-  const navigate = navigateProp || defaultNavigate;
+  const navigate = useNavigate();
 
   const handleItemClick = (itemId: string) => {
     if (itemId === "admin") {
+      // Navegar para a rota /admin
       navigate("/admin");
       return;
     }
@@ -85,7 +84,6 @@ export function Sidebar({ activeItem = "painel", onItemClick, userId, navigate: 
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.preventDefault();
                     e.stopPropagation();
                     handleItemClick(item.id);
                   }}

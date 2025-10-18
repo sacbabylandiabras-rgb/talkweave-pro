@@ -17,7 +17,6 @@ import ConfiguracaoZAPI from "./ConfiguracaoZAPI";
 import Contexto from "./Contexto";
 import FiltroNumero from "./FiltroNumero";
 import ApanhadorGrupos from "./ApanhadorGrupos";
-import Admin from "./Admin";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
@@ -98,7 +97,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} userId={userId} navigate={navigate} />
+      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onNavigate={setActiveItem} />
         <main className="flex-1 overflow-auto p-8">
