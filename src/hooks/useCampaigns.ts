@@ -334,6 +334,8 @@ export const useCampaigns = () => {
         throw new Error('Campaign or contacts not found');
       }
 
+      console.log('Total campaign contacts:', campaign.target_audience.contacts.length);
+
       // Get already processed contacts
       const { data: processedSends, error: sendsError } = await supabase
         .from('campaign_sends')
@@ -343,18 +345,24 @@ export const useCampaigns = () => {
 
       if (sendsError) throw sendsError;
 
+      console.log('Processed sends:', processedSends?.length || 0);
+
       // Filter out already processed contacts
       const processedPhones = new Set(
         processedSends?.map(send => send.phone) || []
       );
       
+      console.log('Processed phones:', Array.from(processedPhones));
+
       const remainingContacts = campaign.target_audience.contacts.filter(
         (contact: any) => !processedPhones.has(contact.phone)
       );
 
+      console.log('Remaining contacts:', remainingContacts.length);
+
       if (remainingContacts.length === 0) {
         toast({
-          title: "Aviso",
+          title: "Campanha Finalizada",
           description: "Todos os contatos já foram processados nesta campanha",
           variant: "default",
         });
@@ -362,15 +370,14 @@ export const useCampaigns = () => {
         return await updateCampaign(id, { status: 'completed' });
       }
 
-      // Resume sending only to remaining contacts
-      await sendCampaign(id, remainingContacts);
-      
       toast({
         title: "Campanha Retomada",
         description: `Retomando envio para ${remainingContacts.length} contatos restantes`,
       });
 
-      return await updateCampaign(id, { status: 'active' });
+      // Resume sending only to remaining contacts
+      // sendCampaign already updates the status to 'active'
+      return await sendCampaign(id, remainingContacts);
     } catch (error) {
       console.error('Error resuming campaign:', error);
       toast({
