@@ -1,117 +1,97 @@
+import { useState, useEffect } from "react";
 import { MetricCard } from "./MetricCard";
 import { 
   MessageSquare, 
-  Clock, 
-  MessageSquareText, 
-  MessageSquareHeart,
   Send,
-  Pause,
-  AlertCircle,
-  PhoneOff,
   X,
-  WifiOff,
-  Search,
+  PhoneOff,
   UserX,
-  Ban
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
-
-const statsData = [
-  {
-    title: "Total Mensagens",
-    value: "19208",
-    subtitle: "",
-    icon: MessageSquare,
-    variant: "info" as const
-  },
-  {
-    title: "Mensagens pendentes", 
-    value: "0",
-    subtitle: "",
-    icon: Clock,
-    variant: "default" as const
-  },
-  {
-    title: "Resposta Automática Mensagens",
-    value: "0", 
-    subtitle: "",
-    icon: MessageSquareText,
-    variant: "default" as const
-  },
-  {
-    title: "Mensagem de boas-vindas",
-    value: "0",
-    subtitle: "",
-    icon: MessageSquareHeart,
-    variant: "default" as const
-  },
-  {
-    title: "Mensagem Enviada",
-    value: "3267",
-    subtitle: "",
-    icon: Send,
-    variant: "success" as const
-  },
-  {
-    title: "Mensagens pausadas", 
-    value: "7167",
-    subtitle: "",
-    icon: Pause,
-    variant: "warning" as const
-  },
-  {
-    title: "Erro Ao enviar",
-    value: "0",
-    subtitle: "",
-    icon: AlertCircle,
-    variant: "default" as const
-  },
-  {
-    title: "Número inválido",
-    value: "11", 
-    subtitle: "",
-    icon: PhoneOff,
-    variant: "error" as const
-  },
-  {
-    title: "Mensagens canceladas",
-    value: "0",
-    subtitle: "",
-    icon: X,
-    variant: "default" as const
-  },
-  {
-    title: "Instância desconectada durante o envio",
-    value: "8763",
-    subtitle: "",
-    icon: WifiOff,
-    variant: "error" as const
-  },
-  {
-    title: "Instância não encontrada durante o envio", 
-    value: "0",
-    subtitle: "",
-    icon: Search,
-    variant: "default" as const
-  },
-  {
-    title: "Não é um número do WhatsApp",
-    value: "0",
-    subtitle: "",
-    icon: UserX,
-    variant: "default" as const
-  },
-  {
-    title: "Mensagem não enviada para cancelar inscrição",
-    value: "0",
-    subtitle: "",
-    icon: Ban,
-    variant: "default" as const
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 export function StatsGrid() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalMessages: 0,
+    sent: 0,
+    delivered: 0,
+    failed: 0,
+    cancelled: 0,
+    invalidNumber: 0,
+    notWhatsapp: 0,
+  });
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const { data: sends } = await supabase
+        .from('campaign_sends')
+        .select('status');
+
+      if (sends) {
+        setStats({
+          totalMessages: sends.length,
+          sent: sends.filter(s => s.status === 'sent').length,
+          delivered: sends.filter(s => s.status === 'delivered').length,
+          failed: sends.filter(s => s.status === 'failed').length,
+          cancelled: 0, // Não temos este status ainda
+          invalidNumber: 0, // Não temos este status ainda
+          notWhatsapp: 0, // Não temos este status ainda
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const statsData = [
+    {
+      title: "Total de Mensagens",
+      value: stats.totalMessages.toString(),
+      subtitle: "Processadas",
+      icon: MessageSquare,
+      variant: "info" as const
+    },
+    {
+      title: "Mensagens Enviadas",
+      value: stats.sent.toString(),
+      subtitle: "Status: Enviada",
+      icon: Send,
+      variant: "success" as const
+    },
+    {
+      title: "Mensagens Entregues",
+      value: stats.delivered.toString(),
+      subtitle: "Status: Entregue",
+      icon: CheckCircle2,
+      variant: "success" as const
+    },
+    {
+      title: "Falhas no Envio",
+      value: stats.failed.toString(),
+      subtitle: "Erros gerais",
+      icon: X,
+      variant: "error" as const
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {statsData.map((stat, index) => (
         <MetricCard
           key={index}

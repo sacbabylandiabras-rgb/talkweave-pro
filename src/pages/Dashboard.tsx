@@ -10,15 +10,12 @@ import Campanhas from "./Campanhas";
 import Contatos from "./Contatos";
 import Modelos from "./Modelos";
 import EnviarMensagem from "./EnviarMensagem";
-import MensagemBoasVindas from "./MensagemBoasVindas";
-import RespostaAutomatica from "./RespostaAutomatica";
 import MensagensRecebidas from "./MensagensRecebidas";
 import Relatorio from "./Relatorio";
 import ConfiguracaoZAPI from "./ConfiguracaoZAPI";
 import Contexto from "./Contexto";
 import FiltroNumero from "./FiltroNumero";
 import ApanhadorGrupos from "./ApanhadorGrupos";
-import CancelarAssinaturas from "./CancelarAssinaturas";
 import Admin from "./Admin";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -75,10 +72,6 @@ const Dashboard = () => {
         return <Modelos />;
       case "enviar-mensagem":
         return <EnviarMensagem />;
-      case "mensagem-boas-vindas":
-        return <MensagemBoasVindas />;
-      case "resposta-automatica":
-        return <RespostaAutomatica />;
       case "mensagens-recebidas":
         return <MensagensRecebidas />;
       case "relatorio":
@@ -91,8 +84,6 @@ const Dashboard = () => {
         return <FiltroNumero />;
       case "apanhador-grupos":
         return <ApanhadorGrupos />;
-      case "cancelar-assinaturas":
-        return <CancelarAssinaturas />;
       case "admin":
         return <Admin />;
       default:
