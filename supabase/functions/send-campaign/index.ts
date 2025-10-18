@@ -137,19 +137,30 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
           
           // Format buttons for Z-API
-          const formattedButtons = campaign.template.buttons.map((btn: any) => ({
-            id: btn.id || Date.now().toString(),
-            label: btn.text || btn.label,
-            type: btn.type || 'url',
-            value: btn.value || btn.url || ''
-          }));
+          const formattedButtons = campaign.template.buttons.map((btn: any) => {
+            const buttonData: any = {
+              id: btn.id || Date.now().toString(),
+              type: btn.type || 'URL',
+              label: btn.text || btn.label
+            };
+            
+            // Add type-specific fields
+            if (btn.type === 'CALL' && btn.phone) {
+              buttonData.phone = btn.phone;
+            } else if (btn.type === 'URL' && (btn.url || btn.value)) {
+              buttonData.url = btn.url || btn.value;
+            } else if (btn.type === 'COPY' && btn.copyText) {
+              buttonData.type = 'URL';
+              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText)}`;
+            }
+            
+            return buttonData;
+          });
 
           requestBody = {
             phone: contact.phone,
             message: fullMessage,
-            buttonActions: {
-              buttons: formattedButtons
-            }
+            buttonActions: formattedButtons
           };
 
           console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
