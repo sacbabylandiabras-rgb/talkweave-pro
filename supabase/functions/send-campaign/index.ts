@@ -116,10 +116,53 @@ serve(async (req) => {
           status: 'pending',
         };
 
-        // Send message via Z-API
-        const zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+        // Build full message with header and footer
+        let fullMessage = '';
+        if (campaign.template.header) {
+          fullMessage += campaign.template.header + '\n\n';
+        }
+        fullMessage += messageContent;
+        if (campaign.template.footer) {
+          fullMessage += '\n\n' + campaign.template.footer;
+        }
+
+        // Check if template has buttons
+        const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
         
-        console.log(`Sending message to ${contact.phone}`);
+        let zapiUrl: string;
+        let requestBody: any;
+
+        if (hasButtons) {
+          // Send with buttons using send-button-actions
+          zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
+          
+          // Format buttons for Z-API
+          const formattedButtons = campaign.template.buttons.map((btn: any) => ({
+            id: btn.id || Date.now().toString(),
+            label: btn.text || btn.label,
+            type: btn.type || 'url',
+            value: btn.value || btn.url || ''
+          }));
+
+          requestBody = {
+            phone: contact.phone,
+            message: fullMessage,
+            buttonActions: {
+              buttons: formattedButtons
+            }
+          };
+
+          console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
+        } else {
+          // Send simple text message
+          zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+          requestBody = {
+            phone: contact.phone,
+            message: fullMessage,
+          };
+
+          console.log(`Sending text message to ${contact.phone}`);
+        }
         
         const zapiResponse = await fetch(zapiUrl, {
           method: 'POST',
@@ -127,10 +170,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             'Client-Token': zapiClientToken,
           },
-          body: JSON.stringify({
-            phone: contact.phone,
-            message: messageContent,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const zapiResult = await zapiResponse.json();
