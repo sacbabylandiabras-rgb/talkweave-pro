@@ -66,15 +66,17 @@ const Admin = () => {
 
   useEffect(() => {
     console.log('Admin - Check:', { roleLoading, currentUserId, isAdmin });
-    // Só redireciona se já terminou de carregar E confirmou que não é admin
+    // Só redireciona se já terminou de carregar o role E temos o userId E não é admin
     if (!roleLoading && currentUserId && !isAdmin) {
       console.log('Admin - Redirecionando para dashboard (não é admin)');
       navigate("/dashboard");
+    } else if (!roleLoading && currentUserId && isAdmin) {
+      console.log('Admin - Usuário é admin, permanecendo na página');
     }
   }, [isAdmin, roleLoading, currentUserId, navigate]);
 
   // Mostra loading enquanto verifica autenticação E permissões
-  if (roleLoading || usersLoading || !currentUserId) {
+  if (!currentUserId || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
