@@ -19,6 +19,7 @@ import Contexto from "./Contexto";
 import FiltroNumero from "./FiltroNumero";
 import ApanhadorGrupos from "./ApanhadorGrupos";
 import CancelarAssinaturas from "./CancelarAssinaturas";
+import Admin from "./Admin";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
@@ -87,6 +88,8 @@ const Dashboard = () => {
         return <ApanhadorGrupos />;
       case "cancelar-assinaturas":
         return <CancelarAssinaturas />;
+      case "admin":
+        return <Admin />;
       default:
         return (
           <>

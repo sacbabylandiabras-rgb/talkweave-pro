@@ -14,7 +14,8 @@ import {
   MessageCircle,
   Settings,
   UserCircle,
-  Megaphone
+  Megaphone,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
@@ -40,6 +41,7 @@ const menuItems = [
   { id: "relatorio", label: "Relatório", icon: BarChart3 },
   { id: "mensagens-recebidas", label: "Mensagens recebidas", icon: MessageSquareReply },
   { id: "contexto", label: "Contexto", icon: MessageCircle },
+  { id: "admin", label: "Administração", icon: ShieldCheck },
   { id: "configuracao-zapi", label: "Config Z-API", icon: Settings },
 ];
 
