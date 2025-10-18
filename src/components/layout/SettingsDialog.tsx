@@ -1,5 +1,5 @@
 import { Settings, Moon, Sun, Globe, Bell, Lock } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +19,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <Settings className="w-5 h-5" />
             Configurações
           </DialogTitle>
+          <DialogDescription>
+            Personalize as preferências do seu sistema
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">

@@ -1,5 +1,5 @@
 import { Bell, Check, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,9 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
             <Bell className="w-5 h-5" />
             Notificações
           </DialogTitle>
+          <DialogDescription>
+            Visualize e gerencie suas notificações recentes
+          </DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="h-[400px] pr-4">
