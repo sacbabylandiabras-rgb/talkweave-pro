@@ -68,7 +68,6 @@ const Admin = () => {
   useEffect(() => {
     // Só redireciona se já terminou de carregar E confirmou que não é admin
     if (!roleLoading && currentUserId && !isAdmin) {
-      console.log("Não é admin, redirecionando...");
       navigate("/dashboard");
     }
   }, [isAdmin, roleLoading, currentUserId, navigate]);
