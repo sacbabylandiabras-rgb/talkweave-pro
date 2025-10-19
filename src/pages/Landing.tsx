@@ -46,7 +46,7 @@ const Landing = () => {
     },
     {
       name: "Plano Profissional",
-      price: "397",
+      price: "297",
       description: "Para crescer seu negócio",
       instances: 2,
       features: [
