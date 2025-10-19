@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CheckCircle, Zap, Shield, TrendingUp } from "lucide-react";
+import { ArrowRight, CheckCircle, Zap, Shield, TrendingUp, Crown, Sparkles } from "lucide-react";
 import zaplynxLogo from "@/assets/zaplynx-logo.png";
 
 const Landing = () => {
@@ -24,13 +25,44 @@ const Landing = () => {
     }
   ];
 
-  const benefits = [
-    "Automação de mensagens de boas-vindas",
-    "Respostas automáticas inteligentes",
-    "Gestão completa de campanhas",
-    "Modelos de mensagens personalizados",
-    "Filtros e segmentação de contatos",
-    "Múltiplos dispositivos conectados"
+  const plans = [
+    {
+      name: "Plano Básico",
+      price: "197",
+      description: "Perfeito para começar",
+      instances: 1,
+      features: [
+        "1 Instância WhatsApp",
+        "Envios em massa ilimitados",
+        "Automação de boas-vindas",
+        "Respostas automáticas",
+        "Gestão de campanhas",
+        "Modelos de mensagens",
+        "Filtros e segmentação",
+        "Relatórios detalhados",
+        "Suporte via chat"
+      ],
+      popular: false
+    },
+    {
+      name: "Plano Profissional",
+      price: "397",
+      description: "Para crescer seu negócio",
+      instances: 2,
+      features: [
+        "2 Instâncias WhatsApp",
+        "Envios em massa ilimitados",
+        "Automação de boas-vindas",
+        "Respostas automáticas",
+        "Gestão de campanhas",
+        "Modelos de mensagens",
+        "Filtros e segmentação",
+        "Relatórios detalhados",
+        "Suporte prioritário",
+        "API de integração"
+      ],
+      popular: true
+    }
   ];
 
   return (
@@ -103,22 +135,66 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="container mx-auto px-4 py-20 bg-secondary/30 rounded-3xl">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Por que escolher nossa plataforma?
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                <span className="text-lg">{benefit}</span>
-              </div>
-            ))}
-          </div>
+      {/* Pricing Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Escolha o plano ideal para você
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Preços transparentes, sem taxas ocultas
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {plans.map((plan, index) => (
+            <Card 
+              key={index} 
+              className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                    <Crown className="w-4 h-4" /> Mais Popular
+                  </span>
+                </div>
+              )}
+              <CardHeader className="text-center pb-8 pt-8">
+                <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
+                <CardDescription>{plan.description}</CardDescription>
+                <div className="mt-4">
+                  <span className="text-5xl font-bold">R$ {plan.price}</span>
+                  <span className="text-muted-foreground">/mês</span>
+                </div>
+                <div className="mt-2 flex items-center justify-center gap-2 text-sm">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-primary">
+                    {plan.instances} {plan.instances === 1 ? 'Instância' : 'Instâncias'} WhatsApp
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  size="lg" 
+                  className="w-full" 
+                  variant={plan.popular ? "default" : "outline"}
+                  onClick={() => navigate("/auth?signup=true")}
+                >
+                  Começar Agora
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       </section>
 
