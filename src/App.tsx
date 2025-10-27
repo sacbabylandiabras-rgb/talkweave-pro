@@ -17,6 +17,7 @@ import Modelos from "./pages/Modelos";
 import EnviarMensagem from "./pages/EnviarMensagem";
 import Relatorio from "./pages/Relatorio";
 import ConfiguracaoZAPI from "./pages/ConfiguracaoZAPI";
+import FluxoVisual from "./pages/FluxoVisual";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/campanhas" element={<Campanhas />} />
               <Route path="/contatos" element={<Contatos />} />
               <Route path="/modelos" element={<Modelos />} />
+              <Route path="/fluxo-visual" element={<FluxoVisual />} />
               <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
               <Route path="/relatorio" element={<Relatorio />} />
               <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />

@@ -15,7 +15,8 @@ import {
   Settings,
   UserCircle,
   Megaphone,
-  ShieldCheck
+  ShieldCheck,
+  Workflow
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const menuItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil" },
   { id: "enviar-mensagem", label: "Enviar mensagem", icon: Send, path: "/enviar-mensagem" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
+  { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
