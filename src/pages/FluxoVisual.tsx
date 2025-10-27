@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -27,6 +27,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -39,6 +40,7 @@ import {
   Zap,
   Save,
   Plus,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -93,6 +95,32 @@ export default function FluxoVisual() {
   const [nomeFluxo, setNomeFluxo] = useState("Novo Fluxo");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Auto-salvar quando nodes ou edges mudarem
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      const timeoutId = setTimeout(() => {
+        handleSaveFluxo();
+      }, 2000); // Auto-salvar após 2 segundos de inatividade
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [nodes, edges]);
+
+  // Carregar fluxo salvo ao iniciar
+  useEffect(() => {
+    const fluxoSalvo = localStorage.getItem("fluxo_atual");
+    if (fluxoSalvo) {
+      try {
+        const data = JSON.parse(fluxoSalvo);
+        setNomeFluxo(data.nome || "Novo Fluxo");
+        setNodes(data.nodes || initialNodes);
+        setEdges(data.edges || initialEdges);
+      } catch (error) {
+        console.error("Erro ao carregar fluxo:", error);
+      }
+    }
+  }, []);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -169,20 +197,60 @@ export default function FluxoVisual() {
       updatedAt: new Date().toISOString(),
     };
 
+    // Salvar no localStorage
     localStorage.setItem("fluxo_atual", JSON.stringify(fluxoData));
+    
+    // Salvar lista de fluxos
+    const fluxosSalvos = JSON.parse(localStorage.getItem("fluxos_salvos") || "[]");
+    const fluxoIndex = fluxosSalvos.findIndex((f: any) => f.nome === nomeFluxo);
+    
+    if (fluxoIndex >= 0) {
+      fluxosSalvos[fluxoIndex] = fluxoData;
+    } else {
+      fluxosSalvos.push(fluxoData);
+    }
+    
+    localStorage.setItem("fluxos_salvos", JSON.stringify(fluxosSalvos));
     toast.success("Fluxo salvo com sucesso!");
+  };
+
+  const handleEnviarAgora = () => {
+    if (nodes.length <= 1) {
+      toast.error("Adicione blocos ao fluxo antes de enviar!");
+      return;
+    }
+
+    // Validar se há conexões
+    if (edges.length === 0) {
+      toast.error("Conecte os blocos antes de enviar!");
+      return;
+    }
+
+    // Salvar antes de enviar
+    handleSaveFluxo();
+
+    // Simular envio (aqui você implementaria a lógica real)
+    toast.success("Fluxo enviado com sucesso! 🚀", {
+      description: `${nodes.length} blocos e ${edges.length} conexões processadas`,
+    });
   };
 
   return (
     <div className="flex h-screen w-full bg-background">
       {/* Sidebar - Blocos Disponíveis */}
       <Card className="w-80 m-4 p-4 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-2 mb-4">
           <h2 className="text-lg font-semibold">Blocos</h2>
-          <Button size="sm" onClick={handleSaveFluxo}>
-            <Save className="h-4 w-4 mr-2" />
-            Salvar
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
+              <Save className="h-4 w-4 mr-2" />
+              Salvar
+            </Button>
+            <Button size="sm" onClick={handleEnviarAgora} className="flex-1">
+              <Send className="h-4 w-4 mr-2" />
+              Enviar
+            </Button>
+          </div>
         </div>
 
         <div className="mb-4">
@@ -254,6 +322,9 @@ export default function FluxoVisual() {
             <DialogTitle>
               Editar Bloco: {selectedNode?.data?.label}
             </DialogTitle>
+            <DialogDescription>
+              Configure as propriedades deste bloco
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
