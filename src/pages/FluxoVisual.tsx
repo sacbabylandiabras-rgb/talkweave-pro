@@ -41,6 +41,8 @@ import {
   Save,
   Plus,
   Send,
+  Workflow,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -93,6 +95,8 @@ export default function FluxoVisual() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nomeFluxo, setNomeFluxo] = useState("Novo Fluxo");
+  const [fluxosSalvos, setFluxosSalvos] = useState<any[]>([]);
+  const [showFluxosList, setShowFluxosList] = useState(true);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
@@ -107,20 +111,53 @@ export default function FluxoVisual() {
     }
   }, [nodes, edges]);
 
-  // Carregar fluxo salvo ao iniciar
+  // Carregar lista de fluxos salvos ao iniciar
   useEffect(() => {
-    const fluxoSalvo = localStorage.getItem("fluxo_atual");
-    if (fluxoSalvo) {
+    const savedFluxos = localStorage.getItem("fluxos_salvos");
+    if (savedFluxos) {
       try {
-        const data = JSON.parse(fluxoSalvo);
-        setNomeFluxo(data.nome || "Novo Fluxo");
-        setNodes(data.nodes || initialNodes);
-        setEdges(data.edges || initialEdges);
+        setFluxosSalvos(JSON.parse(savedFluxos));
       } catch (error) {
-        console.error("Erro ao carregar fluxo:", error);
+        console.error("Erro ao carregar fluxos:", error);
       }
     }
   }, []);
+
+  const handleNovoFluxo = () => {
+    setNomeFluxo("Novo Fluxo");
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setShowFluxosList(false);
+  };
+
+  const handleCarregarFluxo = (fluxo: any) => {
+    setNomeFluxo(fluxo.nome);
+    setNodes(fluxo.nodes || initialNodes);
+    setEdges(fluxo.edges || initialEdges);
+    setShowFluxosList(false);
+    toast.success(`Fluxo "${fluxo.nome}" carregado!`);
+  };
+
+  const handleDuplicarFluxo = (fluxo: any) => {
+    const novoNome = `${fluxo.nome} (cópia)`;
+    const novoFluxo = {
+      ...fluxo,
+      nome: novoNome,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    const novosFluxos = [...fluxosSalvos, novoFluxo];
+    localStorage.setItem("fluxos_salvos", JSON.stringify(novosFluxos));
+    setFluxosSalvos(novosFluxos);
+    toast.success("Fluxo duplicado com sucesso!");
+  };
+
+  const handleExcluirFluxo = (fluxoNome: string) => {
+    const novosFluxos = fluxosSalvos.filter((f) => f.nome !== fluxoNome);
+    localStorage.setItem("fluxos_salvos", JSON.stringify(novosFluxos));
+    setFluxosSalvos(novosFluxos);
+    toast.success("Fluxo excluído!");
+  };
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -235,12 +272,107 @@ export default function FluxoVisual() {
     });
   };
 
+  if (showFluxosList) {
+    return (
+      <div className="flex h-screen w-full bg-background items-center justify-center p-8">
+        <Card className="max-w-4xl w-full p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Fluxos Visuais</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Crie e gerencie seus fluxos de automação
+              </p>
+            </div>
+            <Button onClick={handleNovoFluxo}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Fluxo
+            </Button>
+          </div>
+
+          <ScrollArea className="h-[600px]">
+            {fluxosSalvos.length === 0 ? (
+              <div className="text-center py-12">
+                <Workflow className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  Nenhum fluxo salvo ainda
+                </p>
+                <Button onClick={handleNovoFluxo} variant="outline">
+                  Criar Primeiro Fluxo
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {fluxosSalvos.map((fluxo, index) => (
+                  <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{fluxo.nome}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Atualizado em {new Date(fluxo.updatedAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 text-xs text-muted-foreground mb-4">
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        {fluxo.nodes?.length || 0} blocos
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <GitBranch className="h-3 w-3" />
+                        {fluxo.edges?.length || 0} conexões
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleCarregarFluxo(fluxo)}
+                      >
+                        Abrir
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDuplicarFluxo(fluxo)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleExcluirFluxo(fluxo.nome)}
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full bg-background">
       {/* Sidebar - Blocos Disponíveis */}
       <Card className="w-80 m-4 p-4 flex flex-col">
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowFluxosList(true)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg font-semibold flex-1">Blocos</h2>
+        </div>
+
         <div className="flex flex-col gap-2 mb-4">
-          <h2 className="text-lg font-semibold">Blocos</h2>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
               <Save className="h-4 w-4 mr-2" />
