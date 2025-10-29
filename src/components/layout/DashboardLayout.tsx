@@ -55,6 +55,7 @@ export function DashboardLayout() {
     if (path === "/enviar-mensagem") return "enviar-mensagem";
     if (path === "/relatorio") return "relatorio";
     if (path === "/configuracao-zapi") return "configuracao-zapi";
+    if (path === "/fluxo-visual") return "fluxo-visual";
     if (path === "/admin") return "admin";
     return "painel";
   };
