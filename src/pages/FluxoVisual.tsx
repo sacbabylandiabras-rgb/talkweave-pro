@@ -269,7 +269,9 @@ export default function FluxoVisual() {
     handleSaveFluxo();
 
     // Abrir diálogo de seleção de contatos
+    console.log("Abrindo diálogo de contatos...");
     setShowContactsDialog(true);
+    console.log("Estado após abrir:", true);
   };
 
   const handleConfirmSend = async (selectedContacts: string[]) => {

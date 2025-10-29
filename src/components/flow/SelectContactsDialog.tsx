@@ -30,6 +30,9 @@ export function SelectContactsDialog({
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  console.log("SelectContactsDialog - open:", open);
+  console.log("SelectContactsDialog - contacts:", contacts.length);
+
   useEffect(() => {
     if (open) {
       setSelectedContacts([]);
