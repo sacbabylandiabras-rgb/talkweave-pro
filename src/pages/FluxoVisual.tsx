@@ -49,6 +49,7 @@ import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
 import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
+import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
@@ -99,6 +100,7 @@ export default function FluxoVisual() {
   const [showFluxosList, setShowFluxosList] = useState(true);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [showContactsDialog, setShowContactsDialog] = useState(false);
 
   // Auto-salvar quando nodes ou edges mudarem
   useEffect(() => {
@@ -263,13 +265,22 @@ export default function FluxoVisual() {
       return;
     }
 
-    // Salvar antes de enviar
+    // Salvar antes de abrir o diálogo
     handleSaveFluxo();
 
-    // Simular envio (aqui você implementaria a lógica real)
-    toast.success("Fluxo enviado com sucesso! 🚀", {
-      description: `${nodes.length} blocos e ${edges.length} conexões processadas`,
+    // Abrir diálogo de seleção de contatos
+    setShowContactsDialog(true);
+  };
+
+  const handleConfirmSend = async (selectedContacts: string[]) => {
+    toast.success(`Enviando fluxo para ${selectedContacts.length} contato(s)...`, {
+      description: "O envio está sendo processado",
     });
+
+    // TODO: Implementar lógica real de envio via Z-API
+    // Processar o fluxo seguindo as conexões dos blocos
+    console.log("Enviando para:", selectedContacts);
+    console.log("Fluxo:", { nodes, edges });
   };
 
   if (showFluxosList) {
@@ -446,6 +457,13 @@ export default function FluxoVisual() {
           <Controls />
         </ReactFlow>
       </div>
+
+      {/* Dialog de Seleção de Contatos */}
+      <SelectContactsDialog
+        open={showContactsDialog}
+        onOpenChange={setShowContactsDialog}
+        onConfirm={handleConfirmSend}
+      />
 
       {/* Dialog de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
