@@ -30,9 +30,6 @@ export function SelectContactsDialog({
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  console.log("SelectContactsDialog - open:", open);
-  console.log("SelectContactsDialog - contacts:", contacts.length);
-
   useEffect(() => {
     if (open) {
       setSelectedContacts([]);
@@ -73,7 +70,7 @@ export function SelectContactsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col z-[100]">
         <DialogHeader>
           <DialogTitle>Selecionar Contatos</DialogTitle>
           <DialogDescription>

@@ -269,9 +269,7 @@ export default function FluxoVisual() {
     handleSaveFluxo();
 
     // Abrir diálogo de seleção de contatos
-    console.log("Abrindo diálogo de contatos...");
     setShowContactsDialog(true);
-    console.log("Estado após abrir:", true);
   };
 
   const handleConfirmSend = async (selectedContacts: string[]) => {
@@ -371,9 +369,10 @@ export default function FluxoVisual() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background">
-      {/* Sidebar - Blocos Disponíveis */}
-      <Card className="w-80 m-4 p-4 flex flex-col">
+    <>
+      <div className="flex h-screen w-full bg-background">
+        {/* Sidebar - Blocos Disponíveis */}
+        <Card className="w-80 m-4 p-4 flex flex-col">
         <div className="flex items-center gap-2 mb-4">
           <Button
             size="sm"
@@ -459,16 +458,17 @@ export default function FluxoVisual() {
           <Controls />
         </ReactFlow>
       </div>
+    </div>
 
-      {/* Dialog de Seleção de Contatos */}
-      <SelectContactsDialog
-        open={showContactsDialog}
-        onOpenChange={setShowContactsDialog}
-        onConfirm={handleConfirmSend}
-      />
+    {/* Dialog de Seleção de Contatos */}
+    <SelectContactsDialog
+      open={showContactsDialog}
+      onOpenChange={setShowContactsDialog}
+      onConfirm={handleConfirmSend}
+    />
 
-      {/* Dialog de Edição */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+    {/* Dialog de Edição */}
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -611,11 +611,11 @@ export default function FluxoVisual() {
               >
                 Cancelar
               </Button>
-              <Button onClick={handleSaveNode}>Salvar</Button>
-            </div>
+            <Button onClick={handleSaveNode}>Salvar</Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
