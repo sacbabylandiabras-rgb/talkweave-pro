@@ -51,6 +51,8 @@ import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
+import { supabase } from "@/integrations/supabase/client";
+import { Upload } from "lucide-react";
 
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
@@ -103,6 +105,7 @@ export default function FluxoVisual() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument } = useZapi();
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   // Auto-salvar quando nodes ou edges mudarem
   useEffect(() => {
@@ -228,6 +231,51 @@ export default function FluxoVisual() {
 
     setIsEditDialogOpen(false);
     toast.success("Bloco atualizado!");
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedNode) return;
+
+    setUploadingFile(true);
+
+    try {
+      // Gerar nome único para o arquivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Fazer upload para o Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('flow-media')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Obter URL pública do arquivo
+      const { data: { publicUrl } } = supabase.storage
+        .from('flow-media')
+        .getPublicUrl(filePath);
+
+      // Atualizar o nó com a URL do arquivo
+      setSelectedNode({
+        ...selectedNode,
+        data: { 
+          ...selectedNode.data, 
+          mediaUrl: publicUrl 
+        },
+      });
+
+      toast.success("Arquivo enviado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+      toast.error("Erro ao fazer upload do arquivo");
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   const handleSaveFluxo = () => {
@@ -593,25 +641,67 @@ export default function FluxoVisual() {
                   selectedNode.data.contentType === "video" || 
                   selectedNode.data.contentType === "audio" || 
                   selectedNode.data.contentType === "document") && (
-                  <div>
-                    <Label>
-                      URL da {selectedNode.data.contentType === "image" ? "Imagem" : 
-                               selectedNode.data.contentType === "video" ? "Vídeo" :
-                               selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
-                    </Label>
-                    <Input
-                      value={selectedNode.data.mediaUrl || ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, mediaUrl: e.target.value },
-                        })
-                      }
-                      placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" : 
-                                    selectedNode.data.contentType === "video" ? "video.mp4" :
-                                    selectedNode.data.contentType === "audio" ? "audio.mp3" : "documento.pdf"}`}
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <Label>
+                        URL da {selectedNode.data.contentType === "image" ? "Imagem" : 
+                                 selectedNode.data.contentType === "video" ? "Vídeo" :
+                                 selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
+                      </Label>
+                      <Input
+                        value={selectedNode.data.mediaUrl || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, mediaUrl: e.target.value },
+                          })
+                        }
+                        placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" : 
+                                      selectedNode.data.contentType === "video" ? "video.mp4" :
+                                      selectedNode.data.contentType === "audio" ? "audio.mp3" : "documento.pdf"}`}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 border-t" />
+                      <span className="text-xs text-muted-foreground">OU</span>
+                      <div className="flex-1 border-t" />
+                    </div>
+
+                    <div>
+                      <Label>Fazer Upload do Arquivo</Label>
+                      <div className="mt-2">
+                        <label htmlFor="file-upload" className="cursor-pointer">
+                          <div className="flex items-center justify-center w-full p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
+                            <div className="text-center">
+                              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">
+                                {uploadingFile ? "Enviando..." : "Clique para selecionar um arquivo"}
+                              </p>
+                              {selectedNode.data.mediaUrl && (
+                                <p className="text-xs text-primary mt-1">
+                                  ✓ Arquivo carregado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Input
+                            id="file-upload"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            disabled={uploadingFile}
+                            accept={
+                              selectedNode.data.contentType === "image" ? "image/*" :
+                              selectedNode.data.contentType === "video" ? "video/*" :
+                              selectedNode.data.contentType === "audio" ? "audio/*" :
+                              selectedNode.data.contentType === "document" ? ".pdf,.doc,.docx" : "*"
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div>
