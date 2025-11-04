@@ -316,28 +316,44 @@ export default function FluxoVisual() {
       if (targetNode.type === "blocoConteudo") {
         const contentType = targetNode.data.contentType || "text";
         const content = targetNode.data.content || "";
-
-        if (!content) {
-          console.warn(`Bloco ${targetNode.id} sem conteúdo`);
-          continue;
-        }
+        const mediaUrl = targetNode.data.mediaUrl || "";
 
         // Enviar mensagem baseado no tipo
         switch (contentType) {
           case "text":
+            if (!content) {
+              console.warn(`Bloco ${targetNode.id} sem conteúdo de texto`);
+              continue;
+            }
             await sendMessage(contact, content);
             break;
           case "image":
-            await sendImage(contact, content, "");
+            if (!mediaUrl) {
+              console.warn(`Bloco ${targetNode.id} sem URL da imagem`);
+              continue;
+            }
+            await sendImage(contact, mediaUrl, content);
             break;
           case "video":
-            await sendVideo(contact, content, "");
+            if (!mediaUrl) {
+              console.warn(`Bloco ${targetNode.id} sem URL do vídeo`);
+              continue;
+            }
+            await sendVideo(contact, mediaUrl, content);
             break;
           case "audio":
-            await sendAudio(contact, content, "");
+            if (!mediaUrl) {
+              console.warn(`Bloco ${targetNode.id} sem URL do áudio`);
+              continue;
+            }
+            await sendAudio(contact, mediaUrl, content);
             break;
           case "document":
-            await sendDocument(contact, content, "document", "pdf", "");
+            if (!mediaUrl) {
+              console.warn(`Bloco ${targetNode.id} sem URL do documento`);
+              continue;
+            }
+            await sendDocument(contact, mediaUrl, "document", "pdf", content);
             break;
         }
 
@@ -573,8 +589,35 @@ export default function FluxoVisual() {
                   </Select>
                 </div>
 
+                {(selectedNode.data.contentType === "image" || 
+                  selectedNode.data.contentType === "video" || 
+                  selectedNode.data.contentType === "audio" || 
+                  selectedNode.data.contentType === "document") && (
+                  <div>
+                    <Label>
+                      URL da {selectedNode.data.contentType === "image" ? "Imagem" : 
+                               selectedNode.data.contentType === "video" ? "Vídeo" :
+                               selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
+                    </Label>
+                    <Input
+                      value={selectedNode.data.mediaUrl || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, mediaUrl: e.target.value },
+                        })
+                      }
+                      placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" : 
+                                    selectedNode.data.contentType === "video" ? "video.mp4" :
+                                    selectedNode.data.contentType === "audio" ? "audio.mp3" : "documento.pdf"}`}
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <Label>Mensagem</Label>
+                  <Label>
+                    {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}
+                  </Label>
                   <Textarea
                     value={selectedNode.data.content || ""}
                     onChange={(e) =>
@@ -583,7 +626,7 @@ export default function FluxoVisual() {
                         data: { ...selectedNode.data, content: e.target.value },
                       })
                     }
-                    placeholder="Digite a mensagem..."
+                    placeholder={selectedNode.data.contentType === "text" ? "Digite a mensagem..." : "Digite uma legenda (opcional)..."}
                     rows={5}
                   />
                 </div>
