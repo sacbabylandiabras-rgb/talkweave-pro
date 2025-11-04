@@ -50,6 +50,7 @@ import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
+import { useZapi } from "@/hooks/useZapi";
 
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
@@ -101,6 +102,7 @@ export default function FluxoVisual() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
+  const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument } = useZapi();
 
   // Auto-salvar quando nodes ou edges mudarem
   useEffect(() => {
@@ -273,14 +275,79 @@ export default function FluxoVisual() {
   };
 
   const handleConfirmSend = async (selectedContacts: string[]) => {
-    toast.success(`Enviando fluxo para ${selectedContacts.length} contato(s)...`, {
-      description: "O envio está sendo processado",
-    });
+    toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
-    // TODO: Implementar lógica real de envio via Z-API
-    // Processar o fluxo seguindo as conexões dos blocos
-    console.log("Enviando para:", selectedContacts);
-    console.log("Fluxo:", { nodes, edges });
+    try {
+      // Encontrar o bloco inicial
+      const initialNode = nodes.find(n => n.type === "blocoInicial");
+      if (!initialNode) {
+        toast.error("Bloco inicial não encontrado!");
+        return;
+      }
+
+      // Para cada contato, processar o fluxo
+      for (const contact of selectedContacts) {
+        await processFlow(initialNode.id, contact);
+      }
+
+      toast.success("Fluxo enviado com sucesso!", {
+        description: `Mensagens enviadas para ${selectedContacts.length} contato(s)`,
+      });
+    } catch (error) {
+      console.error("Erro ao enviar fluxo:", error);
+      toast.error("Erro ao enviar fluxo. Verifique o console.");
+    }
+  };
+
+  const processFlow = async (currentNodeId: string, contact: string) => {
+    // Encontrar conexões que saem do nó atual
+    const outgoingEdges = edges.filter(e => e.source === currentNodeId);
+    
+    if (outgoingEdges.length === 0) {
+      return; // Fim do fluxo
+    }
+
+    // Processar cada conexão
+    for (const edge of outgoingEdges) {
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (!targetNode) continue;
+
+      // Executar ação do bloco
+      if (targetNode.type === "blocoConteudo") {
+        const contentType = targetNode.data.contentType || "text";
+        const content = targetNode.data.content || "";
+
+        if (!content) {
+          console.warn(`Bloco ${targetNode.id} sem conteúdo`);
+          continue;
+        }
+
+        // Enviar mensagem baseado no tipo
+        switch (contentType) {
+          case "text":
+            await sendMessage(contact, content);
+            break;
+          case "image":
+            await sendImage(contact, content, "");
+            break;
+          case "video":
+            await sendVideo(contact, content, "");
+            break;
+          case "audio":
+            await sendAudio(contact, content, "");
+            break;
+          case "document":
+            await sendDocument(contact, content, "document", "pdf", "");
+            break;
+        }
+
+        // Aguardar um pouco entre mensagens
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Continuar processando o fluxo recursivamente
+      await processFlow(targetNode.id, contact);
+    }
   };
 
   if (showFluxosList) {
