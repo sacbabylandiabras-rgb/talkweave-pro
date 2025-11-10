@@ -117,42 +117,39 @@ const EnviarMensagem = () => {
         const isVideo = videoExtensions.includes(fileExtension || '');
         const isAudio = audioExtensions.includes(fileExtension || '');
 
-        // Enviar a mídia com legenda ou mensagem
+        // Enviar a mídia com legenda
         if (isImage) {
-          await sendImage(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendImage(validatedData.phone, base64File, legenda || '');
         } else if (isVideo) {
-          await sendVideo(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendVideo(validatedData.phone, base64File, legenda || '');
         } else if (isAudio) {
-          await sendAudio(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendAudio(validatedData.phone, base64File, legenda || '');
         } else {
           await sendDocument(
             validatedData.phone,
             base64File,
             arquivoMidia.name,
             fileExtension || 'txt',
-            legenda || validatedData.message
+            legenda || ''
           );
         }
       }
       
-      // Se NÃO tem mídia, enviar os botões interativos
-      // Se tem mídia, não enviar botões para evitar duplicação
-      if (!temMidia) {
-        await sendButtonActions(
-          validatedData.phone, 
-          validatedData.message, 
-          validButtons.map(btn => ({
-            id: btn.id,
-            type: btn.type,
-            label: btn.label,
-            ...(btn.type === "CALL" && { phone: btn.phone }),
-            ...(btn.type === "URL" && { url: btn.url }),
-            ...(btn.type === "COPY" && { copyText: btn.copyText })
-          })),
-          titulo || undefined,
-          rodape || undefined
-        );
-      }
+      // Enviar os botões interativos (sempre enviar quando houver botões)
+      await sendButtonActions(
+        validatedData.phone, 
+        validatedData.message, 
+        validButtons.map(btn => ({
+          id: btn.id,
+          type: btn.type,
+          label: btn.label,
+          ...(btn.type === "CALL" && { phone: btn.phone }),
+          ...(btn.type === "URL" && { url: btn.url }),
+          ...(btn.type === "COPY" && { copyText: btn.copyText })
+        })),
+        titulo || undefined,
+        rodape || undefined
+      );
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
@@ -206,33 +203,30 @@ const EnviarMensagem = () => {
         const isVideo = videoExtensions.includes(fileExtension || '');
         const isAudio = audioExtensions.includes(fileExtension || '');
 
-        // Enviar a mídia com legenda ou mensagem
+        // Enviar a mídia com legenda
         if (isImage) {
-          await sendImage(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendImage(validatedData.phone, base64File, legenda || '');
         } else if (isVideo) {
-          await sendVideo(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendVideo(validatedData.phone, base64File, legenda || '');
         } else if (isAudio) {
-          await sendAudio(validatedData.phone, base64File, legenda || validatedData.message);
+          await sendAudio(validatedData.phone, base64File, legenda || '');
         } else {
           await sendDocument(
             validatedData.phone,
             base64File,
             arquivoMidia.name,
             fileExtension || 'txt',
-            legenda || validatedData.message
+            legenda || ''
           );
         }
       }
       
-      // Se NÃO tem mídia, enviar a lista de opções
-      // Se tem mídia, não enviar lista para evitar duplicação
-      if (!temMidia) {
-        await sendOptionList(validatedData.phone, validatedData.message, {
-          title: tituloLista,
-          buttonLabel: labelBotaoLista,
-          options: validOptions
-        });
-      }
+      // Enviar a lista de opções (sempre enviar quando houver lista)
+      await sendOptionList(validatedData.phone, validatedData.message, {
+        title: tituloLista,
+        buttonLabel: labelBotaoLista,
+        options: validOptions
+      });
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
@@ -387,19 +381,18 @@ const EnviarMensagem = () => {
             const isAudio = audioExtensions.includes(fileExtension || '');
 
             if (isImage) {
-              await sendImage(contato.telefone, base64File, legenda || mensagemPersonalizada);
+              await sendImage(contato.telefone, base64File, legenda || '');
             } else if (isVideo) {
-              await sendVideo(contato.telefone, base64File, legenda || mensagemPersonalizada);
+              await sendVideo(contato.telefone, base64File, legenda || '');
             } else if (isAudio) {
-              await sendAudio(contato.telefone, base64File, legenda || mensagemPersonalizada);
+              await sendAudio(contato.telefone, base64File, legenda || '');
             } else {
-              await sendDocument(contato.telefone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
+              await sendDocument(contato.telefone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || '');
             }
           }
           
-          // Se tem botões mas NÃO tem mídia, enviar com botões
-          // Se tem mídia, não enviar mensagem adicional com botões para evitar duplicação
-          if (temBotoes && !temMidia) {
+          // Enviar botões se houver
+          if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada,
