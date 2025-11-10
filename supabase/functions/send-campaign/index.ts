@@ -237,8 +237,101 @@ serve(async (req) => {
           let zapiUrl: string;
           let requestBody: any;
 
-          // PRIORITY 1: Image with buttons (imagem_botoes)
-          if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
+          // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
+          if (templateType === 'video_botoes' && hasMedia && hasButtons) {
+            // First, send the video
+            const videoUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-video`;
+            const videoBody = {
+              phone: contact.phone,
+              video: campaign.template.media_url,
+              caption: fullMessage
+            };
+            
+            console.log(`[1/2] Sending video to ${contact.phone}`);
+            console.log(`📞 Z-API URL: ${videoUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(videoBody, null, 2));
+            
+            const videoResponse = await fetch(videoUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': zapiClientToken,
+              },
+              body: JSON.stringify(videoBody),
+            });
+            
+            const videoText = await videoResponse.text();
+            console.log(`📥 Video Z-API Response (${videoResponse.status}):`, videoText);
+            
+            if (!videoResponse.ok) {
+              throw new Error(`Erro ao enviar vídeo: ${videoText}`);
+            }
+            
+            // Wait before sending buttons (use half the delay)
+            const buttonDelay = Math.max(delayMs / 2, 1000);
+            console.log(`⏱️  Aguardando ${buttonDelay}ms antes de enviar botões...`);
+            await new Promise(resolve => setTimeout(resolve, buttonDelay));
+            
+            // Then, send the buttons message
+            // Format buttons for Z-API with URL validation
+            const formattedButtons = campaign.template.buttons
+              .map((btn: any) => {
+                const btnType = (btn.type || 'url').toUpperCase();
+                const buttonData: any = {
+                  label: btn.text || btn.label
+                };
+                
+                if (btnType === 'CALL') {
+                  buttonData.type = 'CALL';
+                  buttonData.phone = btn.phone || btn.value;
+                } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                  buttonData.type = 'REPLY';
+                } else if (btnType === 'COPY') {
+                  buttonData.type = 'URL';
+                  buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
+                } else {
+                  // URL button - validate and fix URL
+                  let url = btn.url || btn.value || '';
+                  
+                  // If URL doesn't start with http:// or https://, add https://
+                  if (url && !url.match(/^https?:\/\//i)) {
+                    url = 'https://' + url;
+                    console.log(`⚠️ Fixed URL without protocol: ${btn.url || btn.value} -> ${url}`);
+                  }
+                  
+                  // Validate URL format
+                  try {
+                    new URL(url);
+                    buttonData.type = 'URL';
+                    buttonData.url = url;
+                  } catch (e) {
+                    console.error(`❌ Invalid URL in button "${btn.text || btn.label}": ${btn.url || btn.value}. Button will be skipped.`);
+                    return null;
+                  }
+                }
+                
+                if (btn.id) {
+                  buttonData.id = btn.id;
+                }
+                
+                return buttonData;
+              })
+              .filter((btn: any) => btn !== null);
+            
+            if (formattedButtons.length === 0) {
+              console.error('❌ All buttons were invalid. Cannot send message with buttons.');
+              throw new Error('Todos os botões possuem URLs inválidas. Verifique o template.');
+            }
+
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
+            requestBody = {
+              phone: contact.phone,
+              message: "👆 Escolha uma das opções acima:",
+              buttonActions: formattedButtons
+            };
+            console.log(`[2/2] Sending ${formattedButtons.length} button(s) to ${contact.phone}`);
+            
+          } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
             // Format buttons for Z-API with URL validation
             const formattedButtons = campaign.template.buttons
               .map((btn: any) => {

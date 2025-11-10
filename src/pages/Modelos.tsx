@@ -19,6 +19,7 @@ const getTemplateIcon = (type?: string) => {
     case "audio":
       return <Music className="w-5 h-5 text-primary" />;
     case "video":
+    case "video_botoes":
       return <Video className="w-5 h-5 text-primary" />;
     case "lista_opcao":
       return <List className="w-5 h-5 text-primary" />;
@@ -40,6 +41,7 @@ const getTypeFriendlyName = (type?: string) => {
     imagem: "Imagem",
     audio: "Áudio",
     video: "Vídeo",
+    video_botoes: "Vídeo c/ Botões",
     lista_opcao: "Lista",
     copia_cola: "Copiar/Colar",
     arquivo: "Arquivo",
@@ -563,6 +565,7 @@ const Modelos = () => {
                       <SelectItem value="imagem">imagem</SelectItem>
                       <SelectItem value="audio">audio</SelectItem>
                       <SelectItem value="video">video</SelectItem>
+                      <SelectItem value="video_botoes">vídeo com botões</SelectItem>
                       <SelectItem value="lista_opcao">lista de opção</SelectItem>
                       <SelectItem value="copia_cola">copia e cola</SelectItem>
                       <SelectItem value="arquivo">arquivo</SelectItem>
@@ -572,12 +575,12 @@ const Modelos = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ⚠️ Botões só funcionam com tipo "imagem com botões"
+                    ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
                   </p>
                 </div>
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-3">
                     <div>
                       <Label>Upload de Arquivo</Label>
@@ -1012,6 +1015,7 @@ const Modelos = () => {
                   <SelectItem value="imagem">imagem</SelectItem>
                   <SelectItem value="audio">audio</SelectItem>
                   <SelectItem value="video">video</SelectItem>
+                  <SelectItem value="video_botoes">vídeo com botões</SelectItem>
                   <SelectItem value="lista_opcao">lista de opção</SelectItem>
                   <SelectItem value="copia_cola">copia e cola</SelectItem>
                   <SelectItem value="arquivo">arquivo</SelectItem>
@@ -1021,12 +1025,12 @@ const Modelos = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Botões só funcionam com tipo "imagem com botões"
+                ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
               </p>
             </div>
 
             {/* Campos específicos por tipo - Edição */}
-            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes") && (
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-3">
                 <div>
                   <Label>Upload de Arquivo</Label>
