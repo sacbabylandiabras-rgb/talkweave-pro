@@ -82,61 +82,83 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       return;
     }
 
-    // Poll for updates every 2 seconds
-    const pollInterval = setInterval(async () => {
-      try {
-        // Check campaign status
-        const { data: campaignData, error: campaignError } = await supabase
-          .from('campaigns')
-          .select('status')
-          .eq('id', campaignId)
-          .single();
+    // Add initial delay to allow campaign_sends to be created in database
+    const initialDelay = setTimeout(() => {
+      // Poll for updates every 2 seconds
+      const pollInterval = setInterval(async () => {
+        try {
+          // Check campaign status
+          const { data: campaignData, error: campaignError } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campaignId)
+            .single();
 
-        if (campaignError) throw campaignError;
+          if (campaignError) throw campaignError;
 
-        // If campaign is completed or cancelled, mark as complete
-        if (campaignData?.status === 'completed') {
-          setIsComplete(true);
-          clearInterval(pollInterval);
-          return;
+          // If campaign is completed or cancelled, mark as complete
+          if (campaignData?.status === 'completed') {
+            // Do one final check for campaign_sends before marking complete
+            const { data: finalSends } = await supabase
+              .from('campaign_sends')
+              .select('status')
+              .eq('campaign_id', campaignId);
+            
+            if (finalSends && finalSends.length > 0) {
+              const finalStats = {
+                total: finalSends.length,
+                pending: finalSends.filter(s => s.status === 'pending').length,
+                sent: finalSends.filter(s => s.status === 'sent').length,
+                delivered: finalSends.filter(s => s.status === 'delivered').length,
+                failed: finalSends.filter(s => s.status === 'failed').length,
+              };
+              setStats(finalStats);
+            }
+            
+            setIsComplete(true);
+            clearInterval(pollInterval);
+            return;
+          }
+
+          if (campaignData?.status === 'paused') {
+            setIsPaused(true);
+            setIsPausing(false);
+            clearInterval(pollInterval);
+            return;
+          }
+
+          // Poll campaign_sends for progress
+          const { data, error } = await supabase
+            .from('campaign_sends')
+            .select('status')
+            .eq('campaign_id', campaignId);
+
+          if (error) throw error;
+
+          const newStats = {
+            total: data.length,
+            pending: data.filter(s => s.status === 'pending').length,
+            sent: data.filter(s => s.status === 'sent').length,
+            delivered: data.filter(s => s.status === 'delivered').length,
+            failed: data.filter(s => s.status === 'failed').length,
+          };
+
+          setStats(newStats);
+
+          // Check if complete (no pending messages) - backup check
+          if (data.length >= totalContacts && newStats.pending === 0) {
+            setIsComplete(true);
+            clearInterval(pollInterval);
+          }
+        } catch (error) {
+          console.error('Error polling campaign stats:', error);
         }
+      }, 2000);
 
-        if (campaignData?.status === 'paused') {
-          setIsPaused(true);
-          setIsPausing(false);
-          clearInterval(pollInterval);
-          return;
-        }
+      return () => clearInterval(pollInterval);
+    }, 500); // Wait 500ms before starting to poll
 
-        // Poll campaign_sends for progress
-        const { data, error } = await supabase
-          .from('campaign_sends')
-          .select('status')
-          .eq('campaign_id', campaignId);
-
-        if (error) throw error;
-
-        const newStats = {
-          total: data.length,
-          pending: data.filter(s => s.status === 'pending').length,
-          sent: data.filter(s => s.status === 'sent').length,
-          delivered: data.filter(s => s.status === 'delivered').length,
-          failed: data.filter(s => s.status === 'failed').length,
-        };
-
-        setStats(newStats);
-
-        // Check if complete (no pending messages) - backup check
-        if (data.length >= totalContacts && newStats.pending === 0) {
-          setIsComplete(true);
-          clearInterval(pollInterval);
-        }
-      } catch (error) {
-        console.error('Error polling campaign stats:', error);
-      }
-    }, 2000);
-
-    return () => clearInterval(pollInterval);
+    return () => clearTimeout(initialDelay);
   }, [open, campaignId, totalContacts]);
 
   const progress = totalContacts > 0 ? ((stats.sent + stats.delivered + stats.failed) / totalContacts) * 100 : 0;
