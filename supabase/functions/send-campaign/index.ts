@@ -135,19 +135,21 @@ serve(async (req) => {
               
               // Check if device is connected
               if (!deviceStatus.connected || deviceStatus.connected === false) {
-                console.log(`❌ DISPOSITIVO DESCONECTADO! Pausando campanha ${campaignId} automaticamente...`);
+                console.log(`❌ DISPOSITIVO DESCONECTADO! CANCELANDO campanha ${campaignId} automaticamente...`);
                 console.log(`📊 Progresso: ${i}/${contacts.length} contatos processados antes da desconexão`);
+                console.log(`📋 Números não enviados: ${contacts.length - i}`);
                 
-                // Pause campaign automatically
-                const { error: pauseError } = await supabase
+                // CANCELAR campanha automaticamente
+                const { error: cancelError } = await supabase
                   .from('campaigns')
-                  .update({ status: 'paused' })
+                  .update({ status: 'cancelled' })
                   .eq('id', campaignId);
                 
-                if (pauseError) {
-                  console.error('Erro ao pausar campanha:', pauseError);
+                if (cancelError) {
+                  console.error('Erro ao cancelar campanha:', cancelError);
                 } else {
-                  console.log(`✅ Campanha ${campaignId} PAUSADA com sucesso devido à desconexão`);
+                  console.log(`✅ Campanha ${campaignId} CANCELADA com sucesso devido à desconexão`);
+                  console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados`);
                 }
                 
                 return; // Exit background processing
@@ -169,13 +171,14 @@ serve(async (req) => {
           
           console.log(`[${i + 1}/${contacts.length}] Checking campaign status: ${currentCampaign?.status}`);
           
-          if (currentCampaign?.status === 'paused') {
-            console.log(`🛑 Campaign ${campaignId} was PAUSED. Stopping at contact ${i + 1}/${contacts.length}`);
+          if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
+            console.log(`🛑 Campaign ${campaignId} was ${currentCampaign.status.toUpperCase()}. Stopping at contact ${i + 1}/${contacts.length}`);
+            console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados`);
             
-            // Update campaign status to ensure it stays paused
+            // Update campaign status to ensure it stays in current state
             await supabase
               .from('campaigns')
-              .update({ status: 'paused' })
+              .update({ status: currentCampaign.status })
               .eq('id', campaignId);
             
             return; // Exit background processing

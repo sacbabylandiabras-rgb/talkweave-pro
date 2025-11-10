@@ -131,8 +131,8 @@ const Dispositivos = () => {
     }
   };
 
-  // Função para pausar campanhas ativas automaticamente
-  const pauseActiveCampaigns = async () => {
+  // Função para CANCELAR campanhas ativas automaticamente quando desconectar
+  const cancelActiveCampaigns = async () => {
     try {
       const { data: activeCampaigns, error } = await supabase
         .from('campaigns')
@@ -142,29 +142,30 @@ const Dispositivos = () => {
       if (error) throw error;
 
       if (activeCampaigns && activeCampaigns.length > 0) {
-        console.log(`⚠️ Dispositivo desconectado! Pausando ${activeCampaigns.length} campanha(s) ativa(s)...`);
+        console.log(`❌ Dispositivo desconectado! CANCELANDO ${activeCampaigns.length} campanha(s) ativa(s)...`);
         
-        // Pausar todas as campanhas ativas
+        // CANCELAR todas as campanhas ativas
         const { error: updateError } = await supabase
           .from('campaigns')
-          .update({ status: 'paused' })
+          .update({ status: 'cancelled' })
           .eq('status', 'active');
 
         if (updateError) throw updateError;
 
         toast({
-          title: "⚠️ Campanhas Pausadas",
-          description: `${activeCampaigns.length} campanha(s) foi(ram) pausada(s) automaticamente devido à desconexão do dispositivo`,
+          title: "❌ Campanhas Canceladas",
+          description: `${activeCampaigns.length} campanha(s) foi(ram) CANCELADA(S) automaticamente devido à desconexão do dispositivo. Verifique o relatório de números não enviados.`,
           variant: "destructive",
+          duration: 8000,
         });
 
-        // Log das campanhas pausadas
+        // Log das campanhas canceladas
         activeCampaigns.forEach(campaign => {
-          console.log(`📊 Campanha pausada: ${campaign.name} (ID: ${campaign.id})`);
+          console.log(`❌ Campanha CANCELADA: ${campaign.name} (ID: ${campaign.id})`);
         });
       }
     } catch (error) {
-      console.error('Erro ao pausar campanhas ativas:', error);
+      console.error('Erro ao cancelar campanhas ativas:', error);
     }
   };
 
@@ -183,9 +184,9 @@ const Dispositivos = () => {
   useEffect(() => {
     const wasConnected = deviceStatus?.connected;
     
-    // Se desconectou, pausar campanhas ativas
+    // Se desconectou, CANCELAR campanhas ativas
     if (wasConnected === false && deviceStatus?.smartphoneConnected === false) {
-      pauseActiveCampaigns();
+      cancelActiveCampaigns();
     }
     
     // Se o dispositivo não estiver conectado, buscar QR Code automaticamente
