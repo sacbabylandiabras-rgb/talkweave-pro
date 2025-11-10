@@ -47,7 +47,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🚀 Processing campaign ${campaignId} for ${contacts.length} contacts`);
+    console.log(`🚀 Starting campaign ${campaignId} for ${contacts.length} contacts`);
 
     // Get campaign and template details
     const { data: campaign, error: campaignError } = await supabase
@@ -64,8 +64,6 @@ serve(async (req) => {
     }
 
     // CRITICAL: Don't process paused campaigns
-    // A campaign should ONLY be processed if it's being actively sent
-    // This prevents automatic resumption when device reconnects
     if (campaign.status === 'paused') {
       console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
       return new Response(
@@ -93,348 +91,326 @@ serve(async (req) => {
       throw new Error('Missing Z-API credentials');
     }
 
-    const results = [];
-    
     // Get delay from campaign or use default of 2 seconds
     const delayMs = (campaign.delay_seconds || 2) * 1000;
     console.log(`⏱️  DELAY CONFIGURADO: ${campaign.delay_seconds || 2} segundos (${delayMs}ms) entre mensagens`);
 
-    // Process each contact
-    for (let i = 0; i < contacts.length; i++) {
-      const contact = contacts[i];
-      let campaignSend: CampaignSendRecord | undefined;
+    // Define background processing function
+    const processContactsInBackground = async () => {
+      const results = [];
       
-      try {
-        // CHECK DEVICE STATUS FIRST
-        console.log(`[${i + 1}/${contacts.length}] Checking device status...`);
-        const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
+      // Process each contact
+      for (let i = 0; i < contacts.length; i++) {
+        const contact = contacts[i];
+        let campaignSend: CampaignSendRecord | undefined;
         
         try {
-          const deviceResponse = await fetch(deviceStatusUrl, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Client-Token': zapiClientToken
-            }
-          });
-
-          if (deviceResponse.ok) {
-            const deviceStatus = await deviceResponse.json();
-            console.log(`Device status:`, deviceStatus);
-            
-            // Check if device is connected
-            if (!deviceStatus.connected || deviceStatus.connected === false) {
-              console.log(`⚠️ DEVICE DISCONNECTED! Pausing campaign ${campaignId} at contact ${i + 1}/${contacts.length}`);
-              
-              // Pause campaign automatically
-              await supabase
-                .from('campaigns')
-                .update({ status: 'paused' })
-                .eq('id', campaignId);
-              
-              return new Response(
-                JSON.stringify({ 
-                  success: false,
-                  error: 'Dispositivo desconectado',
-                  message: `Campanha pausada automaticamente no contato ${i + 1}/${contacts.length}. Dispositivo desconectado.`,
-                  paused: true,
-                  disconnected: true,
-                  results: {
-                    total: contacts.length,
-                    processed: i,
-                    sent: results.filter(r => r.success).length,
-                    failed: results.filter(r => !r.success).length,
-                  }
-                }),
-                { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-              );
-            }
-          }
-        } catch (statusError) {
-          console.error('Error checking device status:', statusError);
-          // Continue anyway - don't block on status check errors
-        }
-
-        // CHECK IF CAMPAIGN WAS PAUSED - SECOND PRIORITY
-        const { data: currentCampaign } = await supabase
-          .from('campaigns')
-          .select('status')
-          .eq('id', campaignId)
-          .single();
-        
-        console.log(`[${i + 1}/${contacts.length}] Checking campaign status: ${currentCampaign?.status}`);
-        
-        if (currentCampaign?.status === 'paused') {
-          console.log(`🛑 Campaign ${campaignId} was PAUSED. Stopping at contact ${i + 1}/${contacts.length}`);
+          // CHECK DEVICE STATUS FIRST
+          console.log(`[${i + 1}/${contacts.length}] Checking device status...`);
+          const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
           
-          // Update campaign status to ensure it stays paused
-          await supabase
-            .from('campaigns')
-            .update({ status: 'paused' })
-            .eq('id', campaignId);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: true,
-              message: `Campaign paused after processing ${i} contacts`,
-              paused: true,
-              results: {
-                total: contacts.length,
-                processed: i,
-                sent: results.filter(r => r.success).length,
-                failed: results.filter(r => !r.success).length,
+          try {
+            const deviceResponse = await fetch(deviceStatusUrl, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': zapiClientToken
               }
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-          );
-        }
-        
-        // Then check if this contact was already processed successfully
-        const { data: existingSend } = await supabase
-          .from('campaign_sends')
-          .select('status')
-          .eq('campaign_id', campaignId)
-          .eq('phone', contact.phone)
-          .in('status', ['sent', 'delivered'])
-          .maybeSingle();
+            });
 
-        if (existingSend) {
-          console.log(`✓ Contact ${contact.phone} already processed, skipping`);
-          results.push({
-            phone: contact.phone,
-            success: true,
-            messageId: 'already-sent',
-          });
-          continue;
-        }
-        
-        console.log(`📤 [${i + 1}/${contacts.length}] Processing contact: ${contact.phone}`);
-
-        // Process message template with variables
-        let messageContent = campaign.template.content;
-        
-        // Replace common variables
-        messageContent = messageContent.replace(/{nome}/g, contact.name || 'Cliente');
-        messageContent = messageContent.replace(/{empresa}/g, 'Nossa Empresa');
-        messageContent = messageContent.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
-        messageContent = messageContent.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
-
-        // Replace custom variables if provided
-        if (contact.variables) {
-          Object.entries(contact.variables).forEach(([key, value]) => {
-            const regex = new RegExp(`{${key}}`, 'g');
-            messageContent = messageContent.replace(regex, value);
-          });
-        }
-
-        // Create campaign send record
-        campaignSend = {
-          campaign_id: campaignId,
-          phone: contact.phone,
-          contact_name: contact.name,
-          message_content: messageContent,
-          status: 'pending',
-        };
-
-        // Build full message with header and footer
-        let fullMessage = '';
-        if (campaign.template.header) {
-          fullMessage += campaign.template.header + '\n\n';
-        }
-        fullMessage += messageContent;
-        if (campaign.template.footer) {
-          fullMessage += '\n\n' + campaign.template.footer;
-        }
-
-        // Check if template has buttons
-        const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
-        
-        let zapiUrl: string;
-        let requestBody: any;
-
-        if (hasButtons) {
-          // Send with buttons using send-button-actions
-          zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
-          
-          // Format buttons for Z-API
-          const formattedButtons = campaign.template.buttons.map((btn: any) => {
-            // Normalize button type to uppercase
-            const btnType = (btn.type || 'url').toUpperCase();
-            
-            const buttonData: any = {
-              label: btn.text || btn.label
-            };
-            
-            // Z-API only supports: CALL, URL, REPLY
-            if (btnType === 'CALL') {
-              buttonData.type = 'CALL';
-              buttonData.phone = btn.phone || btn.value;
-            } else if (btnType === 'REPLY' || btnType === 'OPTION') {
-              // OPTION maps to REPLY in Z-API
-              buttonData.type = 'REPLY';
-            } else if (btnType === 'COPY') {
-              // COPY is implemented as URL with special WhatsApp link
-              buttonData.type = 'URL';
-              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
-            } else {
-              // Default to URL type
-              buttonData.type = 'URL';
-              buttonData.url = btn.url || btn.value || 'https://z-api.io';
+            if (deviceResponse.ok) {
+              const deviceStatus = await deviceResponse.json();
+              console.log(`Device status:`, deviceStatus);
+              
+              // Check if device is connected
+              if (!deviceStatus.connected || deviceStatus.connected === false) {
+                console.log(`⚠️ DEVICE DISCONNECTED! Pausing campaign ${campaignId} at contact ${i + 1}/${contacts.length}`);
+                
+                // Pause campaign automatically
+                await supabase
+                  .from('campaigns')
+                  .update({ status: 'paused' })
+                  .eq('id', campaignId);
+                
+                return; // Exit background processing
+              }
             }
-            
-            // Optional ID
-            if (btn.id) {
-              buttonData.id = btn.id;
-            }
-            
-            return buttonData;
-          });
-
-          requestBody = {
-            phone: contact.phone,
-            message: fullMessage,
-            buttonActions: formattedButtons
-          };
-
-          console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
-        } else {
-          // Send simple text message
-          zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
-          requestBody = {
-            phone: contact.phone,
-            message: fullMessage,
-          };
-
-          console.log(`Sending text message to ${contact.phone}`);
-        }
-        
-        const zapiResponse = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Client-Token': zapiClientToken,
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        let zapiResult: any = {};
-        
-        // Try to parse JSON response, but handle empty responses
-        try {
-          const responseText = await zapiResponse.text();
-          if (responseText && responseText.trim()) {
-            zapiResult = JSON.parse(responseText);
+          } catch (statusError) {
+            console.error('Error checking device status:', statusError);
+            // Continue anyway - don't block on status check errors
           }
-        } catch (parseError) {
-          console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
-        }
 
-        if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
-          campaignSend.status = 'sent';
-          campaignSend.sent_at = new Date().toISOString();
+          // CHECK IF CAMPAIGN WAS PAUSED - SECOND PRIORITY
+          const { data: currentCampaign } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campaignId)
+            .single();
           
-          results.push({
-            phone: contact.phone,
-            success: true,
-            messageId: zapiResult.messageId,
-          });
-
-          console.log(`Message sent successfully to ${contact.phone}`);
-        } else {
-          campaignSend.status = 'failed';
-          campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
+          console.log(`[${i + 1}/${contacts.length}] Checking campaign status: ${currentCampaign?.status}`);
           
-          results.push({
-            phone: contact.phone,
-            success: false,
-            error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
-          });
+          if (currentCampaign?.status === 'paused') {
+            console.log(`🛑 Campaign ${campaignId} was PAUSED. Stopping at contact ${i + 1}/${contacts.length}`);
+            
+            // Update campaign status to ensure it stays paused
+            await supabase
+              .from('campaigns')
+              .update({ status: 'paused' })
+              .eq('id', campaignId);
+            
+            return; // Exit background processing
+          }
+          
+          // Then check if this contact was already processed successfully
+          const { data: existingSend } = await supabase
+            .from('campaign_sends')
+            .select('status')
+            .eq('campaign_id', campaignId)
+            .eq('phone', contact.phone)
+            .in('status', ['sent', 'delivered'])
+            .maybeSingle();
 
-          console.error(`Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
-        }
+          if (existingSend) {
+            console.log(`✓ Contact ${contact.phone} already processed, skipping`);
+            results.push({
+              phone: contact.phone,
+              success: true,
+              messageId: 'already-sent',
+            });
+            continue;
+          }
+          
+          console.log(`📤 [${i + 1}/${contacts.length}] Processing contact: ${contact.phone}`);
 
-      } catch (error) {
-        if (!campaignSend) {
+          // Process message template with variables
+          let messageContent = campaign.template.content;
+          
+          // Replace common variables
+          messageContent = messageContent.replace(/{nome}/g, contact.name || 'Cliente');
+          messageContent = messageContent.replace(/{empresa}/g, 'Nossa Empresa');
+          messageContent = messageContent.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
+          messageContent = messageContent.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
+
+          // Replace custom variables if provided
+          if (contact.variables) {
+            Object.entries(contact.variables).forEach(([key, value]) => {
+              const regex = new RegExp(`{${key}}`, 'g');
+              messageContent = messageContent.replace(regex, value);
+            });
+          }
+
+          // Create campaign send record
           campaignSend = {
             campaign_id: campaignId,
             phone: contact.phone,
             contact_name: contact.name,
-            message_content: 'Error processing message',
-            status: 'failed',
-            error_message: error instanceof Error ? error.message : 'Unknown error',
+            message_content: messageContent,
+            status: 'pending',
           };
-        } else {
-          campaignSend.status = 'failed';
-          campaignSend.error_message = error instanceof Error ? error.message : 'Unknown error';
+
+          // Build full message with header and footer
+          let fullMessage = '';
+          if (campaign.template.header) {
+            fullMessage += campaign.template.header + '\n\n';
+          }
+          fullMessage += messageContent;
+          if (campaign.template.footer) {
+            fullMessage += '\n\n' + campaign.template.footer;
+          }
+
+          // Check if template has buttons
+          const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
+          
+          let zapiUrl: string;
+          let requestBody: any;
+
+          if (hasButtons) {
+            // Send with buttons using send-button-actions
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
+            
+            // Format buttons for Z-API
+            const formattedButtons = campaign.template.buttons.map((btn: any) => {
+              // Normalize button type to uppercase
+              const btnType = (btn.type || 'url').toUpperCase();
+              
+              const buttonData: any = {
+                label: btn.text || btn.label
+              };
+              
+              // Z-API only supports: CALL, URL, REPLY
+              if (btnType === 'CALL') {
+                buttonData.type = 'CALL';
+                buttonData.phone = btn.phone || btn.value;
+              } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                // OPTION maps to REPLY in Z-API
+                buttonData.type = 'REPLY';
+              } else if (btnType === 'COPY') {
+                // COPY is implemented as URL with special WhatsApp link
+                buttonData.type = 'URL';
+                buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
+              } else {
+                // Default to URL type
+                buttonData.type = 'URL';
+                buttonData.url = btn.url || btn.value || 'https://z-api.io';
+              }
+              
+              // Optional ID
+              if (btn.id) {
+                buttonData.id = btn.id;
+              }
+              
+              return buttonData;
+            });
+
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage,
+              buttonActions: formattedButtons
+            };
+
+            console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
+          } else {
+            // Send simple text message
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage,
+            };
+
+            console.log(`Sending text message to ${contact.phone}`);
+          }
+          
+          const zapiResponse = await fetch(zapiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Client-Token': zapiClientToken,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          let zapiResult: any = {};
+          
+          // Try to parse JSON response, but handle empty responses
+          try {
+            const responseText = await zapiResponse.text();
+            if (responseText && responseText.trim()) {
+              zapiResult = JSON.parse(responseText);
+            }
+          } catch (parseError) {
+            console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
+          }
+
+          if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
+            campaignSend.status = 'sent';
+            campaignSend.sent_at = new Date().toISOString();
+            
+            results.push({
+              phone: contact.phone,
+              success: true,
+              messageId: zapiResult.messageId,
+            });
+
+            console.log(`Message sent successfully to ${contact.phone}`);
+          } else {
+            campaignSend.status = 'failed';
+            campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
+            
+            results.push({
+              phone: contact.phone,
+              success: false,
+              error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
+            });
+
+            console.error(`Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+          }
+
+        } catch (error) {
+          if (!campaignSend) {
+            campaignSend = {
+              campaign_id: campaignId,
+              phone: contact.phone,
+              contact_name: contact.name,
+              message_content: 'Error processing message',
+              status: 'failed',
+              error_message: error instanceof Error ? error.message : 'Unknown error',
+            };
+          } else {
+            campaignSend.status = 'failed';
+            campaignSend.error_message = error instanceof Error ? error.message : 'Unknown error';
+          }
+          
+          results.push({
+            phone: contact.phone,
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+
+          console.error(`Error sending to ${contact.phone}:`, error);
         }
-        
-        results.push({
-          phone: contact.phone,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
 
-        console.error(`Error sending to ${contact.phone}:`, error);
-      }
+        // Save to database IMMEDIATELY after each send (for real-time progress tracking)
+        if (campaignSend) {
+          const { error: insertError } = await supabase
+            .from('campaign_sends')
+            .insert([campaignSend]);
 
-      // Save to database IMMEDIATELY after each send (for real-time progress tracking)
-      if (campaignSend) {
-        const { error: insertError } = await supabase
-          .from('campaign_sends')
-          .insert([campaignSend]);
+          if (insertError) {
+            console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
+          } else {
+            console.log(`Saved campaign send record for ${contact.phone}`);
+          }
+        }
 
-        if (insertError) {
-          console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
-        } else {
-          console.log(`Saved campaign send record for ${contact.phone}`);
+        // Add delay BETWEEN messages (after sending and before next iteration)
+        // Skip delay after the last message
+        if (i < contacts.length - 1) {
+          console.log(`⏳ Aguardando ${campaign.delay_seconds || 2} segundos antes da próxima mensagem...`);
+          const startWait = Date.now();
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          const endWait = Date.now();
+          console.log(`✅ Delay concluído! Esperou ${Math.round((endWait - startWait) / 1000)}s`);
         }
       }
 
-      // Add delay BETWEEN messages (after sending and before next iteration)
-      // Skip delay after the last message
-      if (i < contacts.length - 1) {
-        console.log(`⏳ Aguardando ${campaign.delay_seconds || 2} segundos antes da próxima mensagem...`);
-        const startWait = Date.now();
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        const endWait = Date.now();
-        console.log(`✅ Delay concluído! Esperou ${Math.round((endWait - startWait) / 1000)}s`);
-      }
-    }
-
-    // Update campaign status to completed (only if it wasn't paused)
-    const { data: finalCampaign } = await supabase
-      .from('campaigns')
-      .select('status')
-      .eq('id', campaignId)
-      .single();
-    
-    // Only mark as completed if campaign is still active (not paused)
-    if (finalCampaign?.status === 'active') {
-      await supabase
+      // Update campaign status to completed (only if it wasn't paused)
+      const { data: finalCampaign } = await supabase
         .from('campaigns')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', campaignId);
-    }
+        .select('status')
+        .eq('id', campaignId)
+        .single();
+      
+      // Only mark as completed if campaign is still active (not paused)
+      if (finalCampaign?.status === 'active') {
+        await supabase
+          .from('campaigns')
+          .update({ 
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', campaignId);
+      }
 
-    // Calculate summary
-    const successCount = results.filter(r => r.success).length;
-    const failureCount = results.filter(r => !r.success).length;
+      // Calculate summary
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
 
-    console.log(`Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
+      console.log(`✅ Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
+    };
 
+    // Start background processing
+    // @ts-ignore - EdgeRuntime is available in Deno Deploy
+    EdgeRuntime.waitUntil(processContactsInBackground());
+
+    // Return immediately so UI can track progress
+    console.log(`🚀 Campaign ${campaignId} started in background`);
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: `Campaign sent to ${contacts.length} contacts`,
-        results: {
-          total: contacts.length,
-          sent: successCount,
-          failed: failureCount,
-        },
-        details: results
+        message: `Campaign iniciada! Acompanhe o progresso em tempo real.`,
+        campaignId: campaignId,
+        totalContacts: contacts.length,
+        started: true
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
