@@ -334,13 +334,14 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
             }
             
-            // If there are buttons in the template (not in cards), send them separately
+            // ALWAYS send a text message after carousel
+            // Wait before sending text message
+            const followUpDelay = Math.max(delayMs / 2, 1000);
+            console.log(`⏱️  Aguardando ${followUpDelay}ms antes de enviar mensagem de texto...`);
+            await new Promise(resolve => setTimeout(resolve, followUpDelay));
+            
+            // If there are buttons, send with buttons
             if (hasButtons) {
-              // Wait before sending buttons
-              const buttonDelay = Math.max(delayMs / 2, 1000);
-              console.log(`⏱️  Aguardando ${buttonDelay}ms antes de enviar botões...`);
-              await new Promise(resolve => setTimeout(resolve, buttonDelay));
-              
               // Format buttons for Z-API with URL validation
               const formattedButtons = campaign.template.buttons
                 .map((btn: any) => {
@@ -397,38 +398,13 @@ serve(async (req) => {
               };
               console.log(`[2/2] Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
             } else {
-              // No buttons, just mark as sent
-              campaignSend.status = 'sent';
-              campaignSend.sent_at = new Date().toISOString();
-              
-              results.push({
+              // No buttons - send as plain text message
+              zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+              requestBody = {
                 phone: contact.phone,
-                success: true,
-                messageId: 'carousel-only',
-              });
-
-              console.log(`✅ Carousel sent successfully to ${contact.phone}`);
-              
-              // Skip to next contact
-              if (campaignSend) {
-                const { error: insertError } = await supabase
-                  .from('campaign_sends')
-                  .insert([campaignSend]);
-
-                if (insertError) {
-                  console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
-                } else {
-                  console.log(`Saved campaign send record for ${contact.phone}`);
-                }
-              }
-
-              // Add delay before next contact
-              if (i < contacts.length - 1) {
-                console.log(`⏱️  Aguardando ${delayMs}ms antes do próximo contato...`);
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-              }
-
-              continue;
+                message: fullMessage,
+              };
+              console.log(`[2/2] Sending text message to ${contact.phone}`);
             }
             
           } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
