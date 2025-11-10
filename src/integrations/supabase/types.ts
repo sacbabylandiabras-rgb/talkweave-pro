@@ -202,9 +202,13 @@ export type Database = {
           category: string
           content: string
           created_at: string
+          file_name: string | null
+          file_type: string | null
           footer: string | null
           header: string | null
           id: string
+          list_items: Json | null
+          media_url: string | null
           name: string
           type: string | null
           updated_at: string
@@ -217,9 +221,13 @@ export type Database = {
           category: string
           content: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
           footer?: string | null
           header?: string | null
           id?: string
+          list_items?: Json | null
+          media_url?: string | null
           name: string
           type?: string | null
           updated_at?: string
@@ -232,9 +240,13 @@ export type Database = {
           category?: string
           content?: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
           footer?: string | null
           header?: string | null
           id?: string
+          list_items?: Json | null
+          media_url?: string | null
           name?: string
           type?: string | null
           updated_at?: string

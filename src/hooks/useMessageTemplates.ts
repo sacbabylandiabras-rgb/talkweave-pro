@@ -10,12 +10,16 @@ export interface MessageTemplate {
   content: string;
   header?: string;
   footer?: string;
+  mediaUrl?: string;
+  fileName?: string;
+  fileType?: string;
   variables: string[];
   usage_count: number;
   active: boolean;
   created_at: string;
   updated_at: string;
   buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+  listItems?: Array<{id: string, title: string, description?: string}>;
 }
 
 export const useMessageTemplates = () => {
@@ -41,12 +45,16 @@ export const useMessageTemplates = () => {
         content: item.content,
         header: item.header || "",
         footer: item.footer || "",
+        mediaUrl: item.media_url || "",
+        fileName: item.file_name || "",
+        fileType: item.file_type || "",
         variables: Array.isArray(item.variables) ? item.variables.filter(v => typeof v === 'string') : [],
         usage_count: item.usage_count || 0,
         active: item.active || false,
         created_at: item.created_at,
         updated_at: item.updated_at,
         buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
+        listItems: Array.isArray(item.list_items) ? item.list_items as Array<{id: string, title: string, description?: string}> : [],
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -67,8 +75,12 @@ export const useMessageTemplates = () => {
     content: string;
     header?: string;
     footer?: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileType?: string;
     variables?: string[];
     buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+    listItems?: Array<{id: string, title: string, description?: string}>;
   }) => {
     try {
       const { data, error } = await supabase
@@ -80,8 +92,12 @@ export const useMessageTemplates = () => {
           content: templateData.content,
           header: templateData.header,
           footer: templateData.footer,
+          media_url: templateData.mediaUrl,
+          file_name: templateData.fileName,
+          file_type: templateData.fileType,
           variables: templateData.variables || [],
           buttons: templateData.buttons || [],
+          list_items: templateData.listItems || [],
         })
         .select()
         .single();
@@ -96,12 +112,16 @@ export const useMessageTemplates = () => {
         content: data.content,
         header: data.header || "",
         footer: data.footer || "",
+        mediaUrl: data.media_url || "",
+        fileName: data.file_name || "",
+        fileType: data.file_type || "",
         variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : [],
         usage_count: data.usage_count || 0,
         active: data.active || false,
         created_at: data.created_at,
         updated_at: data.updated_at,
         buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
+        listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : [],
       }, ...prev]);
       toast({
         title: "Sucesso",
@@ -141,12 +161,16 @@ export const useMessageTemplates = () => {
             content: data.content,
             header: data.header || template.header || "",
             footer: data.footer || template.footer || "",
+            mediaUrl: data.media_url || template.mediaUrl || "",
+            fileName: data.file_name || template.fileName || "",
+            fileType: data.file_type || template.fileType || "",
             variables: Array.isArray(data.variables) ? data.variables.filter(v => typeof v === 'string') : template.variables,
             usage_count: data.usage_count || template.usage_count,
             active: data.active !== undefined ? data.active : template.active,
             created_at: data.created_at || template.created_at,
             updated_at: data.updated_at || template.updated_at,
             buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : template.buttons || [],
+            listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : template.listItems || [],
           } : template
         )
       );
@@ -202,8 +226,12 @@ export const useMessageTemplates = () => {
         content: template.content,
         header: template.header,
         footer: template.footer,
+        mediaUrl: template.mediaUrl,
+        fileName: template.fileName,
+        fileType: template.fileType,
         variables: template.variables,
         buttons: template.buttons || [],
+        listItems: template.listItems || [],
       };
 
       return await createTemplate(newTemplate);

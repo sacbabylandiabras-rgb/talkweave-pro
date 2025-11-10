@@ -7,7 +7,47 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu } from "lucide-react";
+
+// Helper para obter o ícone do tipo de template
+const getTemplateIcon = (type?: string) => {
+  switch (type) {
+    case "imagem":
+    case "imagem_botoes":
+      return <Image className="w-5 h-5 text-primary" />;
+    case "audio":
+      return <Music className="w-5 h-5 text-primary" />;
+    case "video":
+      return <Video className="w-5 h-5 text-primary" />;
+    case "lista_opcao":
+      return <List className="w-5 h-5 text-primary" />;
+    case "arquivo":
+      return <FileArchive className="w-5 h-5 text-primary" />;
+    case "documento":
+      return <FileType className="w-5 h-5 text-primary" />;
+    case "carrossel":
+      return <Menu className="w-5 h-5 text-primary" />;
+    default:
+      return <FileText className="w-5 h-5 text-primary" />;
+  }
+};
+
+// Helper para obter o nome amigável do tipo
+const getTypeFriendlyName = (type?: string) => {
+  const names: Record<string, string> = {
+    texto: "Texto",
+    imagem: "Imagem",
+    audio: "Áudio",
+    video: "Vídeo",
+    lista_opcao: "Lista",
+    copia_cola: "Copiar/Colar",
+    arquivo: "Arquivo",
+    imagem_botoes: "Imagem c/ Botões",
+    documento: "Documento",
+    carrossel: "Carrossel",
+  };
+  return names[type || "texto"] || "Texto";
+};
 
 // Componente ButtonEditor separado e memoizado para evitar re-renders
 const ButtonEditor = memo(({ 
@@ -635,11 +675,14 @@ const Modelos = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-primary" />
+                  {getTemplateIcon(template.type)}
                   <div>
                     <CardTitle className="text-lg">{template.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
+                    <CardDescription className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{template.category}</Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        {getTypeFriendlyName(template.type)}
+                      </Badge>
                       <span>•</span>
                       <span>Usado {template.usage_count} vezes</span>
                     </CardDescription>
@@ -679,6 +722,29 @@ const Modelos = () => {
                 {template.header && (
                   <div className="text-xs font-semibold text-primary border-b pb-1">
                     📋 {template.header}
+                  </div>
+                )}
+                {template.mediaUrl && (
+                  <div className="text-xs text-muted-foreground mb-2">
+                    🔗 Mídia: {template.mediaUrl}
+                  </div>
+                )}
+                {template.fileName && (
+                  <div className="text-xs text-muted-foreground mb-2">
+                    📄 Arquivo: {template.fileName}
+                  </div>
+                )}
+                {template.listItems && template.listItems.length > 0 && (
+                  <div className="text-xs mb-2">
+                    <div className="font-medium mb-1">📋 Itens da Lista:</div>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                      {template.listItems.map((item, idx) => (
+                        <li key={idx}>
+                          {item.title}
+                          {item.description && <span className="text-xs"> - {item.description}</span>}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
                 <p className="text-sm">{template.content}</p>
