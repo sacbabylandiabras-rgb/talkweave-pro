@@ -249,7 +249,7 @@ const Modelos = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Função para fazer upload do arquivo
-  const handleFileUpload = async (file: File, isEdit: boolean = false) => {
+  const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
     try {
       setUploadingFile(true);
       
@@ -293,6 +293,8 @@ const Modelos = () => {
         title: "Sucesso",
         description: "Arquivo enviado com sucesso!",
       });
+      
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
       toast({
@@ -300,6 +302,7 @@ const Modelos = () => {
         description: "Erro ao enviar arquivo",
         variant: "destructive",
       });
+      return null;
     } finally {
       setUploadingFile(false);
     }
@@ -910,22 +913,19 @@ const Modelos = () => {
                           <Input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                handleFileUpload(file, false).then(() => {
-                                  // A URL já foi atualizada no newTemplate.mediaUrl
-                                  // Agora precisamos copiar para o card específico
-                                  setTimeout(() => {
-                                    const newCards = [...newTemplate.carouselCards];
-                                    newCards[cardIndex] = { ...card, image: newTemplate.mediaUrl };
-                                    setNewTemplate(prev => ({ 
-                                      ...prev, 
-                                      carouselCards: newCards,
-                                      mediaUrl: "" // Limpar para não interferir
-                                    }));
-                                  }, 500);
-                                });
+                                const uploadedUrl = await handleFileUpload(file, false);
+                                if (uploadedUrl) {
+                                  const newCards = [...newTemplate.carouselCards];
+                                  newCards[cardIndex] = { ...card, image: uploadedUrl };
+                                  setNewTemplate(prev => ({ 
+                                    ...prev, 
+                                    carouselCards: newCards,
+                                    mediaUrl: "" // Limpar para não interferir
+                                  }));
+                                }
                               }
                             }}
                             disabled={uploadingFile}
@@ -1615,22 +1615,19 @@ const Modelos = () => {
                           <Input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                handleFileUpload(file, true).then(() => {
-                                  // A URL já foi atualizada no editFormData.mediaUrl
-                                  // Agora precisamos copiar para o card específico
-                                  setTimeout(() => {
-                                    const newCards = [...editFormData.carouselCards];
-                                    newCards[cardIndex] = { ...card, image: editFormData.mediaUrl };
-                                    setEditFormData(prev => ({ 
-                                      ...prev, 
-                                      carouselCards: newCards,
-                                      mediaUrl: "" // Limpar para não interferir
-                                    }));
-                                  }, 500);
-                                });
+                                const uploadedUrl = await handleFileUpload(file, true);
+                                if (uploadedUrl) {
+                                  const newCards = [...editFormData.carouselCards];
+                                  newCards[cardIndex] = { ...card, image: uploadedUrl };
+                                  setEditFormData(prev => ({ 
+                                    ...prev, 
+                                    carouselCards: newCards,
+                                    mediaUrl: "" // Limpar para não interferir
+                                  }));
+                                }
                               }
                             }}
                             disabled={uploadingFile}
