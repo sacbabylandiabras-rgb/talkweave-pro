@@ -936,15 +936,6 @@ const Modelos = () => {
                               Enviando imagem...
                             </p>
                           )}
-                          <Input
-                            placeholder="Ou cole a URL: https://exemplo.com/imagem.jpg"
-                            value={card.image}
-                            onChange={(e) => {
-                              const newCards = [...newTemplate.carouselCards];
-                              newCards[cardIndex] = { ...card, image: e.target.value };
-                              setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
-                            }}
-                          />
                         </div>
                         {card.image && (
                           <Button
@@ -1638,15 +1629,6 @@ const Modelos = () => {
                               Enviando imagem...
                             </p>
                           )}
-                          <Input
-                            placeholder="Ou cole a URL: https://exemplo.com/imagem.jpg"
-                            value={card.image}
-                            onChange={(e) => {
-                              const newCards = [...editFormData.carouselCards];
-                              newCards[cardIndex] = { ...card, image: e.target.value };
-                              setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
-                            }}
-                          />
                         </div>
                         {card.image && (
                           <Button
