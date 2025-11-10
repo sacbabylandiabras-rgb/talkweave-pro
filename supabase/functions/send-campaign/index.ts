@@ -252,6 +252,7 @@ serve(async (req) => {
 
           // PRIORITY 0: Carousel (carrossel)
           if (templateType === 'carrossel' && hasCarouselCards) {
+            // First, send the carousel cards
             const carouselCards = campaign.template.carousel_cards.map((card: any) => {
               const cardData: any = {
                 title: card.title || '',
@@ -307,14 +308,128 @@ serve(async (req) => {
               return cardData;
             });
             
-            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
-            requestBody = {
+            const carouselUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
+            const carouselBody = {
               phone: contact.phone,
-              message: fullMessage,
               cards: carouselCards
             };
             
-            console.log(`Sending carousel with ${carouselCards.length} card(s) to ${contact.phone}`);
+            console.log(`[1/2] Sending carousel with ${carouselCards.length} card(s) to ${contact.phone}`);
+            console.log(`📞 Z-API URL: ${carouselUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(carouselBody, null, 2));
+            
+            const carouselResponse = await fetch(carouselUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': zapiClientToken,
+              },
+              body: JSON.stringify(carouselBody),
+            });
+            
+            const carouselText = await carouselResponse.text();
+            console.log(`📥 Carousel Z-API Response (${carouselResponse.status}):`, carouselText);
+            
+            if (!carouselResponse.ok) {
+              throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
+            }
+            
+            // If there are buttons in the template (not in cards), send them separately
+            if (hasButtons) {
+              // Wait before sending buttons
+              const buttonDelay = Math.max(delayMs / 2, 1000);
+              console.log(`⏱️  Aguardando ${buttonDelay}ms antes de enviar botões...`);
+              await new Promise(resolve => setTimeout(resolve, buttonDelay));
+              
+              // Format buttons for Z-API with URL validation
+              const formattedButtons = campaign.template.buttons
+                .map((btn: any) => {
+                  const btnType = (btn.type || 'url').toUpperCase();
+                  const buttonData: any = {
+                    label: btn.text || btn.label
+                  };
+                  
+                  if (btnType === 'CALL') {
+                    buttonData.type = 'CALL';
+                    buttonData.phone = btn.phone || btn.value;
+                  } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                    buttonData.type = 'REPLY';
+                  } else if (btnType === 'COPY') {
+                    buttonData.type = 'URL';
+                    buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
+                  } else {
+                    // URL button - validate and fix URL
+                    let url = btn.url || btn.value || '';
+                    
+                    if (url && !url.match(/^https?:\/\//i)) {
+                      url = 'https://' + url;
+                      console.log(`⚠️ Fixed URL without protocol: ${btn.url || btn.value} -> ${url}`);
+                    }
+                    
+                    try {
+                      new URL(url);
+                      buttonData.type = 'URL';
+                      buttonData.url = url;
+                    } catch (e) {
+                      console.error(`❌ Invalid URL in button "${btn.text || btn.label}": ${btn.url || btn.value}. Button will be skipped.`);
+                      return null;
+                    }
+                  }
+                  
+                  if (btn.id) {
+                    buttonData.id = btn.id;
+                  }
+                  
+                  return buttonData;
+                })
+                .filter((btn: any) => btn !== null);
+              
+              if (formattedButtons.length === 0) {
+                console.error('❌ All buttons were invalid. Cannot send message with buttons.');
+                throw new Error('Todos os botões possuem URLs inválidas. Verifique o template.');
+              }
+
+              zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
+              requestBody = {
+                phone: contact.phone,
+                message: fullMessage,
+                buttonActions: formattedButtons
+              };
+              console.log(`[2/2] Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
+            } else {
+              // No buttons, just mark as sent
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              
+              results.push({
+                phone: contact.phone,
+                success: true,
+                messageId: 'carousel-only',
+              });
+
+              console.log(`✅ Carousel sent successfully to ${contact.phone}`);
+              
+              // Skip to next contact
+              if (campaignSend) {
+                const { error: insertError } = await supabase
+                  .from('campaign_sends')
+                  .insert([campaignSend]);
+
+                if (insertError) {
+                  console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
+                } else {
+                  console.log(`Saved campaign send record for ${contact.phone}`);
+                }
+              }
+
+              // Add delay before next contact
+              if (i < contacts.length - 1) {
+                console.log(`⏱️  Aguardando ${delayMs}ms antes do próximo contato...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+              }
+
+              continue;
+            }
             
           } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
             // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
