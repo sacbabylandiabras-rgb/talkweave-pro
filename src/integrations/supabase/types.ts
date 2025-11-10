@@ -214,6 +214,7 @@ export type Database = {
         Row: {
           active: boolean | null
           buttons: Json | null
+          carousel_cards: Json | null
           category: string
           content: string
           created_at: string
@@ -234,6 +235,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           buttons?: Json | null
+          carousel_cards?: Json | null
           category: string
           content: string
           created_at?: string
@@ -254,6 +256,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           buttons?: Json | null
+          carousel_cards?: Json | null
           category?: string
           content?: string
           created_at?: string

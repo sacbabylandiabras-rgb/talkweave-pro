@@ -62,7 +62,7 @@ export const useMessageTemplates = () => {
         updated_at: item.updated_at,
         buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
         listItems: Array.isArray(item.list_items) ? item.list_items as Array<{id: string, title: string, description?: string}> : [],
-        carouselCards: Array.isArray(item.carousel_cards) ? item.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
+        carouselCards: Array.isArray((item as any).carousel_cards) ? (item as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -132,7 +132,7 @@ export const useMessageTemplates = () => {
         updated_at: data.updated_at,
         buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
         listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : [],
-        carouselCards: Array.isArray(data.carousel_cards) ? data.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
+        carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
       }, ...prev]);
       toast({
         title: "Sucesso",
@@ -199,7 +199,7 @@ export const useMessageTemplates = () => {
             updated_at: data.updated_at || template.updated_at,
             buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : template.buttons || [],
             listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : template.listItems || [],
-            carouselCards: Array.isArray(data.carousel_cards) ? data.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : template.carouselCards || [],
+            carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : template.carouselCards || [],
           } : template
         )
       );

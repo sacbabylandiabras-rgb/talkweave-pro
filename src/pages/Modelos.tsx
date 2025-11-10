@@ -1472,6 +1472,189 @@ const Modelos = () => {
                 ))}
               </div>
             )}
+
+            {/* Editor de Carrossel - Edição */}
+            {editFormData.type === "carrossel" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Cards do Carrossel</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditFormData(prev => ({
+                      ...prev,
+                      carouselCards: [...prev.carouselCards, {
+                        id: Date.now().toString(),
+                        image: "",
+                        title: "",
+                        description: "",
+                        buttons: []
+                      }]
+                    }))}
+                    disabled={editFormData.carouselCards.length >= 10}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar Card
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 2 cards, máximo 10 cards. Cada card pode ter até 2 botões.
+                </p>
+                {editFormData.carouselCards.map((card, cardIndex) => (
+                  <div key={card.id} className="border-2 rounded-lg p-4 space-y-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Card {cardIndex + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFormData(prev => ({
+                          ...prev,
+                          carouselCards: prev.carouselCards.filter((_, i) => i !== cardIndex)
+                        }))}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                    
+                    <div>
+                      <Label>URL da Imagem *</Label>
+                      <Input
+                        placeholder="https://exemplo.com/imagem.jpg"
+                        value={card.image}
+                        onChange={(e) => {
+                          const newCards = [...editFormData.carouselCards];
+                          newCards[cardIndex] = { ...card, image: e.target.value };
+                          setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Título *</Label>
+                      <Input
+                        placeholder="Título do card"
+                        value={card.title}
+                        maxLength={60}
+                        onChange={(e) => {
+                          const newCards = [...editFormData.carouselCards];
+                          newCards[cardIndex] = { ...card, title: e.target.value };
+                          setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Descrição *</Label>
+                      <Textarea
+                        placeholder="Descrição do card"
+                        value={card.description}
+                        rows={2}
+                        maxLength={160}
+                        onChange={(e) => {
+                          const newCards = [...editFormData.carouselCards];
+                          newCards[cardIndex] = { ...card, description: e.target.value };
+                          setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Botões do Card</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newCards = [...editFormData.carouselCards];
+                            newCards[cardIndex].buttons.push({
+                              id: Date.now().toString(),
+                              text: "",
+                              type: 'url',
+                              value: ""
+                            });
+                            setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                          }}
+                          disabled={card.buttons.length >= 2}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Botão
+                        </Button>
+                      </div>
+                      
+                      {card.buttons.map((button, btnIndex) => (
+                        <div key={button.id} className="border rounded p-2 space-y-2 bg-background">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Botão {btnIndex + 1}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newCards = [...editFormData.carouselCards];
+                                newCards[cardIndex].buttons = newCards[cardIndex].buttons.filter((_, i) => i !== btnIndex);
+                                setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          
+                          <Input
+                            placeholder="Texto do botão"
+                            value={button.text}
+                            maxLength={20}
+                            onChange={(e) => {
+                              const newCards = [...editFormData.carouselCards];
+                              newCards[cardIndex].buttons[btnIndex].text = e.target.value;
+                              setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          />
+                          
+                          <Select
+                            value={button.type}
+                            onValueChange={(value: 'reply' | 'url' | 'call') => {
+                              const newCards = [...editFormData.carouselCards];
+                              newCards[cardIndex].buttons[btnIndex].type = value;
+                              setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="url">Link/URL</SelectItem>
+                              <SelectItem value="call">Ligar</SelectItem>
+                              <SelectItem value="reply">Resposta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          {(button.type === 'url' || button.type === 'call') && (
+                            <Input
+                              placeholder={button.type === 'url' ? "https://..." : "+5511999999999"}
+                              value={button.value || ''}
+                              onChange={(e) => {
+                                const newCards = [...editFormData.carouselCards];
+                                newCards[cardIndex].buttons[btnIndex].value = e.target.value;
+                                setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {editFormData.carouselCards.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                    Clique em "Adicionar Card" para criar os cards do carrossel
+                  </div>
+                )}
+              </div>
+            )}
             
             <div>
               <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
