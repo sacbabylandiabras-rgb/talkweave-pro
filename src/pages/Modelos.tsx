@@ -346,13 +346,33 @@ const Modelos = () => {
         // Validar cada card
         for (let i = 0; i < newTemplate.carouselCards.length; i++) {
           const card = newTemplate.carouselCards[i];
-          if (!card.image || !card.title || !card.description) {
+          
+          // Validar campos obrigatórios
+          if (!card.title || !card.description) {
             toast({
               title: "Erro",
-              description: `Card ${i + 1}: Imagem, título e descrição são obrigatórios`,
+              description: `Card ${i + 1}: Título e descrição são obrigatórios`,
               variant: "destructive",
             });
             return;
+          }
+          
+          // Validar URL da imagem (se fornecida)
+          if (card.image && card.image.trim() !== '') {
+            const imageUrl = card.image.trim();
+            
+            // Verificar se é uma URL válida
+            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i) ||
+                              imageUrl.includes('supabase.co/storage');
+            
+            if (!isValidUrl) {
+              toast({
+                title: "Erro de Validação",
+                description: `Card ${i + 1}: "${imageUrl}" não é uma URL válida de imagem.\n\nUse:\n✅ URLs completas: https://exemplo.com/foto.jpg\n✅ Upload de arquivo (clique em "Escolher arquivo")\n\n❌ Não use texto simples como "ok", "df", etc.`,
+                variant: "destructive",
+              });
+              return;
+            }
           }
         }
       }
@@ -448,13 +468,33 @@ const Modelos = () => {
         // Validar cada card
         for (let i = 0; i < editFormData.carouselCards.length; i++) {
           const card = editFormData.carouselCards[i];
-          if (!card.image || !card.title || !card.description) {
+          
+          // Validar campos obrigatórios
+          if (!card.title || !card.description) {
             toast({
               title: "Erro",
-              description: `Card ${i + 1}: Imagem, título e descrição são obrigatórios`,
+              description: `Card ${i + 1}: Título e descrição são obrigatórios`,
               variant: "destructive",
             });
             return;
+          }
+          
+          // Validar URL da imagem (se fornecida)
+          if (card.image && card.image.trim() !== '') {
+            const imageUrl = card.image.trim();
+            
+            // Verificar se é uma URL válida
+            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i) ||
+                              imageUrl.includes('supabase.co/storage');
+            
+            if (!isValidUrl) {
+              toast({
+                title: "Erro de Validação",
+                description: `Card ${i + 1}: "${imageUrl}" não é uma URL válida de imagem.\n\nUse:\n✅ URLs completas: https://exemplo.com/foto.jpg\n✅ Upload de arquivo (clique em "Escolher arquivo")\n\n❌ Não use texto simples como "ok", "df", etc.`,
+                variant: "destructive",
+              });
+              return;
+            }
           }
         }
       }
