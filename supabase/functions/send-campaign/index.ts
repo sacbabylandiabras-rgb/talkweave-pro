@@ -373,6 +373,9 @@ serve(async (req) => {
             console.log(`Sending text message to ${contact.phone}`);
           }
           
+          console.log(`📞 Z-API URL: ${zapiUrl}`);
+          console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
+          
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: {
@@ -387,6 +390,7 @@ serve(async (req) => {
           // Try to parse JSON response, but handle empty responses
           try {
             const responseText = await zapiResponse.text();
+            console.log(`📥 Z-API Response (${zapiResponse.status}):`, responseText);
             if (responseText && responseText.trim()) {
               zapiResult = JSON.parse(responseText);
             }
@@ -404,7 +408,7 @@ serve(async (req) => {
               messageId: zapiResult.messageId,
             });
 
-            console.log(`Message sent successfully to ${contact.phone}`);
+            console.log(`✅ Message sent successfully to ${contact.phone} - MessageID: ${zapiResult.messageId}`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
@@ -415,7 +419,7 @@ serve(async (req) => {
               error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
             });
 
-            console.error(`Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+            console.error(`❌ Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
           }
 
         } catch (error) {
