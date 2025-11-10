@@ -163,6 +163,7 @@ const Modelos = () => {
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     category: "",
+    type: "texto",
     content: "",
     header: "",
     footer: "",
@@ -173,6 +174,7 @@ const Modelos = () => {
   const [editFormData, setEditFormData] = useState({
     name: "",
     category: "",
+    type: "texto",
     content: "",
     header: "",
     footer: "",
@@ -210,6 +212,7 @@ const Modelos = () => {
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
+        type: newTemplate.type,
         content: newTemplate.content,
         header: newTemplate.header,
         footer: newTemplate.footer,
@@ -217,7 +220,7 @@ const Modelos = () => {
         buttons: newTemplate.buttons,
       });
 
-      setNewTemplate({ name: "", category: "", content: "", header: "", footer: "", variables: [], buttons: [] });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", variables: [], buttons: [] });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -247,6 +250,7 @@ const Modelos = () => {
     setEditFormData({
       name: template.name,
       category: template.category,
+      type: template.type || "texto",
       content: template.content,
       header: template.header || "",
       footer: template.footer || "",
@@ -275,6 +279,7 @@ const Modelos = () => {
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
+        type: editFormData.type,
         content: editFormData.content,
         header: editFormData.header,
         footer: editFormData.footer,
@@ -283,7 +288,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", content: "", header: "", footer: "", buttons: [] });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", buttons: [] });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -291,7 +296,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", content: "", header: "", footer: "", buttons: [] });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", buttons: [] });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -423,6 +428,30 @@ const Modelos = () => {
                     onChange={(e) => setNewTemplate(prev => ({ ...prev, category: e.target.value }))}
                     placeholder="Ex: Vendas, Suporte"
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="template-type">Tipo de Template</Label>
+                  <Select
+                    value={newTemplate.type}
+                    onValueChange={(value) => setNewTemplate(prev => ({ ...prev, type: value }))}
+                  >
+                    <SelectTrigger id="template-type">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="texto">texto</SelectItem>
+                      <SelectItem value="imagem">imagem</SelectItem>
+                      <SelectItem value="audio">audio</SelectItem>
+                      <SelectItem value="video">video</SelectItem>
+                      <SelectItem value="lista_opcao">lista de opção</SelectItem>
+                      <SelectItem value="copia_cola">copia e cola</SelectItem>
+                      <SelectItem value="arquivo">arquivo</SelectItem>
+                      <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
+                      <SelectItem value="documento">documento</SelectItem>
+                      <SelectItem value="carrossel">carrossel</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
@@ -645,6 +674,30 @@ const Modelos = () => {
                 onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
                 placeholder="Ex: Vendas, Suporte"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-template-type">Tipo de Template</Label>
+              <Select
+                value={editFormData.type}
+                onValueChange={(value) => setEditFormData(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger id="edit-template-type">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="texto">texto</SelectItem>
+                  <SelectItem value="imagem">imagem</SelectItem>
+                  <SelectItem value="audio">audio</SelectItem>
+                  <SelectItem value="video">video</SelectItem>
+                  <SelectItem value="lista_opcao">lista de opção</SelectItem>
+                  <SelectItem value="copia_cola">copia e cola</SelectItem>
+                  <SelectItem value="arquivo">arquivo</SelectItem>
+                  <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
+                  <SelectItem value="documento">documento</SelectItem>
+                  <SelectItem value="carrossel">carrossel</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div>

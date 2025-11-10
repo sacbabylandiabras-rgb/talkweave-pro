@@ -206,6 +206,7 @@ export type Database = {
           header: string | null
           id: string
           name: string
+          type: string | null
           updated_at: string
           usage_count: number | null
           variables: Json | null
@@ -220,6 +221,7 @@ export type Database = {
           header?: string | null
           id?: string
           name: string
+          type?: string | null
           updated_at?: string
           usage_count?: number | null
           variables?: Json | null
@@ -234,6 +236,7 @@ export type Database = {
           header?: string | null
           id?: string
           name?: string
+          type?: string | null
           updated_at?: string
           usage_count?: number | null
           variables?: Json | null

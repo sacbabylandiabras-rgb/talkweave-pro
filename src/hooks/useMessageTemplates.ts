@@ -6,6 +6,7 @@ export interface MessageTemplate {
   id: string;
   name: string;
   category: string;
+  type?: string;
   content: string;
   header?: string;
   footer?: string;
@@ -36,6 +37,7 @@ export const useMessageTemplates = () => {
         id: item.id,
         name: item.name,
         category: item.category,
+        type: item.type || "texto",
         content: item.content,
         header: item.header || "",
         footer: item.footer || "",
@@ -61,6 +63,7 @@ export const useMessageTemplates = () => {
   const createTemplate = async (templateData: {
     name: string;
     category: string;
+    type?: string;
     content: string;
     header?: string;
     footer?: string;
@@ -73,6 +76,7 @@ export const useMessageTemplates = () => {
         .insert({
           name: templateData.name,
           category: templateData.category,
+          type: templateData.type || "texto",
           content: templateData.content,
           header: templateData.header,
           footer: templateData.footer,
@@ -88,6 +92,7 @@ export const useMessageTemplates = () => {
         id: data.id,
         name: data.name,
         category: data.category,
+        type: data.type || "texto",
         content: data.content,
         header: data.header || "",
         footer: data.footer || "",
@@ -132,6 +137,7 @@ export const useMessageTemplates = () => {
             id: data.id,
             name: data.name,
             category: data.category,
+            type: data.type || template.type || "texto",
             content: data.content,
             header: data.header || template.header || "",
             footer: data.footer || template.footer || "",
@@ -192,6 +198,7 @@ export const useMessageTemplates = () => {
       const newTemplate = {
         name: `${template.name} (Cópia)`,
         category: template.category,
+        type: template.type,
         content: template.content,
         header: template.header,
         footer: template.footer,
