@@ -64,14 +64,15 @@ serve(async (req) => {
       throw new Error('Campaign not found');
     }
 
-    // CRITICAL: Don't process paused campaigns
-    if (campaign.status === 'paused') {
-      console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
+    // CRITICAL: Don't process paused campaigns - User must manually resume
+    if (campaign.status === 'paused' || campaign.status === 'cancelled') {
+      console.log(`❌ Campaign ${campaignId} is ${campaign.status.toUpperCase()}. Will not process. User must manually resume.`);
       return new Response(
         JSON.stringify({ 
-          error: 'Campaign is paused',
-          message: 'Esta campanha está pausada. Use o botão "Retomar de onde parou" para continuar.',
-          paused: true
+          error: `Campaign is ${campaign.status}`,
+          message: `Esta campanha está ${campaign.status === 'paused' ? 'pausada' : 'cancelada'}. ${campaign.status === 'paused' ? 'Use o botão "Retomar de onde parou" para continuar.' : ''}`,
+          paused: campaign.status === 'paused',
+          cancelled: campaign.status === 'cancelled'
         }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
@@ -96,6 +97,18 @@ serve(async (req) => {
     // Define background processing function
     const processContactsInBackground = async () => {
       const results = [];
+      
+      // DOUBLE CHECK: Verify campaign is not paused before starting
+      const { data: campaignCheck } = await supabase
+        .from('campaigns')
+        .select('status')
+        .eq('id', campaignId)
+        .single();
+      
+      if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+        console.log(`🛑 Campaign ${campaignId} is ${campaignCheck.status}. CANNOT START. User must manually resume.`);
+        return;
+      }
       
       // Process each contact
       for (let i = 0; i < contacts.length; i++) {
