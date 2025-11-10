@@ -98,9 +98,17 @@ export const useCampaigns = () => {
     delay_seconds?: number;
   }) => {
     try {
+      // Obter o user_id do usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('campaigns')
         .insert({
+          user_id: user.id, // CRÍTICO: Incluir user_id para RLS
           name: campaignData.name,
           description: campaignData.description,
           template_id: campaignData.template_id,
