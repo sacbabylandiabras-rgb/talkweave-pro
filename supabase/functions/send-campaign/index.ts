@@ -278,9 +278,14 @@ serve(async (req) => {
                   } else if (btnType === 'REPLY' || btnType === 'OPTION') {
                     buttonData.type = 'REPLY';
                   } else {
-                    // URL button - just send as is
+                    // URL button - ensure it has http:// or https://
                     buttonData.type = 'URL';
-                    buttonData.url = btn.url || btn.value || 'https://z-api.io';
+                    let url = btn.url || btn.value || 'https://z-api.io';
+                    // Add https:// if missing
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                      url = 'https://' + url;
+                    }
+                    buttonData.url = url;
                   }
                   
                   if (btn.id) {
