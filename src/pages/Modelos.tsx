@@ -357,13 +357,12 @@ const Modelos = () => {
             return;
           }
           
-          // Validar URL da imagem (se fornecida)
-          if (card.image && card.image.trim() !== '') {
+          // Validar URL da imagem apenas se for texto digitado manualmente (não vazio e não é URL do Supabase)
+          if (card.image && card.image.trim() !== '' && !card.image.includes('supabase.co/storage')) {
             const imageUrl = card.image.trim();
             
-            // Verificar se é uma URL válida
-            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i) ||
-                              imageUrl.includes('supabase.co/storage');
+            // Verificar se é uma URL válida (apenas para URLs digitadas manualmente)
+            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i);
             
             if (!isValidUrl) {
               toast({
@@ -479,13 +478,12 @@ const Modelos = () => {
             return;
           }
           
-          // Validar URL da imagem (se fornecida)
-          if (card.image && card.image.trim() !== '') {
+          // Validar URL da imagem apenas se for texto digitado manualmente (não vazio e não é URL do Supabase)
+          if (card.image && card.image.trim() !== '' && !card.image.includes('supabase.co/storage')) {
             const imageUrl = card.image.trim();
             
-            // Verificar se é uma URL válida
-            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i) ||
-                              imageUrl.includes('supabase.co/storage');
+            // Verificar se é uma URL válida (apenas para URLs digitadas manualmente)
+            const isValidUrl = imageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp)/i);
             
             if (!isValidUrl) {
               toast({
