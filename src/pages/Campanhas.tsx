@@ -75,7 +75,22 @@ const Campanhas = () => {
   };
 
   const handleResumeCampaign = async (id: string) => {
+    // CONFIRMAÇÃO obrigatória para evitar retomadas acidentais
+    const campaign = campaigns.find(c => c.id === id);
+    const confirmed = confirm(
+      `⚠️ ATENÇÃO: Deseja realmente RETOMAR esta campanha?\n\n` +
+      `📤 Campanha: ${campaign?.name || 'Desconhecida'}\n` +
+      `🔄 A campanha continuará de onde parou\n\n` +
+      `Esta ação iniciará o envio de mensagens!`
+    );
+
+    if (!confirmed) {
+      console.log('❌ Retomada de campanha cancelada pelo usuário');
+      return;
+    }
+
     try {
+      console.log(`✅ Usuário confirmou retomada da campanha ${id}`);
       await resumeCampaign(id);
       await refetch();
     } catch (error) {
@@ -122,7 +137,22 @@ const Campanhas = () => {
       return;
     }
 
+    // CONFIRMAÇÃO obrigatória para evitar envios acidentais
+    const confirmed = confirm(
+      `⚠️ ATENÇÃO: Deseja realmente ENVIAR esta campanha?\n\n` +
+      `📤 Campanha: ${campaign.name}\n` +
+      `👥 Total de contatos: ${campaign.target_audience.contacts.length}\n\n` +
+      `Esta ação NÃO pode ser desfeita!`
+    );
+
+    if (!confirmed) {
+      console.log('❌ Envio de campanha cancelado pelo usuário');
+      return;
+    }
+
     try {
+      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
+      
       // Set up progress dialog
       setTotalContactsCount(campaign.target_audience.contacts.length);
       setSendingCampaignId(campaign.id);
