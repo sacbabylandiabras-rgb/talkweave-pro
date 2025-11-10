@@ -239,12 +239,11 @@ serve(async (req) => {
 
           // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
           if (templateType === 'video_botoes' && hasMedia && hasButtons) {
-            // First, send the video
+            // First, send the video WITHOUT caption
             const videoUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-video`;
             const videoBody = {
               phone: contact.phone,
-              video: campaign.template.media_url,
-              caption: fullMessage
+              video: campaign.template.media_url
             };
             
             console.log(`[1/2] Sending video to ${contact.phone}`);
@@ -326,10 +325,10 @@ serve(async (req) => {
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
             requestBody = {
               phone: contact.phone,
-              message: "👆 Escolha uma das opções acima:",
+              message: fullMessage,
               buttonActions: formattedButtons
             };
-            console.log(`[2/2] Sending ${formattedButtons.length} button(s) to ${contact.phone}`);
+            console.log(`[2/2] Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
             
           } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
             // Format buttons for Z-API with URL validation
