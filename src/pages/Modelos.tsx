@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
@@ -200,6 +201,7 @@ const Modelos = () => {
   
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     category: "",
@@ -229,6 +231,63 @@ const Modelos = () => {
     listItems: [] as Array<{id: string, title: string, description?: string}>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // Função para fazer upload do arquivo
+  const handleFileUpload = async (file: File, isEdit: boolean = false) => {
+    try {
+      setUploadingFile(true);
+      
+      // Gerar nome único para o arquivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload para o Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('template-media')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Obter URL pública do arquivo
+      const { data: urlData } = supabase.storage
+        .from('template-media')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Atualizar estado com a URL
+      if (isEdit) {
+        setEditFormData(prev => ({
+          ...prev,
+          mediaUrl: publicUrl,
+          fileName: file.name,
+          fileType: file.type,
+        }));
+      } else {
+        setNewTemplate(prev => ({
+          ...prev,
+          mediaUrl: publicUrl,
+          fileName: file.name,
+          fileType: file.type,
+        }));
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Arquivo enviado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar arquivo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const categories = ["Todos", ...new Set(templates.map(t => t.category))];
   const filteredTemplates = templates.filter(template => {
@@ -508,24 +567,101 @@ const Modelos = () => {
 
                 {/* Campos específicos por tipo */}
                 {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes") && (
-                  <div>
-                    <Label htmlFor="template-media-url">URL da Mídia</Label>
-                    <Input
-                      id="template-media-url"
-                      value={newTemplate.mediaUrl}
-                      onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
-                      placeholder="https://exemplo.com/arquivo.jpg"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      URL pública do arquivo de mídia
-                    </p>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Upload de Arquivo</Label>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept={
+                              newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
+                                ? "image/*"
+                                : newTemplate.type === "audio"
+                                ? "audio/*"
+                                : "video/*"
+                            }
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(file, false);
+                            }}
+                            disabled={uploadingFile}
+                          />
+                          {uploadingFile && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enviando arquivo...
+                            </p>
+                          )}
+                        </div>
+                        {newTemplate.mediaUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNewTemplate(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {newTemplate.mediaUrl && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Arquivo: {newTemplate.fileName}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="template-media-url">Ou cole a URL da Mídia</Label>
+                      <Input
+                        id="template-media-url"
+                        value={newTemplate.mediaUrl}
+                        onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                        placeholder="https://exemplo.com/arquivo.jpg"
+                      />
+                    </div>
                   </div>
                 )}
 
                 {(newTemplate.type === "arquivo" || newTemplate.type === "documento") && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="template-file-url">URL do Arquivo</Label>
+                      <Label>Upload de Arquivo</Label>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(file, false);
+                            }}
+                            disabled={uploadingFile}
+                          />
+                          {uploadingFile && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enviando arquivo...
+                            </p>
+                          )}
+                        </div>
+                        {newTemplate.mediaUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNewTemplate(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {newTemplate.mediaUrl && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Arquivo: {newTemplate.fileName}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="template-file-url">Ou cole a URL do Arquivo</Label>
                       <Input
                         id="template-file-url"
                         value={newTemplate.mediaUrl}
@@ -533,15 +669,17 @@ const Modelos = () => {
                         placeholder="https://exemplo.com/documento.pdf"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="template-file-name">Nome do Arquivo</Label>
-                      <Input
-                        id="template-file-name"
-                        value={newTemplate.fileName}
-                        onChange={(e) => setNewTemplate(prev => ({ ...prev, fileName: e.target.value }))}
-                        placeholder="documento.pdf"
-                      />
-                    </div>
+                    {!newTemplate.fileName && newTemplate.mediaUrl && (
+                      <div>
+                        <Label htmlFor="template-file-name">Nome do Arquivo</Label>
+                        <Input
+                          id="template-file-name"
+                          value={newTemplate.fileName}
+                          onChange={(e) => setNewTemplate(prev => ({ ...prev, fileName: e.target.value }))}
+                          placeholder="documento.pdf"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -875,24 +1013,101 @@ const Modelos = () => {
 
             {/* Campos específicos por tipo - Edição */}
             {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes") && (
-              <div>
-                <Label htmlFor="edit-template-media-url">URL da Mídia</Label>
-                <Input
-                  id="edit-template-media-url"
-                  value={editFormData.mediaUrl}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
-                  placeholder="https://exemplo.com/arquivo.jpg"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  URL pública do arquivo de mídia
-                </p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Upload de Arquivo</Label>
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept={
+                          editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
+                            ? "image/*"
+                            : editFormData.type === "audio"
+                            ? "audio/*"
+                            : "video/*"
+                        }
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, true);
+                        }}
+                        disabled={uploadingFile}
+                      />
+                      {uploadingFile && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Enviando arquivo...
+                        </p>
+                      )}
+                    </div>
+                    {editFormData.mediaUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFormData(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {editFormData.mediaUrl && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ Arquivo: {editFormData.fileName}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="edit-template-media-url">Ou cole a URL da Mídia</Label>
+                  <Input
+                    id="edit-template-media-url"
+                    value={editFormData.mediaUrl}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                    placeholder="https://exemplo.com/arquivo.jpg"
+                  />
+                </div>
               </div>
             )}
 
             {(editFormData.type === "arquivo" || editFormData.type === "documento") && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div>
-                  <Label htmlFor="edit-template-file-url">URL do Arquivo</Label>
+                  <Label>Upload de Arquivo</Label>
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, true);
+                        }}
+                        disabled={uploadingFile}
+                      />
+                      {uploadingFile && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Enviando arquivo...
+                        </p>
+                      )}
+                    </div>
+                    {editFormData.mediaUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFormData(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {editFormData.mediaUrl && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ Arquivo: {editFormData.fileName}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="edit-template-file-url">Ou cole a URL do Arquivo</Label>
                   <Input
                     id="edit-template-file-url"
                     value={editFormData.mediaUrl}
@@ -900,15 +1115,17 @@ const Modelos = () => {
                     placeholder="https://exemplo.com/documento.pdf"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="edit-template-file-name">Nome do Arquivo</Label>
-                  <Input
-                    id="edit-template-file-name"
-                    value={editFormData.fileName}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, fileName: e.target.value }))}
-                    placeholder="documento.pdf"
-                  />
-                </div>
+                {!editFormData.fileName && editFormData.mediaUrl && (
+                  <div>
+                    <Label htmlFor="edit-template-file-name">Nome do Arquivo</Label>
+                    <Input
+                      id="edit-template-file-name"
+                      value={editFormData.fileName}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, fileName: e.target.value }))}
+                      placeholder="documento.pdf"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
