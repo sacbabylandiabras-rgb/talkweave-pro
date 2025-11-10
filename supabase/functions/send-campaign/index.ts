@@ -334,78 +334,38 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
             }
             
-            // ALWAYS send a text message after carousel
-            // Wait before sending text message
-            const followUpDelay = Math.max(delayMs / 2, 1000);
-            console.log(`⏱️  Aguardando ${followUpDelay}ms antes de enviar mensagem de texto...`);
-            await new Promise(resolve => setTimeout(resolve, followUpDelay));
+            // Carousel sent successfully - mark as complete and continue
+            campaignSend.status = 'sent';
+            campaignSend.sent_at = new Date().toISOString();
             
-            // If there are buttons, send with buttons
-            if (hasButtons) {
-              // Format buttons for Z-API with URL validation
-              const formattedButtons = campaign.template.buttons
-                .map((btn: any) => {
-                  const btnType = (btn.type || 'url').toUpperCase();
-                  const buttonData: any = {
-                    label: btn.text || btn.label
-                  };
-                  
-                  if (btnType === 'CALL') {
-                    buttonData.type = 'CALL';
-                    buttonData.phone = btn.phone || btn.value;
-                  } else if (btnType === 'REPLY' || btnType === 'OPTION') {
-                    buttonData.type = 'REPLY';
-                  } else if (btnType === 'COPY') {
-                    buttonData.type = 'URL';
-                    buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
-                  } else {
-                    // URL button - validate and fix URL
-                    let url = btn.url || btn.value || '';
-                    
-                    if (url && !url.match(/^https?:\/\//i)) {
-                      url = 'https://' + url;
-                      console.log(`⚠️ Fixed URL without protocol: ${btn.url || btn.value} -> ${url}`);
-                    }
-                    
-                    try {
-                      new URL(url);
-                      buttonData.type = 'URL';
-                      buttonData.url = url;
-                    } catch (e) {
-                      console.error(`❌ Invalid URL in button "${btn.text || btn.label}": ${btn.url || btn.value}. Button will be skipped.`);
-                      return null;
-                    }
-                  }
-                  
-                  if (btn.id) {
-                    buttonData.id = btn.id;
-                  }
-                  
-                  return buttonData;
-                })
-                .filter((btn: any) => btn !== null);
-              
-              if (formattedButtons.length === 0) {
-                console.error('❌ All buttons were invalid. Cannot send message with buttons.');
-                throw new Error('Todos os botões possuem URLs inválidas. Verifique o template.');
-              }
+            results.push({
+              phone: contact.phone,
+              success: true,
+              messageId: 'carousel-sent',
+            });
 
-              zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
-              requestBody = {
-                phone: contact.phone,
-                message: fullMessage,
-                buttonActions: formattedButtons
-              };
-              console.log(`[2/2] Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
-            } else {
-              // No buttons - send as plain text message
-              zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
-              requestBody = {
-                phone: contact.phone,
-                message: fullMessage,
-              };
-              console.log(`[2/2] Sending text message to ${contact.phone}`);
+            console.log(`✅ Carousel sent successfully to ${contact.phone}`);
+            
+            // Save campaign send record
+            if (campaignSend) {
+              const { error: insertError } = await supabase
+                .from('campaign_sends')
+                .insert([campaignSend]);
+
+              if (insertError) {
+                console.error(`Error saving campaign send for ${contact.phone}:`, insertError);
+              } else {
+                console.log(`Saved campaign send record for ${contact.phone}`);
+              }
             }
+
+            // Add delay before next contact
+            if (i < contacts.length - 1) {
+              console.log(`⏱️  Aguardando ${delayMs}ms antes do próximo contato...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+
+            continue;
             
           } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
             // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
