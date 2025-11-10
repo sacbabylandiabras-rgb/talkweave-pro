@@ -792,15 +792,15 @@ serve(async (req) => {
         }
       }
 
-      // Update campaign status to completed (only if it wasn't paused)
+      // Update campaign status to completed (only if it wasn't paused or cancelled)
       const { data: finalCampaign } = await supabase
         .from('campaigns')
         .select('status')
         .eq('id', campaignId)
         .single();
       
-      // Only mark as completed if campaign is still active (not paused)
-      if (finalCampaign?.status === 'active') {
+      // Mark as completed if campaign is still active OR draft (wasn't paused/cancelled during processing)
+      if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
         await supabase
           .from('campaigns')
           .update({ 
@@ -808,6 +808,10 @@ serve(async (req) => {
             updated_at: new Date().toISOString()
           })
           .eq('id', campaignId);
+        
+        console.log(`📊 Campaign ${campaignId} marked as completed`);
+      } else {
+        console.log(`⚠️ Campaign ${campaignId} not marked as completed (status: ${finalCampaign?.status})`);
       }
 
       // Calculate summary

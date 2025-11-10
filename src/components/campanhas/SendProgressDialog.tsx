@@ -85,6 +85,30 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     // Poll for updates every 2 seconds
     const pollInterval = setInterval(async () => {
       try {
+        // Check campaign status
+        const { data: campaignData, error: campaignError } = await supabase
+          .from('campaigns')
+          .select('status')
+          .eq('id', campaignId)
+          .single();
+
+        if (campaignError) throw campaignError;
+
+        // If campaign is completed or cancelled, mark as complete
+        if (campaignData?.status === 'completed') {
+          setIsComplete(true);
+          clearInterval(pollInterval);
+          return;
+        }
+
+        if (campaignData?.status === 'paused') {
+          setIsPaused(true);
+          setIsPausing(false);
+          clearInterval(pollInterval);
+          return;
+        }
+
+        // Poll campaign_sends for progress
         const { data, error } = await supabase
           .from('campaign_sends')
           .select('status')
@@ -102,7 +126,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
         setStats(newStats);
 
-        // Check if complete (no pending messages)
+        // Check if complete (no pending messages) - backup check
         if (data.length >= totalContacts && newStats.pending === 0) {
           setIsComplete(true);
           clearInterval(pollInterval);
