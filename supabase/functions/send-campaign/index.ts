@@ -266,43 +266,29 @@ serve(async (req) => {
               
               // Add buttons if available
               if (card.buttons && Array.isArray(card.buttons) && card.buttons.length > 0) {
-                cardData.buttonActions = card.buttons
-                  .map((btn: any) => {
-                    const btnType = (btn.type || 'url').toUpperCase();
-                    const buttonData: any = {
-                      label: btn.text || btn.label
-                    };
-                    
-                    if (btnType === 'CALL') {
-                      buttonData.type = 'CALL';
-                      buttonData.phone = btn.phone || btn.value;
-                    } else if (btnType === 'REPLY' || btnType === 'OPTION') {
-                      buttonData.type = 'REPLY';
-                    } else {
-                      // URL button - validate and fix URL
-                      let url = btn.url || btn.value || '';
-                      
-                      if (url && !url.match(/^https?:\/\//i)) {
-                        url = 'https://' + url;
-                      }
-                      
-                      try {
-                        new URL(url);
-                        buttonData.type = 'URL';
-                        buttonData.url = url;
-                      } catch (e) {
-                        console.error(`❌ Invalid URL in carousel button "${btn.text || btn.label}": ${btn.url || btn.value}`);
-                        return null;
-                      }
-                    }
-                    
-                    if (btn.id) {
-                      buttonData.id = btn.id;
-                    }
-                    
-                    return buttonData;
-                  })
-                  .filter((btn: any) => btn !== null);
+                cardData.buttonActions = card.buttons.map((btn: any) => {
+                  const btnType = (btn.type || 'url').toUpperCase();
+                  const buttonData: any = {
+                    label: btn.text || btn.label
+                  };
+                  
+                  if (btnType === 'CALL') {
+                    buttonData.type = 'CALL';
+                    buttonData.phone = btn.phone || btn.value;
+                  } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                    buttonData.type = 'REPLY';
+                  } else {
+                    // URL button - just send as is
+                    buttonData.type = 'URL';
+                    buttonData.url = btn.url || btn.value || 'https://z-api.io';
+                  }
+                  
+                  if (btn.id) {
+                    buttonData.id = btn.id;
+                  }
+                  
+                  return buttonData;
+                });
               }
               
               return cardData;
@@ -419,24 +405,9 @@ serve(async (req) => {
                   buttonData.type = 'URL';
                   buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
                 } else {
-                  // URL button - validate and fix URL
-                  let url = btn.url || btn.value || '';
-                  
-                  // If URL doesn't start with http:// or https://, add https://
-                  if (url && !url.match(/^https?:\/\//i)) {
-                    url = 'https://' + url;
-                    console.log(`⚠️ Fixed URL without protocol: ${btn.url || btn.value} -> ${url}`);
-                  }
-                  
-                  // Validate URL format
-                  try {
-                    new URL(url);
-                    buttonData.type = 'URL';
-                    buttonData.url = url;
-                  } catch (e) {
-                    console.error(`❌ Invalid URL in button "${btn.text || btn.label}": ${btn.url || btn.value}. Button will be skipped.`);
-                    return null;
-                  }
+                  // URL button - send as is
+                  buttonData.type = 'URL';
+                  buttonData.url = btn.url || btn.value || 'https://z-api.io';
                 }
                 
                 if (btn.id) {
@@ -448,8 +419,8 @@ serve(async (req) => {
               .filter((btn: any) => btn !== null);
             
             if (formattedButtons.length === 0) {
-              console.error('❌ All buttons were invalid. Cannot send message with buttons.');
-              throw new Error('Todos os botões possuem URLs inválidas. Verifique o template.');
+              console.error('❌ No buttons to send.');
+              throw new Error('Nenhum botão para enviar.');
             }
 
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
@@ -462,8 +433,7 @@ serve(async (req) => {
             
           } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
             // Format buttons for Z-API with URL validation
-            const formattedButtons = campaign.template.buttons
-              .map((btn: any) => {
+              const formattedButtons = campaign.template.buttons.map((btn: any) => {
                 const btnType = (btn.type || 'url').toUpperCase();
                 const buttonData: any = {
                   label: btn.text || btn.label
@@ -478,24 +448,9 @@ serve(async (req) => {
                   buttonData.type = 'URL';
                   buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
                 } else {
-                  // URL button - validate and fix URL
-                  let url = btn.url || btn.value || '';
-                  
-                  // If URL doesn't start with http:// or https://, add https://
-                  if (url && !url.match(/^https?:\/\//i)) {
-                    url = 'https://' + url;
-                    console.log(`⚠️ Fixed URL without protocol: ${btn.url || btn.value} -> ${url}`);
-                  }
-                  
-                  // Validate URL format
-                  try {
-                    new URL(url);
-                    buttonData.type = 'URL';
-                    buttonData.url = url;
-                  } catch (e) {
-                    console.error(`❌ Invalid URL in button "${btn.text || btn.label}": ${btn.url || btn.value}. Button will be skipped.`);
-                    return null; // Skip invalid buttons
-                  }
+                  // URL button - send as is
+                  buttonData.type = 'URL';
+                  buttonData.url = btn.url || btn.value || 'https://z-api.io';
                 }
                 
                 if (btn.id) {
@@ -503,12 +458,11 @@ serve(async (req) => {
                 }
                 
                 return buttonData;
-              })
-              .filter((btn: any) => btn !== null); // Remove null buttons (invalid URLs)
+              });
             
             if (formattedButtons.length === 0) {
-              console.error('❌ All buttons were invalid. Cannot send message with buttons.');
-              throw new Error('Todos os botões possuem URLs inválidas. Verifique o template.');
+              console.error('❌ No buttons to send.');
+              throw new Error('Nenhum botão válido para enviar.');
             }
 
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
