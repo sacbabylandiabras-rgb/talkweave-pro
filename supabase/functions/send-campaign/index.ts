@@ -245,12 +245,79 @@ serve(async (req) => {
           const templateType = campaign.template.type || 'texto';
           const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
           const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
+          const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
           
           let zapiUrl: string;
           let requestBody: any;
 
-          // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
-          if (templateType === 'video_botoes' && hasMedia && hasButtons) {
+          // PRIORITY 0: Carousel (carrossel)
+          if (templateType === 'carrossel' && hasCarouselCards) {
+            const carouselCards = campaign.template.carousel_cards.map((card: any) => {
+              const cardData: any = {
+                title: card.title || '',
+                description: card.description || '',
+              };
+              
+              // Add image if available
+              if (card.image && card.image.trim() !== '') {
+                cardData.image = card.image;
+              }
+              
+              // Add buttons if available
+              if (card.buttons && Array.isArray(card.buttons) && card.buttons.length > 0) {
+                cardData.buttonActions = card.buttons
+                  .map((btn: any) => {
+                    const btnType = (btn.type || 'url').toUpperCase();
+                    const buttonData: any = {
+                      label: btn.text || btn.label
+                    };
+                    
+                    if (btnType === 'CALL') {
+                      buttonData.type = 'CALL';
+                      buttonData.phone = btn.phone || btn.value;
+                    } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                      buttonData.type = 'REPLY';
+                    } else {
+                      // URL button - validate and fix URL
+                      let url = btn.url || btn.value || '';
+                      
+                      if (url && !url.match(/^https?:\/\//i)) {
+                        url = 'https://' + url;
+                      }
+                      
+                      try {
+                        new URL(url);
+                        buttonData.type = 'URL';
+                        buttonData.url = url;
+                      } catch (e) {
+                        console.error(`❌ Invalid URL in carousel button "${btn.text || btn.label}": ${btn.url || btn.value}`);
+                        return null;
+                      }
+                    }
+                    
+                    if (btn.id) {
+                      buttonData.id = btn.id;
+                    }
+                    
+                    return buttonData;
+                  })
+                  .filter((btn: any) => btn !== null);
+              }
+              
+              return cardData;
+            });
+            
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage,
+              cards: carouselCards
+            };
+            
+            console.log(`Sending carousel with ${carouselCards.length} card(s) to ${contact.phone}`);
+            
+          } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
+            // PRIORITY 1: Video with buttons (video_botoes) - Send video then buttons
             // First, send the video WITHOUT caption
             const videoUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-video`;
             const videoBody = {
