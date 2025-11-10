@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,20 +78,13 @@ serve(async (req) => {
     message = message.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
     message = message.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
 
-    // Obter credenciais da Z-API - teste com credenciais fixas que funcionam no frontend
-    const zapiInstanceId = '3E6DD0DEED00C0FD52197AE2AD17DA62';
-    const zapiToken = '9E09CAB81F22425F5954C6C2';
-    const zapiClientToken = 'Fd1c0871baaa5449db5ea1628166c0566S';
+    // Get user's Z-API credentials from their profile
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const zapiInstanceId = credentials.instanceId;
+    const zapiToken = credentials.token;
+    const zapiClientToken = credentials.clientToken;
 
-    console.log('Using hardcoded Z-API Credentials:', {
-      instanceId: zapiInstanceId,
-      token: zapiToken, 
-      clientToken: zapiClientToken
-    });
-
-    if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
-      throw new Error('Missing Z-API credentials');
-    }
+    console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
 
     // Enviar mensagem via Z-API
     const zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;

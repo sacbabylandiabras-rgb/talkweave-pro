@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
+import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -7,6 +9,13 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
     const { phone, message } = await req.json()
 
     if (!phone || !message) {
@@ -19,19 +28,11 @@ serve(async (req) => {
       )
     }
 
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')
-    const token = Deno.env.get('ZAPI_TOKEN')
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')
-
-    if (!instanceId || !token || !clientToken) {
-      return new Response(
-        JSON.stringify({ error: 'Z-API credentials not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    // Get user's Z-API credentials from their profile
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const instanceId = credentials.instanceId;
+    const token = credentials.token;
+    const clientToken = credentials.clientToken;
 
     const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`
 

@@ -97,24 +97,42 @@ serve(async (req) => {
         console.error('Erro ao salvar log:', logError)
       }
 
-      // Obter instanceId dos secrets ou tentar extrair do webhook
-      const instanceId = webhook.instanceId || Deno.env.get('ZAPI_INSTANCE_ID')
-      const zapiToken = Deno.env.get('ZAPI_TOKEN')
-      const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')
+      // Find user by instanceId to get their credentials
+      const instanceId = webhook.instanceId;
       
-      if (!instanceId || !zapiToken) {
-        console.error('Credenciais Z-API não configuradas')
-        return new Response('missing_credentials', { status: 500, headers: corsHeaders })
+      if (!instanceId) {
+        console.error('No instanceId in webhook data');
+        return new Response('missing_instance_id', { status: 400, headers: corsHeaders });
       }
+
+      console.log('Looking for user with instanceId:', instanceId);
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .eq('zapi_instance_id', instanceId)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('User profile not found for instanceId:', instanceId, profileError);
+        return new Response('user_not_found', { status: 404, headers: corsHeaders });
+      }
+
+      if (!profile.zapi_token || !profile.zapi_client_token) {
+        console.error('User has incomplete Z-API credentials');
+        return new Response('incomplete_credentials', { status: 400, headers: corsHeaders });
+      }
+
+      console.log('Found user credentials for instance:', instanceId);
 
       console.log('Enviando resposta via Z-API para:', phone)
       
-      // Envia resposta automática via Z-API
-      const zapiResponse = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${zapiToken}/send-text`, {
+      // Envia resposta automática via Z-API using user's credentials
+      const zapiResponse = await fetch(`https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Token': clientToken || ''
+          'Client-Token': profile.zapi_client_token
         },
         body: JSON.stringify({
           phone,

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
 interface SendCampaignRequest {
   campaignId: string;
@@ -80,16 +81,13 @@ serve(async (req) => {
       throw new Error('Campaign template not found');
     }
 
-    // Get Z-API credentials
-    const zapiInstanceId = '3E6DD0DEED00C0FD52197AE2AD17DA62';
-    const zapiToken = '9E09CAB81F22425F5954C6C2';
-    const zapiClientToken = 'Fd1c0871baaa5449db5ea1628166c0566S';
+    // Get user's Z-API credentials from their profile
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const zapiInstanceId = credentials.instanceId;
+    const zapiToken = credentials.token;
+    const zapiClientToken = credentials.clientToken;
 
-    console.log('✅ Using Z-API credentials for campaign');
-
-    if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
-      throw new Error('Missing Z-API credentials');
-    }
+    console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
 
     // Get delay from campaign or use default of 2 seconds
     const delayMs = (campaign.delay_seconds || 2) * 1000;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,57 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Check, X, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ConfiguracaoZAPI = () => {
-  const [instanceId, setInstanceId] = useState("3E6DD0DEED00C0FD52197AE2AD17DA62");
-  const [token, setToken] = useState("9E09CAB81F22425F5954C6C2");
-  const [clientToken, setClientToken] = useState("Fd1c0871baaa5449db5ea1628166c0566S");
+  const [instanceId, setInstanceId] = useState("");
+  const [token, setToken] = useState("");
+  const [clientToken, setClientToken] = useState("");
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [statusInfo, setStatusInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  // Load user's credentials on mount
+  useEffect(() => {
+    loadUserCredentials();
+  }, []);
+
+  const loadUserCredentials = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para configurar Z-API",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading credentials:', error);
+        return;
+      }
+
+      if (profile) {
+        setInstanceId(profile.zapi_instance_id || '');
+        setToken(profile.zapi_token || '');
+        setClientToken(profile.zapi_client_token || '');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const testarConexao = async () => {
     setStatus('testing');
@@ -91,19 +134,65 @@ const ConfiguracaoZAPI = () => {
     }
   };
 
-  const salvarCredenciais = () => {
-    // Aqui você pode salvar no localStorage ou contexto
-    localStorage.setItem('zapLynx_zapi_config', JSON.stringify({
-      instanceId,
-      token,
-      clientToken
-    }));
-    
-    toast({
-      title: "Credenciais salvas!",
-      description: "As configurações foram salvas localmente.",
-    });
+  const salvarCredenciais = async () => {
+    if (!instanceId || !token || !clientToken) {
+      toast({
+        title: "Erro",
+        description: "Preencha todas as credenciais antes de salvar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          zapi_instance_id: instanceId,
+          zapi_token: token,
+          zapi_client_token: clientToken,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Also save to localStorage for backward compatibility
+      localStorage.setItem('zapLynx_zapi_config', JSON.stringify({
+        instanceId,
+        token,
+        clientToken
+      }));
+      
+      toast({
+        title: "✅ Credenciais salvas!",
+        description: "As configurações foram salvas no seu perfil.",
+      });
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Carregando configurações...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -167,8 +256,8 @@ const ConfiguracaoZAPI = () => {
               Testar Conexão
             </Button>
             
-            <Button onClick={salvarCredenciais}>
-              Salvar Credenciais
+            <Button onClick={salvarCredenciais} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar Credenciais'}
             </Button>
           </div>
 
