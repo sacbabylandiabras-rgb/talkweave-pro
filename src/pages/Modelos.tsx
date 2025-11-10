@@ -1235,6 +1235,13 @@ const Modelos = () => {
                     <div className="font-medium mb-1">🎠 Cards do Carrossel ({template.carouselCards.length}):</div>
                     {template.carouselCards.map((card, idx) => (
                       <div key={idx} className="border rounded p-2 bg-background/50">
+                        {card.image && (
+                          <img 
+                            src={card.image} 
+                            alt={card.title}
+                            className="w-full h-24 object-cover rounded mb-2"
+                          />
+                        )}
                         <div className="font-semibold">Card {idx + 1}: {card.title}</div>
                         <div className="text-muted-foreground mt-1">{card.description}</div>
                         {card.buttons && card.buttons.length > 0 && (
