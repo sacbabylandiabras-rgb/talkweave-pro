@@ -216,13 +216,69 @@ serve(async (req) => {
             fullMessage += '\n\n' + campaign.template.footer;
           }
 
-          // Check if template has buttons
+          // Check template type and send accordingly
+          const templateType = campaign.template.type || 'texto';
           const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
+          const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
           
           let zapiUrl: string;
           let requestBody: any;
 
-          if (hasButtons) {
+          // Handle media types (imagem, video, audio, documento, arquivo)
+          if (templateType === 'imagem' || templateType === 'imagem_botoes') {
+            if (!hasMedia) {
+              throw new Error(`Template tipo "${templateType}" requer uma imagem`);
+            }
+            
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
+            requestBody = {
+              phone: contact.phone,
+              image: campaign.template.media_url,
+              caption: fullMessage
+            };
+            console.log(`Sending image to ${contact.phone}`);
+            
+          } else if (templateType === 'video') {
+            if (!hasMedia) {
+              throw new Error('Template tipo "video" requer um vídeo');
+            }
+            
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-video`;
+            requestBody = {
+              phone: contact.phone,
+              video: campaign.template.media_url,
+              caption: fullMessage
+            };
+            console.log(`Sending video to ${contact.phone}`);
+            
+          } else if (templateType === 'audio') {
+            if (!hasMedia) {
+              throw new Error('Template tipo "audio" requer um áudio');
+            }
+            
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`;
+            requestBody = {
+              phone: contact.phone,
+              audio: campaign.template.media_url
+            };
+            console.log(`Sending audio to ${contact.phone}`);
+            
+          } else if (templateType === 'documento' || templateType === 'arquivo') {
+            if (!hasMedia) {
+              throw new Error(`Template tipo "${templateType}" requer um arquivo`);
+            }
+            
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-document`;
+            requestBody = {
+              phone: contact.phone,
+              document: campaign.template.media_url,
+              fileName: campaign.template.file_name || 'documento',
+              extension: campaign.template.file_type?.split('/').pop() || 'pdf',
+              caption: fullMessage
+            };
+            console.log(`Sending document to ${contact.phone}`);
+            
+          } else if (hasButtons) {
             // Send with buttons using send-button-actions
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
             
@@ -267,6 +323,7 @@ serve(async (req) => {
             };
 
             console.log(`Sending message with ${formattedButtons.length} button(s) to ${contact.phone}`);
+            
           } else {
             // Send simple text message
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
