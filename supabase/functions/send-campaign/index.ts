@@ -224,10 +224,48 @@ serve(async (req) => {
           let zapiUrl: string;
           let requestBody: any;
 
-          // Handle media types (imagem, video, audio, documento, arquivo)
-          if (templateType === 'imagem' || templateType === 'imagem_botoes') {
+          // PRIORITY 1: Image with buttons (imagem_botoes)
+          if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
+            // Format buttons for Z-API
+            const formattedButtons = campaign.template.buttons.map((btn: any) => {
+              const btnType = (btn.type || 'url').toUpperCase();
+              const buttonData: any = {
+                label: btn.text || btn.label
+              };
+              
+              if (btnType === 'CALL') {
+                buttonData.type = 'CALL';
+                buttonData.phone = btn.phone || btn.value;
+              } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                buttonData.type = 'REPLY';
+              } else if (btnType === 'COPY') {
+                buttonData.type = 'URL';
+                buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`;
+              } else {
+                buttonData.type = 'URL';
+                buttonData.url = btn.url || btn.value || 'https://z-api.io';
+              }
+              
+              if (btn.id) {
+                buttonData.id = btn.id;
+              }
+              
+              return buttonData;
+            });
+
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-button-actions`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage,
+              image: campaign.template.media_url,
+              buttonActions: formattedButtons
+            };
+            console.log(`Sending image with ${formattedButtons.length} button(s) to ${contact.phone}`);
+            
+          } else if (templateType === 'imagem') {
+            // Simple image without buttons
             if (!hasMedia) {
-              throw new Error(`Template tipo "${templateType}" requer uma imagem`);
+              throw new Error('Template tipo "imagem" requer uma imagem');
             }
             
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
