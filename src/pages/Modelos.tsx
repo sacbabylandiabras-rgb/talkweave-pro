@@ -325,6 +325,10 @@ const Modelos = () => {
         footer: newTemplate.footer,
         variables,
         buttons: newTemplate.buttons,
+        mediaUrl: newTemplate.mediaUrl,
+        fileName: newTemplate.fileName,
+        fileType: newTemplate.fileType,
+        listItems: newTemplate.listItems,
       });
 
       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [] });
@@ -396,6 +400,10 @@ const Modelos = () => {
         footer: editFormData.footer,
         variables,
         buttons: editFormData.buttons,
+        mediaUrl: editFormData.mediaUrl,
+        fileName: editFormData.fileName,
+        fileType: editFormData.fileType,
+        listItems: editFormData.listItems,
       });
 
       setEditingTemplate(null);

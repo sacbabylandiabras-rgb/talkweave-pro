@@ -142,9 +142,25 @@ export const useMessageTemplates = () => {
 
   const updateTemplate = async (id: string, updates: Partial<MessageTemplate>) => {
     try {
+      // Mapear campos camelCase para snake_case para o banco de dados
+      const dbUpdates: any = {};
+      
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.content !== undefined) dbUpdates.content = updates.content;
+      if (updates.header !== undefined) dbUpdates.header = updates.header;
+      if (updates.footer !== undefined) dbUpdates.footer = updates.footer;
+      if (updates.mediaUrl !== undefined) dbUpdates.media_url = updates.mediaUrl;
+      if (updates.fileName !== undefined) dbUpdates.file_name = updates.fileName;
+      if (updates.fileType !== undefined) dbUpdates.file_type = updates.fileType;
+      if (updates.variables !== undefined) dbUpdates.variables = updates.variables;
+      if (updates.buttons !== undefined) dbUpdates.buttons = updates.buttons;
+      if (updates.listItems !== undefined) dbUpdates.list_items = updates.listItems;
+      
       const { data, error } = await supabase
         .from('message_templates')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
