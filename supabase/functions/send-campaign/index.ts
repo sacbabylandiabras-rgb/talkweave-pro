@@ -135,16 +135,25 @@ serve(async (req) => {
               
               // Check if device is connected
               if (!deviceStatus.connected || deviceStatus.connected === false) {
-                console.log(`⚠️ DEVICE DISCONNECTED! Pausing campaign ${campaignId} at contact ${i + 1}/${contacts.length}`);
+                console.log(`❌ DISPOSITIVO DESCONECTADO! Pausando campanha ${campaignId} automaticamente...`);
+                console.log(`📊 Progresso: ${i}/${contacts.length} contatos processados antes da desconexão`);
                 
                 // Pause campaign automatically
-                await supabase
+                const { error: pauseError } = await supabase
                   .from('campaigns')
                   .update({ status: 'paused' })
                   .eq('id', campaignId);
                 
+                if (pauseError) {
+                  console.error('Erro ao pausar campanha:', pauseError);
+                } else {
+                  console.log(`✅ Campanha ${campaignId} PAUSADA com sucesso devido à desconexão`);
+                }
+                
                 return; // Exit background processing
               }
+              
+              console.log(`✅ Dispositivo conectado - prosseguindo com envio`);
             }
           } catch (statusError) {
             console.error('Error checking device status:', statusError);

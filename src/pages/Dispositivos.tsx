@@ -8,6 +8,7 @@ import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dispositivos = () => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
@@ -130,13 +131,68 @@ const Dispositivos = () => {
     }
   };
 
+  // Função para pausar campanhas ativas automaticamente
+  const pauseActiveCampaigns = async () => {
+    try {
+      const { data: activeCampaigns, error } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      if (activeCampaigns && activeCampaigns.length > 0) {
+        console.log(`⚠️ Dispositivo desconectado! Pausando ${activeCampaigns.length} campanha(s) ativa(s)...`);
+        
+        // Pausar todas as campanhas ativas
+        const { error: updateError } = await supabase
+          .from('campaigns')
+          .update({ status: 'paused' })
+          .eq('status', 'active');
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: "⚠️ Campanhas Pausadas",
+          description: `${activeCampaigns.length} campanha(s) foi(ram) pausada(s) automaticamente devido à desconexão do dispositivo`,
+          variant: "destructive",
+        });
+
+        // Log das campanhas pausadas
+        activeCampaigns.forEach(campaign => {
+          console.log(`📊 Campanha pausada: ${campaign.name} (ID: ${campaign.id})`);
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao pausar campanhas ativas:', error);
+    }
+  };
+
   useEffect(() => {
     fetchDeviceStatus();
+    
+    // Configurar intervalo para verificar status a cada 10 segundos
+    const statusInterval = setInterval(() => {
+      fetchDeviceStatus();
+    }, 10000);
+
+    return () => clearInterval(statusInterval);
+  }, []);
+
+  // Monitorar mudanças no status de conexão
+  useEffect(() => {
+    const wasConnected = deviceStatus?.connected;
+    
+    // Se desconectou, pausar campanhas ativas
+    if (wasConnected === false && deviceStatus?.smartphoneConnected === false) {
+      pauseActiveCampaigns();
+    }
+    
     // Se o dispositivo não estiver conectado, buscar QR Code automaticamente
     if (deviceStatus?.connected === false) {
       fetchQRCode();
     }
-  }, [deviceStatus?.connected]);
+  }, [deviceStatus?.connected, deviceStatus?.smartphoneConnected]);
 
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
   const isConnected = deviceStatus?.connected === true;
