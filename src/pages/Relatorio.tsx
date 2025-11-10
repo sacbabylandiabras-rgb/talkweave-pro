@@ -43,6 +43,35 @@ const Relatorio = () => {
 
   useEffect(() => {
     loadReportData();
+    
+    // Set up real-time subscription for campaign_sends
+    const channel = supabase
+      .channel('campaign-sends-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'campaign_sends'
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Reload data when there's a change
+          loadReportData();
+        }
+      )
+      .subscribe();
+
+    // Set up auto-refresh every 3 seconds for active campaigns
+    const autoRefreshInterval = setInterval(() => {
+      loadReportData();
+    }, 3000);
+
+    // Cleanup on unmount
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(autoRefreshInterval);
+    };
   }, []);
 
   const loadReportData = async () => {
@@ -177,6 +206,10 @@ const Relatorio = () => {
             <Calendar className="w-4 h-4" />
             Atualizar Dados
           </Button>
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            Atualização em Tempo Real
+          </Badge>
         </div>
         <Button className="flex items-center gap-2" disabled>
           <Download className="w-4 h-4" />
@@ -264,13 +297,23 @@ const Relatorio = () => {
           ) : (
             <div className="space-y-4">
               {campaignReports.map((campanha) => (
-                <div key={campanha.id} className="border rounded-lg p-4">
+                <div 
+                  key={campanha.id} 
+                  className={`border rounded-lg p-4 ${campanha.status === 'active' ? 'border-primary bg-primary/5 shadow-lg' : ''}`}
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="font-medium">{campanha.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h3 className="font-medium">{campanha.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                      {campanha.status === 'active' && (
+                        <Badge variant="secondary" className="animate-pulse">
+                          Enviando Agora
+                        </Badge>
+                      )}
                     </div>
                     <Badge variant={
                       campanha.status === 'completed' ? 'default' : 
