@@ -90,7 +90,57 @@ serve(async (req) => {
       let campaignSend: CampaignSendRecord | undefined;
       
       try {
-        // CHECK IF CAMPAIGN WAS PAUSED - FIRST PRIORITY
+        // CHECK DEVICE STATUS FIRST
+        console.log(`[${i + 1}/${contacts.length}] Checking device status...`);
+        const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
+        
+        try {
+          const deviceResponse = await fetch(deviceStatusUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Client-Token': zapiClientToken
+            }
+          });
+
+          if (deviceResponse.ok) {
+            const deviceStatus = await deviceResponse.json();
+            console.log(`Device status:`, deviceStatus);
+            
+            // Check if device is connected
+            if (!deviceStatus.connected || deviceStatus.connected === false) {
+              console.log(`⚠️ DEVICE DISCONNECTED! Pausing campaign ${campaignId} at contact ${i + 1}/${contacts.length}`);
+              
+              // Pause campaign automatically
+              await supabase
+                .from('campaigns')
+                .update({ status: 'paused' })
+                .eq('id', campaignId);
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: false,
+                  error: 'Dispositivo desconectado',
+                  message: `Campanha pausada automaticamente no contato ${i + 1}/${contacts.length}. Dispositivo desconectado.`,
+                  paused: true,
+                  disconnected: true,
+                  results: {
+                    total: contacts.length,
+                    processed: i,
+                    sent: results.filter(r => r.success).length,
+                    failed: results.filter(r => !r.success).length,
+                  }
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+              );
+            }
+          }
+        } catch (statusError) {
+          console.error('Error checking device status:', statusError);
+          // Continue anyway - don't block on status check errors
+        }
+
+        // CHECK IF CAMPAIGN WAS PAUSED - SECOND PRIORITY
         const { data: currentCampaign } = await supabase
           .from('campaigns')
           .select('status')
