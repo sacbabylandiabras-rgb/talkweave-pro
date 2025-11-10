@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,17 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [zapiInstanceId, setZapiInstanceId] = useState(user?.zapi_instance_id || '');
   const [zapiToken, setZapiToken] = useState(user?.zapi_token || '');
   const [zapiClientToken, setZapiClientToken] = useState(user?.zapi_client_token || '');
+
+  // Atualizar estados quando o usuário mudar
+  useEffect(() => {
+    if (user) {
+      setSubscriptionStatus(user.subscription_status);
+      setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
+      setZapiInstanceId(user.zapi_instance_id || '');
+      setZapiToken(user.zapi_token || '');
+      setZapiClientToken(user.zapi_client_token || '');
+    }
+  }, [user]);
 
   const handleSave = async () => {
     if (!user) return;

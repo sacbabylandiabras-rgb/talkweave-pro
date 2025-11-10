@@ -67,6 +67,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
               return null;
             }
 
+            // Ocultar Config Z-API para não-admins
+            if (item.id === "configuracao-zapi" && !loading && !isAdmin) {
+              return null;
+            }
+
             const Icon = item.icon;
             const isActive = activeItem === item.id;
             
