@@ -1,17 +1,33 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-// Função para obter configurações do localStorage
-const getZAPIConfig = () => {
-  const saved = localStorage.getItem('zapLynx_zapi_config');
-  if (saved) {
-    return JSON.parse(saved);
+// Função assíncrona para obter configurações do perfil do usuário
+const getZAPIConfig = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
   }
-  // Credenciais atualizadas da imagem - que funcionavam antes
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    throw new Error('Erro ao buscar credenciais: ' + error.message);
+  }
+
+  if (!profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
+    throw new Error('Configure suas credenciais Z-API em "Configuração Z-API" no menu.');
+  }
+
   return {
-    instanceId: '3E6DD0DEED00C0FD52197AE2AD17DA62',
-    token: '9E09CAB81F22425F5954C6C2',
-    clientToken: 'Fd1c0871baaa5449db5ea1628166c0566S'
+    instanceId: profile.zapi_instance_id,
+    token: profile.zapi_token,
+    clientToken: profile.zapi_client_token
   };
 };
 
@@ -21,9 +37,10 @@ export const useZapi = () => {
 
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       console.log('Enviando mensagem para Z-API:', url);
       
@@ -81,9 +98,10 @@ export const useZapi = () => {
 
   const sendButtonList = async (phone: string, message: string, buttons: Array<{id: string, label: string}>) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
       
       const response = await fetch(url, {
@@ -134,9 +152,10 @@ export const useZapi = () => {
     footer?: string
   ) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-actions`;
       
       const payload: any = {
@@ -203,9 +222,10 @@ export const useZapi = () => {
 
   const sendImage = async (phone: string, image: string, caption?: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-image`;
       
       const response = await fetch(url, {
@@ -248,9 +268,10 @@ export const useZapi = () => {
 
   const sendDocument = async (phone: string, document: string, filename: string, extension: string, caption?: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-document/${extension}`;
       
       const response = await fetch(url, {
@@ -294,9 +315,10 @@ export const useZapi = () => {
 
   const sendVideo = async (phone: string, video: string, caption?: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-video`;
       
       const response = await fetch(url, {
@@ -339,9 +361,10 @@ export const useZapi = () => {
 
   const sendAudio = async (phone: string, audio: string, caption?: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-audio`;
       
       const response = await fetch(url, {
@@ -384,9 +407,10 @@ export const useZapi = () => {
 
   const getDeviceStatus = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
       console.log('Buscando status do dispositivo Z-API:', url);
       
@@ -426,9 +450,10 @@ export const useZapi = () => {
 
   const getQRCode = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/qr-code`;
       console.log('Buscando QR Code da Z-API:', url);
       
@@ -468,9 +493,10 @@ export const useZapi = () => {
 
   const disconnectDevice = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
       console.log('Desconectando dispositivo Z-API:', url);
       
@@ -515,9 +541,10 @@ export const useZapi = () => {
 
   const restartInstance = async () => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/restart`;
       console.log('Reiniciando instância Z-API:', url);
       
@@ -564,7 +591,7 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const { instanceId, token, clientToken } = getZAPIConfig();
+      const { instanceId, token, clientToken } = await getZAPIConfig();
       const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/phone-code/${phoneNumber}`;
       
       console.log('Gerando código de pareamento Z-API para:', phoneNumber);
@@ -631,9 +658,10 @@ export const useZapi = () => {
     }
   ) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
       
       const response = await fetch(url, {
@@ -676,9 +704,10 @@ export const useZapi = () => {
 
   const updateProfileName = async (name: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/update-profile-name`;
       console.log('Atualizando nome do perfil Z-API:', url);
       
@@ -724,9 +753,10 @@ export const useZapi = () => {
 
   const updateProfilePicture = async (imageUrl: string) => {
     setLoading(true);
-    const config = getZAPIConfig();
     
     try {
+      const config = await getZAPIConfig();
+      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-picture`;
       console.log('Atualizando foto do perfil Z-API:', url);
       
