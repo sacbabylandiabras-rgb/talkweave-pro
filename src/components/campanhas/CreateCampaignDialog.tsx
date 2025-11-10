@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users, Upload, UserPlus } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus, Eye } from "lucide-react";
 import Papa from "papaparse";
+import { CarouselPreview } from "./CarouselPreview";
 
 interface CreateCampaignDialogProps {
   open: boolean;
@@ -229,6 +230,30 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               </Select>
             </div>
           </div>
+
+          {/* Preview do Carrossel */}
+          {formData.template_id && (() => {
+            const selectedTemplate = templates.find(t => t.id === formData.template_id);
+            if (selectedTemplate?.type === 'carrossel' && selectedTemplate.carouselCards) {
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Preview do Carrossel</h3>
+                  </div>
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <CarouselPreview
+                      cards={selectedTemplate.carouselCards}
+                      header={selectedTemplate.header}
+                      footer={selectedTemplate.footer}
+                      content={selectedTemplate.content}
+                    />
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Agendamento */}
           <div className="space-y-4">
