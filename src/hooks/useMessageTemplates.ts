@@ -20,6 +20,13 @@ export interface MessageTemplate {
   updated_at: string;
   buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
   listItems?: Array<{id: string, title: string, description?: string}>;
+  carouselCards?: Array<{
+    id: string;
+    image: string;
+    title: string;
+    description: string;
+    buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+  }>;
 }
 
 export const useMessageTemplates = () => {
@@ -55,6 +62,7 @@ export const useMessageTemplates = () => {
         updated_at: item.updated_at,
         buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
         listItems: Array.isArray(item.list_items) ? item.list_items as Array<{id: string, title: string, description?: string}> : [],
+        carouselCards: Array.isArray(item.carousel_cards) ? item.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -81,6 +89,7 @@ export const useMessageTemplates = () => {
     variables?: string[];
     buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
     listItems?: Array<{id: string, title: string, description?: string}>;
+    carouselCards?: Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}>;
   }) => {
     try {
       const { data, error } = await supabase
@@ -98,6 +107,7 @@ export const useMessageTemplates = () => {
           variables: templateData.variables || [],
           buttons: templateData.buttons || [],
           list_items: templateData.listItems || [],
+          carousel_cards: templateData.carouselCards || [],
         })
         .select()
         .single();
@@ -122,6 +132,7 @@ export const useMessageTemplates = () => {
         updated_at: data.updated_at,
         buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
         listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : [],
+        carouselCards: Array.isArray(data.carousel_cards) ? data.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
       }, ...prev]);
       toast({
         title: "Sucesso",
@@ -157,6 +168,7 @@ export const useMessageTemplates = () => {
       if (updates.variables !== undefined) dbUpdates.variables = updates.variables;
       if (updates.buttons !== undefined) dbUpdates.buttons = updates.buttons;
       if (updates.listItems !== undefined) dbUpdates.list_items = updates.listItems;
+      if (updates.carouselCards !== undefined) dbUpdates.carousel_cards = updates.carouselCards;
       
       const { data, error } = await supabase
         .from('message_templates')
@@ -187,6 +199,7 @@ export const useMessageTemplates = () => {
             updated_at: data.updated_at || template.updated_at,
             buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : template.buttons || [],
             listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : template.listItems || [],
+            carouselCards: Array.isArray(data.carousel_cards) ? data.carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : template.carouselCards || [],
           } : template
         )
       );
@@ -248,6 +261,7 @@ export const useMessageTemplates = () => {
         variables: template.variables,
         buttons: template.buttons || [],
         listItems: template.listItems || [],
+        carouselCards: template.carouselCards || [],
       };
 
       return await createTemplate(newTemplate);

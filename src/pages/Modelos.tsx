@@ -217,6 +217,13 @@ const Modelos = () => {
     variables: [] as string[],
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
     listItems: [] as Array<{id: string, title: string, description?: string}>,
+    carouselCards: [] as Array<{
+      id: string;
+      image: string;
+      title: string;
+      description: string;
+      buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+    }>,
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -231,6 +238,13 @@ const Modelos = () => {
     fileType: "",
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
     listItems: [] as Array<{id: string, title: string, description?: string}>,
+    carouselCards: [] as Array<{
+      id: string;
+      image: string;
+      title: string;
+      description: string;
+      buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+    }>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -318,6 +332,31 @@ const Modelos = () => {
         ? variableMatches.map(match => match.slice(1, -1))
         : [];
 
+      // Validação específica para carrossel
+      if (newTemplate.type === "carrossel") {
+        if (newTemplate.carouselCards.length < 2) {
+          toast({
+            title: "Erro",
+            description: "Carrossel precisa de pelo menos 2 cards",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Validar cada card
+        for (let i = 0; i < newTemplate.carouselCards.length; i++) {
+          const card = newTemplate.carouselCards[i];
+          if (!card.image || !card.title || !card.description) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: Imagem, título e descrição são obrigatórios`,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
+
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
@@ -331,9 +370,10 @@ const Modelos = () => {
         fileName: newTemplate.fileName,
         fileType: newTemplate.fileType,
         listItems: newTemplate.listItems,
+        carouselCards: newTemplate.carouselCards,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [] });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [] });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -372,6 +412,7 @@ const Modelos = () => {
       fileType: template.fileType || "",
       buttons: template.buttons || [],
       listItems: template.listItems || [],
+      carouselCards: template.carouselCards || [],
     });
     setEditingTemplate(template.id);
   };
@@ -393,6 +434,31 @@ const Modelos = () => {
         ? variableMatches.map(match => match.slice(1, -1))
         : [];
 
+      // Validação específica para carrossel
+      if (editFormData.type === "carrossel") {
+        if (editFormData.carouselCards.length < 2) {
+          toast({
+            title: "Erro",
+            description: "Carrossel precisa de pelo menos 2 cards",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Validar cada card
+        for (let i = 0; i < editFormData.carouselCards.length; i++) {
+          const card = editFormData.carouselCards[i];
+          if (!card.image || !card.title || !card.description) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: Imagem, título e descrição são obrigatórios`,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
+
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
@@ -406,10 +472,11 @@ const Modelos = () => {
         fileName: editFormData.fileName,
         fileType: editFormData.fileType,
         listItems: editFormData.listItems,
+        carouselCards: editFormData.carouselCards,
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [] });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -417,7 +484,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [] });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -752,6 +819,189 @@ const Modelos = () => {
                     ))}
                   </div>
                 )}
+
+                {/* Editor de Carrossel */}
+                {newTemplate.type === "carrossel" && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Cards do Carrossel</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewTemplate(prev => ({
+                          ...prev,
+                          carouselCards: [...prev.carouselCards, {
+                            id: Date.now().toString(),
+                            image: "",
+                            title: "",
+                            description: "",
+                            buttons: []
+                          }]
+                        }))}
+                        disabled={newTemplate.carouselCards.length >= 10}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adicionar Card
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Mínimo 2 cards, máximo 10 cards. Cada card pode ter até 2 botões.
+                    </p>
+                    {newTemplate.carouselCards.map((card, cardIndex) => (
+                      <div key={card.id} className="border-2 rounded-lg p-4 space-y-3 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold">Card {cardIndex + 1}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNewTemplate(prev => ({
+                              ...prev,
+                              carouselCards: prev.carouselCards.filter((_, i) => i !== cardIndex)
+                            }))}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                        
+                        <div>
+                          <Label>URL da Imagem *</Label>
+                          <Input
+                            placeholder="https://exemplo.com/imagem.jpg"
+                            value={card.image}
+                            onChange={(e) => {
+                              const newCards = [...newTemplate.carouselCards];
+                              newCards[cardIndex] = { ...card, image: e.target.value };
+                              setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Título *</Label>
+                          <Input
+                            placeholder="Título do card"
+                            value={card.title}
+                            maxLength={60}
+                            onChange={(e) => {
+                              const newCards = [...newTemplate.carouselCards];
+                              newCards[cardIndex] = { ...card, title: e.target.value };
+                              setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Descrição *</Label>
+                          <Textarea
+                            placeholder="Descrição do card"
+                            value={card.description}
+                            rows={2}
+                            maxLength={160}
+                            onChange={(e) => {
+                              const newCards = [...newTemplate.carouselCards];
+                              newCards[cardIndex] = { ...card, description: e.target.value };
+                              setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Botões do Card</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newCards = [...newTemplate.carouselCards];
+                                newCards[cardIndex].buttons.push({
+                                  id: Date.now().toString(),
+                                  text: "",
+                                  type: 'url',
+                                  value: ""
+                                });
+                                setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                              }}
+                              disabled={card.buttons.length >= 2}
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              Botão
+                            </Button>
+                          </div>
+                          
+                          {card.buttons.map((button, btnIndex) => (
+                            <div key={button.id} className="border rounded p-2 space-y-2 bg-background">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium">Botão {btnIndex + 1}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newCards = [...newTemplate.carouselCards];
+                                    newCards[cardIndex].buttons = newCards[cardIndex].buttons.filter((_, i) => i !== btnIndex);
+                                    setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                                  }}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              
+                              <Input
+                                placeholder="Texto do botão"
+                                value={button.text}
+                                maxLength={20}
+                                onChange={(e) => {
+                                  const newCards = [...newTemplate.carouselCards];
+                                  newCards[cardIndex].buttons[btnIndex].text = e.target.value;
+                                  setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                                }}
+                              />
+                              
+                              <Select
+                                value={button.type}
+                                onValueChange={(value: 'reply' | 'url' | 'call') => {
+                                  const newCards = [...newTemplate.carouselCards];
+                                  newCards[cardIndex].buttons[btnIndex].type = value;
+                                  setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="url">Link/URL</SelectItem>
+                                  <SelectItem value="call">Ligar</SelectItem>
+                                  <SelectItem value="reply">Resposta</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              
+                              {(button.type === 'url' || button.type === 'call') && (
+                                <Input
+                                  placeholder={button.type === 'url' ? "https://..." : "+5511999999999"}
+                                  value={button.value || ''}
+                                  onChange={(e) => {
+                                    const newCards = [...newTemplate.carouselCards];
+                                    newCards[cardIndex].buttons[btnIndex].value = e.target.value;
+                                    setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {newTemplate.carouselCards.length === 0 && (
+                      <div className="text-center py-4 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                        Clique em "Adicionar Card" para criar os cards do carrossel
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div>
                   <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
@@ -897,6 +1147,26 @@ const Modelos = () => {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+                {template.carouselCards && template.carouselCards.length > 0 && (
+                  <div className="text-xs mb-2 space-y-2">
+                    <div className="font-medium mb-1">🎠 Cards do Carrossel ({template.carouselCards.length}):</div>
+                    {template.carouselCards.map((card, idx) => (
+                      <div key={idx} className="border rounded p-2 bg-background/50">
+                        <div className="font-semibold">Card {idx + 1}: {card.title}</div>
+                        <div className="text-muted-foreground mt-1">{card.description}</div>
+                        {card.buttons && card.buttons.length > 0 && (
+                          <div className="mt-1 flex gap-1 flex-wrap">
+                            {card.buttons.map((btn, btnIdx) => (
+                              <Badge key={btnIdx} variant="outline" className="text-xs">
+                                {btn.text}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
                 <p className="text-sm">{template.content}</p>
