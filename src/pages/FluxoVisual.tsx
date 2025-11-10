@@ -335,7 +335,8 @@ export default function FluxoVisual() {
 
       // Para cada contato, processar o fluxo
       for (const contact of selectedContacts) {
-        await processFlow(initialNode.id, contact);
+        const visitedNodes = new Set<string>();
+        await processFlow(initialNode.id, contact, visitedNodes);
       }
 
       toast.success("Fluxo enviado com sucesso!", {
@@ -347,7 +348,13 @@ export default function FluxoVisual() {
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>) => {
+    // Evitar processar o mesmo nó duas vezes
+    if (visitedNodes.has(currentNodeId)) {
+      return;
+    }
+    visitedNodes.add(currentNodeId);
+
     // Encontrar conexões que saem do nó atual
     const outgoingEdges = edges.filter(e => e.source === currentNodeId);
     
@@ -410,7 +417,7 @@ export default function FluxoVisual() {
       }
 
       // Continuar processando o fluxo recursivamente
-      await processFlow(targetNode.id, contact);
+      await processFlow(targetNode.id, contact, visitedNodes);
     }
   };
 
