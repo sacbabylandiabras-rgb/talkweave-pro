@@ -162,13 +162,6 @@ const ConfiguracaoZAPI = () => {
         .eq('id', user.id);
 
       if (error) throw error;
-
-      // Also save to localStorage for backward compatibility
-      localStorage.setItem('zapLynx_zapi_config', JSON.stringify({
-        instanceId,
-        token,
-        clientToken
-      }));
       
       toast({
         title: "✅ Credenciais salvas!",
