@@ -865,10 +865,41 @@ const Modelos = () => {
                           </Button>
                         </div>
                         
-                        <div>
-                          <Label>URL da Imagem *</Label>
+                    <div>
+                      <Label>URL da Imagem *</Label>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
                           <Input
-                            placeholder="https://exemplo.com/imagem.jpg"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleFileUpload(file, false).then(() => {
+                                  // A URL já foi atualizada no newTemplate.mediaUrl
+                                  // Agora precisamos copiar para o card específico
+                                  setTimeout(() => {
+                                    const newCards = [...newTemplate.carouselCards];
+                                    newCards[cardIndex] = { ...card, image: newTemplate.mediaUrl };
+                                    setNewTemplate(prev => ({ 
+                                      ...prev, 
+                                      carouselCards: newCards,
+                                      mediaUrl: "" // Limpar para não interferir
+                                    }));
+                                  }, 500);
+                                });
+                              }
+                            }}
+                            disabled={uploadingFile}
+                            className="mb-2"
+                          />
+                          {uploadingFile && (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Enviando imagem...
+                            </p>
+                          )}
+                          <Input
+                            placeholder="Ou cole a URL: https://exemplo.com/imagem.jpg"
                             value={card.image}
                             onChange={(e) => {
                               const newCards = [...newTemplate.carouselCards];
@@ -877,6 +908,27 @@ const Modelos = () => {
                             }}
                           />
                         </div>
+                        {card.image && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newCards = [...newTemplate.carouselCards];
+                              newCards[cardIndex] = { ...card, image: "" };
+                              setNewTemplate(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {card.image && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Imagem configurada
+                        </p>
+                      )}
+                    </div>
                         
                         <div>
                           <Label>Título *</Label>
@@ -1520,15 +1572,67 @@ const Modelos = () => {
                     
                     <div>
                       <Label>URL da Imagem *</Label>
-                      <Input
-                        placeholder="https://exemplo.com/imagem.jpg"
-                        value={card.image}
-                        onChange={(e) => {
-                          const newCards = [...editFormData.carouselCards];
-                          newCards[cardIndex] = { ...card, image: e.target.value };
-                          setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
-                        }}
-                      />
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleFileUpload(file, true).then(() => {
+                                  // A URL já foi atualizada no editFormData.mediaUrl
+                                  // Agora precisamos copiar para o card específico
+                                  setTimeout(() => {
+                                    const newCards = [...editFormData.carouselCards];
+                                    newCards[cardIndex] = { ...card, image: editFormData.mediaUrl };
+                                    setEditFormData(prev => ({ 
+                                      ...prev, 
+                                      carouselCards: newCards,
+                                      mediaUrl: "" // Limpar para não interferir
+                                    }));
+                                  }, 500);
+                                });
+                              }
+                            }}
+                            disabled={uploadingFile}
+                            className="mb-2"
+                          />
+                          {uploadingFile && (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Enviando imagem...
+                            </p>
+                          )}
+                          <Input
+                            placeholder="Ou cole a URL: https://exemplo.com/imagem.jpg"
+                            value={card.image}
+                            onChange={(e) => {
+                              const newCards = [...editFormData.carouselCards];
+                              newCards[cardIndex] = { ...card, image: e.target.value };
+                              setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          />
+                        </div>
+                        {card.image && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newCards = [...editFormData.carouselCards];
+                              newCards[cardIndex] = { ...card, image: "" };
+                              setEditFormData(prev => ({ ...prev, carouselCards: newCards }));
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {card.image && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Imagem configurada
+                        </p>
+                      )}
                     </div>
                     
                     <div>
