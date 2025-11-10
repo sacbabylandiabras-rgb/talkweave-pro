@@ -63,6 +63,21 @@ serve(async (req) => {
       throw new Error('Campaign not found');
     }
 
+    // CRITICAL: Don't process paused campaigns
+    // A campaign should ONLY be processed if it's being actively sent
+    // This prevents automatic resumption when device reconnects
+    if (campaign.status === 'paused') {
+      console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Campaign is paused',
+          message: 'Esta campanha está pausada. Use o botão "Retomar de onde parou" para continuar.',
+          paused: true
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     if (!campaign.template) {
       throw new Error('Campaign template not found');
     }
@@ -386,14 +401,23 @@ serve(async (req) => {
       }
     }
 
-    // Update campaign status
-    await supabase
+    // Update campaign status to completed (only if it wasn't paused)
+    const { data: finalCampaign } = await supabase
       .from('campaigns')
-      .update({ 
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', campaignId);
+      .select('status')
+      .eq('id', campaignId)
+      .single();
+    
+    // Only mark as completed if campaign is still active (not paused)
+    if (finalCampaign?.status === 'active') {
+      await supabase
+        .from('campaigns')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', campaignId);
+    }
 
     // Calculate summary
     const successCount = results.filter(r => r.success).length;
