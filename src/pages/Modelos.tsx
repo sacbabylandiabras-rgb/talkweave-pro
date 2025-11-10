@@ -167,8 +167,12 @@ const Modelos = () => {
     content: "",
     header: "",
     footer: "",
+    mediaUrl: "",
+    fileName: "",
+    fileType: "",
     variables: [] as string[],
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    listItems: [] as Array<{id: string, title: string, description?: string}>,
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -178,7 +182,11 @@ const Modelos = () => {
     content: "",
     header: "",
     footer: "",
+    mediaUrl: "",
+    fileName: "",
+    fileType: "",
     buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    listItems: [] as Array<{id: string, title: string, description?: string}>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -220,7 +228,7 @@ const Modelos = () => {
         buttons: newTemplate.buttons,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", variables: [], buttons: [] });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [] });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -254,7 +262,11 @@ const Modelos = () => {
       content: template.content,
       header: template.header || "",
       footer: template.footer || "",
+      mediaUrl: template.mediaUrl || "",
+      fileName: template.fileName || "",
+      fileType: template.fileType || "",
       buttons: template.buttons || [],
+      listItems: template.listItems || [],
     });
     setEditingTemplate(template.id);
   };
@@ -288,7 +300,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", buttons: [] });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [] });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -296,7 +308,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", buttons: [] });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [] });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -453,6 +465,101 @@ const Modelos = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Campos específicos por tipo */}
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes") && (
+                  <div>
+                    <Label htmlFor="template-media-url">URL da Mídia</Label>
+                    <Input
+                      id="template-media-url"
+                      value={newTemplate.mediaUrl}
+                      onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                      placeholder="https://exemplo.com/arquivo.jpg"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      URL pública do arquivo de mídia
+                    </p>
+                  </div>
+                )}
+
+                {(newTemplate.type === "arquivo" || newTemplate.type === "documento") && (
+                  <div className="space-y-2">
+                    <div>
+                      <Label htmlFor="template-file-url">URL do Arquivo</Label>
+                      <Input
+                        id="template-file-url"
+                        value={newTemplate.mediaUrl}
+                        onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                        placeholder="https://exemplo.com/documento.pdf"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="template-file-name">Nome do Arquivo</Label>
+                      <Input
+                        id="template-file-name"
+                        value={newTemplate.fileName}
+                        onChange={(e) => setNewTemplate(prev => ({ ...prev, fileName: e.target.value }))}
+                        placeholder="documento.pdf"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {newTemplate.type === "lista_opcao" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Itens da Lista</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewTemplate(prev => ({
+                          ...prev,
+                          listItems: [...prev.listItems, { id: Date.now().toString(), title: "", description: "" }]
+                        }))}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adicionar Item
+                      </Button>
+                    </div>
+                    {newTemplate.listItems.map((item, index) => (
+                      <div key={item.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Item {index + 1}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNewTemplate(prev => ({
+                              ...prev,
+                              listItems: prev.listItems.filter((_, i) => i !== index)
+                            }))}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Título do item"
+                          value={item.title}
+                          onChange={(e) => {
+                            const newItems = [...newTemplate.listItems];
+                            newItems[index] = { ...item, title: e.target.value };
+                            setNewTemplate(prev => ({ ...prev, listItems: newItems }));
+                          }}
+                        />
+                        <Input
+                          placeholder="Descrição (opcional)"
+                          value={item.description || ""}
+                          onChange={(e) => {
+                            const newItems = [...newTemplate.listItems];
+                            newItems[index] = { ...item, description: e.target.value };
+                            setNewTemplate(prev => ({ ...prev, listItems: newItems }));
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 
                 <div>
                   <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
@@ -699,6 +806,101 @@ const Modelos = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Campos específicos por tipo - Edição */}
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes") && (
+              <div>
+                <Label htmlFor="edit-template-media-url">URL da Mídia</Label>
+                <Input
+                  id="edit-template-media-url"
+                  value={editFormData.mediaUrl}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                  placeholder="https://exemplo.com/arquivo.jpg"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL pública do arquivo de mídia
+                </p>
+              </div>
+            )}
+
+            {(editFormData.type === "arquivo" || editFormData.type === "documento") && (
+              <div className="space-y-2">
+                <div>
+                  <Label htmlFor="edit-template-file-url">URL do Arquivo</Label>
+                  <Input
+                    id="edit-template-file-url"
+                    value={editFormData.mediaUrl}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                    placeholder="https://exemplo.com/documento.pdf"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-template-file-name">Nome do Arquivo</Label>
+                  <Input
+                    id="edit-template-file-name"
+                    value={editFormData.fileName}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, fileName: e.target.value }))}
+                    placeholder="documento.pdf"
+                  />
+                </div>
+              </div>
+            )}
+
+            {editFormData.type === "lista_opcao" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Itens da Lista</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditFormData(prev => ({
+                      ...prev,
+                      listItems: [...prev.listItems, { id: Date.now().toString(), title: "", description: "" }]
+                    }))}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar Item
+                  </Button>
+                </div>
+                {editFormData.listItems.map((item, index) => (
+                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Item {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFormData(prev => ({
+                          ...prev,
+                          listItems: prev.listItems.filter((_, i) => i !== index)
+                        }))}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Input
+                      placeholder="Título do item"
+                      value={item.title}
+                      onChange={(e) => {
+                        const newItems = [...editFormData.listItems];
+                        newItems[index] = { ...item, title: e.target.value };
+                        setEditFormData(prev => ({ ...prev, listItems: newItems }));
+                      }}
+                    />
+                    <Input
+                      placeholder="Descrição (opcional)"
+                      value={item.description || ""}
+                      onChange={(e) => {
+                        const newItems = [...editFormData.listItems];
+                        newItems[index] = { ...item, description: e.target.value };
+                        setEditFormData(prev => ({ ...prev, listItems: newItems }));
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             
             <div>
               <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
