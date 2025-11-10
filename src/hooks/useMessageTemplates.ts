@@ -92,9 +92,17 @@ export const useMessageTemplates = () => {
     carouselCards?: Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}>;
   }) => {
     try {
+      // Obter o user_id do usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('message_templates')
         .insert({
+          user_id: user.id, // CRÍTICO: Incluir user_id para RLS
           name: templateData.name,
           category: templateData.category,
           type: templateData.type || "texto",
