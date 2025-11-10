@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           updated_at: string
+          user_id: string | null
           webhook_url: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+          user_id?: string | null
           webhook_url?: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+          user_id?: string | null
           webhook_url?: string
         }
         Relationships: []
@@ -46,6 +49,7 @@ export type Database = {
           keyword: string
           response: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
@@ -54,6 +58,7 @@ export type Database = {
           keyword: string
           response: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
@@ -62,6 +67,7 @@ export type Database = {
           keyword?: string
           response?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -77,6 +83,7 @@ export type Database = {
           phone: string
           sent_at: string | null
           status: string | null
+          user_id: string | null
         }
         Insert: {
           campaign_id: string
@@ -89,6 +96,7 @@ export type Database = {
           phone: string
           sent_at?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Update: {
           campaign_id?: string
@@ -101,6 +109,7 @@ export type Database = {
           phone?: string
           sent_at?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -126,6 +135,7 @@ export type Database = {
           target_audience: Json | null
           template_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -140,6 +150,7 @@ export type Database = {
           target_audience?: Json | null
           template_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -154,6 +165,7 @@ export type Database = {
           target_audience?: Json | null
           template_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -174,6 +186,7 @@ export type Database = {
           phone: string
           response_sent: string | null
           timestamp: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -183,6 +196,7 @@ export type Database = {
           phone: string
           response_sent?: string | null
           timestamp?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -192,6 +206,7 @@ export type Database = {
           phone?: string
           response_sent?: string | null
           timestamp?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -213,6 +228,7 @@ export type Database = {
           type: string | null
           updated_at: string
           usage_count: number | null
+          user_id: string | null
           variables: Json | null
         }
         Insert: {
@@ -232,6 +248,7 @@ export type Database = {
           type?: string | null
           updated_at?: string
           usage_count?: number | null
+          user_id?: string | null
           variables?: Json | null
         }
         Update: {
@@ -251,6 +268,7 @@ export type Database = {
           type?: string | null
           updated_at?: string
           usage_count?: number | null
+          user_id?: string | null
           variables?: Json | null
         }
         Relationships: []
@@ -328,6 +346,7 @@ export type Database = {
           id: string
           message: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
@@ -335,6 +354,7 @@ export type Database = {
           id?: string
           message?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
@@ -342,6 +362,7 @@ export type Database = {
           id?: string
           message?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -350,16 +371,19 @@ export type Database = {
           id: string
           phone: string
           sent_at: string
+          user_id: string | null
         }
         Insert: {
           id?: string
           phone: string
           sent_at?: string
+          user_id?: string | null
         }
         Update: {
           id?: string
           phone?: string
           sent_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
