@@ -287,6 +287,7 @@ export type Database = {
           subscription_expires_at: string | null
           subscription_status: string | null
           updated_at: string
+          whatsapp: string | null
           zapi_client_token: string | null
           zapi_instance_id: string | null
           zapi_token: string | null
@@ -301,6 +302,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           updated_at?: string
+          whatsapp?: string | null
           zapi_client_token?: string | null
           zapi_instance_id?: string | null
           zapi_token?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           updated_at?: string
+          whatsapp?: string | null
           zapi_client_token?: string | null
           zapi_instance_id?: string | null
           zapi_token?: string | null
