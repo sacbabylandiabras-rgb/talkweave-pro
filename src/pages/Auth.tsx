@@ -15,6 +15,13 @@ const authSchema = z.object({
   password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres").max(100)
 });
 
+const signupSchema = authSchema.extend({
+  whatsapp: z.string()
+    .regex(/^\+?[1-9]\d{1,14}$/, "WhatsApp inválido. Use formato: +5511999999999")
+    .min(10, "WhatsApp deve ter no mínimo 10 dígitos")
+    .max(20, "WhatsApp muito longo")
+});
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -22,6 +29,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
 
   useEffect(() => {
@@ -120,7 +128,7 @@ const Auth = () => {
 
     try {
       // Validar inputs
-      authSchema.parse({ email: email.trim(), password });
+      signupSchema.parse({ email: email.trim(), password, whatsapp: whatsapp.trim() });
 
       const redirectUrl = `${window.location.origin}/dashboard`;
 
@@ -128,7 +136,10 @@ const Auth = () => {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: redirectUrl,
+          data: {
+            whatsapp: whatsapp.trim()
+          }
         }
       });
 
@@ -158,6 +169,7 @@ const Auth = () => {
       // Limpar campos
       setEmail("");
       setPassword("");
+      setWhatsapp("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -254,6 +266,21 @@ const Auth = () => {
                       required
                       disabled={loading}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-whatsapp">WhatsApp</Label>
+                    <Input
+                      id="signup-whatsapp"
+                      type="tel"
+                      placeholder="+5511999999999"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Formato: +5511999999999
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Senha</Label>
