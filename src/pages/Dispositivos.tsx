@@ -144,6 +144,20 @@ const Dispositivos = () => {
       if (activeCampaigns && activeCampaigns.length > 0) {
         console.log(`❌ Dispositivo desconectado! CANCELANDO ${activeCampaigns.length} campanha(s) ativa(s)...`);
         
+        // LIMPAR fila da Z-API
+        try {
+          console.log('🧹 Limpando fila da Z-API...');
+          const { error: clearError } = await supabase.functions.invoke('clear-zapi-queue');
+          
+          if (clearError) {
+            console.error('Erro ao limpar fila da Z-API:', clearError);
+          } else {
+            console.log('✅ Fila da Z-API limpa com sucesso');
+          }
+        } catch (clearError) {
+          console.error('Erro ao limpar fila da Z-API:', clearError);
+        }
+        
         // CANCELAR todas as campanhas ativas
         const { error: updateError } = await supabase
           .from('campaigns')
@@ -154,7 +168,7 @@ const Dispositivos = () => {
 
         toast({
           title: "❌ Campanhas Canceladas",
-          description: `${activeCampaigns.length} campanha(s) foi(ram) CANCELADA(S) automaticamente devido à desconexão do dispositivo. Verifique o relatório de números não enviados.`,
+          description: `${activeCampaigns.length} campanha(s) foi(ram) CANCELADA(S) automaticamente. A fila de mensagens da Z-API foi limpa.`,
           variant: "destructive",
           duration: 8000,
         });
