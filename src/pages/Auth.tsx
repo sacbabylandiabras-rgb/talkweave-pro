@@ -138,13 +138,10 @@ const Auth = () => {
       // Validar inputs
       signupSchema.parse({ email: email.trim(), password, whatsapp: whatsapp.trim() });
 
-      const redirectUrl = `${window.location.origin}/auth`;
-
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             whatsapp: whatsapp.trim()
           }
