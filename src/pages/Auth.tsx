@@ -44,13 +44,21 @@ const Auth = () => {
 
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === 'SIGNED_IN' && session) {
         navigate("/dashboard");
+      }
+      
+      // Quando o usuário confirma o email
+      if (event === 'USER_UPDATED') {
+        toast({
+          title: "✅ Email confirmado!",
+          description: "Agora você pode fazer login com suas credenciais.",
+        });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +138,7 @@ const Auth = () => {
       // Validar inputs
       signupSchema.parse({ email: email.trim(), password, whatsapp: whatsapp.trim() });
 
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = `${window.location.origin}/auth`;
 
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
