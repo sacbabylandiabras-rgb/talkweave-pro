@@ -177,6 +177,54 @@ export type Database = {
           },
         ]
       }
+      gateway_integrations: {
+        Row: {
+          active: boolean
+          auth_token: string | null
+          auth_type: string | null
+          created_at: string
+          headers: Json | null
+          id: string
+          last_test_status: string | null
+          last_tested_at: string | null
+          method: string
+          name: string
+          updated_at: string
+          user_id: string
+          webhook_url: string
+        }
+        Insert: {
+          active?: boolean
+          auth_token?: string | null
+          auth_type?: string | null
+          created_at?: string
+          headers?: Json | null
+          id?: string
+          last_test_status?: string | null
+          last_tested_at?: string | null
+          method?: string
+          name: string
+          updated_at?: string
+          user_id: string
+          webhook_url: string
+        }
+        Update: {
+          active?: boolean
+          auth_token?: string | null
+          auth_type?: string | null
+          created_at?: string
+          headers?: Json | null
+          id?: string
+          last_test_status?: string | null
+          last_tested_at?: string | null
+          method?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string
+        }
+        Relationships: []
+      }
       message_logs: {
         Row: {
           created_at: string
