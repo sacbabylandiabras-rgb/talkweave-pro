@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Settings, Phone } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Settings, Phone, Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useZapi } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
@@ -21,6 +22,7 @@ const Dispositivos = () => {
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const { getDeviceStatus, getQRCode, getPairingCode, disconnectDevice, restartInstance, loading } = useZapi();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const fetchDeviceStatus = async () => {
@@ -356,6 +358,16 @@ const Dispositivos = () => {
               >
                 <RotateCcw className="w-3 h-3" />
                 Reiniciar Instância
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => navigate('/enviar-mensagem')}
+              >
+                <Send className="w-3 h-3" />
+                Enviar Mensagem
               </Button>
               
               <Button variant="outline" size="sm">
