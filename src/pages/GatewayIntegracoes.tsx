@@ -2,19 +2,79 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Webhook, RefreshCw, Copy } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+
+const EVENT_TYPES = [
+  { value: "payment_pending", label: "Pagamento Pendente" },
+  { value: "payment_approved", label: "Pagamento Aprovado" },
+  { value: "payment_refused", label: "Pagamento Recusado" },
+  { value: "payment_refunded", label: "Pagamento Estornado" },
+  { value: "payment_cancelled", label: "Pagamento Cancelado" },
+];
+
+interface Funnel {
+  id: string;
+  event_type: string;
+  event_label: string;
+  message_template: string;
+  active: boolean;
+  delay_seconds: number;
+}
+
+interface WebhookLog {
+  id: string;
+  event_type: string | null;
+  phone: string | null;
+  message_sent: string | null;
+  status: string | null;
+  created_at: string;
+}
 
 const GatewayIntegracoes = () => {
   const [userId, setUserId] = useState<string | null>(null);
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [logs, setLogs] = useState<WebhookLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form
+  const [eventType, setEventType] = useState("payment_approved");
+  const [messageTemplate, setMessageTemplate] = useState("");
+  const [delaySeconds, setDelaySeconds] = useState(0);
+  const [saving, setSaving] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
+      if (data.user) {
+        setUserId(data.user.id);
+        loadData(data.user.id);
+      }
     });
   }, []);
+
+  const loadData = async (uid: string) => {
+    setLoading(true);
+    const [funnelsRes, logsRes] = await Promise.all([
+      supabase.from("gateway_funnels").select("*").eq("user_id", uid).order("created_at"),
+      supabase.from("gateway_webhook_logs").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
+    ]);
+    setFunnels((funnelsRes.data as unknown as Funnel[]) || []);
+    setLogs((logsRes.data as unknown as WebhookLog[]) || []);
+    setLoading(false);
+  };
 
   const webhookUrl = userId
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-gateway?user_id=${userId}`
@@ -25,42 +85,264 @@ const GatewayIntegracoes = () => {
     toast({ title: "URL copiada!" });
   };
 
+  const openCreate = () => {
+    setEditingId(null);
+    setEventType("payment_approved");
+    setMessageTemplate("Olá {{nome}}! Seu pagamento de {{valor}} foi aprovado! 🎉");
+    setDelaySeconds(0);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (f: Funnel) => {
+    setEditingId(f.id);
+    setEventType(f.event_type);
+    setMessageTemplate(f.message_template);
+    setDelaySeconds(f.delay_seconds);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!messageTemplate || !userId) return;
+    setSaving(true);
+    try {
+      const label = EVENT_TYPES.find(e => e.value === eventType)?.label || eventType;
+      const payload = {
+        user_id: userId,
+        event_type: eventType,
+        event_label: label,
+        message_template: messageTemplate,
+        delay_seconds: delaySeconds,
+        active: true,
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from("gateway_funnels").update(payload as any).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("gateway_funnels").insert(payload as any);
+        if (error) throw error;
+      }
+
+      toast({ title: editingId ? "Funil atualizado!" : "Funil criado!" });
+      setDialogOpen(false);
+      loadData(userId);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!userId) return;
+    await supabase.from("gateway_funnels").delete().eq("id", id);
+    toast({ title: "Funil removido" });
+    loadData(userId);
+  };
+
+  const handleToggle = async (id: string, active: boolean) => {
+    await supabase.from("gateway_funnels").update({ active } as any).eq("id", id);
+    setFunnels(prev => prev.map(f => f.id === id ? { ...f, active } : f));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Integrações Gateway</h1>
-        <p className="text-muted-foreground">Cole esta URL no serviço externo para receber webhooks</p>
+        <h1 className="text-2xl font-bold text-foreground">Gateway de Integrações</h1>
+        <p className="text-muted-foreground">Receba webhooks e envie mensagens automáticas para seus clientes</p>
       </div>
 
+      {/* URL Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Webhook className="w-5 h-5 text-primary" />
             Sua URL de Webhook
           </CardTitle>
-          <CardDescription>Copie e cole esta URL no GhostsPay ou qualquer outro serviço externo</CardDescription>
+          <CardDescription>Cole esta URL no GhostsPay ou qualquer gateway de pagamento</CardDescription>
         </CardHeader>
         <CardContent>
           {userId ? (
             <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                value={webhookUrl}
-                className="font-mono text-sm"
-              />
+              <Input readOnly value={webhookUrl} className="font-mono text-xs" />
               <Button onClick={copyUrl} className="shrink-0">
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar
+                <Copy className="w-4 h-4 mr-2" /> Copiar
               </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Carregando...
+              <RefreshCw className="w-4 h-4 animate-spin" /> Carregando...
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Tabs: Funnel + Logs */}
+      <Tabs defaultValue="funnel">
+        <TabsList>
+          <TabsTrigger value="funnel" className="gap-1">
+            <MessageSquare className="w-4 h-4" /> Funil de Mensagens
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-1">
+            <History className="w-4 h-4" /> Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="funnel" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">Configure mensagens automáticas para cada evento</p>
+            <Button onClick={openCreate} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Novo Funil
+            </Button>
+          </div>
+
+          {funnels.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center py-10 text-center">
+                <MessageSquare className="w-10 h-10 text-muted-foreground mb-3" />
+                <p className="font-semibold mb-1">Nenhum funil configurado</p>
+                <p className="text-sm text-muted-foreground mb-4">Crie um funil para enviar mensagens automáticas quando receber um webhook</p>
+                <Button onClick={openCreate} size="sm">
+                  <Plus className="w-4 h-4 mr-1" /> Criar Funil
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {funnels.map(f => (
+                <Card key={f.id}>
+                  <CardContent className="py-4 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={f.active ? "default" : "secondary"}>
+                          {EVENT_TYPES.find(e => e.value === f.event_type)?.label || f.event_type}
+                        </Badge>
+                        {f.delay_seconds > 0 && (
+                          <Badge variant="outline" className="text-xs">⏱ {f.delay_seconds}s</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{f.message_template}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch checked={f.active} onCheckedChange={(v) => handleToggle(f.id, v)} />
+                      <Button variant="outline" size="icon" onClick={() => openEdit(f)}>
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDelete(f.id)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <Card className="border-dashed">
+            <CardContent className="py-4">
+              <p className="text-xs text-muted-foreground font-semibold mb-2">Variáveis disponíveis:</p>
+              <div className="flex flex-wrap gap-2">
+                {["{{nome}}", "{{valor}}", "{{produto}}", "{{telefone}}", "{{status}}"].map(v => (
+                  <Badge key={v} variant="outline" className="font-mono text-xs">{v}</Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-4">
+          {logs.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                <History className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                <p>Nenhum webhook recebido ainda</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {logs.map(log => (
+                <Card key={log.id}>
+                  <CardContent className="py-3 flex items-center gap-4">
+                    <Badge variant={log.status === "sent" ? "default" : log.status === "error" ? "destructive" : "secondary"} className="text-xs shrink-0">
+                      {log.status}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">{log.event_type || "—"}</span>
+                        {log.phone && <span className="text-muted-foreground">• {log.phone}</span>}
+                      </div>
+                      {log.message_sent && (
+                        <p className="text-xs text-muted-foreground truncate">{log.message_sent}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {format(new Date(log.created_at), "dd/MM HH:mm")}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog Create/Edit */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar Funil" : "Novo Funil"}</DialogTitle>
+            <DialogDescription>Configure a mensagem automática para um evento</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Evento</Label>
+              <Select value={eventType} onValueChange={setEventType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EVENT_TYPES.map(e => (
+                    <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea
+                value={messageTemplate}
+                onChange={e => setMessageTemplate(e.target.value)}
+                placeholder="Olá {{nome}}! Seu pagamento de {{valor}} foi aprovado! 🎉"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Atraso (segundos)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={delaySeconds}
+                onChange={e => setDelaySeconds(parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
