@@ -26,8 +26,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
-    const webhook = await req.json() as WebhookMessage
-    console.log('Webhook data:', JSON.stringify(webhook, null, 2))
+    const rawBody = await req.text()
+    const webhook = JSON.parse(rawBody) as WebhookMessage
+    console.log('Webhook data:', rawBody)
     
     // Ignora mensagens enviadas por nós
     if (webhook.message.fromMe) {
@@ -109,13 +110,55 @@ serve(async (req) => {
       
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token')
         .eq('zapi_instance_id', instanceId)
         .single();
 
       if (profileError || !profile) {
         console.error('User profile not found for instanceId:', instanceId, profileError);
         return new Response('user_not_found', { status: 404, headers: corsHeaders });
+      }
+
+      // Forward to all active gateway integrations for this user
+      const { data: gateways } = await supabase
+        .from('gateway_integrations')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('active', true);
+
+      if (gateways && gateways.length > 0) {
+        console.log(`Encaminhando para ${gateways.length} gateway(s) ativo(s)`);
+        const gatewayPayload = {
+          event: 'message_received',
+          phone: webhook.phone,
+          message: webhook.message.text,
+          timestamp: new Date().toISOString(),
+          raw: JSON.parse(rawBody),
+        };
+
+        await Promise.allSettled(gateways.map(async (gw) => {
+          try {
+            const gwHeaders: Record<string, string> = {
+              'Content-Type': 'application/json',
+              ...(gw.headers as Record<string, string> || {}),
+            };
+            if (gw.auth_type === 'bearer' && gw.auth_token) {
+              gwHeaders['Authorization'] = `Bearer ${gw.auth_token}`;
+            } else if (gw.auth_type === 'api_key' && gw.auth_token) {
+              gwHeaders['X-API-Key'] = gw.auth_token;
+            }
+
+            const opts: RequestInit = { method: gw.method || 'POST', headers: gwHeaders };
+            if (gw.method !== 'GET') {
+              opts.body = JSON.stringify(gatewayPayload);
+            }
+
+            const res = await fetch(gw.webhook_url, opts);
+            console.log(`Gateway ${gw.name}: status ${res.status}`);
+          } catch (e) {
+            console.error(`Gateway ${gw.name} erro:`, e);
+          }
+        }));
       }
 
       if (!profile.zapi_token || !profile.zapi_client_token) {
