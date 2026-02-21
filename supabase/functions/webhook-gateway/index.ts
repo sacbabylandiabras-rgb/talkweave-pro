@@ -151,20 +151,21 @@ serve(async (req) => {
 // Helper functions to extract data from common gateway payloads
 function detectEventType(payload: any): string {
   // Common patterns from payment gateways
+  // Priority: deeper nested status first, then top-level type
   const status = (
+    payload.data?.status ||
+    payload.transaction?.status ||
+    payload.payment?.status ||
     payload.status ||
     payload.event ||
     payload.type ||
-    payload.transaction?.status ||
-    payload.payment?.status ||
-    payload.data?.status ||
     ''
   ).toString().toLowerCase()
 
   if (status.includes('approved') || status.includes('paid') || status.includes('aprovado') || status.includes('pago')) {
     return 'payment_approved'
   }
-  if (status.includes('pending') || status.includes('pendente') || status.includes('waiting')) {
+  if (status.includes('pending') || status.includes('pendente') || status.includes('waiting') || status === 'waiting_payment') {
     return 'payment_pending'
   }
   if (status.includes('refused') || status.includes('recusado') || status.includes('failed') || status.includes('falha')) {
