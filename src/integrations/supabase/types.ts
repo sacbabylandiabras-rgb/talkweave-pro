@@ -177,6 +177,42 @@ export type Database = {
           },
         ]
       }
+      gateway_funnels: {
+        Row: {
+          active: boolean
+          created_at: string
+          delay_seconds: number
+          event_label: string
+          event_type: string
+          id: string
+          message_template: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          delay_seconds?: number
+          event_label: string
+          event_type: string
+          id?: string
+          message_template: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          delay_seconds?: number
+          event_label?: string
+          event_type?: string
+          id?: string
+          message_template?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_integrations: {
         Row: {
           active: boolean
@@ -222,6 +258,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           webhook_url?: string
+        }
+        Relationships: []
+      }
+      gateway_webhook_logs: {
+        Row: {
+          created_at: string
+          event_type: string | null
+          id: string
+          message_sent: string | null
+          payload: Json | null
+          phone: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          message_sent?: string | null
+          payload?: Json | null
+          phone?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          message_sent?: string | null
+          payload?: Json | null
+          phone?: string | null
+          status?: string | null
+          user_id?: string
         }
         Relationships: []
       }

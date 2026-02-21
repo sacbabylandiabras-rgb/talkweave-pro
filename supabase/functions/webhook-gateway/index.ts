@@ -14,93 +14,223 @@ serve(async (req) => {
   try {
     const url = new URL(req.url)
     const userId = url.searchParams.get('user_id')
-    const integrationId = url.searchParams.get('id')
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Missing user_id' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Read body
-    let body: any = null
+    // Read incoming payload
+    let payload: any = {}
     if (req.method !== 'GET') {
-      try { body = await req.json() } catch { body = null }
+      try { payload = await req.json() } catch { payload = {} }
     }
 
-    // If user_id provided, forward to ALL active integrations for that user
-    if (userId) {
-      const { data: gateways, error } = await supabase
-        .from('gateway_integrations')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('active', true)
+    console.log('Webhook recebido para user:', userId)
+    console.log('Payload:', JSON.stringify(payload))
 
-      if (error || !gateways || gateways.length === 0) {
-        return new Response(JSON.stringify({ ok: true, forwarded: 0 }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    // Detect event type from payload (common gateway patterns)
+    const eventType = detectEventType(payload)
+    const phone = extractPhone(payload)
+    const customerName = extractName(payload)
+    const amount = extractAmount(payload)
+    const product = extractProduct(payload)
 
-      const results = await Promise.allSettled(gateways.map(async (gw) => {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          ...(gw.headers as Record<string, string> || {}),
-        }
-        if (gw.auth_type === 'bearer' && gw.auth_token) headers['Authorization'] = `Bearer ${gw.auth_token}`
-        if (gw.auth_type === 'api_key' && gw.auth_token) headers['X-API-Key'] = gw.auth_token
+    console.log('Evento detectado:', eventType, 'Phone:', phone)
 
-        const opts: RequestInit = { method: gw.method || 'POST', headers }
-        if (gw.method !== 'GET' && body) opts.body = JSON.stringify(body)
+    // Log the webhook
+    await supabase.from('gateway_webhook_logs').insert({
+      user_id: userId,
+      event_type: eventType,
+      phone: phone,
+      payload: payload,
+      status: 'received',
+    })
 
-        const res = await fetch(gw.webhook_url, opts)
-        return { name: gw.name, status: res.status }
-      }))
-
-      return new Response(JSON.stringify({ ok: true, forwarded: results.length, results }), {
+    if (!phone) {
+      console.log('Sem telefone no payload, apenas registrando')
+      return new Response(JSON.stringify({ ok: true, message: 'logged, no phone found' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // If single integration id provided
-    if (integrationId) {
-      const { data: gw, error } = await supabase
-        .from('gateway_integrations')
-        .select('*')
-        .eq('id', integrationId)
-        .single()
+    // Find matching funnel for this event
+    const { data: funnels } = await supabase
+      .from('gateway_funnels')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('event_type', eventType)
+      .eq('active', true)
+      .order('created_at', { ascending: true })
 
-      if (error || !gw) {
-        return new Response(JSON.stringify({ error: 'Not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...(gw.headers as Record<string, string> || {}),
-      }
-      if (gw.auth_type === 'bearer' && gw.auth_token) headers['Authorization'] = `Bearer ${gw.auth_token}`
-      if (gw.auth_type === 'api_key' && gw.auth_token) headers['X-API-Key'] = gw.auth_token
-
-      const opts: RequestInit = { method: gw.method || 'POST', headers }
-      if (gw.method !== 'GET' && body) opts.body = JSON.stringify(body)
-
-      const res = await fetch(gw.webhook_url, opts)
-      const text = await res.text()
-      return new Response(text, {
-        status: res.status,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+    if (!funnels || funnels.length === 0) {
+      console.log('Nenhum funil configurado para evento:', eventType)
+      return new Response(JSON.stringify({ ok: true, message: 'no funnel configured' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Missing user_id or id param' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Get user Z-API credentials
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('zapi_instance_id, zapi_token, zapi_client_token')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
+      console.error('Credenciais Z-API incompletas para user:', userId)
+      return new Response(JSON.stringify({ ok: false, error: 'Z-API credentials missing' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Send messages for each funnel step
+    for (const funnel of funnels) {
+      if (funnel.delay_seconds > 0) {
+        await new Promise(resolve => setTimeout(resolve, funnel.delay_seconds * 1000))
+      }
+
+      // Replace variables in template
+      let message = funnel.message_template
+      message = message.replace(/\{\{nome\}\}/gi, customerName || 'Cliente')
+      message = message.replace(/\{\{valor\}\}/gi, amount || '')
+      message = message.replace(/\{\{produto\}\}/gi, product || '')
+      message = message.replace(/\{\{telefone\}\}/gi, phone || '')
+      message = message.replace(/\{\{status\}\}/gi, eventType || '')
+
+      console.log('Enviando mensagem para', phone, ':', message)
+
+      const zapiRes = await fetch(
+        `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Token': profile.zapi_client_token,
+          },
+          body: JSON.stringify({ phone, message }),
+        }
+      )
+
+      const zapiResult = await zapiRes.text()
+      console.log('Z-API response:', zapiRes.status, zapiResult)
+
+      // Update log
+      await supabase.from('gateway_webhook_logs').insert({
+        user_id: userId,
+        event_type: eventType,
+        phone: phone,
+        payload: payload,
+        message_sent: message,
+        status: zapiRes.ok ? 'sent' : 'error',
+      })
+    }
+
+    return new Response(JSON.stringify({ ok: true, messages_sent: funnels.length }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Gateway error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })
+
+// Helper functions to extract data from common gateway payloads
+function detectEventType(payload: any): string {
+  // Common patterns from payment gateways
+  const status = (
+    payload.status ||
+    payload.event ||
+    payload.type ||
+    payload.transaction?.status ||
+    payload.payment?.status ||
+    payload.data?.status ||
+    ''
+  ).toString().toLowerCase()
+
+  if (status.includes('approved') || status.includes('paid') || status.includes('aprovado') || status.includes('pago')) {
+    return 'payment_approved'
+  }
+  if (status.includes('pending') || status.includes('pendente') || status.includes('waiting')) {
+    return 'payment_pending'
+  }
+  if (status.includes('refused') || status.includes('recusado') || status.includes('failed') || status.includes('falha')) {
+    return 'payment_refused'
+  }
+  if (status.includes('refund') || status.includes('estorno') || status.includes('chargeback')) {
+    return 'payment_refunded'
+  }
+  if (status.includes('cancel') || status.includes('cancelado')) {
+    return 'payment_cancelled'
+  }
+
+  return status || 'unknown'
+}
+
+function extractPhone(payload: any): string | null {
+  return (
+    payload.phone ||
+    payload.customer?.phone ||
+    payload.client?.phone ||
+    payload.buyer?.phone ||
+    payload.data?.customer?.phone ||
+    payload.data?.phone ||
+    payload.telefone ||
+    payload.customer?.cellphone ||
+    payload.customer?.mobile ||
+    null
+  )
+}
+
+function extractName(payload: any): string | null {
+  return (
+    payload.customer?.name ||
+    payload.client?.name ||
+    payload.buyer?.name ||
+    payload.data?.customer?.name ||
+    payload.nome ||
+    payload.customer_name ||
+    null
+  )
+}
+
+function extractAmount(payload: any): string | null {
+  const val = (
+    payload.amount ||
+    payload.value ||
+    payload.valor ||
+    payload.transaction?.amount ||
+    payload.payment?.amount ||
+    payload.data?.amount ||
+    null
+  )
+  if (val === null) return null
+  // Format as BRL
+  const num = typeof val === 'number' ? val : parseFloat(val)
+  if (isNaN(num)) return String(val)
+  return `R$ ${(num / 100).toFixed(2).replace('.', ',')}`
+}
+
+function extractProduct(payload: any): string | null {
+  return (
+    payload.product?.name ||
+    payload.produto ||
+    payload.items?.[0]?.name ||
+    payload.data?.product?.name ||
+    payload.product_name ||
+    null
+  )
+}
