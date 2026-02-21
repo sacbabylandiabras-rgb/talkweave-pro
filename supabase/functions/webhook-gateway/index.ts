@@ -268,7 +268,8 @@ function extractProduct(payload: any): string | null {
 }
 
 function extractLink(payload: any): string | null {
-  return (
+  // Direct link fields
+  const directLink = (
     payload.payment_url ||
     payload.checkout_url ||
     payload.link ||
@@ -283,4 +284,17 @@ function extractLink(payload: any): string | null {
     payload.payment?.link ||
     null
   )
+  if (directLink) return directLink
+
+  // GhostsPay: build checkout URL from metadata.linkId
+  let metadata = payload.data?.metadata || payload.metadata || null
+  if (metadata && typeof metadata === 'string') {
+    try { metadata = JSON.parse(metadata) } catch { metadata = null }
+  }
+  const linkId = metadata?.linkId || null
+  if (linkId) {
+    return `https://checkout.paguseguro.fun/payment/checkout/${linkId}`
+  }
+
+  return null
 }
