@@ -1,0 +1,1 @@
+ALTER TABLE public.gateway_funnels ADD COLUMN button_label text DEFAULT NULL;

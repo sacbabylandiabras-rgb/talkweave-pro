@@ -180,6 +180,7 @@ export type Database = {
       gateway_funnels: {
         Row: {
           active: boolean
+          button_label: string | null
           created_at: string
           delay_seconds: number
           event_label: string
@@ -191,6 +192,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          button_label?: string | null
           created_at?: string
           delay_seconds?: number
           event_label: string
@@ -202,6 +204,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          button_label?: string | null
           created_at?: string
           delay_seconds?: number
           event_label?: string

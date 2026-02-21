@@ -29,6 +29,7 @@ interface Funnel {
   message_template: string;
   active: boolean;
   delay_seconds: number;
+  button_label: string | null;
 }
 
 interface WebhookLog {
@@ -52,6 +53,7 @@ const GatewayIntegracoes = () => {
   const [eventType, setEventType] = useState("payment_approved");
   const [messageTemplate, setMessageTemplate] = useState("");
   const [delaySeconds, setDelaySeconds] = useState(0);
+  const [buttonLabel, setButtonLabel] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
@@ -90,6 +92,7 @@ const GatewayIntegracoes = () => {
     setEventType("payment_approved");
     setMessageTemplate("Olá {{nome}}! Seu pagamento de {{valor}} foi aprovado! 🎉");
     setDelaySeconds(0);
+    setButtonLabel("");
     setDialogOpen(true);
   };
 
@@ -98,6 +101,7 @@ const GatewayIntegracoes = () => {
     setEventType(f.event_type);
     setMessageTemplate(f.message_template);
     setDelaySeconds(f.delay_seconds);
+    setButtonLabel(f.button_label || "");
     setDialogOpen(true);
   };
 
@@ -112,6 +116,7 @@ const GatewayIntegracoes = () => {
         event_label: label,
         message_template: messageTemplate,
         delay_seconds: delaySeconds,
+        button_label: buttonLabel || null,
         active: true,
       };
 
@@ -228,6 +233,9 @@ const GatewayIntegracoes = () => {
                         {f.delay_seconds > 0 && (
                           <Badge variant="outline" className="text-xs">⏱ {f.delay_seconds}s</Badge>
                         )}
+                        {f.button_label && (
+                          <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{f.message_template}</p>
                     </div>
@@ -250,7 +258,7 @@ const GatewayIntegracoes = () => {
             <CardContent className="py-4">
               <p className="text-xs text-muted-foreground font-semibold mb-2">Variáveis disponíveis:</p>
               <div className="flex flex-wrap gap-2">
-                {["{{nome}}", "{{valor}}", "{{produto}}", "{{telefone}}", "{{status}}"].map(v => (
+                {["{{nome}}", "{{valor}}", "{{produto}}", "{{telefone}}", "{{status}}", "{{link}}"].map(v => (
                   <Badge key={v} variant="outline" className="font-mono text-xs">{v}</Badge>
                 ))}
               </div>
@@ -322,7 +330,7 @@ const GatewayIntegracoes = () => {
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}
+                Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}, {"{{link}}"}
               </p>
             </div>
             <div className="space-y-2">
@@ -333,6 +341,17 @@ const GatewayIntegracoes = () => {
                 value={delaySeconds}
                 onChange={e => setDelaySeconds(parseInt(e.target.value) || 0)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Texto do Botão (opcional)</Label>
+              <Input
+                value={buttonLabel}
+                onChange={e => setButtonLabel(e.target.value)}
+                placeholder="Ex: Acessar Pedido"
+              />
+              <p className="text-xs text-muted-foreground">
+                Se preenchido e o webhook tiver um link, a mensagem será enviada com um botão clicável. A variável {"{{link}}"} é extraída automaticamente do payload.
+              </p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
