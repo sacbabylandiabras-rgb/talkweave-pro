@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Webhook, Plus, Trash2, RefreshCw, Check, X, Pencil, Send } from "lucide-react";
+import { Webhook, Plus, Trash2, RefreshCw, Check, X, Pencil, Send, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -262,7 +262,7 @@ const GatewayIntegracoes = () => {
                     <Webhook className="w-5 h-5 text-primary" />
                     <div>
                       <CardTitle className="text-base">{item.name}</CardTitle>
-                      <CardDescription className="text-xs mt-0.5 font-mono">{item.webhook_url}</CardDescription>
+                      <CardDescription className="text-xs mt-0.5 font-mono">Destino: {item.webhook_url}</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -283,7 +283,28 @@ const GatewayIntegracoes = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Sua URL de recebimento (cole no serviço externo):</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-gateway?id=${item.id}`}
+                      className="font-mono text-xs h-8"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-gateway?id=${item.id}`);
+                        toast({ title: "URL copiada!" });
+                      }}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleTest(item)} disabled={testing === item.id}>
                     {testing === item.id ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
