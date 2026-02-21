@@ -41,8 +41,9 @@ serve(async (req) => {
     const customerName = extractName(payload)
     const amount = extractAmount(payload)
     const product = extractProduct(payload)
+    const link = extractLink(payload)
 
-    console.log('Evento detectado:', eventType, 'Phone:', phone)
+    console.log('Evento detectado:', eventType, 'Phone:', phone, 'Link:', link)
 
     // Log the webhook
     await supabase.from('gateway_webhook_logs').insert({
@@ -106,20 +107,53 @@ serve(async (req) => {
       message = message.replace(/\{\{produto\}\}/gi, product || '')
       message = message.replace(/\{\{telefone\}\}/gi, phone || '')
       message = message.replace(/\{\{status\}\}/gi, eventType || '')
+      message = message.replace(/\{\{link\}\}/gi, link || '')
 
-      console.log('Enviando mensagem para', phone, ':', message)
+      const buttonLabel = funnel.button_label
+      const hasButton = buttonLabel && link
 
-      const zapiRes = await fetch(
-        `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Client-Token': profile.zapi_client_token,
-          },
-          body: JSON.stringify({ phone, message }),
-        }
-      )
+      console.log('Enviando mensagem para', phone, ':', message, hasButton ? `com botão: ${buttonLabel}` : 'sem botão')
+
+      let zapiRes: Response
+
+      if (hasButton) {
+        // Send with URL button via send-button-actions
+        zapiRes = await fetch(
+          `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-button-actions`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Client-Token': profile.zapi_client_token,
+            },
+            body: JSON.stringify({
+              phone,
+              message,
+              buttonActions: [
+                {
+                  id: '1',
+                  type: 'URL',
+                  url: link,
+                  label: buttonLabel,
+                },
+              ],
+            }),
+          }
+        )
+      } else {
+        // Send plain text
+        zapiRes = await fetch(
+          `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Client-Token': profile.zapi_client_token,
+            },
+            body: JSON.stringify({ phone, message }),
+          }
+        )
+      }
 
       const zapiResult = await zapiRes.text()
       console.log('Z-API response:', zapiRes.status, zapiResult)
@@ -150,8 +184,6 @@ serve(async (req) => {
 
 // Helper functions to extract data from common gateway payloads
 function detectEventType(payload: any): string {
-  // Common patterns from payment gateways
-  // Priority: deeper nested status first, then top-level type
   const status = (
     payload.data?.status ||
     payload.transaction?.status ||
@@ -219,7 +251,6 @@ function extractAmount(payload: any): string | null {
     null
   )
   if (val === null) return null
-  // Format as BRL
   const num = typeof val === 'number' ? val : parseFloat(val)
   if (isNaN(num)) return String(val)
   return `R$ ${(num / 100).toFixed(2).replace('.', ',')}`
@@ -232,6 +263,24 @@ function extractProduct(payload: any): string | null {
     payload.items?.[0]?.name ||
     payload.data?.product?.name ||
     payload.product_name ||
+    null
+  )
+}
+
+function extractLink(payload: any): string | null {
+  return (
+    payload.payment_url ||
+    payload.checkout_url ||
+    payload.link ||
+    payload.url ||
+    payload.data?.payment_url ||
+    payload.data?.checkout_url ||
+    payload.data?.link ||
+    payload.data?.url ||
+    payload.transaction?.payment_url ||
+    payload.transaction?.checkout_url ||
+    payload.payment?.url ||
+    payload.payment?.link ||
     null
   )
 }
