@@ -6,17 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle } from "lucide-react";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
-  const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, refetch } = useAdminUsers();
+  const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, refetch } = useAdminUsers();
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
@@ -265,6 +267,15 @@ const Admin = () => {
                             </>
                           )}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeletingUser(user)}
+                          disabled={user.id === currentUserId}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Remover
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -281,6 +292,31 @@ const Admin = () => {
         onOpenChange={setEditDialogOpen}
         onSuccess={refetch}
       />
+
+      <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o usuário <strong>{deletingUser?.email}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingUser) {
+                  deleteUser(deletingUser.id);
+                  setDeletingUser(null);
+                }
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

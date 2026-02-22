@@ -136,6 +136,30 @@ export const useAdminUsers = () => {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    try {
+      // Remove roles first
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      
+      // Remove profile
+      const { error } = await supabase.from("profiles").delete().eq("id", userId);
+      if (error) throw error;
+
+      toast({
+        title: "Usuário removido",
+        description: "O usuário foi removido com sucesso"
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover usuário",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -145,6 +169,7 @@ export const useAdminUsers = () => {
     loading,
     toggleUserStatus,
     toggleAdminRole,
+    deleteUser,
     refetch: fetchUsers
   };
 };
