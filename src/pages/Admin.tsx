@@ -222,31 +222,26 @@ const Admin = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-1">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditUser(user)}
+                          title="Editar"
                         >
-                          <Pencil className="w-4 h-4 mr-1" />
-                          Editar
+                          <Pencil className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant={user.roles.includes("admin") ? "destructive" : "default"}
                           onClick={() => toggleAdminRole(user.id, user.roles)}
                           disabled={user.id === currentUserId}
+                          title={user.roles.includes("admin") ? "Remover Admin" : "Tornar Admin"}
                         >
                           {user.roles.includes("admin") ? (
-                            <>
-                              <ShieldOff className="w-4 h-4 mr-1" />
-                              Remove
-                            </>
+                            <ShieldOff className="w-4 h-4" />
                           ) : (
-                            <>
-                              <Shield className="w-4 h-4 mr-1" />
-                              Admin
-                            </>
+                            <Shield className="w-4 h-4" />
                           )}
                         </Button>
                         <Button
@@ -254,17 +249,12 @@ const Admin = () => {
                           variant="outline"
                           onClick={() => toggleUserStatus(user.id, user.is_active)}
                           disabled={user.id === currentUserId}
+                          title={user.is_active ? "Desativar" : "Ativar"}
                         >
                           {user.is_active ? (
-                            <>
-                              <UserX className="w-4 h-4 mr-1" />
-                              Desativar
-                            </>
+                            <UserX className="w-4 h-4" />
                           ) : (
-                            <>
-                              <UserCheck className="w-4 h-4 mr-1" />
-                              Ativar
-                            </>
+                            <UserCheck className="w-4 h-4" />
                           )}
                         </Button>
                         <Button
@@ -272,9 +262,9 @@ const Admin = () => {
                           variant="destructive"
                           onClick={() => setDeletingUser(user)}
                           disabled={user.id === currentUserId}
+                          title="Remover usuário"
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Remover
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
