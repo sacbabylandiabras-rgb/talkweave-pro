@@ -39,7 +39,7 @@ const menuItems = [
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
-  { id: "gateway", label: "Gateway", icon: Webhook, path: "/gateway" },
+  { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "admin", label: "Administração", icon: ShieldCheck, path: "/admin" },
   { id: "configuracao-zapi", label: "Config Z-API", icon: Settings, path: "/configuracao-zapi" },
 ];

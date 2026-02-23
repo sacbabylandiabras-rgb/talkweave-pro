@@ -161,8 +161,8 @@ const GatewayIntegracoes = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Gateway de Integrações</h1>
-        <p className="text-muted-foreground">Receba webhooks e envie mensagens automáticas para seus clientes</p>
+        <h1 className="text-2xl font-bold text-foreground">Integração</h1>
+        <p className="text-muted-foreground">Integre com gateways de pagamento e checkouts para enviar mensagens automáticas</p>
       </div>
 
       {/* URL Card */}
@@ -172,7 +172,7 @@ const GatewayIntegracoes = () => {
             <Webhook className="w-5 h-5 text-primary" />
             Sua URL de Webhook
           </CardTitle>
-          <CardDescription>Cole esta URL no GhostsPay ou qualquer gateway de pagamento</CardDescription>
+          <CardDescription>Cole esta URL no seu gateway de pagamento ou checkout</CardDescription>
         </CardHeader>
         <CardContent>
           {userId ? (
