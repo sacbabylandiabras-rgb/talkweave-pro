@@ -31,6 +31,7 @@ interface Funnel {
   active: boolean;
   delay_seconds: number;
   button_label: string | null;
+  button_url: string | null;
 }
 
 interface WebhookLog {
@@ -56,6 +57,7 @@ const GatewayIntegracoes = () => {
   const [messageTemplate, setMessageTemplate] = useState("");
   const [delaySeconds, setDelaySeconds] = useState(0);
   const [buttonLabel, setButtonLabel] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
@@ -95,6 +97,7 @@ const GatewayIntegracoes = () => {
     setMessageTemplate("Olá {{nome}}! Seu pagamento de {{valor}} foi aprovado! 🎉");
     setDelaySeconds(0);
     setButtonLabel("");
+    setButtonUrl("");
     setDialogOpen(true);
   };
 
@@ -104,6 +107,7 @@ const GatewayIntegracoes = () => {
     setMessageTemplate(f.message_template);
     setDelaySeconds(f.delay_seconds);
     setButtonLabel(f.button_label || "");
+    setButtonUrl(f.button_url || "");
     setDialogOpen(true);
   };
 
@@ -119,6 +123,7 @@ const GatewayIntegracoes = () => {
         message_template: messageTemplate,
         delay_seconds: delaySeconds,
         button_label: buttonLabel || null,
+        button_url: buttonUrl || null,
         active: true,
       };
 
@@ -367,8 +372,16 @@ const GatewayIntegracoes = () => {
                 onChange={e => setButtonLabel(e.target.value)}
                 placeholder="Ex: Acessar Pedido"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Link do Botão (opcional)</Label>
+              <Input
+                value={buttonUrl}
+                onChange={e => setButtonUrl(e.target.value)}
+                placeholder="Ex: https://exemplo.com ou {{link}}"
+              />
               <p className="text-xs text-muted-foreground">
-                Se preenchido e o webhook tiver um link, a mensagem será enviada com um botão clicável. A variável {"{{link}}"} é extraída automaticamente do payload.
+                Se preenchido, o botão usará este link. Use {"{{link}}"} para link dinâmico do payload. Se vazio, será extraído automaticamente do webhook.
               </p>
             </div>
           </div>
