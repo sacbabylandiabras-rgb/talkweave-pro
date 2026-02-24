@@ -327,7 +327,14 @@ const EnviarMensagem = () => {
           contacts: contatosProcessados.map(c => ({ phone: c.telefone, name: c.nome }))
         },
         schedule_type: 'immediate',
+        delay_seconds: delay,
       });
+
+      // Atualizar status da campanha para 'active' imediatamente
+      await supabase
+        .from('campaigns')
+        .update({ status: 'active' })
+        .eq('id', campanha.id);
 
       toast({
         title: "Campanha criada!",
@@ -341,10 +348,19 @@ const EnviarMensagem = () => {
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado
         if (cancelarEnvioRef.current) {
+          // Salvar os envios já processados antes de parar
+          if (campaignSends.length > 0) {
+            await supabase.from('campaign_sends').insert(campaignSends);
+          }
+          // Marcar campanha como pausada para poder retomar depois
+          await supabase
+            .from('campaigns')
+            .update({ status: 'paused' })
+            .eq('id', campanha.id);
+          
           toast({
-            title: "Envio cancelado",
-            description: `Cancelado pelo usuário. ${enviados} mensagens enviadas.`,
-            variant: "destructive"
+            title: "Envio pausado",
+            description: `Pausado pelo usuário. ${enviados} mensagens enviadas. Retome pela página de Campanhas.`,
           });
           break;
         }
@@ -456,18 +472,19 @@ const EnviarMensagem = () => {
         });
       }
       
-      // Salvar todos os registros de envio no banco
-      if (campaignSends.length > 0) {
+      // Salvar registros de envio (apenas se não foi cancelado, pois já salvou acima)
+      if (!cancelarEnvioRef.current && campaignSends.length > 0) {
         await supabase.from('campaign_sends').insert(campaignSends);
       }
       
-      // Atualizar status da campanha
-      await supabase
-        .from('campaigns')
-        .update({ status: 'completed' })
-        .eq('id', campanha.id);
-
+      // Atualizar status da campanha (apenas se não foi cancelado)
       if (!cancelarEnvioRef.current) {
+        const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
+        await supabase
+          .from('campaigns')
+          .update({ status: finalStatus })
+          .eq('id', campanha.id);
+
         toast({
           title: "Envio em massa concluído!",
           description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
