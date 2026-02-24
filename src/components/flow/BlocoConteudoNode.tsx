@@ -22,6 +22,11 @@ export function BlocoConteudoNode({ data }: any) {
               {data.content}
             </div>
           )}
+          {data.buttonLabel && (
+            <div className="text-[10px] text-primary mt-1 flex items-center gap-1">
+              🔗 {data.buttonLabel}
+            </div>
+          )}
         </div>
       </div>
       <Handle

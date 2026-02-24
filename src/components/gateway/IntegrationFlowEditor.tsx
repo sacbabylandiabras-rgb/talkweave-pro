@@ -381,6 +381,35 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}, {"{{link}}"}
                   </p>
                 </div>
+                <div>
+                  <Label>Texto do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonLabel || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonLabel: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: Acessar Pedido"
+                  />
+                </div>
+                <div>
+                  <Label>Link do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonUrl || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonUrl: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: https://exemplo.com ou {{link}}"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se preenchido, a mensagem será enviada com um botão clicável. Use {"{{link}}"} para link dinâmico do payload.
+                  </p>
+                </div>
               </>
             )}
 
