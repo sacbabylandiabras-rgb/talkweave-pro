@@ -223,21 +223,30 @@ const GatewayIntegracoes = () => {
           ) : (
             <div className="grid gap-3">
               {funnels.map(f => (
-                <Card key={f.id}>
-                  <CardContent className="py-4 flex items-center justify-between gap-4">
+                <div
+                  key={f.id}
+                  className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 rounded bg-blue-500/10">
+                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={f.active ? "default" : "secondary"}>
+                        <span className="text-sm font-semibold text-card-foreground">
                           {EVENT_TYPES.find(e => e.value === f.event_type)?.label || f.event_type}
-                        </Badge>
+                        </span>
                         {f.delay_seconds > 0 && (
                           <Badge variant="outline" className="text-xs">⏱ {f.delay_seconds}s</Badge>
                         )}
                         {f.button_label && (
                           <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
                         )}
+                        {!f.active && (
+                          <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{f.message_template}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{f.message_template}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Switch checked={f.active} onCheckedChange={(v) => handleToggle(f.id, v)} />
@@ -248,8 +257,8 @@ const GatewayIntegracoes = () => {
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           )}
