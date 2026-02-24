@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History } from "lucide-react";
+import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch } from "lucide-react";
+import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -48,6 +49,7 @@ const GatewayIntegracoes = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showFlowEditor, setShowFlowEditor] = useState(false);
 
   // Form
   const [eventType, setEventType] = useState("payment_approved");
@@ -196,6 +198,9 @@ const GatewayIntegracoes = () => {
           <TabsTrigger value="funnel" className="gap-1">
             <MessageSquare className="w-4 h-4" /> Funil de Mensagens
           </TabsTrigger>
+          <TabsTrigger value="flow" className="gap-1">
+            <GitBranch className="w-4 h-4" /> Fluxo Visual
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-1">
             <History className="w-4 h-4" /> Histórico
           </TabsTrigger>
@@ -273,6 +278,10 @@ const GatewayIntegracoes = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="flow">
+          <IntegrationFlowEditor onBack={() => {}} />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
