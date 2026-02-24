@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,21 @@ const Campanhas = () => {
     const stats = await getCampaignStats(campaignId);
     setCampaignStats(prev => ({ ...prev, [campaignId]: stats }));
   };
+
+  // Auto-carregar stats para campanhas ativas ou pausadas
+  useEffect(() => {
+    const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
+    activeCampaigns.forEach(c => loadStats(c.id));
+
+    // Polling para campanhas ativas (atualizar a cada 5s)
+    if (activeCampaigns.some(c => c.status === 'active')) {
+      const interval = setInterval(() => {
+        campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
+        refetch();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
