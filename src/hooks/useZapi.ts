@@ -1,33 +1,69 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { ZapiInstance } from '@/hooks/useZapiInstances';
 
-// Função assíncrona para obter configurações do perfil do usuário
+// Instância override - permite que componentes passem uma instância específica
+let _instanceOverride: ZapiInstance | null = null;
+
+export const setZapiInstanceOverride = (instance: ZapiInstance | null) => {
+  _instanceOverride = instance;
+};
+
+// Função assíncrona para obter configurações - agora suporta instância override
 const getZAPIConfig = async () => {
+  // Se há override de instância, usar ela
+  if (_instanceOverride) {
+    return {
+      instanceId: _instanceOverride.zapi_instance_id,
+      token: _instanceOverride.zapi_token,
+      clientToken: _instanceOverride.zapi_client_token,
+    };
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('Usuário não autenticado. Faça login para continuar.');
   }
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
+  // Buscar instância padrão da nova tabela
+  const { data: instances, error } = await (supabase as any)
+    .from('zapi_instances')
     .select('zapi_instance_id, zapi_token, zapi_client_token')
-    .eq('id', user.id)
-    .single();
+    .eq('user_id', user.id)
+    .eq('is_default', true)
+    .limit(1);
 
   if (error) {
     throw new Error('Erro ao buscar credenciais: ' + error.message);
   }
 
-  if (!profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
-    throw new Error('Configure suas credenciais Z-API em "Configuração Z-API" no menu.');
+  const instance = instances?.[0];
+
+  if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
+    // Fallback: tentar profiles (compatibilidade)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('zapi_instance_id, zapi_token, zapi_client_token')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
+      throw new Error('Nenhuma instância Z-API configurada. Peça ao administrador para configurar.');
+    }
+
+    return {
+      instanceId: profile.zapi_instance_id,
+      token: profile.zapi_token,
+      clientToken: profile.zapi_client_token
+    };
   }
 
   return {
-    instanceId: profile.zapi_instance_id,
-    token: profile.zapi_token,
-    clientToken: profile.zapi_client_token
+    instanceId: instance.zapi_instance_id,
+    token: instance.zapi_token,
+    clientToken: instance.zapi_client_token
   };
 };
 
