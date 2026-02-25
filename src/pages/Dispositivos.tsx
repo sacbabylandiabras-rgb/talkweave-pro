@@ -216,9 +216,23 @@ const Dispositivos = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
-        <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
+          <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
+        </div>
+        <Button 
+          onClick={() => {
+            toast({
+              title: "🚧 Em breve",
+              description: "A funcionalidade de múltiplas instâncias estará disponível em breve. Por enquanto, você pode usar 1 instância.",
+            });
+          }}
+          className="flex items-center gap-2"
+        >
+          <Smartphone className="w-4 h-4" />
+          Adicionar Instância
+        </Button>
       </div>
 
       <div className="grid gap-4">
