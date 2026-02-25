@@ -9,10 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star, StarOff } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -30,18 +34,20 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(
     user?.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined
   );
-  const [zapiInstanceId, setZapiInstanceId] = useState(user?.zapi_instance_id || '');
-  const [zapiToken, setZapiToken] = useState(user?.zapi_token || '');
-  const [zapiClientToken, setZapiClientToken] = useState(user?.zapi_client_token || '');
 
-  // Atualizar estados quando o usuário mudar
+  // New instance form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newInstanceName, setNewInstanceName] = useState('');
+  const [newInstanceId, setNewInstanceId] = useState('');
+  const [newToken, setNewToken] = useState('');
+  const [newClientToken, setNewClientToken] = useState('');
+
+  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
+
   useEffect(() => {
     if (user) {
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
-      setZapiInstanceId(user.zapi_instance_id || '');
-      setZapiToken(user.zapi_token || '');
-      setZapiClientToken(user.zapi_client_token || '');
     }
   }, [user]);
 
@@ -55,9 +61,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         .update({
           subscription_status: subscriptionStatus,
           subscription_expires_at: expiresAt?.toISOString() || null,
-          zapi_instance_id: zapiInstanceId || null,
-          zapi_token: zapiToken || null,
-          zapi_client_token: zapiClientToken || null,
         })
         .eq("id", user.id);
 
@@ -81,6 +84,29 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
+  const handleAddInstance = async () => {
+    if (!user) return;
+    if (!newInstanceId || !newToken || !newClientToken) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+
+    const success = await addInstance(user.id, {
+      instance_name: newInstanceName || 'Nova Instância',
+      zapi_instance_id: newInstanceId,
+      zapi_token: newToken,
+      zapi_client_token: newClientToken,
+    });
+
+    if (success) {
+      setShowAddForm(false);
+      setNewInstanceName('');
+      setNewInstanceId('');
+      setNewToken('');
+      setNewClientToken('');
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -89,7 +115,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
           <DialogDescription>
-            Gerenciar assinatura e configurações Z-API de {user.email}
+            Gerenciar assinatura e instâncias Z-API de {user.email}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,39 +165,111 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             </Popover>
           </div>
 
+          {/* Instâncias Z-API */}
           <div className="border-t pt-4 mt-4">
-            <h3 className="font-semibold mb-4">Configurações Z-API</h3>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="instance">Instance ID</Label>
-                <Input
-                  id="instance"
-                  value={zapiInstanceId}
-                  onChange={(e) => setZapiInstanceId(e.target.value)}
-                  placeholder="Ex: 3C12345678"
-                />
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Instâncias Z-API ({instances.length}/5)</h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAddForm(!showAddForm)}
+                disabled={instances.length >= 5}
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Adicionar
+              </Button>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="token">Token</Label>
-                <Input
-                  id="token"
-                  value={zapiToken}
-                  onChange={(e) => setZapiToken(e.target.value)}
-                  placeholder="Token Z-API"
-                />
-              </div>
+            {/* Add form */}
+            {showAddForm && (
+              <Card className="mb-4">
+                <CardContent className="pt-4 space-y-3">
+                  <div className="space-y-2">
+                    <Label>Nome da Instância</Label>
+                    <Input
+                      value={newInstanceName}
+                      onChange={(e) => setNewInstanceName(e.target.value)}
+                      placeholder="Ex: WhatsApp Vendas"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instance ID *</Label>
+                    <Input
+                      value={newInstanceId}
+                      onChange={(e) => setNewInstanceId(e.target.value)}
+                      placeholder="Ex: 3C12345678"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Token *</Label>
+                    <Input
+                      value={newToken}
+                      onChange={(e) => setNewToken(e.target.value)}
+                      placeholder="Token Z-API"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Client Token *</Label>
+                    <Input
+                      value={newClientToken}
+                      onChange={(e) => setNewClientToken(e.target.value)}
+                      placeholder="Client Token Z-API"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="clientToken">Client Token</Label>
-                <Input
-                  id="clientToken"
-                  value={zapiClientToken}
-                  onChange={(e) => setZapiClientToken(e.target.value)}
-                  placeholder="Client Token Z-API"
-                />
-              </div>
+            {/* Instances list */}
+            {instances.length === 0 && !showAddForm && (
+              <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>
+            )}
+
+            <div className="space-y-2">
+              {instances.map((inst) => (
+                <Card key={inst.id} className={cn("border", inst.is_default && "border-primary")}>
+                  <CardContent className="pt-3 pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{inst.instance_name}</span>
+                          {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
+                          {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!inst.is_default && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Definir como padrão"
+                            onClick={() => updateInstance(inst.id, user.id, { is_default: true })}
+                          >
+                            <Star className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Remover instância"
+                          onClick={() => {
+                            if (confirm('Remover esta instância?')) {
+                              deleteInstance(inst.id, user.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>

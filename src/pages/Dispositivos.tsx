@@ -5,19 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Settings, Phone, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useZapi } from "@/hooks/useZapi";
+import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
+import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const Dispositivos = () => {
+const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
-  const [instanceName, setInstanceName] = useState("ZapLynx Instance");
+  const [instanceName, setInstanceName] = useState(instance.instance_name);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState("ZapLynx Instance");
+  const [tempName, setTempName] = useState(instance.instance_name);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -25,9 +27,19 @@ const Dispositivos = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Set instance override for this card's operations
+  const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
+    setZapiInstanceOverride(instance);
+    try {
+      return await fn();
+    } finally {
+      setZapiInstanceOverride(null);
+    }
+  };
+
   const fetchDeviceStatus = async () => {
     try {
-      const status = await getDeviceStatus();
+      const status = await withInstance(() => getDeviceStatus());
       setDeviceStatus(status.data);
     } catch (error) {
       console.error('Erro ao buscar status:', error);
@@ -39,173 +51,85 @@ const Dispositivos = () => {
       setQrCode(null);
       setQrCodeImage(null);
       
-      const qrData = await getQRCode();
+      const qrData = await withInstance(() => getQRCode());
       
       if (qrData.data && qrData.data.value && typeof qrData.data.value === 'string' && qrData.data.value.length > 50) {
         const qrValue = qrData.data.value;
         setQrCode(qrValue);
         
-        // Gerar imagem do QR Code REAL
         try {
           const qrImageDataURL = await QRCodeLib.toDataURL(qrValue, {
             width: 256,
             margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
+            color: { dark: '#000000', light: '#FFFFFF' }
           });
           setQrCodeImage(qrImageDataURL);
-          toast({
-            title: "✅ QR Code REAL gerado",
-            description: "QR Code verdadeiro da Z-API - escaneie para conectar"
-          });
+          toast({ title: "✅ QR Code gerado", description: "Escaneie para conectar" });
         } catch (qrError) {
-          console.error('Erro ao gerar imagem do QR Code:', qrError);
-          toast({
-            title: "❌ Erro ao gerar imagem",
-            description: "Não foi possível gerar a imagem do QR Code",
-          });
+          toast({ title: "❌ Erro ao gerar imagem", variant: "destructive" });
         }
       } else {
-        if (qrData.data && qrData.data.connected === true) {
-          toast({
-            title: "⚠️ Dispositivo já conectado",
-            description: "Use o botão 'Desconectar' primeiro para gerar novo QR Code",
-            variant: "destructive"
-          });
+        if (qrData.data?.connected === true) {
+          toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
         } else {
-          toast({
-            title: "❌ QR Code indisponível", 
-            description: "Instância pode estar inicializando. Tente reiniciar a instância.",
-            variant: "destructive"
-          });
+          toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
         }
       }
     } catch (error) {
-      console.error('Erro ao buscar QR Code:', error);
-      toast({
-        title: "❌ Erro de conexão",
-        description: "Verifique sua conexão e tente novamente",
-        variant: "destructive"
-      });
+      toast({ title: "❌ Erro de conexão", variant: "destructive" });
     }
   };
 
   const fetchPairingCode = async () => {
     if (!phoneNumber) {
-      toast({
-        title: "❌ Número obrigatório",
-        description: "Digite seu número do WhatsApp primeiro",
-        variant: "destructive"
-      });
+      toast({ title: "❌ Número obrigatório", variant: "destructive" });
       return;
     }
-
     try {
       setPairingCode(null);
-      
-      // Usar backend para gerar código REAL
-      const result = await getPairingCode(phoneNumber);
-      
-      if (result.success && result.data && result.data.code) {
+      const result = await withInstance(() => getPairingCode(phoneNumber));
+      if (result.success && result.data?.code) {
         setPairingCode(result.data.code);
-        
-        if (result.data.isReal) {
-          toast({
-            title: "🎯 Código REAL da Z-API!",
-            description: `Código: ${result.data.code} - Use no WhatsApp`,
-          });
-        } else {
-          toast({
-            title: "⚡ Erro ao gerar código",
-            description: `${result.error || 'Erro desconhecido'}`,
-          });
-        }
       }
     } catch (error) {
-      console.error('Erro ao gerar código:', error);
-      toast({
-        title: "❌ Erro ao solicitar código",
-        description: "Tente novamente em alguns segundos",
-        variant: "destructive"
-      });
+      toast({ title: "❌ Erro ao solicitar código", variant: "destructive" });
     }
   };
 
-  // Função para CANCELAR campanhas ativas automaticamente quando desconectar
   const cancelActiveCampaigns = async () => {
     try {
       const { data: activeCampaigns, error } = await supabase
         .from('campaigns')
         .select('id, name')
         .eq('status', 'active');
-
       if (error) throw error;
-
       if (activeCampaigns && activeCampaigns.length > 0) {
-        console.log(`❌ Dispositivo desconectado! CANCELANDO ${activeCampaigns.length} campanha(s) ativa(s)...`);
-        
-        // LIMPAR fila da Z-API
         try {
-          console.log('🧹 Limpando fila da Z-API...');
-          const { error: clearError } = await supabase.functions.invoke('clear-zapi-queue');
-          
-          if (clearError) {
-            console.error('Erro ao limpar fila da Z-API:', clearError);
-          } else {
-            console.log('✅ Fila da Z-API limpa com sucesso');
-          }
-        } catch (clearError) {
-          console.error('Erro ao limpar fila da Z-API:', clearError);
-        }
-        
-        // CANCELAR todas as campanhas ativas
-        const { error: updateError } = await supabase
-          .from('campaigns')
-          .update({ status: 'cancelled' })
-          .eq('status', 'active');
-
-        if (updateError) throw updateError;
-
+          await supabase.functions.invoke('clear-zapi-queue');
+        } catch {}
+        await supabase.from('campaigns').update({ status: 'cancelled' }).eq('status', 'active');
         toast({
           title: "❌ Campanhas Canceladas",
-          description: `${activeCampaigns.length} campanha(s) foi(ram) CANCELADA(S) automaticamente. A fila de mensagens da Z-API foi limpa.`,
+          description: `${activeCampaigns.length} campanha(s) cancelada(s) automaticamente.`,
           variant: "destructive",
           duration: 8000,
         });
-
-        // Log das campanhas canceladas
-        activeCampaigns.forEach(campaign => {
-          console.log(`❌ Campanha CANCELADA: ${campaign.name} (ID: ${campaign.id})`);
-        });
       }
     } catch (error) {
-      console.error('Erro ao cancelar campanhas ativas:', error);
+      console.error('Erro ao cancelar campanhas:', error);
     }
   };
 
   useEffect(() => {
     fetchDeviceStatus();
-    
-    // Configurar intervalo para verificar status a cada 10 segundos
-    const statusInterval = setInterval(() => {
-      fetchDeviceStatus();
-    }, 10000);
-
+    const statusInterval = setInterval(fetchDeviceStatus, 10000);
     return () => clearInterval(statusInterval);
-  }, []);
+  }, [instance.id]);
 
-  // Monitorar mudanças no status de conexão
   useEffect(() => {
-    const wasConnected = deviceStatus?.connected;
-    
-    // Se desconectou, CANCELAR campanhas ativas
-    if (wasConnected === false && deviceStatus?.smartphoneConnected === false) {
+    if (deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
       cancelActiveCampaigns();
     }
-    
-    // Se o dispositivo não estiver conectado, buscar QR Code automaticamente
     if (deviceStatus?.connected === false) {
       fetchQRCode();
     }
@@ -215,367 +139,198 @@ const Dispositivos = () => {
   const isConnected = deviceStatus?.connected === true;
 
   return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Smartphone className="w-8 h-8 text-primary" />
+            <div className="flex-1">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="text-lg font-semibold h-8"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
+                      if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
+                    }}
+                  />
+                  <Button size="sm" variant="ghost" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
+                    <Check className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg">{instanceName}</CardTitle>
+                  {instance.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
+                  <Button size="sm" variant="ghost" onClick={() => { setIsEditingName(true); setTempName(instanceName); }}>
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+              <CardDescription>
+                {deviceStatus?.phone || `ID: ${instance.zapi_instance_id}`}
+              </CardDescription>
+            </div>
+          </div>
+          <Badge variant={isOnline ? 'default' : 'secondary'}>
+            {isOnline ? <><Wifi className="w-3 h-3 mr-1" /> Online</> : <><WifiOff className="w-3 h-3 mr-1" /> Offline</>}
+          </Badge>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 pt-4">
+          <Button variant="outline" size="sm" onClick={fetchDeviceStatus} disabled={loading} className="flex items-center gap-2">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          {isConnected && (
+            <Button variant="outline" size="sm" disabled={loading} className="flex items-center gap-2"
+              onClick={async () => { try { await withInstance(() => disconnectDevice()); setTimeout(fetchDeviceStatus, 1000); } catch {} }}>
+              <PowerOff className="w-3 h-3" /> Desconectar
+            </Button>
+          )}
+          <Button variant="outline" size="sm" disabled={loading} className="flex items-center gap-2"
+            onClick={async () => { try { await withInstance(() => restartInstance()); setTimeout(fetchDeviceStatus, 3000); } catch {} }}>
+            <RotateCcw className="w-3 h-3" /> Reiniciar
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => navigate('/enviar-mensagem')}>
+            <Send className="w-3 h-3" /> Enviar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {!isConnected && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
+            <h4 className="font-medium mb-4 text-center">🔗 Conectar dispositivo WhatsApp</h4>
+            <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="qr-code" className="flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Code</TabsTrigger>
+                <TabsTrigger value="phone-number" className="flex items-center gap-2"><Phone className="w-4 h-4" /> Com Número</TabsTrigger>
+              </TabsList>
+              <TabsContent value="qr-code" className="space-y-4">
+                <div className="text-center space-y-4">
+                  {!qrCodeImage ? (
+                    <div>
+                      <Button onClick={fetchQRCode} disabled={loading} size="lg">
+                        <QrCode className="w-4 h-4 mr-2" /> Gerar QR Code
+                      </Button>
+                      <p className="text-sm text-muted-foreground mt-2">Clique para gerar o QR Code</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-center mb-4">
+                        <img src={qrCodeImage} alt="QR Code" className="w-64 h-64 border rounded-lg" />
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>1. Abra o WhatsApp</p>
+                        <p>2. Vá em ⋮ → <strong>Aparelhos conectados</strong></p>
+                        <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                        <p>4. Escaneie este código</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode} disabled={loading}>
+                        🔄 Renovar QR Code
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="phone-number" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Número do WhatsApp</label>
+                    <Input type="tel" placeholder="Ex: 5511999999999" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="text-center" />
+                  </div>
+                  <Button className="w-full" disabled={!phoneNumber || loading} onClick={fetchPairingCode}>
+                    <Phone className="w-4 h-4 mr-2" /> Gerar Código de Pareamento
+                  </Button>
+                  {pairingCode && (
+                    <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
+                      <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
+                        {pairingCode}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium mb-2">📊 Status Detalhado</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Conectado:</span>
+                <Badge variant={deviceStatus?.connected ? 'default' : 'secondary'}>{deviceStatus?.connected ? 'Sim' : 'Não'}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Sessão:</span>
+                <Badge variant={deviceStatus?.session ? 'default' : 'secondary'}>{deviceStatus?.session ? 'Ativa' : 'Inativa'}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Smartphone:</span>
+                <Badge variant={deviceStatus?.smartphoneConnected ? 'default' : 'secondary'}>{deviceStatus?.smartphoneConnected ? 'Conectado' : 'Desconectado'}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Criado:</span>
+                <span className="text-sm">{deviceStatus?.created ? new Date(deviceStatus.created).toLocaleString('pt-BR') : 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+          {deviceStatus && (
+            <div className="border-t pt-4">
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Dados Técnicos (Debug)</summary>
+                <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">{JSON.stringify(deviceStatus, null, 2)}</pre>
+              </details>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const Dispositivos = () => {
+  const { instances, loading, refetch } = useZapiInstances();
+  const { toast } = useToast();
+
+  return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
-          <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados</p>
+          <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados ({instances.length}/5)</p>
         </div>
-        <Button 
-          onClick={() => {
-            toast({
-              title: "🚧 Em breve",
-              description: "A funcionalidade de múltiplas instâncias estará disponível em breve. Por enquanto, você pode usar 1 instância.",
-            });
-          }}
-          className="flex items-center gap-2"
-        >
-          <Smartphone className="w-4 h-4" />
-          Adicionar Instância
+        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
         </Button>
       </div>
 
-      <div className="grid gap-4">
+      {instances.length === 0 && !loading && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-8 h-8 text-primary" />
-                <div className="flex-1">
-                  {isEditingName ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={tempName}
-                        onChange={(e) => setTempName(e.target.value)}
-                        className="text-lg font-semibold h-8"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setInstanceName(tempName);
-                            setIsEditingName(false);
-                            toast({ title: "✅ Nome atualizado!" });
-                          }
-                          if (e.key === 'Escape') {
-                            setTempName(instanceName);
-                            setIsEditingName(false);
-                          }
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setInstanceName(tempName);
-                          setIsEditingName(false);
-                          toast({ title: "✅ Nome atualizado!" });
-                        }}
-                      >
-                        <Check className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setTempName(instanceName);
-                          setIsEditingName(false);
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{instanceName}</CardTitle>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setIsEditingName(true);
-                          setTempName(instanceName);
-                        }}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                  <CardDescription>
-                    {deviceStatus?.phone || 'Aguardando conexão...'}
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={isOnline ? 'default' : 'secondary'}>
-                  {isOnline ? (
-                    <><Wifi className="w-3 h-3 mr-1" /> Online</>
-                  ) : (
-                    <><WifiOff className="w-3 h-3 mr-1" /> Offline</>
-                  )}
-                </Badge>
-              </div>
-            </div>
-            
-            {/* Controles da Instância */}
-            <div className="flex flex-wrap gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchDeviceStatus} 
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                {loading ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3 h-3" />
-                )}
-                Atualizar Status
-              </Button>
-              
-              {isConnected ? (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                  onClick={async () => {
-                    try {
-                      await disconnectDevice();
-                      // Atualizar status após desconectar
-                      setTimeout(() => {
-                        fetchDeviceStatus();
-                      }, 1000);
-                    } catch (error) {
-                      console.error('Erro ao desconectar:', error);
-                    }
-                  }}
-                >
-                  <PowerOff className="w-3 h-3" />
-                  Desconectar
-                </Button>
-              ) : null}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={loading}
-                className="flex items-center gap-2"
-                onClick={async () => {
-                  try {
-                    await restartInstance();
-                    // Atualizar status após reiniciar
-                    setTimeout(() => {
-                      fetchDeviceStatus();
-                    }, 3000); // 3 segundos para dar tempo do restart
-                  } catch (error) {
-                    console.error('Erro ao reiniciar instância:', error);
-                  }
-                }}
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reiniciar Instância
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-2"
-                onClick={() => navigate('/enviar-mensagem')}
-              >
-                <Send className="w-3 h-3" />
-                Enviar Mensagem
-              </Button>
-              
-              <Button variant="outline" size="sm">
-                <Settings className="w-3 h-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Conectar dispositivo WhatsApp */}
-            {!isConnected && (
-              <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
-                <h4 className="font-medium mb-4 text-center">🔗 Conectar dispositivo WhatsApp</h4>
-                
-                <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="qr-code" className="flex items-center gap-2">
-                      <QrCode className="w-4 h-4" />
-                      QR Code
-                    </TabsTrigger>
-                    <TabsTrigger value="phone-number" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Com Número
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="qr-code" className="space-y-4">
-                    <div className="text-center space-y-4">
-                      {!qrCodeImage ? (
-                        <div>
-                          <Button 
-                            onClick={fetchQRCode} 
-                            disabled={loading}
-                            size="lg"
-                          >
-                            <QrCode className="w-4 h-4 mr-2" />
-                            Gerar QR Code
-                          </Button>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Clique para gerar o QR Code e escaneie com seu WhatsApp
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="flex justify-center mb-4">
-                            <img 
-                              src={qrCodeImage} 
-                              alt="QR Code para conectar WhatsApp" 
-                              className="w-64 h-64 border rounded-lg"
-                            />
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <p>1. Abra o WhatsApp no seu celular</p>
-                            <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
-                            <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
-                            <p>4. Escaneie este código</p>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-4"
-                            onClick={fetchQRCode}
-                            disabled={loading}
-                          >
-                            🔄 Renovar QR Code
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="phone-number" className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Número do WhatsApp</label>
-                        <Input
-                          type="tel"
-                          placeholder="Ex: 5511999999999"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="text-center"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Digite o número com código do país (Ex: 5511999999999)
-                        </p>
-                      </div>
-                      
-                      <Button 
-                        className="w-full" 
-                        disabled={!phoneNumber || loading}
-                        onClick={fetchPairingCode}
-                      >
-                        <Phone className="w-4 h-4 mr-2" />
-                        Gerar Código de Pareamento
-                      </Button>
-                      
-                        <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
-                            <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
-                              {pairingCode}
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground space-y-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                            <p className="font-semibold text-blue-700 dark:text-blue-300">📱 Como usar no WhatsApp:</p>
-                            <p>1. Abra o WhatsApp no seu celular</p>
-                            <p>2. Vá em ⋮ (3 pontos) → <strong>Aparelhos conectados</strong></p>
-                            <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
-                            <p>4. Selecione <strong>"Conectar com código de telefone"</strong></p>
-                            <p>5. Digite este código: <strong className="text-primary">{pairingCode}</strong></p>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={fetchPairingCode}
-                            disabled={loading}
-                          >
-                            🔄 Gerar Novo Código
-                          </Button>
-                        </div>
-                      
-                      <div className="text-xs text-muted-foreground space-y-1 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <p>🚀 <strong>Código de Pareamento REAL:</strong></p>
-                        <p>• Gerado via backend com algoritmo próprio</p>
-                        <p>• Baseado em timestamp + hash do número</p>
-                        <p>• Válido por 10 minutos</p>
-                        <p className="text-emerald-600 dark:text-emerald-400">
-                          ✅ 100% Real - Algoritmo personalizado
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-
-            {/* Informações do Status Detalhado */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">📊 Status Detalhado</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Conectado:</span>
-                    <Badge variant={deviceStatus?.connected ? 'default' : 'secondary'}>
-                      {deviceStatus?.connected ? 'Sim' : 'Não'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sessão:</span>
-                    <Badge variant={deviceStatus?.session ? 'default' : 'secondary'}>
-                      {deviceStatus?.session ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Smartphone:</span>
-                    <Badge variant={deviceStatus?.smartphoneConnected ? 'default' : 'secondary'}>
-                      {deviceStatus?.smartphoneConnected ? 'Conectado' : 'Desconectado'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Criado:</span>
-                    <span className="text-sm">
-                      {deviceStatus?.created 
-                        ? new Date(deviceStatus.created).toLocaleString('pt-BR')
-                        : 'N/A'
-                      }
-                    </span>
-                  </div>
-                </div>
-                
-                {deviceStatus?.error && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      <strong>⚠️ Erro:</strong> {deviceStatus.error}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Status Raw - Para Debug */}
-              {deviceStatus && (
-                <div className="border-t pt-4">
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                      🔧 Dados Técnicos (Debug)
-                    </summary>
-                    <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
-                      {JSON.stringify(deviceStatus, null, 2)}
-                    </pre>
-                  </details>
-                </div>
-              )}
-            </div>
+          <CardContent className="py-12 text-center">
+            <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
+            <p className="text-muted-foreground">
+              Peça ao administrador para configurar suas instâncias Z-API no painel de administração.
+            </p>
           </CardContent>
         </Card>
+      )}
+
+      <div className="grid gap-4">
+        {instances.map((instance) => (
+          <DeviceCard key={instance.id} instance={instance} />
+        ))}
       </div>
     </div>
   );
