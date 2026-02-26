@@ -513,6 +513,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zapi_instances: {
+        Row: {
+          created_at: string
+          id: string
+          instance_name: string
+          is_active: boolean
+          is_default: boolean
+          updated_at: string
+          user_id: string
+          zapi_client_token: string
+          zapi_instance_id: string
+          zapi_token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_name?: string
+          is_active?: boolean
+          is_default?: boolean
+          updated_at?: string
+          user_id: string
+          zapi_client_token: string
+          zapi_instance_id: string
+          zapi_token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_name?: string
+          is_active?: boolean
+          is_default?: boolean
+          updated_at?: string
+          user_id?: string
+          zapi_client_token?: string
+          zapi_instance_id?: string
+          zapi_token?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
