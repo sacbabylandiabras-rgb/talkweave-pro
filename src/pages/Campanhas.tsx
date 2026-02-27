@@ -216,6 +216,15 @@ const Campanhas = () => {
         </Button>
       </div>
 
+      <Card>
+        <CardContent className="pt-4">
+          <InstanceSelector onInstanceChange={(id) => {
+            const inst = instances.find(i => i.id === id);
+            if (inst) setZapiInstanceOverride(inst);
+          }} />
+        </CardContent>
+      </Card>
+
       <CreateCampaignDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
