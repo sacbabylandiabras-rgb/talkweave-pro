@@ -1,18 +1,25 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Smartphone } from "lucide-react";
+import { Smartphone, RefreshCw } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { Separator } from "@/components/ui/separator";
 
 interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
 }
 
+const ROTATE_ALL = "__rotate_all__";
+
 const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
   const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
 
   const handleChange = (value: string) => {
-    selectInstance(value);
-    onInstanceChange?.(value);
+    if (value === ROTATE_ALL) {
+      onInstanceChange?.(ROTATE_ALL);
+    } else {
+      selectInstance(value);
+      onInstanceChange?.(value);
+    }
   };
 
   if (loading) {
@@ -48,11 +55,19 @@ const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
         <Smartphone className="h-4 w-4" />
         Instância de envio
       </Label>
-      <Select value={activeInstance?.id || ""} onValueChange={handleChange}>
+      <Select defaultValue={activeInstance?.id || ""} onValueChange={handleChange}>
         <SelectTrigger>
           <SelectValue placeholder="Selecione a instância" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={ROTATE_ALL}>
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-3.5 w-3.5 text-primary" />
+              <span>Todas (revezamento)</span>
+              <span className="text-xs text-muted-foreground">— alterna entre {instances.length} instâncias</span>
+            </div>
+          </SelectItem>
+          <Separator className="my-1" />
           {instances.map((inst) => (
             <SelectItem key={inst.id} value={inst.id}>
               <div className="flex items-center gap-2">
@@ -69,4 +84,5 @@ const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
   );
 };
 
+export { ROTATE_ALL };
 export default InstanceSelector;
