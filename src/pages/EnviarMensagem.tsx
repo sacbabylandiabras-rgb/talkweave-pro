@@ -637,6 +637,15 @@ const EnviarMensagem = () => {
         <p className="text-muted-foreground">Envie mensagens texto, com botões, listas de opções e mais</p>
       </div>
 
+      <Card>
+        <CardContent className="pt-4">
+          <InstanceSelector onInstanceChange={(id) => {
+            const inst = instances.find(i => i.id === id);
+            if (inst) setZapiInstanceOverride(inst);
+          }} />
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="individual" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="individual" className="flex items-center gap-2">
