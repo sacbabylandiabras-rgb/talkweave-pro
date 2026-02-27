@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
-import { useZapi } from "@/hooks/useZapi";
+import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
+import InstanceSelector from "@/components/envio/InstanceSelector";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +57,14 @@ const EnviarMensagem = () => {
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
+  const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
+
+  // Definir instância ativa como override ao carregar
+  useEffect(() => {
+    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    return () => setZapiInstanceOverride(null);
+  }, [activeInstance]);
   const { createCampaign } = useCampaigns();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
@@ -633,6 +642,15 @@ const EnviarMensagem = () => {
         <h1 className="text-2xl font-bold text-foreground">Enviar Mensagem</h1>
         <p className="text-muted-foreground">Envie mensagens texto, com botões, listas de opções e mais</p>
       </div>
+
+      <Card>
+        <CardContent className="pt-4">
+          <InstanceSelector onInstanceChange={(id) => {
+            const inst = instances.find(i => i.id === id);
+            if (inst) setZapiInstanceOverride(inst);
+          }} />
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="individual" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
