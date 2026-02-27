@@ -56,6 +56,12 @@ const Campanhas = () => {
     setCampaignStats(prev => ({ ...prev, [campaignId]: stats }));
   };
 
+  // Definir instância ativa como override
+  useEffect(() => {
+    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    return () => setZapiInstanceOverride(null);
+  }, [activeInstance]);
+
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
