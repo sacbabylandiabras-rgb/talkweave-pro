@@ -646,8 +646,12 @@ const EnviarMensagem = () => {
       <Card>
         <CardContent className="pt-4">
           <InstanceSelector onInstanceChange={(id) => {
-            const inst = instances.find(i => i.id === id);
-            if (inst) setZapiInstanceOverride(inst);
+            if (id === ROTATE_ALL) {
+              setZapiRotateMode(instances);
+            } else {
+              const inst = instances.find(i => i.id === id);
+              if (inst) setZapiInstanceOverride(inst);
+            }
           }} />
         </CardContent>
       </Card>
