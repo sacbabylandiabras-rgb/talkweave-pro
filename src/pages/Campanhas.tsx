@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { setZapiInstanceOverride } from "@/hooks/useZapi";
+import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,6 +39,7 @@ const Campanhas = () => {
   } = useCampaigns();
   
   const { toast } = useToast();
+  const { instances, activeInstance } = useZapiInstances();
   
   const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -51,6 +55,12 @@ const Campanhas = () => {
     const stats = await getCampaignStats(campaignId);
     setCampaignStats(prev => ({ ...prev, [campaignId]: stats }));
   };
+
+  // Definir instância ativa como override
+  useEffect(() => {
+    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    return () => setZapiInstanceOverride(null);
+  }, [activeInstance]);
 
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
@@ -205,6 +215,15 @@ const Campanhas = () => {
           Nova Campanha
         </Button>
       </div>
+
+      <Card>
+        <CardContent className="pt-4">
+          <InstanceSelector onInstanceChange={(id) => {
+            const inst = instances.find(i => i.id === id);
+            if (inst) setZapiInstanceOverride(inst);
+          }} />
+        </CardContent>
+      </Card>
 
       <CreateCampaignDialog 
         open={showCreateDialog} 
