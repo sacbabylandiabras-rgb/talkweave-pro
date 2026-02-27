@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
 import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
-import InstanceSelector from "@/components/envio/InstanceSelector";
+import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
