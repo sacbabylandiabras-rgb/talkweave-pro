@@ -39,6 +39,7 @@ const Campanhas = () => {
   } = useCampaigns();
   
   const { toast } = useToast();
+  const { instances, activeInstance } = useZapiInstances();
   
   const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
   const [showCreateDialog, setShowCreateDialog] = useState(false);
