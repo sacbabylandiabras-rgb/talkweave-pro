@@ -59,6 +59,12 @@ const EnviarMensagem = () => {
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
+
+  // Definir instância ativa como override ao carregar
+  useEffect(() => {
+    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    return () => setZapiInstanceOverride(null);
+  }, [activeInstance]);
   const { createCampaign } = useCampaigns();
 
   const handleSendIndividual = async (e: React.FormEvent) => {
