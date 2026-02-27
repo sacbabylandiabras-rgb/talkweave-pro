@@ -6,12 +6,35 @@ import type { ZapiInstance } from '@/hooks/useZapiInstances';
 // Instância override - permite que componentes passem uma instância específica
 let _instanceOverride: ZapiInstance | null = null;
 
+// Modo revezamento - cicla entre todas as instâncias
+let _rotateInstances: ZapiInstance[] = [];
+let _rotateIndex = 0;
+
 export const setZapiInstanceOverride = (instance: ZapiInstance | null) => {
   _instanceOverride = instance;
+  _rotateInstances = [];
+  _rotateIndex = 0;
+};
+
+export const setZapiRotateMode = (instances: ZapiInstance[]) => {
+  _rotateInstances = instances;
+  _rotateIndex = 0;
+  _instanceOverride = null;
 };
 
 // Função assíncrona para obter configurações - agora suporta instância override
 const getZAPIConfig = async () => {
+  // Se há modo revezamento ativo, ciclar entre instâncias
+  if (_rotateInstances.length > 0) {
+    const inst = _rotateInstances[_rotateIndex % _rotateInstances.length];
+    _rotateIndex++;
+    return {
+      instanceId: inst.zapi_instance_id,
+      token: inst.zapi_token,
+      clientToken: inst.zapi_client_token,
+    };
+  }
+
   // Se há override de instância, usar ela
   if (_instanceOverride) {
     return {
