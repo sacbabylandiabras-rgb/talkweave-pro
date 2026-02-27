@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { setZapiInstanceOverride } from "@/hooks/useZapi";
-import InstanceSelector from "@/components/envio/InstanceSelector";
+import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
+import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -219,8 +219,12 @@ const Campanhas = () => {
       <Card>
         <CardContent className="pt-4">
           <InstanceSelector onInstanceChange={(id) => {
-            const inst = instances.find(i => i.id === id);
-            if (inst) setZapiInstanceOverride(inst);
+            if (id === ROTATE_ALL) {
+              setZapiRotateMode(instances);
+            } else {
+              const inst = instances.find(i => i.id === id);
+              if (inst) setZapiInstanceOverride(inst);
+            }
           }} />
         </CardContent>
       </Card>

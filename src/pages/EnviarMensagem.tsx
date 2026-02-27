@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
-import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
+import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
-import InstanceSelector from "@/components/envio/InstanceSelector";
+import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -646,8 +646,12 @@ const EnviarMensagem = () => {
       <Card>
         <CardContent className="pt-4">
           <InstanceSelector onInstanceChange={(id) => {
-            const inst = instances.find(i => i.id === id);
-            if (inst) setZapiInstanceOverride(inst);
+            if (id === ROTATE_ALL) {
+              setZapiRotateMode(instances);
+            } else {
+              const inst = instances.find(i => i.id === id);
+              if (inst) setZapiInstanceOverride(inst);
+            }
           }} />
         </CardContent>
       </Card>
