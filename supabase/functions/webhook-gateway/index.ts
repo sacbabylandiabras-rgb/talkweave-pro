@@ -79,20 +79,33 @@ serve(async (req) => {
       })
     }
 
-    // Get user Z-API credentials
-    const { data: profile } = await supabase
-      .from('profiles')
+    // Get user Z-API credentials from zapi_instances (default instance)
+    const { data: instance } = await supabase
+      .from('zapi_instances')
       .select('zapi_instance_id, zapi_token, zapi_client_token')
-      .eq('id', userId)
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .eq('is_active', true)
       .single()
 
-    if (!profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
+    // Fallback: if no default, get any active instance
+    const zapiCreds = instance || (await supabase
+      .from('zapi_instances')
+      .select('zapi_instance_id, zapi_token, zapi_client_token')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .limit(1)
+      .single()).data
+
+    if (!zapiCreds?.zapi_instance_id || !zapiCreds?.zapi_token || !zapiCreds?.zapi_client_token) {
       console.error('Credenciais Z-API incompletas para user:', userId)
       return new Response(JSON.stringify({ ok: false, error: 'Z-API credentials missing' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    console.log('Usando instância Z-API:', zapiCreds.zapi_instance_id)
 
     // Send messages for each funnel step
     for (const funnel of funnels) {
