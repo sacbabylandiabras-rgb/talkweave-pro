@@ -132,12 +132,12 @@ serve(async (req) => {
       if (hasButton) {
         // Send with URL button via send-button-actions
         zapiRes = await fetch(
-          `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-button-actions`,
+          `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}/send-button-actions`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Client-Token': profile.zapi_client_token,
+              'Client-Token': zapiCreds.zapi_client_token,
             },
             body: JSON.stringify({
               phone,
