@@ -70,11 +70,11 @@ serve(async (req) => {
       .eq('user_id', userId)
       .eq('phone', phone)
       .eq('event_type', eventType)
-      .eq('status', 'sent')
+      .in('status', ['sent', 'received'])
       .gte('created_at', deduplicationWindow)
-      .limit(1)
+      .limit(2)
 
-    if (recentLogs && recentLogs.length > 0) {
+    if (recentLogs && recentLogs.length > 1) {
       console.log('Webhook duplicado detectado, ignorando:', phone, eventType)
       return new Response(JSON.stringify({ ok: true, message: 'duplicate webhook ignored' }), {
         status: 200,
