@@ -156,12 +156,12 @@ serve(async (req) => {
       } else {
         // Send plain text
         zapiRes = await fetch(
-          `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
+          `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}/send-text`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Client-Token': profile.zapi_client_token,
+              'Client-Token': zapiCreds.zapi_client_token,
             },
             body: JSON.stringify({ phone, message }),
           }
