@@ -74,7 +74,7 @@ serve(async (req) => {
       .gte('created_at', deduplicationWindow)
       .limit(2)
 
-    if (recentLogs && recentLogs.length > 0) {
+    if (recentLogs && recentLogs.length > 1) {
       console.log('Webhook duplicado detectado, ignorando:', phone, eventType)
       return new Response(JSON.stringify({ ok: true, message: 'duplicate webhook ignored' }), {
         status: 200,
