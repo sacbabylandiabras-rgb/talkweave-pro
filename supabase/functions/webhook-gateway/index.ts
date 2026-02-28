@@ -62,6 +62,26 @@ serve(async (req) => {
       })
     }
 
+    // Deduplication: check if we already processed this phone+event in the last 60 seconds
+    const deduplicationWindow = new Date(Date.now() - 60 * 1000).toISOString()
+    const { data: recentLogs } = await supabase
+      .from('gateway_webhook_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('phone', phone)
+      .eq('event_type', eventType)
+      .eq('status', 'sent')
+      .gte('created_at', deduplicationWindow)
+      .limit(1)
+
+    if (recentLogs && recentLogs.length > 0) {
+      console.log('Webhook duplicado detectado, ignorando:', phone, eventType)
+      return new Response(JSON.stringify({ ok: true, message: 'duplicate webhook ignored' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Find matching funnel for this event
     const { data: funnels } = await supabase
       .from('gateway_funnels')
