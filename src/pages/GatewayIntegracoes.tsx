@@ -63,9 +63,11 @@ const GatewayIntegracoes = () => {
   const [delaySeconds, setDelaySeconds] = useState(0);
   const [buttonLabel, setButtonLabel] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
+  const [instanceId, setInstanceId] = useState<string>(ROTATE_ALL);
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
+  const { instances } = useZapiInstances();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
