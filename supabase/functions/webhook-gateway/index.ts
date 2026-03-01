@@ -116,23 +116,30 @@ serve(async (req) => {
       })
     }
 
-    // Helper: pick instance for a funnel (specific or rotation)
-    const getInstanceForFunnel = (funnel: any, index: number) => {
-      if (funnel.instance_id) {
-        const specific = allInstances.find((i: any) => i.id === funnel.instance_id)
-        if (specific) return specific
-        console.log('Instância específica não encontrada, usando revezamento')
+    // Get total sent count for rotation index
+    const { count: totalSent } = await supabase
+      .from('gateway_webhook_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'sent')
+
+    // Helper: pick instance for a funnel (selected instances or fallback to all)
+    const getInstanceForFunnel = (funnel: any) => {
+      const funnelInstanceIds = funnel.instance_ids
+      let pool = allInstances
+      if (funnelInstanceIds && Array.isArray(funnelInstanceIds) && funnelInstanceIds.length > 0) {
+        const filtered = allInstances.filter((i: any) => funnelInstanceIds.includes(i.id))
+        if (filtered.length > 0) pool = filtered
       }
-      // Rotation
-      const rotationIndex = index % allInstances.length
-      return allInstances[rotationIndex]
+      const rotationIndex = (totalSent || 0) % pool.length
+      return pool[rotationIndex]
     }
 
     // Send messages for each funnel step
     for (let i = 0; i < funnels.length; i++) {
       const funnel = funnels[i]
-      const zapiCreds = getInstanceForFunnel(funnel, i)
-      console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name} (${funnel.instance_id ? 'específica' : 'revezamento'})`)
+      const zapiCreds = getInstanceForFunnel(funnel)
+      console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name}`)
       if (funnel.delay_seconds > 0) {
         await new Promise(resolve => setTimeout(resolve, funnel.delay_seconds * 1000))
       }

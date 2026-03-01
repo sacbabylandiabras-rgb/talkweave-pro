@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -25,8 +26,6 @@ const EVENT_TYPES = [
   { value: "payment_cancelled", label: "Pagamento Cancelado" },
 ];
 
-const ROTATE_ALL = "__rotate_all__";
-
 interface Funnel {
   id: string;
   event_type: string;
@@ -36,7 +35,7 @@ interface Funnel {
   delay_seconds: number;
   button_label: string | null;
   button_url: string | null;
-  instance_id: string | null;
+  instance_ids: string[];
 }
 
 interface WebhookLog {
@@ -63,7 +62,7 @@ const GatewayIntegracoes = () => {
   const [delaySeconds, setDelaySeconds] = useState(0);
   const [buttonLabel, setButtonLabel] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
-  const [instanceId, setInstanceId] = useState<string>(ROTATE_ALL);
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
@@ -105,7 +104,7 @@ const GatewayIntegracoes = () => {
     setDelaySeconds(0);
     setButtonLabel("");
     setButtonUrl("");
-    setInstanceId(ROTATE_ALL);
+    setSelectedInstanceIds([]);
     setDialogOpen(true);
   };
 
@@ -116,7 +115,7 @@ const GatewayIntegracoes = () => {
     setDelaySeconds(f.delay_seconds);
     setButtonLabel(f.button_label || "");
     setButtonUrl(f.button_url || "");
-    setInstanceId(f.instance_id || ROTATE_ALL);
+    setSelectedInstanceIds(f.instance_ids || []);
     setDialogOpen(true);
   };
 
@@ -133,7 +132,7 @@ const GatewayIntegracoes = () => {
         delay_seconds: delaySeconds,
         button_label: buttonLabel || null,
         button_url: buttonUrl || null,
-        instance_id: instanceId === ROTATE_ALL ? null : instanceId,
+        instance_ids: selectedInstanceIds.length > 0 ? selectedInstanceIds : null,
         active: true,
       };
 
@@ -262,12 +261,12 @@ const GatewayIntegracoes = () => {
                         {f.button_label && (
                           <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
                         )}
-                        {f.instance_id ? (
+                        {f.instance_ids && f.instance_ids.length > 0 ? (
                           <Badge variant="outline" className="text-xs">
-                            📱 {instances.find(i => i.id === f.instance_id)?.instance_name || "Instância"}
+                            📱 {f.instance_ids.length} instância{f.instance_ids.length > 1 ? 's' : ''}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs">🔄 Revezamento</Badge>
+                          <Badge variant="outline" className="text-xs text-destructive">⚠ Sem instância</Badge>
                         )}
                         {!f.active && (
                           <Badge variant="secondary" className="text-xs">Inativo</Badge>
@@ -404,34 +403,40 @@ const GatewayIntegracoes = () => {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Smartphone className="h-4 w-4" />
-                Instância de envio
+                Instâncias de envio
               </Label>
-              <Select value={instanceId} onValueChange={setInstanceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a instância" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ROTATE_ALL}>
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                      <span>Todas (revezamento)</span>
-                    </div>
-                  </SelectItem>
-                  <Separator className="my-1" />
-                  {instances.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{inst.instance_name}</span>
-                        {inst.is_default && (
-                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
-                        )}
+              <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                {instances.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma instância configurada</p>
+                ) : (
+                  instances.map((inst) => {
+                    const checked = selectedInstanceIds.includes(inst.id);
+                    return (
+                      <div key={inst.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`inst-${inst.id}`}
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            if (v) {
+                              setSelectedInstanceIds(prev => [...prev, inst.id]);
+                            } else {
+                              setSelectedInstanceIds(prev => prev.filter(id => id !== inst.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`inst-${inst.id}`} className="text-sm cursor-pointer flex items-center gap-2">
+                          {inst.instance_name}
+                          {inst.is_default && (
+                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
+                          )}
+                        </label>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    );
+                  })
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Escolha uma instância específica ou reveze entre todas automaticamente.
+                Selecione as instâncias que serão usadas no revezamento. Se mais de uma, o sistema alterna entre elas.
               </p>
             </div>
           </div>
