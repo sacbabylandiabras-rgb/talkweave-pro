@@ -132,7 +132,7 @@ const GatewayIntegracoes = () => {
         delay_seconds: delaySeconds,
         button_label: buttonLabel || null,
         button_url: buttonUrl || null,
-        instance_id: instanceId === ROTATE_ALL ? null : instanceId,
+        instance_ids: selectedInstanceIds.length > 0 ? selectedInstanceIds : null,
         active: true,
       };
 
