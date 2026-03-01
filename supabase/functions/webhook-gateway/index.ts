@@ -138,8 +138,8 @@ serve(async (req) => {
     // Send messages for each funnel step
     for (let i = 0; i < funnels.length; i++) {
       const funnel = funnels[i]
-      const zapiCreds = getInstanceForFunnel(funnel, i)
-      console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name} (${funnel.instance_id ? 'específica' : 'revezamento'})`)
+      const zapiCreds = getInstanceForFunnel(funnel)
+      console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name}`)
       if (funnel.delay_seconds > 0) {
         await new Promise(resolve => setTimeout(resolve, funnel.delay_seconds * 1000))
       }

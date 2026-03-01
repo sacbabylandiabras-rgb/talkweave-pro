@@ -403,34 +403,40 @@ const GatewayIntegracoes = () => {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Smartphone className="h-4 w-4" />
-                Instância de envio
+                Instâncias de envio
               </Label>
-              <Select value={instanceId} onValueChange={setInstanceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a instância" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ROTATE_ALL}>
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                      <span>Todas (revezamento)</span>
-                    </div>
-                  </SelectItem>
-                  <Separator className="my-1" />
-                  {instances.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{inst.instance_name}</span>
-                        {inst.is_default && (
-                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
-                        )}
+              <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                {instances.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma instância configurada</p>
+                ) : (
+                  instances.map((inst) => {
+                    const checked = selectedInstanceIds.includes(inst.id);
+                    return (
+                      <div key={inst.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`inst-${inst.id}`}
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            if (v) {
+                              setSelectedInstanceIds(prev => [...prev, inst.id]);
+                            } else {
+                              setSelectedInstanceIds(prev => prev.filter(id => id !== inst.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`inst-${inst.id}`} className="text-sm cursor-pointer flex items-center gap-2">
+                          {inst.instance_name}
+                          {inst.is_default && (
+                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
+                          )}
+                        </label>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    );
+                  })
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Escolha uma instância específica ou reveze entre todas automaticamente.
+                Selecione as instâncias que serão usadas no revezamento. Se mais de uma, o sistema alterna entre elas.
               </p>
             </div>
           </div>
