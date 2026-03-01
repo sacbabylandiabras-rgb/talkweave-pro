@@ -394,6 +394,39 @@ const GatewayIntegracoes = () => {
                 Se preenchido, o botão usará este link. Use {"{{link}}"} para link dinâmico do payload. Se vazio, será extraído automaticamente do webhook.
               </p>
             </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Instância de envio
+              </Label>
+              <Select value={instanceId} onValueChange={setInstanceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a instância" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROTATE_ALL}>
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                      <span>Todas (revezamento)</span>
+                    </div>
+                  </SelectItem>
+                  <Separator className="my-1" />
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{inst.instance_name}</span>
+                        {inst.is_default && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Escolha uma instância específica ou reveze entre todas automaticamente.
+              </p>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
