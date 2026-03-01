@@ -25,6 +25,8 @@ const EVENT_TYPES = [
   { value: "payment_cancelled", label: "Pagamento Cancelado" },
 ];
 
+const ROTATE_ALL = "__rotate_all__";
+
 interface Funnel {
   id: string;
   event_type: string;
@@ -34,6 +36,7 @@ interface Funnel {
   delay_seconds: number;
   button_label: string | null;
   button_url: string | null;
+  instance_id: string | null;
 }
 
 interface WebhookLog {
