@@ -99,33 +99,34 @@ serve(async (req) => {
       })
     }
 
-    // Get user Z-API credentials from zapi_instances (default instance)
-    const { data: instance } = await supabase
+    // Get ALL active Z-API instances for rotation
+    const { data: allInstances } = await supabase
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token')
-      .eq('user_id', userId)
-      .eq('is_default', true)
-      .eq('is_active', true)
-      .single()
-
-    // Fallback: if no default, get any active instance
-    const zapiCreds = instance || (await supabase
-      .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
       .eq('user_id', userId)
       .eq('is_active', true)
-      .limit(1)
-      .single()).data
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true })
 
-    if (!zapiCreds?.zapi_instance_id || !zapiCreds?.zapi_token || !zapiCreds?.zapi_client_token) {
-      console.error('Credenciais Z-API incompletas para user:', userId)
+    if (!allInstances || allInstances.length === 0) {
+      console.error('Nenhuma instância Z-API ativa para user:', userId)
       return new Response(JSON.stringify({ ok: false, error: 'Z-API credentials missing' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log('Usando instância Z-API:', zapiCreds.zapi_instance_id)
+    // Count total sent messages to determine rotation index
+    const { count: totalSent } = await supabase
+      .from('gateway_webhook_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'sent')
+
+    const rotationIndex = (totalSent || 0) % allInstances.length
+    const zapiCreds = allInstances[rotationIndex]
+
+    console.log(`Usando instância Z-API (${rotationIndex + 1}/${allInstances.length}):`, zapiCreds.zapi_instance_id, zapiCreds.instance_name)
 
     // Send messages for each funnel step
     for (const funnel of funnels) {
