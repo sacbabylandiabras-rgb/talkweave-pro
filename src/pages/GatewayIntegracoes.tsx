@@ -104,7 +104,7 @@ const GatewayIntegracoes = () => {
     setDelaySeconds(0);
     setButtonLabel("");
     setButtonUrl("");
-    setInstanceId(ROTATE_ALL);
+    setSelectedInstanceIds([]);
     setDialogOpen(true);
   };
 
