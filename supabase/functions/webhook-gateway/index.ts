@@ -102,7 +102,7 @@ serve(async (req) => {
     // Get ALL active Z-API instances for rotation
     const { data: allInstances } = await supabase
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+      .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
       .eq('user_id', userId)
       .eq('is_active', true)
       .order('is_default', { ascending: false })
@@ -116,20 +116,23 @@ serve(async (req) => {
       })
     }
 
-    // Count total sent messages to determine rotation index
-    const { count: totalSent } = await supabase
-      .from('gateway_webhook_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'sent')
-
-    const rotationIndex = (totalSent || 0) % allInstances.length
-    const zapiCreds = allInstances[rotationIndex]
-
-    console.log(`Usando instância Z-API (${rotationIndex + 1}/${allInstances.length}):`, zapiCreds.zapi_instance_id, zapiCreds.instance_name)
+    // Helper: pick instance for a funnel (specific or rotation)
+    const getInstanceForFunnel = (funnel: any, index: number) => {
+      if (funnel.instance_id) {
+        const specific = allInstances.find((i: any) => i.id === funnel.instance_id)
+        if (specific) return specific
+        console.log('Instância específica não encontrada, usando revezamento')
+      }
+      // Rotation
+      const rotationIndex = index % allInstances.length
+      return allInstances[rotationIndex]
+    }
 
     // Send messages for each funnel step
-    for (const funnel of funnels) {
+    for (let i = 0; i < funnels.length; i++) {
+      const funnel = funnels[i]
+      const zapiCreds = getInstanceForFunnel(funnel, i)
+      console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name} (${funnel.instance_id ? 'específica' : 'revezamento'})`)
       if (funnel.delay_seconds > 0) {
         await new Promise(resolve => setTimeout(resolve, funnel.delay_seconds * 1000))
       }

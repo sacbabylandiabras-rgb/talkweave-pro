@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone } from "lucide-react";
 import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
 import { useToast } from "@/hooks/use-toast";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -23,6 +25,8 @@ const EVENT_TYPES = [
   { value: "payment_cancelled", label: "Pagamento Cancelado" },
 ];
 
+const ROTATE_ALL = "__rotate_all__";
+
 interface Funnel {
   id: string;
   event_type: string;
@@ -32,6 +36,7 @@ interface Funnel {
   delay_seconds: number;
   button_label: string | null;
   button_url: string | null;
+  instance_id: string | null;
 }
 
 interface WebhookLog {
@@ -58,9 +63,11 @@ const GatewayIntegracoes = () => {
   const [delaySeconds, setDelaySeconds] = useState(0);
   const [buttonLabel, setButtonLabel] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
+  const [instanceId, setInstanceId] = useState<string>(ROTATE_ALL);
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
+  const { instances } = useZapiInstances();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -98,6 +105,7 @@ const GatewayIntegracoes = () => {
     setDelaySeconds(0);
     setButtonLabel("");
     setButtonUrl("");
+    setInstanceId(ROTATE_ALL);
     setDialogOpen(true);
   };
 
@@ -108,6 +116,7 @@ const GatewayIntegracoes = () => {
     setDelaySeconds(f.delay_seconds);
     setButtonLabel(f.button_label || "");
     setButtonUrl(f.button_url || "");
+    setInstanceId(f.instance_id || ROTATE_ALL);
     setDialogOpen(true);
   };
 
@@ -124,6 +133,7 @@ const GatewayIntegracoes = () => {
         delay_seconds: delaySeconds,
         button_label: buttonLabel || null,
         button_url: buttonUrl || null,
+        instance_id: instanceId === ROTATE_ALL ? null : instanceId,
         active: true,
       };
 
@@ -251,6 +261,13 @@ const GatewayIntegracoes = () => {
                         )}
                         {f.button_label && (
                           <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
+                        )}
+                        {f.instance_id ? (
+                          <Badge variant="outline" className="text-xs">
+                            📱 {instances.find(i => i.id === f.instance_id)?.instance_name || "Instância"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">🔄 Revezamento</Badge>
                         )}
                         {!f.active && (
                           <Badge variant="secondary" className="text-xs">Inativo</Badge>
@@ -382,6 +399,39 @@ const GatewayIntegracoes = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Se preenchido, o botão usará este link. Use {"{{link}}"} para link dinâmico do payload. Se vazio, será extraído automaticamente do webhook.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Instância de envio
+              </Label>
+              <Select value={instanceId} onValueChange={setInstanceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a instância" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROTATE_ALL}>
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                      <span>Todas (revezamento)</span>
+                    </div>
+                  </SelectItem>
+                  <Separator className="my-1" />
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{inst.instance_name}</span>
+                        {inst.is_default && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Escolha uma instância específica ou reveze entre todas automaticamente.
               </p>
             </div>
           </div>
