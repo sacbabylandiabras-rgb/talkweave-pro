@@ -262,6 +262,13 @@ const GatewayIntegracoes = () => {
                         {f.button_label && (
                           <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
                         )}
+                        {f.instance_id ? (
+                          <Badge variant="outline" className="text-xs">
+                            📱 {instances.find(i => i.id === f.instance_id)?.instance_name || "Instância"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">🔄 Revezamento</Badge>
+                        )}
                         {!f.active && (
                           <Badge variant="secondary" className="text-xs">Inativo</Badge>
                         )}
