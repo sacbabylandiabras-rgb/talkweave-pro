@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
