@@ -261,12 +261,12 @@ const GatewayIntegracoes = () => {
                         {f.button_label && (
                           <Badge variant="outline" className="text-xs">🔗 {f.button_label}</Badge>
                         )}
-                        {f.instance_id ? (
+                        {f.instance_ids && f.instance_ids.length > 0 ? (
                           <Badge variant="outline" className="text-xs">
-                            📱 {instances.find(i => i.id === f.instance_id)?.instance_name || "Instância"}
+                            📱 {f.instance_ids.length} instância{f.instance_ids.length > 1 ? 's' : ''}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs">🔄 Revezamento</Badge>
+                          <Badge variant="outline" className="text-xs text-destructive">⚠ Sem instância</Badge>
                         )}
                         {!f.active && (
                           <Badge variant="secondary" className="text-xs">Inativo</Badge>
