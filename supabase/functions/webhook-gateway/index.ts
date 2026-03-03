@@ -340,5 +340,18 @@ function extractLink(payload: any): string | null {
     return `https://checkout.paguseguro.fun/payment/checkout/${linkId}`
   }
 
+  // Extract checkout URL from utm field (e.g. "checkouturl=https%3A%2F%2F...")
+  const utm = payload.utm || payload.data?.utm || null
+  if (utm && typeof utm === 'string') {
+    const match = utm.match(/checkouturl=([^&]+)/i)
+    if (match) {
+      try {
+        return decodeURIComponent(match[1])
+      } catch {
+        return match[1]
+      }
+    }
+  }
+
   return null
 }
