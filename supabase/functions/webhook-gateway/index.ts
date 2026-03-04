@@ -179,7 +179,7 @@ serve(async (req) => {
                 {
                   id: '1',
                   type: 'URL',
-                  url: link,
+                  url: finalLink,
                   label: buttonLabel,
                 },
               ],
