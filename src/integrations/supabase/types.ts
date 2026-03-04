@@ -187,6 +187,7 @@ export type Database = {
           event_label: string
           event_type: string
           id: string
+          instance_ids: Json | null
           message_template: string
           updated_at: string
           user_id: string
@@ -200,6 +201,7 @@ export type Database = {
           event_label: string
           event_type: string
           id?: string
+          instance_ids?: Json | null
           message_template: string
           updated_at?: string
           user_id: string
@@ -213,6 +215,7 @@ export type Database = {
           event_label?: string
           event_type?: string
           id?: string
+          instance_ids?: Json | null
           message_template?: string
           updated_at?: string
           user_id?: string
