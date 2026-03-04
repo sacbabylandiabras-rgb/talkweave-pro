@@ -260,7 +260,7 @@ function detectEventType(payload: any): string {
 }
 
 function extractPhone(payload: any): string | null {
-  return (
+  const raw = (
     payload.phone ||
     payload.customer?.phone ||
     payload.client?.phone ||
@@ -272,6 +272,21 @@ function extractPhone(payload: any): string | null {
     payload.customer?.mobile ||
     null
   )
+  if (!raw) return null
+  return formatBrazilianPhone(String(raw))
+}
+
+function formatBrazilianPhone(phone: string): string {
+  // Remove tudo que não é dígito
+  const digits = phone.replace(/\D/g, '')
+  
+  // Se já tem 12-13 dígitos (com código do país), retorna como está
+  if (digits.length >= 12) return digits
+  
+  // Se tem 10-11 dígitos (DDD + número), adiciona 55
+  if (digits.length >= 10 && digits.length <= 11) return '55' + digits
+  
+  return digits
 }
 
 function extractName(payload: any): string | null {
