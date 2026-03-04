@@ -151,10 +151,12 @@ serve(async (req) => {
       message = message.replace(/\{\{produto\}\}/gi, product || '')
       message = message.replace(/\{\{telefone\}\}/gi, phone || '')
       message = message.replace(/\{\{status\}\}/gi, eventType || '')
-      message = message.replace(/\{\{link\}\}/gi, link || '')
+      // Determine the final link: use extracted link from payload, or fallback to funnel's fixed button_url
+      const finalLink = link || (funnel.button_url ? funnel.button_url.replace(/\{\{link\}\}/gi, link || '') : null)
+      message = message.replace(/\{\{link\}\}/gi, finalLink || '')
 
       const buttonLabel = funnel.button_label
-      const hasButton = buttonLabel && link
+      const hasButton = buttonLabel && finalLink
 
       console.log('Enviando mensagem para', phone, ':', message, hasButton ? `com botão: ${buttonLabel}` : 'sem botão')
 
@@ -177,7 +179,7 @@ serve(async (req) => {
                 {
                   id: '1',
                   type: 'URL',
-                  url: link,
+                  url: finalLink,
                   label: buttonLabel,
                 },
               ],
