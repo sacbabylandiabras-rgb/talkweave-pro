@@ -442,7 +442,30 @@ export default function FluxoVisual() {
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
-    const outgoingEdges = edges.filter(e => e.source === currentNodeId);
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+    const outgoingEdges = edges
+      .filter((e) => e.source === currentNodeId)
+      .sort((a, b) => {
+        const handlePriority = (handle?: string | null) => {
+          if (!handle || handle === "default") return 0;
+          if (handle.startsWith("button-")) return 2;
+          return 1;
+        };
+
+        const priorityDiff = handlePriority(a.sourceHandle) - handlePriority(b.sourceHandle);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const aTarget = nodeMap.get(a.target);
+        const bTarget = nodeMap.get(b.target);
+        const ay = aTarget?.position?.y ?? 0;
+        const by = bTarget?.position?.y ?? 0;
+        if (ay !== by) return ay - by;
+
+        const ax = aTarget?.position?.x ?? 0;
+        const bx = bTarget?.position?.x ?? 0;
+        return ax - bx;
+      });
+
     if (outgoingEdges.length === 0) return;
 
     for (const edge of outgoingEdges) {
@@ -477,6 +500,15 @@ export default function FluxoVisual() {
             break;
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const buttons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
+        const hasButtonEdges = buttons.some((_: any, idx: number) =>
+          edges.some((e) => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+        );
+
+        if (hasButtonEdges) {
+          continue;
+        }
       }
 
       await processFlow(targetNode.id, contact, visitedNodes);
