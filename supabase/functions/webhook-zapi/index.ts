@@ -411,10 +411,6 @@ async function processFlowNode(
   }
 }
 
-    // Continue processing the flow
-    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
-  }
-}
 
 function extractFlowKeywords(flow: any): string[] {
   const keywords = new Set<string>()
