@@ -56,14 +56,16 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  const displayData = chartData.length > 0 ? chartData : [
-    { date: "01/03", enviadas: 120, entregues: 95, erros: 5 },
-    { date: "02/03", enviadas: 340, entregues: 280, erros: 12 },
-    { date: "03/03", enviadas: 280, entregues: 250, erros: 8 },
-    { date: "04/03", enviadas: 190, entregues: 170, erros: 3 },
-    { date: "05/03", enviadas: 80, entregues: 65, erros: 2 },
-  ];
-  const isDemo = chartData.length === 0;
+  const zeroData: ChartData[] = Array.from({ length: 5 }).map((_, index) => {
+    const date = subDays(new Date(), 4 - index);
+    return {
+      date: format(date, "dd/MM/yyyy", { locale: ptBR }),
+      enviadas: 0,
+      entregues: 0,
+      erros: 0,
+    };
+  });
+  const displayData = chartData.length > 0 ? chartData : zeroData;
 
   const formatYAxis = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
