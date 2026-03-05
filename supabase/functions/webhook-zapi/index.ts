@@ -69,7 +69,8 @@ serve(async (req) => {
     const normalizedMessage = normalizeForMatch(messageRaw)
 
     if (!messageRaw) {
-      console.log('Mensagem vazia no payload. Chaves:', Object.keys(webhook || {}))
+      console.log('Evento sem texto detectado, ignorando. Chaves:', Object.keys(webhook || {}))
+      return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
     }
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
