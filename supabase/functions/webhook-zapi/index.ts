@@ -193,8 +193,7 @@ serve(async (req) => {
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
       const matchedFlow = flowAutomations.find((flow: any) => {
         const keyword = (flow.keyword || '').trim()
-        const normalizedKeyword = normalizeForMatch(keyword)
-        return normalizedKeyword && normalizedMessage.includes(normalizedKeyword)
+        return isKeywordMatch(normalizedMessage, keyword)
       })
 
       if (matchedFlow) {
@@ -466,4 +465,16 @@ function normalizeForMatch(text: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function isKeywordMatch(message: string, keyword: string): boolean {
+  const normalizedKeyword = normalizeForMatch(keyword)
+  if (!normalizedKeyword || !message) return false
+
+  if (message.includes(normalizedKeyword)) return true
+
+  const words = normalizedKeyword.split(' ').filter(w => w.length >= 3)
+  if (words.length === 0) return false
+  const hits = words.filter(w => message.includes(w)).length
+  return hits / words.length >= 0.7
 }
