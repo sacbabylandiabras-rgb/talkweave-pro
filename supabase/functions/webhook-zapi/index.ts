@@ -319,7 +319,15 @@ async function processFlowNode(
         buttons.push({ text: legacyLabel, type: 'url', value: legacyUrl })
       }
 
-      const hasButtons = buttons.length > 0
+      // Filter out "flow" type buttons — they are for internal routing only
+      const sendableButtons = buttons.filter(b => b.type !== 'flow')
+      // "flow" buttons are sent as REPLY so the user can click them
+      const flowButtons = buttons.filter(b => b.type === 'flow')
+      const allSendButtons = [
+        ...sendableButtons,
+        ...flowButtons.map(b => ({ ...b, type: 'reply' })),
+      ]
+      const hasButtons = allSendButtons.length > 0
 
       const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
       const headers = {
@@ -327,7 +335,7 @@ async function processFlowNode(
         'Client-Token': zapiConfig.zapi_client_token,
       }
 
-      function buildButtonActions(btns: typeof buttons) {
+      function buildButtonActions(btns: typeof allSendButtons) {
         return btns.map((btn, i) => {
           const label = (btn.text || '').trim() || `Botão ${i + 1}`
           if (btn.type === 'url') {
@@ -352,7 +360,7 @@ async function processFlowNode(
             await new Promise(resolve => setTimeout(resolve, 1500))
           }
 
-          const buttonActions = buildButtonActions(buttons)
+          const buttonActions = buildButtonActions(allSendButtons)
           const res = await fetch(`${baseUrl}/send-button-actions`, {
             method: 'POST',
             headers,
@@ -406,9 +414,22 @@ async function processFlowNode(
       } catch (e) {
         console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
       }
+
+      // Check if any button has a per-button edge connection
+      const hasButtonEdges = buttons.some((btn, idx) => {
+        return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+      })
+
+      if (hasButtonEdges) {
+        // Don't follow the default output — button edges handle routing
+        // The next message from the user will re-trigger the webhook
+        // and match via the flow's condition nodes or button text
+        console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
+        continue
+      }
     }
 
-    // Continue processing the flow
+    // Continue processing the flow via default edges
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
