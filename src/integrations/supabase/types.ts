@@ -177,6 +177,42 @@ export type Database = {
           },
         ]
       }
+      flow_automations: {
+        Row: {
+          active: boolean
+          created_at: string
+          edges: Json
+          id: string
+          keyword: string
+          name: string
+          nodes: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          edges?: Json
+          id?: string
+          keyword?: string
+          name: string
+          nodes?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          edges?: Json
+          id?: string
+          keyword?: string
+          name?: string
+          nodes?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_funnels: {
         Row: {
           active: boolean
