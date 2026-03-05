@@ -71,6 +71,7 @@ serve(async (req) => {
       ''
     ).toString()
     const messageText = messageRaw.toLowerCase()
+    const normalizedMessage = normalizeForMatch(messageRaw)
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
     const instanceId = webhook?.instanceId || webhook?.instance_id
@@ -191,8 +192,9 @@ serve(async (req) => {
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
       const matchedFlow = flowAutomations.find((flow: any) => {
-        const keyword = (flow.keyword || '').toLowerCase().trim()
-        return keyword && messageText.includes(keyword)
+        const keyword = (flow.keyword || '').trim()
+        const normalizedKeyword = normalizeForMatch(keyword)
+        return normalizedKeyword && normalizedMessage.includes(normalizedKeyword)
       })
 
       if (matchedFlow) {
@@ -322,27 +324,27 @@ async function processFlowNode(
       try {
         // === CAROUSEL ===
         if (contentType === 'carousel') {
-          const carouselCards = (targetNode.data.carouselCards || []).map((card: any) => {
-            const cardData: any = {
-              title: card.title || '',
-              description: card.description || '',
-            }
-            if (card.image && card.image.trim()) {
-              cardData.image = card.image
-            }
-            if (card.buttonLabel && card.buttonUrl) {
-              let url = card.buttonUrl
-              if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url
+          const carouselCards = (targetNode.data.carouselCards || [])
+            .map((card: any, idx: number) => {
+              const title = (card.title || '').trim() || `Card ${idx + 1}`
+              const description = (card.description || '').trim() || 'Confira os detalhes'
+              const image = (card.image || '').trim()
+              if (!image) return null
+
+              const cardData: any = { title, description, image }
+
+              if (card.buttonLabel || card.buttonUrl) {
+                const label = (card.buttonLabel || '').trim() || 'Abrir'
+                const rawUrl = (card.buttonUrl || '').trim()
+                if (rawUrl) {
+                  const url = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`
+                  cardData.buttonActions = [{ type: 'URL', url, label }]
+                }
               }
-              cardData.buttonActions = [{
-                type: 'URL',
-                url,
-                label: card.buttonLabel,
-              }]
-            }
-            return cardData
-          })
+
+              return cardData
+            })
+            .filter(Boolean)
 
           if (carouselCards.length >= 2) {
             const res = await fetch(`${baseUrl}/send-carousel`, {
