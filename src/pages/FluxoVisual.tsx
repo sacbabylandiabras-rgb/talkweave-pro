@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -775,6 +776,38 @@ export default function FluxoVisual() {
                     placeholder={selectedNode.data.contentType === "text" ? "Digite a mensagem..." : "Digite uma legenda (opcional)..."}
                     rows={5}
                   />
+                </div>
+
+                <Separator />
+
+                <div>
+                  <Label>Texto do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonLabel || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonLabel: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: Acessar Pedido"
+                  />
+                </div>
+                <div>
+                  <Label>Link do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonUrl || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonUrl: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: https://exemplo.com"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se preenchido, a mensagem será enviada com um botão clicável.
+                  </p>
                 </div>
               </>
             )}
