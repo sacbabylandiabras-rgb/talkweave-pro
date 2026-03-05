@@ -211,14 +211,11 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       </CardHeader>
       <CardContent>
 
-        {!isConnected && showConnect && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium">🔗 Conectar dispositivo</h4>
-              <Button variant="ghost" size="sm" onClick={() => setShowConnect(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+        <Dialog open={!isConnected && showConnect} onOpenChange={setShowConnect}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">🔗 Conectar dispositivo</DialogTitle>
+            </DialogHeader>
             <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="qr-code" className="flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Code</TabsTrigger>
@@ -272,8 +269,9 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                 </div>
               </TabsContent>
             </Tabs>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
+
 
         <div className="space-y-4">
           <div>
