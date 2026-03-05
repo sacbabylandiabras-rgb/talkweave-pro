@@ -64,12 +64,13 @@ serve(async (req) => {
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
-    const messageText = (
+    const messageRaw = (
       webhook?.message?.text ??
       webhook?.text?.message ??
       webhook?.text ??
       ''
-    ).toString().toLowerCase()
+    ).toString()
+    const messageText = messageRaw.toLowerCase()
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
     const instanceId = webhook?.instanceId || webhook?.instance_id
