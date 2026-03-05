@@ -147,6 +147,19 @@ serve(async (req) => {
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
     }
 
+    // Dedupe: evita processar a mesma mensagem recebida múltiplas vezes em poucos segundos
+    const duplicateDetected = await isLikelyDuplicateRecentMessage(supabase, {
+      userId,
+      phone,
+      normalizedMessage,
+      rawMessage: messageRaw,
+    })
+
+    if (duplicateDetected) {
+      console.log('Mensagem duplicada detectada, ignorando para manter ordem do fluxo')
+      return new Response('ignored_duplicate', { status: 200, headers: corsHeaders })
+    }
+
     // Forward to gateway integrations
     const { data: gateways } = await supabase
       .from('gateway_integrations')
