@@ -4,12 +4,14 @@ import ReactFlow, {
   Edge,
   Controls,
   Background,
+  MiniMap,
   Connection,
   addEdge,
   useNodesState,
   useEdgesState,
   NodeTypes,
   BackgroundVariant,
+  MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Card } from "@/components/ui/card";
@@ -38,6 +40,7 @@ import {
   Zap,
   Save,
   ArrowLeft,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoGatewayTriggerNode } from "@/components/flow/BlocoGatewayTriggerNode";
@@ -119,9 +122,31 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({
+      ...params,
+      animated: true,
+      style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+    }, eds)),
     [setEdges]
   );
+
+  const onEdgeClick = useCallback((_e: React.MouseEvent, edge: Edge) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    toast.success("Conexão removida!");
+  }, [setEdges]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (node?.type === "gatewayTrigger") {
+      toast.error("Não é possível excluir o bloco trigger!");
+      return;
+    }
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setIsEditDialogOpen(false);
+    toast.success("Bloco removido!");
+  }, [nodes, setNodes, setEdges]);
 
   const onNodeClick = useCallback((_e: React.MouseEvent, node: Node) => {
     if (node.type === "gatewayTrigger") return;
@@ -341,15 +366,28 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             fitView
+            deleteKeyCode={["Backspace", "Delete"]}
             className="bg-background"
+            defaultEdgeOptions={{
+              animated: true,
+              style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+            }}
           >
             <Background variant={BackgroundVariant.Dots} />
             <Controls />
+            <MiniMap 
+              nodeStrokeWidth={3}
+              zoomable
+              pannable
+              className="!bg-card !border !border-border !rounded-lg"
+            />
           </ReactFlow>
         </div>
       </div>
@@ -487,9 +525,19 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
               </>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSaveNode}>Salvar</Button>
+            <div className="flex justify-between pt-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => selectedNode && handleDeleteNode(selectedNode.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleSaveNode}>Salvar</Button>
+              </div>
             </div>
           </div>
         </DialogContent>
