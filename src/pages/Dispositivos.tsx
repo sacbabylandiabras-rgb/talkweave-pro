@@ -204,9 +204,28 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         </div>
       </CardHeader>
       <CardContent>
-        {!isConnected && (
+        {!isConnected && !showConnect && (
+          <div className="mb-6 text-center">
+            <Button 
+              size="lg" 
+              className="px-8 py-6 text-base font-semibold gap-2"
+              onClick={() => setShowConnect(true)}
+            >
+              <Wifi className="w-5 h-5" />
+              Conectar
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Clique para conectar este dispositivo</p>
+          </div>
+        )}
+
+        {!isConnected && showConnect && (
           <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
-            <h4 className="font-medium mb-4 text-center">🔗 Conectar dispositivo WhatsApp</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium">🔗 Conectar dispositivo</h4>
+              <Button variant="ghost" size="sm" onClick={() => setShowConnect(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
             <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="qr-code" className="flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Code</TabsTrigger>
