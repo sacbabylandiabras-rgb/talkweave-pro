@@ -43,21 +43,23 @@ export function DashboardLayout() {
     );
   }
 
-  // Mapeia pathname para activeItem
   const getActiveItem = () => {
     const path = location.pathname;
-    if (path === "/dashboard") return "painel";
-    if (path === "/dispositivos") return "dispositivos";
-    if (path === "/perfil") return "perfil";
-    if (path === "/campanhas") return "campanhas";
-    if (path === "/contatos") return "contatos";
-    if (path === "/modelos") return "modelos";
-    if (path === "/enviar-mensagem") return "enviar-mensagem";
-    if (path === "/relatorio") return "relatorio";
-    if (path === "/configuracao-zapi") return "configuracao-zapi";
-    if (path === "/fluxo-visual") return "fluxo-visual";
-    if (path === "/admin") return "admin";
-    return "painel";
+    const map: Record<string, string> = {
+      "/dashboard": "painel",
+      "/dispositivos": "dispositivos",
+      "/perfil": "perfil",
+      "/campanhas": "campanhas",
+      "/contatos": "contatos",
+      "/modelos": "modelos",
+      "/enviar-mensagem": "enviar-mensagem",
+      "/relatorio": "relatorio",
+      "/configuracao-zapi": "configuracao-zapi",
+      "/fluxo-visual": "fluxo-visual",
+      "/admin": "admin",
+      "/gateway": "gateway",
+    };
+    return map[path] || "painel";
   };
 
   return (
