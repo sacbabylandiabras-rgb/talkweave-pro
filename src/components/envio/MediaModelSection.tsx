@@ -61,8 +61,50 @@ const MediaModelSection = ({
               className="text-sm"
             />
             {arquivoMidia && (
-              <div className="bg-muted p-2 rounded text-sm">
-                📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
+              <div className="bg-muted p-3 rounded space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  📎 {arquivoMidia.name} ({(arquivoMidia.size / 1024 / 1024).toFixed(1)} MB)
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-destructive"
+                    onClick={() => setArquivoMidia(null)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                {arquivoMidia.type.startsWith('image/') && (
+                  <div className="rounded overflow-hidden border border-border">
+                    <img
+                      src={URL.createObjectURL(arquivoMidia)}
+                      alt="Prévia"
+                      className="max-h-48 w-full object-contain bg-background"
+                    />
+                  </div>
+                )}
+                {arquivoMidia.type.startsWith('video/') && (
+                  <div className="rounded overflow-hidden border border-border">
+                    <video
+                      src={URL.createObjectURL(arquivoMidia)}
+                      controls
+                      className="max-h-48 w-full bg-background"
+                    />
+                  </div>
+                )}
+                {arquivoMidia.type.startsWith('audio/') && (
+                  <audio
+                    src={URL.createObjectURL(arquivoMidia)}
+                    controls
+                    className="w-full"
+                  />
+                )}
+                {!arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
+                  <div className="flex items-center gap-2 p-2 bg-background rounded border border-border text-sm text-muted-foreground">
+                    <FileText className="w-8 h-8" />
+                    <span>Documento anexado</span>
+                  </div>
+                )}
               </div>
             )}
             <Input
