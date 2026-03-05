@@ -131,6 +131,7 @@ const MediaModelSection = ({
               onValueChange={(value) => {
                 setModeloSelecionado(value);
                 aplicarModelo(value);
+                setShowPreview(true);
               }}
             >
               <SelectTrigger className="bg-background">
