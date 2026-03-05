@@ -49,16 +49,30 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     const rawBody = await req.text()
-    const webhook = JSON.parse(rawBody) as WebhookMessage
-    
-    // Ignora mensagens enviadas por nós
-    if (webhook.message.fromMe) {
+    let webhook: any
+
+    try {
+      webhook = JSON.parse(rawBody)
+    } catch (parseError) {
+      console.error('Payload JSON inválido:', parseError)
+      return new Response('invalid_json', { status: 400, headers: corsHeaders })
+    }
+
+    // Ignora mensagens enviadas por nós (compatível com múltiplos formatos da Z-API)
+    const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
+    if (fromMe) {
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
-    const messageText = webhook.message.text?.toLowerCase() || ''
-    const phone = webhook.phone
-    const instanceId = webhook.instanceId
+    const messageText = (
+      webhook?.message?.text ??
+      webhook?.text?.message ??
+      webhook?.text ??
+      ''
+    ).toString().toLowerCase()
+
+    const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
+    const instanceId = webhook?.instanceId || webhook?.instance_id
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
     
