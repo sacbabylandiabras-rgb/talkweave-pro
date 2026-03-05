@@ -126,9 +126,9 @@ serve(async (req) => {
       const gatewayPayload = {
         event: 'message_received',
         phone,
-        message: webhook.message.text,
+        message: webhook?.message?.text ?? webhook?.text?.message ?? webhook?.text ?? null,
         timestamp: new Date().toISOString(),
-        raw: JSON.parse(rawBody),
+        raw: webhook,
       }
 
       await Promise.allSettled(gateways.map(async (gw) => {
