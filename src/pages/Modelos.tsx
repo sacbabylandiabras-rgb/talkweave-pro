@@ -247,6 +247,7 @@ const Modelos = () => {
     }>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<any>(null);
 
   // Função para fazer upload do arquivo
   const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
