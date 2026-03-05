@@ -44,7 +44,12 @@ export function BlocoConteudoNode({ data }: any) {
               {data.content}
             </div>
           )}
-          {data.buttonLabel && (
+          {data.buttons?.length > 0 && (
+            <div className="text-[10px] text-primary mt-1 flex items-center gap-1">
+              🔗 {data.buttons.length} botão(ões)
+            </div>
+          )}
+          {!data.buttons?.length && data.buttonLabel && (
             <div className="text-[10px] text-primary mt-1 flex items-center gap-1">
               🔗 {data.buttonLabel}
             </div>
