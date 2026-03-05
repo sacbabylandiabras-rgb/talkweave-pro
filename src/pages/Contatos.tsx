@@ -27,11 +27,8 @@ const Contatos = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Contatos</h1>
-        <p className="text-muted-foreground">Gerencie todos os seus contatos do WhatsApp</p>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold text-foreground">Contatos</h1>
 
       <div className="flex gap-4">
         <div className="flex-1 relative">
