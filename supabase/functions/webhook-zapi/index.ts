@@ -98,19 +98,46 @@ serve(async (req) => {
       return new Response('missing_instance_id', { status: 400, headers: corsHeaders })
     }
 
-    // Find user by instanceId
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, zapi_instance_id, zapi_token, zapi_client_token')
-      .eq('zapi_instance_id', instanceId)
-      .single()
+    // Find user and credentials by instanceId (prefer dedicated zapi_instances table)
+    let userId: string | null = null
+    let zapiConfig: { zapi_instance_id: string; zapi_token: string; zapi_client_token: string } | null = null
 
-    if (profileError || !profile) {
-      console.error('User profile not found for instanceId:', instanceId)
-      return new Response('user_not_found', { status: 404, headers: corsHeaders })
+    const { data: instanceData } = await supabase
+      .from('zapi_instances')
+      .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
+      .eq('zapi_instance_id', instanceId)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (instanceData) {
+      userId = instanceData.user_id
+      zapiConfig = {
+        zapi_instance_id: instanceData.zapi_instance_id,
+        zapi_token: instanceData.zapi_token,
+        zapi_client_token: instanceData.zapi_client_token,
+      }
+    } else {
+      // Legacy fallback: profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token')
+        .eq('zapi_instance_id', instanceId)
+        .single()
+
+      if (profileError || !profile) {
+        console.error('User profile not found for instanceId:', instanceId)
+        return new Response('user_not_found', { status: 404, headers: corsHeaders })
+      }
+
+      userId = profile.id
+      zapiConfig = {
+        zapi_instance_id: profile.zapi_instance_id,
+        zapi_token: profile.zapi_token,
+        zapi_client_token: profile.zapi_client_token,
+      }
     }
 
-    if (!profile.zapi_token || !profile.zapi_client_token) {
+    if (!userId || !zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token) {
       console.error('User has incomplete Z-API credentials')
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
     }
@@ -119,7 +146,7 @@ serve(async (req) => {
     const { data: gateways } = await supabase
       .from('gateway_integrations')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', userId)
       .eq('active', true)
 
     if (gateways && gateways.length > 0) {
@@ -159,7 +186,7 @@ serve(async (req) => {
     const { data: flowAutomations, error: flowError } = await supabase
       .from('flow_automations')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', userId)
       .eq('active', true)
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
@@ -183,7 +210,7 @@ serve(async (req) => {
             nodes,
             edges,
             phone,
-            profile,
+            zapiConfig,
             supabase,
             new Set<string>()
           )
@@ -195,7 +222,7 @@ serve(async (req) => {
             keyword_matched: matchedFlow.keyword,
             response_sent: `[Fluxo: ${matchedFlow.name}]`,
             timestamp: new Date().toISOString(),
-            user_id: profile.id,
+            user_id: userId,
           })
 
           return new Response('flow_sent', { status: 200, headers: corsHeaders })
@@ -208,7 +235,7 @@ serve(async (req) => {
       .from('auto_responses')
       .select('*')
       .eq('active', true)
-      .eq('user_id', profile.id)
+      .eq('user_id', userId)
     
     if (responsesError) {
       console.error('Erro ao buscar respostas:', responsesError)
@@ -228,16 +255,16 @@ serve(async (req) => {
         keyword_matched: matchedResponse.keyword,
         response_sent: matchedResponse.response,
         timestamp: new Date().toISOString(),
-        user_id: profile.id,
+        user_id: userId,
       })
 
       const zapiResponse = await fetch(
-        `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
+        `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Client-Token': profile.zapi_client_token,
+            'Client-Token': zapiConfig.zapi_client_token,
           },
           body: JSON.stringify({ phone, message: matchedResponse.response }),
         }
@@ -266,7 +293,7 @@ async function processFlowNode(
   nodes: FlowNode[],
   edges: FlowEdge[],
   phone: string,
-  profile: any,
+  zapiConfig: any,
   supabase: any,
   visited: Set<string>
 ) {
@@ -286,10 +313,10 @@ async function processFlowNode(
       const buttonLabel = targetNode.data.buttonLabel || ''
       const buttonUrl = targetNode.data.buttonUrl || ''
 
-      const baseUrl = `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}`
+      const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
       const headers = {
         'Content-Type': 'application/json',
-        'Client-Token': profile.zapi_client_token,
+        'Client-Token': zapiConfig.zapi_client_token,
       }
 
       try {
@@ -362,6 +389,6 @@ async function processFlowNode(
     }
 
     // Continue processing the flow
-    await processFlowNode(targetNode.id, nodes, edges, phone, profile, supabase, visited)
+    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
