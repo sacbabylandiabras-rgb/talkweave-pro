@@ -848,34 +848,121 @@ export default function FluxoVisual() {
 
                 <Separator />
 
-                <div>
-                  <Label>Texto do Botão (opcional)</Label>
-                  <Input
-                    value={selectedNode.data.buttonLabel || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, buttonLabel: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: Acessar Pedido"
-                  />
-                </div>
-                <div>
-                  <Label>Link do Botão (opcional)</Label>
-                  <Input
-                    value={selectedNode.data.buttonUrl || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, buttonUrl: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: https://exemplo.com"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Se preenchido, a mensagem será enviada com um botão clicável.
-                  </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Botões (opcional)</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const buttons = selectedNode.data.buttons || [];
+                        if (buttons.length >= 3) {
+                          toast.error("Máximo de 3 botões");
+                          return;
+                        }
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: {
+                            ...selectedNode.data,
+                            buttons: [...buttons, { id: Date.now().toString(), text: "", type: "url", value: "" }],
+                          },
+                        });
+                      }}
+                      disabled={(selectedNode.data.buttons || []).length >= 3}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Botão
+                    </Button>
+                  </div>
+
+                  {(!selectedNode.data.buttons || selectedNode.data.buttons.length === 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      Adicione até 3 botões clicáveis à mensagem.
+                    </p>
+                  )}
+
+                  {(selectedNode.data.buttons || []).map((btn: any, idx: number) => (
+                    <Card key={btn.id || idx} className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Botão {idx + 1}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            const buttons = [...(selectedNode.data.buttons || [])];
+                            buttons.splice(idx, 1);
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, buttons },
+                            });
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      <Select
+                        value={btn.type || "url"}
+                        onValueChange={(value) => {
+                          const buttons = [...(selectedNode.data.buttons || [])];
+                          buttons[idx] = { ...buttons[idx], type: value, value: "" };
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons } });
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="url">🔗 Link (URL)</SelectItem>
+                          <SelectItem value="reply">💬 Resposta rápida</SelectItem>
+                          <SelectItem value="call">📞 Ligação</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        value={btn.text || ""}
+                        onChange={(e) => {
+                          const buttons = [...(selectedNode.data.buttons || [])];
+                          buttons[idx] = { ...buttons[idx], text: e.target.value };
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons } });
+                        }}
+                        placeholder="Texto do botão"
+                        className="h-8 text-xs"
+                      />
+
+                      {btn.type === "url" && (
+                        <Input
+                          value={btn.value || ""}
+                          onChange={(e) => {
+                            const buttons = [...(selectedNode.data.buttons || [])];
+                            buttons[idx] = { ...buttons[idx], value: e.target.value };
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons } });
+                          }}
+                          placeholder="https://exemplo.com"
+                          className="h-8 text-xs"
+                        />
+                      )}
+
+                      {btn.type === "call" && (
+                        <Input
+                          value={btn.value || ""}
+                          onChange={(e) => {
+                            const buttons = [...(selectedNode.data.buttons || [])];
+                            buttons[idx] = { ...buttons[idx], value: e.target.value };
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons } });
+                          }}
+                          placeholder="5511999999999"
+                          className="h-8 text-xs"
+                        />
+                      )}
+
+                      {btn.type === "reply" && (
+                        <p className="text-[10px] text-muted-foreground">
+                          O texto do botão será enviado como resposta ao clicar.
+                        </p>
+                      )}
+                    </Card>
+                  ))}
                 </div>
               </>
             )}
