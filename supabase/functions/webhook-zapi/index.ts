@@ -351,7 +351,7 @@ async function processFlowNode(
   if (visited.has(nodeId)) return
   visited.add(nodeId)
 
-  const outgoing = edges.filter(e => e.source === nodeId)
+  const outgoing = sortOutgoingEdges(nodeId, nodes, edges)
   
   for (const edge of outgoing) {
     const targetNode = nodes.find(n => n.id === edge.target)
