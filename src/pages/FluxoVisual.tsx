@@ -510,7 +510,7 @@ export default function FluxoVisual() {
     <>
       <div className="flex h-screen w-full bg-background">
         {/* Sidebar - Blocos Disponíveis */}
-        <Card className="w-80 m-4 p-4 flex flex-col">
+        <Card className="w-64 m-2 p-3 flex flex-col shrink-0">
         <div className="flex items-center gap-2 mb-4">
           <Button
             size="sm"
@@ -577,7 +577,7 @@ export default function FluxoVisual() {
       </Card>
 
       {/* Canvas */}
-      <div className="flex-1 m-4 ml-0" ref={reactFlowWrapper}>
+      <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
