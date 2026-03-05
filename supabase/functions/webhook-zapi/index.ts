@@ -64,17 +64,13 @@ serve(async (req) => {
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
-    const messageRaw = (
-      webhook?.message?.text ??
-      webhook?.text?.message ??
-      webhook?.text ??
-      webhook?.image?.caption ??
-      webhook?.video?.caption ??
-      webhook?.document?.caption ??
-      ''
-    ).toString()
+    const messageRaw = extractMessageText(webhook)
     const messageText = messageRaw.toLowerCase()
     const normalizedMessage = normalizeForMatch(messageRaw)
+
+    if (!messageRaw) {
+      console.log('Mensagem vazia no payload. Chaves:', Object.keys(webhook || {}))
+    }
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
     const instanceId = webhook?.instanceId || webhook?.instance_id
@@ -458,6 +454,38 @@ async function processFlowNode(
     // Continue processing the flow
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
+}
+
+function extractMessageText(webhook: any): string {
+  const candidates = [
+    webhook?.message?.text,
+    webhook?.message?.conversation,
+    webhook?.message?.extendedTextMessage?.text,
+    webhook?.text?.message,
+    webhook?.text,
+    webhook?.body,
+    webhook?.image?.caption,
+    webhook?.video?.caption,
+    webhook?.document?.caption,
+    webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description,
+    webhook?.data?.message?.text,
+    webhook?.data?.text?.message,
+    webhook?.data?.body,
+    webhook?.data?.image?.caption,
+    webhook?.data?.video?.caption,
+    webhook?.data?.document?.caption,
+  ]
+
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+
+  return ''
 }
 
 function normalizeForMatch(text: string): string {
