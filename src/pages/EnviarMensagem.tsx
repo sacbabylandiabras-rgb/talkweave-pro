@@ -933,16 +933,6 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
