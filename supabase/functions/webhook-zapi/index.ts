@@ -68,9 +68,13 @@ serve(async (req) => {
       webhook?.message?.text ??
       webhook?.text?.message ??
       webhook?.text ??
+      webhook?.image?.caption ??
+      webhook?.video?.caption ??
+      webhook?.document?.caption ??
       ''
     ).toString()
     const messageText = messageRaw.toLowerCase()
+    const normalizedMessage = normalizeForMatch(messageRaw)
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
     const instanceId = webhook?.instanceId || webhook?.instance_id
@@ -191,8 +195,8 @@ serve(async (req) => {
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
       const matchedFlow = flowAutomations.find((flow: any) => {
-        const keyword = (flow.keyword || '').toLowerCase().trim()
-        return keyword && messageText.includes(keyword)
+        const keyword = (flow.keyword || '').trim()
+        return isKeywordMatch(normalizedMessage, keyword)
       })
 
       if (matchedFlow) {
@@ -322,27 +326,27 @@ async function processFlowNode(
       try {
         // === CAROUSEL ===
         if (contentType === 'carousel') {
-          const carouselCards = (targetNode.data.carouselCards || []).map((card: any) => {
-            const cardData: any = {
-              title: card.title || '',
-              description: card.description || '',
-            }
-            if (card.image && card.image.trim()) {
-              cardData.image = card.image
-            }
-            if (card.buttonLabel && card.buttonUrl) {
-              let url = card.buttonUrl
-              if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url
+          const carouselCards = (targetNode.data.carouselCards || [])
+            .map((card: any, idx: number) => {
+              const title = (card.title || '').trim() || `Card ${idx + 1}`
+              const description = (card.description || '').trim() || 'Confira os detalhes'
+              const image = (card.image || '').trim()
+              if (!image) return null
+
+              const cardData: any = { title, description, image }
+
+              if (card.buttonLabel || card.buttonUrl) {
+                const label = (card.buttonLabel || '').trim() || 'Abrir'
+                const rawUrl = (card.buttonUrl || '').trim()
+                if (rawUrl) {
+                  const url = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`
+                  cardData.buttonActions = [{ type: 'URL', url, label }]
+                }
               }
-              cardData.buttonActions = [{
-                type: 'URL',
-                url,
-                label: card.buttonLabel,
-              }]
-            }
-            return cardData
-          })
+
+              return cardData
+            })
+            .filter(Boolean)
 
           if (carouselCards.length >= 2) {
             const res = await fetch(`${baseUrl}/send-carousel`, {
@@ -454,4 +458,26 @@ async function processFlowNode(
     // Continue processing the flow
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
+}
+
+function normalizeForMatch(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isKeywordMatch(message: string, keyword: string): boolean {
+  const normalizedKeyword = normalizeForMatch(keyword)
+  if (!normalizedKeyword || !message) return false
+
+  if (message.includes(normalizedKeyword)) return true
+
+  const words = normalizedKeyword.split(' ').filter(w => w.length >= 3)
+  if (words.length === 0) return false
+  const hits = words.filter(w => message.includes(w)).length
+  return hits / words.length >= 0.7
 }
