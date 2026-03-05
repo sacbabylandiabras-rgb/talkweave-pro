@@ -190,6 +190,39 @@ serve(async (req) => {
       .eq('active', true)
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
+      // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
+      const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, messageRaw)
+      if (buttonMatch) {
+        console.log('Botão encontrado no fluxo:', buttonMatch.flowName, '-> botão:', buttonMatch.buttonText)
+        const { flow, targetNodeId } = buttonMatch
+        const flowNodes: FlowNode[] = flow.nodes || []
+        const flowEdges: FlowEdge[] = flow.edges || []
+
+        // Create a virtual edge pointing to the target so processFlowNode sends it
+        const virtualSourceId = '__button_entry__'
+        await processFlowNode(
+          virtualSourceId,
+          flowNodes,
+          [{ id: 'virtual', source: virtualSourceId, target: targetNodeId }, ...flowEdges],
+          phone,
+          zapiConfig,
+          supabase,
+          new Set<string>()
+        )
+
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: messageRaw,
+          keyword_matched: `[Botão: ${buttonMatch.buttonText}]`,
+          response_sent: `[Fluxo: ${flow.name}]`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+        })
+
+        return new Response('button_flow_sent', { status: 200, headers: corsHeaders })
+      }
+
+      // === CHECK KEYWORD MATCH ===
       const matchedFlow = flowAutomations.find((flow: any) => {
         const keywords = extractFlowKeywords(flow)
         return keywords.some((keyword) => isKeywordMatch(normalizedMessage, keyword))
@@ -319,7 +352,15 @@ async function processFlowNode(
         buttons.push({ text: legacyLabel, type: 'url', value: legacyUrl })
       }
 
-      const hasButtons = buttons.length > 0
+      // Filter out "flow" type buttons — they are for internal routing only
+      const sendableButtons = buttons.filter(b => b.type !== 'flow')
+      // "flow" buttons are sent as REPLY so the user can click them
+      const flowButtons = buttons.filter(b => b.type === 'flow')
+      const allSendButtons = [
+        ...sendableButtons,
+        ...flowButtons.map(b => ({ ...b, type: 'reply' })),
+      ]
+      const hasButtons = allSendButtons.length > 0
 
       const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
       const headers = {
@@ -327,7 +368,7 @@ async function processFlowNode(
         'Client-Token': zapiConfig.zapi_client_token,
       }
 
-      function buildButtonActions(btns: typeof buttons) {
+      function buildButtonActions(btns: typeof allSendButtons) {
         return btns.map((btn, i) => {
           const label = (btn.text || '').trim() || `Botão ${i + 1}`
           if (btn.type === 'url') {
@@ -352,7 +393,7 @@ async function processFlowNode(
             await new Promise(resolve => setTimeout(resolve, 1500))
           }
 
-          const buttonActions = buildButtonActions(buttons)
+          const buttonActions = buildButtonActions(allSendButtons)
           const res = await fetch(`${baseUrl}/send-button-actions`, {
             method: 'POST',
             headers,
@@ -406,13 +447,66 @@ async function processFlowNode(
       } catch (e) {
         console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
       }
+
+      // Check if any button has a per-button edge connection
+      const hasButtonEdges = buttons.some((btn, idx) => {
+        return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+      })
+
+      if (hasButtonEdges) {
+        // Don't follow the default output — button edges handle routing
+        // The next message from the user will re-trigger the webhook
+        // and match via the flow's condition nodes or button text
+        console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
+        continue
+      }
     }
 
-    // Continue processing the flow
+    // Continue processing the flow via default edges
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
 
+
+function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
+  const normalizedRaw = normalizeForMatch(rawMessage)
+
+  for (const flow of flows) {
+    const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+    const edges = Array.isArray(flow?.edges) ? flow.edges : []
+
+    for (const node of nodes) {
+      if (node?.type !== 'blocoConteudo') continue
+      const buttons = Array.isArray(node?.data?.buttons) ? node.data.buttons : []
+
+      for (let idx = 0; idx < buttons.length; idx++) {
+        const btn = buttons[idx]
+        if (btn.type !== 'flow' && btn.type !== 'reply') continue
+        const btnText = (btn.text || '').trim()
+        if (!btnText) continue
+
+        const normalizedBtn = normalizeForMatch(btnText)
+        if (!normalizedBtn) continue
+
+        if (normalizedRaw === normalizedBtn || normalizedMessage === normalizedBtn) {
+          const handleId = `button-${idx}`
+          const buttonEdge = edges.find((e: any) => e.source === node.id && e.sourceHandle === handleId)
+
+          if (buttonEdge) {
+            return {
+              flow,
+              targetNodeId: buttonEdge.target,
+              buttonText: btnText,
+              flowName: flow.name,
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
 
 function extractFlowKeywords(flow: any): string[] {
   const keywords = new Set<string>()

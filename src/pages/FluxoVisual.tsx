@@ -916,6 +916,7 @@ export default function FluxoVisual() {
                           <SelectItem value="url">🔗 Link (URL)</SelectItem>
                           <SelectItem value="reply">💬 Resposta rápida</SelectItem>
                           <SelectItem value="call">📞 Ligação</SelectItem>
+                          <SelectItem value="flow">➡️ Navegar para bloco</SelectItem>
                         </SelectContent>
                       </Select>
 
@@ -958,7 +959,13 @@ export default function FluxoVisual() {
 
                       {btn.type === "reply" && (
                         <p className="text-[10px] text-muted-foreground">
-                          O texto do botão será enviado como resposta ao clicar.
+                          O texto do botão será enviado como resposta ao clicar. Conecte a saída do botão a outro bloco.
+                        </p>
+                      )}
+
+                      {btn.type === "flow" && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Conecte a saída &quot;{btn.text || `Botão ${idx + 1}`}&quot; deste bloco ao próximo bloco desejado no canvas.
                         </p>
                       )}
                     </Card>
