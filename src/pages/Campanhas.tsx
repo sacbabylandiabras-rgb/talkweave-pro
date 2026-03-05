@@ -204,15 +204,12 @@ const Campanhas = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
-          <p className="text-muted-foreground">Gerencie suas campanhas de mensagens</p>
-        </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Campanha
+        <h1 className="text-lg font-semibold text-foreground">Campanhas</h1>
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          Nova
         </Button>
       </div>
 

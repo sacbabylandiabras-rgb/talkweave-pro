@@ -637,11 +637,8 @@ const EnviarMensagem = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Enviar Mensagem</h1>
-        <p className="text-muted-foreground">Envie mensagens texto, com botões, listas de opções e mais</p>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold text-foreground">Enviar Mensagem</h1>
 
       <Card>
         <CardContent className="pt-4">

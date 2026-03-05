@@ -175,11 +175,8 @@ const GatewayIntegracoes = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Integração</h1>
-        <p className="text-muted-foreground">Integre com gateways de pagamento e checkouts para enviar mensagens automáticas</p>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold text-foreground">Integração</h1>
 
       {/* URL Card */}
       <Card>

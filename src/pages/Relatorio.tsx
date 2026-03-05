@@ -194,11 +194,8 @@ const Relatorio = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
-        <p className="text-muted-foreground">Análise detalhada do desempenho das suas campanhas</p>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold text-foreground">Relatórios</h1>
 
       <div className="flex justify-between items-center">
         <div className="flex gap-2">

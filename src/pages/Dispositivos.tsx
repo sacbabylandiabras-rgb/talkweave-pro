@@ -303,14 +303,11 @@ const Dispositivos = () => {
   const { toast } = useToast();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dispositivos</h1>
-          <p className="text-muted-foreground">Gerencie seus dispositivos WhatsApp conectados ({instances.length}/5)</p>
-        </div>
+        <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length}/5)</h1>
         <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
       </div>
