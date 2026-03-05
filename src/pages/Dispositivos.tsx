@@ -201,22 +201,14 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
           <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3" /> Enviar
           </Button>
+          {!isConnected && (
+            <Button size="sm" className="flex items-center gap-2" onClick={() => setShowConnect(!showConnect)}>
+              <Wifi className="w-3 h-3" /> Conectar
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {!isConnected && !showConnect && (
-          <div className="mb-6 text-center">
-            <Button 
-              size="lg" 
-              className="px-8 py-6 text-base font-semibold gap-2"
-              onClick={() => setShowConnect(true)}
-            >
-              <Wifi className="w-5 h-5" />
-              Conectar
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2">Clique para conectar este dispositivo</p>
-          </div>
-        )}
 
         {!isConnected && showConnect && (
           <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
