@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
