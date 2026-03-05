@@ -18,6 +18,10 @@ interface WebhookMessage {
 interface FlowNode {
   id: string
   type: string
+  position?: {
+    x?: number
+    y?: number
+  }
   data: {
     content?: string
     contentType?: string
