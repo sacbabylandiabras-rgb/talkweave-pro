@@ -15,29 +15,50 @@ interface WebhookMessage {
   timestamp: number
 }
 
+interface FlowNode {
+  id: string
+  type: string
+  data: {
+    content?: string
+    contentType?: string
+    mediaUrl?: string
+    buttonLabel?: string
+    buttonUrl?: string
+    actionType?: string
+    actionConfig?: string
+    condition?: string
+    conditionType?: string
+  }
+}
+
+interface FlowEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('Webhook recebido - URL:', req.url)
     console.log('Webhook recebido - Method:', req.method)
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     const rawBody = await req.text()
     const webhook = JSON.parse(rawBody) as WebhookMessage
-    console.log('Webhook data:', rawBody)
     
     // Ignora mensagens enviadas por nós
     if (webhook.message.fromMe) {
-      console.log('Mensagem enviada por nós - ignorando')
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
     const messageText = webhook.message.text?.toLowerCase() || ''
     const phone = webhook.phone
+    const instanceId = webhook.instanceId
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
     
@@ -57,147 +78,166 @@ serve(async (req) => {
       return new Response('system_disabled', { status: 200, headers: corsHeaders })
     }
 
-    // Busca respostas automáticas ativas
+    if (!instanceId) {
+      console.error('No instanceId in webhook data')
+      return new Response('missing_instance_id', { status: 400, headers: corsHeaders })
+    }
+
+    // Find user by instanceId
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, zapi_instance_id, zapi_token, zapi_client_token')
+      .eq('zapi_instance_id', instanceId)
+      .single()
+
+    if (profileError || !profile) {
+      console.error('User profile not found for instanceId:', instanceId)
+      return new Response('user_not_found', { status: 404, headers: corsHeaders })
+    }
+
+    if (!profile.zapi_token || !profile.zapi_client_token) {
+      console.error('User has incomplete Z-API credentials')
+      return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
+    }
+
+    // Forward to gateway integrations
+    const { data: gateways } = await supabase
+      .from('gateway_integrations')
+      .select('*')
+      .eq('user_id', profile.id)
+      .eq('active', true)
+
+    if (gateways && gateways.length > 0) {
+      console.log(`Encaminhando para ${gateways.length} gateway(s)`)
+      const gatewayPayload = {
+        event: 'message_received',
+        phone,
+        message: webhook.message.text,
+        timestamp: new Date().toISOString(),
+        raw: JSON.parse(rawBody),
+      }
+
+      await Promise.allSettled(gateways.map(async (gw) => {
+        try {
+          const gwHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...(gw.headers as Record<string, string> || {}),
+          }
+          if (gw.auth_type === 'bearer' && gw.auth_token) {
+            gwHeaders['Authorization'] = `Bearer ${gw.auth_token}`
+          } else if (gw.auth_type === 'api_key' && gw.auth_token) {
+            gwHeaders['X-API-Key'] = gw.auth_token
+          }
+          const opts: RequestInit = { method: gw.method || 'POST', headers: gwHeaders }
+          if (gw.method !== 'GET') {
+            opts.body = JSON.stringify(gatewayPayload)
+          }
+          const res = await fetch(gw.webhook_url, opts)
+          console.log(`Gateway ${gw.name}: status ${res.status}`)
+        } catch (e) {
+          console.error(`Gateway ${gw.name} erro:`, e)
+        }
+      }))
+    }
+
+    // === CHECK FLOW AUTOMATIONS FIRST ===
+    const { data: flowAutomations, error: flowError } = await supabase
+      .from('flow_automations')
+      .select('*')
+      .eq('user_id', profile.id)
+      .eq('active', true)
+
+    if (!flowError && flowAutomations && flowAutomations.length > 0) {
+      const matchedFlow = flowAutomations.find((flow: any) => {
+        const keyword = (flow.keyword || '').toLowerCase().trim()
+        return keyword && messageText.includes(keyword)
+      })
+
+      if (matchedFlow) {
+        console.log('Fluxo encontrado para palavra-chave:', matchedFlow.keyword)
+        
+        const nodes: FlowNode[] = matchedFlow.nodes || []
+        const edges: FlowEdge[] = matchedFlow.edges || []
+
+        // Find initial node
+        const initialNode = nodes.find(n => n.type === 'blocoInicial')
+        if (initialNode) {
+          // Process flow sequentially
+          await processFlowNode(
+            initialNode.id,
+            nodes,
+            edges,
+            phone,
+            profile,
+            supabase,
+            new Set<string>()
+          )
+          
+          // Log the interaction
+          await supabase.from('message_logs').insert({
+            phone,
+            message_received: webhook.message.text,
+            keyword_matched: matchedFlow.keyword,
+            response_sent: `[Fluxo: ${matchedFlow.name}]`,
+            timestamp: new Date().toISOString(),
+            user_id: profile.id,
+          })
+
+          return new Response('flow_sent', { status: 200, headers: corsHeaders })
+        }
+      }
+    }
+
+    // === FALLBACK: CHECK AUTO RESPONSES ===
     const { data: responses, error: responsesError } = await supabase
       .from('auto_responses')
       .select('*')
       .eq('active', true)
+      .eq('user_id', profile.id)
     
     if (responsesError) {
       console.error('Erro ao buscar respostas:', responsesError)
       return new Response('responses_error', { status: 500, headers: corsHeaders })
     }
-    
-    if (!responses || responses.length === 0) {
-      console.log('Nenhuma resposta ativa encontrada')
-      return new Response('no_responses', { status: 200, headers: corsHeaders })
-    }
 
-    console.log('Respostas ativas encontradas:', responses.length)
-
-    // Procura por palavra-chave correspondente
-    const matchedResponse = responses.find(response => 
+    const matchedResponse = responses?.find(response => 
       messageText.includes(response.keyword.toLowerCase())
     )
 
     if (matchedResponse) {
       console.log('Palavra-chave encontrada:', matchedResponse.keyword)
       
-      // Log da mensagem recebida
-      const { error: logError } = await supabase
-        .from('message_logs')
-        .insert({
-          phone,
-          message_received: webhook.message.text,
-          keyword_matched: matchedResponse.keyword,
-          response_sent: matchedResponse.response,
-          timestamp: new Date().toISOString()
-        })
-      
-      if (logError) {
-        console.error('Erro ao salvar log:', logError)
-      }
-
-      // Find user by instanceId to get their credentials
-      const instanceId = webhook.instanceId;
-      
-      if (!instanceId) {
-        console.error('No instanceId in webhook data');
-        return new Response('missing_instance_id', { status: 400, headers: corsHeaders });
-      }
-
-      console.log('Looking for user with instanceId:', instanceId);
-      
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token')
-        .eq('zapi_instance_id', instanceId)
-        .single();
-
-      if (profileError || !profile) {
-        console.error('User profile not found for instanceId:', instanceId, profileError);
-        return new Response('user_not_found', { status: 404, headers: corsHeaders });
-      }
-
-      // Forward to all active gateway integrations for this user
-      const { data: gateways } = await supabase
-        .from('gateway_integrations')
-        .select('*')
-        .eq('user_id', profile.id)
-        .eq('active', true);
-
-      if (gateways && gateways.length > 0) {
-        console.log(`Encaminhando para ${gateways.length} gateway(s) ativo(s)`);
-        const gatewayPayload = {
-          event: 'message_received',
-          phone: webhook.phone,
-          message: webhook.message.text,
-          timestamp: new Date().toISOString(),
-          raw: JSON.parse(rawBody),
-        };
-
-        await Promise.allSettled(gateways.map(async (gw) => {
-          try {
-            const gwHeaders: Record<string, string> = {
-              'Content-Type': 'application/json',
-              ...(gw.headers as Record<string, string> || {}),
-            };
-            if (gw.auth_type === 'bearer' && gw.auth_token) {
-              gwHeaders['Authorization'] = `Bearer ${gw.auth_token}`;
-            } else if (gw.auth_type === 'api_key' && gw.auth_token) {
-              gwHeaders['X-API-Key'] = gw.auth_token;
-            }
-
-            const opts: RequestInit = { method: gw.method || 'POST', headers: gwHeaders };
-            if (gw.method !== 'GET') {
-              opts.body = JSON.stringify(gatewayPayload);
-            }
-
-            const res = await fetch(gw.webhook_url, opts);
-            console.log(`Gateway ${gw.name}: status ${res.status}`);
-          } catch (e) {
-            console.error(`Gateway ${gw.name} erro:`, e);
-          }
-        }));
-      }
-
-      if (!profile.zapi_token || !profile.zapi_client_token) {
-        console.error('User has incomplete Z-API credentials');
-        return new Response('incomplete_credentials', { status: 400, headers: corsHeaders });
-      }
-
-      console.log('Found user credentials for instance:', instanceId);
-
-      console.log('Enviando resposta via Z-API para:', phone)
-      
-      // Envia resposta automática via Z-API using user's credentials
-      const zapiResponse = await fetch(`https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': profile.zapi_client_token
-        },
-        body: JSON.stringify({
-          phone,
-          message: matchedResponse.response
-        })
+      await supabase.from('message_logs').insert({
+        phone,
+        message_received: webhook.message.text,
+        keyword_matched: matchedResponse.keyword,
+        response_sent: matchedResponse.response,
+        timestamp: new Date().toISOString(),
+        user_id: profile.id,
       })
 
-      const zapiResult = await zapiResponse.text()
-      console.log('Resposta Z-API status:', zapiResponse.status)
-      console.log('Resposta Z-API body:', zapiResult)
+      const zapiResponse = await fetch(
+        `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}/send-text`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Token': profile.zapi_client_token,
+          },
+          body: JSON.stringify({ phone, message: matchedResponse.response }),
+        }
+      )
 
-      if (zapiResponse.ok) {
-        console.log('Resposta enviada com sucesso')
-        return new Response('response_sent', { status: 200, headers: corsHeaders })
-      } else {
-        console.error('Erro ao enviar resposta Z-API:', zapiResult)
-        return new Response('send_error', { status: 500, headers: corsHeaders })
-      }
-    } else {
-      console.log('Nenhuma palavra-chave correspondente encontrada')
+      const zapiResult = await zapiResponse.text()
+      console.log('Resposta Z-API:', zapiResponse.status, zapiResult)
+
+      return new Response(zapiResponse.ok ? 'response_sent' : 'send_error', {
+        status: zapiResponse.ok ? 200 : 500,
+        headers: corsHeaders,
+      })
     }
 
+    console.log('Nenhuma palavra-chave correspondente encontrada')
     return new Response('no_match', { status: 200, headers: corsHeaders })
     
   } catch (error) {
@@ -205,3 +245,108 @@ serve(async (req) => {
     return new Response('error', { status: 500, headers: corsHeaders })
   }
 })
+
+async function processFlowNode(
+  nodeId: string,
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  phone: string,
+  profile: any,
+  supabase: any,
+  visited: Set<string>
+) {
+  if (visited.has(nodeId)) return
+  visited.add(nodeId)
+
+  const outgoing = edges.filter(e => e.source === nodeId)
+  
+  for (const edge of outgoing) {
+    const targetNode = nodes.find(n => n.id === edge.target)
+    if (!targetNode) continue
+
+    if (targetNode.type === 'blocoConteudo') {
+      const contentType = targetNode.data.contentType || 'text'
+      const content = targetNode.data.content || ''
+      const mediaUrl = targetNode.data.mediaUrl || ''
+      const buttonLabel = targetNode.data.buttonLabel || ''
+      const buttonUrl = targetNode.data.buttonUrl || ''
+
+      const baseUrl = `https://api.z-api.io/instances/${profile.zapi_instance_id}/token/${profile.zapi_token}`
+      const headers = {
+        'Content-Type': 'application/json',
+        'Client-Token': profile.zapi_client_token,
+      }
+
+      try {
+        let endpoint = ''
+        let body: any = { phone }
+
+        if (buttonLabel && buttonUrl && contentType === 'text') {
+          // Send as button message
+          endpoint = '/send-button-list'
+          body = {
+            phone,
+            message: content,
+            buttonList: {
+              buttons: [
+                {
+                  id: '1',
+                  label: buttonLabel,
+                  action: { type: 'URL', url: buttonUrl }
+                }
+              ]
+            }
+          }
+        } else {
+          switch (contentType) {
+            case 'text':
+              endpoint = '/send-text'
+              body.message = content
+              break
+            case 'image':
+              endpoint = '/send-image'
+              body.image = mediaUrl
+              body.caption = content
+              break
+            case 'video':
+              endpoint = '/send-video'
+              body.video = mediaUrl
+              body.caption = content
+              break
+            case 'audio':
+              endpoint = '/send-audio'
+              body.audio = mediaUrl
+              break
+            case 'document':
+              endpoint = '/send-document-url'
+              body.document = mediaUrl
+              body.fileName = 'documento'
+              body.caption = content
+              break
+            default:
+              endpoint = '/send-text'
+              body.message = content
+          }
+        }
+
+        if (endpoint) {
+          const res = await fetch(`${baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+          })
+          const result = await res.text()
+          console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
+          
+          // Delay between messages
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
+      } catch (e) {
+        console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
+      }
+    }
+
+    // Continue processing the flow
+    await processFlowNode(targetNode.id, nodes, edges, phone, profile, supabase, visited)
+  }
+}
