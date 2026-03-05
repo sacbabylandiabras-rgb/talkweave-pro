@@ -1833,6 +1833,81 @@ const Modelos = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de Prévia WhatsApp */}
+      <Dialog open={!!previewTemplate} onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }}>
+        <DialogContent className="sm:max-w-sm p-0 overflow-hidden rounded-2xl border-0">
+          <div className="flex flex-col h-[600px]">
+            <div className="bg-[hsl(142,70%,35%)] px-4 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <Phone className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-semibold">Prévia da Mensagem</p>
+                <p className="text-white/70 text-xs flex items-center gap-1">
+                  <Wifi className="w-3 h-3" /> online
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="flex-1 p-4 space-y-2 overflow-y-auto"
+              style={{ backgroundColor: '#e5ddd5' }}
+            >
+              {previewTemplate && (
+                <div className="flex justify-end">
+                  <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                    {previewTemplate.mediaUrl && (
+                      <img src={previewTemplate.mediaUrl} alt="Mídia" className="w-full rounded-t-lg object-cover max-h-48" />
+                    )}
+                    <div className="px-3 py-2 space-y-1">
+                      {previewTemplate.header && (
+                        <p className="font-bold text-sm text-foreground">{previewTemplate.header}</p>
+                      )}
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                        {previewTemplate.content}
+                      </p>
+                      {previewTemplate.footer && (
+                        <p className="text-xs text-muted-foreground italic">{previewTemplate.footer}</p>
+                      )}
+                      <div className="flex items-center justify-end gap-1 pt-0.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <Check className="w-3 h-3 text-blue-500" />
+                        <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                      </div>
+                    </div>
+                    {previewTemplate.buttons && previewTemplate.buttons.length > 0 && (
+                      <div className="border-t border-border/30">
+                        {previewTemplate.buttons.map((btn: any) => (
+                          <div key={btn.id} className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0">
+                            {btn.text}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {previewTemplate.listItems && previewTemplate.listItems.length > 0 && (
+                      <div className="border-t border-border/30 px-3 py-2">
+                        <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          📋 Ver opções ({previewTemplate.listItems.length})
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-muted/50 px-3 py-2 flex items-center gap-2 border-t border-border">
+              <div className="flex-1 bg-background rounded-full px-4 py-2 text-xs text-muted-foreground">Mensagem</div>
+              <div className="w-8 h-8 rounded-full bg-[hsl(142,70%,35%)] flex items-center justify-center">
+                <Phone className="w-4 h-4 text-white rotate-[135deg]" />
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
