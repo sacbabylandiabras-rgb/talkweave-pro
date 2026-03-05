@@ -310,8 +310,16 @@ async function processFlowNode(
       const contentType = targetNode.data.contentType || 'text'
       const content = targetNode.data.content || ''
       const mediaUrl = targetNode.data.mediaUrl || ''
-      const buttonLabel = targetNode.data.buttonLabel || ''
-      const buttonUrl = targetNode.data.buttonUrl || ''
+
+      // Support new buttons array AND legacy single button fields
+      const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
+      const legacyLabel = targetNode.data.buttonLabel || ''
+      const legacyUrl = targetNode.data.buttonUrl || ''
+      if (buttons.length === 0 && legacyLabel && legacyUrl) {
+        buttons.push({ text: legacyLabel, type: 'url', value: legacyUrl })
+      }
+
+      const hasButtons = buttons.length > 0
 
       const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
       const headers = {
@@ -319,89 +327,41 @@ async function processFlowNode(
         'Client-Token': zapiConfig.zapi_client_token,
       }
 
-      try {
-        // === CAROUSEL ===
-        if (contentType === 'carousel') {
-          const carouselCards = (targetNode.data.carouselCards || [])
-            .map((card: any, idx: number) => {
-              const title = (card.title || '').trim() || `Card ${idx + 1}`
-              const description = (card.description || '').trim() || 'Confira os detalhes'
-              const image = (card.image || '').trim()
-              if (!image) return null
-
-              const cardData: any = { title, description, image }
-
-              if (card.buttonLabel || card.buttonUrl) {
-                const label = (card.buttonLabel || '').trim() || 'Abrir'
-                const rawUrl = (card.buttonUrl || '').trim()
-                if (rawUrl) {
-                  const url = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`
-                  cardData.buttonActions = [{ type: 'URL', url, label }]
-                }
-              }
-
-              return cardData
-            })
-            .filter(Boolean)
-
-          if (carouselCards.length >= 2) {
-            const res = await fetch(`${baseUrl}/send-carousel`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ phone, cards: carouselCards }),
-            })
-            const result = await res.text()
-            console.log(`Bloco ${targetNode.id} (carousel): ${res.status}`, result)
-          } else {
-            console.log(`Bloco ${targetNode.id}: carrossel precisa de ao menos 2 cards`)
+      function buildButtonActions(btns: typeof buttons) {
+        return btns.map((btn, i) => {
+          const label = (btn.text || '').trim() || `Botão ${i + 1}`
+          if (btn.type === 'url') {
+            const rawUrl = (btn.value || '').trim()
+            const url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+            return { id: String(i + 1), type: 'URL', url, label }
           }
-          await new Promise(resolve => setTimeout(resolve, 1500))
-        }
-        // === BUTTON MESSAGES ===
-        else if (buttonLabel && buttonUrl && contentType === 'text') {
-          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
-          const res = await fetch(`${baseUrl}/send-button-actions`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              phone,
-              message: content,
-              buttonActions: [{ id: '1', type: 'URL', url: finalUrl, label: buttonLabel }],
-            }),
-          })
-          const result = await res.text()
-          console.log(`Bloco ${targetNode.id} (text+button): ${res.status}`, result)
-          await new Promise(resolve => setTimeout(resolve, 1500))
-        }
-        else if (buttonLabel && buttonUrl && (contentType === 'image' || contentType === 'video')) {
-          // Send media first
-          const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
-          const mediaBody: any = { phone }
-          mediaBody[contentType] = mediaUrl
-          await fetch(`${baseUrl}${mediaEndpoint}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(mediaBody),
-          })
-          await new Promise(resolve => setTimeout(resolve, 1500))
+          if (btn.type === 'call') {
+            return { id: String(i + 1), type: 'CALL', phoneNumber: (btn.value || '').trim(), label }
+          }
+          return { id: String(i + 1), type: 'REPLY', label }
+        })
+      }
 
-          // Then button message
-          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
+      try {
+        if (hasButtons) {
+          if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
+            const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
+            const mediaBody: any = { phone }
+            mediaBody[contentType] = mediaUrl
+            await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+            await new Promise(resolve => setTimeout(resolve, 1500))
+          }
+
+          const buttonActions = buildButtonActions(buttons)
           const res = await fetch(`${baseUrl}/send-button-actions`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              phone,
-              message: content,
-              buttonActions: [{ id: '1', type: 'URL', url: finalUrl, label: buttonLabel }],
-            }),
+            body: JSON.stringify({ phone, message: content, buttonActions }),
           })
           const result = await res.text()
-          console.log(`Bloco ${targetNode.id} (${contentType}+button): ${res.status}`, result)
+          console.log(`Bloco ${targetNode.id} (${contentType}+buttons): ${res.status}`, result)
           await new Promise(resolve => setTimeout(resolve, 1500))
-        }
-        // === PLAIN MEDIA ===
-        else {
+        } else {
           let endpoint = ''
           let body: any = { phone }
 
@@ -436,11 +396,7 @@ async function processFlowNode(
           }
 
           if (endpoint) {
-            const res = await fetch(`${baseUrl}${endpoint}`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(body),
-            })
+            const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
             const result = await res.text()
             console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
             await new Promise(resolve => setTimeout(resolve, 1500))
@@ -455,6 +411,7 @@ async function processFlowNode(
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
+
 
 function extractFlowKeywords(flow: any): string[] {
   const keywords = new Set<string>()
