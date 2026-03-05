@@ -485,6 +485,61 @@ async function processFlowNode(
   }
 }
 
+function sortOutgoingEdges(nodeId: string, nodes: FlowNode[], edges: FlowEdge[]): FlowEdge[] {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+
+  const handlePriority = (sourceHandle?: string) => {
+    if (!sourceHandle || sourceHandle === 'default') return 0
+    if (sourceHandle.startsWith('button-')) return 2
+    return 1
+  }
+
+  return edges
+    .filter((e) => e.source === nodeId)
+    .sort((a, b) => {
+      const priorityDiff = handlePriority(a.sourceHandle) - handlePriority(b.sourceHandle)
+      if (priorityDiff !== 0) return priorityDiff
+
+      const aTarget = nodeMap.get(a.target)
+      const bTarget = nodeMap.get(b.target)
+      const ay = aTarget?.position?.y ?? 0
+      const by = bTarget?.position?.y ?? 0
+      if (ay !== by) return ay - by
+
+      const ax = aTarget?.position?.x ?? 0
+      const bx = bTarget?.position?.x ?? 0
+      return ax - bx
+    })
+}
+
+async function isLikelyDuplicateRecentMessage(
+  supabase: any,
+  params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string }
+): Promise<boolean> {
+  const { userId, phone, normalizedMessage, rawMessage } = params
+  const dedupeWindow = new Date(Date.now() - 15 * 1000).toISOString()
+
+  const { data: recentLogs, error } = await supabase
+    .from('message_logs')
+    .select('message_received, created_at')
+    .eq('user_id', userId)
+    .eq('phone', phone)
+    .gte('created_at', dedupeWindow)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error || !recentLogs || recentLogs.length === 0) return false
+
+  return recentLogs.some((log: any) => {
+    const previousRaw = typeof log?.message_received === 'string' ? log.message_received : ''
+    const previousNormalized = normalizeForMatch(previousRaw)
+
+    return (
+      (previousRaw && previousRaw === rawMessage) ||
+      (previousNormalized && normalizedMessage && previousNormalized === normalizedMessage)
+    )
+  })
+}
 
 function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
   const normalizedRaw = normalizeForMatch(rawMessage)
