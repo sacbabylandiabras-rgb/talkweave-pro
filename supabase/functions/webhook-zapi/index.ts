@@ -224,7 +224,7 @@ serve(async (req) => {
       
       await supabase.from('message_logs').insert({
         phone,
-        message_received: webhook.message.text,
+        message_received: messageRaw,
         keyword_matched: matchedResponse.keyword,
         response_sent: matchedResponse.response,
         timestamp: new Date().toISOString(),
