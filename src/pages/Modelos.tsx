@@ -1093,10 +1093,21 @@ const Modelos = () => {
                   <Textarea
                     id="template-content"
                     value={newTemplate.content}
-                    onChange={(e) => setNewTemplate(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) => {
+                      setNewTemplate(prev => ({ ...prev, content: e.target.value }));
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                     placeholder="Digite o conteúdo do modelo..."
-                    rows={8}
-                    className="min-h-[200px]"
+                    rows={4}
+                    className="min-h-[100px] resize-none overflow-hidden"
+                    style={{ height: 'auto' }}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
                   />
                 </div>
                 
@@ -1751,9 +1762,21 @@ const Modelos = () => {
               <Textarea
                 id="edit-template-content"
                 value={editFormData.content}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
+                onChange={(e) => {
+                  setEditFormData(prev => ({ ...prev, content: e.target.value }));
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
                 placeholder="Digite o conteúdo do modelo..."
-                rows={8}
+                rows={4}
+                className="min-h-[100px] resize-none overflow-hidden"
+                style={{ height: 'auto' }}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                  }
+                }}
               />
             </div>
             
