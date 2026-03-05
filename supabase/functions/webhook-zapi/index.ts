@@ -383,6 +383,7 @@ async function processFlowNode(
             case 'audio':
               endpoint = '/send-audio'
               body.audio = mediaUrl
+              body.waveform = true
               break
             case 'document':
               endpoint = '/send-document-url'

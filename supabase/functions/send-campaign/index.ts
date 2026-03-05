@@ -514,7 +514,8 @@ serve(async (req) => {
             zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`;
             requestBody = {
               phone: contact.phone,
-              audio: campaign.template.media_url
+              audio: campaign.template.media_url,
+              waveform: true
             };
             console.log(`Sending audio to ${contact.phone}`);
             
