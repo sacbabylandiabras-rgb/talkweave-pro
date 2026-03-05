@@ -758,6 +758,7 @@ export default function FluxoVisual() {
                       <SelectItem value="video">Vídeo</SelectItem>
                       <SelectItem value="audio">Áudio</SelectItem>
                       <SelectItem value="document">Documento</SelectItem>
+                      <SelectItem value="carousel">Carrossel</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
