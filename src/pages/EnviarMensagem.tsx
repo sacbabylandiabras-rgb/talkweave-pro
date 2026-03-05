@@ -683,6 +683,17 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendIndividual}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
+                  
                   <div>
                     <Label htmlFor="numero">Número do WhatsApp</Label>
                     <Input 
@@ -717,17 +728,6 @@ const EnviarMensagem = () => {
                     </p>
                   </div>
                   
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
-                  
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
                       <>Enviando...</>
@@ -761,6 +761,17 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendButtonActions}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
+                  
                   <div>
                     <Label htmlFor="numero-botoes">Número do WhatsApp</Label>
                     <Input 
@@ -922,16 +933,6 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
@@ -959,6 +960,16 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendOptionList}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
                   <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
                     <Input 
@@ -1050,16 +1061,6 @@ const EnviarMensagem = () => {
                     </div>
                   </div>
                   
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
@@ -1087,6 +1088,16 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendMassa}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
                     <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
@@ -1270,16 +1281,6 @@ Formatos aceitos:
                     </p>
                   </div>
 
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
                   
                   <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
