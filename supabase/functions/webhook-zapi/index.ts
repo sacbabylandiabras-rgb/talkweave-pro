@@ -324,20 +324,47 @@ async function processFlowNode(
         let body: any = { phone }
 
         if (buttonLabel && buttonUrl && contentType === 'text') {
-          // Send as button message
-          endpoint = '/send-button-list'
+          // Send with URL button via send-button-actions
+          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
+          endpoint = '/send-button-actions'
           body = {
             phone,
             message: content,
-            buttonList: {
-              buttons: [
-                {
-                  id: '1',
-                  label: buttonLabel,
-                  action: { type: 'URL', url: buttonUrl }
-                }
-              ]
-            }
+            buttonActions: [
+              {
+                id: '1',
+                type: 'URL',
+                url: finalUrl,
+                label: buttonLabel,
+              },
+            ],
+          }
+        } else if (buttonLabel && buttonUrl && (contentType === 'image' || contentType === 'video')) {
+          // Send media first, then button message
+          const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
+          const mediaBody: any = { phone }
+          mediaBody[contentType] = mediaUrl
+          // No caption on media, text goes with buttons
+          await fetch(`${baseUrl}${mediaEndpoint}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(mediaBody),
+          })
+          await new Promise(resolve => setTimeout(resolve, 1500))
+          
+          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
+          endpoint = '/send-button-actions'
+          body = {
+            phone,
+            message: content,
+            buttonActions: [
+              {
+                id: '1',
+                type: 'URL',
+                url: finalUrl,
+                label: buttonLabel,
+              },
+            ],
           }
         } else {
           switch (contentType) {
