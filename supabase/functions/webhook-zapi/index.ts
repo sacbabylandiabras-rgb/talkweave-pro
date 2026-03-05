@@ -320,53 +320,91 @@ async function processFlowNode(
       }
 
       try {
-        let endpoint = ''
-        let body: any = { phone }
-
-        if (buttonLabel && buttonUrl && contentType === 'text') {
-          // Send with URL button via send-button-actions
-          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
-          endpoint = '/send-button-actions'
-          body = {
-            phone,
-            message: content,
-            buttonActions: [
-              {
-                id: '1',
+        // === CAROUSEL ===
+        if (contentType === 'carousel') {
+          const carouselCards = (targetNode.data.carouselCards || []).map((card: any) => {
+            const cardData: any = {
+              title: card.title || '',
+              description: card.description || '',
+            }
+            if (card.image && card.image.trim()) {
+              cardData.image = card.image
+            }
+            if (card.buttonLabel && card.buttonUrl) {
+              let url = card.buttonUrl
+              if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url
+              }
+              cardData.buttonActions = [{
                 type: 'URL',
-                url: finalUrl,
-                label: buttonLabel,
-              },
-            ],
+                url,
+                label: card.buttonLabel,
+              }]
+            }
+            return cardData
+          })
+
+          if (carouselCards.length >= 2) {
+            const res = await fetch(`${baseUrl}/send-carousel`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ phone, cards: carouselCards }),
+            })
+            const result = await res.text()
+            console.log(`Bloco ${targetNode.id} (carousel): ${res.status}`, result)
+          } else {
+            console.log(`Bloco ${targetNode.id}: carrossel precisa de ao menos 2 cards`)
           }
-        } else if (buttonLabel && buttonUrl && (contentType === 'image' || contentType === 'video')) {
-          // Send media first, then button message
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
+        // === BUTTON MESSAGES ===
+        else if (buttonLabel && buttonUrl && contentType === 'text') {
+          const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
+          const res = await fetch(`${baseUrl}/send-button-actions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              phone,
+              message: content,
+              buttonActions: [{ id: '1', type: 'URL', url: finalUrl, label: buttonLabel }],
+            }),
+          })
+          const result = await res.text()
+          console.log(`Bloco ${targetNode.id} (text+button): ${res.status}`, result)
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
+        else if (buttonLabel && buttonUrl && (contentType === 'image' || contentType === 'video')) {
+          // Send media first
           const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
           const mediaBody: any = { phone }
           mediaBody[contentType] = mediaUrl
-          // No caption on media, text goes with buttons
           await fetch(`${baseUrl}${mediaEndpoint}`, {
             method: 'POST',
             headers,
             body: JSON.stringify(mediaBody),
           })
           await new Promise(resolve => setTimeout(resolve, 1500))
-          
+
+          // Then button message
           const finalUrl = buttonUrl.match(/^https?:\/\//) ? buttonUrl : `https://${buttonUrl}`
-          endpoint = '/send-button-actions'
-          body = {
-            phone,
-            message: content,
-            buttonActions: [
-              {
-                id: '1',
-                type: 'URL',
-                url: finalUrl,
-                label: buttonLabel,
-              },
-            ],
-          }
-        } else {
+          const res = await fetch(`${baseUrl}/send-button-actions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              phone,
+              message: content,
+              buttonActions: [{ id: '1', type: 'URL', url: finalUrl, label: buttonLabel }],
+            }),
+          })
+          const result = await res.text()
+          console.log(`Bloco ${targetNode.id} (${contentType}+button): ${res.status}`, result)
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
+        // === PLAIN MEDIA ===
+        else {
+          let endpoint = ''
+          let body: any = { phone }
+
           switch (contentType) {
             case 'text':
               endpoint = '/send-text'
@@ -396,19 +434,17 @@ async function processFlowNode(
               endpoint = '/send-text'
               body.message = content
           }
-        }
 
-        if (endpoint) {
-          const res = await fetch(`${baseUrl}${endpoint}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-          })
-          const result = await res.text()
-          console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
-          
-          // Delay between messages
-          await new Promise(resolve => setTimeout(resolve, 1500))
+          if (endpoint) {
+            const res = await fetch(`${baseUrl}${endpoint}`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(body),
+            })
+            const result = await res.text()
+            console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
+            await new Promise(resolve => setTimeout(resolve, 1500))
+          }
         }
       } catch (e) {
         console.error(`Erro ao processar bloco ${targetNode.id}:`, e)

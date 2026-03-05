@@ -1,7 +1,28 @@
 import { Handle, Position } from "reactflow";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Image, Video, Mic, FileText, LayoutGrid } from "lucide-react";
+
+const typeIcons: Record<string, any> = {
+  text: MessageSquare,
+  image: Image,
+  video: Video,
+  audio: Mic,
+  document: FileText,
+  carousel: LayoutGrid,
+};
+
+const typeLabels: Record<string, string> = {
+  text: "Texto",
+  image: "Imagem",
+  video: "Vídeo",
+  audio: "Áudio",
+  document: "Documento",
+  carousel: "Carrossel",
+};
 
 export function BlocoConteudoNode({ data }: any) {
+  const contentType = data.contentType || "text";
+  const Icon = typeIcons[contentType] || MessageSquare;
+
   return (
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px]">
       <Handle
@@ -11,15 +32,23 @@ export function BlocoConteudoNode({ data }: any) {
       />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-blue-500/10">
-          <MessageSquare className="h-4 w-4 text-blue-500" />
+          <Icon className="h-4 w-4 text-blue-500" />
         </div>
         <div className="flex-1">
           <div className="text-sm font-semibold text-card-foreground">
             {data.label}
           </div>
+          <div className="text-[10px] text-muted-foreground">
+            {typeLabels[contentType]}
+          </div>
           {data.content && (
             <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
               {data.content}
+            </div>
+          )}
+          {contentType === "carousel" && data.carouselCards?.length > 0 && (
+            <div className="text-[10px] text-muted-foreground mt-1">
+              📋 {data.carouselCards.length} card(s)
             </div>
           )}
           {data.buttonLabel && (
