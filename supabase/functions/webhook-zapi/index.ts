@@ -198,14 +198,16 @@ serve(async (req) => {
         const flowNodes: FlowNode[] = flow.nodes || []
         const flowEdges: FlowEdge[] = flow.edges || []
 
+        // Create a virtual edge pointing to the target so processFlowNode sends it
+        const virtualSourceId = '__button_entry__'
         await processFlowNode(
-          targetNodeId,
+          virtualSourceId,
           flowNodes,
-          flowEdges,
+          [{ id: 'virtual', source: virtualSourceId, target: targetNodeId }, ...flowEdges],
           phone,
           zapiConfig,
           supabase,
-          new Set<string>([targetNodeId]) // mark source as visited, process from target
+          new Set<string>()
         )
 
         await supabase.from('message_logs').insert({
