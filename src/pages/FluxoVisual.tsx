@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -47,6 +48,8 @@ import {
   Workflow,
   ArrowLeft,
   Trash2,
+  Upload,
+  Key,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -56,7 +59,7 @@ import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
@@ -97,77 +100,146 @@ const blocosDisponiveis = [
   },
 ];
 
+interface FlowAutomation {
+  id: string;
+  user_id: string;
+  name: string;
+  keyword: string;
+  nodes: any[];
+  edges: any[];
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function FluxoVisual() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nomeFluxo, setNomeFluxo] = useState("Novo Fluxo");
-  const [fluxosSalvos, setFluxosSalvos] = useState<any[]>([]);
+  const [keywordFluxo, setKeywordFluxo] = useState("");
+  const [fluxoAtivo, setFluxoAtivo] = useState(true);
+  const [currentFluxoId, setCurrentFluxoId] = useState<string | null>(null);
+  const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
   const [showFluxosList, setShowFluxosList] = useState(true);
+  const [loading, setLoading] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument } = useZapi();
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Auto-salvar quando nodes ou edges mudarem
-  useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      const timeoutId = setTimeout(() => {
-        handleSaveFluxo();
-      }, 2000); // Auto-salvar após 2 segundos de inatividade
+  // Carregar fluxos do Supabase
+  const fetchFluxos = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await (supabase as any)
+        .from('flow_automations')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [nodes, edges]);
-
-  // Carregar lista de fluxos salvos ao iniciar
-  useEffect(() => {
-    const savedFluxos = localStorage.getItem("fluxos_salvos");
-    if (savedFluxos) {
-      try {
-        setFluxosSalvos(JSON.parse(savedFluxos));
-      } catch (error) {
-        console.error("Erro ao carregar fluxos:", error);
+      if (error) throw error;
+      setFluxosSalvos(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar fluxos:", error);
+      // Fallback to localStorage
+      const savedFluxos = localStorage.getItem("fluxos_salvos");
+      if (savedFluxos) {
+        try {
+          setFluxosSalvos(JSON.parse(savedFluxos));
+        } catch (e) {
+          console.error("Erro ao carregar fluxos do localStorage:", e);
+        }
       }
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchFluxos();
   }, []);
 
   const handleNovoFluxo = () => {
     setNomeFluxo("Novo Fluxo");
+    setKeywordFluxo("");
+    setFluxoAtivo(true);
+    setCurrentFluxoId(null);
     setNodes(initialNodes);
     setEdges(initialEdges);
     setShowFluxosList(false);
   };
 
-  const handleCarregarFluxo = (fluxo: any) => {
-    setNomeFluxo(fluxo.nome);
+  const handleCarregarFluxo = (fluxo: FlowAutomation) => {
+    setNomeFluxo(fluxo.name);
+    setKeywordFluxo(fluxo.keyword || "");
+    setFluxoAtivo(fluxo.active);
+    setCurrentFluxoId(fluxo.id);
     setNodes(fluxo.nodes || initialNodes);
     setEdges(fluxo.edges || initialEdges);
     setShowFluxosList(false);
-    toast.success(`Fluxo "${fluxo.nome}" carregado!`);
+    toast.success(`Fluxo "${fluxo.name}" carregado!`);
   };
 
-  const handleDuplicarFluxo = (fluxo: any) => {
-    const novoNome = `${fluxo.nome} (cópia)`;
-    const novoFluxo = {
-      ...fluxo,
-      nome: novoNome,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const novosFluxos = [...fluxosSalvos, novoFluxo];
-    localStorage.setItem("fluxos_salvos", JSON.stringify(novosFluxos));
-    setFluxosSalvos(novosFluxos);
-    toast.success("Fluxo duplicado com sucesso!");
+  const handleDuplicarFluxo = async (fluxo: FlowAutomation) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Faça login para duplicar fluxos");
+        return;
+      }
+
+      const { error } = await (supabase as any)
+        .from('flow_automations')
+        .insert({
+          user_id: user.id,
+          name: `${fluxo.name} (cópia)`,
+          keyword: fluxo.keyword ? `${fluxo.keyword}_copia` : "",
+          nodes: fluxo.nodes,
+          edges: fluxo.edges,
+          active: false,
+        });
+
+      if (error) throw error;
+      await fetchFluxos();
+      toast.success("Fluxo duplicado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao duplicar:", error);
+      toast.error("Erro ao duplicar fluxo");
+    }
   };
 
-  const handleExcluirFluxo = (fluxoNome: string) => {
-    const novosFluxos = fluxosSalvos.filter((f) => f.nome !== fluxoNome);
-    localStorage.setItem("fluxos_salvos", JSON.stringify(novosFluxos));
-    setFluxosSalvos(novosFluxos);
-    toast.success("Fluxo excluído!");
+  const handleExcluirFluxo = async (fluxoId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('flow_automations')
+        .delete()
+        .eq('id', fluxoId);
+
+      if (error) throw error;
+      setFluxosSalvos(prev => prev.filter(f => f.id !== fluxoId));
+      toast.success("Fluxo excluído!");
+    } catch (error) {
+      console.error("Erro ao excluir:", error);
+      toast.error("Erro ao excluir fluxo");
+    }
+  };
+
+  const handleToggleActive = async (fluxo: FlowAutomation) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('flow_automations')
+        .update({ active: !fluxo.active })
+        .eq('id', fluxo.id);
+
+      if (error) throw error;
+      setFluxosSalvos(prev => prev.map(f => f.id === fluxo.id ? { ...f, active: !f.active } : f));
+      toast.success(fluxo.active ? "Fluxo desativado" : "Fluxo ativado");
+    } catch (error) {
+      console.error("Erro ao atualizar:", error);
+      toast.error("Erro ao atualizar fluxo");
+    }
   };
 
   const onConnect = useCallback(
@@ -196,12 +268,6 @@ export default function FluxoVisual() {
     toast.success("Bloco removido!");
   }, [nodes, setNodes, setEdges]);
 
-  const onKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === "Delete" || event.key === "Backspace") {
-      // ReactFlow handles selected elements deletion via onNodesChange/onEdgesChange
-    }
-  }, []);
-
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setIsEditDialogOpen(true);
@@ -215,12 +281,8 @@ export default function FluxoVisual() {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-
       const type = event.dataTransfer.getData("application/reactflow");
-
-      if (typeof type === "undefined" || !type || !reactFlowInstance) {
-        return;
-      }
+      if (typeof type === "undefined" || !type || !reactFlowInstance) return;
 
       const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
@@ -250,7 +312,6 @@ export default function FluxoVisual() {
 
   const handleSaveNode = () => {
     if (!selectedNode) return;
-
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === selectedNode.id) {
@@ -259,7 +320,6 @@ export default function FluxoVisual() {
         return node;
       })
     );
-
     setIsEditDialogOpen(false);
     toast.success("Bloco atualizado!");
   };
@@ -267,37 +327,25 @@ export default function FluxoVisual() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !selectedNode) return;
-
     setUploadingFile(true);
 
     try {
-      // Gerar nome único para o arquivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      // Fazer upload para o Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('flow-media')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
       if (error) throw error;
 
-      // Obter URL pública do arquivo
       const { data: { publicUrl } } = supabase.storage
         .from('flow-media')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      // Atualizar o nó com a URL do arquivo
       setSelectedNode({
         ...selectedNode,
-        data: { 
-          ...selectedNode.data, 
-          mediaUrl: publicUrl 
-        },
+        data: { ...selectedNode.data, mediaUrl: publicUrl },
       });
 
       toast.success("Arquivo enviado com sucesso!");
@@ -309,29 +357,48 @@ export default function FluxoVisual() {
     }
   };
 
-  const handleSaveFluxo = () => {
-    const fluxoData = {
-      nome: nomeFluxo,
-      nodes,
-      edges,
-      updatedAt: new Date().toISOString(),
-    };
+  const handleSaveFluxo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Faça login para salvar fluxos");
+        return;
+      }
 
-    // Salvar no localStorage
-    localStorage.setItem("fluxo_atual", JSON.stringify(fluxoData));
-    
-    // Salvar lista de fluxos
-    const fluxosSalvos = JSON.parse(localStorage.getItem("fluxos_salvos") || "[]");
-    const fluxoIndex = fluxosSalvos.findIndex((f: any) => f.nome === nomeFluxo);
-    
-    if (fluxoIndex >= 0) {
-      fluxosSalvos[fluxoIndex] = fluxoData;
-    } else {
-      fluxosSalvos.push(fluxoData);
+      const fluxoData = {
+        user_id: user.id,
+        name: nomeFluxo,
+        keyword: keywordFluxo.trim().toLowerCase(),
+        nodes,
+        edges,
+        active: fluxoAtivo,
+      };
+
+      if (currentFluxoId) {
+        // Update existing
+        const { error } = await (supabase as any)
+          .from('flow_automations')
+          .update(fluxoData)
+          .eq('id', currentFluxoId);
+
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { data, error } = await (supabase as any)
+          .from('flow_automations')
+          .insert(fluxoData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCurrentFluxoId(data.id);
+      }
+
+      toast.success("Fluxo salvo com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar fluxo:", error);
+      toast.error("Erro ao salvar fluxo");
     }
-    
-    localStorage.setItem("fluxos_salvos", JSON.stringify(fluxosSalvos));
-    toast.success("Fluxo salvo com sucesso!");
   };
 
   const handleEnviarAgora = () => {
@@ -339,17 +406,11 @@ export default function FluxoVisual() {
       toast.error("Adicione blocos ao fluxo antes de enviar!");
       return;
     }
-
-    // Validar se há conexões
     if (edges.length === 0) {
       toast.error("Conecte os blocos antes de enviar!");
       return;
     }
-
-    // Salvar antes de abrir o diálogo
     handleSaveFluxo();
-
-    // Abrir diálogo de seleção de contatos
     setShowContactsDialog(true);
   };
 
@@ -357,14 +418,12 @@ export default function FluxoVisual() {
     toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
     try {
-      // Encontrar o bloco inicial
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
         toast.error("Bloco inicial não encontrado!");
         return;
       }
 
-      // Para cada contato, processar o fluxo
       for (const contact of selectedContacts) {
         const visitedNodes = new Set<string>();
         await processFlow(initialNode.id, contact, visitedNodes);
@@ -380,74 +439,46 @@ export default function FluxoVisual() {
   };
 
   const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>) => {
-    // Evitar processar o mesmo nó duas vezes
-    if (visitedNodes.has(currentNodeId)) {
-      return;
-    }
+    if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
-    // Encontrar conexões que saem do nó atual
     const outgoingEdges = edges.filter(e => e.source === currentNodeId);
-    
-    if (outgoingEdges.length === 0) {
-      return; // Fim do fluxo
-    }
+    if (outgoingEdges.length === 0) return;
 
-    // Processar cada conexão
     for (const edge of outgoingEdges) {
       const targetNode = nodes.find(n => n.id === edge.target);
       if (!targetNode) continue;
 
-      // Executar ação do bloco
       if (targetNode.type === "blocoConteudo") {
         const contentType = targetNode.data.contentType || "text";
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
 
-        // Enviar mensagem baseado no tipo
         switch (contentType) {
           case "text":
-            if (!content) {
-              console.warn(`Bloco ${targetNode.id} sem conteúdo de texto`);
-              continue;
-            }
+            if (!content) continue;
             await sendMessage(contact, content);
             break;
           case "image":
-            if (!mediaUrl) {
-              console.warn(`Bloco ${targetNode.id} sem URL da imagem`);
-              continue;
-            }
+            if (!mediaUrl) continue;
             await sendImage(contact, mediaUrl, content);
             break;
           case "video":
-            if (!mediaUrl) {
-              console.warn(`Bloco ${targetNode.id} sem URL do vídeo`);
-              continue;
-            }
+            if (!mediaUrl) continue;
             await sendVideo(contact, mediaUrl, content);
             break;
           case "audio":
-            if (!mediaUrl) {
-              console.warn(`Bloco ${targetNode.id} sem URL do áudio`);
-              continue;
-            }
+            if (!mediaUrl) continue;
             await sendAudio(contact, mediaUrl, content);
             break;
           case "document":
-            if (!mediaUrl) {
-              console.warn(`Bloco ${targetNode.id} sem URL do documento`);
-              continue;
-            }
+            if (!mediaUrl) continue;
             await sendDocument(contact, mediaUrl, "document", "pdf", content);
             break;
         }
-
-        // Aguardar um pouco entre mensagens
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Continuar processando o fluxo recursivamente
       await processFlow(targetNode.id, contact, visitedNodes);
     }
   };
@@ -460,7 +491,7 @@ export default function FluxoVisual() {
             <div>
               <h1 className="text-2xl font-bold">Fluxos Visuais</h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Crie e gerencie seus fluxos de automação
+                Crie fluxos automáticos disparados por palavra-chave
               </p>
             </div>
             <Button onClick={handleNovoFluxo}>
@@ -470,7 +501,11 @@ export default function FluxoVisual() {
           </div>
 
           <ScrollArea className="h-[600px]">
-            {fluxosSalvos.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Carregando fluxos...</p>
+              </div>
+            ) : fluxosSalvos.length === 0 ? (
               <div className="text-center py-12">
                 <Workflow className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground mb-4">
@@ -482,25 +517,42 @@ export default function FluxoVisual() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {fluxosSalvos.map((fluxo, index) => (
-                  <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
+                {fluxosSalvos.map((fluxo) => (
+                  <Card key={fluxo.id} className="p-4 hover:shadow-lg transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{fluxo.nome}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-lg">{fluxo.name}</h3>
+                          <Badge variant={fluxo.active ? "default" : "secondary"}>
+                            {fluxo.active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                        {fluxo.keyword && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Key className="h-3 w-3 text-primary" />
+                            <span className="text-xs text-primary font-mono">
+                              {fluxo.keyword}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Atualizado em {new Date(fluxo.updatedAt).toLocaleDateString('pt-BR')}
+                          Atualizado em {new Date(fluxo.updated_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
+                      <Switch
+                        checked={fluxo.active}
+                        onCheckedChange={() => handleToggleActive(fluxo)}
+                      />
                     </div>
 
                     <div className="flex gap-2 text-xs text-muted-foreground mb-4">
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
-                        {fluxo.nodes?.length || 0} blocos
+                        {(fluxo.nodes as any[])?.length || 0} blocos
                       </span>
                       <span className="flex items-center gap-1">
                         <GitBranch className="h-3 w-3" />
-                        {fluxo.edges?.length || 0} conexões
+                        {(fluxo.edges as any[])?.length || 0} conexões
                       </span>
                     </div>
 
@@ -522,7 +574,7 @@ export default function FluxoVisual() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleExcluirFluxo(fluxo.nome)}
+                        onClick={() => handleExcluirFluxo(fluxo.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -540,123 +592,139 @@ export default function FluxoVisual() {
   return (
     <>
       <div className="flex h-screen w-full bg-background">
-        {/* Sidebar - Blocos Disponíveis */}
+        {/* Sidebar */}
         <Card className="w-64 m-2 p-3 flex flex-col shrink-0">
-        <div className="flex items-center gap-2 mb-4">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowFluxosList(true)}
+          <div className="flex items-center gap-2 mb-4">
+            <Button size="sm" variant="ghost" onClick={() => setShowFluxosList(true)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-lg font-semibold flex-1">Blocos</h2>
+          </div>
+
+          <div className="flex flex-col gap-2 mb-4">
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
+                <Save className="h-4 w-4 mr-2" />
+                Salvar
+              </Button>
+              <Button size="sm" onClick={handleEnviarAgora} className="flex-1">
+                <Send className="h-4 w-4 mr-2" />
+                Enviar
+              </Button>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <Label>Nome do Fluxo</Label>
+            <Input
+              value={nomeFluxo}
+              onChange={(e) => setNomeFluxo(e.target.value)}
+              placeholder="Digite o nome do fluxo"
+            />
+          </div>
+
+          <div className="mb-3">
+            <Label className="flex items-center gap-1">
+              <Key className="h-3 w-3" />
+              Palavra-chave (gatilho)
+            </Label>
+            <Input
+              value={keywordFluxo}
+              onChange={(e) => setKeywordFluxo(e.target.value)}
+              placeholder="Ex: oi, menu, preco"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Quando alguém enviar essa palavra, o fluxo será disparado automaticamente
+            </p>
+          </div>
+
+          <div className="mb-4 flex items-center justify-between">
+            <Label>Fluxo Ativo</Label>
+            <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
+          </div>
+
+          <ScrollArea className="flex-1">
+            <div className="space-y-3">
+              {blocosDisponiveis.map((bloco) => (
+                <Card
+                  key={bloco.type}
+                  className="p-4 cursor-move hover:bg-accent transition-colors"
+                  draggable
+                  onDragStart={(e) => onDragStart(e, bloco.type)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <bloco.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-sm">{bloco.label}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {bloco.description}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="mt-4 pt-4 border-t space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              📌 Arraste blocos para o canvas
+            </p>
+            <p className="text-xs text-muted-foreground">
+              🔗 Clique numa conexão para removê-la
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ⌫ Selecione e pressione Delete para excluir
+            </p>
+          </div>
+        </Card>
+
+        {/* Canvas */}
+        <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            fitView
+            deleteKeyCode={["Backspace", "Delete"]}
+            className="bg-background rounded-lg border"
+            defaultEdgeOptions={{
+              animated: true,
+              style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+            }}
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="text-lg font-semibold flex-1">Blocos</h2>
+            <Background variant={BackgroundVariant.Dots} />
+            <Controls />
+            <MiniMap
+              nodeStrokeWidth={3}
+              zoomable
+              pannable
+              className="!bg-card !border !border-border !rounded-lg"
+            />
+          </ReactFlow>
         </div>
-
-        <div className="flex flex-col gap-2 mb-4">
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              Salvar
-            </Button>
-            <Button size="sm" onClick={handleEnviarAgora} className="flex-1">
-              <Send className="h-4 w-4 mr-2" />
-              Enviar
-            </Button>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <Label>Nome do Fluxo</Label>
-          <Input
-            value={nomeFluxo}
-            onChange={(e) => setNomeFluxo(e.target.value)}
-            placeholder="Digite o nome do fluxo"
-          />
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="space-y-3">
-            {blocosDisponiveis.map((bloco) => (
-              <Card
-                key={bloco.type}
-                className="p-4 cursor-move hover:bg-accent transition-colors"
-                draggable
-                onDragStart={(e) => onDragStart(e, bloco.type)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <bloco.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-sm">{bloco.label}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {bloco.description}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
-
-        <div className="mt-4 pt-4 border-t space-y-1.5">
-          <p className="text-xs text-muted-foreground">
-            📌 Arraste blocos para o canvas
-          </p>
-          <p className="text-xs text-muted-foreground">
-            🔗 Clique numa conexão para removê-la
-          </p>
-          <p className="text-xs text-muted-foreground">
-            ⌫ Selecione e pressione Delete para excluir
-          </p>
-        </div>
-      </Card>
-
-      {/* Canvas */}
-      <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
-          onInit={setReactFlowInstance}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          nodeTypes={nodeTypes}
-          fitView
-          deleteKeyCode={["Backspace", "Delete"]}
-          className="bg-background rounded-lg border"
-          defaultEdgeOptions={{
-            animated: true,
-            style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-          }}
-        >
-          <Background variant={BackgroundVariant.Dots} />
-          <Controls />
-          <MiniMap 
-            nodeStrokeWidth={3}
-            zoomable
-            pannable
-            className="!bg-card !border !border-border !rounded-lg"
-          />
-        </ReactFlow>
       </div>
-    </div>
 
-    {/* Dialog de Seleção de Contatos */}
-    <SelectContactsDialog
-      open={showContactsDialog}
-      onOpenChange={setShowContactsDialog}
-      onConfirm={handleConfirmSend}
-    />
+      {/* Dialog de Seleção de Contatos */}
+      <SelectContactsDialog
+        open={showContactsDialog}
+        onOpenChange={setShowContactsDialog}
+        onConfirm={handleConfirmSend}
+      />
 
-    {/* Dialog de Edição */}
-    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Dialog de Edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -694,16 +762,16 @@ export default function FluxoVisual() {
                   </Select>
                 </div>
 
-                {(selectedNode.data.contentType === "image" || 
-                  selectedNode.data.contentType === "video" || 
-                  selectedNode.data.contentType === "audio" || 
+                {(selectedNode.data.contentType === "image" ||
+                  selectedNode.data.contentType === "video" ||
+                  selectedNode.data.contentType === "audio" ||
                   selectedNode.data.contentType === "document") && (
                   <>
                     <div>
                       <Label>
-                        URL da {selectedNode.data.contentType === "image" ? "Imagem" : 
-                                 selectedNode.data.contentType === "video" ? "Vídeo" :
-                                 selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
+                        URL da {selectedNode.data.contentType === "image" ? "Imagem" :
+                                selectedNode.data.contentType === "video" ? "Vídeo" :
+                                selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
                       </Label>
                       <Input
                         value={selectedNode.data.mediaUrl || ""}
@@ -713,7 +781,7 @@ export default function FluxoVisual() {
                             data: { ...selectedNode.data, mediaUrl: e.target.value },
                           })
                         }
-                        placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" : 
+                        placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" :
                                       selectedNode.data.contentType === "video" ? "video.mp4" :
                                       selectedNode.data.contentType === "audio" ? "audio.mp3" : "documento.pdf"}`}
                       />
@@ -903,18 +971,15 @@ export default function FluxoVisual() {
                 Excluir Bloco
               </Button>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button onClick={handleSaveNode}>Salvar</Button>
               </div>
             </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  </>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
