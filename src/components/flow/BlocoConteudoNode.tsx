@@ -1,5 +1,5 @@
 import { Handle, Position } from "reactflow";
-import { MessageSquare, Image, Video, Mic, FileText, LayoutGrid } from "lucide-react";
+import { MessageSquare, Image, Video, Mic, FileText } from "lucide-react";
 
 const typeIcons: Record<string, any> = {
   text: MessageSquare,
