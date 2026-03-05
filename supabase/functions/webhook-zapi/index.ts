@@ -466,6 +466,46 @@ async function processFlowNode(
 }
 
 
+function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
+  const normalizedRaw = normalizeForMatch(rawMessage)
+
+  for (const flow of flows) {
+    const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+    const edges = Array.isArray(flow?.edges) ? flow.edges : []
+
+    for (const node of nodes) {
+      if (node?.type !== 'blocoConteudo') continue
+      const buttons = Array.isArray(node?.data?.buttons) ? node.data.buttons : []
+
+      for (let idx = 0; idx < buttons.length; idx++) {
+        const btn = buttons[idx]
+        if (btn.type !== 'flow' && btn.type !== 'reply') continue
+        const btnText = (btn.text || '').trim()
+        if (!btnText) continue
+
+        const normalizedBtn = normalizeForMatch(btnText)
+        if (!normalizedBtn) continue
+
+        if (normalizedRaw === normalizedBtn || normalizedMessage === normalizedBtn) {
+          const handleId = `button-${idx}`
+          const buttonEdge = edges.find((e: any) => e.source === node.id && e.sourceHandle === handleId)
+
+          if (buttonEdge) {
+            return {
+              flow,
+              targetNodeId: buttonEdge.target,
+              buttonText: btnText,
+              flowName: flow.name,
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
 function extractFlowKeywords(flow: any): string[] {
   const keywords = new Set<string>()
 
