@@ -76,11 +76,22 @@ export function VolumeChart() {
     { key: "erros", label: "Erros", color: "#dc2626", gradientId: "gErros" },
   ] as const;
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[300px] rounded-xl border bg-card">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border bg-card p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
+          {isDemo && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Demo</span>}
+        </div>
         <div className="flex items-center gap-4">
           {series.map((s) => (
             <button
