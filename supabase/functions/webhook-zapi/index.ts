@@ -191,8 +191,8 @@ serve(async (req) => {
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
       const matchedFlow = flowAutomations.find((flow: any) => {
-        const keyword = (flow.keyword || '').trim()
-        return isKeywordMatch(normalizedMessage, keyword)
+        const keywords = extractFlowKeywords(flow)
+        return keywords.some((keyword) => isKeywordMatch(normalizedMessage, keyword))
       })
 
       if (matchedFlow) {
@@ -454,6 +454,27 @@ async function processFlowNode(
     // Continue processing the flow
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
+}
+
+function extractFlowKeywords(flow: any): string[] {
+  const keywords = new Set<string>()
+
+  const flowKeyword = (flow?.keyword || '').trim()
+  if (flowKeyword) keywords.add(flowKeyword)
+
+  const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+  for (const node of nodes) {
+    if (node?.type !== 'blocoCondicao') continue
+
+    const conditionType = (node?.data?.conditionType || 'keyword').toString().toLowerCase()
+    const condition = (node?.data?.condition || '').trim()
+
+    if ((conditionType === 'keyword' || !conditionType) && condition) {
+      keywords.add(condition)
+    }
+  }
+
+  return Array.from(keywords)
 }
 
 function extractMessageText(webhook: any): string {
