@@ -127,7 +127,7 @@ serve(async (req) => {
       const gatewayPayload = {
         event: 'message_received',
         phone,
-        message: webhook?.message?.text ?? webhook?.text?.message ?? webhook?.text ?? null,
+        message: messageRaw || null,
         timestamp: new Date().toISOString(),
         raw: webhook,
       }
