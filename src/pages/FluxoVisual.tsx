@@ -477,17 +477,17 @@ export default function FluxoVisual() {
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
 
-        const rawButtons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
-        const legacyLabel = (targetNode.data as any).buttonLabel || "";
-        const legacyUrl = (targetNode.data as any).buttonUrl || "";
-        const buttons = [...rawButtons];
-        if (buttons.length === 0 && legacyLabel && legacyUrl) {
-          buttons.push({ id: "legacy", text: legacyLabel, type: "url", value: legacyUrl });
-        }
+        const buttons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
 
-        const sendableButtons = buttons.filter((btn: any) => btn?.type !== "flow");
+        // "flow" buttons are sent as REPLY so the user can click them
+        const sendableButtons = buttons.filter((btn: any) => btn?.type && btn.type !== "flow");
+        const flowButtons = buttons.filter((btn: any) => btn?.type === "flow");
+        const allSendButtons = [
+          ...sendableButtons,
+          ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
+        ];
 
-        if (sendableButtons.length > 0) {
+        if (allSendButtons.length > 0) {
           if (contentType === "image" && mediaUrl) {
             await sendImage(contact, mediaUrl);
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -505,7 +505,7 @@ export default function FluxoVisual() {
           await sendButtonActions(
             contact,
             content || "Escolha uma opção:",
-            sendableButtons.map((btn: any, idx: number) => {
+            allSendButtons.map((btn: any, idx: number) => {
               const type = (btn?.type || "reply").toString().toLowerCase();
               const value = (btn?.value || "").toString().trim();
               const label = (btn?.text || `Botão ${idx + 1}`).toString();
