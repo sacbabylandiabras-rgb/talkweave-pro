@@ -70,7 +70,7 @@ export function DashboardLayout() {
           if (item === "painel") navigate("/dashboard");
           else navigate(`/${item}`);
         }} />
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
       </div>
