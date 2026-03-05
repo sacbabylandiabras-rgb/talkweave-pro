@@ -456,6 +456,38 @@ async function processFlowNode(
   }
 }
 
+function extractMessageText(webhook: any): string {
+  const candidates = [
+    webhook?.message?.text,
+    webhook?.message?.conversation,
+    webhook?.message?.extendedTextMessage?.text,
+    webhook?.text?.message,
+    webhook?.text,
+    webhook?.body,
+    webhook?.image?.caption,
+    webhook?.video?.caption,
+    webhook?.document?.caption,
+    webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description,
+    webhook?.data?.message?.text,
+    webhook?.data?.text?.message,
+    webhook?.data?.body,
+    webhook?.data?.image?.caption,
+    webhook?.data?.video?.caption,
+    webhook?.data?.document?.caption,
+  ]
+
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+
+  return ''
+}
+
 function normalizeForMatch(text: string): string {
   return text
     .normalize('NFD')
