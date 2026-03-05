@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 
@@ -28,6 +30,7 @@ const MediaModelSection = ({
   modelosDisponiveis
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
+  const [showPreview, setShowPreview] = useState(false);
   
   const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado);
 
@@ -152,19 +155,130 @@ const MediaModelSection = ({
             </Select>
             
             {modeloAtual && (
-              <div className="bg-muted p-3 rounded text-sm space-y-2">
-                <p className="font-medium text-xs text-muted-foreground">Prévia do Modelo:</p>
-                <p className="whitespace-pre-wrap">{modeloAtual.content}</p>
-                {modeloAtual.variables && modeloAtual.variables.length > 0 && (
-                  <p className="text-xs text-muted-foreground italic">
-                    Variáveis: {modeloAtual.variables.join(', ')}
-                  </p>
-                )}
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => setShowPreview(true)}
+              >
+                <Eye className="w-4 h-4" />
+                Ver prévia no WhatsApp
+              </Button>
             )}
           </div>
         </Card>
       </div>
+
+      {/* Dialog de prévia WhatsApp */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="sm:max-w-sm p-0 overflow-hidden rounded-2xl border-0">
+          <div className="flex flex-col h-[600px]">
+            {/* Header WhatsApp */}
+            <div className="bg-[hsl(142,70%,35%)] px-4 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <Phone className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-semibold">Prévia da Mensagem</p>
+                <p className="text-white/70 text-xs flex items-center gap-1">
+                  <Wifi className="w-3 h-3" /> online
+                </p>
+              </div>
+            </div>
+
+            {/* Chat area */}
+            <div
+              className="flex-1 p-4 space-y-2 overflow-y-auto"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a0a0a0' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                backgroundColor: 'hsl(var(--muted))',
+              }}
+            >
+              {modeloAtual && (
+                <div className="flex justify-end">
+                  <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                    {/* Media do modelo */}
+                    {modeloAtual.mediaUrl && modeloAtual.type?.includes('imagem') && (
+                      <img
+                        src={modeloAtual.mediaUrl}
+                        alt="Mídia"
+                        className="w-full rounded-t-lg object-cover max-h-48"
+                      />
+                    )}
+
+                    <div className="px-3 py-2 space-y-1">
+                      {/* Header */}
+                      {modeloAtual.header && (
+                        <p className="font-bold text-sm text-foreground">{modeloAtual.header}</p>
+                      )}
+
+                      {/* Content */}
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                        {modeloAtual.content}
+                      </p>
+
+                      {/* Footer */}
+                      {modeloAtual.footer && (
+                        <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
+                      )}
+
+                      {/* Variables */}
+                      {modeloAtual.variables && modeloAtual.variables.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          📋 Variáveis: {modeloAtual.variables.join(', ')}
+                        </p>
+                      )}
+
+                      {/* Timestamp */}
+                      <div className="flex items-center justify-end gap-1 pt-0.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <Check className="w-3 h-3 text-blue-500" />
+                        <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
+                      <div className="border-t border-border/30">
+                        {modeloAtual.buttons.map((btn) => (
+                          <div
+                            key={btn.id}
+                            className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0"
+                          >
+                            {btn.text}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* List items */}
+                    {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
+                      <div className="border-t border-border/30 px-3 py-2">
+                        <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          📋 Ver opções ({modeloAtual.listItems.length})
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom bar */}
+            <div className="bg-muted/50 px-3 py-2 flex items-center gap-2 border-t border-border">
+              <div className="flex-1 bg-background rounded-full px-4 py-2 text-xs text-muted-foreground">
+                Mensagem
+              </div>
+              <div className="w-8 h-8 rounded-full bg-[hsl(142,70%,35%)] flex items-center justify-center">
+                <Phone className="w-4 h-4 text-white rotate-[135deg]" />
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
