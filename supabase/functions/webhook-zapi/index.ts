@@ -68,6 +68,9 @@ serve(async (req) => {
       webhook?.message?.text ??
       webhook?.text?.message ??
       webhook?.text ??
+      webhook?.image?.caption ??
+      webhook?.video?.caption ??
+      webhook?.document?.caption ??
       ''
     ).toString()
     const messageText = messageRaw.toLowerCase()
