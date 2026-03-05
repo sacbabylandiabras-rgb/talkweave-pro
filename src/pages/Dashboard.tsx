@@ -1,6 +1,7 @@
 import { TopMetrics } from "@/components/dashboard/TopMetrics";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { VolumeChart } from "@/components/dashboard/VolumeChart";
+import { Chart3D } from "@/components/dashboard/Chart3D";
 
 const Dashboard = () => {
   return (
@@ -9,6 +10,7 @@ const Dashboard = () => {
       <TopMetrics />
       <StatsGrid />
       <VolumeChart />
+      <Chart3D />
     </div>
   );
 };
