@@ -916,6 +916,7 @@ export default function FluxoVisual() {
                           <SelectItem value="url">🔗 Link (URL)</SelectItem>
                           <SelectItem value="reply">💬 Resposta rápida</SelectItem>
                           <SelectItem value="call">📞 Ligação</SelectItem>
+                          <SelectItem value="flow">➡️ Navegar para bloco</SelectItem>
                         </SelectContent>
                       </Select>
 
