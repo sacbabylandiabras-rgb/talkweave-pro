@@ -190,6 +190,37 @@ serve(async (req) => {
       .eq('active', true)
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
+      // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
+      const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, messageRaw)
+      if (buttonMatch) {
+        console.log('Botão encontrado no fluxo:', buttonMatch.flowName, '-> botão:', buttonMatch.buttonText)
+        const { flow, targetNodeId } = buttonMatch
+        const flowNodes: FlowNode[] = flow.nodes || []
+        const flowEdges: FlowEdge[] = flow.edges || []
+
+        await processFlowNode(
+          targetNodeId,
+          flowNodes,
+          flowEdges,
+          phone,
+          zapiConfig,
+          supabase,
+          new Set<string>([targetNodeId]) // mark source as visited, process from target
+        )
+
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: messageRaw,
+          keyword_matched: `[Botão: ${buttonMatch.buttonText}]`,
+          response_sent: `[Fluxo: ${flow.name}]`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+        })
+
+        return new Response('button_flow_sent', { status: 200, headers: corsHeaders })
+      }
+
+      // === CHECK KEYWORD MATCH ===
       const matchedFlow = flowAutomations.find((flow: any) => {
         const keywords = extractFlowKeywords(flow)
         return keywords.some((keyword) => isKeywordMatch(normalizedMessage, keyword))
