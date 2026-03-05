@@ -401,9 +401,9 @@ async function processFlowNode(
             console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
             await new Promise(resolve => setTimeout(resolve, 1500))
           }
-        }
-
-      const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
+      } catch (e) {
+        console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
+      }
       const headers = {
         'Content-Type': 'application/json',
         'Client-Token': zapiConfig.zapi_client_token,
