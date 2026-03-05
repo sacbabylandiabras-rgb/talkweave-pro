@@ -599,9 +599,15 @@ export default function FluxoVisual() {
           </div>
         </ScrollArea>
 
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 pt-4 border-t space-y-1.5">
           <p className="text-xs text-muted-foreground">
-            Arraste os blocos para o canvas e conecte-os para criar seu fluxo
+            📌 Arraste blocos para o canvas
+          </p>
+          <p className="text-xs text-muted-foreground">
+            🔗 Clique numa conexão para removê-la
+          </p>
+          <p className="text-xs text-muted-foreground">
+            ⌫ Selecione e pressione Delete para excluir
           </p>
         </div>
       </Card>
