@@ -7,7 +7,6 @@ const typeIcons: Record<string, any> = {
   video: Video,
   audio: Mic,
   document: FileText,
-  carousel: LayoutGrid,
 };
 
 const typeLabels: Record<string, string> = {
@@ -16,7 +15,6 @@ const typeLabels: Record<string, string> = {
   video: "Vídeo",
   audio: "Áudio",
   document: "Documento",
-  carousel: "Carrossel",
 };
 
 export function BlocoConteudoNode({ data }: any) {
@@ -44,11 +42,6 @@ export function BlocoConteudoNode({ data }: any) {
           {data.content && (
             <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
               {data.content}
-            </div>
-          )}
-          {contentType === "carousel" && data.carouselCards?.length > 0 && (
-            <div className="text-[10px] text-muted-foreground mt-1">
-              📋 {data.carouselCards.length} card(s)
             </div>
           )}
           {data.buttonLabel && (
