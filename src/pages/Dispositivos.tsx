@@ -23,6 +23,7 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [showConnect, setShowConnect] = useState(false);
   const { getDeviceStatus, getQRCode, getPairingCode, disconnectDevice, restartInstance, loading } = useZapi();
   const navigate = useNavigate();
   const { toast } = useToast();
