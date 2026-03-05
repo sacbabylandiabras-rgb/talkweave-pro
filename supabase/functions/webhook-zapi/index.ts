@@ -401,6 +401,7 @@ async function processFlowNode(
             console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
             await new Promise(resolve => setTimeout(resolve, 1500))
           }
+        }
       } catch (e) {
         console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
       }
