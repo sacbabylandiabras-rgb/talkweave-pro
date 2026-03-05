@@ -620,6 +620,31 @@ function extractMessageText(webhook: any): string {
     webhook?.message?.imageMessage?.caption,
     webhook?.message?.videoMessage?.caption,
     webhook?.message?.documentMessage?.caption,
+
+    // Interactive/button replies (Z-API variations)
+    webhook?.buttonReply?.title,
+    webhook?.buttonReply?.text,
+    webhook?.buttonReply?.label,
+    webhook?.buttonReply?.selectedDisplayText,
+    webhook?.buttonReply?.selectedRowId,
+    webhook?.buttonReply?.id,
+    webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description,
+
+    webhook?.waitingMessage?.text,
+    webhook?.waitingMessage?.message,
+    webhook?.waitingMessage?.body,
+    webhook?.waitingMessage?.buttonReply?.title,
+    webhook?.waitingMessage?.buttonReply?.text,
+    webhook?.waitingMessage?.buttonReply?.label,
+    webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
+
     webhook?.text?.message,
     webhook?.text,
     webhook?.body,
@@ -628,15 +653,7 @@ function extractMessageText(webhook: any): string {
     webhook?.image?.caption,
     webhook?.video?.caption,
     webhook?.document?.caption,
-    webhook?.buttonResponseMessage?.selectedDisplayText,
-    webhook?.buttonsResponseMessage?.selectedDisplayText,
-    webhook?.listResponseMessage?.title,
-    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
-    webhook?.interactiveResponse?.title,
-    webhook?.interactiveResponse?.description,
-    webhook?.waitingMessage?.text,
-    webhook?.waitingMessage?.message,
-    webhook?.waitingMessage?.body,
+
     webhook?.data?.message?.text,
     webhook?.data?.message,
     webhook?.data?.text?.message,
@@ -645,6 +662,10 @@ function extractMessageText(webhook: any): string {
     webhook?.data?.image?.caption,
     webhook?.data?.video?.caption,
     webhook?.data?.document?.caption,
+    webhook?.data?.buttonReply?.title,
+    webhook?.data?.buttonReply?.text,
+    webhook?.data?.buttonReply?.label,
+    webhook?.data?.buttonReply?.selectedDisplayText,
     webhook?.data?.waitingMessage?.text,
     webhook?.data?.waitingMessage?.message,
     webhook?.data?.waitingMessage?.body,
@@ -655,13 +676,15 @@ function extractMessageText(webhook: any): string {
   }
 
   const objectCandidates = [
+    webhook?.buttonReply,
     webhook?.message,
     webhook?.waitingMessage,
+    webhook?.data?.buttonReply,
     webhook?.data?.message,
     webhook?.data?.waitingMessage,
   ]
 
-  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description']
+  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description', 'label', 'selectedDisplayText', 'selectedRowId', 'id']
   for (const candidate of objectCandidates) {
     if (!candidate || typeof candidate !== 'object') continue
     for (const key of fallbackKeys) {
