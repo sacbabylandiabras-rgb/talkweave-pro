@@ -970,7 +970,7 @@ const EnviarMensagem = () => {
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
                   />
-                  
+                  <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
                     <Input 
                       id="numero-lista" 
@@ -1098,7 +1098,7 @@ const EnviarMensagem = () => {
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
                   />
-                  
+                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
                     <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200">
                       <li>Baixe o modelo de planilha abaixo</li>
