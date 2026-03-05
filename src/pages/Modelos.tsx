@@ -1095,7 +1095,8 @@ const Modelos = () => {
                     value={newTemplate.content}
                     onChange={(e) => setNewTemplate(prev => ({ ...prev, content: e.target.value }))}
                     placeholder="Digite o conteúdo do modelo..."
-                    rows={4}
+                    rows={8}
+                    className="min-h-[200px]"
                   />
                 </div>
                 
