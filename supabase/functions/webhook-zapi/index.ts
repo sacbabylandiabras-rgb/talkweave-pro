@@ -408,10 +408,6 @@ async function processFlowNode(
         'Content-Type': 'application/json',
         'Client-Token': zapiConfig.zapi_client_token,
       }
-
-      try {
-        // === CAROUSEL ===
-        if (contentType === 'carousel') {
           const carouselCards = (targetNode.data.carouselCards || [])
             .map((card: any, idx: number) => {
               const title = (card.title || '').trim() || `Card ${idx + 1}`
