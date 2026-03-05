@@ -776,6 +776,38 @@ export default function FluxoVisual() {
                     rows={5}
                   />
                 </div>
+
+                <Separator />
+
+                <div>
+                  <Label>Texto do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonLabel || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonLabel: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: Acessar Pedido"
+                  />
+                </div>
+                <div>
+                  <Label>Link do Botão (opcional)</Label>
+                  <Input
+                    value={selectedNode.data.buttonUrl || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, buttonUrl: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: https://exemplo.com"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se preenchido, a mensagem será enviada com um botão clicável.
+                  </p>
+                </div>
               </>
             )}
 
