@@ -1752,7 +1752,7 @@ const Modelos = () => {
                 value={editFormData.content}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Digite o conteúdo do modelo..."
-                rows={4}
+                rows={8}
               />
             </div>
             
