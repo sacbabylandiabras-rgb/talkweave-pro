@@ -4,12 +4,14 @@ import ReactFlow, {
   Edge,
   Controls,
   Background,
+  MiniMap,
   Connection,
   addEdge,
   useNodesState,
   useEdgesState,
   NodeTypes,
   BackgroundVariant,
+  MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Card } from "@/components/ui/card";
@@ -168,9 +170,36 @@ export default function FluxoVisual() {
   };
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({
+      ...params,
+      animated: true,
+      style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+    }, eds)),
     [setEdges]
   );
+
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    toast.success("Conexão removida!");
+  }, [setEdges]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    if (nodes.find(n => n.id === nodeId)?.type === "blocoInicial") {
+      toast.error("Não é possível excluir o bloco inicial!");
+      return;
+    }
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setIsEditDialogOpen(false);
+    toast.success("Bloco removido!");
+  }, [nodes, setNodes, setEdges]);
+
+  const onKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+      // ReactFlow handles selected elements deletion via onNodesChange/onEdgesChange
+    }
+  }, []);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -586,15 +615,28 @@ export default function FluxoVisual() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
           onInit={setReactFlowInstance}
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
           fitView
+          deleteKeyCode={["Backspace", "Delete"]}
           className="bg-background rounded-lg border"
+          defaultEdgeOptions={{
+            animated: true,
+            style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+          }}
         >
           <Background variant={BackgroundVariant.Dots} />
           <Controls />
+          <MiniMap 
+            nodeStrokeWidth={3}
+            zoomable
+            pannable
+            className="!bg-card !border !border-border !rounded-lg"
+          />
         </ReactFlow>
       </div>
     </div>
@@ -812,15 +854,25 @@ export default function FluxoVisual() {
               </>
             )}
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-between pt-4">
               <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
+                variant="destructive"
+                size="sm"
+                onClick={() => selectedNode && handleDeleteNode(selectedNode.id)}
               >
-                Cancelar
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir Bloco
               </Button>
-            <Button onClick={handleSaveNode}>Salvar</Button>
-          </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveNode}>Salvar</Button>
+              </div>
+            </div>
         </div>
       </DialogContent>
     </Dialog>
