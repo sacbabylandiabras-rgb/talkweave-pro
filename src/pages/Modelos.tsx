@@ -1193,68 +1193,25 @@ const Modelos = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 p-3 rounded-lg mb-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                 {template.header && (
-                  <div className="text-xs font-semibold text-primary border-b pb-1">
-                    📋 {template.header}
-                  </div>
+                  <Badge variant="outline" className="text-xs">📋 {template.header}</Badge>
                 )}
                 {template.mediaUrl && (
-                  <div className="text-xs text-muted-foreground mb-2">
-                    🔗 Mídia: {template.mediaUrl}
-                  </div>
+                  <Badge variant="outline" className="text-xs">🔗 Mídia</Badge>
                 )}
                 {template.fileName && (
-                  <div className="text-xs text-muted-foreground mb-2">
-                    📄 Arquivo: {template.fileName}
-                  </div>
+                  <Badge variant="outline" className="text-xs">📄 {template.fileName}</Badge>
                 )}
-                {template.listItems && template.listItems.length > 0 && (
-                  <div className="text-xs mb-2">
-                    <div className="font-medium mb-1">📋 Itens da Lista:</div>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                      {template.listItems.map((item, idx) => (
-                        <li key={idx}>
-                          {item.title}
-                          {item.description && <span className="text-xs"> - {item.description}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                {template.footer && (
+                  <Badge variant="outline" className="text-xs">📝 Rodapé</Badge>
                 )}
                 {template.carouselCards && template.carouselCards.length > 0 && (
-                  <div className="text-xs mb-2 space-y-2">
-                    <div className="font-medium mb-1">🎠 Cards do Carrossel ({template.carouselCards.length}):</div>
-                    {template.carouselCards.map((card, idx) => (
-                      <div key={idx} className="border rounded p-2 bg-background/50">
-                        {card.image && (
-                          <img 
-                            src={card.image} 
-                            alt={card.title}
-                            className="w-full h-24 object-cover rounded mb-2"
-                          />
-                        )}
-                        <div className="font-semibold">Card {idx + 1}: {card.title}</div>
-                        <div className="text-muted-foreground mt-1">{card.description}</div>
-                        {card.buttons && card.buttons.length > 0 && (
-                          <div className="mt-1 flex gap-1 flex-wrap">
-                            {card.buttons.map((btn, btnIdx) => (
-                              <Badge key={btnIdx} variant="outline" className="text-xs">
-                                {btn.text}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <Badge variant="outline" className="text-xs">🎠 {template.carouselCards.length} cards</Badge>
                 )}
-                <p className="text-sm">{template.content}</p>
-                {template.footer && (
-                  <div className="text-xs text-muted-foreground border-t pt-1">
-                    {template.footer}
-                  </div>
-                )}
+                <span className="text-xs italic ml-auto">
+                  {template.content.length > 50 ? template.content.substring(0, 50) + "..." : template.content}
+                </span>
               </div>
               
               {/* Ações rápidas */}
