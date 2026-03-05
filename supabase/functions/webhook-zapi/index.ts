@@ -64,17 +64,13 @@ serve(async (req) => {
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
-    const messageRaw = (
-      webhook?.message?.text ??
-      webhook?.text?.message ??
-      webhook?.text ??
-      webhook?.image?.caption ??
-      webhook?.video?.caption ??
-      webhook?.document?.caption ??
-      ''
-    ).toString()
+    const messageRaw = extractMessageText(webhook)
     const messageText = messageRaw.toLowerCase()
     const normalizedMessage = normalizeForMatch(messageRaw)
+
+    if (!messageRaw) {
+      console.log('Mensagem vazia no payload. Chaves:', Object.keys(webhook || {}))
+    }
 
     const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
     const instanceId = webhook?.instanceId || webhook?.instance_id
