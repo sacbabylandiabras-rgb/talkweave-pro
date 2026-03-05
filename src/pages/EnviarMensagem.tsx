@@ -683,6 +683,17 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendIndividual}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
+                  
                   <div>
                     <Label htmlFor="numero">Número do WhatsApp</Label>
                     <Input 
@@ -716,17 +727,6 @@ const EnviarMensagem = () => {
                       {mensagem.length}/4096 caracteres
                     </p>
                   </div>
-                  
-                  <MediaModelSection 
-                    arquivoMidia={arquivoMidia}
-                    setArquivoMidia={setArquivoMidia}
-                    legenda={legenda}
-                    setLegenda={setLegenda}
-                    modeloSelecionado={modeloSelecionado}
-                    setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
-                    modelosDisponiveis={modelosDisponiveis}
-                  />
                   
                   <Button type="submit" disabled={loading} className="w-full flex items-center gap-2">
                     {loading ? (
