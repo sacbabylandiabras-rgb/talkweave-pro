@@ -761,6 +761,17 @@ const EnviarMensagem = () => {
             <CardContent className="space-y-4">
               <form onSubmit={handleSendButtonActions}>
                 <div className="space-y-4">
+                  <MediaModelSection 
+                    arquivoMidia={arquivoMidia}
+                    setArquivoMidia={setArquivoMidia}
+                    legenda={legenda}
+                    setLegenda={setLegenda}
+                    modeloSelecionado={modeloSelecionado}
+                    setModeloSelecionado={setModeloSelecionado}
+                    aplicarModelo={aplicarModelo}
+                    modelosDisponiveis={modelosDisponiveis}
+                  />
+                  
                   <div>
                     <Label htmlFor="numero-botoes">Número do WhatsApp</Label>
                     <Input 
