@@ -127,7 +127,7 @@ export default function FluxoVisual() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
-  const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument } = useZapi();
+  const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const [uploadingFile, setUploadingFile] = useState(false);
 
   // Carregar fluxos do Supabase
@@ -477,31 +477,77 @@ export default function FluxoVisual() {
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
 
-        switch (contentType) {
-          case "text":
-            if (!content) continue;
-            await sendMessage(contact, content);
-            break;
-          case "image":
-            if (!mediaUrl) continue;
-            await sendImage(contact, mediaUrl, content);
-            break;
-          case "video":
-            if (!mediaUrl) continue;
-            await sendVideo(contact, mediaUrl, content);
-            break;
-          case "audio":
-            if (!mediaUrl) continue;
-            await sendAudio(contact, mediaUrl, content);
-            break;
-          case "document":
-            if (!mediaUrl) continue;
-            await sendDocument(contact, mediaUrl, "document", "pdf", content);
-            break;
+        const rawButtons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
+        const legacyLabel = (targetNode.data as any).buttonLabel || "";
+        const legacyUrl = (targetNode.data as any).buttonUrl || "";
+        const buttons = [...rawButtons];
+        if (buttons.length === 0 && legacyLabel && legacyUrl) {
+          buttons.push({ id: "legacy", text: legacyLabel, type: "url", value: legacyUrl });
+        }
+
+        const sendableButtons = buttons.filter((btn: any) => btn?.type !== "flow");
+
+        if (sendableButtons.length > 0) {
+          if (contentType === "image" && mediaUrl) {
+            await sendImage(contact, mediaUrl);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "video" && mediaUrl) {
+            await sendVideo(contact, mediaUrl);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "audio" && mediaUrl) {
+            await sendAudio(contact, mediaUrl);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "document" && mediaUrl) {
+            await sendDocument(contact, mediaUrl, "document", "pdf");
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          await sendButtonActions(
+            contact,
+            content || "Escolha uma opção:",
+            sendableButtons.map((btn: any, idx: number) => {
+              const type = (btn?.type || "reply").toString().toLowerCase();
+              const value = (btn?.value || "").toString().trim();
+              const label = (btn?.text || `Botão ${idx + 1}`).toString();
+
+              if (type === "url") {
+                const url = value.match(/^https?:\/\//i) ? value : `https://${value}`;
+                return { id: String(idx + 1), type: "URL" as const, label, url };
+              }
+
+              if (type === "call") {
+                return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
+              }
+
+              return { id: String(idx + 1), type: "REPLY" as const, label };
+            })
+          );
+        } else {
+          switch (contentType) {
+            case "text":
+              if (!content) continue;
+              await sendMessage(contact, content);
+              break;
+            case "image":
+              if (!mediaUrl) continue;
+              await sendImage(contact, mediaUrl, content);
+              break;
+            case "video":
+              if (!mediaUrl) continue;
+              await sendVideo(contact, mediaUrl, content);
+              break;
+            case "audio":
+              if (!mediaUrl) continue;
+              await sendAudio(contact, mediaUrl, content);
+              break;
+            case "document":
+              if (!mediaUrl) continue;
+              await sendDocument(contact, mediaUrl, "document", "pdf", content);
+              break;
+          }
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const buttons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
         const hasButtonEdges = buttons.some((_: any, idx: number) =>
           edges.some((e) => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
         );
