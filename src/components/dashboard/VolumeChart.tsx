@@ -56,22 +56,14 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[300px] rounded-xl border bg-card">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (chartData.length === 0) {
-    return (
-      <div className="rounded-xl border bg-card p-6">
-        <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
-        <p className="text-xs text-muted-foreground mt-1">Envie campanhas para ver o gráfico.</p>
-      </div>
-    );
-  }
+  const displayData = chartData.length > 0 ? chartData : [
+    { date: "01/03", enviadas: 120, entregues: 95, erros: 5 },
+    { date: "02/03", enviadas: 340, entregues: 280, erros: 12 },
+    { date: "03/03", enviadas: 280, entregues: 250, erros: 8 },
+    { date: "04/03", enviadas: 190, entregues: 170, erros: 3 },
+    { date: "05/03", enviadas: 80, entregues: 65, erros: 2 },
+  ];
+  const isDemo = chartData.length === 0;
 
   const formatYAxis = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
@@ -84,11 +76,22 @@ export function VolumeChart() {
     { key: "erros", label: "Erros", color: "#dc2626", gradientId: "gErros" },
   ] as const;
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[300px] rounded-xl border bg-card">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border bg-card p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
+          {isDemo && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Demo</span>}
+        </div>
         <div className="flex items-center gap-4">
           {series.map((s) => (
             <button
@@ -109,7 +112,7 @@ export function VolumeChart() {
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+        <AreaChart data={displayData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="gEnviadas" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#f97316" stopOpacity={0.5} />
