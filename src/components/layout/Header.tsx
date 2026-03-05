@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Bell, User, Settings } from "lucide-react";
+import { Bell, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { NotificationsDialog } from "./NotificationsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
@@ -15,80 +14,37 @@ export function Header({ onNavigate }: HeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renewOpen, setRenewOpen] = useState(false);
 
-  const currentDate = new Date().toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-
   return (
     <>
-      <header className="bg-card/95 backdrop-blur-sm border-b border-border px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Painel</h1>
-            <p className="text-muted-foreground">Visão geral do seu ZapLynx SaaS</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Date Badge */}
-            <Badge variant="outline" className="text-sm">
-              {currentDate}
-            </Badge>
-            
-            {/* Renew Button */}
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={() => setRenewOpen(true)}
-            >
-              Renovar
-            </Button>
-            
-            {/* Notifications */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              onClick={() => setNotificationsOpen(true)}
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
-            </Button>
-            
-            {/* Settings */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-            
-            {/* User */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => onNavigate?.("perfil")}
-            >
-              <User className="w-5 h-5" />
-            </Button>
-          </div>
+      <header className="bg-card border-b border-border px-6 py-3">
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => setRenewOpen(true)}
+          >
+            Renovar
+          </Button>
+
+          <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => setNotificationsOpen(true)}>
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+          </Button>
+
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setSettingsOpen(true)}>
+            <Settings className="w-4 h-4" />
+          </Button>
+
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => onNavigate?.("perfil")}>
+            <User className="w-4 h-4" />
+          </Button>
         </div>
       </header>
 
-      <NotificationsDialog 
-        open={notificationsOpen} 
-        onOpenChange={setNotificationsOpen} 
-      />
-      <SettingsDialog 
-        open={settingsOpen} 
-        onOpenChange={setSettingsOpen} 
-      />
-      <RenewDialog 
-        open={renewOpen} 
-        onOpenChange={setRenewOpen} 
-      />
+      <NotificationsDialog open={notificationsOpen} onOpenChange={setNotificationsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <RenewDialog open={renewOpen} onOpenChange={setRenewOpen} />
     </>
   );
 }
