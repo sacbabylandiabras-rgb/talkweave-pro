@@ -1,5 +1,4 @@
 import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
@@ -11,20 +10,12 @@ interface MetricCardProps {
   className?: string;
 }
 
-const variantStyles = {
-  default: "bg-card border-border",
-  success: "bg-success/5 border-success/20",
-  warning: "bg-warning/5 border-warning/20", 
-  error: "bg-destructive/5 border-destructive/20",
-  info: "bg-accent/5 border-accent/20",
-};
-
-const iconStyles = {
-  default: "text-muted-foreground",
-  success: "text-success",
-  warning: "text-warning",
-  error: "text-destructive", 
-  info: "text-accent",
+const variantIcon = {
+  default: "text-muted-foreground bg-muted",
+  success: "text-success bg-success/10",
+  warning: "text-warning bg-warning/10", 
+  error: "text-destructive bg-destructive/10",
+  info: "text-accent bg-accent/10",
 };
 
 export function MetricCard({ 
@@ -36,29 +27,18 @@ export function MetricCard({
   className 
 }: MetricCardProps) {
   return (
-    <Card className={cn(variantStyles[variant], "hover:shadow-md transition-all duration-200", className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              {title}
-            </p>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-foreground">
-                {value}
-              </p>
-              {subtitle && (
-                <p className="text-xs text-muted-foreground">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex-shrink-0">
-            <Icon className={cn("w-8 h-8", iconStyles[variant])} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={cn(
+      "flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-sm transition-shadow",
+      className
+    )}>
+      <div className={cn("p-2.5 rounded-lg", variantIcon[variant])}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground truncate">{title}</p>
+        <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+      </div>
+    </div>
   );
 }
