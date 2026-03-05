@@ -1181,6 +1181,15 @@ const Modelos = () => {
                     variant="outline" 
                     size="sm" 
                     className="flex items-center gap-1"
+                    onClick={() => setPreviewTemplate(template)}
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span className="hidden sm:inline">Prévia</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1"
                     onClick={() => handleDuplicateTemplate(template)}
                   >
                     <Copy className="w-4 h-4" />
