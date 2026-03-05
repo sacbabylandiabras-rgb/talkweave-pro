@@ -362,13 +362,8 @@ async function processFlowNode(
       const content = targetNode.data.content || ''
       const mediaUrl = targetNode.data.mediaUrl || ''
 
-      // Support new buttons array AND legacy single button fields
+      // Only use the explicit buttons array — ignore legacy buttonLabel/buttonUrl
       const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
-      const legacyLabel = targetNode.data.buttonLabel || ''
-      const legacyUrl = targetNode.data.buttonUrl || ''
-      if (buttons.length === 0 && legacyLabel && legacyUrl) {
-        buttons.push({ text: legacyLabel, type: 'url', value: legacyUrl })
-      }
 
       // Filter out "flow" type buttons — they are for internal routing only
       const sendableButtons = buttons.filter(b => b.type !== 'flow')
@@ -562,6 +557,7 @@ function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage
         if (!normalizedBtn) continue
 
         if (normalizedRaw === normalizedBtn || normalizedMessage === normalizedBtn) {
+          // First try: specific button edge
           const handleId = `button-${idx}`
           const buttonEdge = edges.find((e: any) => e.source === node.id && e.sourceHandle === handleId)
 
@@ -569,6 +565,20 @@ function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage
             return {
               flow,
               targetNodeId: buttonEdge.target,
+              buttonText: btnText,
+              flowName: flow.name,
+            }
+          }
+
+          // Fallback: follow the default edge from this node (bottom handle)
+          const defaultEdge = edges.find((e: any) =>
+            e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null)
+          )
+
+          if (defaultEdge) {
+            return {
+              flow,
+              targetNodeId: defaultEdge.target,
               buttonText: btnText,
               flowName: flow.name,
             }
