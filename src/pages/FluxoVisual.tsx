@@ -43,6 +43,7 @@ import {
   Send,
   Workflow,
   ArrowLeft,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -490,10 +491,10 @@ export default function FluxoVisual() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="destructive"
                         onClick={() => handleExcluirFluxo(fluxo.nome)}
                       >
-                        <FileText className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </Card>
