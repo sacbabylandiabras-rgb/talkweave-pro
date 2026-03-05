@@ -92,7 +92,9 @@ export function VolumeChart() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
-          {isDemo && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Demo</span>}
+          {chartData.length === 0 && (
+            <span className="text-[10px] text-muted-foreground">(sem envios ainda)</span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {series.map((s) => (
