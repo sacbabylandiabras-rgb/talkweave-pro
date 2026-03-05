@@ -585,16 +585,8 @@ const Modelos = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <FileText className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Modelos de Mensagem</h1>
-            <p className="text-muted-foreground">Gerencie e organize seus modelos de mensagem personalizados</p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold text-foreground">Modelos de Mensagem</h1>
 
       {/* Campo de busca */}
       <div className="relative">
