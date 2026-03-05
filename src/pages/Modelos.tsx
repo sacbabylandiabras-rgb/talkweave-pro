@@ -1095,8 +1095,15 @@ const Modelos = () => {
                     value={newTemplate.content}
                     onChange={(e) => setNewTemplate(prev => ({ ...prev, content: e.target.value }))}
                     placeholder="Digite o conteúdo do modelo..."
-                    rows={8}
-                    className="min-h-[200px]"
+                    rows={4}
+                    className="min-h-[100px] resize-none overflow-hidden"
+                    style={{ height: 'auto' }}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
                   />
                 </div>
                 
