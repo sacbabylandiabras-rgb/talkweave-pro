@@ -191,7 +191,7 @@ serve(async (req) => {
           // Log the interaction
           await supabase.from('message_logs').insert({
             phone,
-            message_received: webhook.message.text,
+            message_received: messageRaw,
             keyword_matched: matchedFlow.keyword,
             response_sent: `[Fluxo: ${matchedFlow.name}]`,
             timestamp: new Date().toISOString(),
