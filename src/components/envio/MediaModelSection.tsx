@@ -199,11 +199,37 @@ const MediaModelSection = ({
               {modeloAtual && (
                 <div className="flex justify-end">
                   <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
-                    {/* Media do modelo */}
-                    {modeloAtual.mediaUrl && modeloAtual.type?.includes('imagem') && (
+                    {/* Mídia anexada pelo usuário */}
+                    {arquivoMidia && arquivoMidia.type.startsWith('image/') && (
+                      <img
+                        src={URL.createObjectURL(arquivoMidia)}
+                        alt="Mídia anexada"
+                        className="w-full rounded-t-lg object-cover max-h-48"
+                      />
+                    )}
+                    {arquivoMidia && arquivoMidia.type.startsWith('video/') && (
+                      <video
+                        src={URL.createObjectURL(arquivoMidia)}
+                        controls
+                        className="w-full rounded-t-lg max-h-48"
+                      />
+                    )}
+                    {arquivoMidia && arquivoMidia.type.startsWith('audio/') && (
+                      <div className="px-3 pt-3">
+                        <audio src={URL.createObjectURL(arquivoMidia)} controls className="w-full" />
+                      </div>
+                    )}
+                    {arquivoMidia && !arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
+                      <div className="flex items-center gap-2 px-3 pt-3 text-sm text-muted-foreground">
+                        <FileText className="w-6 h-6" />
+                        <span>{arquivoMidia.name}</span>
+                      </div>
+                    )}
+                    {/* Media do modelo (fallback se não tem mídia anexada) */}
+                    {!arquivoMidia && modeloAtual.mediaUrl && (
                       <img
                         src={modeloAtual.mediaUrl}
-                        alt="Mídia"
+                        alt="Mídia do modelo"
                         className="w-full rounded-t-lg object-cover max-h-48"
                       />
                     )}
