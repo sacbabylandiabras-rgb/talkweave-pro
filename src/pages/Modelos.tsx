@@ -1093,7 +1093,11 @@ const Modelos = () => {
                   <Textarea
                     id="template-content"
                     value={newTemplate.content}
-                    onChange={(e) => setNewTemplate(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) => {
+                      setNewTemplate(prev => ({ ...prev, content: e.target.value }));
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                     placeholder="Digite o conteúdo do modelo..."
                     rows={4}
                     className="min-h-[100px] resize-none overflow-hidden"
