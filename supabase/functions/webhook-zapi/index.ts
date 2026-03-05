@@ -535,9 +535,14 @@ function extractMessageText(webhook: any): string {
     webhook?.message?.text,
     webhook?.message?.conversation,
     webhook?.message?.extendedTextMessage?.text,
+    webhook?.message?.imageMessage?.caption,
+    webhook?.message?.videoMessage?.caption,
+    webhook?.message?.documentMessage?.caption,
     webhook?.text?.message,
     webhook?.text,
     webhook?.body,
+    webhook?.message,
+    webhook?.conversation,
     webhook?.image?.caption,
     webhook?.video?.caption,
     webhook?.document?.caption,
@@ -547,16 +552,40 @@ function extractMessageText(webhook: any): string {
     webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
     webhook?.interactiveResponse?.title,
     webhook?.interactiveResponse?.description,
+    webhook?.waitingMessage?.text,
+    webhook?.waitingMessage?.message,
+    webhook?.waitingMessage?.body,
     webhook?.data?.message?.text,
+    webhook?.data?.message,
     webhook?.data?.text?.message,
     webhook?.data?.body,
+    webhook?.data?.conversation,
     webhook?.data?.image?.caption,
     webhook?.data?.video?.caption,
     webhook?.data?.document?.caption,
+    webhook?.data?.waitingMessage?.text,
+    webhook?.data?.waitingMessage?.message,
+    webhook?.data?.waitingMessage?.body,
   ]
 
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+
+  const objectCandidates = [
+    webhook?.message,
+    webhook?.waitingMessage,
+    webhook?.data?.message,
+    webhook?.data?.waitingMessage,
+  ]
+
+  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description']
+  for (const candidate of objectCandidates) {
+    if (!candidate || typeof candidate !== 'object') continue
+    for (const key of fallbackKeys) {
+      const value = candidate?.[key]
+      if (typeof value === 'string' && value.trim()) return value.trim()
+    }
   }
 
   return ''
