@@ -577,7 +577,7 @@ export default function FluxoVisual() {
       </Card>
 
       {/* Canvas */}
-      <div className="flex-1 m-4 ml-0" ref={reactFlowWrapper}>
+      <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
