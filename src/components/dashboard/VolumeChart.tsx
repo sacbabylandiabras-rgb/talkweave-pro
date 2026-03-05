@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -56,14 +56,16 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  const displayData = chartData.length > 0 ? chartData : [
-    { date: "01/03", enviadas: 120, entregues: 95, erros: 5 },
-    { date: "02/03", enviadas: 340, entregues: 280, erros: 12 },
-    { date: "03/03", enviadas: 280, entregues: 250, erros: 8 },
-    { date: "04/03", enviadas: 190, entregues: 170, erros: 3 },
-    { date: "05/03", enviadas: 80, entregues: 65, erros: 2 },
-  ];
-  const isDemo = chartData.length === 0;
+  const zeroData: ChartData[] = Array.from({ length: 5 }).map((_, index) => {
+    const date = subDays(new Date(), 4 - index);
+    return {
+      date: format(date, "dd/MM/yyyy", { locale: ptBR }),
+      enviadas: 0,
+      entregues: 0,
+      erros: 0,
+    };
+  });
+  const displayData = chartData.length > 0 ? chartData : zeroData;
 
   const formatYAxis = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
@@ -90,7 +92,9 @@ export function VolumeChart() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
-          {isDemo && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Demo</span>}
+          {chartData.length === 0 && (
+            <span className="text-[10px] text-muted-foreground">(sem envios ainda)</span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {series.map((s) => (
