@@ -310,8 +310,98 @@ async function processFlowNode(
       const contentType = targetNode.data.contentType || 'text'
       const content = targetNode.data.content || ''
       const mediaUrl = targetNode.data.mediaUrl || ''
-      const buttonLabel = targetNode.data.buttonLabel || ''
-      const buttonUrl = targetNode.data.buttonUrl || ''
+
+      // Support new buttons array AND legacy single button fields
+      const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
+      const legacyLabel = targetNode.data.buttonLabel || ''
+      const legacyUrl = targetNode.data.buttonUrl || ''
+      if (buttons.length === 0 && legacyLabel && legacyUrl) {
+        buttons.push({ text: legacyLabel, type: 'url', value: legacyUrl })
+      }
+
+      const hasButtons = buttons.length > 0
+
+      const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
+      const headers = {
+        'Content-Type': 'application/json',
+        'Client-Token': zapiConfig.zapi_client_token,
+      }
+
+      function buildButtonActions(btns: typeof buttons) {
+        return btns.map((btn, i) => {
+          const label = (btn.text || '').trim() || `Botão ${i + 1}`
+          if (btn.type === 'url') {
+            const rawUrl = (btn.value || '').trim()
+            const url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+            return { id: String(i + 1), type: 'URL', url, label }
+          }
+          if (btn.type === 'call') {
+            return { id: String(i + 1), type: 'CALL', phoneNumber: (btn.value || '').trim(), label }
+          }
+          return { id: String(i + 1), type: 'REPLY', label }
+        })
+      }
+
+      try {
+        if (hasButtons) {
+          if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
+            const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
+            const mediaBody: any = { phone }
+            mediaBody[contentType] = mediaUrl
+            await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+            await new Promise(resolve => setTimeout(resolve, 1500))
+          }
+
+          const buttonActions = buildButtonActions(buttons)
+          const res = await fetch(`${baseUrl}/send-button-actions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ phone, message: content, buttonActions }),
+          })
+          const result = await res.text()
+          console.log(`Bloco ${targetNode.id} (${contentType}+buttons): ${res.status}`, result)
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        } else {
+          let endpoint = ''
+          let body: any = { phone }
+
+          switch (contentType) {
+            case 'text':
+              endpoint = '/send-text'
+              body.message = content
+              break
+            case 'image':
+              endpoint = '/send-image'
+              body.image = mediaUrl
+              body.caption = content
+              break
+            case 'video':
+              endpoint = '/send-video'
+              body.video = mediaUrl
+              body.caption = content
+              break
+            case 'audio':
+              endpoint = '/send-audio'
+              body.audio = mediaUrl
+              break
+            case 'document':
+              endpoint = '/send-document-url'
+              body.document = mediaUrl
+              body.fileName = 'documento'
+              body.caption = content
+              break
+            default:
+              endpoint = '/send-text'
+              body.message = content
+          }
+
+          if (endpoint) {
+            const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+            const result = await res.text()
+            console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
+            await new Promise(resolve => setTimeout(resolve, 1500))
+          }
+        }
 
       const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
       const headers = {
