@@ -49,16 +49,31 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     const rawBody = await req.text()
-    const webhook = JSON.parse(rawBody) as WebhookMessage
-    
-    // Ignora mensagens enviadas por nós
-    if (webhook.message.fromMe) {
+    let webhook: any
+
+    try {
+      webhook = JSON.parse(rawBody)
+    } catch (parseError) {
+      console.error('Payload JSON inválido:', parseError)
+      return new Response('invalid_json', { status: 400, headers: corsHeaders })
+    }
+
+    // Ignora mensagens enviadas por nós (compatível com múltiplos formatos da Z-API)
+    const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
+    if (fromMe) {
       return new Response('ignored', { status: 200, headers: corsHeaders })
     }
 
-    const messageText = webhook.message.text?.toLowerCase() || ''
-    const phone = webhook.phone
-    const instanceId = webhook.instanceId
+    const messageRaw = (
+      webhook?.message?.text ??
+      webhook?.text?.message ??
+      webhook?.text ??
+      ''
+    ).toString()
+    const messageText = messageRaw.toLowerCase()
+
+    const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
+    const instanceId = webhook?.instanceId || webhook?.instance_id
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
     
@@ -112,9 +127,9 @@ serve(async (req) => {
       const gatewayPayload = {
         event: 'message_received',
         phone,
-        message: webhook.message.text,
+        message: messageRaw || null,
         timestamp: new Date().toISOString(),
-        raw: JSON.parse(rawBody),
+        raw: webhook,
       }
 
       await Promise.allSettled(gateways.map(async (gw) => {
@@ -176,7 +191,7 @@ serve(async (req) => {
           // Log the interaction
           await supabase.from('message_logs').insert({
             phone,
-            message_received: webhook.message.text,
+            message_received: messageRaw,
             keyword_matched: matchedFlow.keyword,
             response_sent: `[Fluxo: ${matchedFlow.name}]`,
             timestamp: new Date().toISOString(),
@@ -209,7 +224,7 @@ serve(async (req) => {
       
       await supabase.from('message_logs').insert({
         phone,
-        message_received: webhook.message.text,
+        message_received: messageRaw,
         keyword_matched: matchedResponse.keyword,
         response_sent: matchedResponse.response,
         timestamp: new Date().toISOString(),
