@@ -211,22 +211,25 @@ serve(async (req) => {
       // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
       const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, messageRaw)
       if (buttonMatch) {
-        console.log('Botão encontrado no fluxo:', buttonMatch.flowName, '-> botão:', buttonMatch.buttonText)
+        console.log('=== BOTÃO MATCH ===')
+        console.log('Fluxo:', buttonMatch.flowName, '| Botão:', buttonMatch.buttonText, '| Target:', buttonMatch.targetNodeId)
         const { flow, targetNodeId } = buttonMatch
         const flowNodes: FlowNode[] = flow.nodes || []
         const flowEdges: FlowEdge[] = flow.edges || []
 
-        // Create a virtual edge pointing to the target so processFlowNode sends it
-        const virtualSourceId = '__button_entry__'
-        await processFlowNode(
-          virtualSourceId,
-          flowNodes,
-          [{ id: 'virtual', source: virtualSourceId, target: targetNodeId }, ...flowEdges],
-          phone,
-          zapiConfig,
-          supabase,
-          new Set<string>()
-        )
+        console.log('Total nodes:', flowNodes.length, '| Total edges:', flowEdges.length)
+        console.log('Target node:', JSON.stringify(flowNodes.find(n => n.id === targetNodeId)?.data))
+
+        // Process flow starting FROM the target node directly
+        // First send the target node itself, then continue its children
+        const targetNode = flowNodes.find(n => n.id === targetNodeId)
+        if (targetNode) {
+          const visited = new Set<string>()
+          // Send target node content
+          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited)
+          // Then continue processing children from target node
+          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
+        }
 
         await supabase.from('message_logs').insert({
           phone,
