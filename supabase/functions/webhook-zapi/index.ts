@@ -478,11 +478,10 @@ async function processFlowNode(
   supabase: any,
   visited: Set<string>
 ) {
-  // Get outgoing edges from this node (only default/non-button edges)
-  const outgoing = edges
-    .filter(e => e.source === nodeId && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null))
-    .sort((a, b) => {
-      const nodeMap = new Map(nodes.map(n => [n.id, n]))
+  const currentNode = nodes.find(n => n.id === nodeId)
+  const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
+    const nodeMap = new Map(nodes.map(n => [n.id, n]))
+    return [...list].sort((a, b) => {
       const aTarget = nodeMap.get(a.target)
       const bTarget = nodeMap.get(b.target)
       const ay = aTarget?.position?.y ?? 0
@@ -492,8 +491,26 @@ async function processFlowNode(
       const bx = bTarget?.position?.x ?? 0
       return ax - bx
     })
+  }
 
-  console.log(`processFlowNode(${nodeId}): ${outgoing.length} default outgoing edges`)
+  // Default path (bottom handle) keeps existing behavior for content + button branching
+  const defaultOutgoing = edges.filter(
+    e => e.source === nodeId && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null)
+  )
+
+  // Condição fallback: if no default edge exists, follow configured branch handles (a/b)
+  const outgoing =
+    defaultOutgoing.length > 0
+      ? sortEdgesByCanvasPosition(defaultOutgoing)
+      : currentNode?.type === 'blocoCondicao'
+      ? sortEdgesByCanvasPosition(edges.filter(e => e.source === nodeId))
+      : []
+
+  console.log(
+    `processFlowNode(${nodeId}): ${outgoing.length} outgoing edges${
+      defaultOutgoing.length === 0 && currentNode?.type === 'blocoCondicao' ? ' (fallback condicao)' : ' (default)'
+    }`
+  )
 
   for (const edge of outgoing) {
     const targetNode = nodes.find(n => n.id === edge.target)
@@ -504,7 +521,6 @@ async function processFlowNode(
       if (shouldStop) continue
     }
 
-    // Continue processing the flow
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
