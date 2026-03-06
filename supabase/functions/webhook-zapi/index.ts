@@ -342,6 +342,133 @@ serve(async (req) => {
   }
 })
 
+async function sendNodeContent(
+  targetNode: any,
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  phone: string,
+  zapiConfig: any,
+  visited: Set<string>
+): Promise<boolean> {
+  if (visited.has(targetNode.id)) return false
+  visited.add(targetNode.id)
+
+  if (targetNode.type !== 'blocoConteudo') return false
+
+  const contentType = targetNode.data.contentType || 'text'
+  const content = targetNode.data.content || ''
+  const mediaUrl = targetNode.data.mediaUrl || ''
+  const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
+
+  const sendableButtons = buttons.filter(b => b.type !== 'flow')
+  const flowButtons = buttons.filter(b => b.type === 'flow')
+  const allSendButtons = [
+    ...sendableButtons,
+    ...flowButtons.map(b => ({ ...b, type: 'reply' })),
+  ]
+  const hasButtons = allSendButtons.length > 0
+
+  const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
+  const headers = {
+    'Content-Type': 'application/json',
+    'Client-Token': zapiConfig.zapi_client_token,
+  }
+
+  function buildButtonActions(btns: typeof allSendButtons) {
+    return btns.map((btn, i) => {
+      const label = (btn.text || '').trim() || `Botão ${i + 1}`
+      if (btn.type === 'url') {
+        const rawUrl = (btn.value || '').trim()
+        const url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+        return { id: String(i + 1), type: 'URL', url, label }
+      }
+      if (btn.type === 'call') {
+        return { id: String(i + 1), type: 'CALL', phoneNumber: (btn.value || '').trim(), label }
+      }
+      return { id: String(i + 1), type: 'REPLY', label }
+    })
+  }
+
+  try {
+    console.log(`>>> Enviando bloco ${targetNode.id} tipo=${contentType} buttons=${allSendButtons.length}`)
+
+    if (hasButtons) {
+      if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
+        const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
+        const mediaBody: any = { phone }
+        mediaBody[contentType] = mediaUrl
+        await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      }
+
+      const buttonActions = buildButtonActions(allSendButtons)
+      const res = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ phone, message: content, buttonActions }),
+      })
+      const result = await res.text()
+      console.log(`Bloco ${targetNode.id} (${contentType}+buttons): ${res.status}`, result)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+    } else {
+      let endpoint = ''
+      let body: any = { phone }
+
+      switch (contentType) {
+        case 'text':
+          endpoint = '/send-text'
+          body.message = content
+          break
+        case 'image':
+          endpoint = '/send-image'
+          body.image = mediaUrl
+          body.caption = content
+          break
+        case 'video':
+          endpoint = '/send-video'
+          body.video = mediaUrl
+          body.caption = content
+          break
+        case 'audio':
+          endpoint = '/send-audio'
+          body.audio = mediaUrl
+          body.waveform = true
+          break
+        case 'document':
+          endpoint = '/send-document-url'
+          body.document = mediaUrl
+          body.fileName = 'documento'
+          body.caption = content
+          break
+        default:
+          endpoint = '/send-text'
+          body.message = content
+      }
+
+      if (endpoint) {
+        const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+        const result = await res.text()
+        console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      }
+    }
+  } catch (e) {
+    console.error(`Erro ao enviar bloco ${targetNode.id}:`, e)
+  }
+
+  // Return whether this node has button branching (should stop auto-flow)
+  const hasButtonEdges = buttons.some((btn, idx) => {
+    return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+  })
+  
+  if (hasButtonEdges) {
+    console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
+    return true // signals: stop processing
+  }
+
+  return false // signals: continue processing children
+}
+
 async function processFlowNode(
   nodeId: string,
   nodes: FlowNode[],
@@ -351,134 +478,33 @@ async function processFlowNode(
   supabase: any,
   visited: Set<string>
 ) {
-  if (visited.has(nodeId)) return
-  visited.add(nodeId)
+  // Get outgoing edges from this node (only default/non-button edges)
+  const outgoing = edges
+    .filter(e => e.source === nodeId && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null))
+    .sort((a, b) => {
+      const nodeMap = new Map(nodes.map(n => [n.id, n]))
+      const aTarget = nodeMap.get(a.target)
+      const bTarget = nodeMap.get(b.target)
+      const ay = aTarget?.position?.y ?? 0
+      const by = bTarget?.position?.y ?? 0
+      if (ay !== by) return ay - by
+      const ax = aTarget?.position?.x ?? 0
+      const bx = bTarget?.position?.x ?? 0
+      return ax - bx
+    })
 
-  const outgoing = sortOutgoingEdges(nodeId, nodes, edges)
-  
+  console.log(`processFlowNode(${nodeId}): ${outgoing.length} default outgoing edges`)
+
   for (const edge of outgoing) {
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
     if (targetNode.type === 'blocoConteudo') {
-      const contentType = targetNode.data.contentType || 'text'
-      const content = targetNode.data.content || ''
-      const mediaUrl = targetNode.data.mediaUrl || ''
-
-      // Only use the explicit buttons array — ignore legacy buttonLabel/buttonUrl
-      const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
-
-      // Filter out "flow" type buttons — they are for internal routing only
-      const sendableButtons = buttons.filter(b => b.type !== 'flow')
-      // "flow" buttons are sent as REPLY so the user can click them
-      const flowButtons = buttons.filter(b => b.type === 'flow')
-      const allSendButtons = [
-        ...sendableButtons,
-        ...flowButtons.map(b => ({ ...b, type: 'reply' })),
-      ]
-      const hasButtons = allSendButtons.length > 0
-
-      const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
-      const headers = {
-        'Content-Type': 'application/json',
-        'Client-Token': zapiConfig.zapi_client_token,
-      }
-
-      function buildButtonActions(btns: typeof allSendButtons) {
-        return btns.map((btn, i) => {
-          const label = (btn.text || '').trim() || `Botão ${i + 1}`
-          if (btn.type === 'url') {
-            const rawUrl = (btn.value || '').trim()
-            const url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
-            return { id: String(i + 1), type: 'URL', url, label }
-          }
-          if (btn.type === 'call') {
-            return { id: String(i + 1), type: 'CALL', phoneNumber: (btn.value || '').trim(), label }
-          }
-          return { id: String(i + 1), type: 'REPLY', label }
-        })
-      }
-
-      try {
-        if (hasButtons) {
-          if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
-            const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
-            const mediaBody: any = { phone }
-            mediaBody[contentType] = mediaUrl
-            await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
-            await new Promise(resolve => setTimeout(resolve, 1500))
-          }
-
-          const buttonActions = buildButtonActions(allSendButtons)
-          const res = await fetch(`${baseUrl}/send-button-actions`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ phone, message: content, buttonActions }),
-          })
-          const result = await res.text()
-          console.log(`Bloco ${targetNode.id} (${contentType}+buttons): ${res.status}`, result)
-          await new Promise(resolve => setTimeout(resolve, 1500))
-        } else {
-          let endpoint = ''
-          let body: any = { phone }
-
-          switch (contentType) {
-            case 'text':
-              endpoint = '/send-text'
-              body.message = content
-              break
-            case 'image':
-              endpoint = '/send-image'
-              body.image = mediaUrl
-              body.caption = content
-              break
-            case 'video':
-              endpoint = '/send-video'
-              body.video = mediaUrl
-              body.caption = content
-              break
-            case 'audio':
-              endpoint = '/send-audio'
-              body.audio = mediaUrl
-              body.waveform = true
-              break
-            case 'document':
-              endpoint = '/send-document-url'
-              body.document = mediaUrl
-              body.fileName = 'documento'
-              body.caption = content
-              break
-            default:
-              endpoint = '/send-text'
-              body.message = content
-          }
-
-          if (endpoint) {
-            const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
-            const result = await res.text()
-            console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
-            await new Promise(resolve => setTimeout(resolve, 1500))
-          }
-        }
-      } catch (e) {
-        console.error(`Erro ao processar bloco ${targetNode.id}:`, e)
-      }
-
-      // Check if any button has a per-button edge connection
-      const hasButtonEdges = buttons.some((btn, idx) => {
-        return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
-      })
-
-      if (hasButtonEdges) {
-        // Don't follow the default output — button edges handle routing
-        // The next message from the user will re-trigger the webhook
-        // and match via the flow's condition nodes or button text
-        console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
-        continue
-      }
+      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited)
+      if (shouldStop) continue
     }
 
-    // Continue processing the flow via default edges
+    // Continue processing the flow
     await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
   }
 }
