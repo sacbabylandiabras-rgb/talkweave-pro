@@ -163,6 +163,7 @@ serve(async (req) => {
     }
 
     processingLockId = lockResult.lockId
+    const lockId = lockResult.lockId
 
     // Forward to gateway integrations
     const { data: gateways } = await supabase
@@ -235,7 +236,7 @@ serve(async (req) => {
           await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
         }
 
-        await finalizeMessageLog(supabase, processingLockId, {
+        await finalizeMessageLog(supabase, lockId, {
           keywordMatched: `[Botão: ${buttonMatch.buttonText}]`,
           responseSent: `[Fluxo: ${flow.name}]`,
         })
@@ -270,7 +271,7 @@ serve(async (req) => {
           )
           
           // Log the interaction
-          await finalizeMessageLog(supabase, processingLockId, {
+          await finalizeMessageLog(supabase, lockId, {
             keywordMatched: matchedFlow.keyword,
             responseSent: `[Fluxo: ${matchedFlow.name}]`,
           })
@@ -289,7 +290,7 @@ serve(async (req) => {
     
     if (responsesError) {
       console.error('Erro ao buscar respostas:', responsesError)
-      await releaseMessageProcessingLock(supabase, processingLockId)
+      await releaseMessageProcessingLock(supabase, lockId)
       return new Response('responses_error', { status: 500, headers: corsHeaders })
     }
 
@@ -300,7 +301,7 @@ serve(async (req) => {
     if (matchedResponse) {
       console.log('Palavra-chave encontrada:', matchedResponse.keyword)
       
-      await finalizeMessageLog(supabase, processingLockId, {
+      await finalizeMessageLog(supabase, lockId, {
         keywordMatched: matchedResponse.keyword,
         responseSent: matchedResponse.response,
       })
@@ -326,7 +327,7 @@ serve(async (req) => {
       })
     }
 
-    await releaseMessageProcessingLock(supabase, processingLockId)
+    await releaseMessageProcessingLock(supabase, lockId)
     console.log('Nenhuma palavra-chave correspondente encontrada')
     return new Response('no_match', { status: 200, headers: corsHeaders })
     
