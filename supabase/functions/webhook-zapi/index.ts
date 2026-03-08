@@ -233,13 +233,9 @@ serve(async (req) => {
           await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
         }
 
-        await supabase.from('message_logs').insert({
-          phone,
-          message_received: messageRaw,
-          keyword_matched: `[Botão: ${buttonMatch.buttonText}]`,
-          response_sent: `[Fluxo: ${flow.name}]`,
-          timestamp: new Date().toISOString(),
-          user_id: userId,
+        await finalizeMessageLog(supabase, processingLockId, {
+          keywordMatched: `[Botão: ${buttonMatch.buttonText}]`,
+          responseSent: `[Fluxo: ${flow.name}]`,
         })
 
         return new Response('button_flow_sent', { status: 200, headers: corsHeaders })
@@ -272,13 +268,9 @@ serve(async (req) => {
           )
           
           // Log the interaction
-          await supabase.from('message_logs').insert({
-            phone,
-            message_received: messageRaw,
-            keyword_matched: matchedFlow.keyword,
-            response_sent: `[Fluxo: ${matchedFlow.name}]`,
-            timestamp: new Date().toISOString(),
-            user_id: userId,
+          await finalizeMessageLog(supabase, processingLockId, {
+            keywordMatched: matchedFlow.keyword,
+            responseSent: `[Fluxo: ${matchedFlow.name}]`,
           })
 
           return new Response('flow_sent', { status: 200, headers: corsHeaders })
@@ -305,13 +297,9 @@ serve(async (req) => {
     if (matchedResponse) {
       console.log('Palavra-chave encontrada:', matchedResponse.keyword)
       
-      await supabase.from('message_logs').insert({
-        phone,
-        message_received: messageRaw,
-        keyword_matched: matchedResponse.keyword,
-        response_sent: matchedResponse.response,
-        timestamp: new Date().toISOString(),
-        user_id: userId,
+      await finalizeMessageLog(supabase, processingLockId, {
+        keywordMatched: matchedResponse.keyword,
+        responseSent: matchedResponse.response,
       })
 
       const zapiResponse = await fetch(
