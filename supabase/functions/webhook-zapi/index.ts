@@ -287,6 +287,7 @@ serve(async (req) => {
     
     if (responsesError) {
       console.error('Erro ao buscar respostas:', responsesError)
+      await releaseMessageProcessingLock(supabase, processingLockId)
       return new Response('responses_error', { status: 500, headers: corsHeaders })
     }
 
@@ -323,6 +324,7 @@ serve(async (req) => {
       })
     }
 
+    await releaseMessageProcessingLock(supabase, processingLockId)
     console.log('Nenhuma palavra-chave correspondente encontrada')
     return new Response('no_match', { status: 200, headers: corsHeaders })
     
