@@ -518,33 +518,70 @@ async function processFlowNode(
 }
 
 
-async function isLikelyDuplicateRecentMessage(
+async function acquireMessageProcessingLock(
   supabase: any,
   params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string }
-): Promise<boolean> {
+): Promise<{ acquired: boolean; lockId: string }> {
   const { userId, phone, normalizedMessage, rawMessage } = params
-  const dedupeWindow = new Date(Date.now() - 15 * 1000).toISOString()
+  const bucket = Math.floor(Date.now() / 15000)
+  const baseKey = `${userId}|${phone}|${normalizedMessage || normalizeForMatch(rawMessage)}|${bucket}`
+  const lockId = await stableUuidFromText(baseKey)
 
-  const { data: recentLogs, error } = await supabase
+  const { error } = await supabase
     .from('message_logs')
-    .select('message_received, created_at')
-    .eq('user_id', userId)
-    .eq('phone', phone)
-    .gte('created_at', dedupeWindow)
-    .order('created_at', { ascending: false })
-    .limit(10)
+    .insert({
+      id: lockId,
+      phone,
+      message_received: rawMessage,
+      keyword_matched: '__processing__',
+      response_sent: '__processing__',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+    })
 
-  if (error || !recentLogs || recentLogs.length === 0) return false
+  if (!error) return { acquired: true, lockId }
 
-  return recentLogs.some((log: any) => {
-    const previousRaw = typeof log?.message_received === 'string' ? log.message_received : ''
-    const previousNormalized = normalizeForMatch(previousRaw)
+  const isDuplicate =
+    error?.code === '23505' ||
+    (typeof error?.message === 'string' && error.message.toLowerCase().includes('duplicate key'))
 
-    return (
-      (previousRaw && previousRaw === rawMessage) ||
-      (previousNormalized && normalizedMessage && previousNormalized === normalizedMessage)
-    )
-  })
+  if (isDuplicate) return { acquired: false, lockId }
+
+  throw new Error(`Erro ao adquirir lock de dedupe: ${error.message}`)
+}
+
+async function finalizeMessageLog(
+  supabase: any,
+  lockId: string,
+  params: { keywordMatched: string; responseSent: string }
+) {
+  const { keywordMatched, responseSent } = params
+  await supabase
+    .from('message_logs')
+    .update({
+      keyword_matched: keywordMatched,
+      response_sent: responseSent,
+      timestamp: new Date().toISOString(),
+    })
+    .eq('id', lockId)
+}
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase
+    .from('message_logs')
+    .delete()
+    .eq('id', lockId)
+    .eq('keyword_matched', '__processing__')
+}
+
+async function stableUuidFromText(value: string): Promise<string> {
+  const encoded = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', encoded)
+  const hash = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`
 }
 
 function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
