@@ -47,6 +47,8 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let processingLockId: string | null = null
+
   try {
     console.log('Webhook recebido - Method:', req.method)
     
@@ -160,7 +162,7 @@ serve(async (req) => {
       return new Response('ignored_duplicate', { status: 200, headers: corsHeaders })
     }
 
-    const processingLockId = lockResult.lockId
+    processingLockId = lockResult.lockId
 
     // Forward to gateway integrations
     const { data: gateways } = await supabase
@@ -329,6 +331,14 @@ serve(async (req) => {
     return new Response('no_match', { status: 200, headers: corsHeaders })
     
   } catch (error) {
+    if (processingLockId) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        await releaseMessageProcessingLock(supabase, processingLockId)
+      } catch (releaseError) {
+        console.error('Erro ao liberar lock de processamento:', releaseError)
+      }
+    }
     console.error('Erro no webhook:', error)
     return new Response('error', { status: 500, headers: corsHeaders })
   }
