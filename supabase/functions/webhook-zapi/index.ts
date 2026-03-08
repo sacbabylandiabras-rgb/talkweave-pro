@@ -47,6 +47,8 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let processingLockId: string | null = null
+
   try {
     console.log('Webhook recebido - Method:', req.method)
     
@@ -147,18 +149,21 @@ serve(async (req) => {
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
     }
 
-    // Dedupe: evita processar a mesma mensagem recebida múltiplas vezes em poucos segundos
-    const duplicateDetected = await isLikelyDuplicateRecentMessage(supabase, {
+    // Dedupe idempotente: cria um lock por usuário+telefone+mensagem em janela de 15s
+    const lockResult = await acquireMessageProcessingLock(supabase, {
       userId,
       phone,
       normalizedMessage,
       rawMessage: messageRaw,
     })
 
-    if (duplicateDetected) {
+    if (!lockResult.acquired) {
       console.log('Mensagem duplicada detectada, ignorando para manter ordem do fluxo')
       return new Response('ignored_duplicate', { status: 200, headers: corsHeaders })
     }
+
+    processingLockId = lockResult.lockId
+    const lockId = lockResult.lockId
 
     // Forward to gateway integrations
     const { data: gateways } = await supabase
@@ -231,13 +236,9 @@ serve(async (req) => {
           await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
         }
 
-        await supabase.from('message_logs').insert({
-          phone,
-          message_received: messageRaw,
-          keyword_matched: `[Botão: ${buttonMatch.buttonText}]`,
-          response_sent: `[Fluxo: ${flow.name}]`,
-          timestamp: new Date().toISOString(),
-          user_id: userId,
+        await finalizeMessageLog(supabase, lockId, {
+          keywordMatched: `[Botão: ${buttonMatch.buttonText}]`,
+          responseSent: `[Fluxo: ${flow.name}]`,
         })
 
         return new Response('button_flow_sent', { status: 200, headers: corsHeaders })
@@ -270,13 +271,9 @@ serve(async (req) => {
           )
           
           // Log the interaction
-          await supabase.from('message_logs').insert({
-            phone,
-            message_received: messageRaw,
-            keyword_matched: matchedFlow.keyword,
-            response_sent: `[Fluxo: ${matchedFlow.name}]`,
-            timestamp: new Date().toISOString(),
-            user_id: userId,
+          await finalizeMessageLog(supabase, lockId, {
+            keywordMatched: matchedFlow.keyword,
+            responseSent: `[Fluxo: ${matchedFlow.name}]`,
           })
 
           return new Response('flow_sent', { status: 200, headers: corsHeaders })
@@ -293,6 +290,7 @@ serve(async (req) => {
     
     if (responsesError) {
       console.error('Erro ao buscar respostas:', responsesError)
+      await releaseMessageProcessingLock(supabase, lockId)
       return new Response('responses_error', { status: 500, headers: corsHeaders })
     }
 
@@ -303,13 +301,9 @@ serve(async (req) => {
     if (matchedResponse) {
       console.log('Palavra-chave encontrada:', matchedResponse.keyword)
       
-      await supabase.from('message_logs').insert({
-        phone,
-        message_received: messageRaw,
-        keyword_matched: matchedResponse.keyword,
-        response_sent: matchedResponse.response,
-        timestamp: new Date().toISOString(),
-        user_id: userId,
+      await finalizeMessageLog(supabase, lockId, {
+        keywordMatched: matchedResponse.keyword,
+        responseSent: matchedResponse.response,
       })
 
       const zapiResponse = await fetch(
@@ -333,10 +327,19 @@ serve(async (req) => {
       })
     }
 
+    await releaseMessageProcessingLock(supabase, lockId)
     console.log('Nenhuma palavra-chave correspondente encontrada')
     return new Response('no_match', { status: 200, headers: corsHeaders })
     
   } catch (error) {
+    if (processingLockId) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        await releaseMessageProcessingLock(supabase, processingLockId)
+      } catch (releaseError) {
+        console.error('Erro ao liberar lock de processamento:', releaseError)
+      }
+    }
     console.error('Erro no webhook:', error)
     return new Response('error', { status: 500, headers: corsHeaders })
   }
@@ -526,33 +529,70 @@ async function processFlowNode(
 }
 
 
-async function isLikelyDuplicateRecentMessage(
+async function acquireMessageProcessingLock(
   supabase: any,
   params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string }
-): Promise<boolean> {
+): Promise<{ acquired: boolean; lockId: string }> {
   const { userId, phone, normalizedMessage, rawMessage } = params
-  const dedupeWindow = new Date(Date.now() - 15 * 1000).toISOString()
+  const bucket = Math.floor(Date.now() / 15000)
+  const baseKey = `${userId}|${phone}|${normalizedMessage || normalizeForMatch(rawMessage)}|${bucket}`
+  const lockId = await stableUuidFromText(baseKey)
 
-  const { data: recentLogs, error } = await supabase
+  const { error } = await supabase
     .from('message_logs')
-    .select('message_received, created_at')
-    .eq('user_id', userId)
-    .eq('phone', phone)
-    .gte('created_at', dedupeWindow)
-    .order('created_at', { ascending: false })
-    .limit(10)
+    .insert({
+      id: lockId,
+      phone,
+      message_received: rawMessage,
+      keyword_matched: '__processing__',
+      response_sent: '__processing__',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+    })
 
-  if (error || !recentLogs || recentLogs.length === 0) return false
+  if (!error) return { acquired: true, lockId }
 
-  return recentLogs.some((log: any) => {
-    const previousRaw = typeof log?.message_received === 'string' ? log.message_received : ''
-    const previousNormalized = normalizeForMatch(previousRaw)
+  const isDuplicate =
+    error?.code === '23505' ||
+    (typeof error?.message === 'string' && error.message.toLowerCase().includes('duplicate key'))
 
-    return (
-      (previousRaw && previousRaw === rawMessage) ||
-      (previousNormalized && normalizedMessage && previousNormalized === normalizedMessage)
-    )
-  })
+  if (isDuplicate) return { acquired: false, lockId }
+
+  throw new Error(`Erro ao adquirir lock de dedupe: ${error.message}`)
+}
+
+async function finalizeMessageLog(
+  supabase: any,
+  lockId: string,
+  params: { keywordMatched: string; responseSent: string }
+) {
+  const { keywordMatched, responseSent } = params
+  await supabase
+    .from('message_logs')
+    .update({
+      keyword_matched: keywordMatched,
+      response_sent: responseSent,
+      timestamp: new Date().toISOString(),
+    })
+    .eq('id', lockId)
+}
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase
+    .from('message_logs')
+    .delete()
+    .eq('id', lockId)
+    .eq('keyword_matched', '__processing__')
+}
+
+async function stableUuidFromText(value: string): Promise<string> {
+  const encoded = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', encoded)
+  const hash = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`
 }
 
 function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
