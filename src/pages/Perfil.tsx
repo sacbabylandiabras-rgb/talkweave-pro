@@ -1,22 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useZapi } from "@/hooks/useZapi";
-import { User, Image as ImageIcon, Upload } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
+import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { User, Image as ImageIcon, Upload, Smartphone } from "lucide-react";
 
 const Perfil = () => {
   const { updateProfileName, updateProfilePicture, loading } = useZapi();
+  const { instances, loading: loadingInstances } = useZapiInstances();
+  const [selectedInstance, setSelectedInstance] = useState<ZapiInstance | null>(null);
   const [name, setName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
-  const handleUpdateName = async () => {
-    if (!name.trim()) {
-      return;
+  useEffect(() => {
+    if (instances.length > 0 && !selectedInstance) {
+      const defaultInst = instances.find(i => i.is_default) || instances[0];
+      setSelectedInstance(defaultInst);
+      setZapiInstanceOverride(defaultInst);
     }
+  }, [instances]);
+
+  const handleSelectInstance = (instanceId: string) => {
+    const inst = instances.find(i => i.id === instanceId);
+    if (inst) {
+      setSelectedInstance(inst);
+      setZapiInstanceOverride(inst);
+    }
+  };
+
+  useEffect(() => {
+    return () => { setZapiInstanceOverride(null); };
+  }, []);
+
+  const handleUpdateName = async () => {
+    if (!name.trim()) return;
     await updateProfileName(name);
     setName("");
   };
@@ -24,13 +46,8 @@ const Perfil = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) return;
 
-    // Verificar se é uma imagem
-    if (!file.type.startsWith('image/')) {
-      return;
-    }
-
-    // Criar preview
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
@@ -41,18 +58,14 @@ const Perfil = () => {
   };
 
   const handleUpdatePictureFromFile = async () => {
-    if (!imageFile) {
-      return;
-    }
+    if (!imageFile) return;
     await updateProfilePicture(imageFile);
     setImageFile("");
     setPreviewUrl("");
   };
 
   const handleUpdatePictureFromUrl = async () => {
-    if (!imageUrl.trim()) {
-      return;
-    }
+    if (!imageUrl.trim()) return;
     await updateProfilePicture(imageUrl);
     setImageUrl("");
   };
@@ -65,6 +78,39 @@ const Perfil = () => {
           Gerencie o nome e foto de perfil do seu WhatsApp conectado
         </p>
       </div>
+
+      {/* Seletor de Instância */}
+      {instances.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Instância
+            </CardTitle>
+            <CardDescription>
+              Selecione qual dispositivo deseja editar o perfil
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={selectedInstance?.id || ""}
+              onValueChange={handleSelectInstance}
+              disabled={loadingInstances}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a instância" />
+              </SelectTrigger>
+              <SelectContent>
+                {instances.map((inst) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    {inst.instance_name} {inst.is_default ? "(padrão)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Nome do Perfil */}
       <Card>
