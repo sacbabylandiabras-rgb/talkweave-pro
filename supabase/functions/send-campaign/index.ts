@@ -230,6 +230,7 @@ serve(async (req) => {
             contact_name: contact.name,
             message_content: messageContent,
             status: 'pending',
+            user_id: credentials.userId,
           };
 
           // Build full message with header and footer
