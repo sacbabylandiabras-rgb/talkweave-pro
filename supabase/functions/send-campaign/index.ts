@@ -21,6 +21,7 @@ interface CampaignSendRecord {
   sent_at?: string;
   delivered_at?: string;
   error_message?: string;
+  user_id?: string;
 }
 
 serve(async (req) => {
