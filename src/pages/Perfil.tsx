@@ -6,16 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
 import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { User, Image as ImageIcon, Upload, Smartphone } from "lucide-react";
 
 const Perfil = () => {
   const { updateProfileName, updateProfilePicture, loading } = useZapi();
   const { instances, loading: loadingInstances } = useZapiInstances();
+  const { toast } = useToast();
   const [selectedInstance, setSelectedInstance] = useState<ZapiInstance | null>(null);
   const [name, setName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [imageFile, setImageFile] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (instances.length > 0 && !selectedInstance) {
@@ -46,22 +50,57 @@ const Perfil = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Formato inválido", description: "Selecione um arquivo de imagem.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "O tamanho máximo é 5MB.", variant: "destructive" });
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setImageFile(base64String);
-      setPreviewUrl(base64String);
-    };
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
   };
 
   const handleUpdatePictureFromFile = async () => {
     if (!imageFile) return;
-    await updateProfilePicture(imageFile);
-    setImageFile("");
-    setPreviewUrl("");
+    setUploading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const ext = imageFile.name.split('.').pop() || 'jpg';
+      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('template-media')
+        .upload(filePath, imageFile, { upsert: true });
+
+      if (uploadError) throw new Error("Erro no upload: " + uploadError.message);
+
+      const { data: publicUrlData } = supabase.storage
+        .from('template-media')
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData.publicUrl;
+      console.log("URL pública da foto:", publicUrl);
+
+      await updateProfilePicture(publicUrl);
+      setImageFile(null);
+      setPreviewUrl("");
+    } catch (error) {
+      console.error("Erro ao atualizar foto:", error);
+      toast({
+        title: "Erro ao atualizar foto",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleUpdatePictureFromUrl = async () => {
@@ -69,6 +108,8 @@ const Perfil = () => {
     await updateProfilePicture(imageUrl);
     setImageUrl("");
   };
+
+  const isLoading = loading || uploading;
 
   return (
     <div className="space-y-6">
@@ -131,15 +172,15 @@ const Perfil = () => {
               placeholder="Digite o novo nome"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
           <Button 
             onClick={handleUpdateName}
-            disabled={loading || !name.trim()}
+            disabled={isLoading || !name.trim()}
             className="w-full sm:w-auto"
           >
-            {loading ? "Atualizando..." : "Atualizar Nome"}
+            {isLoading ? "Atualizando..." : "Atualizar Nome"}
           </Button>
         </CardContent>
       </Card>
@@ -163,7 +204,7 @@ const Perfil = () => {
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              disabled={loading}
+              disabled={isLoading}
               className="cursor-pointer"
             />
             <p className="text-xs text-muted-foreground">
@@ -182,10 +223,10 @@ const Perfil = () => {
           )}
           <Button 
             onClick={handleUpdatePictureFromFile}
-            disabled={loading || !imageFile}
+            disabled={isLoading || !imageFile}
             className="w-full sm:w-auto"
           >
-            {loading ? "Atualizando..." : "Atualizar Foto"}
+            {uploading ? "Enviando imagem..." : isLoading ? "Atualizando..." : "Atualizar Foto"}
           </Button>
         </CardContent>
       </Card>
@@ -210,7 +251,7 @@ const Perfil = () => {
               placeholder="https://exemplo.com/imagem.jpg"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
           {imageUrl && (
@@ -228,10 +269,10 @@ const Perfil = () => {
           )}
           <Button 
             onClick={handleUpdatePictureFromUrl}
-            disabled={loading || !imageUrl.trim()}
+            disabled={isLoading || !imageUrl.trim()}
             className="w-full sm:w-auto"
           >
-            {loading ? "Atualizando..." : "Atualizar Foto"}
+            {isLoading ? "Atualizando..." : "Atualizar Foto"}
           </Button>
         </CardContent>
       </Card>
