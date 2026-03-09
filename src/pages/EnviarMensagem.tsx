@@ -103,7 +103,18 @@ const EnviarMensagem = () => {
       const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
       setErrors({});
       
-      await sendMessage(validatedData.phone, validatedData.message);
+      let sendStatus: 'sent' | 'failed' = 'sent';
+      let errorMsg: string | undefined;
+      
+      try {
+        await sendMessage(validatedData.phone, validatedData.message);
+      } catch (sendError) {
+        sendStatus = 'failed';
+        errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
+        throw sendError;
+      } finally {
+        await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
+      }
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
