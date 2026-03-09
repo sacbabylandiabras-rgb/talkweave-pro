@@ -767,7 +767,7 @@ export const useZapi = () => {
     try {
       const config = await getZAPIConfig();
       
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/update-profile-name`;
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-name`;
       console.log('Atualizando nome do perfil Z-API:', url);
       
       const response = await fetch(url, {
