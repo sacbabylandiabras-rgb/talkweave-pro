@@ -76,6 +76,11 @@ serve(async (req) => {
 
     if (!messageRaw) {
       console.log('Evento sem texto detectado, ignorando. Chaves:', Object.keys(webhook || {}))
+      // Log full payload for button-response debugging
+      const webhookType = webhook?.type || ''
+      if (webhookType) {
+        console.log('Webhook type:', webhookType, '| Full payload:', JSON.stringify(webhook).substring(0, 500))
+      }
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
     }
 
