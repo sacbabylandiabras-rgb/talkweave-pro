@@ -26,8 +26,8 @@ export function VolumeChart() {
   const [allSends, setAllSends] = useState<RawSend[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [visible, setVisible] = useState({ enviadas: true, entregues: true, erros: true });
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 6));
-  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     loadRawData();
