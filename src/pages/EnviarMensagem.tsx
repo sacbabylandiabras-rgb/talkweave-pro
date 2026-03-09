@@ -350,6 +350,10 @@ const EnviarMensagem = () => {
         description: `Iniciando envio para ${contatosProcessados.length} contatos com delay de ${delay}s`,
       });
 
+      // Obter user_id para os registros de envio
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
       let enviados = 0;
       let erros = 0;
       const campaignSends: any[] = [];
@@ -477,7 +481,8 @@ const EnviarMensagem = () => {
           message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
           status: sendStatus,
           sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
-          error_message: errorMessage
+          error_message: errorMessage,
+          user_id: currentUserId
         });
       }
       
