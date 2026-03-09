@@ -39,11 +39,12 @@ export function VolumeChart() {
 
   const loadRawData = async () => {
     try {
-      const { data: sends } = await supabase
+      const { data: sends, error } = await supabase
         .from("campaign_sends")
         .select("created_at, status")
         .order("created_at", { ascending: true });
 
+      console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
       setAllSends(sends || []);
     } catch (error) {
       console.error("Error loading chart data:", error);
