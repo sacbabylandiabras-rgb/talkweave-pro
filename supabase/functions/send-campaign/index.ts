@@ -21,6 +21,7 @@ interface CampaignSendRecord {
   sent_at?: string;
   delivered_at?: string;
   error_message?: string;
+  user_id?: string;
 }
 
 serve(async (req) => {
@@ -229,6 +230,7 @@ serve(async (req) => {
             contact_name: contact.name,
             message_content: messageContent,
             status: 'pending',
+            user_id: credentials.userId,
           };
 
           // Build full message with header and footer
