@@ -67,6 +67,35 @@ const EnviarMensagem = () => {
   }, [activeInstance]);
   const { createCampaign } = useCampaigns();
 
+  // Helper para registrar envios individuais no campaign_sends para aparecer no painel
+  const trackIndividualSend = async (phone: string, messageContent: string, status: 'sent' | 'failed', errorMsg?: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
+      // Criar uma campanha de envio individual
+      const campanha = await createCampaign({
+        name: `Envio Individual - ${new Date().toLocaleString('pt-BR')}`,
+        description: `Envio individual para ${phone}`,
+        schedule_type: 'immediate',
+      });
+
+      await supabase.from('campaigns').update({ status: 'completed' }).eq('id', campanha.id);
+
+      await supabase.from('campaign_sends').insert({
+        campaign_id: campanha.id,
+        phone,
+        message_content: messageContent,
+        status,
+        sent_at: status === 'sent' ? new Date().toISOString() : null,
+        error_message: errorMsg || null,
+        user_id: session.user.id,
+      });
+    } catch (err) {
+      console.error('Erro ao registrar envio individual:', err);
+    }
+  };
+
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
     
