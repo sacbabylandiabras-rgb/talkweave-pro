@@ -76,6 +76,11 @@ serve(async (req) => {
 
     if (!messageRaw) {
       console.log('Evento sem texto detectado, ignorando. Chaves:', Object.keys(webhook || {}))
+      // Log full payload for button-response debugging
+      const webhookType = webhook?.type || ''
+      if (webhookType) {
+        console.log('Webhook type:', webhookType, '| Full payload:', JSON.stringify(webhook).substring(0, 500))
+      }
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
     }
 
@@ -716,6 +721,22 @@ function extractMessageText(webhook: any): string {
     webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
     webhook?.interactiveResponse?.title,
     webhook?.interactiveResponse?.description,
+
+    // send-button-actions response formats (Z-API)
+    webhook?.title,
+    webhook?.selectedButtonId,
+    webhook?.response?.title,
+    webhook?.response?.text,
+    webhook?.response?.selectedDisplayText,
+    webhook?.message?.interactiveResponseMessage?.body?.text,
+    webhook?.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson,
+    webhook?.interactiveResponseMessage?.body?.text,
+    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.message?.templateButtonReplyMessage?.selectedId,
+    webhook?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.templateButtonReplyMessage?.selectedId,
+    webhook?.message?.listResponseMessage?.title,
+    webhook?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
 
     webhook?.waitingMessage?.text,
     webhook?.waitingMessage?.message,
