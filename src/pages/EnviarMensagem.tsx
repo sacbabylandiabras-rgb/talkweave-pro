@@ -481,7 +481,8 @@ const EnviarMensagem = () => {
           message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
           status: sendStatus,
           sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
-          error_message: errorMessage
+          error_message: errorMessage,
+          user_id: currentUserId
         });
       }
       
