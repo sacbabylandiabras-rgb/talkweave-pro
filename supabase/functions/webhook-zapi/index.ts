@@ -534,10 +534,31 @@ async function acquireMessageProcessingLock(
   params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string }
 ): Promise<{ acquired: boolean; lockId: string }> {
   const { userId, phone, normalizedMessage, rawMessage } = params
-  const bucket = Math.floor(Date.now() / 15000)
-  const baseKey = `${userId}|${phone}|${normalizedMessage || normalizeForMatch(rawMessage)}|${bucket}`
-  const lockId = await stableUuidFromText(baseKey)
+  const norm = normalizedMessage || normalizeForMatch(rawMessage)
+  const now = Date.now()
+  const bucketSize = 15000
+  const currentBucket = Math.floor(now / bucketSize)
+  const prevBucket = currentBucket - 1
 
+  // Check both current and previous bucket to avoid boundary race conditions
+  const currentKey = `${userId}|${phone}|${norm}|${currentBucket}`
+  const prevKey = `${userId}|${phone}|${norm}|${prevBucket}`
+  const lockId = await stableUuidFromText(currentKey)
+  const prevLockId = await stableUuidFromText(prevKey)
+
+  // First check if previous bucket lock exists (means message was just processed)
+  const { data: prevLock } = await supabase
+    .from('message_logs')
+    .select('id')
+    .eq('id', prevLockId)
+    .maybeSingle()
+
+  if (prevLock) {
+    console.log('Lock do bucket anterior encontrado, mensagem duplicada')
+    return { acquired: false, lockId }
+  }
+
+  // Try to acquire current bucket lock
   const { error } = await supabase
     .from('message_logs')
     .insert({
