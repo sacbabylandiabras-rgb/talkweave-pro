@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, subDays } from "date-fns";
+import { format, parseISO, subDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ChartData {
   date: string;
@@ -12,45 +16,73 @@ interface ChartData {
   erros: number;
 }
 
+interface RawSend {
+  created_at: string;
+  status: string | null;
+}
+
 export function VolumeChart() {
   const [loading, setLoading] = useState(true);
+  const [allSends, setAllSends] = useState<RawSend[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [visible, setVisible] = useState({ enviadas: true, entregues: true, erros: true });
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 6));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    loadChartData();
+    loadRawData();
   }, []);
 
-  const loadChartData = async () => {
+  useEffect(() => {
+    filterAndGroup();
+  }, [allSends, dateFrom, dateTo]);
+
+  const loadRawData = async () => {
     try {
       const { data: sends } = await supabase
         .from("campaign_sends")
         .select("created_at, status")
         .order("created_at", { ascending: true });
 
-      if (sends && sends.length > 0) {
-        const grouped = sends.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
-          const date = format(parseISO(send.created_at), "dd/MM/yyyy", { locale: ptBR });
-          if (!acc[date]) acc[date] = { sent: 0, delivered: 0, failed: 0 };
-          acc[date].sent++;
-          if (send.status === "sent" || send.status === "delivered") acc[date].delivered++;
-          if (send.status === "failed") acc[date].failed++;
-          return acc;
-        }, {});
-
-        setChartData(
-          Object.entries(grouped).map(([date, d]) => ({
-            date,
-            enviadas: d.sent,
-            entregues: d.delivered,
-            erros: d.failed,
-          }))
-        );
-      }
+      setAllSends(sends || []);
     } catch (error) {
       console.error("Error loading chart data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterAndGroup = () => {
+    const filtered = allSends.filter((send) => {
+      const sendDate = parseISO(send.created_at);
+      if (dateFrom && dateTo) {
+        return isWithinInterval(sendDate, { start: startOfDay(dateFrom), end: endOfDay(dateTo) });
+      }
+      if (dateFrom) return sendDate >= startOfDay(dateFrom);
+      if (dateTo) return sendDate <= endOfDay(dateTo);
+      return true;
+    });
+
+    if (filtered.length > 0) {
+      const grouped = filtered.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
+        const date = format(parseISO(send.created_at), "dd/MM/yyyy", { locale: ptBR });
+        if (!acc[date]) acc[date] = { sent: 0, delivered: 0, failed: 0 };
+        acc[date].sent++;
+        if (send.status === "sent" || send.status === "delivered") acc[date].delivered++;
+        if (send.status === "failed") acc[date].failed++;
+        return acc;
+      }, {});
+
+      setChartData(
+        Object.entries(grouped).map(([date, d]) => ({
+          date,
+          enviadas: d.sent,
+          entregues: d.delivered,
+          erros: d.failed,
+        }))
+      );
+    } else {
+      setChartData([]);
     }
   };
 
@@ -89,28 +121,88 @@ export function VolumeChart() {
   return (
     <div className="rounded-xl border bg-card p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
           {chartData.length === 0 && (
             <span className="text-[10px] text-muted-foreground">(sem envios ainda)</span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          {series.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => toggle(s.key)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {visible[s.key] ? (
-                <Eye className="w-3.5 h-3.5" />
-              ) : (
-                <EyeOff className="w-3.5 h-3.5 opacity-40" />
-              )}
-              <span className={!visible[s.key] ? "opacity-40 line-through" : ""}>{s.label}</span>
-            </button>
-          ))}
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Date From */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "justify-start text-left font-normal text-xs h-8",
+                  !dateFrom && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFrom}
+                onSelect={setDateFrom}
+                disabled={(date) => (dateTo ? date > dateTo : date > new Date())}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-xs text-muted-foreground">até</span>
+
+          {/* Date To */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "justify-start text-left font-normal text-xs h-8",
+                  !dateTo && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={dateTo}
+                onSelect={setDateTo}
+                disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Series toggles */}
+          <div className="flex items-center gap-3 ml-2">
+            {series.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => toggle(s.key)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {visible[s.key] ? (
+                  <Eye className="w-3.5 h-3.5" />
+                ) : (
+                  <EyeOff className="w-3.5 h-3.5 opacity-40" />
+                )}
+                <span className={!visible[s.key] ? "opacity-40 line-through" : ""}>{s.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
