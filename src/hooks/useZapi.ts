@@ -771,12 +771,12 @@ export const useZapi = () => {
       console.log('Atualizando nome do perfil Z-API:', url);
       
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Client-Token': config.clientToken
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ value: name }),
       });
 
       console.log('Update profile name response status:', response.status);
