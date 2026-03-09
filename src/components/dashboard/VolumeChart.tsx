@@ -30,7 +30,15 @@ export function VolumeChart() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
-    loadRawData();
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        loadRawData();
+      } else {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
