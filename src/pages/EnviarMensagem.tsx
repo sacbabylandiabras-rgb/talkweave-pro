@@ -67,6 +67,35 @@ const EnviarMensagem = () => {
   }, [activeInstance]);
   const { createCampaign } = useCampaigns();
 
+  // Helper para registrar envios individuais no campaign_sends para aparecer no painel
+  const trackIndividualSend = async (phone: string, messageContent: string, status: 'sent' | 'failed', errorMsg?: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
+      // Criar uma campanha de envio individual
+      const campanha = await createCampaign({
+        name: `Envio Individual - ${new Date().toLocaleString('pt-BR')}`,
+        description: `Envio individual para ${phone}`,
+        schedule_type: 'immediate',
+      });
+
+      await supabase.from('campaigns').update({ status: 'completed' }).eq('id', campanha.id);
+
+      await supabase.from('campaign_sends').insert({
+        campaign_id: campanha.id,
+        phone,
+        message_content: messageContent,
+        status,
+        sent_at: status === 'sent' ? new Date().toISOString() : null,
+        error_message: errorMsg || null,
+        user_id: session.user.id,
+      });
+    } catch (err) {
+      console.error('Erro ao registrar envio individual:', err);
+    }
+  };
+
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -74,7 +103,18 @@ const EnviarMensagem = () => {
       const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
       setErrors({});
       
-      await sendMessage(validatedData.phone, validatedData.message);
+      let sendStatus: 'sent' | 'failed' = 'sent';
+      let errorMsg: string | undefined;
+      
+      try {
+        await sendMessage(validatedData.phone, validatedData.message);
+      } catch (sendError) {
+        sendStatus = 'failed';
+        errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
+        throw sendError;
+      } finally {
+        await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
+      }
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
@@ -110,55 +150,63 @@ const EnviarMensagem = () => {
         throw new Error("Adicione pelo menos um botão válido");
       }
 
-      // Verificar se há mídia anexada
-      const temMidia = !!arquivoMidia;
-      
-      if (temMidia) {
-        const base64File = await convertToBase64(arquivoMidia);
-        const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
-        
-        // Categorizar tipos de arquivo
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-        const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
-        const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
-        
-        const isImage = imageExtensions.includes(fileExtension || '');
-        const isVideo = videoExtensions.includes(fileExtension || '');
-        const isAudio = audioExtensions.includes(fileExtension || '');
+      let sendStatus: 'sent' | 'failed' = 'sent';
+      let errorMsg: string | undefined;
 
-        // Enviar a mídia com legenda
-        if (isImage) {
-          await sendImage(validatedData.phone, base64File, legenda || '');
-        } else if (isVideo) {
-          await sendVideo(validatedData.phone, base64File, legenda || '');
-        } else if (isAudio) {
-          await sendAudio(validatedData.phone, base64File, legenda || '');
-        } else {
-          await sendDocument(
-            validatedData.phone,
-            base64File,
-            arquivoMidia.name,
-            fileExtension || 'txt',
-            legenda || ''
-          );
+      try {
+        // Verificar se há mídia anexada
+        const temMidia = !!arquivoMidia;
+        
+        if (temMidia) {
+          const base64File = await convertToBase64(arquivoMidia);
+          const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+          
+          const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+          const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+          const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+          
+          const isImage = imageExtensions.includes(fileExtension || '');
+          const isVideo = videoExtensions.includes(fileExtension || '');
+          const isAudio = audioExtensions.includes(fileExtension || '');
+
+          if (isImage) {
+            await sendImage(validatedData.phone, base64File, legenda || '');
+          } else if (isVideo) {
+            await sendVideo(validatedData.phone, base64File, legenda || '');
+          } else if (isAudio) {
+            await sendAudio(validatedData.phone, base64File, legenda || '');
+          } else {
+            await sendDocument(
+              validatedData.phone,
+              base64File,
+              arquivoMidia.name,
+              fileExtension || 'txt',
+              legenda || ''
+            );
+          }
         }
+        
+        await sendButtonActions(
+          validatedData.phone, 
+          validatedData.message, 
+          validButtons.map(btn => ({
+            id: btn.id,
+            type: btn.type,
+            label: btn.label,
+            ...(btn.type === "CALL" && { phone: btn.phone }),
+            ...(btn.type === "URL" && { url: btn.url }),
+            ...(btn.type === "COPY" && { copyText: btn.copyText })
+          })),
+          titulo || undefined,
+          rodape || undefined
+        );
+      } catch (sendError) {
+        sendStatus = 'failed';
+        errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
+        throw sendError;
+      } finally {
+        await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
       }
-      
-      // Enviar os botões interativos (sempre enviar quando houver botões)
-      await sendButtonActions(
-        validatedData.phone, 
-        validatedData.message, 
-        validButtons.map(btn => ({
-          id: btn.id,
-          type: btn.type,
-          label: btn.label,
-          ...(btn.type === "CALL" && { phone: btn.phone }),
-          ...(btn.type === "URL" && { url: btn.url }),
-          ...(btn.type === "COPY" && { copyText: btn.copyText })
-        })),
-        titulo || undefined,
-        rodape || undefined
-      );
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
@@ -196,46 +244,54 @@ const EnviarMensagem = () => {
         throw new Error("Título da lista é obrigatório");
       }
 
-      // Verificar se há mídia anexada
-      const temMidia = !!arquivoMidia;
-      
-      if (temMidia) {
-        const base64File = await convertToBase64(arquivoMidia);
-        const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
-        
-        // Categorizar tipos de arquivo
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-        const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
-        const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
-        
-        const isImage = imageExtensions.includes(fileExtension || '');
-        const isVideo = videoExtensions.includes(fileExtension || '');
-        const isAudio = audioExtensions.includes(fileExtension || '');
+      let sendStatus: 'sent' | 'failed' = 'sent';
+      let errorMsg: string | undefined;
 
-        // Enviar a mídia com legenda
-        if (isImage) {
-          await sendImage(validatedData.phone, base64File, legenda || '');
-        } else if (isVideo) {
-          await sendVideo(validatedData.phone, base64File, legenda || '');
-        } else if (isAudio) {
-          await sendAudio(validatedData.phone, base64File, legenda || '');
-        } else {
-          await sendDocument(
-            validatedData.phone,
-            base64File,
-            arquivoMidia.name,
-            fileExtension || 'txt',
-            legenda || ''
-          );
+      try {
+        // Verificar se há mídia anexada
+        const temMidia = !!arquivoMidia;
+        
+        if (temMidia) {
+          const base64File = await convertToBase64(arquivoMidia);
+          const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+          
+          const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+          const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+          const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+          
+          const isImage = imageExtensions.includes(fileExtension || '');
+          const isVideo = videoExtensions.includes(fileExtension || '');
+          const isAudio = audioExtensions.includes(fileExtension || '');
+
+          if (isImage) {
+            await sendImage(validatedData.phone, base64File, legenda || '');
+          } else if (isVideo) {
+            await sendVideo(validatedData.phone, base64File, legenda || '');
+          } else if (isAudio) {
+            await sendAudio(validatedData.phone, base64File, legenda || '');
+          } else {
+            await sendDocument(
+              validatedData.phone,
+              base64File,
+              arquivoMidia.name,
+              fileExtension || 'txt',
+              legenda || ''
+            );
+          }
         }
+        
+        await sendOptionList(validatedData.phone, validatedData.message, {
+          title: tituloLista,
+          buttonLabel: labelBotaoLista,
+          options: validOptions
+        });
+      } catch (sendError) {
+        sendStatus = 'failed';
+        errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
+        throw sendError;
+      } finally {
+        await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
       }
-      
-      // Enviar a lista de opções (sempre enviar quando houver lista)
-      await sendOptionList(validatedData.phone, validatedData.message, {
-        title: tituloLista,
-        buttonLabel: labelBotaoLista,
-        options: validOptions
-      });
       
       // Limpar formulário após envio bem-sucedido
       setNumero("");
