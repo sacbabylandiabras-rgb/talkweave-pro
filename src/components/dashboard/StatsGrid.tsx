@@ -8,7 +8,15 @@ export function StatsGrid() {
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0, failed: 0 });
 
   useEffect(() => {
-    loadStats();
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        loadStats();
+      } else {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   const loadStats = async () => {
