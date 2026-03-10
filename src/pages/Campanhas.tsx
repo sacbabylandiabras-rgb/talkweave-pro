@@ -169,18 +169,15 @@ const Campanhas = () => {
       return;
     }
 
-    // CONFIRMAÇÃO obrigatória para evitar envios acidentais
-    const confirmed = confirm(
-      `⚠️ ATENÇÃO: Deseja realmente ENVIAR esta campanha?\n\n` +
-      `📤 Campanha: ${campaign.name}\n` +
-      `👥 Total de contatos: ${campaign.target_audience.contacts.length}\n\n` +
-      `Esta ação NÃO pode ser desfeita!`
-    );
+    setCampaignToSend(campaign);
+    setSendDialogOpen(true);
+  };
 
-    if (!confirmed) {
-      console.log('❌ Envio de campanha cancelado pelo usuário');
-      return;
-    }
+  const confirmSendCampaign = async () => {
+    if (!campaignToSend) return;
+    const campaign = campaignToSend;
+    setSendDialogOpen(false);
+    setCampaignToSend(null);
 
     try {
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
