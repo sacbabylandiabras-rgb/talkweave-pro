@@ -6,204 +6,89 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Download, TrendingUp, Calendar, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCampaignsRealtime, useAllCampaignSendsRealtime, useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface ReportStats {
-  totalSent: number;
-  totalDelivered: number;
-  totalFailed: number;
-  totalPending: number;
-  totalContacts: number;
-  totalMessages: number;
-  deliveryRate: number;
-}
-
-interface CampaignReport {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  status: string;
-  sent: number;
-  delivered: number;
-  failed: number;
-  pending: number;
-  total: number;
-  deliveryRate: number;
-  schedule_type: string | null;
-}
-
 const Relatorio = () => {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<ReportStats>({
-    totalSent: 0,
-    totalDelivered: 0,
-    totalFailed: 0,
-    totalPending: 0,
-    totalContacts: 0,
-    totalMessages: 0,
-    deliveryRate: 0,
-  });
-  const [campaignReports, setCampaignReports] = useState<CampaignReport[]>([]);
+  const { campaigns: campaignList, loading: campaignsLoading } = useCampaignsRealtime(['completed', 'cancelled', 'active', 'paused']);
+  const { sends: allSends, loading: sendsLoading } = useAllCampaignSendsRealtime();
   const [templateStats, setTemplateStats] = useState<Array<{ name: string; usage: number }>>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsCampaignId, setDetailsCampaignId] = useState<string | null>(null);
   const [detailsCampaignName, setDetailsCampaignName] = useState("");
-  const [detailsSends, setDetailsSends] = useState<any[]>([]);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const detailsPollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const loadDetailsSends = useCallback(async (campaignId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('campaign_sends')
-        .select('*')
-        .eq('campaign_id', campaignId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      setDetailsSends(data || []);
-    } catch (err) {
-      console.error('Erro ao carregar detalhes:', err);
-    }
+  // Realtime details for selected campaign
+  const { sends: detailsSends, loading: detailsLoading } = useCampaignSendsRealtime(
+    detailsOpen ? detailsCampaignId : null
+  );
+
+  const loading = campaignsLoading || sendsLoading;
+
+  // Load template stats once
+  useEffect(() => {
+    const loadTemplates = async () => {
+      const { data: templates } = await supabase
+        .from('message_templates')
+        .select('name, usage_count')
+        .order('usage_count', { ascending: false })
+        .limit(5);
+      setTemplateStats(templates?.map(t => ({ name: t.name, usage: t.usage_count || 0 })) || []);
+    };
+    loadTemplates();
   }, []);
 
-  const openDetails = async (campaignId: string, campaignName: string) => {
-    setDetailsCampaignId(campaignId);
-    setDetailsCampaignName(campaignName);
-    setDetailsOpen(true);
-    setDetailsLoading(true);
-    await loadDetailsSends(campaignId);
-    setDetailsLoading(false);
+  // Compute stats from realtime data
+  const stats = {
+    totalSent: allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    totalDelivered: allSends.filter(s => s.status === 'delivered').length,
+    totalFailed: allSends.filter(s => s.status === 'failed').length,
+    totalPending: allSends.filter(s => s.status === 'pending').length,
+    totalMessages: allSends.length,
+    totalContacts: new Set(allSends.map(s => s.phone)).size,
+    deliveryRate: allSends.length > 0 
+      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / allSends.length) * 100 
+      : 0,
   };
 
-  // Real-time polling for details dialog
-  useEffect(() => {
-    if (detailsOpen && detailsCampaignId) {
-      detailsPollingRef.current = setInterval(() => {
-        loadDetailsSends(detailsCampaignId);
-      }, 3000);
-    }
-    return () => {
-      if (detailsPollingRef.current) {
-        clearInterval(detailsPollingRef.current);
-        detailsPollingRef.current = null;
-      }
+  // Compute campaign reports from realtime data
+  const campaignReports = campaignList.map((campaign) => {
+    const campaignSends = allSends.filter(s => s.campaign_id === campaign.id);
+    const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
+    const failed = campaignSends.filter(s => s.status === 'failed').length;
+    const pending = campaignSends.filter(s => s.status === 'pending').length;
+    const total = campaignSends.length;
+    const rate = total > 0 ? (sent / total) * 100 : 0;
+
+    return {
+      id: campaign.id,
+      name: campaign.name,
+      description: campaign.description,
+      created_at: campaign.created_at,
+      status: campaign.status || 'draft',
+      sent,
+      failed,
+      pending,
+      total,
+      deliveryRate: rate,
+      schedule_type: campaign.schedule_type,
     };
-  }, [detailsOpen, detailsCampaignId, loadDetailsSends]);
+  });
 
-  const loadReportData = useCallback(async (isPolling = false) => {
-    try {
-      if (!isPolling) setLoading(true);
-
-      const { data: sends, error: sendsError } = await supabase
-        .from('campaign_sends')
-        .select('*');
-
-      if (sendsError) throw sendsError;
-
-      const totalSent = sends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
-      const totalDelivered = sends?.filter(s => s.status === 'delivered').length || 0;
-      const totalFailed = sends?.filter(s => s.status === 'failed').length || 0;
-      const totalPending = sends?.filter(s => s.status === 'pending').length || 0;
-      const totalMessages = sends?.length || 0;
-      const deliveryRate = totalMessages > 0 ? (totalSent / totalMessages) * 100 : 0;
-
-      const uniquePhones = new Set(sends?.map(s => s.phone) || []);
-      const totalContacts = uniquePhones.size;
-
-      setStats({
-        totalSent,
-        totalDelivered,
-        totalFailed,
-        totalPending,
-        totalContacts,
-        totalMessages,
-        deliveryRate,
-      });
-
-      const { data: campaigns, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select('*')
-        .in('status', ['completed', 'cancelled', 'active', 'paused'])
-        .order('created_at', { ascending: false });
-
-      if (campaignsError) throw campaignsError;
-
-      const campaignReportsData = (campaigns || []).map((campaign) => {
-        const campaignSends = sends?.filter(s => s.campaign_id === campaign.id) || [];
-        const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
-        const delivered = campaignSends.filter(s => s.status === 'delivered').length;
-        const failed = campaignSends.filter(s => s.status === 'failed').length;
-        const pending = campaignSends.filter(s => s.status === 'pending').length;
-        const total = campaignSends.length;
-        const rate = total > 0 ? (sent / total) * 100 : 0;
-
-        return {
-          id: campaign.id,
-          name: campaign.name,
-          description: campaign.description,
-          created_at: campaign.created_at,
-          status: campaign.status,
-          sent,
-          delivered,
-          failed,
-          pending,
-          total,
-          deliveryRate: rate,
-          schedule_type: campaign.schedule_type,
-        };
-      });
-
-      setCampaignReports(campaignReportsData);
-
-      if (!isPolling) {
-        const { data: templates, error: templatesError } = await supabase
-          .from('message_templates')
-          .select('name, usage_count')
-          .order('usage_count', { ascending: false })
-          .limit(5);
-
-        if (templatesError) throw templatesError;
-        setTemplateStats(templates?.map(t => ({ name: t.name, usage: t.usage_count || 0 })) || []);
-      }
-
-    } catch (error) {
-      console.error('Error loading report data:', error);
-    } finally {
-      if (!isPolling) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadReportData();
-  }, [loadReportData]);
-
-  // Auto-polling when there are active campaigns
-  useEffect(() => {
-    const hasActive = campaignReports.some(c => c.status === 'active');
-    if (hasActive) {
-      pollingRef.current = setInterval(() => {
-        loadReportData(true);
-      }, 5000);
-    }
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [campaignReports, loadReportData]);
-
-  // Details dialog stats summary
+  // Details dialog stats
   const detailsStats = {
     sent: detailsSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     pending: detailsSends.filter(s => s.status === 'pending').length,
     failed: detailsSends.filter(s => s.status === 'failed').length,
     total: detailsSends.length,
+  };
+
+  const openDetails = (campaignId: string, campaignName: string) => {
+    setDetailsCampaignId(campaignId);
+    setDetailsCampaignName(campaignName);
+    setDetailsOpen(true);
   };
 
   if (loading) {
@@ -217,30 +102,10 @@ const Relatorio = () => {
   const hasActiveCampaigns = campaignReports.some(c => c.status === 'active');
 
   const metricas = [
-    {
-      titulo: "Total de Mensagens",
-      valor: stats.totalMessages.toLocaleString('pt-BR'),
-      icon: Send,
-      periodo: "Total de envios"
-    },
-    {
-      titulo: "Taxa de Entrega",
-      valor: `${stats.deliveryRate.toFixed(1)}%`,
-      icon: TrendingUp,
-      periodo: "Sucesso nos envios"
-    },
-    {
-      titulo: "Contatos Alcançados",
-      valor: stats.totalContacts.toLocaleString('pt-BR'),
-      icon: Users,
-      periodo: "Únicos"
-    },
-    {
-      titulo: "Pendentes",
-      valor: stats.totalPending.toLocaleString('pt-BR'),
-      icon: ClockIcon,
-      periodo: "Aguardando envio"
-    }
+    { titulo: "Total de Mensagens", valor: stats.totalMessages.toLocaleString('pt-BR'), icon: Send, periodo: "Total de envios" },
+    { titulo: "Taxa de Entrega", valor: `${stats.deliveryRate.toFixed(1)}%`, icon: TrendingUp, periodo: "Sucesso nos envios" },
+    { titulo: "Contatos Alcançados", valor: stats.totalContacts.toLocaleString('pt-BR'), icon: Users, periodo: "Únicos" },
+    { titulo: "Pendentes", valor: stats.totalPending.toLocaleString('pt-BR'), icon: ClockIcon, periodo: "Aguardando envio" },
   ];
 
   return (
@@ -249,14 +114,10 @@ const Relatorio = () => {
 
       <div className="flex justify-between items-center">
         <div className="flex gap-2 items-center">
-          <Button variant="outline" className="flex items-center gap-2" onClick={() => loadReportData()}>
-            <RefreshCw className="w-4 h-4" />
-            Atualizar
-          </Button>
           {hasActiveCampaigns && (
             <Badge variant="secondary" className="flex items-center gap-1 animate-pulse">
               <RefreshCw className="w-3 h-3 animate-spin" />
-              Atualizando em tempo real
+              Tempo real ativo
             </Badge>
           )}
         </div>
@@ -316,9 +177,6 @@ const Relatorio = () => {
                 <p className="font-semibold text-2xl text-yellow-600 dark:text-yellow-400">
                   {stats.totalPending.toLocaleString('pt-BR')}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {stats.totalMessages > 0 ? ((stats.totalPending / stats.totalMessages) * 100).toFixed(1) : 0}% do total
-                </p>
               </div>
             </div>
 
@@ -330,9 +188,6 @@ const Relatorio = () => {
               <div className="text-right">
                 <p className="font-semibold text-2xl text-red-600 dark:text-red-400">
                   {stats.totalFailed.toLocaleString('pt-BR')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {stats.totalMessages > 0 ? ((stats.totalFailed / stats.totalMessages) * 100).toFixed(1) : 0}% do total
                 </p>
               </div>
             </div>
@@ -392,15 +247,16 @@ const Relatorio = () => {
                       <Badge variant={
                         campanha.status === 'completed' ? 'default' : 
                         campanha.status === 'active' ? 'secondary' :
+                        campanha.status === 'paused' ? 'outline' :
                         'destructive'
                       }>
                         {campanha.status === 'completed' ? 'Concluída' :
                          campanha.status === 'active' ? 'Em Envio' :
+                         campanha.status === 'paused' ? 'Pausada' :
                          campanha.status === 'cancelled' ? 'Cancelada' : campanha.status}
                       </Badge>
                     </div>
 
-                    {/* Progress bar */}
                     <div className="mb-4">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>Progresso do envio</span>
@@ -483,12 +339,11 @@ const Relatorio = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de detalhes com atualização em tempo real */}
+      {/* Dialog de detalhes com tempo real */}
       <Dialog open={detailsOpen} onOpenChange={(open) => {
         setDetailsOpen(open);
         if (!open) {
           setDetailsCampaignId(null);
-          setDetailsSends([]);
         }
       }}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
@@ -499,7 +354,6 @@ const Relatorio = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {/* Stats summary inside details */}
           {!detailsLoading && detailsSends.length > 0 && (
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="p-3 bg-green-500/10 rounded-lg text-center">
