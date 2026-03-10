@@ -136,22 +136,43 @@ serve(async (req) => {
               
               // Check if device is connected
               if (!deviceStatus.connected || deviceStatus.connected === false) {
-                console.log(`❌ DISPOSITIVO DESCONECTADO! CANCELANDO campanha ${campaignId} automaticamente...`);
+                console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId} automaticamente...`);
                 console.log(`📊 Progresso: ${i}/${contacts.length} contatos processados antes da desconexão`);
                 console.log(`📋 Números não enviados: ${contacts.length - i}`);
                 
-                // CANCELAR campanha automaticamente
-                const { error: cancelError } = await supabase
+                // PAUSAR campanha automaticamente (não cancelar)
+                const { error: pauseError } = await supabase
                   .from('campaigns')
-                  .update({ status: 'cancelled' })
+                  .update({ status: 'paused', updated_at: new Date().toISOString() })
                   .eq('id', campaignId);
                 
-                if (cancelError) {
-                  console.error('Erro ao cancelar campanha:', cancelError);
+                if (pauseError) {
+                  console.error('Erro ao pausar campanha:', pauseError);
                 } else {
-                  console.log(`✅ Campanha ${campaignId} CANCELADA com sucesso devido à desconexão`);
-                  console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados`);
+                  console.log(`✅ Campanha ${campaignId} PAUSADA com sucesso devido à desconexão`);
                 }
+
+                // LIMPAR FILA DA Z-API para não enviar mensagens pendentes
+                try {
+                  const clearQueueUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/queue`;
+                  console.log(`🧹 Limpando fila da Z-API...`);
+                  const clearResponse = await fetch(clearQueueUrl, {
+                    method: 'DELETE',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Client-Token': zapiClientToken
+                    }
+                  });
+                  if (clearResponse.ok) {
+                    console.log(`✅ Fila da Z-API limpa com sucesso`);
+                  } else {
+                    console.error(`❌ Erro ao limpar fila da Z-API:`, await clearResponse.text());
+                  }
+                } catch (queueError) {
+                  console.error('Erro ao limpar fila da Z-API:', queueError);
+                }
+
+                console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados (dispositivo desconectado)`);
                 
                 return; // Exit background processing
               }
