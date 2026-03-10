@@ -387,11 +387,9 @@ export const useCampaigns = () => {
       if (remainingContacts.length === 0) {
         toast({
           title: "Campanha Finalizada",
-          description: "Todos os contatos já foram processados com sucesso",
+          description: "Todos os contatos já foram processados com sucesso. Verifique em Relatórios.",
           variant: "default",
         });
-        // Don't update status from client — let the user see the current state
-        // and move it to completed via the edge function or manual action
         await updateCampaign(id, { status: 'completed' });
         return;
       }

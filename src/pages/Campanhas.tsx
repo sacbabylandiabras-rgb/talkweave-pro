@@ -68,10 +68,29 @@ const Campanhas = () => {
     return () => setZapiInstanceOverride(null);
   }, [activeInstance]);
 
+  // Track previously active campaigns to detect completion
+  const [prevActiveCampaignIds, setPrevActiveCampaignIds] = useState<string[]>([]);
+
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
     activeCampaigns.forEach(c => loadStats(c.id));
+
+    // Detect campaigns that transitioned from active to completed
+    const currentActiveIds = campaigns.filter(c => c.status === 'active').map(c => c.id);
+    const justCompletedIds = prevActiveCampaignIds.filter(id => !currentActiveIds.includes(id));
+    
+    justCompletedIds.forEach(id => {
+      const campaign = campaigns.find(c => c.id === id);
+      if (campaign && campaign.status === 'completed') {
+        toast({
+          title: "✅ Campanha Concluída",
+          description: `"${campaign.name}" foi concluída. Veja os detalhes em Relatórios.`,
+        });
+      }
+    });
+    
+    setPrevActiveCampaignIds(currentActiveIds);
 
     // Polling para campanhas ativas (atualizar a cada 5s)
     if (activeCampaigns.some(c => c.status === 'active')) {
