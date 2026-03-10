@@ -206,30 +206,37 @@ serve(async (req) => {
             return; // Exit background processing
           }
           
-          // Then check if this contact was already processed successfully
-          const { data: existingSend } = await supabase
+          // Check if this exact contact iteration was already processed
+          // Use count of successful sends for this phone vs how many times this phone appears before current index
+          const { data: existingSends } = await supabase
             .from('campaign_sends')
             .select('id, status')
             .eq('campaign_id', campaignId)
-            .eq('phone', contact.phone)
-            .maybeSingle();
+            .eq('phone', contact.phone);
 
-          if (existingSend) {
-            if (existingSend.status === 'sent' || existingSend.status === 'delivered') {
-              console.log(`✓ Contact ${contact.phone} already processed, skipping`);
-              results.push({
-                phone: contact.phone,
-                success: true,
-                messageId: 'already-sent',
-              });
-              continue;
-            }
-            // Remove failed/pending record so we can retry
-            console.log(`🔄 Removing old ${existingSend.status} record for ${contact.phone} to retry`);
+          const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
+          const phoneOccurrencesBefore = contacts.slice(0, i).filter(c => c.phone === contact.phone).length;
+          const totalNeededForPhone = contacts.filter(c => c.phone === contact.phone).length;
+          
+          // If we already have enough successful sends for this phone, skip
+          if (successfulForPhone > phoneOccurrencesBefore) {
+            console.log(`✓ Contact ${contact.phone} (occurrence ${phoneOccurrencesBefore + 1}) already processed, skipping`);
+            results.push({
+              phone: contact.phone,
+              success: true,
+              messageId: 'already-sent',
+            });
+            continue;
+          }
+
+          // Remove any failed/pending records for retry (only one)
+          const failedOrPending = existingSends?.find(s => s.status === 'failed' || s.status === 'pending');
+          if (failedOrPending) {
+            console.log(`🔄 Removing old ${failedOrPending.status} record for ${contact.phone} to retry`);
             await supabase
               .from('campaign_sends')
               .delete()
-              .eq('id', existingSend.id);
+              .eq('id', failedOrPending.id);
           }
           
           console.log(`📤 [${i + 1}/${contacts.length}] Processing contact: ${contact.phone}`);
