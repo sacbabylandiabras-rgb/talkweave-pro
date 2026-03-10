@@ -70,8 +70,6 @@ const Campanhas = () => {
 
   // Track previously active campaigns to detect completion
   const [prevActiveCampaignIds, setPrevActiveCampaignIds] = useState<string[]>([]);
-  // Keep recently completed campaigns visible for a while
-  const [recentlyCompletedIds, setRecentlyCompletedIds] = useState<Set<string>>(new Set());
 
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
@@ -89,29 +87,21 @@ const Campanhas = () => {
           title: "✅ Campanha Concluída",
           description: `"${campaign.name}" foi concluída. Veja os detalhes em Relatórios.`,
         });
-        // Keep it visible for 30 seconds
-        setRecentlyCompletedIds(prev => new Set([...prev, id]));
-        setTimeout(() => {
-          setRecentlyCompletedIds(prev => {
-            const next = new Set(prev);
-            next.delete(id);
-            return next;
-          });
-        }, 30000);
       }
     });
     
     setPrevActiveCampaignIds(currentActiveIds);
 
     // Polling para campanhas ativas (atualizar a cada 5s)
-    if (activeCampaigns.some(c => c.status === 'active')) {
+    // Don't poll while progress dialog is open — it will refetch when closed
+    if (!showProgressDialog && activeCampaigns.some(c => c.status === 'active')) {
       const interval = setInterval(() => {
         campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
         refetch();
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
+  }, [campaigns.map(c => `${c.id}-${c.status}`).join(','), showProgressDialog]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
