@@ -8,12 +8,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +39,7 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    getCampaignStats,
+    
     sendCampaign,
     refetch
   } = useCampaigns();
@@ -42,7 +47,7 @@ const Campanhas = () => {
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   
-  const [campaignStats, setCampaignStats] = useState<Record<string, any>>({});
+  
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
@@ -57,10 +62,27 @@ const Campanhas = () => {
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
+  const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
 
-  const loadStats = async (campaignId: string) => {
-    const stats = await getCampaignStats(campaignId);
-    setCampaignStats(prev => ({ ...prev, [campaignId]: stats }));
+  // Realtime sends for stats dialog
+  const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
+    statsDialogOpen ? statsDialogCampaignId : null
+  );
+
+  const statsDialogStats = {
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
+    pending: statsDialogSends.filter(s => s.status === 'pending').length,
+    failed: statsDialogSends.filter(s => s.status === 'failed').length,
+    total: statsDialogSends.length,
+  };
+
+  const openStatsDialog = (campaignId: string, campaignName: string) => {
+    setStatsDialogCampaignId(campaignId);
+    setStatsDialogCampaignName(campaignName);
+    setStatsDialogOpen(true);
   };
 
   // Definir instância ativa como override
@@ -74,8 +96,6 @@ const Campanhas = () => {
 
   // Realtime subscription for campaign_sends to update stats instantly
   useEffect(() => {
-    const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
-    activeCampaigns.forEach(c => loadStats(c.id));
 
     // Track any campaign that becomes active during this session
     const currentActiveIds = campaigns.filter(c => c.status === 'active').map(c => c.id);
@@ -112,8 +132,7 @@ const Campanhas = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'campaign_sends' },
         () => {
-          // Reload stats for active campaigns
-          campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
+          refetch();
         }
       )
       .subscribe();
@@ -474,61 +493,12 @@ const Campanhas = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => loadStats(campaign.id)}
+                    onClick={() => openStatsDialog(campaign.id, campaign.name)}
                   >
                     <BarChart3 className="w-4 h-4 mr-1" />
                     Ver Estatísticas
                   </Button>
                 </div>
-
-                {campaignStats[campaign.id] && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2 p-3 bg-muted/30 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">{campaignStats[campaign.id].totalContacts}</div>
-                        <div className="text-xs text-muted-foreground">Total Contatos</div>
-                      </div>
-                      {campaign.status === 'paused' && campaignStats[campaign.id].remaining > 0 && (
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-orange-600">{campaignStats[campaign.id].remaining}</div>
-                          <div className="text-xs text-muted-foreground">Restantes</div>
-                        </div>
-                      )}
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-600">{campaignStats[campaign.id].pending}</div>
-                        <div className="text-xs text-muted-foreground">Pendentes</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{campaignStats[campaign.id].sent}</div>
-                        <div className="text-xs text-muted-foreground">Enviadas</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{campaignStats[campaign.id].delivered}</div>
-                        <div className="text-xs text-muted-foreground">Entregues</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{campaignStats[campaign.id].failed}</div>
-                        <div className="text-xs text-muted-foreground">Falhas</div>
-                      </div>
-                    </div>
-                    
-                    {/* Relatório de números não enviados para campanhas canceladas */}
-                    {campaign.status === 'cancelled' && campaignStats[campaign.id].remaining > 0 && (
-                      <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg">
-                        <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-semibold mb-2">
-                          <XCircle className="w-4 h-4" />
-                          <span>Campanha Cancelada - Números Não Enviados</span>
-                        </div>
-                        <p className="text-sm text-red-600 dark:text-red-300 mb-2">
-                          Esta campanha foi cancelada. <strong>{campaignStats[campaign.id].remaining} números não receberam a mensagem</strong> devido à desconexão do dispositivo.
-                        </p>
-                        <div className="text-xs text-muted-foreground">
-                          💡 Dica: Use o botão "Duplicar" para recriar a campanha e enviar aos números restantes.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                   <span>Tipo: {campaign.schedule_type === 'immediate' ? 'Imediato' : campaign.schedule_type === 'scheduled' ? 'Agendado' : 'Recorrente'}</span>
@@ -623,6 +593,110 @@ const Campanhas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Estatísticas em Tempo Real */}
+      <Dialog open={statsDialogOpen} onOpenChange={(open) => {
+        setStatsDialogOpen(open);
+        if (!open) setStatsDialogCampaignId(null);
+      }}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Estatísticas - {statsDialogCampaignName}
+              {statsDialogStats.pending > 0 && (
+                <Badge variant="secondary" className="animate-pulse ml-2">
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  Tempo real
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {statsDialogLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : statsDialogSends.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum envio registrado para esta campanha
+            </div>
+          ) : (
+            <>
+              {/* Progress bar */}
+              <div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Progresso do envio</span>
+                  <span>{statsDialogStats.total > 0 ? (((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100).toFixed(0) : 0}%</span>
+                </div>
+                <Progress value={statsDialogStats.total > 0 ? ((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100 : 0} className="h-2" />
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-muted/50 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="font-bold text-lg">{statsDialogStats.total}</p>
+                </div>
+                <div className="p-3 bg-green-500/10 rounded-lg text-center">
+                  <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                  <p className="font-bold text-lg text-green-600 dark:text-green-400">{statsDialogStats.sent}</p>
+                </div>
+                <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
+                  <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{statsDialogStats.pending}</p>
+                </div>
+                <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Falhas</p>
+                  <p className="font-bold text-lg text-destructive">{statsDialogStats.failed}</p>
+                </div>
+              </div>
+
+              {/* Table with details */}
+              <ScrollArea className="max-h-[40vh]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Enviado em</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statsDialogSends.map((send) => (
+                      <TableRow key={send.id}>
+                        <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
+                        <TableCell>{send.phone}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                            className="flex items-center gap-1 w-fit"
+                          >
+                            {send.status === 'sent' || send.status === 'delivered' ? (
+                              <><CheckCircle className="w-3 h-3" /> Enviada</>
+                            ) : send.status === 'pending' ? (
+                              <><ClockIcon className="w-3 h-3" /> Pendente</>
+                            ) : (
+                              <><XCircle className="w-3 h-3" /> Falhou</>
+                            )}
+                          </Badge>
+                          {send.error_message && (
+                            <p className="text-xs text-destructive mt-1">{send.error_message}</p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
