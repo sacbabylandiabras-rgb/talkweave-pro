@@ -52,6 +52,10 @@ const Campanhas = () => {
   const [totalContactsCount, setTotalContactsCount] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
@@ -101,28 +105,22 @@ const Campanhas = () => {
     await refetch();
   };
 
-  const handleResumeCampaign = async (id: string) => {
-    // CONFIRMAÇÃO obrigatória para evitar retomadas acidentais
-    const campaign = campaigns.find(c => c.id === id);
-    const confirmed = confirm(
-      `⚠️ ATENÇÃO: Deseja realmente RETOMAR esta campanha?\n\n` +
-      `📤 Campanha: ${campaign?.name || 'Desconhecida'}\n` +
-      `🔄 A campanha continuará de onde parou\n\n` +
-      `Esta ação iniciará o envio de mensagens!`
-    );
+  const handleResumeCampaign = (id: string) => {
+    setCampaignToResume(id);
+    setResumeDialogOpen(true);
+  };
 
-    if (!confirmed) {
-      console.log('❌ Retomada de campanha cancelada pelo usuário');
-      return;
-    }
-
+  const confirmResumeCampaign = async () => {
+    if (!campaignToResume) return;
     try {
-      console.log(`✅ Usuário confirmou retomada da campanha ${id}`);
-      await resumeCampaign(id);
+      await resumeCampaign(campaignToResume);
       await refetch();
     } catch (error) {
       console.error('Error resuming campaign:', error);
     }
+    setResumeDialogOpen(false);
+    setCampaignToResume(null);
+  };
   };
 
   const handleDeleteCampaign = (id: string) => {
@@ -171,18 +169,15 @@ const Campanhas = () => {
       return;
     }
 
-    // CONFIRMAÇÃO obrigatória para evitar envios acidentais
-    const confirmed = confirm(
-      `⚠️ ATENÇÃO: Deseja realmente ENVIAR esta campanha?\n\n` +
-      `📤 Campanha: ${campaign.name}\n` +
-      `👥 Total de contatos: ${campaign.target_audience.contacts.length}\n\n` +
-      `Esta ação NÃO pode ser desfeita!`
-    );
+    setCampaignToSend(campaign);
+    setSendDialogOpen(true);
+  };
 
-    if (!confirmed) {
-      console.log('❌ Envio de campanha cancelado pelo usuário');
-      return;
-    }
+  const confirmSendCampaign = async () => {
+    if (!campaignToSend) return;
+    const campaign = campaignToSend;
+    setSendDialogOpen(false);
+    setCampaignToSend(null);
 
     try {
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
@@ -514,6 +509,48 @@ const Campanhas = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteCampaign} className="bg-destructive hover:bg-destructive/90">
               Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resumeDialogOpen} onOpenChange={setResumeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retomar Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente retomar esta campanha? A campanha continuará de onde parou e iniciará o envio de mensagens.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResumeCampaign}>
+              Sim, Retomar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              {campaignToSend && (
+                <>
+                  Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>?
+                  <br />
+                  👥 Total de contatos: {campaignToSend.target_audience?.contacts?.length || 0}
+                  <br /><br />
+                  Esta ação não pode ser desfeita!
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendCampaign}>
+              Sim, Enviar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
