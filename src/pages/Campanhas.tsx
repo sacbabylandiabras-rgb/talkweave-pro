@@ -593,6 +593,110 @@ const Campanhas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Estatísticas em Tempo Real */}
+      <Dialog open={statsDialogOpen} onOpenChange={(open) => {
+        setStatsDialogOpen(open);
+        if (!open) setStatsDialogCampaignId(null);
+      }}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Estatísticas - {statsDialogCampaignName}
+              {statsDialogStats.pending > 0 && (
+                <Badge variant="secondary" className="animate-pulse ml-2">
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  Tempo real
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {statsDialogLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : statsDialogSends.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum envio registrado para esta campanha
+            </div>
+          ) : (
+            <>
+              {/* Progress bar */}
+              <div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Progresso do envio</span>
+                  <span>{statsDialogStats.total > 0 ? (((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100).toFixed(0) : 0}%</span>
+                </div>
+                <Progress value={statsDialogStats.total > 0 ? ((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100 : 0} className="h-2" />
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-muted/50 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="font-bold text-lg">{statsDialogStats.total}</p>
+                </div>
+                <div className="p-3 bg-green-500/10 rounded-lg text-center">
+                  <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                  <p className="font-bold text-lg text-green-600 dark:text-green-400">{statsDialogStats.sent}</p>
+                </div>
+                <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
+                  <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{statsDialogStats.pending}</p>
+                </div>
+                <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Falhas</p>
+                  <p className="font-bold text-lg text-destructive">{statsDialogStats.failed}</p>
+                </div>
+              </div>
+
+              {/* Table with details */}
+              <ScrollArea className="max-h-[40vh]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Enviado em</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statsDialogSends.map((send) => (
+                      <TableRow key={send.id}>
+                        <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
+                        <TableCell>{send.phone}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                            className="flex items-center gap-1 w-fit"
+                          >
+                            {send.status === 'sent' || send.status === 'delivered' ? (
+                              <><CheckCircle className="w-3 h-3" /> Enviada</>
+                            ) : send.status === 'pending' ? (
+                              <><ClockIcon className="w-3 h-3" /> Pendente</>
+                            ) : (
+                              <><XCircle className="w-3 h-3" /> Falhou</>
+                            )}
+                          </Badge>
+                          {send.error_message && (
+                            <p className="text-xs text-destructive mt-1">{send.error_message}</p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
