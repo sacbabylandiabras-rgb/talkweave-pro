@@ -433,6 +433,40 @@ const EnviarMensagem = () => {
           });
           break;
         }
+
+        // Verificar se o dispositivo está conectado antes de cada envio
+        try {
+          const { data: statusData } = await supabase.functions.invoke('get-device-status');
+          if (statusData && statusData.data && (!statusData.data.connected || statusData.data.connected === false)) {
+            // Salvar envios pendentes
+            if (campaignSends.length > 0) {
+              await supabase.from('campaign_sends').insert(campaignSends);
+              campaignSends.length = 0;
+            }
+            // Pausar campanha
+            await supabase
+              .from('campaigns')
+              .update({ status: 'paused' })
+              .eq('id', campanha.id);
+            
+            // Limpar fila da Z-API
+            try {
+              await supabase.functions.invoke('clear-zapi-queue');
+            } catch (qErr) {
+              console.error('Erro ao limpar fila Z-API:', qErr);
+            }
+
+            toast({
+              title: "Dispositivo desconectado!",
+              description: `Envio pausado automaticamente. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+              variant: "destructive"
+            });
+            setEnviandoEmMassa(false);
+            return;
+          }
+        } catch (statusErr) {
+          console.error('Erro ao verificar status do dispositivo:', statusErr);
+        }
         
         const contato = contatosProcessados[i];
         let sendStatus = 'failed';
