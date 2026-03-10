@@ -132,8 +132,7 @@ const Campanhas = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'campaign_sends' },
         () => {
-          // Reload stats for active campaigns
-          campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
+          refetch();
         }
       )
       .subscribe();
