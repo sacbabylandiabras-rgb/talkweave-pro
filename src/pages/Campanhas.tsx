@@ -183,7 +183,7 @@ const Campanhas = () => {
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
       
       // Set up progress dialog
-      setTotalContactsCount(campaign.target_audience.contacts.length);
+      setTotalContactsCount(campaign.target_audience?.contacts?.length || 0);
       setSendingCampaignId(campaign.id);
       setShowProgressDialog(true);
 
