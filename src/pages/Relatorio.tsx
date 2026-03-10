@@ -84,34 +84,35 @@ const Relatorio = () => {
         .from('campaigns')
         .select('*')
         .in('status', ['completed', 'cancelled', 'active'])
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (campaignsError) throw campaignsError;
 
       // Calculate stats for each campaign
-      const campaignReportsData = await Promise.all(
-        (campaigns || []).map(async (campaign) => {
-          const campaignSends = sends?.filter(s => s.campaign_id === campaign.id) || [];
-          const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
-          const delivered = campaignSends.filter(s => s.status === 'delivered').length;
-          const failed = campaignSends.filter(s => s.status === 'failed').length;
-          const total = campaignSends.length;
-          const rate = total > 0 ? (sent / total) * 100 : 0;
+      const campaignReportsData = (campaigns || []).map((campaign) => {
+        const campaignSends = sends?.filter(s => s.campaign_id === campaign.id) || [];
+        const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
+        const delivered = campaignSends.filter(s => s.status === 'delivered').length;
+        const failed = campaignSends.filter(s => s.status === 'failed').length;
+        const pending = campaignSends.filter(s => s.status === 'pending').length;
+        const total = campaignSends.length;
+        const rate = total > 0 ? (sent / total) * 100 : 0;
 
-          return {
-            id: campaign.id,
-            name: campaign.name,
-            created_at: campaign.created_at,
-            status: campaign.status,
-            sent,
-            delivered,
-            failed,
-            total,
-            deliveryRate: rate,
-          };
-        })
-      );
+        return {
+          id: campaign.id,
+          name: campaign.name,
+          description: campaign.description,
+          created_at: campaign.created_at,
+          status: campaign.status,
+          sent,
+          delivered,
+          failed,
+          pending,
+          total,
+          deliveryRate: rate,
+          schedule_type: campaign.schedule_type,
+        };
+      });
 
       setCampaignReports(campaignReportsData);
 
