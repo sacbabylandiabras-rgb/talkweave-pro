@@ -482,8 +482,8 @@ const Campanhas = () => {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          ));
+        })()}
       </div>
 
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
