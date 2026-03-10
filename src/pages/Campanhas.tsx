@@ -39,7 +39,7 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    getCampaignStats,
+    
     sendCampaign,
     refetch
   } = useCampaigns();
