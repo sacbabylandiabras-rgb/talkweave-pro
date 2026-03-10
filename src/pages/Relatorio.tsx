@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Download, TrendingUp, Calendar, Users, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarChart3, Download, TrendingUp, Calendar, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,6 +46,32 @@ const Relatorio = () => {
   });
   const [campaignReports, setCampaignReports] = useState<CampaignReport[]>([]);
   const [templateStats, setTemplateStats] = useState<Array<{ name: string; usage: number }>>([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsCampaignId, setDetailsCampaignId] = useState<string | null>(null);
+  const [detailsCampaignName, setDetailsCampaignName] = useState("");
+  const [detailsSends, setDetailsSends] = useState<any[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const openDetails = async (campaignId: string, campaignName: string) => {
+    setDetailsCampaignId(campaignId);
+    setDetailsCampaignName(campaignName);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('campaign_sends')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setDetailsSends(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar detalhes:', err);
+      setDetailsSends([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadReportData();
@@ -353,6 +382,19 @@ const Relatorio = () => {
                         <p className="font-bold text-lg text-primary">{campanha.deliveryRate.toFixed(1)}%</p>
                       </div>
                     </div>
+
+                    {/* Botão de detalhes */}
+                    <div className="mt-4 flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => openDetails(campanha.id, campanha.name)}
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Detalhes
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -386,6 +428,72 @@ const Relatorio = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de detalhes */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Detalhes - {detailsCampaignName}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : detailsSends.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum envio registrado para esta campanha
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Enviado em</TableHead>
+                    <TableHead className="max-w-[200px]">Mensagem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailsSends.map((send) => (
+                    <TableRow key={send.id}>
+                      <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
+                      <TableCell>{send.phone}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          {send.status === 'sent' || send.status === 'delivered' ? (
+                            <><CheckCircle className="w-3 h-3" /> Enviada</>
+                          ) : send.status === 'pending' ? (
+                            <><ClockIcon className="w-3 h-3" /> Pendente</>
+                          ) : (
+                            <><XCircle className="w-3 h-3" /> Falhou</>
+                          )}
+                        </Badge>
+                        {send.error_message && (
+                          <p className="text-xs text-destructive mt-1">{send.error_message}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={send.message_content}>
+                        {send.message_content?.substring(0, 80)}{send.message_content?.length > 80 ? '...' : ''}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
