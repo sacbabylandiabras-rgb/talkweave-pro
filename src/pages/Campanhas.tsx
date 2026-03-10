@@ -535,16 +535,18 @@ const Campanhas = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Enviar Campanha</AlertDialogTitle>
-            <AlertDialogDescription>
-              {campaignToSend && (
-                <>
-                  Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>?
-                  <br />
-                  👥 Total de contatos: {campaignToSend.target_audience?.contacts?.length || 0}
-                  <br /><br />
-                  Esta ação não pode ser desfeita!
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                {campaignToSend && (
+                  <>
+                    Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>?
+                    <br />
+                    👥 Total de contatos: {campaignToSend.target_audience?.contacts?.length || 0}
+                    <br /><br />
+                    Esta ação não pode ser desfeita!
+                  </>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
