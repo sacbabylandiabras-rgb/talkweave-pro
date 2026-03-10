@@ -52,6 +52,10 @@ const Campanhas = () => {
   const [totalContactsCount, setTotalContactsCount] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
