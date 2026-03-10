@@ -455,7 +455,6 @@ const Relatorio = () => {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Enviado em</TableHead>
-                    <TableHead className="max-w-[200px]">Mensagem</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -482,9 +481,6 @@ const Relatorio = () => {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={send.message_content}>
-                        {send.message_content?.substring(0, 80)}{send.message_content?.length > 80 ? '...' : ''}
                       </TableCell>
                     </TableRow>
                   ))}
