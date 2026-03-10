@@ -125,9 +125,16 @@ const Campanhas = () => {
     }
   };
 
-  const handleDeleteCampaign = async (id: string) => {
-    if (confirm("Tem certeza que deseja excluir esta campanha?")) {
-      await deleteCampaign(id);
+  const handleDeleteCampaign = (id: string) => {
+    setCampaignToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (campaignToDelete) {
+      await deleteCampaign(campaignToDelete);
+      setDeleteDialogOpen(false);
+      setCampaignToDelete(null);
     }
   };
 
