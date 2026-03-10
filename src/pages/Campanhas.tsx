@@ -50,6 +50,8 @@ const Campanhas = () => {
   const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
   const [totalContactsCount, setTotalContactsCount] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
@@ -123,9 +125,16 @@ const Campanhas = () => {
     }
   };
 
-  const handleDeleteCampaign = async (id: string) => {
-    if (confirm("Tem certeza que deseja excluir esta campanha?")) {
-      await deleteCampaign(id);
+  const handleDeleteCampaign = (id: string) => {
+    setCampaignToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (campaignToDelete) {
+      await deleteCampaign(campaignToDelete);
+      setDeleteDialogOpen(false);
+      setCampaignToDelete(null);
     }
   };
 
@@ -488,6 +497,23 @@ const Campanhas = () => {
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelCampaign} className="bg-red-600 hover:bg-red-700">
               Sim, Cancelar Campanha
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteCampaign} className="bg-destructive hover:bg-destructive/90">
+              Sim, Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
