@@ -131,13 +131,19 @@ const Campanhas = () => {
 
   const confirmResumeCampaign = async () => {
     if (!campaignToResume) return;
+    setResumeDialogOpen(false);
+    
     try {
+      // Open progress dialog to track the resumed campaign
+      setSendingCampaignId(campaignToResume);
+      setShowProgressDialog(true);
+      
       await resumeCampaign(campaignToResume);
-      await refetch();
+      // Don't refetch immediately - let the progress dialog and polling handle it
     } catch (error) {
       console.error('Error resuming campaign:', error);
+      setShowProgressDialog(false);
     }
-    setResumeDialogOpen(false);
     setCampaignToResume(null);
   };
 
