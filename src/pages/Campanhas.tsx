@@ -96,8 +96,6 @@ const Campanhas = () => {
 
   // Realtime subscription for campaign_sends to update stats instantly
   useEffect(() => {
-    const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
-    activeCampaigns.forEach(c => loadStats(c.id));
 
     // Track any campaign that becomes active during this session
     const currentActiveIds = campaigns.filter(c => c.status === 'active').map(c => c.id);
