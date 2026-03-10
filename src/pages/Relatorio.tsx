@@ -256,74 +256,106 @@ const Relatorio = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Campanhas Recentes</CardTitle>
-              <CardDescription>Resultados das últimas campanhas</CardDescription>
+              <CardTitle>Relatório de Campanhas e Envios em Massa</CardTitle>
+              <CardDescription>Detalhamento individual de cada campanha e envio</CardDescription>
             </div>
+            <Badge variant="outline">{campaignReports.length} registro(s)</Badge>
           </div>
         </CardHeader>
         <CardContent>
           {campaignReports.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhuma campanha encontrada
+              Nenhuma campanha ou envio em massa encontrado
             </div>
           ) : (
-            <div className="space-y-4">
-              {campaignReports.map((campanha) => (
-                <div 
-                  key={campanha.id} 
-                  className={`border rounded-lg p-4 ${campanha.status === 'active' ? 'border-primary bg-primary/5 shadow-lg' : ''}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <h3 className="font-medium">{campanha.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            <div className="space-y-6">
+              {campaignReports.map((campanha) => {
+                const progressPercent = campanha.total > 0 ? ((campanha.sent + campanha.failed) / campanha.total) * 100 : 0;
+                const isEnvioMassa = campanha.schedule_type === 'immediate' && !campanha.description;
+                
+                return (
+                  <div 
+                    key={campanha.id} 
+                    className={`border rounded-lg p-5 ${campanha.status === 'active' ? 'border-primary bg-primary/5 shadow-lg' : 'bg-card'}`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-base">{campanha.name}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {isEnvioMassa ? 'Envio em Massa' : 'Campanha'}
+                            </Badge>
+                          </div>
+                          {campanha.description && (
+                            <p className="text-sm text-muted-foreground mt-0.5">{campanha.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        {campanha.status === 'active' && (
+                          <Badge variant="secondary" className="animate-pulse">
+                            Enviando Agora
+                          </Badge>
+                        )}
+                      </div>
+                      <Badge variant={
+                        campanha.status === 'completed' ? 'default' : 
+                        campanha.status === 'active' ? 'secondary' :
+                        'destructive'
+                      }>
+                        {campanha.status === 'completed' ? 'Concluída' :
+                         campanha.status === 'active' ? 'Em Envio' :
+                         campanha.status === 'cancelled' ? 'Cancelada' : campanha.status}
+                      </Badge>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Progresso do envio</span>
+                        <span>{progressPercent.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full transition-all" 
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div className="p-3 bg-muted/50 rounded-lg text-center">
+                        <p className="text-muted-foreground text-xs">Total</p>
+                        <p className="font-bold text-lg">{campanha.total.toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="p-3 bg-primary/10 rounded-lg text-center">
+                        <p className="text-muted-foreground text-xs">Enviadas</p>
+                        <p className="font-bold text-lg text-primary">
+                          {campanha.sent.toLocaleString('pt-BR')}
                         </p>
                       </div>
-                      {campanha.status === 'active' && (
-                        <Badge variant="secondary" className="animate-pulse">
-                          Enviando Agora
-                        </Badge>
-                      )}
-                    </div>
-                    <Badge variant={
-                      campanha.status === 'completed' ? 'default' : 
-                      campanha.status === 'active' ? 'secondary' :
-                      campanha.status === 'paused' ? 'outline' : 
-                      'destructive'
-                    }>
-                      {campanha.status === 'completed' ? 'Concluída' :
-                       campanha.status === 'active' ? 'Ativa' :
-                       campanha.status === 'paused' ? 'Pausada' :
-                       campanha.status === 'cancelled' ? 'Cancelada' : 'Rascunho'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Total</p>
-                      <p className="font-semibold">{campanha.total.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Enviadas</p>
-                      <p className="font-semibold text-green-600 dark:text-green-400">
-                        {campanha.sent.toLocaleString('pt-BR')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Falhas</p>
-                      <p className="font-semibold text-red-600 dark:text-red-400">
-                        {campanha.failed.toLocaleString('pt-BR')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Taxa de Sucesso</p>
-                      <p className="font-semibold text-primary">{campanha.deliveryRate.toFixed(1)}%</p>
+                      <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                        <p className="text-muted-foreground text-xs">Falhas</p>
+                        <p className="font-bold text-lg text-destructive">
+                          {campanha.failed.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-lg text-center">
+                        <p className="text-muted-foreground text-xs">Pendentes</p>
+                        <p className="font-bold text-lg">
+                          {campanha.pending.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-primary/10 rounded-lg text-center">
+                        <p className="text-muted-foreground text-xs">Taxa de Sucesso</p>
+                        <p className="font-bold text-lg text-primary">{campanha.deliveryRate.toFixed(1)}%</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
