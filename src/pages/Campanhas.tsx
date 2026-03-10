@@ -121,7 +121,6 @@ const Campanhas = () => {
     setResumeDialogOpen(false);
     setCampaignToResume(null);
   };
-  };
 
   const handleDeleteCampaign = (id: string) => {
     setCampaignToDelete(id);
