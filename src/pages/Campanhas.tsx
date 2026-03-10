@@ -68,40 +68,43 @@ const Campanhas = () => {
     return () => setZapiInstanceOverride(null);
   }, [activeInstance]);
 
-  // Track previously active campaigns to detect completion
-  const [prevActiveCampaignIds, setPrevActiveCampaignIds] = useState<string[]>([]);
+  // Track campaign IDs that were active during this session — keep them visible even after completing
+  const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
 
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
     activeCampaigns.forEach(c => loadStats(c.id));
 
-    // Detect campaigns that transitioned from active to completed
+    // Track any campaign that becomes active during this session
     const currentActiveIds = campaigns.filter(c => c.status === 'active').map(c => c.id);
-    const justCompletedIds = prevActiveCampaignIds.filter(id => !currentActiveIds.includes(id));
-    
-    justCompletedIds.forEach(id => {
-      const campaign = campaigns.find(c => c.id === id);
-      if (campaign && campaign.status === 'completed') {
+    if (currentActiveIds.length > 0) {
+      setSessionActiveIds(prev => {
+        const next = new Set(prev);
+        currentActiveIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+
+    // Show toast when a session-tracked campaign completes
+    currentActiveIds.length === 0 && sessionActiveIds.size > 0 && campaigns.forEach(c => {
+      if (sessionActiveIds.has(c.id) && c.status === 'completed') {
         toast({
           title: "✅ Campanha Concluída",
-          description: `"${campaign.name}" foi concluída. Veja os detalhes em Relatórios.`,
+          description: `"${c.name}" terminou de enviar. Disponível em Relatórios.`,
         });
       }
     });
-    
-    setPrevActiveCampaignIds(currentActiveIds);
 
     // Polling para campanhas ativas (atualizar a cada 5s)
-    // Don't poll while progress dialog is open — it will refetch when closed
-    if (!showProgressDialog && activeCampaigns.some(c => c.status === 'active')) {
+    if (activeCampaigns.some(c => c.status === 'active')) {
       const interval = setInterval(() => {
         campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
         refetch();
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [campaigns.map(c => `${c.id}-${c.status}`).join(','), showProgressDialog]);
+  }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -288,7 +291,8 @@ const Campanhas = () => {
       <div className="grid gap-4">
         {(() => {
           const visibleCampaigns = campaigns.filter(c => 
-            c.status === 'draft' || c.status === 'paused' || c.status === 'active'
+            c.status === 'draft' || c.status === 'paused' || c.status === 'active' ||
+            (c.status === 'completed' && sessionActiveIds.has(c.id))
           );
           
           if (visibleCampaigns.length === 0) {
