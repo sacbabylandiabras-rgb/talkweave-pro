@@ -428,6 +428,72 @@ const Relatorio = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de detalhes */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Detalhes - {detailsCampaignName}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : detailsSends.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum envio registrado para esta campanha
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Enviado em</TableHead>
+                    <TableHead className="max-w-[200px]">Mensagem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailsSends.map((send) => (
+                    <TableRow key={send.id}>
+                      <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
+                      <TableCell>{send.phone}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          {send.status === 'sent' || send.status === 'delivered' ? (
+                            <><CheckCircle className="w-3 h-3" /> Enviada</>
+                          ) : send.status === 'pending' ? (
+                            <><ClockIcon className="w-3 h-3" /> Pendente</>
+                          ) : (
+                            <><XCircle className="w-3 h-3" /> Falhou</>
+                          )}
+                        </Badge>
+                        {send.error_message && (
+                          <p className="text-xs text-destructive mt-1">{send.error_message}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={send.message_content}>
+                        {send.message_content?.substring(0, 80)}{send.message_content?.length > 80 ? '...' : ''}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
