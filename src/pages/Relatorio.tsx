@@ -46,6 +46,32 @@ const Relatorio = () => {
   });
   const [campaignReports, setCampaignReports] = useState<CampaignReport[]>([]);
   const [templateStats, setTemplateStats] = useState<Array<{ name: string; usage: number }>>([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsCampaignId, setDetailsCampaignId] = useState<string | null>(null);
+  const [detailsCampaignName, setDetailsCampaignName] = useState("");
+  const [detailsSends, setDetailsSends] = useState<any[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const openDetails = async (campaignId: string, campaignName: string) => {
+    setDetailsCampaignId(campaignId);
+    setDetailsCampaignName(campaignName);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('campaign_sends')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setDetailsSends(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar detalhes:', err);
+      setDetailsSends([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadReportData();
