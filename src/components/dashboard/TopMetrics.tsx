@@ -8,7 +8,15 @@ export function TopMetrics() {
   const [metrics, setMetrics] = useState({ campaigns: 0, templates: 0, contacts: 0 });
 
   useEffect(() => {
-    loadMetrics();
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        loadMetrics();
+      } else {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   const loadMetrics = async () => {
