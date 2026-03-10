@@ -260,21 +260,29 @@ const Campanhas = () => {
       />
 
       <div className="grid gap-4">
-        {campaigns.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                Nenhuma campanha criada ainda. Crie sua primeira campanha agora!
-              </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Primeira Campanha
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          campaigns.map((campaign) => (
+        {(() => {
+          const visibleCampaigns = campaigns.filter(c => 
+            c.status === 'draft' || c.status === 'paused' || c.status === 'active'
+          );
+          
+          if (visibleCampaigns.length === 0) {
+            return (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    Nenhuma campanha pendente ou pausada. Crie uma nova campanha!
+                  </p>
+                  <Button onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Campanha
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+          
+          return visibleCampaigns.map((campaign) => (
             <Card key={campaign.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
