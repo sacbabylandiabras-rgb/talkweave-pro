@@ -33,8 +33,15 @@ serve(async (req) => {
       }
     })
 
-    const zapiData = await zapiResponse.json()
-
+    let zapiData: any = {};
+    try {
+      const responseText = await zapiResponse.text();
+      if (responseText && responseText.trim()) {
+        zapiData = JSON.parse(responseText);
+      }
+    } catch (_parseErr) {
+      // Empty or non-JSON response is fine for DELETE
+    }
     if (!zapiResponse.ok) {
       console.error('❌ Failed to clear Z-API queue:', zapiData);
       return new Response(
