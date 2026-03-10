@@ -105,28 +105,22 @@ const Campanhas = () => {
     await refetch();
   };
 
-  const handleResumeCampaign = async (id: string) => {
-    // CONFIRMAÇÃO obrigatória para evitar retomadas acidentais
-    const campaign = campaigns.find(c => c.id === id);
-    const confirmed = confirm(
-      `⚠️ ATENÇÃO: Deseja realmente RETOMAR esta campanha?\n\n` +
-      `📤 Campanha: ${campaign?.name || 'Desconhecida'}\n` +
-      `🔄 A campanha continuará de onde parou\n\n` +
-      `Esta ação iniciará o envio de mensagens!`
-    );
+  const handleResumeCampaign = (id: string) => {
+    setCampaignToResume(id);
+    setResumeDialogOpen(true);
+  };
 
-    if (!confirmed) {
-      console.log('❌ Retomada de campanha cancelada pelo usuário');
-      return;
-    }
-
+  const confirmResumeCampaign = async () => {
+    if (!campaignToResume) return;
     try {
-      console.log(`✅ Usuário confirmou retomada da campanha ${id}`);
-      await resumeCampaign(id);
+      await resumeCampaign(campaignToResume);
       await refetch();
     } catch (error) {
       console.error('Error resuming campaign:', error);
     }
+    setResumeDialogOpen(false);
+    setCampaignToResume(null);
+  };
   };
 
   const handleDeleteCampaign = (id: string) => {
