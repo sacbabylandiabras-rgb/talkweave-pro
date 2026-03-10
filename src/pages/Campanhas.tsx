@@ -8,12 +8,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
 import {
   AlertDialog,
   AlertDialogAction,
