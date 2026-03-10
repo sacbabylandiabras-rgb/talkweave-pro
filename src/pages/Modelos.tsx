@@ -412,13 +412,23 @@ const Modelos = () => {
     }
   };
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (confirm('Tem certeza que deseja remover este modelo?')) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+
+  const handleDeleteTemplate = (templateId: string) => {
+    setTemplateToDelete(templateId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (templateToDelete) {
       try {
-        await deleteTemplate(templateId);
+        await deleteTemplate(templateToDelete);
       } catch (error) {
         console.error('Error deleting template:', error);
       }
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
     }
   };
 
