@@ -455,7 +455,6 @@ const Relatorio = () => {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Enviado em</TableHead>
-                    <TableHead className="max-w-[200px]">Mensagem</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
