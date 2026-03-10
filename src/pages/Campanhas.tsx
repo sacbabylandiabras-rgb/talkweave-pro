@@ -62,10 +62,27 @@ const Campanhas = () => {
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
+  const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
 
-  const loadStats = async (campaignId: string) => {
-    const stats = await getCampaignStats(campaignId);
-    setCampaignStats(prev => ({ ...prev, [campaignId]: stats }));
+  // Realtime sends for stats dialog
+  const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
+    statsDialogOpen ? statsDialogCampaignId : null
+  );
+
+  const statsDialogStats = {
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
+    pending: statsDialogSends.filter(s => s.status === 'pending').length,
+    failed: statsDialogSends.filter(s => s.status === 'failed').length,
+    total: statsDialogSends.length,
+  };
+
+  const openStatsDialog = (campaignId: string, campaignName: string) => {
+    setStatsDialogCampaignId(campaignId);
+    setStatsDialogCampaignName(campaignName);
+    setStatsDialogOpen(true);
   };
 
   // Definir instância ativa como override
