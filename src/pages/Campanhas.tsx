@@ -493,61 +493,12 @@ const Campanhas = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => loadStats(campaign.id)}
+                    onClick={() => openStatsDialog(campaign.id, campaign.name)}
                   >
                     <BarChart3 className="w-4 h-4 mr-1" />
                     Ver Estatísticas
                   </Button>
                 </div>
-
-                {campaignStats[campaign.id] && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2 p-3 bg-muted/30 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">{campaignStats[campaign.id].totalContacts}</div>
-                        <div className="text-xs text-muted-foreground">Total Contatos</div>
-                      </div>
-                      {campaign.status === 'paused' && campaignStats[campaign.id].remaining > 0 && (
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-orange-600">{campaignStats[campaign.id].remaining}</div>
-                          <div className="text-xs text-muted-foreground">Restantes</div>
-                        </div>
-                      )}
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-600">{campaignStats[campaign.id].pending}</div>
-                        <div className="text-xs text-muted-foreground">Pendentes</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{campaignStats[campaign.id].sent}</div>
-                        <div className="text-xs text-muted-foreground">Enviadas</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{campaignStats[campaign.id].delivered}</div>
-                        <div className="text-xs text-muted-foreground">Entregues</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{campaignStats[campaign.id].failed}</div>
-                        <div className="text-xs text-muted-foreground">Falhas</div>
-                      </div>
-                    </div>
-                    
-                    {/* Relatório de números não enviados para campanhas canceladas */}
-                    {campaign.status === 'cancelled' && campaignStats[campaign.id].remaining > 0 && (
-                      <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg">
-                        <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-semibold mb-2">
-                          <XCircle className="w-4 h-4" />
-                          <span>Campanha Cancelada - Números Não Enviados</span>
-                        </div>
-                        <p className="text-sm text-red-600 dark:text-red-300 mb-2">
-                          Esta campanha foi cancelada. <strong>{campaignStats[campaign.id].remaining} números não receberam a mensagem</strong> devido à desconexão do dispositivo.
-                        </p>
-                        <div className="text-xs text-muted-foreground">
-                          💡 Dica: Use o botão "Duplicar" para recriar a campanha e enviar aos números restantes.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                   <span>Tipo: {campaign.schedule_type === 'immediate' ? 'Imediato' : campaign.schedule_type === 'scheduled' ? 'Agendado' : 'Recorrente'}</span>
