@@ -50,6 +50,8 @@ const Campanhas = () => {
   const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
   const [totalContactsCount, setTotalContactsCount] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
 
   const loadStats = async (campaignId: string) => {
     const stats = await getCampaignStats(campaignId);
