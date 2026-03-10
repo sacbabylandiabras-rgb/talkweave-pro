@@ -213,8 +213,31 @@ export const useAllCampaignSendsRealtime = () => {
   const lastDataRef = useRef<string>('');
 
   const fetchSends = useCallback(async () => {
-    const { data, error } = await supabase.from('campaign_sends').select('*');
-    if (!error && data) {
+    // Fetch all sends in batches to avoid the 1000-row default limit
+    let allData: CampaignSendRecord[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('campaign_sends')
+        .select('*')
+        .range(from, from + batchSize - 1);
+      if (error || !data) {
+        hasMore = false;
+        break;
+      }
+      allData = [...allData, ...data];
+      if (data.length < batchSize) {
+        hasMore = false;
+      } else {
+        from += batchSize;
+      }
+    }
+
+    const data = allData;
+    if (data.length > 0 || allData.length === 0) {
       const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
