@@ -29,13 +29,15 @@ interface CampaignRecord {
 }
 
 /**
- * Hook that subscribes to campaign_sends changes via Supabase Realtime.
- * Falls back to lightweight polling if Realtime is not available.
+ * Hook for campaign_sends with Realtime + lightweight polling fallback.
+ * No full re-render — uses functional state updates.
  */
 export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const [sends, setSends] = useState<CampaignSendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataRef = useRef<string>('');
 
   const fetchSends = useCallback(async () => {
     if (!campaignId) return;
@@ -45,7 +47,12 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: true });
     if (!error && data) {
-      setSends(data);
+      // Only update state if data actually changed
+      const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
+      if (dataKey !== lastDataRef.current) {
+        lastDataRef.current = dataKey;
+        setSends(data);
+      }
     }
     setLoading(false);
   }, [campaignId]);
@@ -54,34 +61,27 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     if (!campaignId) {
       setSends([]);
       setLoading(false);
+      lastDataRef.current = '';
       return;
     }
 
     setLoading(true);
     fetchSends();
 
-    // Subscribe to Realtime changes
+    // Realtime subscription
     const channel = supabase
-      .channel(`sends-${campaignId}`)
+      .channel(`sends-${campaignId}-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'campaign_sends',
-          filter: `campaign_id=eq.${campaignId}`,
-        },
+        { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
             setSends(prev => {
-              const exists = prev.some(s => s.id === (payload.new as CampaignSendRecord).id);
-              if (exists) return prev;
+              if (prev.some(s => s.id === (payload.new as CampaignSendRecord).id)) return prev;
               return [...prev, payload.new as CampaignSendRecord];
             });
           } else if (payload.eventType === 'UPDATE') {
-            setSends(prev =>
-              prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s)
-            );
+            setSends(prev => prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s));
           } else if (payload.eventType === 'DELETE') {
             setSends(prev => prev.filter(s => s.id !== (payload.old as any).id));
           }
@@ -91,10 +91,17 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 
     channelRef.current = channel;
 
+    // Lightweight polling fallback (3s) — only updates if data changed
+    pollingRef.current = setInterval(fetchSends, 3000);
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+      }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
     };
   }, [campaignId, fetchSends]);
@@ -111,57 +118,46 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 };
 
 /**
- * Hook that subscribes to campaigns table changes via Supabase Realtime.
+ * Hook for campaigns list with Realtime + polling fallback.
+ * Compares data before updating to prevent flickering.
  */
 export const useCampaignsRealtime = (statusFilter?: string[]) => {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataRef = useRef<string>('');
+  const filterKey = statusFilter?.join(',') || 'all';
 
   const fetchCampaigns = useCallback(async () => {
-    let query = supabase
-      .from('campaigns')
-      .select('*')
-      .order('created_at', { ascending: false });
-
+    let query = supabase.from('campaigns').select('*').order('created_at', { ascending: false });
     if (statusFilter && statusFilter.length > 0) {
       query = query.in('status', statusFilter);
     }
-
     const { data, error } = await query;
     if (!error && data) {
-      setCampaigns(data);
+      const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}:${d.updated_at}`));
+      if (dataKey !== lastDataRef.current) {
+        lastDataRef.current = dataKey;
+        setCampaigns(data);
+      }
     }
     setLoading(false);
-  }, [statusFilter?.join(',')]);
+  }, [filterKey]);
 
   useEffect(() => {
     setLoading(true);
     fetchCampaigns();
 
     const channel = supabase
-      .channel('campaigns-realtime')
+      .channel(`campaigns-rt-${filterKey}-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'campaigns',
-        },
+        { event: '*', schema: 'public', table: 'campaigns' },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newCampaign = payload.new as CampaignRecord;
-            if (!statusFilter || statusFilter.includes(newCampaign.status || '')) {
-              setCampaigns(prev => {
-                const exists = prev.some(c => c.id === newCampaign.id);
-                if (exists) return prev;
-                return [newCampaign, ...prev];
-              });
-            }
-          } else if (payload.eventType === 'UPDATE') {
+          if (payload.eventType === 'UPDATE') {
             const updated = payload.new as CampaignRecord;
             setCampaigns(prev => {
-              // If status filter is set, remove campaigns that no longer match
               if (statusFilter && !statusFilter.includes(updated.status || '')) {
                 return prev.filter(c => c.id !== updated.id);
               }
@@ -169,9 +165,16 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
               if (exists) {
                 return prev.map(c => c.id === updated.id ? updated : c);
               }
-              // Campaign now matches filter - add it
               return [updated, ...prev];
             });
+          } else if (payload.eventType === 'INSERT') {
+            const newC = payload.new as CampaignRecord;
+            if (!statusFilter || statusFilter.includes(newC.status || '')) {
+              setCampaigns(prev => {
+                if (prev.some(c => c.id === newC.id)) return prev;
+                return [newC, ...prev];
+              });
+            }
           } else if (payload.eventType === 'DELETE') {
             setCampaigns(prev => prev.filter(c => c.id !== (payload.old as any).id));
           }
@@ -181,31 +184,42 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
 
     channelRef.current = channel;
 
+    // Polling fallback every 5s — only updates if data changed (no flicker)
+    pollingRef.current = setInterval(fetchCampaigns, 5000);
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
     };
-  }, [fetchCampaigns]);
+  }, [fetchCampaigns, filterKey]);
 
   return { campaigns, loading, refetch: fetchCampaigns };
 };
 
 /**
- * Hook for all campaign_sends (across all campaigns) with Realtime.
+ * Hook for ALL campaign_sends with Realtime + polling fallback.
  */
 export const useAllCampaignSendsRealtime = () => {
   const [sends, setSends] = useState<CampaignSendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataRef = useRef<string>('');
 
   const fetchSends = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('campaign_sends')
-      .select('*');
+    const { data, error } = await supabase.from('campaign_sends').select('*');
     if (!error && data) {
-      setSends(data);
+      const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
+      if (dataKey !== lastDataRef.current) {
+        lastDataRef.current = dataKey;
+        setSends(data);
+      }
     }
     setLoading(false);
   }, []);
@@ -215,25 +229,18 @@ export const useAllCampaignSendsRealtime = () => {
     fetchSends();
 
     const channel = supabase
-      .channel('all-sends-realtime')
+      .channel(`all-sends-rt-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'campaign_sends',
-        },
+        { event: '*', schema: 'public', table: 'campaign_sends' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
             setSends(prev => {
-              const exists = prev.some(s => s.id === (payload.new as CampaignSendRecord).id);
-              if (exists) return prev;
+              if (prev.some(s => s.id === (payload.new as CampaignSendRecord).id)) return prev;
               return [...prev, payload.new as CampaignSendRecord];
             });
           } else if (payload.eventType === 'UPDATE') {
-            setSends(prev =>
-              prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s)
-            );
+            setSends(prev => prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s));
           } else if (payload.eventType === 'DELETE') {
             setSends(prev => prev.filter(s => s.id !== (payload.old as any).id));
           }
@@ -243,10 +250,16 @@ export const useAllCampaignSendsRealtime = () => {
 
     channelRef.current = channel;
 
+    pollingRef.current = setInterval(fetchSends, 5000);
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+      }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
     };
   }, [fetchSends]);
