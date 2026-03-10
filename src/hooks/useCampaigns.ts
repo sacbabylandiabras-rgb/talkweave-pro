@@ -336,52 +336,61 @@ export const useCampaigns = () => {
 
   const resumeCampaign = async (id: string) => {
     try {
-      // Get campaign data to access contacts
       const campaign = campaigns.find(c => c.id === id);
-      if (!campaign || !campaign.target_audience?.contacts) {
-        throw new Error('Campaign or contacts not found');
+      if (!campaign) {
+        throw new Error('Campaign not found');
       }
 
       console.log('=== RESUMING CAMPAIGN ===');
       console.log('Campaign ID:', id);
-      console.log('Total campaign contacts:', campaign.target_audience.contacts);
 
-      // Get ALL campaign sends (to see what was processed)
+      // Get ALL campaign sends from database
       const { data: allSends, error: sendsError } = await supabase
         .from('campaign_sends')
-        .select('phone, status')
+        .select('phone, status, contact_name')
         .eq('campaign_id', id);
 
       if (sendsError) throw sendsError;
 
       console.log('All sends in database:', allSends);
 
-      // Only skip contacts that were SUCCESSFULLY sent (sent or delivered)
       const successfulPhones = new Set(
         allSends
           ?.filter(send => send.status === 'sent' || send.status === 'delivered')
           .map(send => send.phone) || []
       );
-      
-      // Also check for pending sends (might still be in queue)
-      const pendingPhones = new Set(
-        allSends
-          ?.filter(send => send.status === 'pending')
-          .map(send => send.phone) || []
-      );
-      
-      console.log('Successfully processed phones:', Array.from(successfulPhones));
-      console.log('Pending phones:', Array.from(pendingPhones));
 
-      const remainingContacts = campaign.target_audience.contacts.filter(
+      // Contacts that failed or are still pending — need to retry
+      const failedOrPendingContacts = (allSends || [])
+        .filter(send => send.status === 'failed' || send.status === 'pending')
+        .map(send => ({ phone: send.phone, name: send.contact_name || undefined }));
+
+      console.log('Successful phones:', Array.from(successfulPhones));
+      console.log('Failed/pending contacts from DB:', failedOrPendingContacts);
+
+      // Contacts from target_audience that were never processed at all
+      const targetContacts = campaign.target_audience?.contacts || [];
+      const neverProcessedContacts = targetContacts.filter(
         (contact: any) => {
-          const isProcessed = successfulPhones.has(contact.phone);
-          console.log(`Contact ${contact.phone}: already processed = ${isProcessed}`);
-          return !isProcessed;
+          const hasAnyRecord = allSends?.some(s => s.phone === contact.phone);
+          return !hasAnyRecord;
         }
       );
 
-      console.log('Remaining contacts to send:', remainingContacts);
+      console.log('Never processed contacts:', neverProcessedContacts);
+
+      // Combine: failed/pending + never processed (deduplicate by phone)
+      const seenPhones = new Set<string>();
+      const remainingContacts: Array<{ phone: string; name?: string }> = [];
+
+      for (const contact of [...failedOrPendingContacts, ...neverProcessedContacts]) {
+        if (!seenPhones.has(contact.phone) && !successfulPhones.has(contact.phone)) {
+          seenPhones.add(contact.phone);
+          remainingContacts.push(contact);
+        }
+      }
+
+      console.log('Total remaining contacts to send:', remainingContacts.length);
       console.log('=== END RESUME INFO ===');
 
       if (remainingContacts.length === 0) {
@@ -399,13 +408,12 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
-      // Just update status to active
+      // Update status to active
       await updateCampaign(id, { status: 'active' });
       
       console.log(`🔄 Retomando campanha ${id} com ${remainingContacts.length} contatos restantes`);
-      console.log('⚠️ IMPORTANTE: A edge function vai processar sequencialmente com delay entre cada envio');
       
-      // Send to remaining contacts - this will process them sequentially with delays
+      // Send to remaining contacts
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         body: {
           campaignId: id,
