@@ -176,8 +176,7 @@ const Relatorio = () => {
             Atualizar Dados
           </Button>
           <Badge variant="secondary" className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            Atualização em Tempo Real
+            Dados carregados
           </Badge>
         </div>
         <Button className="flex items-center gap-2" disabled>
