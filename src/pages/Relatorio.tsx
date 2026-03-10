@@ -382,6 +382,19 @@ const Relatorio = () => {
                         <p className="font-bold text-lg text-primary">{campanha.deliveryRate.toFixed(1)}%</p>
                       </div>
                     </div>
+
+                    {/* Botão de detalhes */}
+                    <div className="mt-4 flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => openDetails(campanha.id, campanha.name)}
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Detalhes
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
