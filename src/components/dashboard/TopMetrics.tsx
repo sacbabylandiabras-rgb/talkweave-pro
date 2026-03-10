@@ -7,25 +7,15 @@ export function TopMetrics() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({ campaigns: 0, templates: 0, contacts: 0 });
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        loadMetrics();
-      } else {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
-
   const loadMetrics = async () => {
     try {
       const [campaignsRes, templatesRes, sendsRes] = await Promise.all([
         supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-        supabase.from('message_templates').select('*', { count: 'exact', head: true }),
+        supabase.from('message_templates').select('*', { count: 'exact', head: true }).eq('active', true),
         supabase.from('campaign_sends').select('phone'),
       ]);
+
+      console.log("[TopMetrics] campaigns:", campaignsRes.count, "templates:", templatesRes.count, "sends:", sendsRes.data?.length);
 
       setMetrics({
         campaigns: campaignsRes.count || 0,
@@ -38,6 +28,24 @@ export function TopMetrics() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        loadMetrics();
+      } else {
+        setLoading(false);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        loadMetrics();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (loading) {
     return (

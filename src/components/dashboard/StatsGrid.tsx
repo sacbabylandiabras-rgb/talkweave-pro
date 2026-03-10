@@ -7,21 +7,10 @@ export function StatsGrid() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0, failed: 0 });
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        loadStats();
-      } else {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
-
   const loadStats = async () => {
     try {
-      const { data: sends } = await supabase.from('campaign_sends').select('status');
+      const { data: sends, error } = await supabase.from('campaign_sends').select('status');
+      console.log("[StatsGrid] sends:", sends?.length, "error:", error);
       if (sends) {
         setStats({
           total: sends.length,
@@ -36,6 +25,26 @@ export function StatsGrid() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Listen for auth state changes to load data when session is ready
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        loadStats();
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Also try immediately in case session is already available
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        loadStats();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (loading) {
     return (
