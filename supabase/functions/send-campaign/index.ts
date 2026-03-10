@@ -209,20 +209,27 @@ serve(async (req) => {
           // Then check if this contact was already processed successfully
           const { data: existingSend } = await supabase
             .from('campaign_sends')
-            .select('status')
+            .select('id, status')
             .eq('campaign_id', campaignId)
             .eq('phone', contact.phone)
-            .in('status', ['sent', 'delivered'])
             .maybeSingle();
 
           if (existingSend) {
-            console.log(`✓ Contact ${contact.phone} already processed, skipping`);
-            results.push({
-              phone: contact.phone,
-              success: true,
-              messageId: 'already-sent',
-            });
-            continue;
+            if (existingSend.status === 'sent' || existingSend.status === 'delivered') {
+              console.log(`✓ Contact ${contact.phone} already processed, skipping`);
+              results.push({
+                phone: contact.phone,
+                success: true,
+                messageId: 'already-sent',
+              });
+              continue;
+            }
+            // Remove failed/pending record so we can retry
+            console.log(`🔄 Removing old ${existingSend.status} record for ${contact.phone} to retry`);
+            await supabase
+              .from('campaign_sends')
+              .delete()
+              .eq('id', existingSend.id);
           }
           
           console.log(`📤 [${i + 1}/${contacts.length}] Processing contact: ${contact.phone}`);

@@ -363,7 +363,15 @@ export const useCampaigns = () => {
           .map(send => send.phone) || []
       );
       
+      // Also check for pending sends (might still be in queue)
+      const pendingPhones = new Set(
+        allSends
+          ?.filter(send => send.status === 'pending')
+          .map(send => send.phone) || []
+      );
+      
       console.log('Successfully processed phones:', Array.from(successfulPhones));
+      console.log('Pending phones:', Array.from(pendingPhones));
 
       const remainingContacts = campaign.target_audience.contacts.filter(
         (contact: any) => {
@@ -382,7 +390,10 @@ export const useCampaigns = () => {
           description: "Todos os contatos já foram processados com sucesso",
           variant: "default",
         });
-        return await updateCampaign(id, { status: 'completed' });
+        // Don't update status from client — let the user see the current state
+        // and move it to completed via the edge function or manual action
+        await updateCampaign(id, { status: 'completed' });
+        return;
       }
 
       toast({
