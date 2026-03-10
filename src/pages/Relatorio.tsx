@@ -43,35 +43,6 @@ const Relatorio = () => {
 
   useEffect(() => {
     loadReportData();
-    
-    // Set up real-time subscription for campaign_sends
-    const channel = supabase
-      .channel('campaign-sends-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'campaign_sends'
-        },
-        (payload) => {
-          console.log('Real-time update received:', payload);
-          // Reload data when there's a change
-          loadReportData();
-        }
-      )
-      .subscribe();
-
-    // Set up auto-refresh every 3 seconds for active campaigns
-    const autoRefreshInterval = setInterval(() => {
-      loadReportData();
-    }, 3000);
-
-    // Cleanup on unmount
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(autoRefreshInterval);
-    };
   }, []);
 
   const loadReportData = async () => {
@@ -205,8 +176,7 @@ const Relatorio = () => {
             Atualizar Dados
           </Button>
           <Badge variant="secondary" className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            Atualização em Tempo Real
+            Dados carregados
           </Badge>
         </div>
         <Button className="flex items-center gap-2" disabled>
