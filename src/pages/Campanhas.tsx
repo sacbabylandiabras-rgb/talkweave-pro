@@ -70,6 +70,8 @@ const Campanhas = () => {
 
   // Track previously active campaigns to detect completion
   const [prevActiveCampaignIds, setPrevActiveCampaignIds] = useState<string[]>([]);
+  // Keep recently completed campaigns visible for a while
+  const [recentlyCompletedIds, setRecentlyCompletedIds] = useState<Set<string>>(new Set());
 
   // Auto-carregar stats para campanhas ativas ou pausadas
   useEffect(() => {
@@ -87,6 +89,15 @@ const Campanhas = () => {
           title: "✅ Campanha Concluída",
           description: `"${campaign.name}" foi concluída. Veja os detalhes em Relatórios.`,
         });
+        // Keep it visible for 30 seconds
+        setRecentlyCompletedIds(prev => new Set([...prev, id]));
+        setTimeout(() => {
+          setRecentlyCompletedIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }, 30000);
       }
     });
     
