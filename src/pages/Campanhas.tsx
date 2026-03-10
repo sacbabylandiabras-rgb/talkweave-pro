@@ -513,6 +513,48 @@ const Campanhas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={resumeDialogOpen} onOpenChange={setResumeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retomar Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente retomar esta campanha? A campanha continuará de onde parou e iniciará o envio de mensagens.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResumeCampaign}>
+              Sim, Retomar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar Campanha</AlertDialogTitle>
+            <AlertDialogDescription>
+              {campaignToSend && (
+                <>
+                  Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>?
+                  <br />
+                  👥 Total de contatos: {campaignToSend.target_audience?.contacts?.length || 0}
+                  <br /><br />
+                  Esta ação não pode ser desfeita!
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendCampaign}>
+              Sim, Enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
