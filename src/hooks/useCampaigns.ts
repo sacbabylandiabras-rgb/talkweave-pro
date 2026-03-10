@@ -331,7 +331,26 @@ export const useCampaigns = () => {
   };
 
   const pauseCampaign = async (id: string) => {
-    return await updateCampaign(id, { status: 'paused' });
+    // 1. Update status to paused immediately
+    const result = await updateCampaign(id, { status: 'paused' });
+    
+    // 2. Clear Z-API queue to stop any messages already queued
+    try {
+      console.log('🧹 Clearing Z-API queue after pause...');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      if (token) {
+        await supabase.functions.invoke('clear-zapi-queue', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('✅ Z-API queue cleared after pause');
+      }
+    } catch (err) {
+      console.error('Error clearing Z-API queue on pause:', err);
+    }
+    
+    return result;
   };
 
   const resumeCampaign = async (id: string) => {
