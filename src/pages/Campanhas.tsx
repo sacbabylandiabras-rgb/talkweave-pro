@@ -288,8 +288,7 @@ const Campanhas = () => {
       <div className="grid gap-4">
         {(() => {
           const visibleCampaigns = campaigns.filter(c => 
-            c.status === 'draft' || c.status === 'paused' || c.status === 'active' || 
-            (c.status === 'completed' && recentlyCompletedIds.has(c.id))
+            c.status === 'draft' || c.status === 'paused' || c.status === 'active'
           );
           
           if (visibleCampaigns.length === 0) {
