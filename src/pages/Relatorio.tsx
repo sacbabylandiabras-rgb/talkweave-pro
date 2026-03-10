@@ -19,13 +19,16 @@ interface ReportStats {
 interface CampaignReport {
   id: string;
   name: string;
+  description: string | null;
   created_at: string;
   status: string;
   sent: number;
   delivered: number;
   failed: number;
+  pending: number;
   total: number;
   deliveryRate: number;
+  schedule_type: string | null;
 }
 
 const Relatorio = () => {
