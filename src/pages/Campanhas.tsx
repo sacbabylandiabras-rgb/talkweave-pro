@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
@@ -68,10 +69,10 @@ const Campanhas = () => {
     return () => setZapiInstanceOverride(null);
   }, [activeInstance]);
 
-  // Track campaign IDs that were active during this session — keep them visible even after completing
+  // Track campaign IDs that were active during this session
   const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
 
-  // Auto-carregar stats para campanhas ativas ou pausadas
+  // Realtime subscription for campaign_sends to update stats instantly
   useEffect(() => {
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'paused');
     activeCampaigns.forEach(c => loadStats(c.id));
@@ -87,24 +88,52 @@ const Campanhas = () => {
     }
 
     // Show toast when a session-tracked campaign completes
-    currentActiveIds.length === 0 && sessionActiveIds.size > 0 && campaigns.forEach(c => {
+    campaigns.forEach(c => {
       if (sessionActiveIds.has(c.id) && c.status === 'completed') {
         toast({
           title: "✅ Campanha Concluída",
           description: `"${c.name}" terminou de enviar. Disponível em Relatórios.`,
         });
+        // Remove from session tracking so toast doesn't repeat
+        setSessionActiveIds(prev => {
+          const next = new Set(prev);
+          next.delete(c.id);
+          return next;
+        });
       }
     });
-
-    // Polling para campanhas ativas (atualizar a cada 5s)
-    if (activeCampaigns.some(c => c.status === 'active')) {
-      const interval = setInterval(() => {
-        campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
-        refetch();
-      }, 5000);
-      return () => clearInterval(interval);
-    }
   }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
+
+  // Realtime: subscribe to campaign_sends and campaigns changes
+  useEffect(() => {
+    const sendsChannel = supabase
+      .channel('campanhas-sends-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campaign_sends' },
+        () => {
+          // Reload stats for active campaigns
+          campaigns.filter(c => c.status === 'active').forEach(c => loadStats(c.id));
+        }
+      )
+      .subscribe();
+
+    const campaignsChannel = supabase
+      .channel('campanhas-status-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'campaigns' },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(sendsChannel);
+      supabase.removeChannel(campaignsChannel);
+    };
+  }, [campaigns.map(c => c.id).join(',')]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
