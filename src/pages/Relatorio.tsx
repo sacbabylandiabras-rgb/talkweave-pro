@@ -109,6 +109,7 @@ const Relatorio = () => {
       const { data: campaigns, error: campaignsError } = await supabase
         .from('campaigns')
         .select('*')
+        .in('status', ['completed', 'cancelled', 'active'])
         .order('created_at', { ascending: false })
         .limit(10);
 
