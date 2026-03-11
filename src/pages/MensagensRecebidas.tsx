@@ -167,16 +167,39 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
+  onSendMessage: (phone: string, message: string) => Promise<void>;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages.length]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !conversation || sending) return;
+    setSending(true);
+    try {
+      await onSendMessage(conversation.phone, newMessage.trim());
+      setNewMessage("");
+    } catch (e) {
+      // error handled by parent
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   if (!conversation) {
     return (
@@ -275,6 +298,28 @@ const ChatView = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
+      {/* Message Input */}
+      <div className="border-t border-border bg-card px-4 py-3">
+        <div className="max-w-3xl mx-auto flex items-end gap-2">
+          <Textarea
+            placeholder="Digite uma mensagem..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="min-h-[40px] max-h-[120px] resize-none text-sm"
+            rows={1}
+          />
+          <Button
+            size="icon"
+            className="shrink-0 h-10 w-10"
+            onClick={handleSend}
+            disabled={!newMessage.trim() || sending}
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
