@@ -486,6 +486,36 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_contacts: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          phone: string
+          profile_picture_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone: string
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
