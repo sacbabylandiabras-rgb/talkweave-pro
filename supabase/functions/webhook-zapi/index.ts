@@ -356,7 +356,10 @@ async function sendNodeContent(
   edges: FlowEdge[],
   phone: string,
   zapiConfig: any,
-  visited: Set<string>
+  visited: Set<string>,
+  supabase?: any,
+  userId?: string | null,
+  flowName?: string
 ): Promise<boolean> {
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
