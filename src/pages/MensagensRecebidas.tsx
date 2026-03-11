@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal } from "lucide-react";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
