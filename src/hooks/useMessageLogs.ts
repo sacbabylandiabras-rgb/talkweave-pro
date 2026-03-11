@@ -360,5 +360,15 @@ export const useMessageLogs = () => {
       .sort((a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime());
   })();
 
-  return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts };
+  const sendMessage = useCallback(async (phone: string, message: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+    const { data, error } = await supabase.functions.invoke('send-message', {
+      body: { phone, message },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage };
 };

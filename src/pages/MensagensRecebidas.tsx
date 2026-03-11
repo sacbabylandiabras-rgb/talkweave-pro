@@ -3,12 +3,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal } from "lucide-react";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
@@ -166,16 +167,39 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
+  onSendMessage: (phone: string, message: string) => Promise<void>;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages.length]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !conversation || sending) return;
+    setSending(true);
+    try {
+      await onSendMessage(conversation.phone, newMessage.trim());
+      setNewMessage("");
+    } catch (e) {
+      // error handled by parent
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   if (!conversation) {
     return (
@@ -274,6 +298,28 @@ const ChatView = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
+      {/* Message Input */}
+      <div className="border-t border-border bg-card px-4 py-3">
+        <div className="max-w-3xl mx-auto flex items-end gap-2">
+          <Textarea
+            placeholder="Digite uma mensagem..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="min-h-[40px] max-h-[120px] resize-none text-sm"
+            rows={1}
+          />
+          <Button
+            size="icon"
+            className="shrink-0 h-10 w-10"
+            onClick={handleSend}
+            disabled={!newMessage.trim() || sending}
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -285,7 +331,7 @@ const MensagensRecebidas = () => {
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
-  const { conversations, loading, saveContact, fetchProfilePicture } = useMessageLogs();
+  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -339,7 +385,10 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} />
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message) => {
+            await sendMessage(phone, message);
+            toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
+          }} />
         )}
       </div>
       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
