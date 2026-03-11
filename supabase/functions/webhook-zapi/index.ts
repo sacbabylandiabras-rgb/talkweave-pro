@@ -236,9 +236,9 @@ serve(async (req) => {
         if (targetNode) {
           const visited = new Set<string>()
           // Send target node content
-          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited)
+          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
           // Then continue processing children from target node
-          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
+          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
         }
 
         await finalizeMessageLog(supabase, lockId, {
@@ -272,7 +272,9 @@ serve(async (req) => {
             phone,
             zapiConfig,
             supabase,
-            new Set<string>()
+            new Set<string>(),
+            userId,
+            matchedFlow.name
           )
           
           // Log the interaction
@@ -356,7 +358,10 @@ async function sendNodeContent(
   edges: FlowEdge[],
   phone: string,
   zapiConfig: any,
-  visited: Set<string>
+  visited: Set<string>,
+  supabase?: any,
+  userId?: string | null,
+  flowName?: string
 ): Promise<boolean> {
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
@@ -460,6 +465,23 @@ async function sendNodeContent(
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
     }
+    // Log the sent message to message_logs for chat history
+    if (supabase && userId && content) {
+      try {
+        const buttonLabels = allSendButtons.map(b => b.text).filter(Boolean).join(' | ')
+        const logContent = buttonLabels ? `${content}\n\n[Botões: ${buttonLabels}]` : content
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: null,
+          response_sent: logContent,
+          keyword_matched: `__flow_send__${flowName ? `:${flowName}` : ''}`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+        })
+      } catch (logErr) {
+        console.error('Erro ao logar mensagem do fluxo:', logErr)
+      }
+    }
   } catch (e) {
     console.error(`Erro ao enviar bloco ${targetNode.id}:`, e)
   }
@@ -484,7 +506,9 @@ async function processFlowNode(
   phone: string,
   zapiConfig: any,
   supabase: any,
-  visited: Set<string>
+  visited: Set<string>,
+  userId?: string | null,
+  flowName?: string
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
   const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
@@ -525,11 +549,11 @@ async function processFlowNode(
     if (!targetNode) continue
 
     if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited)
+      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName)
       if (shouldStop) continue
     }
 
-    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
+    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName)
   }
 }
 

@@ -28,7 +28,6 @@ serve(async (req) => {
       )
     }
 
-    // Get user's Z-API credentials from their profile
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const instanceId = credentials.instanceId;
     const token = credentials.token;
@@ -42,10 +41,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'Client-Token': clientToken
       },
-      body: JSON.stringify({
-        phone: phone,
-        message: message
-      })
+      body: JSON.stringify({ phone, message })
     })
 
     const zapiData = await zapiResponse.json()
@@ -59,6 +55,17 @@ serve(async (req) => {
         }
       )
     }
+
+    // Log the sent message in message_logs
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await supabase.from('message_logs').insert({
+      phone,
+      message_received: null,
+      response_sent: message,
+      keyword_matched: '__manual_send__',
+      timestamp: new Date().toISOString(),
+      user_id: credentials.userId,
+    });
 
     return new Response(
       JSON.stringify({ success: true, data: zapiData }),

@@ -3,8 +3,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera } from "lucide-react";
-import { useMessageLogs, type Conversation, type MessageLog } from "@/hooks/useMessageLogs";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send } from "lucide-react";
+import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -47,31 +47,36 @@ const formatDateSeparator = (ts: string) => {
 };
 
 const getInitials = (name: string | null, phone: string) => {
-  if (name) {
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  }
+  if (name) return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   return phone.replace(/\D/g, '').slice(-2);
+};
+
+const getSourceIcon = (source: string) => {
+  switch (source) {
+    case 'campaign': return <Megaphone className="w-3 h-3" />;
+    case 'flow': return <Bot className="w-3 h-3" />;
+    case 'manual': return <Send className="w-3 h-3" />;
+    default: return null;
+  }
+};
+
+const getSourceLabel = (source: string, keyword?: string | null) => {
+  switch (source) {
+    case 'campaign': return '📢 Campanha';
+    case 'flow': return keyword ? `🤖 ${keyword}` : '🤖 Fluxo';
+    case 'manual': return '✉️ Envio manual';
+    default: return '';
+  }
 };
 
 // Save contact dialog
 const SaveContactDialog = ({
-  open,
-  onOpenChange,
-  phone,
-  currentName,
-  onSave,
+  open, onOpenChange, phone, currentName, onSave,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  phone: string;
-  currentName: string;
-  onSave: (name: string) => void;
+  open: boolean; onOpenChange: (v: boolean) => void; phone: string; currentName: string; onSave: (name: string) => void;
 }) => {
   const [name, setName] = useState(currentName);
-
-  useEffect(() => {
-    setName(currentName);
-  }, [currentName, open]);
+  useEffect(() => { setName(currentName); }, [currentName, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,50 +91,30 @@ const SaveContactDialog = ({
           </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground">Nome</label>
-            <Input
-              placeholder="Digite o nome do contato..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
+            <Input placeholder="Digite o nome do contato..." value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => { onSave(name); onOpenChange(false); }} disabled={!name.trim()}>
-            Salvar
-          </Button>
+          <Button onClick={() => { onSave(name); onOpenChange(false); }} disabled={!name.trim()}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-// Conversation list sidebar
+// Conversation list
 const ConversationList = ({
-  conversations,
-  selectedPhone,
-  onSelect,
-  searchTerm,
-  onSearchChange,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange,
 }: {
-  conversations: Conversation[];
-  selectedPhone: string | null;
-  onSelect: (phone: string) => void;
-  searchTerm: string;
-  onSearchChange: (v: string) => void;
+  conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30">
       <h2 className="text-lg font-semibold text-foreground mb-3">Conversas</h2>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Buscar por nome ou número..."
-          className="pl-9 h-9 text-sm bg-background"
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
+        <Input placeholder="Buscar por nome ou número..." className="pl-9 h-9 text-sm bg-background" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
       </div>
     </div>
     <ScrollArea className="flex-1">
@@ -164,7 +149,7 @@ const ConversationList = ({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {conv.lastMessage}
+                {conv.lastMessage.length > 60 ? conv.lastMessage.slice(0, 60) + '...' : conv.lastMessage}
               </p>
             </div>
             {conv.messages.length > 0 && (
@@ -179,21 +164,12 @@ const ConversationList = ({
   </div>
 );
 
-// Chat message bubbles
+// Chat view
 const ChatView = ({
-  conversation,
-  onBack,
-  isMobile,
-  onSaveContact,
-  onFetchPhoto,
-  loadingPhoto,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto,
 }: {
-  conversation: Conversation | null;
-  onBack: () => void;
-  isMobile: boolean;
-  onSaveContact: (phone: string, currentName: string) => void;
-  onFetchPhoto: (phone: string) => void;
-  loadingPhoto: boolean;
+  conversation: Conversation | null; onBack: () => void; isMobile: boolean;
+  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -211,7 +187,7 @@ const ChatView = ({
     );
   }
 
-  const messagesByDate = new Map<string, MessageLog[]>();
+  const messagesByDate = new Map<string, UnifiedMessage[]>();
   conversation.messages.forEach((msg) => {
     const dateKey = format(new Date(msg.timestamp), "yyyy-MM-dd");
     const existing = messagesByDate.get(dateKey) || [];
@@ -221,7 +197,7 @@ const ChatView = ({
 
   return (
     <div className="flex-1 flex flex-col bg-background">
-      {/* Chat header */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
         {isMobile && (
           <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
@@ -243,29 +219,16 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            title="Buscar foto do perfil"
-            onClick={() => onFetchPhoto(conversation.phone)}
-            disabled={loadingPhoto}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Buscar foto" onClick={() => onFetchPhoto(conversation.phone)} disabled={loadingPhoto}>
             {loadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            title={conversation.contactName ? "Editar contato" : "Salvar contato"}
-            onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" title={conversation.contactName ? "Editar contato" : "Salvar contato"} onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}>
             {conversation.contactName ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
           </Button>
         </div>
       </div>
 
-      {/* Messages area */}
+      {/* Messages */}
       <ScrollArea className="flex-1 px-4 py-3">
         <div className="max-w-3xl mx-auto space-y-1">
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
@@ -276,24 +239,26 @@ const ChatView = ({
                 </span>
               </div>
               {msgs.map((msg) => (
-                <div key={msg.id} className="space-y-1 mb-2">
-                  {msg.message_received && (
+                <div key={msg.id} className="mb-2">
+                  {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{msg.message_received}</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</p>
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
                       </div>
                     </div>
-                  )}
-                  {msg.response_sent && (
+                  ) : (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-                        <p className="text-sm whitespace-pre-wrap">{msg.response_sent}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          {msg.keyword_matched && (
-                            <span className="text-[9px] opacity-70">🤖 {msg.keyword_matched}</span>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <div className="flex items-center justify-end gap-1.5 mt-1">
+                          {msg.source !== 'message_log' && (
+                            <span className="text-[9px] opacity-70 flex items-center gap-0.5">
+                              {getSourceIcon(msg.source)}
+                              {getSourceLabel(msg.source, msg.keyword_matched)}
+                            </span>
                           )}
                           <span className="text-[10px] opacity-80">
                             {formatMessageTime(msg.timestamp)}
@@ -327,11 +292,7 @@ const MensagensRecebidas = () => {
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
-    return (
-      conv.phone.includes(term) ||
-      conv.lastMessage.toLowerCase().includes(term) ||
-      (conv.contactName && conv.contactName.toLowerCase().includes(term))
-    );
+    return conv.phone.includes(term) || conv.lastMessage.toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
   });
 
   const selectedConversation = conversations.find((c) => c.phone === selectedPhone) || null;
@@ -374,34 +335,14 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
-            <ConversationList
-              conversations={filteredConversations}
-              selectedPhone={selectedPhone}
-              onSelect={setSelectedPhone}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-            />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={setSelectedPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </div>
         )}
         {showChat && (
-          <ChatView
-            conversation={selectedConversation}
-            onBack={() => setSelectedPhone(null)}
-            isMobile={isMobile}
-            onSaveContact={handleSaveContact}
-            onFetchPhoto={handleFetchPhoto}
-            loadingPhoto={loadingPhoto}
-          />
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} />
         )}
       </div>
-
-      <SaveContactDialog
-        open={saveDialogOpen}
-        onOpenChange={setSaveDialogOpen}
-        phone={saveDialogPhone}
-        currentName={saveDialogName}
-        onSave={handleDoSave}
-      />
+      <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
     </>
   );
 };

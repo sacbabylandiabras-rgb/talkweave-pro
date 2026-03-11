@@ -12,6 +12,26 @@ export interface MessageLog {
   user_id: string | null;
 }
 
+export interface CampaignSendMessage {
+  id: string;
+  phone: string;
+  message_content: string;
+  contact_name: string | null;
+  status: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface UnifiedMessage {
+  id: string;
+  phone: string;
+  type: 'received' | 'sent';
+  content: string;
+  timestamp: string;
+  source: 'message_log' | 'campaign' | 'flow' | 'manual';
+  keyword_matched?: string | null;
+}
+
 export interface SavedContact {
   phone: string;
   name: string;
@@ -25,20 +45,16 @@ export interface Conversation {
   lastMessage: string;
   lastTimestamp: string;
   unreadCount: number;
-  messages: MessageLog[];
+  messages: UnifiedMessage[];
 }
 
-// Use raw fetch to interact with saved_contacts table (not in generated types)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const savedContactsApi = {
   async getAll(token: string): Promise<SavedContact[]> {
     const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*`, {
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) return [];
     return res.json();
@@ -47,21 +63,8 @@ const savedContactsApi = {
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-  async update(token: string, phone: string, data: Record<string, any>) {
-    await fetch(`${supabaseUrl}/rest/v1/saved_contacts?phone=eq.${encodeURIComponent(phone)}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'apikey': supabaseKey, 'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
       },
       body: JSON.stringify(data),
     });
@@ -79,12 +82,15 @@ async function getUserId(): Promise<string | null> {
 }
 
 export const useMessageLogs = () => {
-  const [messages, setMessages] = useState<MessageLog[]>([]);
+  const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
+  const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
+  const channelRef2 = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const lastDataRef = useRef<string>('');
+  const lastLogsRef = useRef<string>('');
+  const lastSendsRef = useRef<string>('');
 
   const fetchSavedContacts = useCallback(async () => {
     try {
@@ -94,17 +100,14 @@ export const useMessageLogs = () => {
       const map = new Map<string, SavedContact>();
       data.forEach((c) => map.set(c.phone, c));
       setSavedContacts(map);
-    } catch {
-      // Table might not exist yet
-    }
+    } catch { /* table might not exist */ }
   }, []);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessageLogs = useCallback(async () => {
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
     let hasMore = true;
-
     while (hasMore) {
       const { data, error } = await supabase
         .from('message_logs')
@@ -116,14 +119,42 @@ export const useMessageLogs = () => {
       hasMore = data.length === batchSize;
       from += batchSize;
     }
-
+    // Filter out processing locks
+    allData = allData.filter(m => m.keyword_matched !== '__processing__');
     const dataKey = JSON.stringify(allData.map(d => d.id));
-    if (dataKey !== lastDataRef.current) {
-      lastDataRef.current = dataKey;
-      setMessages(allData);
+    if (dataKey !== lastLogsRef.current) {
+      lastLogsRef.current = dataKey;
+      setMessageLogs(allData);
     }
-    setLoading(false);
   }, []);
+
+  const fetchCampaignSends = useCallback(async () => {
+    let allData: CampaignSendMessage[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('campaign_sends')
+        .select('id, phone, message_content, contact_name, status, sent_at, created_at')
+        .order('created_at', { ascending: true })
+        .range(from, from + batchSize - 1);
+      if (error || !data) { hasMore = false; break; }
+      allData = [...allData, ...data];
+      hasMore = data.length === batchSize;
+      from += batchSize;
+    }
+    const dataKey = JSON.stringify(allData.map(d => d.id));
+    if (dataKey !== lastSendsRef.current) {
+      lastSendsRef.current = dataKey;
+      setCampaignSends(allData);
+    }
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    await Promise.all([fetchMessageLogs(), fetchCampaignSends()]);
+    setLoading(false);
+  }, [fetchMessageLogs, fetchCampaignSends]);
 
   const saveContact = useCallback(async (phone: string, name: string) => {
     const token = await getToken();
@@ -135,9 +166,7 @@ export const useMessageLogs = () => {
 
   const fetchProfilePicture = useCallback(async (phone: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-profile-picture', {
-        body: { phone }
-      });
+      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
       if (error) return null;
       const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
       if (url) {
@@ -145,54 +174,112 @@ export const useMessageLogs = () => {
         const userId = await getUserId();
         if (token && userId) {
           const existing = savedContacts.get(phone);
-          await savedContactsApi.upsert(token, {
-            phone,
-            name: existing?.name || '',
-            user_id: userId,
-            profile_picture_url: url,
-          });
+          await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
           await fetchSavedContacts();
         }
       }
       return url;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }, [savedContacts, fetchSavedContacts]);
 
   useEffect(() => {
     setLoading(true);
-    fetchMessages();
+    fetchAll();
     fetchSavedContacts();
 
-    const channel = supabase
-      .channel(`message-logs-rt-${Date.now()}`)
+    // Realtime for message_logs
+    const ch1 = supabase
+      .channel(`msg-logs-rt-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setMessages(prev => {
-            if (prev.some(m => m.id === (payload.new as MessageLog).id)) return prev;
-            return [...prev, payload.new as MessageLog];
+          const newMsg = payload.new as MessageLog;
+          if (newMsg.keyword_matched === '__processing__') return;
+          setMessageLogs(prev => {
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
           });
         } else if (payload.eventType === 'UPDATE') {
-          setMessages(prev => prev.map(m => m.id === (payload.new as MessageLog).id ? payload.new as MessageLog : m));
+          const updated = payload.new as MessageLog;
+          if (updated.keyword_matched === '__processing__') return;
+          setMessageLogs(prev => prev.map(m => m.id === updated.id ? updated : m));
         } else if (payload.eventType === 'DELETE') {
-          setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
+          setMessageLogs(prev => prev.filter(m => m.id !== (payload.old as any).id));
         }
       })
       .subscribe();
+    channelRef.current = ch1;
 
-    channelRef.current = channel;
-    pollingRef.current = setInterval(fetchMessages, 5000);
+    // Realtime for campaign_sends
+    const ch2 = supabase
+      .channel(`camp-sends-rt-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setCampaignSends(prev => {
+            if (prev.some(s => s.id === (payload.new as any).id)) return prev;
+            return [...prev, payload.new as CampaignSendMessage];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setCampaignSends(prev => prev.map(s => s.id === (payload.new as any).id ? payload.new as CampaignSendMessage : s));
+        }
+      })
+      .subscribe();
+    channelRef2.current = ch2;
+
+    pollingRef.current = setInterval(fetchAll, 5000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
+      if (channelRef2.current) { supabase.removeChannel(channelRef2.current); channelRef2.current = null; }
       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
     };
-  }, [fetchMessages, fetchSavedContacts]);
+  }, [fetchAll, fetchSavedContacts]);
 
+  // Build unified messages
   const conversations: Conversation[] = (() => {
-    const grouped = new Map<string, MessageLog[]>();
-    messages.forEach(msg => {
+    const allMessages: UnifiedMessage[] = [];
+
+    // From message_logs
+    messageLogs.forEach(log => {
+      if (log.message_received) {
+        allMessages.push({
+          id: `log-recv-${log.id}`,
+          phone: log.phone,
+          type: 'received',
+          content: log.message_received,
+          timestamp: log.timestamp,
+          source: 'message_log',
+          keyword_matched: log.keyword_matched,
+        });
+      }
+      if (log.response_sent && log.response_sent !== '__processing__') {
+        const source = log.keyword_matched === '__manual_send__' ? 'manual' as const : 'flow' as const;
+        allMessages.push({
+          id: `log-sent-${log.id}`,
+          phone: log.phone,
+          type: 'sent',
+          content: log.response_sent,
+          timestamp: log.timestamp,
+          source,
+          keyword_matched: log.keyword_matched === '__manual_send__' ? null : log.keyword_matched,
+        });
+      }
+    });
+
+    // From campaign_sends
+    campaignSends.forEach(send => {
+      allMessages.push({
+        id: `camp-${send.id}`,
+        phone: send.phone,
+        type: 'sent',
+        content: send.message_content,
+        timestamp: send.sent_at || send.created_at,
+        source: 'campaign',
+      });
+    });
+
+    // Group by phone
+    const grouped = new Map<string, UnifiedMessage[]>();
+    allMessages.forEach(msg => {
       const existing = grouped.get(msg.phone) || [];
       existing.push(msg);
       grouped.set(msg.phone, existing);
@@ -203,11 +290,13 @@ export const useMessageLogs = () => {
         const sorted = msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         const last = sorted[sorted.length - 1];
         const saved = savedContacts.get(phone);
+        // Get name from campaign_sends if no saved contact
+        const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
         return {
           phone,
-          contactName: saved?.name || null,
+          contactName: saved?.name || campaignName || null,
           profilePictureUrl: saved?.profile_picture_url || null,
-          lastMessage: last.message_received || last.response_sent || '',
+          lastMessage: last.content,
           lastTimestamp: last.timestamp,
           unreadCount: 0,
           messages: sorted,
@@ -216,5 +305,5 @@ export const useMessageLogs = () => {
       .sort((a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime());
   })();
 
-  return { messages, conversations, loading, refetch: fetchMessages, saveContact, fetchProfilePicture, savedContacts };
+  return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts };
 };
