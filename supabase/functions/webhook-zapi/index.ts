@@ -547,11 +547,11 @@ async function processFlowNode(
     if (!targetNode) continue
 
     if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited)
+      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName)
       if (shouldStop) continue
     }
 
-    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited)
+    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName)
   }
 }
 
