@@ -1,15 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2 } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera } from "lucide-react";
 import { useMessageLogs, type Conversation, type MessageLog } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const formatPhone = (phone: string) => {
   const clean = phone.replace(/\D/g, '');
@@ -18,9 +26,7 @@ const formatPhone = (phone: string) => {
     const num = clean.slice(4);
     return `+55 ${ddd} ${num.slice(0, 5)}-${num.slice(5)}`;
   }
-  if (clean.length >= 10) {
-    return `+${clean}`;
-  }
+  if (clean.length >= 10) return `+${clean}`;
   return phone;
 };
 
@@ -31,9 +37,7 @@ const formatTimestamp = (ts: string) => {
   return format(date, "dd/MM/yyyy", { locale: ptBR });
 };
 
-const formatMessageTime = (ts: string) => {
-  return format(new Date(ts), "HH:mm");
-};
+const formatMessageTime = (ts: string) => format(new Date(ts), "HH:mm");
 
 const formatDateSeparator = (ts: string) => {
   const date = new Date(ts);
@@ -42,9 +46,63 @@ const formatDateSeparator = (ts: string) => {
   return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 };
 
-const getInitials = (phone: string) => {
-  const clean = phone.replace(/\D/g, '');
-  return clean.slice(-2);
+const getInitials = (name: string | null, phone: string) => {
+  if (name) {
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  }
+  return phone.replace(/\D/g, '').slice(-2);
+};
+
+// Save contact dialog
+const SaveContactDialog = ({
+  open,
+  onOpenChange,
+  phone,
+  currentName,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  phone: string;
+  currentName: string;
+  onSave: (name: string) => void;
+}) => {
+  const [name, setName] = useState(currentName);
+
+  useEffect(() => {
+    setName(currentName);
+  }, [currentName, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{currentName ? "Editar Contato" : "Salvar Contato"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Número</label>
+            <p className="text-foreground font-medium">{formatPhone(phone)}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Nome</label>
+            <Input
+              placeholder="Digite o nome do contato..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => { onSave(name); onOpenChange(false); }} disabled={!name.trim()}>
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 // Conversation list sidebar
@@ -67,7 +125,7 @@ const ConversationList = ({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
-          placeholder="Buscar conversa..."
+          placeholder="Buscar por nome ou número..."
           className="pl-9 h-9 text-sm bg-background"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -91,14 +149,15 @@ const ConversationList = ({
             )}
           >
             <Avatar className="h-11 w-11 shrink-0">
+              {conv.profilePictureUrl && <AvatarImage src={conv.profilePictureUrl} />}
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                {getInitials(conv.phone)}
+                {getInitials(conv.contactName, conv.phone)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-sm text-foreground truncate">
-                  {formatPhone(conv.phone)}
+                  {conv.contactName || formatPhone(conv.phone)}
                 </span>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
@@ -125,10 +184,16 @@ const ChatView = ({
   conversation,
   onBack,
   isMobile,
+  onSaveContact,
+  onFetchPhoto,
+  loadingPhoto,
 }: {
   conversation: Conversation | null;
   onBack: () => void;
   isMobile: boolean;
+  onSaveContact: (phone: string, currentName: string) => void;
+  onFetchPhoto: (phone: string) => void;
+  loadingPhoto: boolean;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -146,7 +211,6 @@ const ChatView = ({
     );
   }
 
-  // Group messages by date
   const messagesByDate = new Map<string, MessageLog[]>();
   conversation.messages.forEach((msg) => {
     const dateKey = format(new Date(msg.timestamp), "yyyy-MM-dd");
@@ -165,13 +229,39 @@ const ChatView = ({
           </Button>
         )}
         <Avatar className="h-10 w-10">
+          {conversation.profilePictureUrl && <AvatarImage src={conversation.profilePictureUrl} />}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {getInitials(conversation.phone)}
+            {getInitials(conversation.contactName, conversation.phone)}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <h3 className="font-medium text-foreground">{formatPhone(conversation.phone)}</h3>
-          <p className="text-xs text-muted-foreground">{conversation.messages.length} mensagens</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-foreground truncate">
+            {conversation.contactName || formatPhone(conversation.phone)}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Buscar foto do perfil"
+            onClick={() => onFetchPhoto(conversation.phone)}
+            disabled={loadingPhoto}
+          >
+            {loadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title={conversation.contactName ? "Editar contato" : "Salvar contato"}
+            onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}
+          >
+            {conversation.contactName ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
@@ -187,7 +277,6 @@ const ChatView = ({
               </div>
               {msgs.map((msg) => (
                 <div key={msg.id} className="space-y-1 mb-2">
-                  {/* Received message */}
                   {msg.message_received && (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
@@ -198,7 +287,6 @@ const ChatView = ({
                       </div>
                     </div>
                   )}
-                  {/* Sent response */}
                   {msg.response_sent && (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
@@ -228,19 +316,47 @@ const ChatView = ({
 const MensagensRecebidas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
-  const { conversations, loading } = useMessageLogs();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveDialogPhone, setSaveDialogPhone] = useState("");
+  const [saveDialogName, setSaveDialogName] = useState("");
+  const [loadingPhoto, setLoadingPhoto] = useState(false);
+  const { conversations, loading, saveContact, fetchProfilePicture } = useMessageLogs();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
       conv.phone.includes(term) ||
-      conv.lastMessage.toLowerCase().includes(term)
+      conv.lastMessage.toLowerCase().includes(term) ||
+      (conv.contactName && conv.contactName.toLowerCase().includes(term))
     );
   });
 
   const selectedConversation = conversations.find((c) => c.phone === selectedPhone) || null;
+
+  const handleSaveContact = (phone: string, currentName: string) => {
+    setSaveDialogPhone(phone);
+    setSaveDialogName(currentName);
+    setSaveDialogOpen(true);
+  };
+
+  const handleDoSave = async (name: string) => {
+    await saveContact(saveDialogPhone, name);
+    toast({ title: "Contato salvo", description: `${name} foi salvo com sucesso.` });
+  };
+
+  const handleFetchPhoto = async (phone: string) => {
+    setLoadingPhoto(true);
+    const url = await fetchProfilePicture(phone);
+    setLoadingPhoto(false);
+    if (url) {
+      toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
+    } else {
+      toast({ title: "Sem foto", description: "Não foi possível obter a foto de perfil.", variant: "destructive" });
+    }
+  };
 
   if (loading) {
     return (
@@ -254,26 +370,39 @@ const MensagensRecebidas = () => {
   const showChat = !isMobile || !!selectedPhone;
 
   return (
-    <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
-      {showList && (
-        <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
-          <ConversationList
-            conversations={filteredConversations}
-            selectedPhone={selectedPhone}
-            onSelect={setSelectedPhone}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
+    <>
+      <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
+        {showList && (
+          <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
+            <ConversationList
+              conversations={filteredConversations}
+              selectedPhone={selectedPhone}
+              onSelect={setSelectedPhone}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+            />
+          </div>
+        )}
+        {showChat && (
+          <ChatView
+            conversation={selectedConversation}
+            onBack={() => setSelectedPhone(null)}
+            isMobile={isMobile}
+            onSaveContact={handleSaveContact}
+            onFetchPhoto={handleFetchPhoto}
+            loadingPhoto={loadingPhoto}
           />
-        </div>
-      )}
-      {showChat && (
-        <ChatView
-          conversation={selectedConversation}
-          onBack={() => setSelectedPhone(null)}
-          isMobile={isMobile}
-        />
-      )}
-    </div>
+        )}
+      </div>
+
+      <SaveContactDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        phone={saveDialogPhone}
+        currentName={saveDialogName}
+        onSave={handleDoSave}
+      />
+    </>
   );
 };
 
