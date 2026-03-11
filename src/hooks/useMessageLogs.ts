@@ -252,7 +252,22 @@ export const useMessageLogs = () => {
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
-        const source = log.keyword_matched === '__manual_send__' ? 'manual' as const : 'flow' as const;
+        // Skip old summary entries like "[Fluxo: nome]" — new individual logs replace them
+        const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
+        if (isSummary) return;
+
+        const isManual = log.keyword_matched === '__manual_send__';
+        const isFlowSend = log.keyword_matched?.startsWith('__flow_send__');
+        const source = isManual ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
+        
+        // Extract flow name from keyword like "__flow_send__:Novo Fluxo"
+        let displayKeyword = log.keyword_matched;
+        if (isFlowSend) {
+          displayKeyword = log.keyword_matched?.replace('__flow_send__:', '') || null;
+        } else if (isManual) {
+          displayKeyword = null;
+        }
+
         allMessages.push({
           id: `log-sent-${log.id}`,
           phone: log.phone,
@@ -260,7 +275,7 @@ export const useMessageLogs = () => {
           content: log.response_sent,
           timestamp: log.timestamp,
           source,
-          keyword_matched: log.keyword_matched === '__manual_send__' ? null : log.keyword_matched,
+          keyword_matched: displayKeyword,
         });
       }
     });
