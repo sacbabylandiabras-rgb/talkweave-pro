@@ -238,7 +238,7 @@ serve(async (req) => {
           // Send target node content
           await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
           // Then continue processing children from target node
-          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
+          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
         }
 
         await finalizeMessageLog(supabase, lockId, {
