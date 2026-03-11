@@ -504,7 +504,9 @@ async function processFlowNode(
   phone: string,
   zapiConfig: any,
   supabase: any,
-  visited: Set<string>
+  visited: Set<string>,
+  userId?: string | null,
+  flowName?: string
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
   const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
