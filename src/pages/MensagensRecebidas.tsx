@@ -1,261 +1,277 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquareReply, Search, Filter, Reply, Star, Archive, Trash2 } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2 } from "lucide-react";
+import { useMessageLogs, type Conversation, type MessageLog } from "@/hooks/useMessageLogs";
+import { format, isToday, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-const MensagensRecebidas = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todas");
-  
-  const mensagens = [
-    {
-      id: 1,
-      remetente: "João Silva",
-      numero: "+55 11 99999-9999",
-      mensagem: "Olá! Gostaria de saber mais informações sobre os seus produtos. Vocês fazem entrega para São Paulo?",
-      data: "2024-01-16 14:30",
-      status: "nova",
-      importante: true,
-      dispositivo: "WhatsApp Principal"
-    },
-    {
-      id: 2,
-      remetente: "Maria Santos",
-      numero: "+55 11 88888-8888",
-      mensagem: "Obrigada pelo atendimento de ontem! Já recebi o produto e está perfeito.",
-      data: "2024-01-16 11:15",
-      status: "lida",
-      importante: false,
-      dispositivo: "WhatsApp Suporte"
-    },
-    {
-      id: 3,
-      remetente: "Pedro Costa",
-      numero: "+55 11 77777-7777",
-      mensagem: "Qual o horário de funcionamento da loja? Preciso ir hoje.",
-      data: "2024-01-16 09:45",
-      status: "respondida",
-      importante: false,
-      dispositivo: "WhatsApp Principal"
-    },
-    {
-      id: 4,
-      remetente: "Ana Oliveira",
-      numero: "+55 11 66666-6666",
-      mensagem: "Estou com problema no produto que comprei. Podem me ajudar?",
-      data: "2024-01-15 16:20",
-      status: "nova",
-      importante: true,
-      dispositivo: "WhatsApp Suporte"
-    },
-    {
-      id: 5,
-      remetente: "Carlos Lima",
-      numero: "+55 11 55555-5555",
-      mensagem: "Vocês têm desconto para compra em quantidade?",
-      data: "2024-01-15 13:10",
-      status: "arquivada",
-      importante: false,
-      dispositivo: "WhatsApp Principal"
-    }
-  ];
+const formatPhone = (phone: string) => {
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length === 13 && clean.startsWith('55')) {
+    const ddd = clean.slice(2, 4);
+    const num = clean.slice(4);
+    return `+55 ${ddd} ${num.slice(0, 5)}-${num.slice(5)}`;
+  }
+  if (clean.length >= 10) {
+    return `+${clean}`;
+  }
+  return phone;
+};
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'nova': return 'destructive';
-      case 'lida': return 'default';
-      case 'respondida': return 'default';
-      case 'arquivada': return 'secondary';
-      default: return 'secondary';
-    }
-  };
+const formatTimestamp = (ts: string) => {
+  const date = new Date(ts);
+  if (isToday(date)) return format(date, "HH:mm");
+  if (isYesterday(date)) return "Ontem";
+  return format(date, "dd/MM/yyyy", { locale: ptBR });
+};
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'nova': return 'Nova';
-      case 'lida': return 'Lida';
-      case 'respondida': return 'Respondida';
-      case 'arquivada': return 'Arquivada';
-      default: return status;
-    }
-  };
+const formatMessageTime = (ts: string) => {
+  return format(new Date(ts), "HH:mm");
+};
 
-  const mensagensFiltradas = mensagens.filter(msg => {
-    const matchSearch = msg.remetente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       msg.numero.includes(searchTerm) ||
-                       msg.mensagem.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filtroStatus === 'todas') return matchSearch;
-    return matchSearch && msg.status === filtroStatus;
+const formatDateSeparator = (ts: string) => {
+  const date = new Date(ts);
+  if (isToday(date)) return "Hoje";
+  if (isYesterday(date)) return "Ontem";
+  return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+};
+
+const getInitials = (phone: string) => {
+  const clean = phone.replace(/\D/g, '');
+  return clean.slice(-2);
+};
+
+// Conversation list sidebar
+const ConversationList = ({
+  conversations,
+  selectedPhone,
+  onSelect,
+  searchTerm,
+  onSearchChange,
+}: {
+  conversations: Conversation[];
+  selectedPhone: string | null;
+  onSelect: (phone: string) => void;
+  searchTerm: string;
+  onSearchChange: (v: string) => void;
+}) => (
+  <div className="flex flex-col h-full bg-card border-r border-border">
+    <div className="p-3 border-b border-border bg-muted/30">
+      <h2 className="text-lg font-semibold text-foreground mb-3">Conversas</h2>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          placeholder="Buscar conversa..."
+          className="pl-9 h-9 text-sm bg-background"
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+      </div>
+    </div>
+    <ScrollArea className="flex-1">
+      {conversations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <MessageSquare className="w-10 h-10 mb-2 opacity-50" />
+          <p className="text-sm">Nenhuma conversa</p>
+        </div>
+      ) : (
+        conversations.map((conv) => (
+          <button
+            key={conv.phone}
+            onClick={() => onSelect(conv.phone)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50",
+              selectedPhone === conv.phone && "bg-muted"
+            )}
+          >
+            <Avatar className="h-11 w-11 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                {getInitials(conv.phone)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm text-foreground truncate">
+                  {formatPhone(conv.phone)}
+                </span>
+                <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
+                  {formatTimestamp(conv.lastTimestamp)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                {conv.lastMessage}
+              </p>
+            </div>
+            {conv.messages.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                {conv.messages.length}
+              </Badge>
+            )}
+          </button>
+        ))
+      )}
+    </ScrollArea>
+  </div>
+);
+
+// Chat message bubbles
+const ChatView = ({
+  conversation,
+  onBack,
+  isMobile,
+}: {
+  conversation: Conversation | null;
+  onBack: () => void;
+  isMobile: boolean;
+}) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation?.messages.length]);
+
+  if (!conversation) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 text-muted-foreground">
+        <MessageSquare className="w-16 h-16 mb-4 opacity-30" />
+        <h3 className="text-lg font-medium">Selecione uma conversa</h3>
+        <p className="text-sm mt-1">Escolha uma conversa para ver as mensagens</p>
+      </div>
+    );
+  }
+
+  // Group messages by date
+  const messagesByDate = new Map<string, MessageLog[]>();
+  conversation.messages.forEach((msg) => {
+    const dateKey = format(new Date(msg.timestamp), "yyyy-MM-dd");
+    const existing = messagesByDate.get(dateKey) || [];
+    existing.push(msg);
+    messagesByDate.set(dateKey, existing);
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Mensagens Recebidas</h1>
-        <p className="text-muted-foreground">Gerencie todas as mensagens recebidas em seus dispositivos</p>
+    <div className="flex-1 flex flex-col bg-background">
+      {/* Chat header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
+        {isMobile && (
+          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        )}
+        <Avatar className="h-10 w-10">
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            {getInitials(conversation.phone)}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h3 className="font-medium text-foreground">{formatPhone(conversation.phone)}</h3>
+          <p className="text-xs text-muted-foreground">{conversation.messages.length} mensagens</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Novas Mensagens</CardTitle>
-            <MessageSquareReply className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">8</div>
-            <p className="text-xs text-muted-foreground">
-              Aguardando resposta
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mensagens Hoje</CardTitle>
-            <MessageSquareReply className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">47</div>
-            <p className="text-xs text-muted-foreground">
-              +12 desde ontem
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Resposta</CardTitle>
-            <Reply className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">89%</div>
-            <p className="text-xs text-muted-foreground">
-              Últimos 7 dias
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tempo Médio</CardTitle>
-            <MessageSquareReply className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4m</div>
-            <p className="text-xs text-muted-foreground">
-              Tempo de resposta
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Filtros e Busca</CardTitle>
-              <CardDescription>Encontre mensagens específicas</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input 
-                placeholder="Buscar por remetente, número ou conteúdo..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <select 
-              className="px-3 py-2 border border-input bg-background rounded-md"
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-            >
-              <option value="todas">Todas</option>
-              <option value="nova">Novas</option>
-              <option value="lida">Lidas</option>
-              <option value="respondida">Respondidas</option>
-              <option value="arquivada">Arquivadas</option>
-            </select>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Mais Filtros
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        {mensagensFiltradas.map((mensagem) => (
-          <Card key={mensagem.id} className={`hover:shadow-md transition-shadow ${mensagem.status === 'nova' ? 'border-red-200 dark:border-red-800' : ''}`}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mensagem.remetente}`} />
-                    <AvatarFallback>{mensagem.remetente.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{mensagem.remetente}</h3>
-                      {mensagem.importante && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
+      {/* Messages area */}
+      <ScrollArea className="flex-1 px-4 py-3">
+        <div className="max-w-3xl mx-auto space-y-1">
+          {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
+            <div key={dateKey}>
+              <div className="flex justify-center my-3">
+                <span className="text-[11px] text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  {formatDateSeparator(msgs[0].timestamp)}
+                </span>
+              </div>
+              {msgs.map((msg) => (
+                <div key={msg.id} className="space-y-1 mb-2">
+                  {/* Received message */}
+                  {msg.message_received && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{msg.message_received}</p>
+                        <p className="text-[10px] text-muted-foreground text-right mt-1">
+                          {formatMessageTime(msg.timestamp)}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{mensagem.numero}</p>
-                  </div>
+                  )}
+                  {/* Sent response */}
+                  {msg.response_sent && (
+                    <div className="flex justify-end">
+                      <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
+                        <p className="text-sm whitespace-pre-wrap">{msg.response_sent}</p>
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          {msg.keyword_matched && (
+                            <span className="text-[9px] opacity-70">🤖 {msg.keyword_matched}</span>
+                          )}
+                          <span className="text-[10px] opacity-80">
+                            {formatMessageTime(msg.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {mensagem.dispositivo}
-                  </Badge>
-                  <Badge variant={getStatusColor(mensagem.status)}>
-                    {getStatusText(mensagem.status)}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <p className="text-sm">{mensagem.mensagem}</p>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{mensagem.data}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex items-center gap-1">
-                    <Reply className="w-4 h-4" />
-                    Responder
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Star className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Archive className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              ))}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
 
-      {mensagensFiltradas.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <MessageSquareReply className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-medium mb-2">Nenhuma mensagem encontrada</h3>
-            <p className="text-muted-foreground">Tente ajustar os filtros ou buscar por outros termos</p>
-          </CardContent>
-        </Card>
+const MensagensRecebidas = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+  const { conversations, loading } = useMessageLogs();
+  const isMobile = useIsMobile();
+
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      conv.phone.includes(term) ||
+      conv.lastMessage.toLowerCase().includes(term)
+    );
+  });
+
+  const selectedConversation = conversations.find((c) => c.phone === selectedPhone) || null;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const showList = !isMobile || !selectedPhone;
+  const showChat = !isMobile || !!selectedPhone;
+
+  return (
+    <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
+      {showList && (
+        <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
+          <ConversationList
+            conversations={filteredConversations}
+            selectedPhone={selectedPhone}
+            onSelect={setSelectedPhone}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+        </div>
+      )}
+      {showChat && (
+        <ChatView
+          conversation={selectedConversation}
+          onBack={() => setSelectedPhone(null)}
+          isMobile={isMobile}
+        />
       )}
     </div>
   );
