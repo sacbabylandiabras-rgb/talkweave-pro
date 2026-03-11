@@ -19,6 +19,7 @@ import Relatorio from "./pages/Relatorio";
 import ConfiguracaoZAPI from "./pages/ConfiguracaoZAPI";
 import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
+import MensagensRecebidas from "./pages/MensagensRecebidas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/relatorio" element={<Relatorio />} />
               <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
               <Route path="/gateway" element={<GatewayIntegracoes />} />
+              <Route path="/mensagens" element={<MensagensRecebidas />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
