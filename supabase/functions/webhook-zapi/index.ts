@@ -272,7 +272,9 @@ serve(async (req) => {
             phone,
             zapiConfig,
             supabase,
-            new Set<string>()
+            new Set<string>(),
+            userId,
+            matchedFlow.name
           )
           
           // Log the interaction
