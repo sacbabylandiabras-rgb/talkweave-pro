@@ -236,7 +236,7 @@ serve(async (req) => {
         if (targetNode) {
           const visited = new Set<string>()
           // Send target node content
-          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited)
+          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
           // Then continue processing children from target node
           await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited)
         }
