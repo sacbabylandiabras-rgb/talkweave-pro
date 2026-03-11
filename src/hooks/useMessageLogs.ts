@@ -183,6 +183,38 @@ export const useMessageLogs = () => {
     } catch { return null; }
   }, [savedContacts, fetchSavedContacts]);
 
+  // Auto-fetch profile pictures for conversations that don't have one
+  const autoFetchPhotos = useCallback(async (phones: string[]) => {
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+
+    // Only fetch for phones we haven't tried yet and that look like real numbers (not @lid)
+    const toFetch = phones.filter(p => 
+      !fetchedPhotosRef.current.has(p) && 
+      !savedContacts.get(p)?.profile_picture_url &&
+      !p.includes('@')
+    ).slice(0, 5); // Limit to 5 at a time to avoid rate limits
+
+    for (const phone of toFetch) {
+      fetchedPhotosRef.current.add(phone);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+        if (error) continue;
+        const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
+        if (url) {
+          const existing = savedContacts.get(phone);
+          await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
+        }
+        // Small delay between requests
+        await new Promise(r => setTimeout(r, 500));
+      } catch { /* ignore */ }
+    }
+    if (toFetch.length > 0) {
+      await fetchSavedContacts();
+    }
+  }, [savedContacts, fetchSavedContacts]);
+
   useEffect(() => {
     setLoading(true);
     fetchAll();
