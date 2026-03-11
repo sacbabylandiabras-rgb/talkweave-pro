@@ -28,6 +28,56 @@ export interface Conversation {
   messages: MessageLog[];
 }
 
+// Use raw fetch to interact with saved_contacts table (not in generated types)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const savedContactsApi = {
+  async getAll(token: string): Promise<SavedContact[]> {
+    const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*`, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  },
+  async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+    await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify(data),
+    });
+  },
+  async update(token: string, phone: string, data: Record<string, any>) {
+    await fetch(`${supabaseUrl}/rest/v1/saved_contacts?phone=eq.${encodeURIComponent(phone)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+async function getToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token || '';
+}
+
+async function getUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id || null;
+}
+
 export const useMessageLogs = () => {
   const [messages, setMessages] = useState<MessageLog[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
@@ -37,13 +87,15 @@ export const useMessageLogs = () => {
   const lastDataRef = useRef<string>('');
 
   const fetchSavedContacts = useCallback(async () => {
-    const { data } = await supabase
-      .from('saved_contacts')
-      .select('*');
-    if (data) {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const data = await savedContactsApi.getAll(token);
       const map = new Map<string, SavedContact>();
-      data.forEach((c: any) => map.set(c.phone, { phone: c.phone, name: c.name, profile_picture_url: c.profile_picture_url }));
+      data.forEach((c) => map.set(c.phone, c));
       setSavedContacts(map);
+    } catch {
+      // Table might not exist yet
     }
   }, []);
 
@@ -74,16 +126,12 @@ export const useMessageLogs = () => {
   }, []);
 
   const saveContact = useCallback(async (phone: string, name: string) => {
-    const existing = savedContacts.get(phone);
-    if (existing) {
-      await supabase.from('saved_contacts').update({ name }).eq('phone', phone);
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from('saved_contacts').insert({ phone, name, user_id: user.id });
-    }
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+    await savedContactsApi.upsert(token, { phone, name, user_id: userId });
     await fetchSavedContacts();
-  }, [savedContacts, fetchSavedContacts]);
+  }, [fetchSavedContacts]);
 
   const fetchProfilePicture = useCallback(async (phone: string): Promise<string | null> => {
     try {
@@ -93,17 +141,18 @@ export const useMessageLogs = () => {
       if (error) return null;
       const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
       if (url) {
-        // Save to contact
-        const existing = savedContacts.get(phone);
-        if (existing) {
-          await supabase.from('saved_contacts').update({ profile_picture_url: url }).eq('phone', phone);
-        } else {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from('saved_contacts').upsert({ phone, name: '', profile_picture_url: url, user_id: user.id }, { onConflict: 'phone,user_id' });
-          }
+        const token = await getToken();
+        const userId = await getUserId();
+        if (token && userId) {
+          const existing = savedContacts.get(phone);
+          await savedContactsApi.upsert(token, {
+            phone,
+            name: existing?.name || '',
+            user_id: userId,
+            profile_picture_url: url,
+          });
+          await fetchSavedContacts();
         }
-        await fetchSavedContacts();
       }
       return url;
     } catch {
