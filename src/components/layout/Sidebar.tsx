@@ -10,7 +10,8 @@ import {
   Megaphone,
   ShieldCheck,
   Workflow,
-  Webhook
+  Webhook,
+  MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
