@@ -267,6 +267,13 @@ export const useMessageLogs = () => {
     };
   }, [fetchAll, fetchSavedContacts]);
 
+  // Auto-fetch profile pictures when conversations are available
+  useEffect(() => {
+    if (loading || messageLogs.length === 0) return;
+    const uniquePhones = [...new Set(messageLogs.map(m => m.phone))];
+    autoFetchPhotos(uniquePhones);
+  }, [loading, messageLogs.length, autoFetchPhotos]);
+
   // Build unified messages
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
