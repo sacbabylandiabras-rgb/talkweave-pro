@@ -19,6 +19,7 @@ import Relatorio from "./pages/Relatorio";
 import ConfiguracaoZAPI from "./pages/ConfiguracaoZAPI";
 import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
+import MensagensRecebidas from "./pages/MensagensRecebidas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
