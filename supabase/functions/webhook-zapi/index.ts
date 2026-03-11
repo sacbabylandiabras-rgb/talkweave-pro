@@ -463,6 +463,23 @@ async function sendNodeContent(
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
     }
+    // Log the sent message to message_logs for chat history
+    if (supabase && userId && content) {
+      try {
+        const buttonLabels = allSendButtons.map(b => b.text).filter(Boolean).join(' | ')
+        const logContent = buttonLabels ? `${content}\n\n[Botões: ${buttonLabels}]` : content
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: null,
+          response_sent: logContent,
+          keyword_matched: `__flow_send__${flowName ? `:${flowName}` : ''}`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+        })
+      } catch (logErr) {
+        console.error('Erro ao logar mensagem do fluxo:', logErr)
+      }
+    }
   } catch (e) {
     console.error(`Erro ao enviar bloco ${targetNode.id}:`, e)
   }
