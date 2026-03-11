@@ -32,6 +32,7 @@ const menuItems = [
   { id: "fluxo-visual", label: "Fluxo", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+  { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
 ];

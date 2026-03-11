@@ -46,6 +46,7 @@ const App = () => (
               <Route path="/relatorio" element={<Relatorio />} />
               <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
               <Route path="/gateway" element={<GatewayIntegracoes />} />
+              <Route path="/mensagens" element={<MensagensRecebidas />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
