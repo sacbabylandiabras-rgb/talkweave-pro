@@ -91,6 +91,7 @@ export const useMessageLogs = () => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastLogsRef = useRef<string>('');
   const lastSendsRef = useRef<string>('');
+  const fetchedPhotosRef = useRef<Set<string>>(new Set());
 
   const fetchSavedContacts = useCallback(async () => {
     try {
