@@ -42,19 +42,28 @@ export function VolumeChart() {
   }, []);
 
   useEffect(() => {
+    const toLocalDateStr = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+
     const filtered = allSends.filter((send) => {
-      const sendDate = parseISO(send.created_at);
+      const sendLocalDate = toLocalDateStr(new Date(send.created_at));
       if (dateFrom && dateTo) {
-        return isWithinInterval(sendDate, { start: startOfDay(dateFrom), end: endOfDay(dateTo) });
+        const fromStr = toLocalDateStr(dateFrom);
+        const toStr = toLocalDateStr(dateTo);
+        return sendLocalDate >= fromStr && sendLocalDate <= toStr;
       }
-      if (dateFrom) return sendDate >= startOfDay(dateFrom);
-      if (dateTo) return sendDate <= endOfDay(dateTo);
+      if (dateFrom) return sendLocalDate >= toLocalDateStr(dateFrom);
+      if (dateTo) return sendLocalDate <= toLocalDateStr(dateTo);
       return true;
     });
 
     if (filtered.length > 0) {
       const grouped = filtered.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
-        const date = format(parseISO(send.created_at), "dd/MM/yyyy", { locale: ptBR });
+        const date = format(new Date(send.created_at), "dd/MM/yyyy", { locale: ptBR });
         if (!acc[date]) acc[date] = { sent: 0, delivered: 0, failed: 0 };
         acc[date].sent++;
         if (send.status === "sent" || send.status === "delivered") acc[date].delivered++;
