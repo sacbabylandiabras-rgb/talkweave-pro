@@ -747,6 +747,23 @@ export default function FluxoVisual() {
                 Enviar
               </Button>
             </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleExportJson} className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                <FileUp className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportJson}
+                className="hidden"
+              />
+            </div>
           </div>
 
           <div className="mb-3">
