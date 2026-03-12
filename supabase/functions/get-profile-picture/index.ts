@@ -8,7 +8,7 @@ const extractUrl = (payload: any): string | null => {
     const first = payload[0]
     return first?.link || first?.imgUrl || first?.profilePictureUrl || null
   }
-  return payload.link || payload.imgUrl || payload.profilePictureUrl || null
+  return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null
 }
 
 serve(async (req) => {
@@ -19,7 +19,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
 
     const { phone } = await req.json()
@@ -38,22 +37,41 @@ serve(async (req) => {
       })
     }
 
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`
+    const base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
+    const candidateUrls = [
+      `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
+      `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
+      `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
+    ]
 
-    const zapiResponse = await fetch(zapiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': credentials.clientToken
+    let lastStatus = 404
+    let lastData: any = null
+
+    for (const zapiUrl of candidateUrls) {
+      const zapiResponse = await fetch(zapiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Token': credentials.clientToken
+        }
+      })
+
+      const zapiData = await zapiResponse.json().catch(() => null)
+      const link = extractUrl(zapiData)
+      lastStatus = zapiResponse.status
+      lastData = zapiData
+
+      if (zapiResponse.ok && link) {
+        return new Response(
+          JSON.stringify({ success: true, data: { link, raw: zapiData } }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
-    })
-
-    const zapiData = await zapiResponse.json().catch(() => null)
-    const link = extractUrl(zapiData)
+    }
 
     return new Response(
-      JSON.stringify({ success: zapiResponse.ok, data: { link, raw: zapiData } }),
-      { status: zapiResponse.ok ? 200 : zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, data: { link: null, raw: lastData } }),
+      { status: lastStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     return new Response(
