@@ -362,6 +362,9 @@ export default function FluxoVisual() {
   };
 
   const handleSaveFluxo = async () => {
+    if (savingFluxo) return;
+    setSavingFluxo(true);
+
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -370,13 +373,15 @@ export default function FluxoVisual() {
         return;
       }
 
+      const normalizedName = nomeFluxo.trim() || "Novo Fluxo";
+
       // Serialize nodes/edges to plain JSON to avoid non-serializable data
       const serializedNodes = JSON.parse(JSON.stringify(nodes));
       const serializedEdges = JSON.parse(JSON.stringify(edges));
 
       const fluxoData = {
         user_id: user.id,
-        name: nomeFluxo,
+        name: normalizedName,
         keyword: keywordFluxo.trim().toLowerCase(),
         nodes: serializedNodes,
         edges: serializedEdges,
@@ -384,21 +389,40 @@ export default function FluxoVisual() {
       };
 
       if (currentFluxoId) {
-        const { error } = await (supabase as any)
+        const { data: updatedRows, error } = await (supabase as any)
           .from('flow_automations')
           .update(fluxoData)
-          .eq('id', currentFluxoId);
+          .eq('id', currentFluxoId)
+          .eq('user_id', user.id)
+          .select('id');
 
         if (error) {
           console.error("Erro ao atualizar fluxo:", error);
           toast.error(`Erro ao atualizar: ${error.message}`);
           return;
         }
+
+        // If nothing was updated (stale id or row not found), create a new one
+        if (!updatedRows || updatedRows.length === 0) {
+          const { data: createdFlow, error: insertError } = await (supabase as any)
+            .from('flow_automations')
+            .insert(fluxoData)
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error("Erro ao recriar fluxo:", insertError);
+            toast.error(`Erro ao salvar: ${insertError.message}`);
+            return;
+          }
+
+          setCurrentFluxoId(createdFlow.id);
+        }
       } else {
         const { data, error } = await (supabase as any)
           .from('flow_automations')
           .insert(fluxoData)
-          .select()
+          .select('id')
           .single();
 
         if (error) {
@@ -406,14 +430,18 @@ export default function FluxoVisual() {
           toast.error(`Erro ao salvar: ${error.message}`);
           return;
         }
+
         setCurrentFluxoId(data.id);
       }
 
+      setNomeFluxo(normalizedName);
       await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
       toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
+    } finally {
+      setSavingFluxo(false);
     }
   };
 
