@@ -124,16 +124,61 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  const zeroData: ChartData[] = Array.from({ length: 5 }).map((_, index) => {
-    const date = subDays(new Date(), 4 - index);
-    return {
-      date: format(date, "dd/MM/yyyy", { locale: ptBR }),
-      enviadas: 0,
-      entregues: 0,
-      erros: 0,
-    };
-  });
-  const displayData = chartData.length > 0 ? chartData : zeroData;
+  const buildFallbackData = (): ChartData[] => {
+    if (dateFrom && dateTo) {
+      const start = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+      const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+      const rangeData: ChartData[] = [];
+      const cursor = new Date(start);
+
+      while (cursor <= end) {
+        rangeData.push({
+          date: format(cursor, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        });
+        cursor.setDate(cursor.getDate() + 1);
+        if (rangeData.length > 31) break;
+      }
+
+      return rangeData;
+    }
+
+    if (dateFrom) {
+      return [
+        {
+          date: format(dateFrom, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        },
+      ];
+    }
+
+    if (dateTo) {
+      return [
+        {
+          date: format(dateTo, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        },
+      ];
+    }
+
+    return Array.from({ length: 5 }).map((_, index) => {
+      const date = subDays(new Date(), 4 - index);
+      return {
+        date: format(date, "dd/MM/yyyy", { locale: ptBR }),
+        enviadas: 0,
+        entregues: 0,
+        erros: 0,
+      };
+    });
+  };
+
+  const displayData = chartData.length > 0 ? chartData : buildFallbackData();
 
   const formatYAxis = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
