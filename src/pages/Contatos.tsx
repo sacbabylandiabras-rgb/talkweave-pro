@@ -81,7 +81,7 @@ const Contatos = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contato.phone}`} />
+                    <AvatarImage src={contato.profilePictureUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${contato.phone}`} />
                     <AvatarFallback>
                       {contato.name?.split(' ').map(n => n[0]).join('') || 'C'}
                     </AvatarFallback>

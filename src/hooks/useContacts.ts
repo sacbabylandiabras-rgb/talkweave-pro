@@ -11,6 +11,7 @@ export interface Contact {
   messageCount: number;
   firstContactDate?: string;
   tags: string[];
+  profilePictureUrl?: string;
 }
 
 export interface ContactStats {
@@ -113,6 +114,22 @@ export const useContacts = () => {
           }
         }
       });
+
+      // Buscar contatos salvos para fotos de perfil e nomes
+      const { data: savedContacts } = await supabase
+        .from('saved_contacts')
+        .select('phone, name, profile_picture_url');
+
+      // Mesclar dados dos contatos salvos
+      if (savedContacts) {
+        savedContacts.forEach(sc => {
+          const existing = contactMap.get(sc.phone);
+          if (existing) {
+            if (sc.profile_picture_url) existing.profilePictureUrl = sc.profile_picture_url;
+            if (sc.name) existing.name = sc.name;
+          }
+        });
+      }
 
       const contactsList = Array.from(contactMap.values());
       
