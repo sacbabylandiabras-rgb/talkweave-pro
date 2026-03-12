@@ -29,9 +29,36 @@ export function VolumeChart() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
+  const toLocalDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const handleSelectFrom = (selected?: Date) => {
+    setDateFrom(selected);
+    if (!selected) return;
+
+    if (!dateTo || selected > dateTo) {
+      setDateTo(selected);
+    }
+  };
+
+  const handleSelectTo = (selected?: Date) => {
+    setDateTo(selected);
+    if (!selected) return;
+
+    if (!dateFrom || selected < dateFrom) {
+      setDateFrom(selected);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         loadRawData();
       } else {
@@ -42,22 +69,17 @@ export function VolumeChart() {
   }, []);
 
   useEffect(() => {
-    const toLocalDateStr = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    };
-
     const filtered = allSends.filter((send) => {
       const sendLocalDate = toLocalDateStr(new Date(send.created_at));
+
       if (dateFrom && dateTo) {
         const fromStr = toLocalDateStr(dateFrom);
         const toStr = toLocalDateStr(dateTo);
         return sendLocalDate >= fromStr && sendLocalDate <= toStr;
       }
-      if (dateFrom) return sendLocalDate >= toLocalDateStr(dateFrom);
-      if (dateTo) return sendLocalDate <= toLocalDateStr(dateTo);
+
+      if (dateFrom) return sendLocalDate === toLocalDateStr(dateFrom);
+      if (dateTo) return sendLocalDate === toLocalDateStr(dateTo);
       return true;
     });
 
