@@ -184,8 +184,8 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
 
     channelRef.current = channel;
 
-    // Polling fallback every 5s — only updates if data changed (no flicker)
-    pollingRef.current = setInterval(fetchCampaigns, 5000);
+    // Polling fallback every 2s
+    pollingRef.current = setInterval(fetchCampaigns, 2000);
 
     return () => {
       if (channelRef.current) {
