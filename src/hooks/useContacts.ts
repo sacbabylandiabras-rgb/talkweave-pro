@@ -157,9 +157,52 @@ export const useContacts = () => {
     }
   };
 
+  const autoFetchProfilePictures = async (contactsList: Contact[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const toFetch = contactsList.filter(c => 
+      !c.profilePictureUrl && 
+      !fetchedPhotosRef.current.has(c.phone) &&
+      !c.phone.includes('@')
+    ).slice(0, 5);
+
+    if (toFetch.length === 0) return;
+
+    let updated = false;
+    for (const contact of toFetch) {
+      fetchedPhotosRef.current.add(contact.phone);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone } });
+        if (error) continue;
+        const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
+        if (url) {
+          contact.profilePictureUrl = url;
+          updated = true;
+          // Save to saved_contacts
+          await supabase.from('saved_contacts').upsert(
+            { phone: contact.phone, name: contact.name || '', user_id: session.user.id, profile_picture_url: url },
+            { onConflict: 'phone,user_id' }
+          );
+        }
+        await new Promise(r => setTimeout(r, 500));
+      } catch { /* ignore */ }
+    }
+    if (updated) {
+      setContacts([...contactsList]);
+    }
+  };
+
   useEffect(() => {
     fetchContacts();
   }, []);
+
+  // Auto-fetch profile pictures after contacts load
+  useEffect(() => {
+    if (!loading && contacts.length > 0) {
+      autoFetchProfilePictures(contacts);
+    }
+  }, [loading]);
 
   return { contacts, stats, loading, refetch: fetchContacts };
 };
