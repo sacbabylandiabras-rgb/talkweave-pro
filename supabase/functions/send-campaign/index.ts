@@ -117,93 +117,60 @@ serve(async (req) => {
         let campaignSend: CampaignSendRecord | undefined;
         
         try {
-          // CHECK DEVICE STATUS FIRST
-          console.log(`[${i + 1}/${contacts.length}] Checking device status...`);
-          const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
-          
-          try {
-            const deviceResponse = await fetch(deviceStatusUrl, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Client-Token': zapiClientToken
-              }
-            });
-
-            if (deviceResponse.ok) {
-              const deviceStatus = await deviceResponse.json();
-              console.log(`Device status:`, deviceStatus);
-              
-              // Check if device is connected
-              if (!deviceStatus.connected || deviceStatus.connected === false) {
-                console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId} automaticamente...`);
-                console.log(`📊 Progresso: ${i}/${contacts.length} contatos processados antes da desconexão`);
-                console.log(`📋 Números não enviados: ${contacts.length - i}`);
-                
-                // PAUSAR campanha automaticamente (não cancelar)
-                const { error: pauseError } = await supabase
-                  .from('campaigns')
-                  .update({ status: 'paused', updated_at: new Date().toISOString() })
-                  .eq('id', campaignId);
-                
-                if (pauseError) {
-                  console.error('Erro ao pausar campanha:', pauseError);
-                } else {
-                  console.log(`✅ Campanha ${campaignId} PAUSADA com sucesso devido à desconexão`);
+          // CHECK DEVICE STATUS every 5 contacts (not every single one)
+          if (i % 5 === 0) {
+            const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
+            
+            try {
+              const deviceResponse = await fetch(deviceStatusUrl, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Client-Token': zapiClientToken
                 }
+              });
 
-                // LIMPAR FILA DA Z-API para não enviar mensagens pendentes
-                try {
-                  const clearQueueUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/queue`;
-                  console.log(`🧹 Limpando fila da Z-API...`);
-                  const clearResponse = await fetch(clearQueueUrl, {
-                    method: 'DELETE',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Client-Token': zapiClientToken
-                    }
-                  });
-                  if (clearResponse.ok) {
-                    console.log(`✅ Fila da Z-API limpa com sucesso`);
-                  } else {
-                    console.error(`❌ Erro ao limpar fila da Z-API:`, await clearResponse.text());
+              if (deviceResponse.ok) {
+                const deviceStatus = await deviceResponse.json();
+                
+                if (!deviceStatus.connected || deviceStatus.connected === false) {
+                  console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
+                  
+                  await supabase
+                    .from('campaigns')
+                    .update({ status: 'paused', updated_at: new Date().toISOString() })
+                    .eq('id', campaignId);
+
+                  try {
+                    const clearQueueUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/queue`;
+                    await fetch(clearQueueUrl, {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json', 'Client-Token': zapiClientToken }
+                    });
+                  } catch (queueError) {
+                    console.error('Erro ao limpar fila:', queueError);
                   }
-                } catch (queueError) {
-                  console.error('Erro ao limpar fila da Z-API:', queueError);
+                  
+                  return;
                 }
-
-                console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados (dispositivo desconectado)`);
-                
-                return; // Exit background processing
               }
-              
-              console.log(`✅ Dispositivo conectado - prosseguindo com envio`);
+            } catch (statusError) {
+              // Continue - don't block on status check errors
             }
-          } catch (statusError) {
-            console.error('Error checking device status:', statusError);
-            // Continue anyway - don't block on status check errors
           }
 
-          // CHECK IF CAMPAIGN WAS PAUSED - SECOND PRIORITY
-          const { data: currentCampaign } = await supabase
-            .from('campaigns')
-            .select('status')
-            .eq('id', campaignId)
-            .single();
-          
-          console.log(`[${i + 1}/${contacts.length}] Checking campaign status: ${currentCampaign?.status}`);
-          
-          if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
-            console.log(`🛑 Campaign ${campaignId} was ${currentCampaign.status.toUpperCase()}. Stopping at contact ${i + 1}/${contacts.length}`);
-            console.log(`📊 Relatório: ${i} enviados, ${contacts.length - i} não enviados`);
-            
-            // Update campaign status to ensure it stays in current state
-            await supabase
+          // CHECK IF CAMPAIGN WAS PAUSED every 3 contacts
+          if (i % 3 === 0) {
+            const { data: currentCampaign } = await supabase
               .from('campaigns')
-              .update({ status: currentCampaign.status })
-              .eq('id', campaignId);
+              .select('status')
+              .eq('id', campaignId)
+              .single();
             
-            return; // Exit background processing
+            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
+              console.log(`🛑 Campaign ${campaignId} ${currentCampaign.status}. Stopping at ${i + 1}/${contacts.length}`);
+              return;
+            }
           }
           
           // Check if this exact contact iteration was already processed
