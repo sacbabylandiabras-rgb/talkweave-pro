@@ -31,6 +31,7 @@ export const useContacts = () => {
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const fetchedPhotosRef = useRef(new Set<string>());
 
   const fetchContacts = async () => {
     try {
