@@ -91,8 +91,8 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 
     channelRef.current = channel;
 
-    // Lightweight polling fallback (3s) — only updates if data changed
-    pollingRef.current = setInterval(fetchSends, 3000);
+    // Lightweight polling fallback (2s)
+    pollingRef.current = setInterval(fetchSends, 2000);
 
     return () => {
       if (channelRef.current) {
@@ -184,8 +184,8 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
 
     channelRef.current = channel;
 
-    // Polling fallback every 5s — only updates if data changed (no flicker)
-    pollingRef.current = setInterval(fetchCampaigns, 5000);
+    // Polling fallback every 2s
+    pollingRef.current = setInterval(fetchCampaigns, 2000);
 
     return () => {
       if (channelRef.current) {
@@ -272,7 +272,7 @@ export const useAllCampaignSendsRealtime = () => {
 
     channelRef.current = channel;
 
-    pollingRef.current = setInterval(fetchSends, 3000);
+    pollingRef.current = setInterval(fetchSends, 2000);
 
     return () => {
       if (channelRef.current) {
