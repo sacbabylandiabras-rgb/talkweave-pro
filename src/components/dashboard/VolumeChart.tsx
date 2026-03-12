@@ -42,26 +42,6 @@ export function VolumeChart() {
   }, []);
 
   useEffect(() => {
-    filterAndGroup();
-  }, [allSends, dateFrom, dateTo]);
-
-  const loadRawData = async () => {
-    try {
-      const { data: sends, error } = await supabase
-        .from("campaign_sends")
-        .select("created_at, status")
-        .order("created_at", { ascending: true });
-
-      console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
-      setAllSends(sends || []);
-    } catch (error) {
-      console.error("Error loading chart data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterAndGroup = () => {
     const filtered = allSends.filter((send) => {
       const sendDate = parseISO(send.created_at);
       if (dateFrom && dateTo) {
@@ -92,6 +72,22 @@ export function VolumeChart() {
       );
     } else {
       setChartData([]);
+    }
+  }, [allSends, dateFrom, dateTo]);
+
+  const loadRawData = async () => {
+    try {
+      const { data: sends, error } = await supabase
+        .from("campaign_sends")
+        .select("created_at, status")
+        .order("created_at", { ascending: true });
+
+      console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
+      setAllSends(sends || []);
+    } catch (error) {
+      console.error("Error loading chart data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
