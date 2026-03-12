@@ -362,45 +362,57 @@ export default function FluxoVisual() {
 
   const handleSaveFluxo = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
         toast.error("Faça login para salvar fluxos");
+        console.error("Auth error:", authError);
         return;
       }
+
+      // Serialize nodes/edges to plain JSON to avoid non-serializable data
+      const serializedNodes = JSON.parse(JSON.stringify(nodes));
+      const serializedEdges = JSON.parse(JSON.stringify(edges));
 
       const fluxoData = {
         user_id: user.id,
         name: nomeFluxo,
         keyword: keywordFluxo.trim().toLowerCase(),
-        nodes,
-        edges,
+        nodes: serializedNodes,
+        edges: serializedEdges,
         active: fluxoAtivo,
       };
 
       if (currentFluxoId) {
-        // Update existing
         const { error } = await (supabase as any)
           .from('flow_automations')
           .update(fluxoData)
           .eq('id', currentFluxoId);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao atualizar fluxo:", error);
+          toast.error(`Erro ao atualizar: ${error.message}`);
+          return;
+        }
       } else {
-        // Insert new
         const { data, error } = await (supabase as any)
           .from('flow_automations')
           .insert(fluxoData)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao inserir fluxo:", error);
+          toast.error(`Erro ao salvar: ${error.message}`);
+          return;
+        }
         setCurrentFluxoId(data.id);
       }
 
+      await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
-      toast.error("Erro ao salvar fluxo");
+      toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
     }
   };
 
