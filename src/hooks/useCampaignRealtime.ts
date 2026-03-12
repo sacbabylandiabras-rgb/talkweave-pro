@@ -91,8 +91,8 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 
     channelRef.current = channel;
 
-    // Lightweight polling fallback (3s) — only updates if data changed
-    pollingRef.current = setInterval(fetchSends, 3000);
+    // Lightweight polling fallback (2s)
+    pollingRef.current = setInterval(fetchSends, 2000);
 
     return () => {
       if (channelRef.current) {
