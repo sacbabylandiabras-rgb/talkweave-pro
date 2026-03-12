@@ -403,7 +403,61 @@ export default function FluxoVisual() {
     }
   };
 
-  const handleEnviarAgora = () => {
+  const handleExportJson = () => {
+    const flowData = {
+      name: nomeFluxo,
+      keyword: keywordFluxo,
+      active: fluxoAtivo,
+      nodes,
+      edges,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${nomeFluxo.replace(/\s+/g, "_")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Fluxo exportado com sucesso!");
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const flowData = JSON.parse(event.target?.result as string);
+
+        if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
+          toast.error("Arquivo JSON inválido: campo 'nodes' não encontrado");
+          return;
+        }
+
+        setNodes(flowData.nodes);
+        setEdges(flowData.edges || []);
+        if (flowData.name) setNomeFluxo(flowData.name);
+        if (flowData.keyword !== undefined) setKeywordFluxo(flowData.keyword);
+        if (flowData.active !== undefined) setFluxoAtivo(flowData.active);
+        setCurrentFluxoId(null);
+        setShowFluxosList(false);
+
+        toast.success("Fluxo importado com sucesso!");
+      } catch {
+        toast.error("Erro ao ler o arquivo JSON");
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input so same file can be re-imported
+    e.target.value = "";
+  };
+
     if (nodes.length <= 1) {
       toast.error("Adicione blocos ao fluxo antes de enviar!");
       return;
