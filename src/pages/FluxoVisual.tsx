@@ -424,7 +424,6 @@ export default function FluxoVisual() {
     toast.success("Fluxo exportado com sucesso!");
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
