@@ -81,6 +81,15 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id || null;
 }
 
+const extractProfilePictureUrl = (payload: any): string | null => {
+  if (!payload) return null;
+  if (Array.isArray(payload)) {
+    const first = payload[0];
+    return first?.link || first?.imgUrl || first?.profilePictureUrl || null;
+  }
+  return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null;
+};
+
 export const useMessageLogs = () => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
