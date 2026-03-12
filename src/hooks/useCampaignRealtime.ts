@@ -272,7 +272,7 @@ export const useAllCampaignSendsRealtime = () => {
 
     channelRef.current = channel;
 
-    pollingRef.current = setInterval(fetchSends, 5000);
+    pollingRef.current = setInterval(fetchSends, 3000);
 
     return () => {
       if (channelRef.current) {
