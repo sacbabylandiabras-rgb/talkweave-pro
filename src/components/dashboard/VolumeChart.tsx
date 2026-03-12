@@ -321,8 +321,8 @@ export function VolumeChart() {
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "rgb(var(--card))",
+              border: "1px solid rgb(var(--border))",
               borderRadius: "8px",
               fontSize: "12px",
               padding: "8px 12px",
