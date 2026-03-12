@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -32,133 +32,100 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   const [isComplete, setIsComplete] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPausing, setIsPausing] = useState(false);
+  const channelRef = useRef<any>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePause = async () => {
     if (campaignId && !isPausing) {
       try {
         setIsPausing(true);
-        console.log('🛑 PAUSANDO CAMPANHA:', campaignId);
-        
-        // Update campaign status to paused
         const { error } = await supabase
           .from('campaigns')
           .update({ status: 'paused' })
           .eq('id', campaignId);
         
-        if (error) {
-          console.error('❌ Erro ao pausar no banco:', error);
-          throw error;
-        }
-        
-        console.log('✅ Status atualizado para "paused" no banco de dados');
+        if (error) throw error;
         setIsPaused(true);
-        
-        // Call the onPause callback if provided
-        if (onPause) {
-          console.log('📞 Chamando callback onPause para atualizar lista');
-          onPause();
-        }
+        if (onPause) onPause();
       } catch (error) {
-        console.error('❌ Error pausing campaign:', error);
+        console.error('Error pausing campaign:', error);
         setIsPausing(false);
       }
-    } else {
-      console.warn('⚠️ Tentativa de pausar sem campaignId ou já pausando');
     }
   };
 
   useEffect(() => {
     if (!open || !campaignId) {
-      setStats({
-        total: 0,
-        pending: totalContacts,
-        sent: 0,
-        delivered: 0,
-        failed: 0,
-      });
+      setStats({ total: 0, pending: totalContacts, sent: 0, delivered: 0, failed: 0 });
       setIsComplete(false);
       setIsPaused(false);
       setIsPausing(false);
       return;
     }
 
-    // Add initial delay to allow campaign_sends to be created in database
-    const initialDelay = setTimeout(() => {
-      // Poll for updates every 2 seconds
-      const pollInterval = setInterval(async () => {
-        try {
-          // Check campaign status
-          const { data: campaignData, error: campaignError } = await supabase
-            .from('campaigns')
-            .select('status')
-            .eq('id', campaignId)
-            .single();
+    const computeStats = (data: Array<{ status: string | null }>) => {
+      return {
+        total: data.length,
+        pending: data.filter(s => s.status === 'pending').length,
+        sent: data.filter(s => s.status === 'sent').length,
+        delivered: data.filter(s => s.status === 'delivered').length,
+        failed: data.filter(s => s.status === 'failed').length,
+      };
+    };
 
-          if (campaignError) throw campaignError;
+    const fetchAndUpdate = async () => {
+      const [
+        { data: sends },
+        { data: campaignData }
+      ] = await Promise.all([
+        supabase.from('campaign_sends').select('status').eq('campaign_id', campaignId),
+        supabase.from('campaigns').select('status').eq('id', campaignId).single()
+      ]);
 
-          // If campaign is completed or cancelled, mark as complete
-          if (campaignData?.status === 'completed') {
-            // Do one final check for campaign_sends before marking complete
-            const { data: finalSends } = await supabase
-              .from('campaign_sends')
-              .select('status')
-              .eq('campaign_id', campaignId);
-            
-            if (finalSends && finalSends.length > 0) {
-              const finalStats = {
-                total: finalSends.length,
-                pending: finalSends.filter(s => s.status === 'pending').length,
-                sent: finalSends.filter(s => s.status === 'sent').length,
-                delivered: finalSends.filter(s => s.status === 'delivered').length,
-                failed: finalSends.filter(s => s.status === 'failed').length,
-              };
-              setStats(finalStats);
-            }
-            
-            setIsComplete(true);
-            clearInterval(pollInterval);
-            return;
-          }
+      if (sends) {
+        const newStats = computeStats(sends);
+        setStats(newStats);
 
-          if (campaignData?.status === 'paused') {
-            setIsPaused(true);
-            setIsPausing(false);
-            clearInterval(pollInterval);
-            return;
-          }
-
-          // Poll campaign_sends for progress
-          const { data, error } = await supabase
-            .from('campaign_sends')
-            .select('status')
-            .eq('campaign_id', campaignId);
-
-          if (error) throw error;
-
-          const newStats = {
-            total: data.length,
-            pending: data.filter(s => s.status === 'pending').length,
-            sent: data.filter(s => s.status === 'sent').length,
-            delivered: data.filter(s => s.status === 'delivered').length,
-            failed: data.filter(s => s.status === 'failed').length,
-          };
-
-          setStats(newStats);
-
-          // Check if complete (no pending messages) - backup check
-          if (data.length >= totalContacts && newStats.pending === 0) {
-            setIsComplete(true);
-            clearInterval(pollInterval);
-          }
-        } catch (error) {
-          console.error('Error polling campaign stats:', error);
+        if (campaignData?.status === 'completed' || 
+            (sends.length >= totalContacts && newStats.pending === 0)) {
+          setIsComplete(true);
         }
-      }, 2000);
+      }
 
-      return () => clearInterval(pollInterval);
-    }, 500); // Wait 500ms before starting to poll
+      if (campaignData?.status === 'paused') {
+        setIsPaused(true);
+        setIsPausing(false);
+      }
+    };
 
-    return () => clearTimeout(initialDelay);
+    // Initial fetch
+    const initialDelay = setTimeout(() => {
+      fetchAndUpdate();
+
+      // Realtime subscription for instant updates
+      const channel = supabase
+        .channel(`progress-${campaignId}-${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
+          fetchAndUpdate();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` }, (payload) => {
+          const status = (payload.new as any)?.status;
+          if (status === 'completed') setIsComplete(true);
+          if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
+        })
+        .subscribe();
+
+      channelRef.current = channel;
+
+      // Lightweight polling fallback every 2s
+      pollingRef.current = setInterval(fetchAndUpdate, 2000);
+    }, 300);
+
+    return () => {
+      clearTimeout(initialDelay);
+      if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    };
   }, [open, campaignId, totalContacts]);
 
   const progress = totalContacts > 0 ? ((stats.sent + stats.delivered + stats.failed) / totalContacts) * 100 : 0;
@@ -180,7 +147,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progresso</span>
@@ -189,7 +155,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <Progress value={progress} className="h-2" />
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -230,7 +195,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             </div>
           </div>
 
-          {/* Success Rate */}
           {isComplete && stats.total > 0 && (
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="text-center">
@@ -242,7 +206,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             </div>
           )}
 
-          {/* Loading indicator or Pause button */}
           {!isComplete && !isPaused && (
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">

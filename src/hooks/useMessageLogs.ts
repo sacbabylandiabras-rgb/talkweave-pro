@@ -266,7 +266,7 @@ export const useMessageLogs = () => {
       .subscribe();
     channelRef2.current = ch2;
 
-    pollingRef.current = setInterval(fetchAll, 5000);
+    pollingRef.current = setInterval(fetchAll, 2000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
