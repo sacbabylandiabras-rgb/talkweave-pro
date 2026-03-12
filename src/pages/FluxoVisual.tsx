@@ -126,6 +126,7 @@ export default function FluxoVisual() {
   const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [savingFluxo, setSavingFluxo] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
