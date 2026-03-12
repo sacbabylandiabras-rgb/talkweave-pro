@@ -96,8 +96,6 @@ export function BlocoConteudoNode({ data }: any) {
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[260px]">
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-blue-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-blue-500" />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-blue-500" />
-      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-blue-500" />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-blue-500/10">
           <Icon className="h-4 w-4 text-blue-500" />
@@ -134,13 +132,12 @@ export function BlocoConteudoNode({ data }: any) {
         </div>
       )}
 
-      {/* Default source handle on the right */}
+      {/* Default source handles */}
       {flowButtons.length === 0 && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="w-3 h-3 !bg-blue-500"
-        />
+        <>
+          <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-blue-500" />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-blue-500" />
+        </>
       )}
 
       {/* Per-button source handles on the right */}
@@ -168,6 +165,7 @@ export function BlocoConteudoNode({ data }: any) {
             className="w-3 h-3 !bg-blue-500"
             style={{ top: `${(flowButtons.length / (flowButtons.length + 1)) * 100}%` }}
           />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-blue-500" />
         </>
       )}
     </div>
