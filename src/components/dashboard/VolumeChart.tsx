@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, subDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Eye, EyeOff, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,36 @@ export function VolumeChart() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
+  const toLocalDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const handleSelectFrom = (selected?: Date) => {
+    setDateFrom(selected);
+    if (!selected) return;
+
+    if (!dateTo || selected > dateTo) {
+      setDateTo(selected);
+    }
+  };
+
+  const handleSelectTo = (selected?: Date) => {
+    setDateTo(selected);
+    if (!selected) return;
+
+    if (!dateFrom || selected < dateFrom) {
+      setDateFrom(selected);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         loadRawData();
       } else {
@@ -42,22 +69,17 @@ export function VolumeChart() {
   }, []);
 
   useEffect(() => {
-    const toLocalDateStr = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    };
-
     const filtered = allSends.filter((send) => {
       const sendLocalDate = toLocalDateStr(new Date(send.created_at));
+
       if (dateFrom && dateTo) {
         const fromStr = toLocalDateStr(dateFrom);
         const toStr = toLocalDateStr(dateTo);
         return sendLocalDate >= fromStr && sendLocalDate <= toStr;
       }
-      if (dateFrom) return sendLocalDate >= toLocalDateStr(dateFrom);
-      if (dateTo) return sendLocalDate <= toLocalDateStr(dateTo);
+
+      if (dateFrom) return sendLocalDate === toLocalDateStr(dateFrom);
+      if (dateTo) return sendLocalDate === toLocalDateStr(dateTo);
       return true;
     });
 
@@ -102,16 +124,61 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  const zeroData: ChartData[] = Array.from({ length: 5 }).map((_, index) => {
-    const date = subDays(new Date(), 4 - index);
-    return {
-      date: format(date, "dd/MM/yyyy", { locale: ptBR }),
-      enviadas: 0,
-      entregues: 0,
-      erros: 0,
-    };
-  });
-  const displayData = chartData.length > 0 ? chartData : zeroData;
+  const buildFallbackData = (): ChartData[] => {
+    if (dateFrom && dateTo) {
+      const start = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+      const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+      const rangeData: ChartData[] = [];
+      const cursor = new Date(start);
+
+      while (cursor <= end) {
+        rangeData.push({
+          date: format(cursor, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        });
+        cursor.setDate(cursor.getDate() + 1);
+        if (rangeData.length > 31) break;
+      }
+
+      return rangeData;
+    }
+
+    if (dateFrom) {
+      return [
+        {
+          date: format(dateFrom, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        },
+      ];
+    }
+
+    if (dateTo) {
+      return [
+        {
+          date: format(dateTo, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: 0,
+          entregues: 0,
+          erros: 0,
+        },
+      ];
+    }
+
+    return Array.from({ length: 5 }).map((_, index) => {
+      const date = subDays(new Date(), 4 - index);
+      return {
+        date: format(date, "dd/MM/yyyy", { locale: ptBR }),
+        enviadas: 0,
+        entregues: 0,
+        erros: 0,
+      };
+    });
+  };
+
+  const displayData = chartData.length > 0 ? chartData : buildFallbackData();
 
   const formatYAxis = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
@@ -163,7 +230,7 @@ export function VolumeChart() {
               <Calendar
                 mode="single"
                 selected={dateFrom}
-                onSelect={setDateFrom}
+                onSelect={handleSelectFrom}
                 disabled={(date) => (dateTo ? date > dateTo : date > new Date())}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
@@ -192,7 +259,7 @@ export function VolumeChart() {
               <Calendar
                 mode="single"
                 selected={dateTo}
-                onSelect={setDateTo}
+                onSelect={handleSelectTo}
                 disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
