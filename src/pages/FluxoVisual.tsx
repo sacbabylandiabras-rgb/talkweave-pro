@@ -50,6 +50,8 @@ import {
   Trash2,
   Upload,
   Key,
+  Download,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
