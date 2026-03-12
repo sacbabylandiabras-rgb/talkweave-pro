@@ -11,6 +11,7 @@ export interface Contact {
   messageCount: number;
   firstContactDate?: string;
   tags: string[];
+  profilePictureUrl?: string;
 }
 
 export interface ContactStats {
