@@ -4,11 +4,10 @@ import { Zap } from "lucide-react";
 export function BlocoAcaoNode({ data }: any) {
   return (
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-green-500 bg-card min-w-[200px]">
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 !bg-green-500"
-      />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-green-500" />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-green-500" />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-green-500" />
+      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-green-500" />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-green-500/10">
           <Zap className="h-4 w-4 text-green-500" />
