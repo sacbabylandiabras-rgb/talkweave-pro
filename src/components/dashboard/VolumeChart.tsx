@@ -38,11 +38,13 @@ export function VolumeChart() {
 
   const handleSelectFrom = (selected?: Date) => {
     setDateFrom(selected);
-    if (!selected) return;
 
-    if (!dateTo || selected > dateTo) {
-      setDateTo(selected);
+    if (!selected) {
+      setDateTo(undefined);
+      return;
     }
+
+    setDateTo(selected);
   };
 
   const handleSelectTo = (selected?: Date) => {
