@@ -200,15 +200,17 @@ export const useMessageLogs = () => {
       fetchedPhotosRef.current.add(phone);
       try {
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+        console.log(`📸 Profile pic response for ${phone}:`, data, error);
         if (error) continue;
         const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
+        console.log(`📸 Extracted URL for ${phone}:`, url);
         if (url) {
           const existing = savedContacts.get(phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
         }
         // Small delay between requests
         await new Promise(r => setTimeout(r, 500));
-      } catch { /* ignore */ }
+      } catch (e) { console.error(`📸 Error fetching photo for ${phone}:`, e); }
     }
     if (toFetch.length > 0) {
       await fetchSavedContacts();

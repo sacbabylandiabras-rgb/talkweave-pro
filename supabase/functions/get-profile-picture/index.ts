@@ -22,6 +22,7 @@ serve(async (req) => {
     }
 
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/profile-picture/${phone}`
+    console.log(`📸 Fetching profile picture for: ${phone}`)
 
     const zapiResponse = await fetch(zapiUrl, {
       method: 'GET',
@@ -32,6 +33,7 @@ serve(async (req) => {
     })
 
     const zapiData = await zapiResponse.json()
+    console.log(`📸 Z-API response for ${phone}:`, JSON.stringify(zapiData))
 
     return new Response(
       JSON.stringify({ success: true, data: zapiData }),
