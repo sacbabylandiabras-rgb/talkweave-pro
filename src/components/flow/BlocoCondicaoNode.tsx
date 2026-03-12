@@ -6,8 +6,6 @@ export function BlocoCondicaoNode({ data }: any) {
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px]">
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-orange-500" />
-      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-orange-500" />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-orange-500/10">
           <GitBranch className="h-4 w-4 text-orange-500" />
@@ -26,8 +24,6 @@ export function BlocoCondicaoNode({ data }: any) {
       <Handle type="source" position={Position.Right} id="a" className="w-3 h-3 !bg-orange-500" style={{ top: "35%" }} />
       <Handle type="source" position={Position.Right} id="b" className="w-3 h-3 !bg-orange-500" style={{ top: "65%" }} />
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
-      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-orange-500" />
-      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-orange-500" />
     </div>
   );
 }

@@ -17,11 +17,8 @@ export function BlocoGatewayTriggerNode({ data }: any) {
           </div>
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="w-3 h-3 !bg-primary"
-      />
+      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-primary" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-primary" />
     </div>
   );
 }
