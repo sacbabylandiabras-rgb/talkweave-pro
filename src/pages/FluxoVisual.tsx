@@ -127,6 +127,7 @@ export default function FluxoVisual() {
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
