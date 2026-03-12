@@ -23,20 +23,11 @@ export function BlocoCondicaoNode({ data }: any) {
           )}
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="a"
-        className="w-3 h-3 !bg-orange-500"
-        style={{ top: "35%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="b"
-        className="w-3 h-3 !bg-orange-500"
-        style={{ top: "65%" }}
-      />
+      <Handle type="source" position={Position.Right} id="a" className="w-3 h-3 !bg-orange-500" style={{ top: "35%" }} />
+      <Handle type="source" position={Position.Right} id="b" className="w-3 h-3 !bg-orange-500" style={{ top: "65%" }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
+      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-orange-500" />
+      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-orange-500" />
     </div>
   );
 }

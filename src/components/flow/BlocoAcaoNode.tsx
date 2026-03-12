@@ -24,11 +24,10 @@ export function BlocoAcaoNode({ data }: any) {
           )}
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 !bg-green-500"
-      />
+      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-green-500" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-green-500" />
+      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-green-500" />
+      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-green-500" />
     </div>
   );
 }
