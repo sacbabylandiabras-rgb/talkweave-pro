@@ -95,7 +95,7 @@ export function BlocoConteudoNode({ data }: any) {
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[260px]">
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="w-3 h-3 !bg-blue-500"
       />
       <div className="flex items-center gap-2">
@@ -134,43 +134,41 @@ export function BlocoConteudoNode({ data }: any) {
         </div>
       )}
 
-      {/* Default source handle (when no flow buttons) */}
+      {/* Default source handle on the right */}
       {flowButtons.length === 0 && (
         <Handle
           type="source"
-          position={Position.Bottom}
+          position={Position.Right}
           className="w-3 h-3 !bg-blue-500"
         />
       )}
 
-      {/* Per-button source handles */}
+      {/* Per-button source handles on the right */}
       {flowButtons.length > 0 && (
-        <div className="mt-2 relative" style={{ height: flowButtons.length * 20 + 8 }}>
+        <>
           {flowButtons.map((btn: any, idx: number) => {
             const btnIndex = buttons.indexOf(btn);
+            const total = flowButtons.length + 1;
+            const pos = ((idx + 1) / total) * 100;
             return (
-              <div key={btn.id || idx} className="flex items-center justify-end pr-4" style={{ height: 20 }}>
-                <span className="text-[9px] text-muted-foreground mr-1">
-                  {btn.text || `Botão ${btnIndex + 1}`}
-                </span>
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={`button-${btnIndex}`}
-                  className="w-2.5 h-2.5 !bg-primary"
-                  style={{ top: "auto", position: "relative" }}
-                />
-              </div>
+              <Handle
+                key={btn.id || idx}
+                type="source"
+                position={Position.Right}
+                id={`button-${btnIndex}`}
+                className="w-2.5 h-2.5 !bg-primary"
+                style={{ top: `${pos}%` }}
+              />
             );
           })}
-          {/* Keep a default bottom handle for the main flow */}
           <Handle
             type="source"
-            position={Position.Bottom}
+            position={Position.Right}
             id="default"
             className="w-3 h-3 !bg-blue-500"
+            style={{ top: `${(flowButtons.length / (flowButtons.length + 1)) * 100}%` }}
           />
-        </div>
+        </>
       )}
     </div>
   );
