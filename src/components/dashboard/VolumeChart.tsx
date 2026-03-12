@@ -259,7 +259,7 @@ export function VolumeChart() {
               <Calendar
                 mode="single"
                 selected={dateTo}
-                onSelect={setDateTo}
+                onSelect={handleSelectTo}
                 disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
