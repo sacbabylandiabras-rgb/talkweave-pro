@@ -525,9 +525,19 @@ async function processFlowNode(
     })
   }
 
-  // Default path (bottom handle) keeps existing behavior for content + button branching
+  // Default path: any handle that is NOT a button-specific handle
+  const isDefaultHandle = (handle: string | undefined | null) => {
+    if (!handle) return true
+    if (handle === 'default') return true
+    // Handles from the visual editor (source-right, source-bottom, etc.)
+    if (handle.startsWith('source-') || handle.startsWith('target-')) return true
+    // Legacy handles (right, bottom, left, top, a, b)
+    if (['right', 'bottom', 'left', 'top', 'a', 'b'].includes(handle)) return true
+    return false
+  }
+
   const defaultOutgoing = edges.filter(
-    e => e.source === nodeId && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null)
+    e => e.source === nodeId && !e.sourceHandle?.startsWith('button-') && isDefaultHandle(e.sourceHandle)
   )
 
   // Condição fallback: if no default edge exists, follow configured branch handles (a/b)
