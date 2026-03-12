@@ -47,7 +47,8 @@ function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl
       <div className="mt-2 rounded-md overflow-hidden border border-border">
         <video
           src={mediaUrl}
-          className="w-full h-24 object-cover"
+          className="w-full max-h-32 object-contain bg-black/5"
+          controls
           muted
           preload="metadata"
           onError={(e) => {
