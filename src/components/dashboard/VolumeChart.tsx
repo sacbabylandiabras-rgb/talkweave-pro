@@ -188,9 +188,9 @@ export function VolumeChart() {
   };
 
   const series = [
-    { key: "enviadas", label: "Enviadas", color: "#f97316", gradientId: "gEnviadas" },
-    { key: "entregues", label: "Entregues", color: "#ec4899", gradientId: "gEntregues" },
-    { key: "erros", label: "Erros", color: "#dc2626", gradientId: "gErros" },
+    { key: "enviadas", label: "Enviadas", color: "rgb(var(--warning))", gradientId: "gEnviadas" },
+    { key: "entregues", label: "Entregues", color: "rgb(var(--accent))", gradientId: "gEntregues" },
+    { key: "erros", label: "Erros", color: "rgb(var(--destructive))", gradientId: "gErros" },
   ] as const;
 
   if (loading) {
