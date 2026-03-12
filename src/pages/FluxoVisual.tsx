@@ -458,6 +458,7 @@ export default function FluxoVisual() {
     e.target.value = "";
   };
 
+  const handleEnviarAgora = () => {
     if (nodes.length <= 1) {
       toast.error("Adicione blocos ao fluxo antes de enviar!");
       return;
