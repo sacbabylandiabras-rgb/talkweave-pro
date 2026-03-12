@@ -50,6 +50,8 @@ import {
   Trash2,
   Upload,
   Key,
+  Download,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -125,6 +127,7 @@ export default function FluxoVisual() {
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
@@ -399,6 +402,60 @@ export default function FluxoVisual() {
       console.error("Erro ao salvar fluxo:", error);
       toast.error("Erro ao salvar fluxo");
     }
+  };
+
+  const handleExportJson = () => {
+    const flowData = {
+      name: nomeFluxo,
+      keyword: keywordFluxo,
+      active: fluxoAtivo,
+      nodes,
+      edges,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${nomeFluxo.replace(/\s+/g, "_")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Fluxo exportado com sucesso!");
+  };
+
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const flowData = JSON.parse(event.target?.result as string);
+
+        if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
+          toast.error("Arquivo JSON inválido: campo 'nodes' não encontrado");
+          return;
+        }
+
+        setNodes(flowData.nodes);
+        setEdges(flowData.edges || []);
+        if (flowData.name) setNomeFluxo(flowData.name);
+        if (flowData.keyword !== undefined) setKeywordFluxo(flowData.keyword);
+        if (flowData.active !== undefined) setFluxoAtivo(flowData.active);
+        setCurrentFluxoId(null);
+        setShowFluxosList(false);
+
+        toast.success("Fluxo importado com sucesso!");
+      } catch {
+        toast.error("Erro ao ler o arquivo JSON");
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input so same file can be re-imported
+    e.target.value = "";
   };
 
   const handleEnviarAgora = () => {
@@ -689,6 +746,23 @@ export default function FluxoVisual() {
                 <Send className="h-4 w-4 mr-2" />
                 Enviar
               </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleExportJson} className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                <FileUp className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportJson}
+                className="hidden"
+              />
             </div>
           </div>
 
