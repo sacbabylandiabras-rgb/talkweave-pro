@@ -294,28 +294,28 @@ export function VolumeChart() {
         <AreaChart data={displayData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="gEnviadas" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f97316" stopOpacity={0.5} />
-              <stop offset="95%" stopColor="#f97316" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="rgb(var(--warning))" stopOpacity={0.45} />
+              <stop offset="95%" stopColor="rgb(var(--warning))" stopOpacity={0.04} />
             </linearGradient>
             <linearGradient id="gEntregues" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#ec4899" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0.04} />
             </linearGradient>
             <linearGradient id="gErros" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#dc2626" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="rgb(var(--destructive))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="rgb(var(--destructive))" stopOpacity={0.04} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" opacity={0.4} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            axisLine={{ stroke: "hsl(var(--border))" }}
+            tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }}
+            axisLine={{ stroke: "rgb(var(--border))" }}
             tickLine={false}
           />
           <YAxis
             tickFormatter={formatYAxis}
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }}
             axisLine={false}
             tickLine={false}
           />
