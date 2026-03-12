@@ -6,7 +6,7 @@ export function BlocoCondicaoNode({ data }: any) {
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px]">
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="w-3 h-3 !bg-orange-500"
       />
       <div className="flex items-center gap-2">
