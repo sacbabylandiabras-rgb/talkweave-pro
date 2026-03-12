@@ -126,6 +126,7 @@ export default function FluxoVisual() {
   const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [savingFluxo, setSavingFluxo] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -361,6 +362,9 @@ export default function FluxoVisual() {
   };
 
   const handleSaveFluxo = async () => {
+    if (savingFluxo) return;
+    setSavingFluxo(true);
+
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -369,13 +373,15 @@ export default function FluxoVisual() {
         return;
       }
 
+      const normalizedName = nomeFluxo.trim() || "Novo Fluxo";
+
       // Serialize nodes/edges to plain JSON to avoid non-serializable data
       const serializedNodes = JSON.parse(JSON.stringify(nodes));
       const serializedEdges = JSON.parse(JSON.stringify(edges));
 
       const fluxoData = {
         user_id: user.id,
-        name: nomeFluxo,
+        name: normalizedName,
         keyword: keywordFluxo.trim().toLowerCase(),
         nodes: serializedNodes,
         edges: serializedEdges,
@@ -383,21 +389,40 @@ export default function FluxoVisual() {
       };
 
       if (currentFluxoId) {
-        const { error } = await (supabase as any)
+        const { data: updatedRows, error } = await (supabase as any)
           .from('flow_automations')
           .update(fluxoData)
-          .eq('id', currentFluxoId);
+          .eq('id', currentFluxoId)
+          .eq('user_id', user.id)
+          .select('id');
 
         if (error) {
           console.error("Erro ao atualizar fluxo:", error);
           toast.error(`Erro ao atualizar: ${error.message}`);
           return;
         }
+
+        // If nothing was updated (stale id or row not found), create a new one
+        if (!updatedRows || updatedRows.length === 0) {
+          const { data: createdFlow, error: insertError } = await (supabase as any)
+            .from('flow_automations')
+            .insert(fluxoData)
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error("Erro ao recriar fluxo:", insertError);
+            toast.error(`Erro ao salvar: ${insertError.message}`);
+            return;
+          }
+
+          setCurrentFluxoId(createdFlow.id);
+        }
       } else {
         const { data, error } = await (supabase as any)
           .from('flow_automations')
           .insert(fluxoData)
-          .select()
+          .select('id')
           .single();
 
         if (error) {
@@ -405,14 +430,18 @@ export default function FluxoVisual() {
           toast.error(`Erro ao salvar: ${error.message}`);
           return;
         }
+
         setCurrentFluxoId(data.id);
       }
 
+      setNomeFluxo(normalizedName);
       await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
       toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
+    } finally {
+      setSavingFluxo(false);
     }
   };
 
@@ -750,9 +779,9 @@ export default function FluxoVisual() {
 
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
+              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1" disabled={savingFluxo}>
                 <Save className="h-4 w-4 mr-2" />
-                Salvar
+                {savingFluxo ? "Salvando..." : "Salvar"}
               </Button>
               <Button size="sm" onClick={handleEnviarAgora} className="flex-1">
                 <Send className="h-4 w-4 mr-2" />
