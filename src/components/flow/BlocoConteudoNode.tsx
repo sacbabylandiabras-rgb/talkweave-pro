@@ -95,7 +95,7 @@ export function BlocoConteudoNode({ data }: any) {
     <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[260px]">
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="w-3 h-3 !bg-blue-500"
       />
       <div className="flex items-center gap-2">

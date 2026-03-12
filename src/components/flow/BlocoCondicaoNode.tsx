@@ -26,17 +26,17 @@ export function BlocoCondicaoNode({ data }: any) {
       </div>
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="a"
         className="w-3 h-3 !bg-orange-500"
-        style={{ left: "30%" }}
+        style={{ top: "35%" }}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="b"
         className="w-3 h-3 !bg-orange-500"
-        style={{ left: "70%" }}
+        style={{ top: "65%" }}
       />
     </div>
   );
