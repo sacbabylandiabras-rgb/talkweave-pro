@@ -223,6 +223,7 @@ export const useAllCampaignSendsRealtime = () => {
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('*')
+        .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) {
         hasMore = false;
@@ -236,13 +237,11 @@ export const useAllCampaignSendsRealtime = () => {
       }
     }
 
-    const data = allData;
-    if (data.length > 0 || allData.length === 0) {
-      const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
-      if (dataKey !== lastDataRef.current) {
-        lastDataRef.current = dataKey;
-        setSends(data);
-      }
+    // Always update state - use a hash that includes count + statuses
+    const dataKey = `${allData.length}:${allData.map(d => `${d.id}:${d.status}`).join(',')}`;
+    if (dataKey !== lastDataRef.current) {
+      lastDataRef.current = dataKey;
+      setSends(allData);
     }
     setLoading(false);
   }, []);
@@ -273,7 +272,7 @@ export const useAllCampaignSendsRealtime = () => {
 
     channelRef.current = channel;
 
-    pollingRef.current = setInterval(fetchSends, 5000);
+    pollingRef.current = setInterval(fetchSends, 3000);
 
     return () => {
       if (channelRef.current) {
