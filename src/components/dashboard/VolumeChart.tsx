@@ -85,23 +85,58 @@ export function VolumeChart() {
       return true;
     });
 
-    if (filtered.length > 0) {
-      const grouped = filtered.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
-        const date = format(new Date(send.created_at), "dd/MM/yyyy", { locale: ptBR });
-        if (!acc[date]) acc[date] = { sent: 0, delivered: 0, failed: 0 };
-        acc[date].sent++;
-        if (send.status === "sent" || send.status === "delivered") acc[date].delivered++;
-        if (send.status === "failed") acc[date].failed++;
-        return acc;
-      }, {});
+    const grouped = filtered.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
+      const key = toLocalDateStr(new Date(send.created_at));
+      if (!acc[key]) acc[key] = { sent: 0, delivered: 0, failed: 0 };
 
+      acc[key].sent++;
+      if (send.status === "sent" || send.status === "delivered") acc[key].delivered++;
+      if (send.status === "failed") acc[key].failed++;
+
+      return acc;
+    }, {});
+
+    if (dateFrom && dateTo) {
+      const start = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+      const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+      const cursor = new Date(start);
+      const rangeData: ChartData[] = [];
+
+      while (cursor <= end) {
+        const key = toLocalDateStr(cursor);
+        const totals = grouped[key] ?? { sent: 0, delivered: 0, failed: 0 };
+
+        rangeData.push({
+          date: format(cursor, "dd/MM/yyyy", { locale: ptBR }),
+          enviadas: totals.sent,
+          entregues: totals.delivered,
+          erros: totals.failed,
+        });
+
+        cursor.setDate(cursor.getDate() + 1);
+        if (rangeData.length > 366) break;
+      }
+
+      setChartData(rangeData);
+      return;
+    }
+
+    const sortedKeys = Object.keys(grouped).sort();
+
+    if (sortedKeys.length > 0) {
       setChartData(
-        Object.entries(grouped).map(([date, d]) => ({
-          date,
-          enviadas: d.sent,
-          entregues: d.delivered,
-          erros: d.failed,
-        }))
+        sortedKeys.map((key) => {
+          const [year, month, day] = key.split("-").map(Number);
+          const localDate = new Date(year, month - 1, day);
+          const totals = grouped[key];
+
+          return {
+            date: format(localDate, "dd/MM/yyyy", { locale: ptBR }),
+            enviadas: totals.sent,
+            entregues: totals.delivered,
+            erros: totals.failed,
+          };
+        })
       );
     } else {
       setChartData([]);
