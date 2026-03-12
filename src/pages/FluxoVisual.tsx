@@ -779,9 +779,9 @@ export default function FluxoVisual() {
 
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1">
+              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1" disabled={savingFluxo}>
                 <Save className="h-4 w-4 mr-2" />
-                Salvar
+                {savingFluxo ? "Salvando..." : "Salvar"}
               </Button>
               <Button size="sm" onClick={handleEnviarAgora} className="flex-1">
                 <Send className="h-4 w-4 mr-2" />
