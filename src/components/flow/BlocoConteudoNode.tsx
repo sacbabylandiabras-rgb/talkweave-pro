@@ -24,6 +24,67 @@ const buttonTypeLabels: Record<string, string> = {
   flow: "➡️",
 };
 
+function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl: string }) {
+  if (!mediaUrl) return null;
+
+  if (contentType === "image") {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border">
+        <img
+          src={mediaUrl}
+          alt="Preview"
+          className="w-full h-24 object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (contentType === "video") {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border">
+        <video
+          src={mediaUrl}
+          className="w-full h-24 object-cover"
+          muted
+          preload="metadata"
+          onError={(e) => {
+            (e.target as HTMLVideoElement).style.display = "none";
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (contentType === "audio") {
+    return (
+      <div className="mt-2">
+        <audio
+          src={mediaUrl}
+          controls
+          className="w-full h-8"
+          preload="metadata"
+          style={{ maxWidth: "100%" }}
+        />
+      </div>
+    );
+  }
+
+  if (contentType === "document") {
+    const fileName = mediaUrl.split("/").pop() || "documento";
+    return (
+      <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/50 p-2">
+        <FileText className="h-5 w-5 text-primary shrink-0" />
+        <span className="text-[10px] text-muted-foreground truncate">{decodeURIComponent(fileName)}</span>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function BlocoConteudoNode({ data }: any) {
   const contentType = data.contentType || "text";
   const Icon = typeIcons[contentType] || MessageSquare;
@@ -31,7 +92,7 @@ export function BlocoConteudoNode({ data }: any) {
   const flowButtons = buttons.filter((b: any) => b.type === "flow" || b.type === "reply");
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px]">
+    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[260px]">
       <Handle
         type="target"
         position={Position.Top}
@@ -41,32 +102,37 @@ export function BlocoConteudoNode({ data }: any) {
         <div className="p-1.5 rounded bg-blue-500/10">
           <Icon className="h-4 w-4 text-blue-500" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-card-foreground">
             {data.label}
           </div>
           <div className="text-[10px] text-muted-foreground">
             {typeLabels[contentType]}
           </div>
-          {data.content && (
-            <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              {data.content}
-            </div>
-          )}
-          {buttons.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {buttons.map((btn: any, idx: number) => (
-                <div
-                  key={btn.id || idx}
-                  className="text-[10px] text-primary flex items-center gap-1"
-                >
-                  {buttonTypeLabels[btn.type] || "🔗"} {btn.text || `Botão ${idx + 1}`}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Media preview */}
+      <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} />
+
+      {data.content && (
+        <div className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+          {data.content}
+        </div>
+      )}
+
+      {buttons.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {buttons.map((btn: any, idx: number) => (
+            <div
+              key={btn.id || idx}
+              className="text-[10px] text-primary flex items-center gap-1"
+            >
+              {buttonTypeLabels[btn.type] || "🔗"} {btn.text || `Botão ${idx + 1}`}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Default source handle (when no flow buttons) */}
       {flowButtons.length === 0 && (
