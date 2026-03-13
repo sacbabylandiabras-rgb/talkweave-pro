@@ -306,7 +306,7 @@ const ChatView = ({
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</p>
+                        <MessageContent content={msg.content} isSent={false} />
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
