@@ -230,16 +230,113 @@ const ChatView = ({
   }, [conversation?.messages.length]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !conversation || sending) return;
+    if ((!newMessage.trim() && !attachedFile) || !conversation || sending) return;
     setSending(true);
     try {
-      await onSendMessage(conversation.phone, newMessage.trim());
+      if (attachedFile) {
+        // Upload to Supabase storage then send URL
+        const { supabase } = await import('@/integrations/supabase/client');
+        const ext = attachedFile.file.name.split('.').pop() || 'bin';
+        const path = `chat-media/${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType);
+        setAttachedFile(null);
+      } else {
+        await onSendMessage(conversation.phone, newMessage.trim());
+      }
       setNewMessage("");
     } catch (e) {
       // error handled by parent
     } finally {
       setSending(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    let mediaType = 'document';
+    if (file.type.startsWith('image/')) mediaType = 'image';
+    else if (file.type.startsWith('video/')) mediaType = 'video';
+    else if (file.type.startsWith('audio/')) mediaType = 'audio';
+
+    const previewUrl = URL.createObjectURL(file);
+    setAttachedFile({ file, previewUrl, mediaType });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
+        const audioFile = new File([audioBlob], `audio-${Date.now()}.ogg`, { type: 'audio/ogg' });
+        
+        // Upload and send
+        if (!conversation) return;
+        setSending(true);
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const path = `chat-media/${Date.now()}.ogg`;
+          const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
+          if (uploadError) throw uploadError;
+          const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+          await onSendMessage(conversation.phone, '', publicUrl, 'audio');
+        } catch (e) {
+          toast({ title: "Erro", description: "Falha ao enviar áudio.", variant: "destructive" });
+        } finally {
+          setSending(false);
+        }
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível acessar o microfone.", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream?.getTracks().forEach(t => t.stop());
+      };
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+    setRecordingTime(0);
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
