@@ -1172,11 +1172,16 @@ export default function FluxoVisual() {
                                 </div>
                               )}
                               {msg.mediaUrl && msg.type === 'video' && (
-                                <div className="mb-[3px] rounded-[6px] overflow-hidden -mx-[5px] -mt-[3px] bg-black flex items-center justify-center h-[160px] relative">
-                                  <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center border-[2.5px] border-white/80">
-                                    <PlayCircle className="h-8 w-8 text-white" />
-                                  </div>
-                                  <span className="absolute bottom-2 left-2.5 text-[10px] text-white bg-black/60 rounded-sm px-1.5 py-0.5">0:30</span>
+                                <div className="mb-[3px] rounded-[6px] overflow-hidden -mx-[5px] -mt-[3px] bg-black relative">
+                                  <video
+                                    src={msg.mediaUrl}
+                                    className="w-full max-h-[200px] object-contain"
+                                    controls
+                                    muted
+                                    preload="metadata"
+                                    playsInline
+                                    onError={(e) => { (e.target as HTMLVideoElement).style.display = 'none'; }}
+                                  />
                                 </div>
                               )}
                               {msg.mediaUrl && msg.type === 'audio' && (
