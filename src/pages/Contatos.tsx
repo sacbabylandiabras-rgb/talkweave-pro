@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { useContacts } from "@/hooks/useContacts";
 const Contatos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { contacts, stats, loading, refetch } = useContacts();
+  const navigate = useNavigate();
 
   const filteredContacts = contacts.filter(contact => 
     contact.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -132,7 +134,7 @@ const Contatos = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 flex items-center gap-1">
+                  <Button size="sm" className="flex-1 flex items-center gap-1" onClick={() => navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`)}>
                     <MessageSquare className="w-4 h-4" />
                     Mensagem
                   </Button>
