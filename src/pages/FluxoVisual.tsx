@@ -510,6 +510,64 @@ export default function FluxoVisual() {
     toast.success("Fluxo exportado com sucesso!");
   };
 
+  // Build preview messages by traversing the flow from initial node
+  const getPreviewMessages = useCallback(() => {
+    const messages: Array<{
+      id: string;
+      type: 'text' | 'image' | 'video' | 'audio' | 'document';
+      content: string;
+      mediaUrl?: string;
+      buttons?: Array<{ text: string; type: string }>;
+    }> = [];
+
+    const initialNode = nodes.find(n => n.type === 'blocoInicial');
+    if (!initialNode) return messages;
+
+    const visited = new Set<string>();
+    const queue = [initialNode.id];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const outgoing = edges
+        .filter(e => e.source === currentId)
+        .sort((a, b) => {
+          const aTarget = nodes.find(n => n.id === a.target);
+          const bTarget = nodes.find(n => n.id === b.target);
+          return (aTarget?.position?.y ?? 0) - (bTarget?.position?.y ?? 0);
+        });
+
+      for (const edge of outgoing) {
+        const targetNode = nodes.find(n => n.id === edge.target);
+        if (!targetNode || visited.has(targetNode.id)) continue;
+
+        if (targetNode.type === 'blocoConteudo') {
+          const contentType = targetNode.data.contentType || 'text';
+          const content = targetNode.data.content || '';
+          const mediaUrl = targetNode.data.mediaUrl || '';
+          const btns = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
+
+          messages.push({
+            id: targetNode.id,
+            type: contentType,
+            content,
+            mediaUrl: mediaUrl || undefined,
+            buttons: btns.length > 0 ? btns.map((b: any, i: number) => ({
+              text: b.text || `Botão ${i + 1}`,
+              type: b.type || 'reply',
+            })) : undefined,
+          });
+        }
+
+        queue.push(targetNode.id);
+      }
+    }
+
+    return messages;
+  }, [nodes, edges]);
+
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
