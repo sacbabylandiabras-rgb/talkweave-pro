@@ -647,13 +647,29 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
             await sendMessage(phone, message, mediaUrl, mediaType);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
         )}
       </div>
       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
+      {selectedConversation && (
+        <ContactProfileDialog
+          contact={{
+            phone: selectedConversation.phone,
+            name: selectedConversation.contactName || undefined,
+            lastMessage: selectedConversation.lastMessage,
+            lastMessageDate: selectedConversation.lastTimestamp,
+            status: 'ativo',
+            messageCount: selectedConversation.messages.length,
+            tags: [],
+            profilePictureUrl: selectedConversation.profilePictureUrl,
+          }}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+      )}
     </>
   );
 };
