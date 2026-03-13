@@ -1069,104 +1069,200 @@ export default function FluxoVisual() {
           </ReactFlow>
         </div>
 
-        {/* WhatsApp Preview Panel */}
+        {/* WhatsApp Mobile Preview */}
         {showPreview && (
-          <div className="w-80 m-2 ml-0 flex flex-col shrink-0">
-            <Card className="flex-1 flex flex-col overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-[#075E54] text-white rounded-t-lg">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
-                    WA
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Prévia do Fluxo</p>
-                    <p className="text-[10px] opacity-80">{nomeFluxo}</p>
+          <div className="flex items-center justify-center m-2 ml-0 shrink-0">
+            {/* Phone frame */}
+            <div className="w-[340px] h-[680px] bg-[#111] rounded-[40px] p-[10px] shadow-2xl relative">
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[26px] bg-[#111] rounded-b-[14px] z-20" />
+              
+              {/* Screen */}
+              <div className="w-full h-full rounded-[30px] overflow-hidden bg-[#111] flex flex-col">
+                {/* Status bar */}
+                <div className="bg-[#075E54] px-5 pt-2 pb-0 flex items-center justify-between text-white text-[10px]">
+                  <span>{new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}</span>
+                  <div className="flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+                    <svg width="14" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => setShowPreview(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
 
-              {/* Chat area */}
-              <ScrollArea className="flex-1 bg-[#ECE5DD] dark:bg-[#0B141A]">
-                <div className="p-3 space-y-2">
-                  {getPreviewMessages().length === 0 ? (
-                    <div className="text-center py-8">
-                      <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                      <p className="text-xs text-muted-foreground">Conecte blocos de conteúdo ao fluxo para ver a prévia</p>
-                    </div>
-                  ) : (
-                    getPreviewMessages().map((msg, idx) => (
-                      <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm ${
-                          msg.direction === 'received'
-                            ? 'bg-white dark:bg-[#202C33] rounded-tl-none'
-                            : 'bg-[#DCF8C6] dark:bg-[#005C4B] rounded-tr-none'
-                        }`}>
-                          {/* Media preview */}
-                          {msg.mediaUrl && msg.type === 'image' && (
-                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1">
-                              <img src={msg.mediaUrl} alt="" className="w-full max-h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                            </div>
-                          )}
-                          {msg.mediaUrl && msg.type === 'video' && (
-                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6 relative">
-                              <Video className="h-8 w-8 text-muted-foreground" />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
-                                  <PlayCircle className="h-6 w-6 text-white" />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {msg.mediaUrl && msg.type === 'audio' && (
-                            <div className="mb-1.5 flex items-center gap-2 py-1">
-                              <Mic className="h-4 w-4 text-[#075E54] dark:text-[#00A884]" />
-                              <div className="flex-1 h-1 bg-[#075E54]/20 dark:bg-[#00A884]/20 rounded-full">
-                                <div className="w-1/3 h-full bg-[#075E54] dark:bg-[#00A884] rounded-full" />
-                              </div>
-                              <span className="text-[9px] text-muted-foreground">0:00</span>
-                            </div>
-                          )}
-                          {msg.mediaUrl && msg.type === 'document' && (
-                            <div className="mb-1.5 flex items-center gap-2 bg-white/50 dark:bg-white/10 rounded p-2">
-                              <FileText className="h-5 w-5 text-[#075E54] dark:text-[#00A884]" />
-                              <span className="text-[10px] text-foreground truncate">documento.pdf</span>
-                            </div>
-                          )}
+                {/* WhatsApp header */}
+                <div className="bg-[#075E54] px-3 pb-2.5 pt-1 flex items-center gap-2">
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 -ml-1" onClick={() => setShowPreview(false)}>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="w-9 h-9 rounded-full bg-[#DFE5E7] flex items-center justify-center overflow-hidden">
+                    <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-[14px] font-medium truncate">Contato</p>
+                    <p className="text-white/70 text-[11px]">online</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-white/90">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                  </div>
+                </div>
 
-                          {/* Text content */}
-                          {msg.content && (
-                            <p className="text-[12px] text-[#111B21] dark:text-[#E9EDEF] whitespace-pre-wrap">{msg.content}</p>
-                          )}
-
-                          {/* Timestamp */}
-                          <p className={`text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5`}>
-                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}{msg.direction === 'sent' ? ' ✓✓' : ''}
-                          </p>
-
-                          {/* Buttons */}
-                          {msg.buttons && msg.buttons.length > 0 && (
-                            <div className="mt-1.5 -mx-3 -mb-2 border-t border-[#075E54]/10 dark:border-[#00A884]/10">
-                              {msg.buttons.map((btn, i) => (
-                                <div
-                                  key={i}
-                                  className="text-center text-[12px] font-medium text-[#00A884] py-2 border-b border-[#075E54]/10 dark:border-[#00A884]/10 last:border-b-0"
-                                >
-                                  {btn.type === 'url' ? '🔗 ' : btn.type === 'call' ? '📞 ' : ''}{btn.text}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                {/* Chat area with WhatsApp wallpaper */}
+                <div
+                  className="flex-1 overflow-y-auto"
+                  style={{
+                    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23667781\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M20 20h8v8h-8zM60 10h8v8h-8zM100 30h8v8h-8zM140 5h8v8h-8zM180 25h8v8h-8zM220 15h8v8h-8zM260 35h8v8h-8zM300 8h8v8h-8zM340 28h8v8h-8zM380 18h8v8h-8zM10 60h8v8h-8zM50 50h8v8h-8zM90 70h8v8h-8zM130 45h8v8h-8zM170 65h8v8h-8zM210 55h8v8h-8zM250 40h8v8h-8zM290 72h8v8h-8zM330 52h8v8h-8zM370 42h8v8h-8z\'/%3E%3C/g%3E%3C/svg%3E")',
+                    backgroundColor: '#ECE5DD',
+                  }}
+                >
+                  <div className="p-2.5 space-y-[2px]">
+                    {/* Encryption notice */}
+                    <div className="flex justify-center mb-2">
+                      <div className="bg-[#FCF4CB]/90 rounded-lg px-3 py-1.5 max-w-[85%] shadow-sm">
+                        <p className="text-[10.5px] text-[#54656F] text-center leading-tight">
+                          🔒 As mensagens e as ligações são protegidas com a criptografia de ponta a ponta.
+                        </p>
                       </div>
-                    ))
-                  )}
+                    </div>
+
+                    {/* Today separator */}
+                    <div className="flex justify-center my-2">
+                      <div className="bg-white/90 rounded-md px-3 py-[3px] shadow-sm">
+                        <p className="text-[11.5px] text-[#54656F] font-medium uppercase">Hoje</p>
+                      </div>
+                    </div>
+
+                    {getPreviewMessages().length === 0 ? (
+                      <div className="text-center py-16">
+                        <p className="text-xs text-[#667781]">Conecte blocos ao fluxo para ver a prévia</p>
+                      </div>
+                    ) : (
+                      getPreviewMessages().map((msg, idx) => (
+                        <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'} mb-[1px]`}>
+                          <div className={`max-w-[80%] rounded-[7.5px] shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative ${
+                            msg.direction === 'received'
+                              ? 'bg-white rounded-tl-[3px]'
+                              : 'bg-[#D9FDD3] rounded-tr-[3px]'
+                          }`}>
+                            {/* Tail */}
+                            {idx === 0 || getPreviewMessages()[idx - 1]?.direction !== msg.direction ? (
+                              <div className={`absolute top-0 w-[8px] h-[13px] ${
+                                msg.direction === 'received' ? '-left-[8px]' : '-right-[8px]'
+                              }`}>
+                                <svg viewBox="0 0 8 13" width="8" height="13" className="block">
+                                  {msg.direction === 'received'
+                                    ? <path d="M1.533 3.568L8 12.193V1H2.812C1.042 1 .474 2.156 1.533 3.568z" fill="white"/>
+                                    : <path d="M6.467 3.568L0 12.193V1h5.188c1.77 0 2.338 1.156 1.28 2.568z" fill="#D9FDD3"/>
+                                  }
+                                </svg>
+                              </div>
+                            ) : null}
+
+                            <div className="px-[9px] pt-[6px] pb-[7px]">
+                              {/* Media */}
+                              {msg.mediaUrl && msg.type === 'image' && (
+                                <div className="mb-[3px] rounded-[6px] overflow-hidden -mx-[5px] -mt-[3px]">
+                                  <img src={msg.mediaUrl} alt="" className="w-full max-h-[200px] object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                </div>
+                              )}
+                              {msg.mediaUrl && msg.type === 'video' && (
+                                <div className="mb-[3px] rounded-[6px] overflow-hidden -mx-[5px] -mt-[3px] bg-black flex items-center justify-center h-[160px] relative">
+                                  <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center border-[2.5px] border-white/80">
+                                    <PlayCircle className="h-8 w-8 text-white" />
+                                  </div>
+                                  <span className="absolute bottom-2 left-2.5 text-[10px] text-white bg-black/60 rounded-sm px-1.5 py-0.5">0:30</span>
+                                </div>
+                              )}
+                              {msg.mediaUrl && msg.type === 'audio' && (
+                                <div className="flex items-center gap-2 py-1 min-w-[200px]">
+                                  <div className="w-[34px] h-[34px] rounded-full bg-[#DFE5E7] flex items-center justify-center shrink-0">
+                                    <svg width="16" height="16" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <svg width="8" height="10" viewBox="0 0 8 10" fill="#54656F"><path d="M1 0v10l7-5z"/></svg>
+                                      <div className="flex-1 h-[3px] bg-[#ACB9BF] rounded-full relative">
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full bg-[#54656F]" />
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-0.5">
+                                      <span className="text-[10px] text-[#667781]">0:00</span>
+                                      <Mic className="h-3 w-3 text-[#54656F]" />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {msg.mediaUrl && msg.type === 'document' && (
+                                <div className="flex items-center gap-2 bg-[#F0F2F5] rounded-[8px] p-2.5 mb-[3px] min-w-[200px]">
+                                  <div className="w-[30px] h-[36px] bg-[#E8453C] rounded-[3px] flex items-center justify-center shrink-0">
+                                    <span className="text-white text-[7px] font-bold">PDF</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[12.5px] text-[#111B21] truncate">documento.pdf</p>
+                                    <p className="text-[10px] text-[#667781]">PDF · 1 página · 125 KB</p>
+                                  </div>
+                                  <Download className="h-[18px] w-[18px] text-[#54656F] shrink-0" />
+                                </div>
+                              )}
+
+                              {/* Text */}
+                              {msg.content && (
+                                <span className="text-[13.5px] text-[#111B21] whitespace-pre-wrap leading-[19px]">{msg.content}</span>
+                              )}
+
+                              {/* Timestamp + checks inline */}
+                              <span className="float-right ml-2 mt-1 flex items-center gap-[2px]">
+                                <span className="text-[10.5px] text-[#667781] leading-none">
+                                  {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}
+                                </span>
+                                {msg.direction === 'sent' && (
+                                  <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                                    <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.011-2.175a.458.458 0 0 0-.686.032.498.498 0 0 0 .037.686l2.357 2.553a.458.458 0 0 0 .347.147h.023a.457.457 0 0 0 .34-.178l6.535-8.067a.497.497 0 0 0-.067-.71z" fill="#53BDEB"/>
+                                    <path d="M14.757.653a.457.457 0 0 0-.305-.102.493.493 0 0 0-.38.178L7.882 8.365 7.07 7.46l-.727.896.96 1.04a.458.458 0 0 0 .348.147h.022a.457.457 0 0 0 .34-.178l6.812-8.067a.497.497 0 0 0-.068-.645z" fill="#53BDEB"/>
+                                  </svg>
+                                )}
+                              </span>
+                            </div>
+
+                            {/* WhatsApp-style buttons */}
+                            {msg.buttons && msg.buttons.length > 0 && (
+                              <div className="border-t border-[#E2E8E4]">
+                                {msg.buttons.map((btn, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-center gap-1.5 py-[6px] text-[13px] font-medium text-[#027EB5] border-b border-[#E2E8E4] last:border-b-0"
+                                  >
+                                    {btn.type === 'url' && <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>}
+                                    {btn.type === 'call' && <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>}
+                                    {(btn.type === 'reply' || btn.type === 'flow') && <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>}
+                                    {btn.text}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </ScrollArea>
-            </Card>
+
+                {/* Bottom input bar */}
+                <div className="bg-[#F0F2F5] px-2 py-[5px] flex items-center gap-[6px]">
+                  <div className="text-[#54656F]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                  </div>
+                  <div className="flex-1 bg-white rounded-[21px] px-3 py-[7px] flex items-center">
+                    <span className="text-[14px] text-[#667781]">Mensagem</span>
+                  </div>
+                  <div className="flex items-center gap-[2px] text-[#54656F]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                    <div className="w-[42px] h-[42px] rounded-full bg-[#00A884] flex items-center justify-center ml-1">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.41 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
