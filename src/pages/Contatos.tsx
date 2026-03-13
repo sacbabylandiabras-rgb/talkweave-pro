@@ -11,6 +11,7 @@ import { useContacts } from "@/hooks/useContacts";
 const Contatos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { contacts, stats, loading, refetch } = useContacts();
+  const navigate = useNavigate();
 
   const filteredContacts = contacts.filter(contact => 
     contact.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
