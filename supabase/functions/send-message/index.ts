@@ -85,10 +85,18 @@ serve(async (req) => {
 
     // Log the sent message
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Build log message: include media info for display in chat
+    let logContent = message || '';
+    if (mediaUrl && mediaType) {
+      const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+      logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
+    }
+    
     await supabase.from('message_logs').insert({
       phone,
       message_received: null,
-      response_sent: logMessage,
+      response_sent: logContent,
       keyword_matched: '__manual_send__',
       timestamp: new Date().toISOString(),
       user_id: credentials.userId,
