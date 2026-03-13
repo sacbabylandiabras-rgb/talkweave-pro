@@ -581,6 +581,7 @@ const MensagensRecebidas = () => {
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
   const isMobile = useIsMobile();
   const { toast } = useToast();
