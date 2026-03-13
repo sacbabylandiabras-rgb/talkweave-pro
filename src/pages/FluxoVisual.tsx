@@ -578,7 +578,7 @@ export default function FluxoVisual() {
           messages.push({
             id: `${targetNode.id}-${msgCounter++}`,
             direction: 'sent',
-            type: (mediaUrl && !hasButtons) ? contentType : 'text',
+            type: (mediaUrl && !hasButtons) ? normalizeType(contentType) : 'text',
             content,
             mediaUrl: (mediaUrl && !hasButtons) ? mediaUrl : undefined,
             buttons: hasButtons ? btns.map((b: any, i: number) => ({
