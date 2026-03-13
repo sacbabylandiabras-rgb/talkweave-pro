@@ -568,7 +568,7 @@ export default function FluxoVisual() {
             messages.push({
               id: `${targetNode.id}-media-${msgCounter++}`,
               direction: 'sent',
-              type: contentType,
+              type: normalizeType(contentType),
               content: '',
               mediaUrl,
             });
