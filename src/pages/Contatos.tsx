@@ -134,7 +134,7 @@ const Contatos = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 flex items-center gap-1">
+                  <Button size="sm" className="flex-1 flex items-center gap-1" onClick={() => navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`)}>
                     <MessageSquare className="w-4 h-4" />
                     Mensagem
                   </Button>
