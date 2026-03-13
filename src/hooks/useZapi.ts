@@ -152,6 +152,8 @@ export const useZapi = () => {
         throw new Error(errorMessage);
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
+
       toast({
         title: "Mensagem enviada!",
         description: "A mensagem foi enviada com sucesso via Z-API.",
