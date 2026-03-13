@@ -133,6 +133,44 @@ export default function FluxoVisual() {
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
+  const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+
+  // Fetch button click stats for the current flow
+  const fetchButtonStats = useCallback(async (flowName: string) => {
+    try {
+      // Get all button clicks related to this flow
+      const { data: buttonClicks, error: btnErr } = await supabase
+        .from('message_logs')
+        .select('keyword_matched, message_received')
+        .like('keyword_matched', '[Botão:%');
+
+      if (btnErr || !buttonClicks) return;
+
+      const stats: Record<string, number> = {};
+      buttonClicks.forEach((log: any) => {
+        const match = log.keyword_matched?.match(/\[Botão:\s*(.+?)\]/i);
+        if (match) {
+          const btnText = match[1].trim();
+          stats[btnText] = (stats[btnText] || 0) + 1;
+        }
+      });
+      setButtonStats(stats);
+
+      // Get total unique recipients of this flow
+      const { data: flowSends, error: flowErr } = await supabase
+        .from('message_logs')
+        .select('phone')
+        .eq('keyword_matched', `__flow_send__:${flowName}`);
+
+      if (!flowErr && flowSends) {
+        const uniquePhones = new Set(flowSends.map((s: any) => s.phone));
+        setTotalFlowRecipients(uniquePhones.size);
+      }
+    } catch (e) {
+      console.error('Error fetching button stats:', e);
+    }
+  }, []);
 
   // Carregar fluxos do Supabase
   const fetchFluxos = async () => {
