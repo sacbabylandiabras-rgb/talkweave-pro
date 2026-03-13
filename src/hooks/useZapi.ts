@@ -377,6 +377,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar documento');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do documento.');
+
       toast({
         title: "Documento enviado!",
         description: "O documento foi enviado com sucesso.",
