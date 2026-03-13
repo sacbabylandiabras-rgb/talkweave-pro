@@ -52,6 +52,11 @@ import {
   Key,
   Download,
   FileUp,
+  Eye,
+  X,
+  Image,
+  Video,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
