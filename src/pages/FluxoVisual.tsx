@@ -549,7 +549,6 @@ export default function FluxoVisual() {
         if (!targetNode) continue;
 
         if (targetNode.type === 'blocoConteudo' && !visited.has(targetNode.id)) {
-          visited.add(targetNode.id);
           const contentType = targetNode.data.contentType || 'text';
           const content = targetNode.data.content || '';
           const mediaUrl = targetNode.data.mediaUrl || '';
