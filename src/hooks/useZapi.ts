@@ -473,6 +473,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar áudio');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do áudio.');
+
       toast({
         title: "Áudio enviado!",
         description: "O áudio foi enviado com sucesso.",
