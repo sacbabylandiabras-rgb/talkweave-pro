@@ -28,6 +28,7 @@ const getZAPIConfig = async () => {
   if (_rotateInstances.length > 0) {
     const inst = _rotateInstances[_rotateIndex % _rotateInstances.length];
     _rotateIndex++;
+    console.log(`🔄 Usando instância em revezamento: ${inst.instance_name} (${inst.zapi_instance_id})`);
     return {
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
@@ -37,6 +38,7 @@ const getZAPIConfig = async () => {
 
   // Se há override de instância, usar ela
   if (_instanceOverride) {
+    console.log(`📌 Usando instância override: ${_instanceOverride.instance_name} (${_instanceOverride.zapi_instance_id})`);
     return {
       instanceId: _instanceOverride.zapi_instance_id,
       token: _instanceOverride.zapi_token,
