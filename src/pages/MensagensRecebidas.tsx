@@ -83,11 +83,36 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
   return { text: content, buttons: [] };
 };
 
-// Render message content with visual buttons
+// Parse media tag from message content like "[media:video:https://...]"
+const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string } => {
+  const mediaRegex = /^\[media:(image|video|audio|document):(.+?)\]\n?/;
+  const match = content.match(mediaRegex);
+  if (match) {
+    return { mediaType: match[1], mediaUrl: match[2], text: content.replace(mediaRegex, '').trim() };
+  }
+  return { mediaType: null, mediaUrl: null, text: content };
+};
+
+// Render message content with visual buttons and media
 const MessageContent = ({ content, isSent }: { content: string; isSent: boolean }) => {
-  const { text, buttons } = parseMessageWithButtons(content);
+  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(content);
+  const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
+      {mediaType === 'image' && mediaUrl && (
+        <img src={mediaUrl} className="w-full max-h-[200px] object-contain rounded mb-1" alt="" />
+      )}
+      {mediaType === 'video' && mediaUrl && (
+        <video src={mediaUrl} className="w-full max-h-[200px] object-contain rounded mb-1" controls muted playsInline preload="metadata" />
+      )}
+      {mediaType === 'audio' && mediaUrl && (
+        <audio src={mediaUrl} className="w-full mb-1" controls preload="metadata" />
+      )}
+      {mediaType === 'document' && mediaUrl && (
+        <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className={cn("flex items-center gap-2 text-xs underline mb-1", isSent ? "text-primary-foreground/90" : "text-primary")}>
+          📎 Abrir arquivo
+        </a>
+      )}
       {text && <p className="text-sm whitespace-pre-wrap">{text}</p>}
       {buttons.length > 0 && (
         <div className={cn("flex flex-col gap-1 mt-2", buttons.length <= 3 ? "" : "")}>
@@ -453,7 +478,7 @@ const ChatView = ({
                 <img src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" alt="" />
               )}
               {attachedFile.mediaType === 'video' && (
-                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" />
+                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" muted playsInline preload="metadata" />
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{attachedFile.file.name}</p>
