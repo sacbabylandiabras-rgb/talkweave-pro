@@ -615,7 +615,7 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message, mediaUrl?, mediaType?) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
             await sendMessage(phone, message, mediaUrl, mediaType);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
