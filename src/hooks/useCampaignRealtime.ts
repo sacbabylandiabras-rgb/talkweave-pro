@@ -28,6 +28,36 @@ interface CampaignRecord {
   delay_seconds: number | null;
 }
 
+const useAuthSessionReady = () => {
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (active) {
+        setSessionReady(Boolean(session));
+      }
+    };
+
+    syncSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) {
+        setSessionReady(Boolean(session));
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return sessionReady;
+};
+
 /**
  * Hook for campaign_sends with Realtime + lightweight polling fallback.
  * No full re-render — uses functional state updates.
@@ -38,15 +68,24 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const channelRef = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
+  const sessionReady = useAuthSessionReady();
 
   const fetchSends = useCallback(async () => {
-    if (!campaignId) return;
+    if (!campaignId || !sessionReady) return;
+
     const { data, error } = await supabase
       .from('campaign_sends')
       .select('*')
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: true });
-    if (!error && data) {
+
+    if (error) {
+      console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
       // Only update state if data actually changed
       const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
       if (dataKey !== lastDataRef.current) {
@@ -54,14 +93,20 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
         setSends(data);
       }
     }
+
     setLoading(false);
-  }, [campaignId]);
+  }, [campaignId, sessionReady]);
 
   useEffect(() => {
     if (!campaignId) {
       setSends([]);
       setLoading(false);
       lastDataRef.current = '';
+      return;
+    }
+
+    if (!sessionReady) {
+      setLoading(true);
       return;
     }
 
@@ -104,7 +149,7 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
         pollingRef.current = null;
       }
     };
-  }, [campaignId, fetchSends]);
+  }, [campaignId, fetchSends, sessionReady]);
 
   const stats = {
     total: sends.length,
@@ -128,24 +173,41 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
   const filterKey = statusFilter?.join(',') || 'all';
+  const sessionReady = useAuthSessionReady();
 
   const fetchCampaigns = useCallback(async () => {
+    if (!sessionReady) return;
+
     let query = supabase.from('campaigns').select('*').order('created_at', { ascending: false });
     if (statusFilter && statusFilter.length > 0) {
       query = query.in('status', statusFilter);
     }
+
     const { data, error } = await query;
-    if (!error && data) {
+
+    if (error) {
+      console.error('[useCampaignsRealtime] Error fetching campaigns:', error);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
       const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}:${d.updated_at}`));
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
         setCampaigns(data);
       }
     }
+
     setLoading(false);
-  }, [filterKey]);
+  }, [filterKey, sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) {
+      setLoading(true);
+      return;
+    }
+
     setLoading(true);
     fetchCampaigns();
 
@@ -197,7 +259,7 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
         pollingRef.current = null;
       }
     };
-  }, [fetchCampaigns, filterKey]);
+  }, [fetchCampaigns, filterKey, sessionReady]);
 
   return { campaigns, loading, refetch: fetchCampaigns };
 };
@@ -211,8 +273,11 @@ export const useAllCampaignSendsRealtime = () => {
   const channelRef = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
+  const sessionReady = useAuthSessionReady();
 
   const fetchSends = useCallback(async () => {
+    if (!sessionReady) return;
+
     // Fetch all sends in batches to avoid the 1000-row default limit
     let allData: CampaignSendRecord[] = [];
     let from = 0;
@@ -225,10 +290,18 @@ export const useAllCampaignSendsRealtime = () => {
         .select('*')
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
-      if (error || !data) {
+
+      if (error) {
+        console.error('[useAllCampaignSendsRealtime] Error fetching sends:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
         hasMore = false;
         break;
       }
+
       allData = [...allData, ...data];
       if (data.length < batchSize) {
         hasMore = false;
@@ -243,10 +316,16 @@ export const useAllCampaignSendsRealtime = () => {
       lastDataRef.current = dataKey;
       setSends(allData);
     }
+
     setLoading(false);
-  }, []);
+  }, [sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) {
+      setLoading(true);
+      return;
+    }
+
     setLoading(true);
     fetchSends();
 
@@ -284,7 +363,7 @@ export const useAllCampaignSendsRealtime = () => {
         pollingRef.current = null;
       }
     };
-  }, [fetchSends]);
+  }, [fetchSends, sessionReady]);
 
   return { sends, loading, refetch: fetchSends };
 };

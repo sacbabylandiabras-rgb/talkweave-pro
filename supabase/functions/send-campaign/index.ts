@@ -653,6 +653,7 @@ serve(async (req) => {
               message_content: 'Error processing message',
               status: 'failed',
               error_message: error instanceof Error ? error.message : 'Unknown error',
+              user_id: credentials.userId,
             };
           } else {
             campaignSend.status = 'failed';
