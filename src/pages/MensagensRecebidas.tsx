@@ -416,6 +416,9 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver perfil" onClick={onOpenProfile}>
+            <User className="w-4 h-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Buscar foto" onClick={() => onFetchPhoto(conversation.phone)} disabled={loadingPhoto}>
             {loadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           </Button>
