@@ -96,6 +96,20 @@ export const useZapi = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
+    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id);
+    const explicitError = data?.error || (data?.success === false ? data?.message : null);
+
+    if (explicitError) {
+      throw new Error(String(explicitError));
+    }
+
+    if (!hasAck) {
+      const safeDetails = typeof data === 'object' ? JSON.stringify(data) : String(data || 'sem detalhes');
+      throw new Error(`${fallbackMessage} A Z-API não confirmou entrega (sem messageId/zaapId). Detalhes: ${safeDetails}`);
+    }
+  };
+
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
     
@@ -137,6 +151,8 @@ export const useZapi = () => {
         
         throw new Error(errorMessage);
       }
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
 
       toast({
         title: "Mensagem enviada!",
@@ -185,6 +201,8 @@ export const useZapi = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao enviar mensagem com botões');
       }
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio com botões.');
 
       toast({
         title: "Mensagem com botões enviada!",
@@ -262,6 +280,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar mensagem com botões de ação');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio com botões de ação.');
+
       toast({
         title: "Mensagem com botões de ação enviada!",
         description: "A mensagem foi enviada com sucesso.",
@@ -307,6 +327,8 @@ export const useZapi = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao enviar imagem');
       }
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da imagem.');
 
       toast({
         title: "Imagem enviada!",
@@ -355,6 +377,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar documento');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do documento.');
+
       toast({
         title: "Documento enviado!",
         description: "O documento foi enviado com sucesso.",
@@ -401,6 +425,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar vídeo');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do vídeo.');
+
       toast({
         title: "Vídeo enviado!",
         description: "O vídeo foi enviado com sucesso.",
@@ -446,6 +472,8 @@ export const useZapi = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao enviar áudio');
       }
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do áudio.');
 
       toast({
         title: "Áudio enviado!",
@@ -743,6 +771,8 @@ export const useZapi = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao enviar lista de opções');
       }
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da lista de opções.');
 
       toast({
         title: "Lista de opções enviada!",
