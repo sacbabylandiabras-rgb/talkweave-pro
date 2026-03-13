@@ -54,6 +54,7 @@ const EnviarMensagem = () => {
   const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
@@ -436,7 +437,8 @@ const EnviarMensagem = () => {
 
         // Verificar se o dispositivo está conectado antes de cada envio
         try {
-          const { data: statusData } = await supabase.functions.invoke('get-device-status');
+          const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
+          const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
           if (statusData && statusData.data && (!statusData.data.connected || statusData.data.connected === false)) {
             // Salvar envios pendentes
             if (campaignSends.length > 0) {
@@ -740,9 +742,11 @@ const EnviarMensagem = () => {
           <InstanceSelector onInstanceChange={(id) => {
             if (id === ROTATE_ALL) {
               setZapiRotateMode(instances);
+              setSelectedInstanceId(null);
             } else {
               const inst = instances.find(i => i.id === id);
               if (inst) setZapiInstanceOverride(inst);
+              setSelectedInstanceId(id);
             }
           }} />
         </CardContent>

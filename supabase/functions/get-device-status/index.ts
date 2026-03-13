@@ -16,11 +16,55 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
-    // Get user's Z-API credentials from their profile
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const instanceId = credentials.instanceId;
-    const token = credentials.token;
-    const clientToken = credentials.clientToken;
+    // Check if a specific instance was requested via body
+    let specificInstanceId: string | null = null;
+    try {
+      if (req.method === 'POST') {
+        const body = await req.json();
+        specificInstanceId = body?.instanceId || null;
+      }
+    } catch {
+      // No body or invalid JSON, use default
+    }
+
+    let instanceId: string;
+    let token: string;
+    let clientToken: string;
+
+    if (specificInstanceId) {
+      // Fetch the specific instance from DB
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) throw new Error('No authorization header');
+
+      const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+      if (userError || !user) throw new Error('Unauthorized');
+
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: instance, error: instError } = await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .eq('id', specificInstanceId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (instError || !instance) {
+        throw new Error('Instance not found');
+      }
+
+      instanceId = instance.zapi_instance_id;
+      token = instance.zapi_token;
+      clientToken = instance.zapi_client_token;
+      console.log(`📋 Checking status for specific instance: ${instanceId}`);
+    } else {
+      // Use default credentials
+      const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      instanceId = credentials.instanceId;
+      token = credentials.token;
+      clientToken = credentials.clientToken;
+    }
 
     const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/status`
 
