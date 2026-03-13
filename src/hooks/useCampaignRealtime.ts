@@ -173,24 +173,41 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
   const filterKey = statusFilter?.join(',') || 'all';
+  const sessionReady = useAuthSessionReady();
 
   const fetchCampaigns = useCallback(async () => {
+    if (!sessionReady) return;
+
     let query = supabase.from('campaigns').select('*').order('created_at', { ascending: false });
     if (statusFilter && statusFilter.length > 0) {
       query = query.in('status', statusFilter);
     }
+
     const { data, error } = await query;
-    if (!error && data) {
+
+    if (error) {
+      console.error('[useCampaignsRealtime] Error fetching campaigns:', error);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
       const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}:${d.updated_at}`));
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
         setCampaigns(data);
       }
     }
+
     setLoading(false);
-  }, [filterKey]);
+  }, [filterKey, sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) {
+      setLoading(true);
+      return;
+    }
+
     setLoading(true);
     fetchCampaigns();
 
@@ -242,7 +259,7 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
         pollingRef.current = null;
       }
     };
-  }, [fetchCampaigns, filterKey]);
+  }, [fetchCampaigns, filterKey, sessionReady]);
 
   return { campaigns, loading, refetch: fetchCampaigns };
 };
