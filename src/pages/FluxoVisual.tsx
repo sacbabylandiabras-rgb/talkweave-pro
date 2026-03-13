@@ -510,30 +510,35 @@ export default function FluxoVisual() {
     toast.success("Fluxo exportado com sucesso!");
   };
 
-  // Build preview messages by traversing the flow from initial node
+  // Build preview messages by traversing the flow, simulating user replies on buttons
   const getPreviewMessages = useCallback(() => {
-    const messages: Array<{
+    type PreviewMsg = {
       id: string;
+      direction: 'sent' | 'received';
       type: 'text' | 'image' | 'video' | 'audio' | 'document';
       content: string;
       mediaUrl?: string;
       buttons?: Array<{ text: string; type: string }>;
-    }> = [];
+    };
 
+    const messages: PreviewMsg[] = [];
     const initialNode = nodes.find(n => n.type === 'blocoInicial');
     if (!initialNode) return messages;
 
     const visited = new Set<string>();
-    const queue = [initialNode.id];
+    let msgCounter = 0;
 
-    while (queue.length > 0) {
-      const currentId = queue.shift()!;
-      if (visited.has(currentId)) continue;
-      visited.add(currentId);
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
 
       const outgoing = edges
-        .filter(e => e.source === currentId)
+        .filter(e => e.source === nodeId)
         .sort((a, b) => {
+          // Prioritize non-button handles first (default flow)
+          const aPriority = a.sourceHandle?.startsWith('button-') ? 1 : 0;
+          const bPriority = b.sourceHandle?.startsWith('button-') ? 1 : 0;
+          if (aPriority !== bPriority) return aPriority - bPriority;
           const aTarget = nodes.find(n => n.id === a.target);
           const bTarget = nodes.find(n => n.id === b.target);
           return (aTarget?.position?.y ?? 0) - (bTarget?.position?.y ?? 0);
@@ -541,30 +546,72 @@ export default function FluxoVisual() {
 
       for (const edge of outgoing) {
         const targetNode = nodes.find(n => n.id === edge.target);
-        if (!targetNode || visited.has(targetNode.id)) continue;
+        if (!targetNode) continue;
 
-        if (targetNode.type === 'blocoConteudo') {
+        if (targetNode.type === 'blocoConteudo' && !visited.has(targetNode.id)) {
+          visited.add(targetNode.id);
           const contentType = targetNode.data.contentType || 'text';
           const content = targetNode.data.content || '';
           const mediaUrl = targetNode.data.mediaUrl || '';
           const btns = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
+          const hasButtons = btns.length > 0;
 
+          // If has media AND buttons, send media first (like real flow)
+          if (mediaUrl && hasButtons) {
+            messages.push({
+              id: `${targetNode.id}-media-${msgCounter++}`,
+              direction: 'sent',
+              type: contentType,
+              content: '',
+              mediaUrl,
+            });
+          }
+
+          // Main message
           messages.push({
-            id: targetNode.id,
-            type: contentType,
+            id: `${targetNode.id}-${msgCounter++}`,
+            direction: 'sent',
+            type: (mediaUrl && !hasButtons) ? contentType : 'text',
             content,
-            mediaUrl: mediaUrl || undefined,
-            buttons: btns.length > 0 ? btns.map((b: any, i: number) => ({
+            mediaUrl: (mediaUrl && !hasButtons) ? mediaUrl : undefined,
+            buttons: hasButtons ? btns.map((b: any, i: number) => ({
               text: b.text || `Botão ${i + 1}`,
               type: b.type || 'reply',
             })) : undefined,
           });
+
+          // If has reply/flow buttons, simulate user clicking the first one
+          const replyButtons = btns.filter((b: any) => b.type === 'reply' || b.type === 'flow');
+          if (replyButtons.length > 0) {
+            const firstBtn = replyButtons[0];
+            messages.push({
+              id: `reply-${targetNode.id}-${msgCounter++}`,
+              direction: 'received',
+              type: 'text',
+              content: firstBtn.text || 'Botão 1',
+            });
+
+            // Follow the button's connection
+            const btnIndex = btns.indexOf(firstBtn);
+            const buttonEdge = edges.find(e => e.source === targetNode.id && e.sourceHandle === `button-${btnIndex}`);
+            if (buttonEdge) {
+              traverse(buttonEdge.target);
+              continue; // Don't follow default path
+            }
+          }
+
+          // Follow default outgoing edges from this content node
+          traverse(targetNode.id);
+        } else if (targetNode.type === 'blocoCondicao' && !visited.has(targetNode.id)) {
+          // For condition nodes, traverse all branches
+          traverse(targetNode.id);
+        } else if (!visited.has(targetNode.id)) {
+          traverse(targetNode.id);
         }
-
-        queue.push(targetNode.id);
       }
-    }
+    };
 
+    traverse(initialNode.id);
     return messages;
   }, [nodes, edges]);
 
@@ -1052,8 +1099,12 @@ export default function FluxoVisual() {
                     </div>
                   ) : (
                     getPreviewMessages().map((msg, idx) => (
-                      <div key={msg.id + idx} className="flex justify-end">
-                        <div className="max-w-[85%] bg-[#DCF8C6] dark:bg-[#005C4B] rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
+                      <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm ${
+                          msg.direction === 'received'
+                            ? 'bg-white dark:bg-[#202C33] rounded-tl-none'
+                            : 'bg-[#DCF8C6] dark:bg-[#005C4B] rounded-tr-none'
+                        }`}>
                           {/* Media preview */}
                           {msg.mediaUrl && msg.type === 'image' && (
                             <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1">
@@ -1061,8 +1112,13 @@ export default function FluxoVisual() {
                             </div>
                           )}
                           {msg.mediaUrl && msg.type === 'video' && (
-                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6">
+                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6 relative">
                               <Video className="h-8 w-8 text-muted-foreground" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
+                                  <PlayCircle className="h-6 w-6 text-white" />
+                                </div>
+                              </div>
                             </div>
                           )}
                           {msg.mediaUrl && msg.type === 'audio' && (
@@ -1087,8 +1143,8 @@ export default function FluxoVisual() {
                           )}
 
                           {/* Timestamp */}
-                          <p className="text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5">
-                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')} ✓✓
+                          <p className={`text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5`}>
+                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}{msg.direction === 'sent' ? ' ✓✓' : ''}
                           </p>
 
                           {/* Buttons */}
