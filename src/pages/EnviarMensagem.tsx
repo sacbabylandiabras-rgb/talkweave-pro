@@ -437,8 +437,8 @@ const EnviarMensagem = () => {
 
         // Verificar se o dispositivo está conectado antes de cada envio
         try {
-          const { data: statusData } = await supabase.functions.invoke('get-device-status');
-          if (statusData && statusData.data && (!statusData.data.connected || statusData.data.connected === false)) {
+          const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
+          const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
             // Salvar envios pendentes
             if (campaignSends.length > 0) {
               await supabase.from('campaign_sends').insert(campaignSends);
