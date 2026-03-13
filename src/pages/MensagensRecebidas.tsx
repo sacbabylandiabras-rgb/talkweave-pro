@@ -70,6 +70,45 @@ const getSourceLabel = (source: string, keyword?: string | null) => {
   }
 };
 
+// Parse buttons from message content like "[Botões: A | B | C]"
+const parseMessageWithButtons = (content: string): { text: string; buttons: string[] } => {
+  const buttonRegex = /\[Bot[õo]es?:\s*(.+?)\]\s*$/i;
+  const match = content.match(buttonRegex);
+  if (match) {
+    const text = content.replace(buttonRegex, '').trimEnd();
+    const buttons = match[1].split('|').map(b => b.trim()).filter(Boolean);
+    return { text, buttons };
+  }
+  return { text: content, buttons: [] };
+};
+
+// Render message content with visual buttons
+const MessageContent = ({ content, isSent }: { content: string; isSent: boolean }) => {
+  const { text, buttons } = parseMessageWithButtons(content);
+  return (
+    <>
+      {text && <p className="text-sm whitespace-pre-wrap">{text}</p>}
+      {buttons.length > 0 && (
+        <div className={cn("flex flex-col gap-1 mt-2", buttons.length <= 3 ? "" : "")}>
+          {buttons.map((btn, i) => (
+            <div
+              key={i}
+              className={cn(
+                "text-center text-xs font-medium py-1.5 px-3 rounded-md border",
+                isSent
+                  ? "border-primary-foreground/30 text-primary-foreground/90 bg-primary-foreground/10"
+                  : "border-border text-primary bg-primary/5"
+              )}
+            >
+              {btn}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+};
+
 // Save contact dialog
 const SaveContactDialog = ({
   open, onOpenChange, phone, currentName, onSave,
@@ -267,7 +306,7 @@ const ChatView = ({
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</p>
+                        <MessageContent content={msg.content} isSent={false} />
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
@@ -276,7 +315,7 @@ const ChatView = ({
                   ) : (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <MessageContent content={msg.content} isSent={true} />
                         <div className="flex items-center justify-end gap-1.5 mt-1">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] opacity-70 flex items-center gap-0.5">
