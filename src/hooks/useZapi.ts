@@ -328,6 +328,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar imagem');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da imagem.');
+
       toast({
         title: "Imagem enviada!",
         description: "A imagem foi enviada com sucesso.",
