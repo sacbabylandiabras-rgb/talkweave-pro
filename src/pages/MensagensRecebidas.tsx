@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User } from "lucide-react";
+import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
+import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -232,11 +234,12 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string) => Promise<void>;
+  onOpenProfile: () => void;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -413,6 +416,9 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver perfil" onClick={onOpenProfile}>
+            <User className="w-4 h-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Buscar foto" onClick={() => onFetchPhoto(conversation.phone)} disabled={loadingPhoto}>
             {loadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           </Button>
@@ -575,6 +581,7 @@ const MensagensRecebidas = () => {
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -640,13 +647,29 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
             await sendMessage(phone, message, mediaUrl, mediaType);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
         )}
       </div>
       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
+      {selectedConversation && (
+        <ContactProfileDialog
+          contact={{
+            phone: selectedConversation.phone,
+            name: selectedConversation.contactName || undefined,
+            lastMessage: selectedConversation.lastMessage,
+            lastMessageDate: selectedConversation.lastTimestamp,
+            status: 'ativo',
+            messageCount: selectedConversation.messages.length,
+            tags: [],
+            profilePictureUrl: selectedConversation.profilePictureUrl,
+          }}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+      )}
     </>
   );
 };
