@@ -521,6 +521,14 @@ export default function FluxoVisual() {
       buttons?: Array<{ text: string; type: string }>;
     };
 
+    const normalizeType = (ct: string): PreviewMsg['type'] => {
+      if (ct.startsWith('video')) return 'video';
+      if (ct.startsWith('image') || ct === 'imagem' || ct.startsWith('imagem')) return 'image';
+      if (ct.startsWith('audio')) return 'audio';
+      if (ct === 'document' || ct === 'documento' || ct === 'arquivo') return 'document';
+      return 'text';
+    };
+
     const messages: PreviewMsg[] = [];
     const initialNode = nodes.find(n => n.type === 'blocoInicial');
     if (!initialNode) return messages;
@@ -560,7 +568,7 @@ export default function FluxoVisual() {
             messages.push({
               id: `${targetNode.id}-media-${msgCounter++}`,
               direction: 'sent',
-              type: contentType,
+              type: normalizeType(contentType),
               content: '',
               mediaUrl,
             });
@@ -570,7 +578,7 @@ export default function FluxoVisual() {
           messages.push({
             id: `${targetNode.id}-${msgCounter++}`,
             direction: 'sent',
-            type: (mediaUrl && !hasButtons) ? contentType : 'text',
+            type: (mediaUrl && !hasButtons) ? normalizeType(contentType) : 'text',
             content,
             mediaUrl: (mediaUrl && !hasButtons) ? mediaUrl : undefined,
             buttons: hasButtons ? btns.map((b: any, i: number) => ({
