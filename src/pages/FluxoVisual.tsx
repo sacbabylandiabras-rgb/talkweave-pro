@@ -1099,8 +1099,12 @@ export default function FluxoVisual() {
                     </div>
                   ) : (
                     getPreviewMessages().map((msg, idx) => (
-                      <div key={msg.id + idx} className="flex justify-end">
-                        <div className="max-w-[85%] bg-[#DCF8C6] dark:bg-[#005C4B] rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
+                      <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm ${
+                          msg.direction === 'received'
+                            ? 'bg-white dark:bg-[#202C33] rounded-tl-none'
+                            : 'bg-[#DCF8C6] dark:bg-[#005C4B] rounded-tr-none'
+                        }`}>
                           {/* Media preview */}
                           {msg.mediaUrl && msg.type === 'image' && (
                             <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1">
@@ -1108,8 +1112,13 @@ export default function FluxoVisual() {
                             </div>
                           )}
                           {msg.mediaUrl && msg.type === 'video' && (
-                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6">
+                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6 relative">
                               <Video className="h-8 w-8 text-muted-foreground" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
+                                  <PlayCircle className="h-6 w-6 text-white" />
+                                </div>
+                              </div>
                             </div>
                           )}
                           {msg.mediaUrl && msg.type === 'audio' && (
@@ -1134,8 +1143,8 @@ export default function FluxoVisual() {
                           )}
 
                           {/* Timestamp */}
-                          <p className="text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5">
-                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')} ✓✓
+                          <p className={`text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5`}>
+                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}{msg.direction === 'sent' ? ' ✓✓' : ''}
                           </p>
 
                           {/* Buttons */}
