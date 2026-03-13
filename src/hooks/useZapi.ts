@@ -96,6 +96,20 @@ export const useZapi = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
+    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id);
+    const explicitError = data?.error || (data?.success === false ? data?.message : null);
+
+    if (explicitError) {
+      throw new Error(String(explicitError));
+    }
+
+    if (!hasAck) {
+      const safeDetails = typeof data === 'object' ? JSON.stringify(data) : String(data || 'sem detalhes');
+      throw new Error(`${fallbackMessage} A Z-API não confirmou entrega (sem messageId/zaapId). Detalhes: ${safeDetails}`);
+    }
+  };
+
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
     
