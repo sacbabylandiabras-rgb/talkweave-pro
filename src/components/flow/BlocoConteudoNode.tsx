@@ -121,14 +121,37 @@ export function BlocoConteudoNode({ data }: any) {
 
       {buttons.length > 0 && (
         <div className="mt-2 space-y-1">
-          {buttons.map((btn: any, idx: number) => (
-            <div
-              key={btn.id || idx}
-              className="text-[10px] text-primary flex items-center gap-1"
-            >
-              {buttonTypeLabels[btn.type] || "🔗"} {btn.text || `Botão ${idx + 1}`}
-            </div>
-          ))}
+          {buttons.map((btn: any, idx: number) => {
+            const btnText = btn.text || `Botão ${idx + 1}`;
+            const stats = data.buttonStats || {};
+            const totalRecipients = data.totalFlowRecipients || 0;
+            const clickCount = stats[btnText] || 0;
+            const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
+            const hasStats = clickCount > 0;
+
+            return (
+              <div key={btn.id || idx}>
+                <div className="text-[10px] text-primary flex items-center gap-1">
+                  {buttonTypeLabels[btn.type] || "🔗"} {btnText}
+                </div>
+                {hasStats && (
+                  <div className="ml-4 mt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
+                        {clickCount} ({percentage}%)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
