@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X } from "lucide-react";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -211,27 +211,132 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string) => Promise<void>;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedFile, setAttachedFile] = useState<{ file: File; previewUrl: string; mediaType: string } | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages.length]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !conversation || sending) return;
+    if ((!newMessage.trim() && !attachedFile) || !conversation || sending) return;
     setSending(true);
     try {
-      await onSendMessage(conversation.phone, newMessage.trim());
+      if (attachedFile) {
+        // Upload to Supabase storage then send URL
+        const { supabase } = await import('@/integrations/supabase/client');
+        const ext = attachedFile.file.name.split('.').pop() || 'bin';
+        const path = `chat-media/${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType);
+        setAttachedFile(null);
+      } else {
+        await onSendMessage(conversation.phone, newMessage.trim());
+      }
       setNewMessage("");
     } catch (e) {
       // error handled by parent
     } finally {
       setSending(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    let mediaType = 'document';
+    if (file.type.startsWith('image/')) mediaType = 'image';
+    else if (file.type.startsWith('video/')) mediaType = 'video';
+    else if (file.type.startsWith('audio/')) mediaType = 'audio';
+
+    const previewUrl = URL.createObjectURL(file);
+    setAttachedFile({ file, previewUrl, mediaType });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
+        const audioFile = new File([audioBlob], `audio-${Date.now()}.ogg`, { type: 'audio/ogg' });
+        
+        // Upload and send
+        if (!conversation) return;
+        setSending(true);
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const path = `chat-media/${Date.now()}.ogg`;
+          const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
+          if (uploadError) throw uploadError;
+          const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+          await onSendMessage(conversation.phone, '', publicUrl, 'audio');
+        } catch (e) {
+          toast({ title: "Erro", description: "Falha ao enviar áudio.", variant: "destructive" });
+        } finally {
+          setSending(false);
+        }
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível acessar o microfone.", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream?.getTracks().forEach(t => t.stop());
+      };
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+    setRecordingTime(0);
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -339,25 +444,98 @@ const ChatView = ({
         </div>
       </ScrollArea>
 
+      {/* Attached file preview */}
+      {attachedFile && (
+        <div className="border-t border-border bg-muted/30 px-4 py-2">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              {attachedFile.mediaType === 'image' && (
+                <img src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" alt="" />
+              )}
+              {attachedFile.mediaType === 'video' && (
+                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{attachedFile.file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {attachedFile.mediaType === 'image' ? '📷 Imagem' : attachedFile.mediaType === 'video' ? '🎥 Vídeo' : '📎 Arquivo'}
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setAttachedFile(null)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Message Input */}
       <div className="border-t border-border bg-card px-4 py-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+          onChange={handleFileSelect}
+        />
         <div className="max-w-3xl mx-auto flex items-end gap-2">
-          <Textarea
-            placeholder="Digite uma mensagem..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-[40px] max-h-[120px] resize-none text-sm"
-            rows={1}
-          />
-          <Button
-            size="icon"
-            className="shrink-0 h-10 w-10"
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
-          </Button>
+          {isRecording ? (
+            <>
+              <div className="flex-1 flex items-center gap-3 bg-destructive/10 rounded-md px-3 py-2">
+                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm font-medium text-destructive">{formatRecordingTime(recordingTime)}</span>
+                <span className="text-xs text-muted-foreground">Gravando...</span>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10" onClick={cancelRecording} title="Cancelar">
+                <X className="w-4 h-4" />
+              </Button>
+              <Button size="icon" className="shrink-0 h-10 w-10 bg-destructive hover:bg-destructive/90" onClick={stopRecording} title="Enviar áudio">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-10 w-10"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+                title="Anexar arquivo"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Textarea
+                placeholder="Digite uma mensagem..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-[40px] max-h-[120px] resize-none text-sm"
+                rows={1}
+              />
+              {newMessage.trim() || attachedFile ? (
+                <Button
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={handleSend}
+                  disabled={(!newMessage.trim() && !attachedFile) || sending}
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={startRecording}
+                  disabled={sending}
+                  title="Gravar áudio"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -437,8 +615,8 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message) => {
-            await sendMessage(phone, message);
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
+            await sendMessage(phone, message, mediaUrl, mediaType);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
         )}
