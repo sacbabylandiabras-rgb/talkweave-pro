@@ -916,7 +916,7 @@ export default function FluxoVisual() {
         {/* Canvas */}
         <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
           <ReactFlow
-            nodes={nodes}
+            nodes={nodes.map(n => n.type === 'blocoConteudo' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
