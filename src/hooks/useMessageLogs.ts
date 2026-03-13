@@ -90,6 +90,12 @@ const extractProfilePictureUrl = (payload: any): string | null => {
   return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null;
 };
 
+const toMillis = (value: string | null | undefined): number => {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+};
+
 export const useMessageLogs = () => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
@@ -294,7 +300,8 @@ export const useMessageLogs = () => {
           phone: log.phone,
           type: 'received',
           content: log.message_received,
-          timestamp: log.timestamp,
+          // Use created_at for received messages because timestamp may be updated by flow processing.
+          timestamp: log.created_at || log.timestamp,
           source: 'message_log',
           keyword_matched: log.keyword_matched,
         });
@@ -307,7 +314,7 @@ export const useMessageLogs = () => {
         const isManual = log.keyword_matched === '__manual_send__';
         const isFlowSend = log.keyword_matched?.startsWith('__flow_send__');
         const source = isManual ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
-        
+
         // Extract flow name from keyword like "__flow_send__:Novo Fluxo"
         let displayKeyword = log.keyword_matched;
         if (isFlowSend) {
@@ -321,7 +328,7 @@ export const useMessageLogs = () => {
           phone: log.phone,
           type: 'sent',
           content: log.response_sent,
-          timestamp: log.timestamp,
+          timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,
         });
@@ -350,7 +357,12 @@ export const useMessageLogs = () => {
 
     return Array.from(grouped.entries())
       .map(([phone, msgs]) => {
-        const sorted = msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        const sorted = msgs.sort((a, b) => {
+          const timeDiff = toMillis(a.timestamp) - toMillis(b.timestamp);
+          if (timeDiff !== 0) return timeDiff;
+          if (a.type !== b.type) return a.type === 'received' ? -1 : 1;
+          return a.id.localeCompare(b.id);
+        });
         const last = sorted[sorted.length - 1];
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
@@ -365,7 +377,7 @@ export const useMessageLogs = () => {
           messages: sorted,
         };
       })
-      .sort((a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime());
+      .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
   })();
 
   const sendMessage = useCallback(async (phone: string, message: string) => {
