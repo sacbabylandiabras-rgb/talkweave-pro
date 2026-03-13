@@ -425,6 +425,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar vídeo');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do vídeo.');
+
       toast({
         title: "Vídeo enviado!",
         description: "O vídeo foi enviado com sucesso.",
