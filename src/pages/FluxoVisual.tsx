@@ -221,6 +221,7 @@ export default function FluxoVisual() {
     setNodes(fluxo.nodes || initialNodes);
     setEdges(fluxo.edges || initialEdges);
     setShowFluxosList(false);
+    fetchButtonStats(fluxo.name);
     toast.success(`Fluxo "${fluxo.name}" carregado!`);
   };
 
