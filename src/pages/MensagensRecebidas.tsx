@@ -444,25 +444,98 @@ const ChatView = ({
         </div>
       </ScrollArea>
 
+      {/* Attached file preview */}
+      {attachedFile && (
+        <div className="border-t border-border bg-muted/30 px-4 py-2">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              {attachedFile.mediaType === 'image' && (
+                <img src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" alt="" />
+              )}
+              {attachedFile.mediaType === 'video' && (
+                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{attachedFile.file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {attachedFile.mediaType === 'image' ? '📷 Imagem' : attachedFile.mediaType === 'video' ? '🎥 Vídeo' : '📎 Arquivo'}
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setAttachedFile(null)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Message Input */}
       <div className="border-t border-border bg-card px-4 py-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+          onChange={handleFileSelect}
+        />
         <div className="max-w-3xl mx-auto flex items-end gap-2">
-          <Textarea
-            placeholder="Digite uma mensagem..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-[40px] max-h-[120px] resize-none text-sm"
-            rows={1}
-          />
-          <Button
-            size="icon"
-            className="shrink-0 h-10 w-10"
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
-          </Button>
+          {isRecording ? (
+            <>
+              <div className="flex-1 flex items-center gap-3 bg-destructive/10 rounded-md px-3 py-2">
+                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm font-medium text-destructive">{formatRecordingTime(recordingTime)}</span>
+                <span className="text-xs text-muted-foreground">Gravando...</span>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10" onClick={cancelRecording} title="Cancelar">
+                <X className="w-4 h-4" />
+              </Button>
+              <Button size="icon" className="shrink-0 h-10 w-10 bg-destructive hover:bg-destructive/90" onClick={stopRecording} title="Enviar áudio">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-10 w-10"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+                title="Anexar arquivo"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Textarea
+                placeholder="Digite uma mensagem..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-[40px] max-h-[120px] resize-none text-sm"
+                rows={1}
+              />
+              {newMessage.trim() || attachedFile ? (
+                <Button
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={handleSend}
+                  disabled={(!newMessage.trim() && !attachedFile) || sending}
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={startRecording}
+                  disabled={sending}
+                  title="Gravar áudio"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
