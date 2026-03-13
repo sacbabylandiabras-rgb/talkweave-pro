@@ -772,6 +772,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar lista de opções');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da lista de opções.');
+
       toast({
         title: "Lista de opções enviada!",
         description: "A mensagem foi enviada com sucesso.",
