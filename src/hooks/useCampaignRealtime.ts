@@ -68,15 +68,24 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const channelRef = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
+  const sessionReady = useAuthSessionReady();
 
   const fetchSends = useCallback(async () => {
-    if (!campaignId) return;
+    if (!campaignId || !sessionReady) return;
+
     const { data, error } = await supabase
       .from('campaign_sends')
       .select('*')
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: true });
-    if (!error && data) {
+
+    if (error) {
+      console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
       // Only update state if data actually changed
       const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
       if (dataKey !== lastDataRef.current) {
@@ -84,14 +93,20 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
         setSends(data);
       }
     }
+
     setLoading(false);
-  }, [campaignId]);
+  }, [campaignId, sessionReady]);
 
   useEffect(() => {
     if (!campaignId) {
       setSends([]);
       setLoading(false);
       lastDataRef.current = '';
+      return;
+    }
+
+    if (!sessionReady) {
+      setLoading(true);
       return;
     }
 
@@ -134,7 +149,7 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
         pollingRef.current = null;
       }
     };
-  }, [campaignId, fetchSends]);
+  }, [campaignId, fetchSends, sessionReady]);
 
   const stats = {
     total: sends.length,
