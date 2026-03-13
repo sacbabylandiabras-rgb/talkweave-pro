@@ -453,7 +453,7 @@ const ChatView = ({
                 <img src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" alt="" />
               )}
               {attachedFile.mediaType === 'video' && (
-                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" />
+                <video src={attachedFile.previewUrl} className="h-12 w-12 rounded object-cover" muted playsInline preload="metadata" />
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{attachedFile.file.name}</p>
