@@ -5,13 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Search, Plus, MessageSquare, Phone, Mail, Filter, RefreshCw } from "lucide-react";
+import { Users, Search, MessageSquare, Phone, Filter, RefreshCw } from "lucide-react";
 import { useContacts } from "@/hooks/useContacts";
+import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
+import type { Contact } from "@/hooks/useContacts";
 
 const Contatos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { contacts, stats, loading, refetch } = useContacts();
   const navigate = useNavigate();
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const filteredContacts = contacts.filter(contact => 
     contact.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -26,6 +30,11 @@ const Contatos = () => {
       case 'bloqueado': return 'destructive';
       default: return 'secondary';
     }
+  };
+
+  const handleOpenProfile = (contact: Contact) => {
+    setSelectedContact(contact);
+    setProfileOpen(true);
   };
 
   return (
@@ -79,7 +88,7 @@ const Contatos = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredContacts.map((contato) => (
-            <Card key={contato.phone} className="hover:shadow-md transition-shadow">
+            <Card key={contato.phone} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpenProfile(contato)}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="bg-[#DFE5E7]">
@@ -134,7 +143,7 @@ const Contatos = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 flex items-center gap-1" onClick={() => navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`)}>
+                  <Button size="sm" className="flex-1 flex items-center gap-1" onClick={(e) => { e.stopPropagation(); navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`); }}>
                     <MessageSquare className="w-4 h-4" />
                     Mensagem
                   </Button>
@@ -173,6 +182,13 @@ const Contatos = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ContactProfileDialog
+        contact={selectedContact}
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onUpdate={refetch}
+      />
     </div>
   );
 };
