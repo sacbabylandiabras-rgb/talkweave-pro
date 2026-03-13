@@ -41,15 +41,23 @@ const Relatorio = () => {
   }, []);
 
   // Compute stats from realtime data
+  // Calculate total pending including contacts not yet processed
+  const globalNotProcessed = campaignList.reduce((acc, campaign) => {
+    const targetContacts = campaign.target_audience?.contacts?.length || 0;
+    const processedForCampaign = allSends.filter(s => s.campaign_id === campaign.id).length;
+    return acc + Math.max(0, targetContacts - processedForCampaign);
+  }, 0);
+  const dbPendingCount = allSends.filter(s => s.status === 'pending').length;
+
   const stats = {
     totalSent: allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     totalDelivered: allSends.filter(s => s.status === 'delivered').length,
     totalFailed: allSends.filter(s => s.status === 'failed').length,
-    totalPending: allSends.filter(s => s.status === 'pending').length,
-    totalMessages: allSends.length,
+    totalPending: dbPendingCount + globalNotProcessed,
+    totalMessages: allSends.length + globalNotProcessed,
     totalContacts: new Set(allSends.map(s => s.phone)).size,
-    deliveryRate: allSends.length > 0 
-      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / allSends.length) * 100 
+    deliveryRate: (allSends.length + globalNotProcessed) > 0 
+      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / (allSends.length + globalNotProcessed)) * 100 
       : 0,
   };
 
@@ -58,8 +66,14 @@ const Relatorio = () => {
     const campaignSends = allSends.filter(s => s.campaign_id === campaign.id);
     const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
     const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const pending = campaignSends.filter(s => s.status === 'pending').length;
-    const total = campaignSends.length;
+    const dbPending = campaignSends.filter(s => s.status === 'pending').length;
+    
+    // Calculate real pending: total target contacts - processed sends
+    const targetContacts = campaign.target_audience?.contacts?.length || 0;
+    const totalTarget = targetContacts > 0 ? targetContacts : campaignSends.length;
+    const notYetProcessed = Math.max(0, totalTarget - campaignSends.length);
+    const pending = dbPending + notYetProcessed;
+    const total = totalTarget;
     const rate = total > 0 ? (sent / total) * 100 : 0;
 
     return {
