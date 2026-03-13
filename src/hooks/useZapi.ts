@@ -202,6 +202,8 @@ export const useZapi = () => {
         throw new Error(data.error || 'Erro ao enviar mensagem com botões');
       }
 
+      ensureZapiSendConfirmed(data, '❌ Falha no envio com botões.');
+
       toast({
         title: "Mensagem com botões enviada!",
         description: "A mensagem foi enviada com sucesso.",
