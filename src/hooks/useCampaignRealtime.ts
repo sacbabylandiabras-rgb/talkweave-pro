@@ -28,6 +28,36 @@ interface CampaignRecord {
   delay_seconds: number | null;
 }
 
+const useAuthSessionReady = () => {
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (active) {
+        setSessionReady(Boolean(session));
+      }
+    };
+
+    syncSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) {
+        setSessionReady(Boolean(session));
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return sessionReady;
+};
+
 /**
  * Hook for campaign_sends with Realtime + lightweight polling fallback.
  * No full re-render — uses functional state updates.
