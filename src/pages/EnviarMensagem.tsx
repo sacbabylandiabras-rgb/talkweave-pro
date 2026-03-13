@@ -54,6 +54,7 @@ const EnviarMensagem = () => {
   const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
