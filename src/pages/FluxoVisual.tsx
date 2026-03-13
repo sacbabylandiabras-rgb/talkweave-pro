@@ -52,6 +52,11 @@ import {
   Key,
   Download,
   FileUp,
+  Eye,
+  X,
+  Image,
+  Video,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -133,6 +138,7 @@ export default function FluxoVisual() {
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
 
@@ -503,6 +509,64 @@ export default function FluxoVisual() {
     URL.revokeObjectURL(url);
     toast.success("Fluxo exportado com sucesso!");
   };
+
+  // Build preview messages by traversing the flow from initial node
+  const getPreviewMessages = useCallback(() => {
+    const messages: Array<{
+      id: string;
+      type: 'text' | 'image' | 'video' | 'audio' | 'document';
+      content: string;
+      mediaUrl?: string;
+      buttons?: Array<{ text: string; type: string }>;
+    }> = [];
+
+    const initialNode = nodes.find(n => n.type === 'blocoInicial');
+    if (!initialNode) return messages;
+
+    const visited = new Set<string>();
+    const queue = [initialNode.id];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const outgoing = edges
+        .filter(e => e.source === currentId)
+        .sort((a, b) => {
+          const aTarget = nodes.find(n => n.id === a.target);
+          const bTarget = nodes.find(n => n.id === b.target);
+          return (aTarget?.position?.y ?? 0) - (bTarget?.position?.y ?? 0);
+        });
+
+      for (const edge of outgoing) {
+        const targetNode = nodes.find(n => n.id === edge.target);
+        if (!targetNode || visited.has(targetNode.id)) continue;
+
+        if (targetNode.type === 'blocoConteudo') {
+          const contentType = targetNode.data.contentType || 'text';
+          const content = targetNode.data.content || '';
+          const mediaUrl = targetNode.data.mediaUrl || '';
+          const btns = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
+
+          messages.push({
+            id: targetNode.id,
+            type: contentType,
+            content,
+            mediaUrl: mediaUrl || undefined,
+            buttons: btns.length > 0 ? btns.map((b: any, i: number) => ({
+              text: b.text || `Botão ${i + 1}`,
+              type: b.type || 'reply',
+            })) : undefined,
+          });
+        }
+
+        queue.push(targetNode.id);
+      }
+    }
+
+    return messages;
+  }, [nodes, edges]);
 
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -914,7 +978,18 @@ export default function FluxoVisual() {
         </Card>
 
         {/* Canvas */}
-        <div className="flex-1 m-2 ml-0" ref={reactFlowWrapper}>
+        <div className="flex-1 m-2 ml-0 relative" ref={reactFlowWrapper}>
+          {/* Preview button */}
+          <Button
+            size="sm"
+            variant={showPreview ? "default" : "outline"}
+            className="absolute top-3 right-3 z-10 gap-2"
+            onClick={() => setShowPreview(!showPreview)}
+          >
+            <Eye className="h-4 w-4" />
+            Prévia
+          </Button>
+
           <ReactFlow
             nodes={nodes.map(n => n.type === 'blocoConteudo' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
             edges={edges}
@@ -946,6 +1021,98 @@ export default function FluxoVisual() {
             />
           </ReactFlow>
         </div>
+
+        {/* WhatsApp Preview Panel */}
+        {showPreview && (
+          <div className="w-80 m-2 ml-0 flex flex-col shrink-0">
+            <Card className="flex-1 flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-[#075E54] text-white rounded-t-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                    WA
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Prévia do Fluxo</p>
+                    <p className="text-[10px] opacity-80">{nomeFluxo}</p>
+                  </div>
+                </div>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => setShowPreview(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Chat area */}
+              <ScrollArea className="flex-1 bg-[#ECE5DD] dark:bg-[#0B141A]">
+                <div className="p-3 space-y-2">
+                  {getPreviewMessages().length === 0 ? (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                      <p className="text-xs text-muted-foreground">Conecte blocos de conteúdo ao fluxo para ver a prévia</p>
+                    </div>
+                  ) : (
+                    getPreviewMessages().map((msg, idx) => (
+                      <div key={msg.id + idx} className="flex justify-end">
+                        <div className="max-w-[85%] bg-[#DCF8C6] dark:bg-[#005C4B] rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
+                          {/* Media preview */}
+                          {msg.mediaUrl && msg.type === 'image' && (
+                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1">
+                              <img src={msg.mediaUrl} alt="" className="w-full max-h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            </div>
+                          )}
+                          {msg.mediaUrl && msg.type === 'video' && (
+                            <div className="mb-1.5 rounded overflow-hidden -mx-1 -mt-1 bg-black/10 flex items-center justify-center py-6">
+                              <Video className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          {msg.mediaUrl && msg.type === 'audio' && (
+                            <div className="mb-1.5 flex items-center gap-2 py-1">
+                              <Mic className="h-4 w-4 text-[#075E54] dark:text-[#00A884]" />
+                              <div className="flex-1 h-1 bg-[#075E54]/20 dark:bg-[#00A884]/20 rounded-full">
+                                <div className="w-1/3 h-full bg-[#075E54] dark:bg-[#00A884] rounded-full" />
+                              </div>
+                              <span className="text-[9px] text-muted-foreground">0:00</span>
+                            </div>
+                          )}
+                          {msg.mediaUrl && msg.type === 'document' && (
+                            <div className="mb-1.5 flex items-center gap-2 bg-white/50 dark:bg-white/10 rounded p-2">
+                              <FileText className="h-5 w-5 text-[#075E54] dark:text-[#00A884]" />
+                              <span className="text-[10px] text-foreground truncate">documento.pdf</span>
+                            </div>
+                          )}
+
+                          {/* Text content */}
+                          {msg.content && (
+                            <p className="text-[12px] text-[#111B21] dark:text-[#E9EDEF] whitespace-pre-wrap">{msg.content}</p>
+                          )}
+
+                          {/* Timestamp */}
+                          <p className="text-[9px] text-[#667781] dark:text-[#8696A0] text-right mt-0.5">
+                            {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')} ✓✓
+                          </p>
+
+                          {/* Buttons */}
+                          {msg.buttons && msg.buttons.length > 0 && (
+                            <div className="mt-1.5 -mx-3 -mb-2 border-t border-[#075E54]/10 dark:border-[#00A884]/10">
+                              {msg.buttons.map((btn, i) => (
+                                <div
+                                  key={i}
+                                  className="text-center text-[12px] font-medium text-[#00A884] py-2 border-b border-[#075E54]/10 dark:border-[#00A884]/10 last:border-b-0"
+                                >
+                                  {btn.type === 'url' ? '🔗 ' : btn.type === 'call' ? '📞 ' : ''}{btn.text}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Dialog de Seleção de Contatos */}
