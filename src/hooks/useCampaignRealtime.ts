@@ -273,8 +273,11 @@ export const useAllCampaignSendsRealtime = () => {
   const channelRef = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
+  const sessionReady = useAuthSessionReady();
 
   const fetchSends = useCallback(async () => {
+    if (!sessionReady) return;
+
     // Fetch all sends in batches to avoid the 1000-row default limit
     let allData: CampaignSendRecord[] = [];
     let from = 0;
@@ -287,10 +290,18 @@ export const useAllCampaignSendsRealtime = () => {
         .select('*')
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
-      if (error || !data) {
+
+      if (error) {
+        console.error('[useAllCampaignSendsRealtime] Error fetching sends:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
         hasMore = false;
         break;
       }
+
       allData = [...allData, ...data];
       if (data.length < batchSize) {
         hasMore = false;
@@ -305,10 +316,16 @@ export const useAllCampaignSendsRealtime = () => {
       lastDataRef.current = dataKey;
       setSends(allData);
     }
+
     setLoading(false);
-  }, []);
+  }, [sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) {
+      setLoading(true);
+      return;
+    }
+
     setLoading(true);
     fetchSends();
 
@@ -346,7 +363,7 @@ export const useAllCampaignSendsRealtime = () => {
         pollingRef.current = null;
       }
     };
-  }, [fetchSends]);
+  }, [fetchSends, sessionReady]);
 
   return { sends, loading, refetch: fetchSends };
 };
