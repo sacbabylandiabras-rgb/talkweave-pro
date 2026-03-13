@@ -16,52 +16,79 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
-    const { phone, message } = await req.json()
+    const { phone, message, mediaUrl, mediaType } = await req.json()
 
-    if (!phone || !message) {
+    if (!phone || (!message && !mediaUrl)) {
       return new Response(
-        JSON.stringify({ error: 'Phone and message are required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: 'Phone and message or mediaUrl are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const instanceId = credentials.instanceId;
-    const token = credentials.token;
-    const clientToken = credentials.clientToken;
+    const { instanceId, token, clientToken } = credentials;
+    const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
-    const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`
+    let zapiResponse: Response;
+    let logMessage = message || '';
 
-    const zapiResponse = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': clientToken
-      },
-      body: JSON.stringify({ phone, message })
-    })
+    if (mediaUrl && mediaType) {
+      // Send media based on type
+      if (mediaType === 'audio') {
+        // Send as PTT (voice message)
+        zapiResponse = await fetch(`${baseUrl}/send-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone, audio: mediaUrl, waveform: true }),
+        });
+        logMessage = logMessage || '🎤 Áudio';
+      } else if (mediaType === 'image') {
+        zapiResponse = await fetch(`${baseUrl}/send-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone, image: mediaUrl, caption: message || '' }),
+        });
+        logMessage = logMessage || '📷 Imagem';
+      } else if (mediaType === 'video') {
+        zapiResponse = await fetch(`${baseUrl}/send-video`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone, video: mediaUrl, caption: message || '' }),
+        });
+        logMessage = logMessage || '🎥 Vídeo';
+      } else {
+        // Document/file
+        zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+        });
+        logMessage = logMessage || '📎 Arquivo';
+      }
+    } else {
+      // Send text only
+      zapiResponse = await fetch(`${baseUrl}/send-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({ phone, message }),
+      });
+    }
 
     const zapiData = await zapiResponse.json()
 
     if (!zapiResponse.ok) {
       return new Response(
         JSON.stringify({ error: 'Failed to send message', details: zapiData }),
-        { 
-          status: zapiResponse.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Log the sent message in message_logs
+    // Log the sent message
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase.from('message_logs').insert({
       phone,
       message_received: null,
-      response_sent: message,
+      response_sent: logMessage,
       keyword_matched: '__manual_send__',
       timestamp: new Date().toISOString(),
       user_id: credentials.userId,
@@ -69,18 +96,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, data: zapiData }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
