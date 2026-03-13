@@ -365,8 +365,9 @@ const ChatView = ({
 };
 
 const MensagensRecebidas = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(searchParams.get("phone"));
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
   const [saveDialogName, setSaveDialogName] = useState("");
@@ -374,6 +375,17 @@ const MensagensRecebidas = () => {
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  // Auto-select phone from URL query param
+  useEffect(() => {
+    const phoneParam = searchParams.get("phone");
+    if (phoneParam) {
+      setSelectedPhone(phoneParam);
+      // Clean up the URL
+      searchParams.delete("phone");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
