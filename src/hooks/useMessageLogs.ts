@@ -323,7 +323,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
     // Filter message_logs by instance if specified
     const filteredLogs = filterInstanceId
-      ? messageLogs.filter(log => log.instance_id === filterInstanceId)
+      ? messageLogs.filter((log) => !log.instance_id || log.instance_id === filterInstanceId)
       : messageLogs;
 
     // From message_logs
