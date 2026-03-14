@@ -651,9 +651,14 @@ async function finalizeMessageLog(
 }
 
 async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  // Instead of deleting, finalize the log so the received message appears in chat
   await supabase
     .from('message_logs')
-    .delete()
+    .update({
+      keyword_matched: null,
+      response_sent: null,
+      timestamp: new Date().toISOString(),
+    })
     .eq('id', lockId)
     .eq('keyword_matched', '__processing__')
 }
