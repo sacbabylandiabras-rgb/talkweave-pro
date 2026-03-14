@@ -447,8 +447,32 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     if (mediaType) body.mediaType = mediaType;
     const { data, error } = await supabase.functions.invoke('send-message', { body });
     if (error) throw error;
+
+    // Optimistically add message to local state for instant UI update
+    const optimisticId = `optimistic-${Date.now()}`;
+    let logContent = message || '';
+    if (mediaUrl && mediaType) {
+      const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+      logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
+    }
+    const optimisticLog: MessageLog = {
+      id: optimisticId,
+      phone,
+      message_received: null,
+      response_sent: logContent,
+      keyword_matched: '__manual_send__',
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      user_id: session.user.id,
+      instance_id: null,
+    };
+    setMessageLogs(prev => [...prev, optimisticLog]);
+
+    // Refetch to get the real record from DB
+    setTimeout(() => fetchAll(), 1000);
+
     return data;
-  }, []);
+  }, [fetchAll]);
 
   return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage };
 };
