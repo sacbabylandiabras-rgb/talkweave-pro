@@ -5,6 +5,7 @@ export interface UserZAPICredentials {
   token: string;
   clientToken: string;
   userId: string;
+  instanceName: string;
 }
 
 export async function getUserZAPICredentials(
