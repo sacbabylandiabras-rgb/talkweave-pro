@@ -55,6 +55,7 @@ export async function getUserZAPICredentials(
       token: instance.zapi_token,
       clientToken: instance.zapi_client_token,
       userId: user.id,
+      instanceName: instance.instance_name || 'Instância Padrão',
     };
   }
 
