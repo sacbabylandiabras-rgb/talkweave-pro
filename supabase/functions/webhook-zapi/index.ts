@@ -156,6 +156,7 @@ serve(async (req) => {
       phone,
       normalizedMessage,
       rawMessage: messageRaw,
+      instanceId,
     })
 
     if (!lockResult.acquired) {
