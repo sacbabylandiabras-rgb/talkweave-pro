@@ -290,7 +290,7 @@ export const useAllCampaignSendsRealtime = () => {
         .from('campaign_sends')
         .select('*')
         .order('created_at', { ascending: true })
-        .range(from, from + batchSize - 1);
+        .range(from, from + batchSize - 1) as { data: CampaignSendRecord[] | null; error: any };
 
       if (error) {
         console.error('[useAllCampaignSendsRealtime] Error fetching sends:', error);
