@@ -917,7 +917,7 @@ export default function FluxoVisual() {
               </div>
             )}
           </ScrollArea>
-        </Card>
+        </div>
       </div>
     );
   }
