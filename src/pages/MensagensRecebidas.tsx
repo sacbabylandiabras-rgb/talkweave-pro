@@ -602,9 +602,33 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
+  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs();
+  const { instances } = useZapiInstances();
+  const [selectedInstanceId, setSelectedInstanceId] = useState("all");
+  const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  const syncHistory = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
+        body: { maxChats: 30, amountPerChat: 12 },
+      });
+      if (error) throw error;
+      if (data?.importedMessages > 0) {
+        toast({ title: "Histórico sincronizado", description: `${data.importedMessages} mensagens importadas.` });
+        refetch();
+      } else {
+        toast({ title: "Já sincronizado", description: "Nenhuma mensagem nova encontrada." });
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar histórico:', err);
+      toast({ title: "Erro", description: "Falha ao sincronizar histórico.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
