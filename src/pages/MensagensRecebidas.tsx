@@ -663,7 +663,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={setSelectedPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} />
           </div>
         )}
         {showChat && (
