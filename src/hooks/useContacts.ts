@@ -91,8 +91,8 @@ export const useContacts = () => {
         }
       });
 
-      // Processar envios de campanha
-      campaignSends?.forEach(send => {
+      // Processar envios de campanha (sem grupos)
+      campaignSends?.filter(send => !isGroup(send.phone)).forEach(send => {
         if (!contactMap.has(send.phone)) {
           contactMap.set(send.phone, {
             phone: send.phone,
