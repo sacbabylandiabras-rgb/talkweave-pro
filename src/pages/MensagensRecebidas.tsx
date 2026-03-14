@@ -8,6 +8,7 @@ import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Me
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
