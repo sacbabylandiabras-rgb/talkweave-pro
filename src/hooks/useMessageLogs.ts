@@ -383,8 +383,14 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       }
     });
 
-    // From campaign_sends
-    campaignSends.forEach(send => {
+    // From campaign_sends (filter by instance_name if filtering is active)
+    const filteredCampaignSends = filterInstanceName
+      ? campaignSends.filter(send => send.instance_name === filterInstanceName)
+      : filterInstanceId
+        ? [] // If filtering by instance but no name match possible, exclude campaigns
+        : campaignSends;
+
+    filteredCampaignSends.forEach(send => {
       allMessages.push({
         id: `camp-${send.id}`,
         phone: send.phone,
