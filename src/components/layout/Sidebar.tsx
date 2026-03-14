@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Workflow,
   Webhook,
-  MessageCircle
+  MessageCircle,
+  UserPlus
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
