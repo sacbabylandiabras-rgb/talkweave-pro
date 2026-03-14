@@ -385,7 +385,7 @@ const Relatorio = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {!detailsLoading && detailsSends.length > 0 && (
+          {!detailsLoading && detailsStats.total > 0 && (
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="p-3 bg-green-500/10 rounded-lg text-center">
                 <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
@@ -408,7 +408,9 @@ const Relatorio = () => {
             </div>
           ) : detailsSends.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum envio registrado para esta campanha
+              {detailsStats.pending > 0
+                ? `${detailsStats.pending} contato(s) pendente(s) aguardando processamento desta campanha`
+                : 'Nenhum envio registrado para esta campanha'}
             </div>
           ) : (
             <ScrollArea className="max-h-[55vh]">
