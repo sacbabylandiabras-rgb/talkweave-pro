@@ -79,6 +79,7 @@ export type Database = {
           delivered_at: string | null
           error_message: string | null
           id: string
+          instance_name: string | null
           message_content: string
           phone: string
           sent_at: string | null
@@ -92,6 +93,7 @@ export type Database = {
           delivered_at?: string | null
           error_message?: string | null
           id?: string
+          instance_name?: string | null
           message_content: string
           phone: string
           sent_at?: string | null
@@ -105,6 +107,7 @@ export type Database = {
           delivered_at?: string | null
           error_message?: string | null
           id?: string
+          instance_name?: string | null
           message_content?: string
           phone?: string
           sent_at?: string | null

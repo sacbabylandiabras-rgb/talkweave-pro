@@ -466,18 +466,31 @@ async function sendNodeContent(
       }
     }
     // Log the sent message to message_logs for chat history
-    if (supabase && userId && content) {
+    if (supabase && userId) {
       try {
         const buttonLabels = allSendButtons.map(b => b.text).filter(Boolean).join(' | ')
-        const logContent = buttonLabels ? `${content}\n\n[Botões: ${buttonLabels}]` : content
-        await supabase.from('message_logs').insert({
-          phone,
-          message_received: null,
-          response_sent: logContent,
-          keyword_matched: `__flow_send__${flowName ? `:${flowName}` : ''}`,
-          timestamp: new Date().toISOString(),
-          user_id: userId,
-        })
+        let logContent = content || ''
+        
+        // Add media tag for proper rendering in chat
+        if (mediaUrl && contentType && contentType !== 'text') {
+          const mediaTag = `[media:${contentType}:${mediaUrl}]`
+          logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag
+        }
+        
+        if (buttonLabels) {
+          logContent = logContent ? `${logContent}\n\n[Botões: ${buttonLabels}]` : `[Botões: ${buttonLabels}]`
+        }
+        
+        if (logContent) {
+          await supabase.from('message_logs').insert({
+            phone,
+            message_received: null,
+            response_sent: logContent,
+            keyword_matched: `__flow_send__${flowName ? `:${flowName}` : ''}`,
+            timestamp: new Date().toISOString(),
+            user_id: userId,
+          })
+        }
       } catch (logErr) {
         console.error('Erro ao logar mensagem do fluxo:', logErr)
       }
