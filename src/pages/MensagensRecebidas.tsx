@@ -174,13 +174,33 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync,
 }: {
   conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
+  instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
-    <div className="p-3 border-b border-border bg-muted/30">
-      <h2 className="text-lg font-semibold text-foreground mb-3">Conversas</h2>
+    <div className="p-3 border-b border-border bg-muted/30 space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
+          <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+        </Button>
+      </div>
+      {instances.length > 1 && (
+        <select
+          className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
+          value={selectedInstanceId}
+          onChange={(e) => onInstanceChange(e.target.value)}
+        >
+          <option value="all">Todas as instâncias</option>
+          {instances.map((inst) => (
+            <option key={inst.id} value={inst.id}>
+              {inst.instance_name}{inst.is_default ? ' (Padrão)' : ''}
+            </option>
+          ))}
+        </select>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input placeholder="Buscar por nome ou número..." className="pl-9 h-9 text-sm bg-background" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
