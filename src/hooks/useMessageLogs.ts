@@ -100,6 +100,7 @@ export const useMessageLogs = () => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
+  const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
   const channelRef2 = useRef<any>(null);
@@ -107,6 +108,7 @@ export const useMessageLogs = () => {
   const lastLogsRef = useRef<string>('');
   const lastSendsRef = useRef<string>('');
   const fetchedPhotosRef = useRef<Set<string>>(new Set());
+  const fetchedGroupNamesRef = useRef<boolean>(false);
 
   const fetchSavedContacts = useCallback(async () => {
     try {
