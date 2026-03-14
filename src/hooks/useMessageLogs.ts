@@ -134,7 +134,7 @@ export const useMessageLogs = () => {
         .order('timestamp', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
-      allData = [...allData, ...data];
+      allData = [...allData, ...(data as unknown as MessageLog[])];
       hasMore = data.length === batchSize;
       from += batchSize;
     }
