@@ -127,13 +127,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     
     setSendingFlow(true);
     try {
+      const instanceId = await getDefaultInstanceId();
+      if (!instanceId) {
+        throw new Error('Nenhuma instância ativa encontrada para disparar o fluxo');
+      }
+
       // Trigger flow execution server-side by simulating webhook with the keyword
       const { data, error } = await supabase.functions.invoke('webhook-zapi', {
         body: {
           phone: contact.phone,
           message: { text: flow.keyword || flow.name, fromMe: false },
           fromMe: false,
-          instanceId: await getDefaultInstanceId(),
+          instanceId,
           timestamp: Math.floor(Date.now() / 1000),
           __manual_flow_trigger__: true,
         }
@@ -150,18 +155,44 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   };
 
   const getDefaultInstanceId = async (): Promise<string> => {
+    if (!contact) return '';
+
+    // 1) Respect explicit preferred instance from messages screen filter (instância selecionada pelo usuário)
+    if (preferredInstanceId) {
+      return preferredInstanceId;
+    }
+
+    // 2) Try to reuse last instance used with this contact
+    const { data: lastContactMessage } = await (supabase as any)
+      .from('message_logs')
+      .select('instance_id')
+      .eq('phone', contact.phone)
+      .not('instance_id', 'is', null)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastContactMessage?.instance_id) {
+      return lastContactMessage.instance_id;
+    }
+
+    // 3) Fallback to default configured instance
     const { data } = await (supabase as any)
       .from('zapi_instances')
       .select('zapi_instance_id')
       .eq('is_default', true)
       .maybeSingle();
+
     if (data?.zapi_instance_id) return data.zapi_instance_id;
+
+    // 4) Last fallback: first active instance
     const { data: fallback } = await (supabase as any)
       .from('zapi_instances')
       .select('zapi_instance_id')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle();
+
     return fallback?.zapi_instance_id || '';
   };
 
