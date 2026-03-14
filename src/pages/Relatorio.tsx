@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCampaignsRealtime, useAllCampaignSendsRealtime, useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
 import { format } from "date-fns";
@@ -225,6 +225,74 @@ const Relatorio = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mensagens por Instância */}
+      {(() => {
+        const instanceMap = new Map<string, { sent: number; failed: number; pending: number; total: number }>();
+        allSends.forEach(send => {
+          const name = (send as any).instance_name || 'Sem instância';
+          const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
+          current.total++;
+          if (send.status === 'sent' || send.status === 'delivered') current.sent++;
+          else if (send.status === 'failed') current.failed++;
+          else current.pending++;
+          instanceMap.set(name, current);
+        });
+        const instanceEntries = Array.from(instanceMap.entries()).sort((a, b) => b[1].total - a[1].total);
+        
+        if (instanceEntries.length === 0 || (instanceEntries.length === 1 && instanceEntries[0][0] === 'Sem instância')) return null;
+        
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5" />
+                Mensagens por Instância
+              </CardTitle>
+              <CardDescription>Distribuição de envios por conexão WhatsApp</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {instanceEntries.map(([name, data]) => {
+                  const successRate = data.total > 0 ? (data.sent / data.total) * 100 : 0;
+                  return (
+                    <div key={name} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-primary" />
+                          <h3 className="font-semibold">{name}</h3>
+                        </div>
+                        <Badge variant="outline">{data.total.toLocaleString('pt-BR')} mensagens</Badge>
+                      </div>
+                      <div className="mb-2">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>Taxa de sucesso</span>
+                          <span>{successRate.toFixed(1)}%</span>
+                        </div>
+                        <Progress value={successRate} className="h-2" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 mt-3">
+                        <div className="p-2 bg-green-500/10 rounded text-center">
+                          <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                          <p className="font-bold text-green-600 dark:text-green-400">{data.sent.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div className="p-2 bg-yellow-500/10 rounded text-center">
+                          <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
+                          <p className="font-bold text-yellow-600 dark:text-yellow-400">{data.pending.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div className="p-2 bg-destructive/10 rounded text-center">
+                          <p className="text-xs text-muted-foreground">Falhas</p>
+                          <p className="font-bold text-destructive">{data.failed.toLocaleString('pt-BR')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card>
         <CardHeader>

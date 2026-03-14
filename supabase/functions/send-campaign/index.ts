@@ -22,6 +22,7 @@ interface CampaignSendRecord {
   delivered_at?: string;
   error_message?: string;
   user_id?: string;
+  instance_name?: string;
 }
 
 serve(async (req) => {
@@ -233,6 +234,7 @@ serve(async (req) => {
             message_content: messageContent,
             status: 'pending',
             user_id: credentials.userId,
+            instance_name: credentials.instanceName,
           };
 
           // Build full message with header and footer
@@ -654,6 +656,7 @@ serve(async (req) => {
               status: 'failed',
               error_message: error instanceof Error ? error.message : 'Unknown error',
               user_id: credentials.userId,
+              instance_name: credentials.instanceName,
             };
           } else {
             campaignSend.status = 'failed';

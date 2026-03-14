@@ -13,6 +13,7 @@ interface CampaignSendRecord {
   error_message: string | null;
   created_at: string;
   user_id: string | null;
+  instance_name: string | null;
 }
 
 interface CampaignRecord {
@@ -77,7 +78,7 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
       .from('campaign_sends')
       .select('*')
       .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }) as { data: CampaignSendRecord[] | null; error: any };
 
     if (error) {
       console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
@@ -289,7 +290,7 @@ export const useAllCampaignSendsRealtime = () => {
         .from('campaign_sends')
         .select('*')
         .order('created_at', { ascending: true })
-        .range(from, from + batchSize - 1);
+        .range(from, from + batchSize - 1) as { data: CampaignSendRecord[] | null; error: any };
 
       if (error) {
         console.error('[useAllCampaignSendsRealtime] Error fetching sends:', error);
