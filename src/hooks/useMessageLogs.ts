@@ -100,6 +100,7 @@ export const useMessageLogs = () => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
+  const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
   const channelRef2 = useRef<any>(null);
@@ -107,6 +108,7 @@ export const useMessageLogs = () => {
   const lastLogsRef = useRef<string>('');
   const lastSendsRef = useRef<string>('');
   const fetchedPhotosRef = useRef<Set<string>>(new Set());
+  const fetchedGroupNamesRef = useRef<boolean>(false);
 
   const fetchSavedContacts = useCallback(async () => {
     try {
@@ -281,6 +283,31 @@ export const useMessageLogs = () => {
     };
   }, [fetchAll, fetchSavedContacts]);
 
+  // Fetch group names when we detect group conversations
+  useEffect(() => {
+    if (loading || messageLogs.length === 0 || fetchedGroupNamesRef.current) return;
+    const groupPhones = [...new Set(messageLogs.map(m => m.phone).filter(p => p.includes('-group') || p.includes('@g.us')))];
+    if (groupPhones.length === 0) return;
+    
+    fetchedGroupNamesRef.current = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
+        if (error || !data?.groups) return;
+        const map = new Map<string, string>();
+        for (const g of data.groups) {
+          if (g.id && g.nome) {
+            map.set(g.id, g.nome);
+            // Also try without @g.us suffix for matching
+            const cleanId = g.id.replace('@g.us', '');
+            map.set(cleanId + '-group', g.nome);
+          }
+        }
+        setGroupNames(map);
+      } catch { /* ignore */ }
+    })();
+  }, [loading, messageLogs.length]);
+
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
     if (loading || messageLogs.length === 0) return;
@@ -382,9 +409,12 @@ export const useMessageLogs = () => {
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
+        // Get group name if it's a group conversation
+        const isGroup = phone.includes('-group') || phone.includes('@g.us');
+        const groupName = isGroup ? (groupNames.get(phone) || null) : null;
         return {
           phone,
-          contactName: saved?.name || campaignName || null,
+          contactName: saved?.name || campaignName || groupName || null,
           profilePictureUrl: saved?.profile_picture_url || null,
           lastMessage: last.content,
           lastTimestamp: last.timestamp,
