@@ -93,6 +93,7 @@ export async function getUserZAPICredentials(
       token: profile.zapi_token,
       clientToken: profile.zapi_client_token,
       userId: user.id,
+      instanceName: 'Instância Perfil',
     };
   }
 
