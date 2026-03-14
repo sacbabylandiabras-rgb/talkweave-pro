@@ -97,7 +97,7 @@ const toMillis = (value: string | null | undefined): number => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
-export const useMessageLogs = (filterInstanceId?: string) => {
+export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
