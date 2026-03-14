@@ -100,6 +100,7 @@ serve(async (req) => {
       keyword_matched: '__manual_send__',
       timestamp: new Date().toISOString(),
       user_id: credentials.userId,
+      instance_id: credentials.instanceId,
     });
 
     return new Response(
