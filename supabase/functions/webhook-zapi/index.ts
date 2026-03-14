@@ -232,9 +232,13 @@ serve(async (req) => {
         if (targetNode) {
           const visited = new Set<string>()
           // Send target node content
-          await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
-          // Then continue processing children from target node
-          await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
+          const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
+          // Only continue processing children if the node doesn't have button branching
+          if (!shouldStop) {
+            await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
+          } else {
+            console.log('Fluxo pausado no nó alvo - aguardando próximo clique de botão')
+          }
         }
 
         await finalizeMessageLog(supabase, lockId, {
