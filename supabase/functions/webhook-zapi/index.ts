@@ -189,18 +189,20 @@ serve(async (req) => {
     // Manual flow trigger safeguard:
     // Always use the instance of the latest inbound message from this contact.
     if (isManualFlowTrigger && userId && phone) {
-      const { data: lastInbound } = await supabase
+      const { data: inboundCandidates } = await supabase
         .from('message_logs')
-        .select('instance_id, created_at')
+        .select('instance_id, created_at, keyword_matched, message_received')
         .eq('user_id', userId)
         .eq('phone', phone)
         .not('instance_id', 'is', null)
         .not('message_received', 'is', null)
-        .neq('keyword_matched', '__processing__')
-        .neq('keyword_matched', '__lid_map__')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .limit(20)
+
+      const lastInbound = (inboundCandidates || []).find((row: any) => {
+        const keyword = row?.keyword_matched || ''
+        return keyword !== '__processing__' && keyword !== '__lid_map__'
+      })
 
       if (lastInbound?.instance_id && lastInbound.instance_id !== instanceId) {
         const { data: contactInstance } = await supabase
