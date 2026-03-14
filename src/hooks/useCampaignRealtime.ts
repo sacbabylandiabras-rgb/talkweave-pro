@@ -13,6 +13,7 @@ interface CampaignSendRecord {
   error_message: string | null;
   created_at: string;
   user_id: string | null;
+  instance_name: string | null;
 }
 
 interface CampaignRecord {
