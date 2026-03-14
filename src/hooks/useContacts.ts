@@ -57,11 +57,12 @@ export const useContacts = () => {
         throw campaignError;
       }
 
-      // Processar contatos únicos
+      // Processar contatos únicos (excluir grupos)
       const contactMap = new Map<string, Contact>();
+      const isGroup = (phone: string) => phone.includes('-group') || phone.includes('@g.us');
       
-      // Processar logs de mensagens recebidas
-      messageLogs?.forEach(log => {
+      // Processar logs de mensagens recebidas (sem grupos)
+      messageLogs?.filter(log => !isGroup(log.phone)).forEach(log => {
         if (!contactMap.has(log.phone)) {
           contactMap.set(log.phone, {
             phone: log.phone,
@@ -90,8 +91,8 @@ export const useContacts = () => {
         }
       });
 
-      // Processar envios de campanha
-      campaignSends?.forEach(send => {
+      // Processar envios de campanha (sem grupos)
+      campaignSends?.filter(send => !isGroup(send.phone)).forEach(send => {
         if (!contactMap.has(send.phone)) {
           contactMap.set(send.phone, {
             phone: send.phone,
