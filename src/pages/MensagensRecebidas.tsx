@@ -740,6 +740,7 @@ const MensagensRecebidas = () => {
             tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl,
           }}
+          preferredInstanceId={filterZapiInstanceId}
           open={profileOpen}
           onOpenChange={setProfileOpen}
         />
