@@ -78,7 +78,7 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
       .from('campaign_sends')
       .select('*')
       .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }) as { data: CampaignSendRecord[] | null; error: any };
 
     if (error) {
       console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
