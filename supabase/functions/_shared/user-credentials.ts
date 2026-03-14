@@ -43,7 +43,7 @@ export async function getUserZAPICredentials(
   // Try to get credentials from zapi_instances table first (preferred)
   const { data: instance, error: instanceError } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
     .eq('user_id', user.id)
     .eq('is_default', true)
     .maybeSingle();
