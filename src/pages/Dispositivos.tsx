@@ -136,21 +136,24 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     
     if (prevConnected === false && isConnectedNow && !hasSynced) {
       setHasSynced(true);
-      toast({ title: "📥 Sincronizando histórico...", description: "Importando mensagens desta instância." });
-      supabase.functions.invoke('sync-zapi-history', {
-        body: { instanceId: instance.zapi_instance_id, maxChats: 50, amountPerChat: 30 }
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('Erro ao sincronizar histórico:', error);
-          toast({ title: "❌ Erro ao sincronizar", description: "Não foi possível importar o histórico.", variant: "destructive" });
-        } else {
-          toast({ 
-            title: "✅ Histórico importado!", 
-            description: `${data?.importedMessages || 0} mensagens de ${data?.importedChats || 0} conversas importadas.`,
-            duration: 6000,
-          });
-        }
-      });
+      // Wait a bit for the connection to stabilize before syncing
+      setTimeout(() => {
+        toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
+        supabase.functions.invoke('sync-zapi-history', {
+          body: { instanceId: instance.zapi_instance_id, maxChats: 100 }
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('Erro ao sincronizar:', error);
+            toast({ title: "❌ Erro ao sincronizar", description: "Não foi possível importar os contatos.", variant: "destructive" });
+          } else {
+            toast({ 
+              title: "✅ Contatos importados!", 
+              description: `${data?.importedContacts || 0} contatos e ${data?.importedChats || 0} conversas importadas.`,
+              duration: 6000,
+            });
+          }
+        });
+      }, 3000);
     }
     
     if (deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
