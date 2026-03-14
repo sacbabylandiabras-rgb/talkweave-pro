@@ -585,9 +585,9 @@ async function processFlowNode(
 
 async function acquireMessageProcessingLock(
   supabase: any,
-  params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string }
+  params: { userId: string; phone: string; normalizedMessage: string; rawMessage: string; instanceId?: string }
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage } = params
+  const { userId, phone, normalizedMessage, rawMessage, instanceId } = params
   const norm = normalizedMessage || normalizeForMatch(rawMessage)
   const now = Date.now()
   const bucketSize = 15000
@@ -623,6 +623,7 @@ async function acquireMessageProcessingLock(
       response_sent: '__processing__',
       timestamp: new Date().toISOString(),
       user_id: userId,
+      instance_id: instanceId || null,
     })
 
   if (!error) return { acquired: true, lockId }
