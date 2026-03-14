@@ -586,6 +586,28 @@ const MensagensRecebidas = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  // Track read conversations in localStorage
+  const [readPhones, setReadPhones] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('readConversations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const markAsRead = (phone: string) => {
+    setReadPhones(prev => {
+      const next = new Set(prev);
+      next.add(phone);
+      localStorage.setItem('readConversations', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleSelectPhone = (phone: string) => {
+    setSelectedPhone(phone);
+    markAsRead(phone);
+  };
+
   // Auto-select phone from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
