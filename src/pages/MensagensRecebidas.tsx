@@ -4,8 +4,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
+import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -271,6 +277,9 @@ const ChatView = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -393,6 +402,41 @@ const ChatView = ({
       handleSend();
     }
   };
+
+  const handleSelectTemplate = async (template: MessageTemplate) => {
+    setTemplatePopoverOpen(false);
+    setTemplateSearch("");
+    
+    // If template has media, send directly
+    if (template.mediaUrl && template.type && template.type !== 'texto') {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        let mediaType = 'document';
+        if (['image', 'imagem', 'imagem_botoes'].includes(template.type)) mediaType = 'image';
+        else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
+        else if (template.type === 'audio') mediaType = 'audio';
+        
+        await onSendMessage(conversation.phone, template.content, template.mediaUrl, mediaType);
+        incrementUsage(template.id);
+        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+      } catch {
+        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+    } else {
+      // Text-only template: fill the input
+      setNewMessage(template.content);
+      incrementUsage(template.id);
+    }
+  };
+
+  const filteredTemplates = templates.filter(t => 
+    t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+    t.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
+    t.content.toLowerCase().includes(templateSearch.toLowerCase())
+  );
 
   if (!conversation) {
     return (
@@ -556,6 +600,61 @@ const ChatView = ({
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
+              <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-10 w-10"
+                    disabled={sending}
+                    title="Enviar modelo"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start" side="top">
+                  <div className="p-3 border-b border-border">
+                    <h4 className="text-sm font-semibold mb-2">Modelos de Mensagem</h4>
+                    <Input
+                      placeholder="Buscar modelo..."
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <ScrollArea className="max-h-[300px]">
+                    {templatesLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : filteredTemplates.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        Nenhum modelo encontrado
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        {filteredTemplates.map((template) => (
+                          <button
+                            key={template.id}
+                            onClick={() => handleSelectTemplate(template)}
+                            className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-sm font-medium text-foreground truncate">{template.name}</span>
+                              <Badge variant="secondary" className="text-[10px] ml-2 shrink-0">
+                                {template.category}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {template.content}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
               <Textarea
                 placeholder="Digite uma mensagem..."
                 value={newMessage}
