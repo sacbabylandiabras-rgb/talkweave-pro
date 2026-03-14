@@ -57,8 +57,13 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate }: Contact
 
   const loadFlows = async () => {
     setLoadingFlows(true);
-    const { data } = await supabase.from('flow_automations').select('id, name, keyword').eq('active', true);
-    setFlows(data || []);
+    try {
+      const { data, error } = await supabase.from('flow_automations').select('id, name, keyword').eq('active', true);
+      console.log('loadFlows result:', { data, error });
+      setFlows((data as any[]) || []);
+    } catch (e) {
+      console.error('loadFlows error:', e);
+    }
     setLoadingFlows(false);
   };
 
