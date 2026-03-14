@@ -58,21 +58,38 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate }: Contact
   const loadFlows = async () => {
     setLoadingFlows(true);
     try {
-      const { data, error } = await supabase.from('flow_automations').select('id, name, keyword').eq('active', true);
-      console.log('loadFlows result:', { data, error });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setFlows([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('flow_automations')
+        .select('id, name, keyword')
+        .eq('user_id', user.id)
+        .eq('active', true)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
       setFlows((data as any[]) || []);
     } catch (e) {
       console.error('loadFlows error:', e);
+      setFlows([]);
+      toast({ title: "Erro ao carregar fluxos", variant: "destructive" });
+    } finally {
+      setLoadingFlows(false);
     }
-    setLoadingFlows(false);
   };
 
+  useEffect(() => {
+    if (!open || !contact) return;
+    setLocalTags([...contact.tags]);
+    setNewName(contact.name || '');
+    loadFlows();
+  }, [open, contact?.phone]);
+
   const handleOpen = (isOpen: boolean) => {
-    if (isOpen && contact) {
-      setLocalTags([...contact.tags]);
-      setNewName(contact.name || '');
-      loadFlows();
-    }
     onOpenChange(isOpen);
   };
 
