@@ -612,11 +612,35 @@ const MensagensRecebidas = () => {
     const phoneParam = searchParams.get("phone");
     if (phoneParam) {
       setSelectedPhone(phoneParam);
+      markAsRead(phoneParam);
       // Clean up the URL
       searchParams.delete("phone");
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // One-time history sync to bring older messages that arrived before webhook setup
+  useEffect(() => {
+    const syncHistory = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
+          body: { maxChats: 30, amountPerChat: 12 },
+        });
+        if (error) throw error;
+
+        if (data?.importedMessages > 0) {
+          toast({
+            title: "Histórico sincronizado",
+            description: `${data.importedMessages} mensagens antigas foram importadas.`,
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao sincronizar histórico:', err);
+      }
+    };
+
+    syncHistory();
+  }, []);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
