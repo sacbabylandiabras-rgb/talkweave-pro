@@ -137,7 +137,8 @@ serve(async (req) => {
       }
     }
 
-    const instanceId = webhook?.instanceId || webhook?.instance_id
+    let instanceId = webhook?.instanceId || webhook?.instance_id
+    const isManualFlowTrigger = webhook?.__manual_flow_trigger__ === true
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
 
@@ -182,6 +183,45 @@ serve(async (req) => {
         zapi_instance_id: profile.zapi_instance_id,
         zapi_token: profile.zapi_token,
         zapi_client_token: profile.zapi_client_token,
+      }
+    }
+
+    // Manual flow trigger safeguard:
+    // Always use the instance of the latest inbound message from this contact.
+    if (isManualFlowTrigger && userId && phone) {
+      const { data: inboundCandidates } = await supabase
+        .from('message_logs')
+        .select('instance_id, created_at, keyword_matched, message_received')
+        .eq('user_id', userId)
+        .eq('phone', phone)
+        .not('instance_id', 'is', null)
+        .not('message_received', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      const lastInbound = (inboundCandidates || []).find((row: any) => {
+        const keyword = row?.keyword_matched || ''
+        return keyword !== '__processing__' && keyword !== '__lid_map__'
+      })
+
+      if (lastInbound?.instance_id && lastInbound.instance_id !== instanceId) {
+        const { data: contactInstance } = await supabase
+          .from('zapi_instances')
+          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .eq('user_id', userId)
+          .eq('zapi_instance_id', lastInbound.instance_id)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (contactInstance) {
+          console.log(`🔁 Manual trigger instance adjusted: ${instanceId} → ${contactInstance.zapi_instance_id}`)
+          instanceId = contactInstance.zapi_instance_id
+          zapiConfig = {
+            zapi_instance_id: contactInstance.zapi_instance_id,
+            zapi_token: contactInstance.zapi_token,
+            zapi_client_token: contactInstance.zapi_client_token,
+          }
+        }
       }
     }
 
