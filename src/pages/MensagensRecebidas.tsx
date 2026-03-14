@@ -605,10 +605,10 @@ const MensagensRecebidas = () => {
   const { instances } = useZapiInstances();
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Map UI instance id to zapi_instance_id for filtering
-  const filterZapiInstanceId = selectedInstanceId === "all"
-    ? undefined
-    : instances.find(i => i.id === selectedInstanceId)?.zapi_instance_id;
-  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(filterZapiInstanceId);
+  const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
+  const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
+  const filterInstanceName = selectedInstance?.instance_name;
+  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(filterZapiInstanceId, filterInstanceName);
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();

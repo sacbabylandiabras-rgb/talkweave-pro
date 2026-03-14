@@ -21,6 +21,7 @@ export interface CampaignSendMessage {
   status: string | null;
   sent_at: string | null;
   created_at: string;
+  instance_name: string | null;
 }
 
 export interface UnifiedMessage {
@@ -97,7 +98,7 @@ const toMillis = (value: string | null | undefined): number => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
-export const useMessageLogs = (filterInstanceId?: string) => {
+export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
@@ -155,7 +156,7 @@ export const useMessageLogs = (filterInstanceId?: string) => {
     while (hasMore) {
       const { data, error } = await supabase
         .from('campaign_sends')
-        .select('id, phone, message_content, contact_name, status, sent_at, created_at')
+        .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -383,8 +384,14 @@ export const useMessageLogs = (filterInstanceId?: string) => {
       }
     });
 
-    // From campaign_sends
-    campaignSends.forEach(send => {
+    // From campaign_sends (filter by instance_name if filtering is active)
+    const filteredCampaignSends = filterInstanceName
+      ? campaignSends.filter(send => send.instance_name === filterInstanceName)
+      : filterInstanceId
+        ? [] // If filtering by instance but no name match possible, exclude campaigns
+        : campaignSends;
+
+    filteredCampaignSends.forEach(send => {
       allMessages.push({
         id: `camp-${send.id}`,
         phone: send.phone,

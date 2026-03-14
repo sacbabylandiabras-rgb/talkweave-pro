@@ -346,6 +346,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          instance_id: string | null
           keyword_matched: string | null
           message_received: string | null
           phone: string
@@ -356,6 +357,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          instance_id?: string | null
           keyword_matched?: string | null
           message_received?: string | null
           phone: string
@@ -366,6 +368,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          instance_id?: string | null
           keyword_matched?: string | null
           message_received?: string | null
           phone?: string
