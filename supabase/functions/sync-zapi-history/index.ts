@@ -140,7 +140,12 @@ Deno.serve(async (req) => {
             keyword_matched: "__history_import__",
           };
         })
-        .filter((row: any) => row !== null);
+        .filter((row: any) => row !== null)
+        .filter((row: any) => {
+          const content = row.message_received || row.response_sent || "";
+          const key = `${new Date(row.timestamp).toISOString()}|${content}`;
+          return !existingSet.has(key);
+        });
 
       if (rows.length === 0) {
         skippedChats++;
