@@ -320,8 +320,13 @@ export const useMessageLogs = (filterInstanceId?: string) => {
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
+    // Filter message_logs by instance if specified
+    const filteredLogs = filterInstanceId
+      ? messageLogs.filter(log => log.instance_id === filterInstanceId)
+      : messageLogs;
+
     // From message_logs
-    messageLogs.forEach(log => {
+    filteredLogs.forEach(log => {
       if (log.message_received) {
         allMessages.push({
           id: `log-recv-${log.id}`,
