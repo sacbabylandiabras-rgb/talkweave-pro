@@ -126,17 +126,43 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate }: Contact
     
     setSendingFlow(true);
     try {
-      // Trigger flow by sending the keyword via send-message edge function
-      await supabase.functions.invoke('send-message', {
-        body: { phone: contact.phone, message: flow.keyword || flow.name }
+      // Trigger flow execution server-side by simulating webhook with the keyword
+      const { data, error } = await supabase.functions.invoke('webhook-zapi', {
+        body: {
+          phone: contact.phone,
+          message: { text: flow.keyword || flow.name, fromMe: false },
+          fromMe: false,
+          instanceId: await getDefaultInstanceId(),
+          timestamp: Math.floor(Date.now() / 1000),
+          __manual_flow_trigger__: true,
+        }
       });
-      toast({ title: "Fluxo enviado!", description: `Fluxo "${flow.name}" disparado para ${contact.name || contact.phone}` });
+      if (error) throw error;
+      toast({ title: "Fluxo disparado!", description: `Fluxo "${flow.name}" executado para ${contact.name || contact.phone}` });
       setSelectedFlow("");
-    } catch {
-      toast({ title: "Erro ao enviar fluxo", variant: "destructive" });
+    } catch (e) {
+      console.error('handleSendFlow error:', e);
+      toast({ title: "Erro ao disparar fluxo", variant: "destructive" });
     } finally {
       setSendingFlow(false);
     }
+  };
+
+  const getDefaultInstanceId = async (): Promise<string> => {
+    const { data } = await supabase
+      .from('zapi_instances' as any)
+      .select('zapi_instance_id')
+      .eq('is_default', true)
+      .maybeSingle();
+    if (data?.zapi_instance_id) return data.zapi_instance_id;
+    // Fallback to any active instance
+    const { data: any } = await supabase
+      .from('zapi_instances' as any)
+      .select('zapi_instance_id')
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    return any?.zapi_instance_id || '';
   };
 
   if (!contact) return null;
