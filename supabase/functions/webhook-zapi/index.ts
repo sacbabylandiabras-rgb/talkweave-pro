@@ -81,7 +81,47 @@ serve(async (req) => {
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
     }
 
-    const phone = webhook?.phone || webhook?.participantPhone || webhook?.chatLid || ''
+    // Extract phone — prefer clean number over @lid format
+    let phone = ''
+    const rawPhone = webhook?.phone || ''
+    const participantPhone = webhook?.participantPhone || ''
+    const senderPhone = webhook?.senderPhone || ''
+    const chatPhone = webhook?.chatPhone || ''
+    const chatLid = webhook?.chatLid || ''
+    const senderName = webhook?.senderName || ''
+    const chatName = webhook?.chatName || ''
+
+    // Log ALL phone-related fields when @lid is detected for debugging
+    if (rawPhone.includes('@lid') || chatLid) {
+      console.log('🔍 LID DETECTED — All phone fields:', JSON.stringify({
+        phone: rawPhone,
+        participantPhone,
+        senderPhone,
+        chatPhone,
+        chatLid,
+        senderName,
+        chatName,
+        allKeys: Object.keys(webhook || {}),
+      }))
+    }
+
+    // Priority: clean phone fields first, then raw phone, then LID
+    if (senderPhone && !senderPhone.includes('@lid')) {
+      phone = senderPhone
+    } else if (participantPhone && !participantPhone.includes('@lid')) {
+      phone = participantPhone
+    } else if (chatPhone && !chatPhone.includes('@lid')) {
+      phone = chatPhone
+    } else if (rawPhone && !rawPhone.includes('@lid')) {
+      phone = rawPhone
+    } else {
+      // Fallback: use @lid if nothing else available
+      phone = rawPhone || participantPhone || chatLid || ''
+      if (phone.includes('@lid')) {
+        console.log('⚠️ Using @lid phone as fallback — no clean number found:', phone)
+      }
+    }
+
     const instanceId = webhook?.instanceId || webhook?.instance_id
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
