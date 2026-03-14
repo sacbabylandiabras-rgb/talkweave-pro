@@ -62,7 +62,7 @@ export async function getUserZAPICredentials(
   // Fallback: try any active instance if no default
   const { data: anyInstance } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .limit(1)
@@ -75,6 +75,7 @@ export async function getUserZAPICredentials(
       token: anyInstance.zapi_token,
       clientToken: anyInstance.zapi_client_token,
       userId: user.id,
+      instanceName: anyInstance.instance_name || 'Instância Ativa',
     };
   }
 
