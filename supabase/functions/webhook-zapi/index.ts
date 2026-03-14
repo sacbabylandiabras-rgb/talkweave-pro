@@ -64,11 +64,8 @@ serve(async (req) => {
       return new Response('invalid_json', { status: 400, headers: corsHeaders })
     }
 
-    // Ignora mensagens enviadas por nós (compatível com múltiplos formatos da Z-API)
+    // Detect outgoing messages sent by this same WhatsApp instance
     const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
-    if (fromMe) {
-      return new Response('ignored', { status: 200, headers: corsHeaders })
-    }
 
     const messageRaw = extractMessageText(webhook)
     const messageText = messageRaw.toLowerCase()
@@ -136,6 +133,32 @@ serve(async (req) => {
     if (!userId || !zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token) {
       console.error('User has incomplete Z-API credentials')
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
+    }
+
+    if (fromMe) {
+      const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ?? webhook?.timestamp ?? webhook?.createdAt
+      const numericTimestamp = Number(rawTimestamp)
+      const outgoingTimestamp = Number.isFinite(numericTimestamp) && numericTimestamp > 0
+        ? new Date(numericTimestamp < 1_000_000_000_000 ? numericTimestamp * 1000 : numericTimestamp).toISOString()
+        : new Date().toISOString()
+
+      const { error: outgoingLogError } = await supabase
+        .from('message_logs')
+        .insert({
+          phone,
+          message_received: null,
+          response_sent: messageRaw,
+          keyword_matched: '__manual_send__',
+          timestamp: outgoingTimestamp,
+          user_id: userId,
+          instance_id: instanceId || zapiConfig.zapi_instance_id || null,
+        })
+
+      if (outgoingLogError) {
+        console.error('Erro ao registrar mensagem enviada no histórico:', outgoingLogError)
+      }
+
+      return new Response('outgoing_logged', { status: 200, headers: corsHeaders })
     }
 
     // Verifica se o sistema está ativo (filtra pelo user_id correto)
