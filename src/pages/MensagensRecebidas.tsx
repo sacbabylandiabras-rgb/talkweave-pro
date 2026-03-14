@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -174,13 +175,33 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync,
 }: {
   conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
+  instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
-    <div className="p-3 border-b border-border bg-muted/30">
-      <h2 className="text-lg font-semibold text-foreground mb-3">Conversas</h2>
+    <div className="p-3 border-b border-border bg-muted/30 space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
+          <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+        </Button>
+      </div>
+      {instances.length > 1 && (
+        <select
+          className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
+          value={selectedInstanceId}
+          onChange={(e) => onInstanceChange(e.target.value)}
+        >
+          <option value="all">Todas as instâncias</option>
+          {instances.map((inst) => (
+            <option key={inst.id} value={inst.id}>
+              {inst.instance_name}{inst.is_default ? ' (Padrão)' : ''}
+            </option>
+          ))}
+        </select>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input placeholder="Buscar por nome ou número..." className="pl-9 h-9 text-sm bg-background" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
@@ -581,9 +602,33 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage } = useMessageLogs();
+  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs();
+  const { instances } = useZapiInstances();
+  const [selectedInstanceId, setSelectedInstanceId] = useState("all");
+  const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  const syncHistory = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
+        body: { maxChats: 30, amountPerChat: 12 },
+      });
+      if (error) throw error;
+      if (data?.importedMessages > 0) {
+        toast({ title: "Histórico sincronizado", description: `${data.importedMessages} mensagens importadas.` });
+        refetch();
+      } else {
+        toast({ title: "Já sincronizado", description: "Nenhuma mensagem nova encontrada." });
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar histórico:', err);
+      toast({ title: "Erro", description: "Falha ao sincronizar histórico.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
@@ -619,28 +664,8 @@ const MensagensRecebidas = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // One-time history sync to bring older messages that arrived before webhook setup
-  useEffect(() => {
-    const syncHistory = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
-          body: { maxChats: 30, amountPerChat: 12 },
-        });
-        if (error) throw error;
-
-        if (data?.importedMessages > 0) {
-          toast({
-            title: "Histórico sincronizado",
-            description: `${data.importedMessages} mensagens antigas foram importadas.`,
-          });
-        }
-      } catch (err) {
-        console.error('Erro ao sincronizar histórico:', err);
-      }
-    };
-
-    syncHistory();
-  }, []);
+  // One-time history sync
+  useEffect(() => { syncHistory(); }, []);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
@@ -688,7 +713,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={instances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} />
           </div>
         )}
         {showChat && (
