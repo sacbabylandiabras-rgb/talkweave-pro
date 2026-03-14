@@ -191,7 +191,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
           </Button>
           {isConnected && (
             <Button variant="outline" size="sm" disabled={loading} className="flex items-center gap-2"
-              onClick={async () => { try { await withInstance(() => disconnectDevice()); setTimeout(fetchDeviceStatus, 1000); } catch {} }}>
+              onClick={async () => {
+                try {
+                  await withInstance(() => disconnectDevice());
+                  // Clear old messages when disconnecting so only new ones appear with new number
+                  try {
+                    await supabase.from('message_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                    await supabase.from('campaign_sends').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                    localStorage.removeItem('readConversations');
+                    toast({ title: "🗑️ Histórico limpo", description: "Mensagens antigas foram removidas. Novas mensagens aparecerão com o próximo número." });
+                  } catch (e) {
+                    console.error('Erro ao limpar mensagens:', e);
+                  }
+                  setTimeout(fetchDeviceStatus, 1000);
+                } catch {}
+              }}>
               <PowerOff className="w-3 h-3" /> Desconectar
             </Button>
           )}

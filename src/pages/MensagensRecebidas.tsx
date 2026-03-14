@@ -173,9 +173,9 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones,
 }: {
-  conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void;
+  conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30">
@@ -220,10 +220,8 @@ const ConversationList = ({
                 {conv.lastMessage.length > 60 ? conv.lastMessage.slice(0, 60) + '...' : conv.lastMessage}
               </p>
             </div>
-            {conv.messages.length > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                {conv.messages.length}
-              </Badge>
+            {!readPhones.has(conv.phone) && (
+              <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
             )}
           </button>
         ))
@@ -586,6 +584,28 @@ const MensagensRecebidas = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  // Track read conversations in localStorage
+  const [readPhones, setReadPhones] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('readConversations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const markAsRead = (phone: string) => {
+    setReadPhones(prev => {
+      const next = new Set(prev);
+      next.add(phone);
+      localStorage.setItem('readConversations', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleSelectPhone = (phone: string) => {
+    setSelectedPhone(phone);
+    markAsRead(phone);
+  };
+
   // Auto-select phone from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
@@ -643,7 +663,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[340px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={setSelectedPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} />
           </div>
         )}
         {showChat && (
