@@ -175,6 +175,53 @@ serve(async (req) => {
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
     }
 
+    // === LID ↔ PHONE MAPPING ===
+    // When incoming message has clean phone + chatLid, store the mapping
+    const webhookChatLid = webhook?.chatLid || ''
+    if (!phone.includes('@lid') && webhookChatLid && webhookChatLid.includes('@lid')) {
+      const { data: existingMap } = await supabase
+        .from('message_logs')
+        .select('id')
+        .eq('keyword_matched', '__lid_map__')
+        .eq('message_received', webhookChatLid)
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+
+      if (!existingMap) {
+        console.log(`📌 Storing LID mapping: ${webhookChatLid} → ${phone}`)
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: webhookChatLid,
+          response_sent: null,
+          keyword_matched: '__lid_map__',
+          user_id: userId,
+          instance_id: instanceId,
+          timestamp: new Date().toISOString(),
+        })
+      }
+    }
+
+    // When phone is @lid, try to resolve to clean phone
+    if (phone.includes('@lid') && userId) {
+      const lidToResolve = phone
+      const { data: mapping } = await supabase
+        .from('message_logs')
+        .select('phone')
+        .eq('keyword_matched', '__lid_map__')
+        .eq('message_received', lidToResolve)
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+
+      if (mapping) {
+        console.log(`✅ Resolved @lid: ${lidToResolve} → ${mapping.phone}`)
+        phone = mapping.phone
+      } else {
+        console.log(`⚠️ No LID mapping found for ${lidToResolve}, using as-is`)
+      }
+    }
+
     if (fromMe) {
       const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ?? webhook?.timestamp ?? webhook?.createdAt
       const numericTimestamp = Number(rawTimestamp)
