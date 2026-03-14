@@ -40,14 +40,26 @@ const Relatorio = () => {
     loadTemplates();
   }, []);
 
+  // Helper to support legacy/new target_audience formats
+  const getTargetContactsCount = (targetAudience: any): number => {
+    if (!targetAudience) return 0;
+    if (Array.isArray(targetAudience)) return targetAudience.length;
+    if (Array.isArray(targetAudience.contacts)) return targetAudience.contacts.length;
+    if (Array.isArray(targetAudience.phones)) return targetAudience.phones.length;
+    if (Array.isArray(targetAudience.numbers)) return targetAudience.numbers.length;
+    if (typeof targetAudience.total_contacts === 'number') return targetAudience.total_contacts;
+    if (typeof targetAudience.total === 'number') return targetAudience.total;
+    return 0;
+  };
+
   // Compute stats from realtime data
   // Calculate total pending including contacts not yet processed
   const globalNotProcessed = campaignList.reduce((acc, campaign) => {
-    const targetContacts = campaign.target_audience?.contacts?.length || 0;
+    const targetContacts = getTargetContactsCount(campaign.target_audience);
     const processedForCampaign = allSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = allSends.filter(s => s.status === 'pending').length;
+  const dbPendingCount = allSends.filter(s => s.status === 'pending' || !s.status).length;
 
   const stats = {
     totalSent: allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
@@ -56,8 +68,8 @@ const Relatorio = () => {
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: allSends.length + globalNotProcessed,
     totalContacts: new Set(allSends.map(s => s.phone)).size,
-    deliveryRate: (allSends.length + globalNotProcessed) > 0 
-      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / (allSends.length + globalNotProcessed)) * 100 
+    deliveryRate: (allSends.length + globalNotProcessed) > 0
+      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / (allSends.length + globalNotProcessed)) * 100
       : 0,
   };
 
@@ -66,10 +78,10 @@ const Relatorio = () => {
     const campaignSends = allSends.filter(s => s.campaign_id === campaign.id);
     const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
     const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const dbPending = campaignSends.filter(s => s.status === 'pending').length;
-    
+    const dbPending = campaignSends.filter(s => s.status === 'pending' || !s.status).length;
+
     // Calculate real pending: total target contacts - processed sends
-    const targetContacts = campaign.target_audience?.contacts?.length || 0;
+    const targetContacts = getTargetContactsCount(campaign.target_audience);
     const totalTarget = targetContacts > 0 ? targetContacts : campaignSends.length;
     const notYetProcessed = Math.max(0, totalTarget - campaignSends.length);
     const pending = dbPending + notYetProcessed;
@@ -91,12 +103,17 @@ const Relatorio = () => {
     };
   });
 
+  const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
+  const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
+  const detailsDbPending = detailsSends.filter(s => s.status === 'pending' || !s.status).length;
+  const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsSends.length);
+
   // Details dialog stats
   const detailsStats = {
     sent: detailsSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
-    pending: detailsSends.filter(s => s.status === 'pending').length,
+    pending: detailsDbPending + detailsNotProcessed,
     failed: detailsSends.filter(s => s.status === 'failed').length,
-    total: detailsSends.length,
+    total: detailsTargetCount > 0 ? detailsTargetCount : detailsSends.length,
   };
 
   const openDetails = (campaignId: string, campaignName: string) => {
@@ -368,7 +385,7 @@ const Relatorio = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {!detailsLoading && detailsSends.length > 0 && (
+          {!detailsLoading && detailsStats.total > 0 && (
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="p-3 bg-green-500/10 rounded-lg text-center">
                 <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
@@ -391,7 +408,9 @@ const Relatorio = () => {
             </div>
           ) : detailsSends.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum envio registrado para esta campanha
+              {detailsStats.pending > 0
+                ? `${detailsStats.pending} contato(s) pendente(s) aguardando processamento desta campanha`
+                : 'Nenhum envio registrado para esta campanha'}
             </div>
           ) : (
             <ScrollArea className="max-h-[55vh]">
