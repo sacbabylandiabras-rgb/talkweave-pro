@@ -220,10 +220,8 @@ const ConversationList = ({
                 {conv.lastMessage.length > 60 ? conv.lastMessage.slice(0, 60) + '...' : conv.lastMessage}
               </p>
             </div>
-            {conv.messages.length > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                {conv.messages.length}
-              </Badge>
+            {!readPhones.has(conv.phone) && (
+              <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
             )}
           </button>
         ))
