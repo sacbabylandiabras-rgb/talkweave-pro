@@ -21,6 +21,7 @@ export interface CampaignSendMessage {
   status: string | null;
   sent_at: string | null;
   created_at: string;
+  instance_name: string | null;
 }
 
 export interface UnifiedMessage {
