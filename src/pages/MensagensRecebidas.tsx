@@ -719,7 +719,9 @@ const MensagensRecebidas = () => {
         body: { maxChats: 30, amountPerChat: 12 },
       });
       if (error) throw error;
-      if (data?.importedMessages > 0) {
+      if (data?.error === 'disconnected') {
+        toast({ title: "⚠️ WhatsApp desconectado", description: "Reconecte sua instância na página de Dispositivos.", variant: "destructive" });
+      } else if (data?.importedMessages > 0) {
         toast({ title: "Histórico sincronizado", description: `${data.importedMessages} mensagens importadas.` });
         refetch();
       } else {

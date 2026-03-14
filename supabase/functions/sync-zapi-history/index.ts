@@ -67,6 +67,15 @@ Deno.serve(async (req) => {
       if (!chatsResponse.ok) {
         const errorText = await chatsResponse.text();
         console.error(`❌ Z-API chats error: ${chatsResponse.status} - ${errorText}`);
+        
+        // Detect disconnected instance
+        if (chatsResponse.status === 400 && errorText.toLowerCase().includes("connected")) {
+          return new Response(
+            JSON.stringify({ success: false, error: "disconnected", message: "Instância WhatsApp desconectada." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        
         throw new Error(`Z-API chats error: ${chatsResponse.status}`);
       }
 
