@@ -490,6 +490,7 @@ async function sendNodeContent(
             keyword_matched: `__flow_send__${flowName ? `:${flowName}` : ''}`,
             timestamp: new Date().toISOString(),
             user_id: userId,
+            instance_id: zapiConfig?.zapi_instance_id || null,
           })
         }
       } catch (logErr) {
