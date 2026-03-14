@@ -64,11 +64,8 @@ serve(async (req) => {
       return new Response('invalid_json', { status: 400, headers: corsHeaders })
     }
 
-    // Ignora mensagens enviadas por nós (compatível com múltiplos formatos da Z-API)
+    // Detect outgoing messages sent by this same WhatsApp instance
     const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
-    if (fromMe) {
-      return new Response('ignored', { status: 200, headers: corsHeaders })
-    }
 
     const messageRaw = extractMessageText(webhook)
     const messageText = messageRaw.toLowerCase()
