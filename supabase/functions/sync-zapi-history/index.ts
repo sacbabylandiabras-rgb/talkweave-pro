@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
             message_received: fromMe ? null : content,
             response_sent: fromMe ? content : null,
             keyword_matched: "__history_import__",
+            instance_id: credentials.instanceId,
           };
         })
         .filter((row: any) => row !== null)
