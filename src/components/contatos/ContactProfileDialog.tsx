@@ -21,6 +21,7 @@ interface ContactProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate?: () => void;
+  preferredInstanceId?: string;
 }
 
 const formatPhone = (phone: string) => {
@@ -42,7 +43,7 @@ const WhatsAppDefaultAvatar = () => (
   </svg>
 );
 
-const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate }: ContactProfileDialogProps) => {
+const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferredInstanceId }: ContactProfileDialogProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [editingName, setEditingName] = useState(false);
