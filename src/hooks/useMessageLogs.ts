@@ -10,6 +10,7 @@ export interface MessageLog {
   timestamp: string;
   created_at: string;
   user_id: string | null;
+  instance_id: string | null;
 }
 
 export interface CampaignSendMessage {
@@ -96,7 +97,7 @@ const toMillis = (value: string | null | undefined): number => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
-export const useMessageLogs = () => {
+export const useMessageLogs = (filterInstanceId?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
@@ -133,7 +134,7 @@ export const useMessageLogs = () => {
         .order('timestamp', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
-      allData = [...allData, ...data];
+      allData = [...allData, ...(data as unknown as MessageLog[])];
       hasMore = data.length === batchSize;
       from += batchSize;
     }
@@ -319,8 +320,13 @@ export const useMessageLogs = () => {
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
+    // Filter message_logs by instance if specified
+    const filteredLogs = filterInstanceId
+      ? messageLogs.filter(log => log.instance_id === filterInstanceId)
+      : messageLogs;
+
     // From message_logs
-    messageLogs.forEach(log => {
+    filteredLogs.forEach(log => {
       if (log.message_received) {
         allMessages.push({
           id: `log-recv-${log.id}`,
