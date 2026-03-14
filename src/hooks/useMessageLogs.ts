@@ -409,9 +409,12 @@ export const useMessageLogs = () => {
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
+        // Get group name if it's a group conversation
+        const isGroup = phone.includes('-group') || phone.includes('@g.us');
+        const groupName = isGroup ? (groupNames.get(phone) || null) : null;
         return {
           phone,
-          contactName: saved?.name || campaignName || null,
+          contactName: saved?.name || campaignName || groupName || null,
           profilePictureUrl: saved?.profile_picture_url || null,
           lastMessage: last.content,
           lastTimestamp: last.timestamp,
