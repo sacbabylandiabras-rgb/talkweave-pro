@@ -86,22 +86,23 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const { count, error: countError } = await adminClient
+      const { data: existingRows, error: existingError } = await adminClient
         .from("message_logs")
-        .select("id", { count: "exact", head: true })
+        .select("timestamp, message_received, response_sent")
         .eq("user_id", credentials.userId)
-        .eq("phone", phone);
+        .eq("phone", phone)
+        .order("timestamp", { ascending: false })
+        .limit(1000);
 
-      if (countError) {
-        console.error("❌ Error checking existing messages:", countError);
+      if (existingError) {
+        console.error("❌ Error checking existing messages:", existingError);
         skippedChats++;
         continue;
       }
 
-      if ((count ?? 0) > 0) {
-        skippedChats++;
-        continue;
-      }
+      const existingSet = new Set(
+        (existingRows || []).map((row: any) => `${new Date(row.timestamp).toISOString()}|${row.message_received || row.response_sent || ""}`),
+      );
 
       const messagesUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/chat-messages/${encodeURIComponent(phone)}?amount=${amountPerChat}`;
       const messagesResponse = await fetch(messagesUrl, {
