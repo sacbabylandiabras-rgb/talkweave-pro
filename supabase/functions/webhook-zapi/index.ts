@@ -81,7 +81,7 @@ serve(async (req) => {
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
     }
 
-    // Extract phone — prefer clean number over @lid format
+    // Extract phone — handle groups vs private chats differently
     let phone = ''
     const rawPhone = webhook?.phone || ''
     const participantPhone = webhook?.participantPhone || ''
@@ -90,6 +90,7 @@ serve(async (req) => {
     const chatLid = webhook?.chatLid || ''
     const senderName = webhook?.senderName || ''
     const chatName = webhook?.chatName || ''
+    const isGroupMessage = webhook?.isGroup === true
 
     // Log ALL phone-related fields when @lid is detected for debugging
     if (rawPhone.includes('@lid') || chatLid) {
@@ -101,24 +102,38 @@ serve(async (req) => {
         chatLid,
         senderName,
         chatName,
+        isGroup: isGroupMessage,
         allKeys: Object.keys(webhook || {}),
       }))
     }
 
-    // Priority: clean phone fields first, then raw phone, then LID
-    if (senderPhone && !senderPhone.includes('@lid')) {
-      phone = senderPhone
-    } else if (participantPhone && !participantPhone.includes('@lid')) {
-      phone = participantPhone
-    } else if (chatPhone && !chatPhone.includes('@lid')) {
-      phone = chatPhone
-    } else if (rawPhone && !rawPhone.includes('@lid')) {
-      phone = rawPhone
+    if (isGroupMessage) {
+      // For group messages: use the group ID (rawPhone typically has @g.us format)
+      // Convert @g.us to -group format for consistency with existing data
+      if (rawPhone.includes('@g.us')) {
+        phone = rawPhone.replace('@g.us', '-group')
+      } else if (rawPhone.includes('-group')) {
+        phone = rawPhone
+      } else {
+        phone = rawPhone ? rawPhone + '-group' : ''
+      }
+      console.log('👥 Group message from:', senderName || senderPhone || participantPhone, '| Group:', phone)
     } else {
-      // Fallback: use @lid if nothing else available
-      phone = rawPhone || participantPhone || chatLid || ''
-      if (phone.includes('@lid')) {
-        console.log('⚠️ Using @lid phone as fallback — no clean number found:', phone)
+      // For private messages: prefer clean number over @lid format
+      if (senderPhone && !senderPhone.includes('@lid')) {
+        phone = senderPhone
+      } else if (participantPhone && !participantPhone.includes('@lid')) {
+        phone = participantPhone
+      } else if (chatPhone && !chatPhone.includes('@lid')) {
+        phone = chatPhone
+      } else if (rawPhone && !rawPhone.includes('@lid')) {
+        phone = rawPhone
+      } else {
+        // Fallback: use @lid if nothing else available
+        phone = rawPhone || participantPhone || chatLid || ''
+        if (phone.includes('@lid')) {
+          console.log('⚠️ Using @lid phone as fallback — no clean number found:', phone)
+        }
       }
     }
 
