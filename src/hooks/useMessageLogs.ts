@@ -323,7 +323,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
     // Filter message_logs by instance if specified
     const filteredLogs = filterInstanceId
-      ? messageLogs.filter((log) => !log.instance_id || log.instance_id === filterInstanceId)
+      ? messageLogs.filter((log) => log.instance_id === filterInstanceId)
       : messageLogs;
 
     // From message_logs
@@ -387,7 +387,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     // From campaign_sends (filter by instance_name if filtering is active)
     const filteredCampaignSends = filterInstanceId
       ? campaignSends.filter((send) => {
-          if (!send.instance_name) return true; // legacy rows without instance info
+          if (!send.instance_name) return false;
           return send.instance_name === filterInstanceName || send.instance_name === filterInstanceId;
         })
       : campaignSends;
