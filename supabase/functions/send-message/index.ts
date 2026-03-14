@@ -76,44 +76,40 @@ serve(async (req) => {
     let logMessage = message || '';
 
     if (mediaUrl && mediaType) {
-      // Send media based on type
       if (mediaType === 'audio') {
-        // Send as PTT (voice message)
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone, audio: mediaUrl, waveform: true }),
+          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
         });
         logMessage = logMessage || '🎤 Áudio';
       } else if (mediaType === 'image') {
         zapiResponse = await fetch(`${baseUrl}/send-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone, image: mediaUrl, caption: message || '' }),
+          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
         });
         logMessage = logMessage || '📷 Imagem';
       } else if (mediaType === 'video') {
         zapiResponse = await fetch(`${baseUrl}/send-video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone, video: mediaUrl, caption: message || '' }),
+          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
         });
         logMessage = logMessage || '🎥 Vídeo';
       } else {
-        // Document/file
         zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
         });
         logMessage = logMessage || '📎 Arquivo';
       }
     } else {
-      // Send text only
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone, message }),
+        body: JSON.stringify({ phone: resolvedPhone, message }),
       });
     }
 
@@ -126,10 +122,9 @@ serve(async (req) => {
       )
     }
 
-    // Log the sent message
+    // Log the sent message with resolved phone
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Build log message: include media info for display in chat
     let logContent = message || '';
     if (mediaUrl && mediaType) {
       const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
@@ -137,7 +132,7 @@ serve(async (req) => {
     }
     
     await supabase.from('message_logs').insert({
-      phone,
+      phone: resolvedPhone,
       message_received: null,
       response_sent: logContent,
       keyword_matched: '__manual_send__',
