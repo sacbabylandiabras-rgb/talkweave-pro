@@ -20,6 +20,7 @@ import ConfiguracaoZAPI from "./pages/ConfiguracaoZAPI";
 import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
+import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
