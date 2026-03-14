@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const Relatorio = () => {
-  const { campaigns: campaignList, loading: campaignsLoading } = useCampaignsRealtime(['completed', 'cancelled', 'active', 'paused']);
+  const { campaigns: campaignList, loading: campaignsLoading } = useCampaignsRealtime();
   const { sends: allSends, loading: sendsLoading } = useAllCampaignSendsRealtime();
   const [templateStats, setTemplateStats] = useState<Array<{ name: string; usage: number }>>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
