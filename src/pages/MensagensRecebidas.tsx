@@ -403,6 +403,41 @@ const ChatView = ({
     }
   };
 
+  const handleSelectTemplate = async (template: MessageTemplate) => {
+    setTemplatePopoverOpen(false);
+    setTemplateSearch("");
+    
+    // If template has media, send directly
+    if (template.mediaUrl && template.type && template.type !== 'texto') {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        let mediaType = 'document';
+        if (['image', 'imagem', 'imagem_botoes'].includes(template.type)) mediaType = 'image';
+        else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
+        else if (template.type === 'audio') mediaType = 'audio';
+        
+        await onSendMessage(conversation.phone, template.content, template.mediaUrl, mediaType);
+        incrementUsage(template.id);
+        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+      } catch {
+        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+    } else {
+      // Text-only template: fill the input
+      setNewMessage(template.content);
+      incrementUsage(template.id);
+    }
+  };
+
+  const filteredTemplates = templates.filter(t => 
+    t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+    t.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
+    t.content.toLowerCase().includes(templateSearch.toLowerCase())
+  );
+
   if (!conversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-muted/20 text-muted-foreground">
