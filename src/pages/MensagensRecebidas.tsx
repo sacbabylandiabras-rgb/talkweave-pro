@@ -602,9 +602,13 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs();
   const { instances } = useZapiInstances();
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
+  // Map UI instance id to zapi_instance_id for filtering
+  const filterZapiInstanceId = selectedInstanceId === "all"
+    ? undefined
+    : instances.find(i => i.id === selectedInstanceId)?.zapi_instance_id;
+  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(filterZapiInstanceId);
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
