@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCampaignsRealtime, useAllCampaignSendsRealtime, useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
 import { format } from "date-fns";
