@@ -26,7 +26,48 @@ serve(async (req) => {
     }
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const { instanceId, token, clientToken } = credentials;
+    let { instanceId, token, clientToken } = credentials;
+
+    // If phone is @lid format, find the instance that originally received messages from this LID
+    const isLidPhone = phone.includes('@lid');
+    if (isLidPhone) {
+      console.log(`📌 Phone is LID format: ${phone} — looking up original instance`);
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Find which instance received messages from this LID phone
+      const { data: logEntry } = await adminClient
+        .from('message_logs')
+        .select('instance_id')
+        .eq('phone', phone)
+        .eq('user_id', credentials.userId)
+        .not('instance_id', 'is', null)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (logEntry?.instance_id) {
+        // Find the instance credentials by zapi_instance_id
+        const { data: lidInstance } = await adminClient
+          .from('zapi_instances')
+          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .eq('zapi_instance_id', logEntry.instance_id)
+          .eq('user_id', credentials.userId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (lidInstance) {
+          console.log(`✅ Switching to instance ${logEntry.instance_id} for LID phone`);
+          instanceId = lidInstance.zapi_instance_id;
+          token = lidInstance.zapi_token;
+          clientToken = lidInstance.zapi_client_token;
+        } else {
+          console.log(`⚠️ Instance ${logEntry.instance_id} not found or inactive, using default`);
+        }
+      } else {
+        console.log(`⚠️ No message_log found for LID phone, using default instance`);
+      }
+    }
+
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     let zapiResponse: Response;
@@ -100,7 +141,7 @@ serve(async (req) => {
       keyword_matched: '__manual_send__',
       timestamp: new Date().toISOString(),
       user_id: credentials.userId,
-      instance_id: credentials.instanceId,
+      instance_id: instanceId,
     });
 
     return new Response(
