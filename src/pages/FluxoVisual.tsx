@@ -818,8 +818,8 @@ export default function FluxoVisual() {
 
   if (showFluxosList) {
     return (
-      <div className="flex h-screen w-full bg-background items-center justify-center p-8">
-        <Card className="max-w-4xl w-full p-6">
+      <div className="p-6">
+        <div className="w-full">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Fluxos Visuais</h1>
