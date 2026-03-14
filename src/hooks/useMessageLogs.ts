@@ -283,6 +283,31 @@ export const useMessageLogs = () => {
     };
   }, [fetchAll, fetchSavedContacts]);
 
+  // Fetch group names when we detect group conversations
+  useEffect(() => {
+    if (loading || messageLogs.length === 0 || fetchedGroupNamesRef.current) return;
+    const groupPhones = [...new Set(messageLogs.map(m => m.phone).filter(p => p.includes('-group') || p.includes('@g.us')))];
+    if (groupPhones.length === 0) return;
+    
+    fetchedGroupNamesRef.current = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
+        if (error || !data?.groups) return;
+        const map = new Map<string, string>();
+        for (const g of data.groups) {
+          if (g.id && g.nome) {
+            map.set(g.id, g.nome);
+            // Also try without @g.us suffix for matching
+            const cleanId = g.id.replace('@g.us', '');
+            map.set(cleanId + '-group', g.nome);
+          }
+        }
+        setGroupNames(map);
+      } catch { /* ignore */ }
+    })();
+  }, [loading, messageLogs.length]);
+
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
     if (loading || messageLogs.length === 0) return;
