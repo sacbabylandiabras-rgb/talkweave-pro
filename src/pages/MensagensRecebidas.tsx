@@ -277,6 +277,9 @@ const ChatView = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
 
   useEffect(() => {
