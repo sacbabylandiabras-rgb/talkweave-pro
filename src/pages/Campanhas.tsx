@@ -614,84 +614,218 @@ const Campanhas = () => {
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
             </div>
-          ) : statsDialogSends.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum envio registrado para esta campanha
-            </div>
-          ) : (
-            <>
-              {/* Progress bar */}
-              <div>
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Progresso do envio</span>
-                  <span>{statsDialogStats.total > 0 ? (((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100).toFixed(0) : 0}%</span>
-                </div>
-                <Progress value={statsDialogStats.total > 0 ? ((statsDialogStats.sent + statsDialogStats.failed) / statsDialogStats.total) * 100 : 0} className="h-2" />
-              </div>
+          ) : (() => {
+            // Build full contact list from target_audience + sends
+            const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
+            const targetContacts: Array<{ phone: string; name?: string }> = 
+              campaign?.target_audience?.contacts || [];
+            
+            // Map sends by phone for quick lookup
+            const sendsByPhone = new Map<string, typeof statsDialogSends[0]>();
+            statsDialogSends.forEach(send => {
+              const existing = sendsByPhone.get(send.phone);
+              // Keep the most recent or most successful send
+              if (!existing || 
+                  (send.status === 'sent' || send.status === 'delivered') ||
+                  (existing.status !== 'sent' && existing.status !== 'delivered' && send.sent_at && (!existing.sent_at || send.sent_at > existing.sent_at))) {
+                sendsByPhone.set(send.phone, send);
+              }
+            });
 
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 bg-muted/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="font-bold text-lg">{statsDialogStats.total}</p>
-                </div>
-                <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                  <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
-                  <p className="font-bold text-lg text-green-600 dark:text-green-400">{statsDialogStats.sent}</p>
-                </div>
-                <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
-                  <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{statsDialogStats.pending}</p>
-                </div>
-                <div className="p-3 bg-destructive/10 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Falhas</p>
-                  <p className="font-bold text-lg text-destructive">{statsDialogStats.failed}</p>
-                </div>
-              </div>
+            // Build full list: all target contacts with their status
+            const fullContactList = targetContacts.map((contact, index) => {
+              const send = sendsByPhone.get(contact.phone);
+              let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
+              let sentAt: string | null = null;
+              let errorMessage: string | null = null;
 
-              {/* Table with details */}
-              <ScrollArea className="max-h-[40vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Contato</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Enviado em</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {statsDialogSends.map((send) => (
-                      <TableRow key={send.id}>
-                        <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
-                        <TableCell>{send.phone}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
-                            className="flex items-center gap-1 w-fit"
-                          >
-                            {send.status === 'sent' || send.status === 'delivered' ? (
-                              <><CheckCircle className="w-3 h-3" /> Enviada</>
-                            ) : send.status === 'pending' ? (
-                              <><ClockIcon className="w-3 h-3" /> Pendente</>
-                            ) : (
-                              <><XCircle className="w-3 h-3" /> Falhou</>
-                            )}
-                          </Badge>
-                          {send.error_message && (
-                            <p className="text-xs text-destructive mt-1">{send.error_message}</p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
-                        </TableCell>
+              if (send) {
+                if (send.status === 'sent' || send.status === 'delivered') {
+                  status = 'enviado';
+                  sentAt = send.sent_at || null;
+                } else if (send.status === 'failed') {
+                  status = 'cancelado';
+                  errorMessage = send.error_message || null;
+                } else {
+                  status = 'pendente';
+                }
+              }
+
+              return {
+                id: send?.id || `target-${index}`,
+                phone: contact.phone,
+                name: send?.contact_name || contact.name || '',
+                status,
+                sentAt,
+                errorMessage,
+              };
+            });
+
+            // Also add any sends that might not be in target_audience
+            statsDialogSends.forEach(send => {
+              if (!targetContacts.find(c => c.phone === send.phone)) {
+                let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
+                if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
+                else if (send.status === 'failed') status = 'cancelado';
+                fullContactList.push({
+                  id: send.id,
+                  phone: send.phone,
+                  name: send.contact_name || '',
+                  status,
+                  sentAt: send.sent_at || null,
+                  errorMessage: send.error_message || null,
+                });
+              }
+            });
+
+            const sentCount = fullContactList.filter(c => c.status === 'enviado').length;
+            const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
+            const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
+            const totalCount = fullContactList.length;
+
+            const handleRetryCancelled = async () => {
+              const cancelledContacts = fullContactList
+                .filter(c => c.status === 'cancelado')
+                .map(c => ({ phone: c.phone, name: c.name || undefined }));
+
+              if (cancelledContacts.length === 0) return;
+
+              try {
+                // Close stats dialog
+                setStatsDialogOpen(false);
+                setStatsDialogCampaignId(null);
+
+                // Set up progress dialog
+                setTotalContactsCount(cancelledContacts.length);
+                
+                // Send as new campaign call
+                if (statsDialogCampaignId) {
+                  setSendingCampaignId(statsDialogCampaignId);
+                  setShowProgressDialog(true);
+
+                  const { data, error } = await supabase.functions.invoke('send-campaign', {
+                    body: {
+                      campaignId: statsDialogCampaignId,
+                      contacts: cancelledContacts,
+                    },
+                  });
+
+                  if (error) throw error;
+
+                  toast({
+                    title: "Reenvio Iniciado",
+                    description: `Reenviando para ${cancelledContacts.length} contato(s) cancelado(s)`,
+                  });
+
+                  await refetch();
+                }
+              } catch (error) {
+                console.error('Error retrying cancelled contacts:', error);
+                toast({
+                  title: "Erro",
+                  description: "Erro ao reenviar para contatos cancelados",
+                  variant: "destructive",
+                });
+                setShowProgressDialog(false);
+                setSendingCampaignId(null);
+              }
+            };
+
+            if (totalCount === 0) {
+              return (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum envio registrado para esta campanha
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {/* Progress bar */}
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Progresso do envio</span>
+                    <span>{totalCount > 0 ? (((sentCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
+                  </div>
+                  <Progress value={totalCount > 0 ? ((sentCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="font-bold text-lg">{totalCount}</p>
+                  </div>
+                  <div className="p-3 bg-green-500/10 rounded-lg text-center">
+                    <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                    <p className="font-bold text-lg text-green-600 dark:text-green-400">{sentCount}</p>
+                  </div>
+                  <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
+                    <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
+                  </div>
+                  <div className="p-3 bg-red-500/10 rounded-lg text-center">
+                    <p className="text-xs text-red-600 dark:text-red-400">Canceladas</p>
+                    <p className="font-bold text-lg text-red-600 dark:text-red-400">{cancelledCount}</p>
+                  </div>
+                </div>
+
+                {/* Retry cancelled button */}
+                {cancelledCount > 0 && (
+                  <Button 
+                    onClick={handleRetryCancelled}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reenviar {cancelledCount} contato(s) cancelado(s)
+                  </Button>
+                )}
+
+                {/* Table with full contact list */}
+                <ScrollArea className="max-h-[40vh]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contato</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </>
-          )}
+                    </TableHeader>
+                    <TableBody>
+                      {fullContactList.map((contact) => (
+                        <TableRow key={contact.id}>
+                          <TableCell className="font-medium">{contact.name || '-'}</TableCell>
+                          <TableCell>{contact.phone}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={contact.status === 'enviado' ? 'default' : contact.status === 'pendente' ? 'secondary' : 'destructive'}
+                              className="flex items-center gap-1 w-fit"
+                            >
+                              {contact.status === 'enviado' ? (
+                                <><CheckCircle className="w-3 h-3" /> Enviado</>
+                              ) : contact.status === 'pendente' ? (
+                                <><ClockIcon className="w-3 h-3" /> Pendente</>
+                              ) : (
+                                <><XCircle className="w-3 h-3" /> Cancelado</>
+                              )}
+                            </Badge>
+                            {contact.errorMessage && (
+                              <p className="text-xs text-destructive mt-1">{contact.errorMessage}</p>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {contact.sentAt ? format(new Date(contact.sentAt), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
