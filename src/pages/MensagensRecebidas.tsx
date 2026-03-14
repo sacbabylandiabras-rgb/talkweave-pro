@@ -600,6 +600,61 @@ const ChatView = ({
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
+              <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-10 w-10"
+                    disabled={sending}
+                    title="Enviar modelo"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start" side="top">
+                  <div className="p-3 border-b border-border">
+                    <h4 className="text-sm font-semibold mb-2">Modelos de Mensagem</h4>
+                    <Input
+                      placeholder="Buscar modelo..."
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <ScrollArea className="max-h-[300px]">
+                    {templatesLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : filteredTemplates.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        Nenhum modelo encontrado
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        {filteredTemplates.map((template) => (
+                          <button
+                            key={template.id}
+                            onClick={() => handleSelectTemplate(template)}
+                            className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-sm font-medium text-foreground truncate">{template.name}</span>
+                              <Badge variant="secondary" className="text-[10px] ml-2 shrink-0">
+                                {template.category}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {template.content}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
               <Textarea
                 placeholder="Digite uma mensagem..."
                 value={newMessage}
