@@ -149,20 +149,19 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate }: Contact
   };
 
   const getDefaultInstanceId = async (): Promise<string> => {
-    const { data } = await supabase
-      .from('zapi_instances' as any)
+    const { data } = await (supabase as any)
+      .from('zapi_instances')
       .select('zapi_instance_id')
       .eq('is_default', true)
       .maybeSingle();
     if (data?.zapi_instance_id) return data.zapi_instance_id;
-    // Fallback to any active instance
-    const { data: any } = await supabase
-      .from('zapi_instances' as any)
+    const { data: fallback } = await (supabase as any)
+      .from('zapi_instances')
       .select('zapi_instance_id')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle();
-    return any?.zapi_instance_id || '';
+    return fallback?.zapi_instance_id || '';
   };
 
   if (!contact) return null;
