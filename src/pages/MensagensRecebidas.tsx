@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatPhone = (phone: string) => {
   const clean = phone.replace(/\D/g, '');
