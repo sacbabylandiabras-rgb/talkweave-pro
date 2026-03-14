@@ -139,8 +139,8 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       hasMore = data.length === batchSize;
       from += batchSize;
     }
-    // Filter out processing locks
-    allData = allData.filter(m => m.keyword_matched !== '__processing__');
+    // Filter out processing locks and LID mapping entries
+    allData = allData.filter(m => m.keyword_matched !== '__processing__' && m.keyword_matched !== '__lid_map__');
     const dataKey = JSON.stringify(allData.map(d => d.id));
     if (dataKey !== lastLogsRef.current) {
       lastLogsRef.current = dataKey;
