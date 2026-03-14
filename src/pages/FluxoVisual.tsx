@@ -849,7 +849,7 @@ export default function FluxoVisual() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {fluxosSalvos.map((fluxo) => (
                   <Card key={fluxo.id} className="p-4 hover:shadow-lg transition-shadow">
                     <div className="flex items-start justify-between mb-3">
