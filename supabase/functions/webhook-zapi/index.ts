@@ -88,22 +88,6 @@ serve(async (req) => {
     const instanceId = webhook?.instanceId || webhook?.instance_id
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
-    
-    // Verifica se o sistema está ativo
-    const { data: config, error: configError } = await supabase
-      .from('auto_response_config')
-      .select('active')
-      .single()
-    
-    if (configError) {
-      console.error('Erro ao buscar config:', configError)
-      return new Response('config_error', { status: 500, headers: corsHeaders })
-    }
-    
-    if (!config?.active) {
-      console.log('Sistema desativado')
-      return new Response('system_disabled', { status: 200, headers: corsHeaders })
-    }
 
     if (!instanceId) {
       console.error('No instanceId in webhook data')
@@ -152,6 +136,18 @@ serve(async (req) => {
     if (!userId || !zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token) {
       console.error('User has incomplete Z-API credentials')
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
+    }
+
+    // Verifica se o sistema está ativo (filtra pelo user_id correto)
+    const { data: config } = await supabase
+      .from('auto_response_config')
+      .select('active')
+      .eq('user_id', userId)
+      .maybeSingle()
+    
+    if (config && !config.active) {
+      console.log('Sistema desativado para o usuário:', userId)
+      return new Response('system_disabled', { status: 200, headers: corsHeaders })
     }
 
     // Dedupe idempotente: cria um lock por usuário+telefone+mensagem em janela de 15s
