@@ -307,9 +307,24 @@ export const useMessageLogs = () => {
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
-        // Skip old summary entries like "[Fluxo: nome]" — new individual logs replace them
+        // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
+        // New flow engine writes detailed __flow_send__ logs, so summary rows are redundant only then.
         const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
-        if (isSummary) return;
+        if (isSummary) {
+          const hasDetailedFlowAround = messageLogs.some((candidate) => {
+            if (candidate.id === log.id) return false;
+            if (candidate.phone !== log.phone) return false;
+            if (!candidate.response_sent || candidate.response_sent === '__processing__') return false;
+            if (!candidate.keyword_matched?.startsWith('__flow_send__')) return false;
+
+            const candidateTs = candidate.timestamp || candidate.created_at;
+            const logTs = log.timestamp || log.created_at;
+            const timeDiff = Math.abs(toMillis(candidateTs) - toMillis(logTs));
+            return timeDiff <= 3 * 60 * 1000;
+          });
+
+          if (hasDetailedFlowAround) return;
+        }
 
         const isManual = log.keyword_matched === '__manual_send__';
         const isFlowSend = log.keyword_matched?.startsWith('__flow_send__');
