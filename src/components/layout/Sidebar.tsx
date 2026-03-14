@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Workflow,
   Webhook,
-  MessageCircle
+  MessageCircle,
+  UserPlus
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const menuItems = [
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
+  { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
 ];
 
