@@ -56,13 +56,38 @@ Deno.serve(async (req) => {
     const maxChats = Math.min(Math.max(Number(body?.maxChats) || 25, 1), 60);
     const amountPerChat = Math.min(Math.max(Number(body?.amountPerChat) || 12, 1), 40);
 
-    const chatsUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/chats?page=1&pageSize=${maxChats}`;
+    // Allow caller to specify a specific instance to sync
+    let instanceId = credentials.instanceId;
+    let token = credentials.token;
+    let clientToken = credentials.clientToken;
+
+    if (body?.instanceId) {
+      // Look up the specific instance credentials
+      const { data: specificInstance } = await adminClient
+        .from("zapi_instances")
+        .select("zapi_instance_id, zapi_token, zapi_client_token")
+        .eq("zapi_instance_id", body.instanceId)
+        .eq("user_id", credentials.userId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (specificInstance) {
+        instanceId = specificInstance.zapi_instance_id;
+        token = specificInstance.zapi_token;
+        clientToken = specificInstance.zapi_client_token;
+        console.log(`📌 Using specific instance: ${instanceId}`);
+      }
+    }
+
+    console.log(`📱 Syncing history for user: ${credentials.userId}, instance: ${instanceId}`);
+
+    const chatsUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=1&pageSize=${maxChats}`;
 
     const chatsResponse = await fetch(chatsUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Client-Token": credentials.clientToken,
+        "Client-Token": clientToken,
       },
     });
 
@@ -104,12 +129,12 @@ Deno.serve(async (req) => {
         (existingRows || []).map((row: any) => `${new Date(row.timestamp).toISOString()}|${row.message_received || row.response_sent || ""}`),
       );
 
-      const messagesUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/chat-messages/${encodeURIComponent(phone)}?amount=${amountPerChat}`;
+      const messagesUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chat-messages/${encodeURIComponent(phone)}?amount=${amountPerChat}`;
       const messagesResponse = await fetch(messagesUrl, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Client-Token": credentials.clientToken,
+          "Client-Token": clientToken,
         },
       });
 
@@ -138,7 +163,7 @@ Deno.serve(async (req) => {
             message_received: fromMe ? null : content,
             response_sent: fromMe ? content : null,
             keyword_matched: "__history_import__",
-            instance_id: credentials.instanceId,
+            instance_id: instanceId,
           };
         })
         .filter((row: any) => row !== null)

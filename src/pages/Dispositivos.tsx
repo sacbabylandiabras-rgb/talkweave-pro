@@ -25,6 +25,8 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [showConnect, setShowConnect] = useState(false);
+  const [hasSynced, setHasSynced] = useState(false);
+  const [prevConnected, setPrevConnected] = useState<boolean | null>(null);
   const { getDeviceStatus, getQRCode, getPairingCode, disconnectDevice, restartInstance, loading } = useZapi();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -128,13 +130,37 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     return () => clearInterval(statusInterval);
   }, [instance.id]);
 
+  // Auto-sync history when device transitions from disconnected to connected
   useEffect(() => {
+    const isConnectedNow = deviceStatus?.connected === true;
+    
+    if (prevConnected === false && isConnectedNow && !hasSynced) {
+      setHasSynced(true);
+      toast({ title: "📥 Sincronizando histórico...", description: "Importando mensagens desta instância." });
+      supabase.functions.invoke('sync-zapi-history', {
+        body: { instanceId: instance.zapi_instance_id, maxChats: 50, amountPerChat: 30 }
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao sincronizar histórico:', error);
+          toast({ title: "❌ Erro ao sincronizar", description: "Não foi possível importar o histórico.", variant: "destructive" });
+        } else {
+          toast({ 
+            title: "✅ Histórico importado!", 
+            description: `${data?.importedMessages || 0} mensagens de ${data?.importedChats || 0} conversas importadas.`,
+            duration: 6000,
+          });
+        }
+      });
+    }
+    
     if (deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
       cancelActiveCampaigns();
     }
     if (deviceStatus?.connected === false) {
       fetchQRCode();
     }
+    
+    setPrevConnected(deviceStatus?.connected ?? null);
   }, [deviceStatus?.connected, deviceStatus?.smartphoneConnected]);
 
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
