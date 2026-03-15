@@ -698,24 +698,12 @@ const Campanhas = () => {
                 // Set up progress dialog
                 setTotalContactsCount(cancelledContacts.length);
                 
-                // Send as new campaign call
+                // Reuse hook flow (reactivates campaign when needed)
                 if (statsDialogCampaignId) {
                   setSendingCampaignId(statsDialogCampaignId);
                   setShowProgressDialog(true);
 
-                  const { data, error } = await supabase.functions.invoke('send-campaign', {
-                    body: {
-                      campaignId: statsDialogCampaignId,
-                      contacts: cancelledContacts,
-                    },
-                  });
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Reenvio Iniciado",
-                    description: `Reenviando para ${cancelledContacts.length} contato(s) cancelado(s)`,
-                  });
+                  await sendCampaign(statsDialogCampaignId, cancelledContacts);
 
                   await refetch();
                 }
