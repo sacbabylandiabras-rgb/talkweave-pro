@@ -52,7 +52,15 @@ serve(async (req) => {
 
     console.log(`🚀 Starting campaign ${campaignId} for ${contacts.length} contacts`);
 
-    // Get campaign and template details
+    // Get user's Z-API credentials from their profile (auth first)
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const zapiInstanceId = credentials.instanceId;
+    const zapiToken = credentials.token;
+    const zapiClientToken = credentials.clientToken;
+
+    console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
+
+    // Get campaign and template details (scoped to authenticated user)
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select(`
@@ -60,6 +68,7 @@ serve(async (req) => {
         template:message_templates(*)
       `)
       .eq('id', campaignId)
+      .eq('user_id', credentials.userId)
       .single();
 
     if (campaignError || !campaign) {
@@ -70,7 +79,7 @@ serve(async (req) => {
     if (campaign.status === 'paused') {
       console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: `Campaign is paused`,
           message: `Esta campanha está pausada. Use o botão "Retomar de onde parou" para continuar.`,
           paused: true
@@ -85,20 +94,13 @@ serve(async (req) => {
       await supabase
         .from('campaigns')
         .update({ status: 'active', updated_at: new Date().toISOString() })
-        .eq('id', campaignId);
+        .eq('id', campaignId)
+        .eq('user_id', credentials.userId);
     }
 
     if (!campaign.template) {
       throw new Error('Campaign template not found');
     }
-
-    // Get user's Z-API credentials from their profile
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const zapiInstanceId = credentials.instanceId;
-    const zapiToken = credentials.token;
-    const zapiClientToken = credentials.clientToken;
-
-    console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
 
     // Get delay from campaign or use default of 2 seconds
     const delayMs = (campaign.delay_seconds || 2) * 1000;
@@ -223,8 +225,8 @@ serve(async (req) => {
               .eq('id', campaignId)
               .single();
             
-            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
-              console.log(`🛑 Campaign ${campaignId} ${currentCampaign.status}. Stopping at ${i + 1}/${contacts.length}`);
+            if (currentCampaign?.status === 'paused') {
+              console.log(`🛑 Campaign ${campaignId} paused. Stopping at ${i + 1}/${contacts.length}`);
               return;
             }
           }
