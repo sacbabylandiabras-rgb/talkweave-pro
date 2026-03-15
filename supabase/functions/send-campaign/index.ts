@@ -96,6 +96,10 @@ serve(async (req) => {
     const delayMs = (campaign.delay_seconds || 2) * 1000;
     console.log(`⏱️  DELAY CONFIGURADO: ${campaign.delay_seconds || 2} segundos (${delayMs}ms) entre mensagens`);
 
+    // Max execution time before self-re-invoking (120s to leave margin before 150s timeout)
+    const MAX_EXEC_MS = 120_000;
+    const startTime = Date.now();
+
     // Define background processing function
     const processContactsInBackground = async () => {
       const results = [];
