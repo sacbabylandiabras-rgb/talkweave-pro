@@ -772,9 +772,35 @@ serve(async (req) => {
       console.log(`✅ Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
     };
 
+    // Wrap background processing with error handling to prevent silent failures
+    const safeBackgroundProcess = async () => {
+      try {
+        await processContactsInBackground();
+      } catch (bgError) {
+        console.error(`💥 CRITICAL: Background processing crashed for campaign ${campaignId}:`, bgError);
+        // Update campaign status so user knows something went wrong
+        try {
+          const { data: crashCheck } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campaignId)
+            .single();
+          
+          // Only update if still active (not manually paused/completed)
+          if (crashCheck?.status === 'active' || crashCheck?.status === 'draft') {
+            await supabase
+              .from('campaigns')
+              .update({ status: 'paused', updated_at: new Date().toISOString() })
+              .eq('id', campaignId);
+            console.log(`⚠️ Campaign ${campaignId} paused due to error. User can resume.`);
+          }
+        } catch (_) { /* last resort - can't do anything */ }
+      }
+    };
+
     // Start background processing
     // @ts-ignore - EdgeRuntime is available in Deno Deploy
-    EdgeRuntime.waitUntil(processContactsInBackground());
+    EdgeRuntime.waitUntil(safeBackgroundProcess());
 
     // Return immediately so UI can track progress
     console.log(`🚀 Campaign ${campaignId} started in background`);
