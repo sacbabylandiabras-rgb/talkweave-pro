@@ -124,19 +124,8 @@ const Campanhas = () => {
     });
   }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
 
-  // Realtime: subscribe to campaign_sends and campaigns changes
+  // Realtime: subscribe to campaign STATUS changes only (not sends — dialog handles its own)
   useEffect(() => {
-    const sendsChannel = supabase
-      .channel('campanhas-sends-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'campaign_sends' },
-        () => {
-          refetch();
-        }
-      )
-      .subscribe();
-
     const campaignsChannel = supabase
       .channel('campanhas-status-realtime')
       .on(
@@ -149,10 +138,9 @@ const Campanhas = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(sendsChannel);
       supabase.removeChannel(campaignsChannel);
     };
-  }, [campaigns.map(c => c.id).join(',')]);
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
