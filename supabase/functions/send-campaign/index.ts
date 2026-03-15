@@ -96,6 +96,10 @@ serve(async (req) => {
     const delayMs = (campaign.delay_seconds || 2) * 1000;
     console.log(`⏱️  DELAY CONFIGURADO: ${campaign.delay_seconds || 2} segundos (${delayMs}ms) entre mensagens`);
 
+    // Max execution time before self-re-invoking (120s to leave margin before 150s timeout)
+    const MAX_EXEC_MS = 120_000;
+    const startTime = Date.now();
+
     // Define background processing function
     const processContactsInBackground = async () => {
       const results = [];
@@ -118,6 +122,36 @@ serve(async (req) => {
         let campaignSend: CampaignSendRecord | undefined;
         
         try {
+          // TIME GUARD: If approaching timeout, re-invoke with remaining contacts
+          const elapsed = Date.now() - startTime;
+          if (elapsed > MAX_EXEC_MS) {
+            const remainingContacts = contacts.slice(i);
+            console.log(`⏰ Approaching timeout at contact ${i+1}/${contacts.length} (${Math.round(elapsed/1000)}s). Re-invoking with ${remainingContacts.length} remaining contacts...`);
+            
+            // Re-invoke self with remaining contacts
+            const authHeader = req.headers.get('authorization') || '';
+            const reinvokeUrl = `${supabaseUrl}/functions/v1/send-campaign`;
+            
+            try {
+              const reResponse = await fetch(reinvokeUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': authHeader,
+                },
+                body: JSON.stringify({
+                  campaignId,
+                  contacts: remainingContacts,
+                }),
+              });
+              const reData = await reResponse.text();
+              console.log(`🔄 Re-invocation response (${reResponse.status}): ${reData}`);
+            } catch (reError) {
+              console.error(`❌ Re-invocation failed:`, reError);
+              // Don't mark as completed - campaign stays active for manual resume
+            }
+            return; // Exit current execution
+          }
           // CHECK DEVICE STATUS every 5 contacts (not every single one)
           if (i % 5 === 0) {
             const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
@@ -738,9 +772,35 @@ serve(async (req) => {
       console.log(`✅ Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
     };
 
+    // Wrap background processing with error handling to prevent silent failures
+    const safeBackgroundProcess = async () => {
+      try {
+        await processContactsInBackground();
+      } catch (bgError) {
+        console.error(`💥 CRITICAL: Background processing crashed for campaign ${campaignId}:`, bgError);
+        // Update campaign status so user knows something went wrong
+        try {
+          const { data: crashCheck } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campaignId)
+            .single();
+          
+          // Only update if still active (not manually paused/completed)
+          if (crashCheck?.status === 'active' || crashCheck?.status === 'draft') {
+            await supabase
+              .from('campaigns')
+              .update({ status: 'paused', updated_at: new Date().toISOString() })
+              .eq('id', campaignId);
+            console.log(`⚠️ Campaign ${campaignId} paused due to error. User can resume.`);
+          }
+        } catch (_) { /* last resort - can't do anything */ }
+      }
+    };
+
     // Start background processing
     // @ts-ignore - EdgeRuntime is available in Deno Deploy
-    EdgeRuntime.waitUntil(processContactsInBackground());
+    EdgeRuntime.waitUntil(safeBackgroundProcess());
 
     // Return immediately so UI can track progress
     console.log(`🚀 Campaign ${campaignId} started in background`);
