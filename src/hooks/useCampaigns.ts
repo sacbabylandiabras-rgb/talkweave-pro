@@ -265,7 +265,15 @@ export const useCampaigns = () => {
       // so the edge function doesn't reject cancelled/paused campaigns
       await updateCampaign(campaignId, { status: 'active' });
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase.functions.invoke('send-campaign', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           campaignId,
           contacts,
