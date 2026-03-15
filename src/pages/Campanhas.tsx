@@ -93,28 +93,26 @@ const Campanhas = () => {
 
   // Track campaign IDs that were active during this session
   const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
+  const campaignStatusKey = campaigns.map(c => `${c.id}-${c.status}`).join(',');
 
-  // Realtime subscription for campaign_sends to update stats instantly
+  // Track active campaigns and show toast when they complete
   useEffect(() => {
-
-    // Track any campaign that becomes active during this session
     const currentActiveIds = campaigns.filter(c => c.status === 'active').map(c => c.id);
     if (currentActiveIds.length > 0) {
       setSessionActiveIds(prev => {
         const next = new Set(prev);
-        currentActiveIds.forEach(id => next.add(id));
-        return next;
+        let changed = false;
+        currentActiveIds.forEach(id => { if (!next.has(id)) { next.add(id); changed = true; } });
+        return changed ? next : prev;
       });
     }
 
-    // Show toast when a session-tracked campaign completes
     campaigns.forEach(c => {
       if (sessionActiveIds.has(c.id) && c.status === 'completed') {
         toast({
           title: "✅ Campanha Concluída",
           description: `"${c.name}" terminou de enviar. Disponível em Relatórios.`,
         });
-        // Remove from session tracking so toast doesn't repeat
         setSessionActiveIds(prev => {
           const next = new Set(prev);
           next.delete(c.id);
@@ -122,21 +120,10 @@ const Campanhas = () => {
         });
       }
     });
-  }, [campaigns.map(c => `${c.id}-${c.status}`).join(',')]);
+  }, [campaignStatusKey]);
 
-  // Realtime: subscribe to campaign_sends and campaigns changes
+  // Realtime: subscribe to campaign STATUS changes only (not sends — dialog handles its own)
   useEffect(() => {
-    const sendsChannel = supabase
-      .channel('campanhas-sends-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'campaign_sends' },
-        () => {
-          refetch();
-        }
-      )
-      .subscribe();
-
     const campaignsChannel = supabase
       .channel('campanhas-status-realtime')
       .on(
@@ -149,10 +136,9 @@ const Campanhas = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(sendsChannel);
       supabase.removeChannel(campaignsChannel);
     };
-  }, [campaigns.map(c => c.id).join(',')]);
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
