@@ -67,17 +67,25 @@ serve(async (req) => {
     }
 
     // CRITICAL: Don't process paused campaigns - User must manually resume
-    if (campaign.status === 'paused' || campaign.status === 'cancelled') {
-      console.log(`❌ Campaign ${campaignId} is ${campaign.status.toUpperCase()}. Will not process. User must manually resume.`);
+    if (campaign.status === 'paused') {
+      console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
       return new Response(
         JSON.stringify({ 
-          error: `Campaign is ${campaign.status}`,
-          message: `Esta campanha está ${campaign.status === 'paused' ? 'pausada' : 'cancelada'}. ${campaign.status === 'paused' ? 'Use o botão "Retomar de onde parou" para continuar.' : ''}`,
-          paused: campaign.status === 'paused',
-          cancelled: campaign.status === 'cancelled'
+          error: `Campaign is paused`,
+          message: `Esta campanha está pausada. Use o botão "Retomar de onde parou" para continuar.`,
+          paused: true
         }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
+    }
+
+    // If campaign is cancelled/draft, update to active since user explicitly triggered send
+    if (campaign.status === 'cancelled' || campaign.status === 'draft') {
+      console.log(`🔄 Campaign ${campaignId} was ${campaign.status}. Updating to active.`);
+      await supabase
+        .from('campaigns')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', campaignId);
     }
 
     if (!campaign.template) {
