@@ -134,7 +134,20 @@ serve(async (req) => {
               if (deviceResponse.ok) {
                 const deviceStatus = await deviceResponse.json();
                 
-                if (!deviceStatus.connected || deviceStatus.connected === false) {
+                console.log(`📡 Device status check (contact ${i+1}):`, JSON.stringify(deviceStatus));
+                
+                // Z-API can return { connected: true/false } OR { status: "CONNECTED"/"DISCONNECTED" }
+                // Only pause if we EXPLICITLY detect disconnection
+                const isConnected = deviceStatus.connected === true || 
+                  (typeof deviceStatus.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
+                  deviceStatus.status === 'CONNECTED' ||
+                  (typeof deviceStatus.status === 'string' && deviceStatus.status.toLowerCase() === 'connected');
+                
+                const isExplicitlyDisconnected = deviceStatus.connected === false || 
+                  deviceStatus.status === 'DISCONNECTED' ||
+                  (typeof deviceStatus.status === 'string' && deviceStatus.status.toLowerCase() === 'disconnected');
+                
+                if (isExplicitlyDisconnected && !isConnected) {
                   console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
                   
                   await supabase
