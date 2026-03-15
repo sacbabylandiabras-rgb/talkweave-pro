@@ -261,6 +261,10 @@ export const useCampaigns = () => {
     contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>
   ) => {
     try {
+      // Update status to active BEFORE invoking edge function
+      // so the edge function doesn't reject cancelled/paused campaigns
+      await updateCampaign(campaignId, { status: 'active' });
+
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         body: {
           campaignId,
@@ -274,9 +278,6 @@ export const useCampaigns = () => {
         title: "Sucesso",
         description: `Campanha enviada para ${contacts.length} contatos`,
       });
-
-      // Update campaign status
-      await updateCampaign(campaignId, { status: 'active' });
 
       return data;
     } catch (error) {
