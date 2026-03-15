@@ -444,8 +444,16 @@ export const useCampaigns = () => {
       
       console.log(`🔄 Retomando campanha ${id} com ${remainingContacts.length} contatos restantes`);
       
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        throw new Error('Usuário não autenticado');
+      }
+
       // Send to remaining contacts
       const { data, error } = await supabase.functions.invoke('send-campaign', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           campaignId: id,
           contacts: remainingContacts,

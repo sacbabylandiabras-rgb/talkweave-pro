@@ -691,6 +691,8 @@ const Campanhas = () => {
               if (cancelledContacts.length === 0) return;
 
               try {
+                const campaignId = statsDialogCampaignId;
+
                 // Close stats dialog
                 setStatsDialogOpen(false);
                 setStatsDialogCampaignId(null);
@@ -699,11 +701,11 @@ const Campanhas = () => {
                 setTotalContactsCount(cancelledContacts.length);
                 
                 // Reuse hook flow (reactivates campaign when needed)
-                if (statsDialogCampaignId) {
-                  setSendingCampaignId(statsDialogCampaignId);
+                if (campaignId) {
+                  setSendingCampaignId(campaignId);
                   setShowProgressDialog(true);
 
-                  await sendCampaign(statsDialogCampaignId, cancelledContacts);
+                  await sendCampaign(campaignId, cancelledContacts);
 
                   await refetch();
                 }
