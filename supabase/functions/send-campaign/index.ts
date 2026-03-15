@@ -223,8 +223,8 @@ serve(async (req) => {
               .eq('id', campaignId)
               .single();
             
-            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
-              console.log(`🛑 Campaign ${campaignId} ${currentCampaign.status}. Stopping at ${i + 1}/${contacts.length}`);
+            if (currentCampaign?.status === 'paused') {
+              console.log(`🛑 Campaign ${campaignId} paused. Stopping at ${i + 1}/${contacts.length}`);
               return;
             }
           }
