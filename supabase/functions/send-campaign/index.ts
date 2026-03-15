@@ -122,6 +122,36 @@ serve(async (req) => {
         let campaignSend: CampaignSendRecord | undefined;
         
         try {
+          // TIME GUARD: If approaching timeout, re-invoke with remaining contacts
+          const elapsed = Date.now() - startTime;
+          if (elapsed > MAX_EXEC_MS) {
+            const remainingContacts = contacts.slice(i);
+            console.log(`⏰ Approaching timeout at contact ${i+1}/${contacts.length} (${Math.round(elapsed/1000)}s). Re-invoking with ${remainingContacts.length} remaining contacts...`);
+            
+            // Re-invoke self with remaining contacts
+            const authHeader = req.headers.get('authorization') || '';
+            const reinvokeUrl = `${supabaseUrl}/functions/v1/send-campaign`;
+            
+            try {
+              const reResponse = await fetch(reinvokeUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': authHeader,
+                },
+                body: JSON.stringify({
+                  campaignId,
+                  contacts: remainingContacts,
+                }),
+              });
+              const reData = await reResponse.text();
+              console.log(`🔄 Re-invocation response (${reResponse.status}): ${reData}`);
+            } catch (reError) {
+              console.error(`❌ Re-invocation failed:`, reError);
+              // Don't mark as completed - campaign stays active for manual resume
+            }
+            return; // Exit current execution
+          }
           // CHECK DEVICE STATUS every 5 contacts (not every single one)
           if (i % 5 === 0) {
             const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
