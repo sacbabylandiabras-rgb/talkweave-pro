@@ -159,6 +159,11 @@ const Campanhas = () => {
     setResumeDialogOpen(false);
     
     try {
+      // Set total contacts count from campaign target_audience before opening dialog
+      const campaign = campaigns.find(c => c.id === campaignToResume);
+      const targetContacts = campaign?.target_audience?.contacts || [];
+      setTotalContactsCount(targetContacts.length);
+
       // Open progress dialog to track the resumed campaign
       setSendingCampaignId(campaignToResume);
       setShowProgressDialog(true);

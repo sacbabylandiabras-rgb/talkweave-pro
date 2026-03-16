@@ -86,8 +86,16 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         const newStats = computeStats(sends);
         setStats(newStats);
 
-        if (campaignData?.status === 'completed' || 
-            (sends.length >= totalContacts && newStats.pending === 0)) {
+        // Only mark complete if the campaign status is actually 'completed' in the DB,
+        // OR if we have processed all contacts and none are pending (but campaign must not be 'active')
+        if (campaignData?.status === 'completed') {
+          setIsComplete(true);
+        } else if (
+          campaignData?.status !== 'active' &&
+          totalContacts > 0 && 
+          sends.length >= totalContacts && 
+          newStats.pending === 0
+        ) {
           setIsComplete(true);
         }
       }
