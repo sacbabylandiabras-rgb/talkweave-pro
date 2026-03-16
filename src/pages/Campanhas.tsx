@@ -83,14 +83,17 @@ const Campanhas = () => {
     setStatsDialogOpen(true);
   };
 
-  // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
+  // Set default instance only when no manual selection
   useEffect(() => {
     if (instanceSelectionMode === 'default' && activeInstance) {
       setZapiInstanceOverride(activeInstance);
     }
-
-    return () => setZapiInstanceOverride(null);
   }, [activeInstance, instanceSelectionMode]);
+
+  // Cleanup only on unmount
+  useEffect(() => {
+    return () => setZapiInstanceOverride(null);
+  }, []);
 
   // Track campaign IDs that were active during this session
   const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
