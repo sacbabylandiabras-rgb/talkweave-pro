@@ -143,7 +143,6 @@ const Campanhas = () => {
 
   const handlePauseCampaign = async (id: string) => {
     await pauseCampaign(id);
-    await refetch();
   };
 
   const handleResumeCampaign = (id: string) => {
