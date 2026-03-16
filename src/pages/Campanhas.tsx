@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
@@ -39,9 +38,7 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    
-    sendCampaign,
-    refetch
+    sendCampaign
   } = useCampaigns();
   
   const { toast } = useToast();
@@ -122,23 +119,7 @@ const Campanhas = () => {
     });
   }, [campaignStatusKey]);
 
-  // Realtime: subscribe to campaign STATUS changes only (not sends — dialog handles its own)
-  useEffect(() => {
-    const campaignsChannel = supabase
-      .channel('campanhas-status-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'campaigns' },
-        () => {
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(campaignsChannel);
-    };
-  }, []);
+  // Status da lista é sincronizado localmente pelo hook; o diálogo cuida dos envios em tempo real.
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -159,7 +140,6 @@ const Campanhas = () => {
 
   const handlePauseCampaign = async (id: string) => {
     await pauseCampaign(id);
-    await refetch();
   };
 
   const handleResumeCampaign = (id: string) => {
@@ -205,7 +185,6 @@ const Campanhas = () => {
   const handleCancelCampaign = async () => {
     if (campaignToCancel) {
       await cancelCampaign(campaignToCancel);
-      await refetch();
       setCancelDialogOpen(false);
       setCampaignToCancel(null);
     }
@@ -251,9 +230,6 @@ const Campanhas = () => {
 
       // Start sending (this will update status to 'active' internally)
       await sendCampaign(campaign.id, campaign.target_audience.contacts);
-      
-      // Force refresh to show updated status and pause button
-      await refetch();
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
@@ -310,16 +286,10 @@ const Campanhas = () => {
           if (!open) {
             setSendingCampaignId(null);
             setTotalContactsCount(0);
-            // Refresh campaigns list when closing
-            refetch();
           }
         }}
         campaignId={sendingCampaignId}
         totalContacts={totalContactsCount}
-        onPause={() => {
-          // Refresh campaigns after pause
-          refetch();
-        }}
       />
 
       <div className="grid gap-4">
@@ -692,8 +662,6 @@ const Campanhas = () => {
                   setShowProgressDialog(true);
 
                   await sendCampaign(campaignId, cancelledContacts);
-
-                  await refetch();
                 }
               } catch (error) {
                 console.error('Error retrying cancelled contacts:', error);
