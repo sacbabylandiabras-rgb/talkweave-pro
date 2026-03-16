@@ -159,17 +159,19 @@ const Campanhas = () => {
     setResumeDialogOpen(false);
     
     try {
-      // Set total contacts count from campaign target_audience before opening dialog
       const campaign = campaigns.find(c => c.id === campaignToResume);
       const targetContacts = campaign?.target_audience?.contacts || [];
       setTotalContactsCount(targetContacts.length);
-
-      // Open progress dialog to track the resumed campaign
       setSendingCampaignId(campaignToResume);
+
+      // Start resuming FIRST so status changes to 'active' before dialog polls
+      const resumePromise = resumeCampaign(campaignToResume);
+      
+      // Small delay to let status update propagate, then open dialog
+      await new Promise(resolve => setTimeout(resolve, 500));
       setShowProgressDialog(true);
       
-      await resumeCampaign(campaignToResume);
-      // Don't refetch immediately - let the progress dialog and polling handle it
+      await resumePromise;
     } catch (error) {
       console.error('Error resuming campaign:', error);
       setShowProgressDialog(false);
