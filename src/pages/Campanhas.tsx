@@ -188,7 +188,6 @@ const Campanhas = () => {
   const handleCancelCampaign = async () => {
     if (campaignToCancel) {
       await cancelCampaign(campaignToCancel);
-      await refetch();
       setCancelDialogOpen(false);
       setCampaignToCancel(null);
     }
