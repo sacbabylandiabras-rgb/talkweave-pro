@@ -22,7 +22,11 @@ export const setZapiRotateMode = (instances: ZapiInstance[]) => {
   _instanceOverride = null;
 };
 
-// Função assíncrona para obter configurações - agora suporta instância override
+export const getSelectedInstanceId = (): string | undefined => {
+  return _instanceOverride?.id || undefined;
+};
+
+
 const getZAPIConfig = async () => {
   // Se há modo revezamento ativo, ciclar entre instâncias
   if (_rotateInstances.length > 0) {
