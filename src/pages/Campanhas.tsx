@@ -233,9 +233,6 @@ const Campanhas = () => {
 
       // Start sending (this will update status to 'active' internally)
       await sendCampaign(campaign.id, campaign.target_audience.contacts);
-      
-      // Force refresh to show updated status and pause button
-      await refetch();
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
