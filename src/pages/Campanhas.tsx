@@ -38,9 +38,7 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    
-    sendCampaign,
-    refetch
+    sendCampaign
   } = useCampaigns();
   
   const { toast } = useToast();
