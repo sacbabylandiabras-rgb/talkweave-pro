@@ -173,6 +173,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   campaignId,
                   contacts: remainingContacts,
+                  instanceId: requestedInstanceId,
                 }),
               });
               const reData = await reResponse.text();
