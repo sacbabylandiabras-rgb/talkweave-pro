@@ -258,7 +258,8 @@ export const useCampaigns = () => {
 
   const sendCampaign = async (
     campaignId: string,
-    contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>
+    contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>,
+    instanceId?: string
   ) => {
     try {
       // Update status to active BEFORE invoking edge function
@@ -277,6 +278,7 @@ export const useCampaigns = () => {
         body: {
           campaignId,
           contacts,
+          instanceId,
         },
       });
 
