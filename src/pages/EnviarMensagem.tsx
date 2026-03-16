@@ -63,13 +63,17 @@ const EnviarMensagem = () => {
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
   // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
+  // Set default instance only when no manual selection
   useEffect(() => {
     if (instanceSelectionMode === 'default' && activeInstance) {
       setZapiInstanceOverride(activeInstance);
     }
-
-    return () => setZapiInstanceOverride(null);
   }, [activeInstance, instanceSelectionMode]);
+
+  // Cleanup only on unmount
+  useEffect(() => {
+    return () => setZapiInstanceOverride(null);
+  }, []);
   const { createCampaign } = useCampaigns();
 
   // Helper para registrar envios individuais no campaign_sends para aparecer no painel
