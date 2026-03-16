@@ -459,6 +459,7 @@ export const useCampaigns = () => {
         body: {
           campaignId: id,
           contacts: remainingContacts,
+          instanceId: undefined, // Resume uses default instance
         },
       });
 
