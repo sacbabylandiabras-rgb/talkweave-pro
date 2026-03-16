@@ -10,6 +10,7 @@ interface SendCampaignRequest {
     name?: string;
     variables?: Record<string, string>;
   }>;
+  instanceId?: string; // Optional: specific Z-API instance to use
 }
 
 interface CampaignSendRecord {
@@ -41,7 +42,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { campaignId, contacts }: SendCampaignRequest = await req.json();
+    const { campaignId, contacts, instanceId: requestedInstanceId }: SendCampaignRequest = await req.json();
 
     if (!campaignId || !contacts || contacts.length === 0) {
       return new Response(
@@ -54,9 +55,29 @@ serve(async (req) => {
 
     // Get user's Z-API credentials from their profile (auth first)
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const zapiInstanceId = credentials.instanceId;
-    const zapiToken = credentials.token;
-    const zapiClientToken = credentials.clientToken;
+    let zapiInstanceId = credentials.instanceId;
+    let zapiToken = credentials.token;
+    let zapiClientToken = credentials.clientToken;
+
+    // If a specific instance was requested, look it up
+    if (requestedInstanceId) {
+      const { data: specificInstance } = await supabase
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .eq('id', requestedInstanceId)
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (specificInstance) {
+        zapiInstanceId = specificInstance.zapi_instance_id;
+        zapiToken = specificInstance.zapi_token;
+        zapiClientToken = specificInstance.zapi_client_token;
+        console.log(`📌 Using requested instance: ${specificInstance.instance_name} (${requestedInstanceId})`);
+      } else {
+        console.log(`⚠️ Requested instance ${requestedInstanceId} not found, using default`);
+      }
+    }
 
     console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
 
@@ -152,6 +173,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   campaignId,
                   contacts: remainingContacts,
+                  instanceId: requestedInstanceId,
                 }),
               });
               const reData = await reResponse.text();

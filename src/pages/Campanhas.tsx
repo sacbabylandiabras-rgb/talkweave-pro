@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
+import { setZapiInstanceOverride, setZapiRotateMode, getSelectedInstanceId } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
@@ -236,7 +236,7 @@ const Campanhas = () => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts);
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedInstanceId());
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
@@ -672,7 +672,7 @@ const Campanhas = () => {
                   setSendingCampaignId(campaignId);
                   setShowProgressDialog(true);
 
-                  await sendCampaign(campaignId, cancelledContacts);
+                  await sendCampaign(campaignId, cancelledContacts, getSelectedInstanceId());
                 }
               } catch (error) {
                 console.error('Error retrying cancelled contacts:', error);
