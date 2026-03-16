@@ -236,7 +236,7 @@ const Campanhas = () => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts);
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedInstanceId());
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
