@@ -55,17 +55,21 @@ const EnviarMensagem = () => {
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
-  // Definir instância ativa como override ao carregar
+  // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
   useEffect(() => {
-    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    if (instanceSelectionMode === 'default' && activeInstance) {
+      setZapiInstanceOverride(activeInstance);
+    }
+
     return () => setZapiInstanceOverride(null);
-  }, [activeInstance]);
+  }, [activeInstance, instanceSelectionMode]);
   const { createCampaign } = useCampaigns();
 
   // Helper para registrar envios individuais no campaign_sends para aparecer no painel

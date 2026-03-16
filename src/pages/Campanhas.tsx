@@ -62,6 +62,7 @@ const Campanhas = () => {
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
+  const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   // Realtime sends for stats dialog
   const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
@@ -82,11 +83,14 @@ const Campanhas = () => {
     setStatsDialogOpen(true);
   };
 
-  // Definir instância ativa como override
+  // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
   useEffect(() => {
-    if (activeInstance) setZapiInstanceOverride(activeInstance);
+    if (instanceSelectionMode === 'default' && activeInstance) {
+      setZapiInstanceOverride(activeInstance);
+    }
+
     return () => setZapiInstanceOverride(null);
-  }, [activeInstance]);
+  }, [activeInstance, instanceSelectionMode]);
 
   // Track campaign IDs that were active during this session
   const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
