@@ -90,6 +90,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         // OR if we have processed all contacts and none are pending (but campaign must not be 'active')
         if (campaignData?.status === 'completed') {
           setIsComplete(true);
+        } else if (campaignData?.status === 'active') {
+          // Campaign is actively sending — ensure we don't show as complete
+          setIsComplete(false);
+          setIsPaused(false);
         } else if (
           campaignData?.status !== 'active' &&
           totalContacts > 0 && 
