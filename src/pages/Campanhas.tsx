@@ -122,23 +122,7 @@ const Campanhas = () => {
     });
   }, [campaignStatusKey]);
 
-  // Realtime: subscribe to campaign STATUS changes only (not sends — dialog handles its own)
-  useEffect(() => {
-    const campaignsChannel = supabase
-      .channel('campanhas-status-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'campaigns' },
-        () => {
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(campaignsChannel);
-    };
-  }, []);
+  // Status da lista é sincronizado localmente pelo hook; o diálogo cuida dos envios em tempo real.
 
   const getStatusBadge = (status: string) => {
     switch (status) {
