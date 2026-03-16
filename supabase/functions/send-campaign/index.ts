@@ -10,6 +10,7 @@ interface SendCampaignRequest {
     name?: string;
     variables?: Record<string, string>;
   }>;
+  instanceId?: string; // Optional: specific Z-API instance to use
 }
 
 interface CampaignSendRecord {
