@@ -803,29 +803,20 @@ export const useZapi = () => {
     try {
       const config = await getZAPIConfig();
       
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-name`;
-      console.log('Atualizando nome do perfil Z-API:', url);
+      console.log('Atualizando nome do perfil via Edge Function');
       
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+      const { data, error } = await supabase.functions.invoke('update-profile', {
+        body: {
+          type: 'name',
+          value: name,
+          instanceId: config.instanceId,
+          token: config.token,
+          clientToken: config.clientToken,
         },
-        body: JSON.stringify({ value: name }),
       });
 
-      console.log('Update profile name response status:', response.status);
-      const data = await response.json();
-      console.log('Update profile name data:', data);
-
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        throw new Error(errorMessage);
-      }
+      if (error) throw new Error(error.message || 'Erro ao atualizar nome');
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "✅ Nome atualizado",
@@ -852,29 +843,20 @@ export const useZapi = () => {
     try {
       const config = await getZAPIConfig();
       
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-picture`;
-      console.log('Atualizando foto do perfil Z-API:', url);
+      console.log('Atualizando foto do perfil via Edge Function');
       
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+      const { data, error } = await supabase.functions.invoke('update-profile', {
+        body: {
+          type: 'picture',
+          value: imageUrl,
+          instanceId: config.instanceId,
+          token: config.token,
+          clientToken: config.clientToken,
         },
-        body: JSON.stringify({ value: imageUrl }),
       });
 
-      console.log('Update profile picture response status:', response.status);
-      const data = await response.json();
-      console.log('Update profile picture data:', data);
-
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        throw new Error(errorMessage);
-      }
+      if (error) throw new Error(error.message || 'Erro ao atualizar foto');
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "✅ Foto atualizada",
