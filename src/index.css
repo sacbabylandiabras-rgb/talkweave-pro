@@ -188,3 +188,39 @@
     background: rgb(var(--muted-foreground) / 0.5);
   }
 }
+
+.landing-mockup-wrap {
+  position: relative;
+  filter: drop-shadow(0 30px 60px rgb(var(--primary) / 0.18));
+}
+
+.landing-mockup-wrap::before {
+  content: "";
+  position: absolute;
+  inset: auto 12% -6% 12%;
+  height: 18%;
+  background: radial-gradient(circle, rgb(var(--primary) / 0.18) 0%, transparent 72%);
+  filter: blur(18px);
+  z-index: -1;
+}
+
+.landing-mockup {
+  animation: landing-float 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-mockup {
+    animation: none;
+  }
+}
