@@ -38,10 +38,6 @@ const Landing = () => {
           para transformar mensagens em vendas todos os dias.
         </p>
 
-        {/* Mockup do Dashboard */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto" />
-        </div>
 
         <button
           onClick={() => navigate("/auth?signup=true")}
