@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import zaplynxLogo from "@/assets/zaplynx-logo.png";
+import logoImage from "@/assets/logo.png";
+import dashboardMockup from "@/assets/dashboard-mockup.png";
 import prova1 from "@/assets/prova1.jpg";
 import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
