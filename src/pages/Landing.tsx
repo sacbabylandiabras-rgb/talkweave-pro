@@ -50,20 +50,6 @@ const Landing = () => {
       {/* Prova Social */}
       <SocialProofSection />
 
-      {/* Vídeo de apresentação */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-10">
-        <div className="max-w-3xl mx-auto aspect-video rounded-2xl overflow-hidden border border-border">
-          <video
-            src="/videos/apresentacao.mp4"
-            controls
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </section>
 
       {/* Mockup do Dashboard */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-10">
