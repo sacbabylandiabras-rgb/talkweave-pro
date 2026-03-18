@@ -107,6 +107,7 @@ const Landing = () => {
                 "3 Instâncias WhatsApp",
                 "Envios em massa ilimitados",
                 "Agente de IA treinável",
+                "Fluxos visuais",
                 "Automação de boas-vindas",
                 "Respostas automáticas",
                 "Campanhas agendadas",
