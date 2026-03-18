@@ -18,7 +18,7 @@ const Landing = () => {
 
       {/* Header */}
       <header className="w-[90%] max-w-[1200px] mx-auto flex justify-between items-center py-6">
-        <img src={zaplynxLogo} alt="ZapLynx Logo" className="h-14" />
+        <img src={logoImage} alt="ZapLynx Logo" className="h-14" />
         <button
           onClick={() => navigate("/auth?signup=true")}
           className="landing-btn"
