@@ -40,7 +40,7 @@ const Landing = () => {
 
         {/* Mockup do Dashboard */}
         <div className="max-w-3xl mx-auto mb-8">
-          <img src={zaplynxLogo} alt="ZapLynx Dashboard" className="w-full h-auto" />
+          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto" />
         </div>
 
         <button
