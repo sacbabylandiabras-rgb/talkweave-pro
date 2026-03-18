@@ -1,6 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import zaplynxLogo from "@/assets/zaplynx-logo.png";
+import prova1 from "@/assets/prova1.jpg";
+import prova2 from "@/assets/prova2.jpg";
+import prova3 from "@/assets/prova3.jpg";
+import prova4 from "@/assets/prova4.jpg";
+import prova5 from "@/assets/prova5.jpg";
 
 const Landing = () => {
   const navigate = useNavigate();
