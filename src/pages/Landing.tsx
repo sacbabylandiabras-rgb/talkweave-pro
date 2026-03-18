@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import logoImage from "@/assets/logo.png";
-import dashboardMockup from "@/assets/dashboard-mockup-transparent-user.gif";
+import dashboardMockup from "@/assets/dashboard-mockup-transparent-v3.png";
 import prova1 from "@/assets/prova1.jpg";
 import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
@@ -53,11 +53,11 @@ const Landing = () => {
 
       {/* Mockup do Dashboard */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-10">
-        <div className="max-w-3xl mx-auto isolate">
+        <div className="max-w-3xl mx-auto isolate landing-mockup-wrap">
           <img
             src={dashboardMockup}
             alt="ZapLynx Dashboard"
-            className="w-full h-auto"
+            className="w-full h-auto landing-mockup"
           />
         </div>
       </section>
