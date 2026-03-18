@@ -420,6 +420,18 @@ const Campanhas = () => {
                       </>
                     )}
                     
+                    {/* Botão Retomar - para cancelled (continuar de onde parou) */}
+                    {campaign.status === 'cancelled' && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleResumeCampaign(campaign.id)}
+                      >
+                        <Play className="w-4 h-4 mr-1" />
+                        Continuar Envio
+                      </Button>
+                    )}
+
                     {/* Botão Duplicar - para completed e cancelled */}
                     {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
                       <Button
