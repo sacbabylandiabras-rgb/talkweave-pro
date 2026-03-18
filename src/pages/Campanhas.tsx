@@ -243,7 +243,8 @@ const Campanhas = () => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedInstanceId());
+      const effectiveInstanceId = instanceSelectionMode === 'rotate' ? '__rotate_all__' : getSelectedInstanceId();
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, effectiveInstanceId);
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
@@ -679,7 +680,8 @@ const Campanhas = () => {
                   setSendingCampaignId(campaignId);
                   setShowProgressDialog(true);
 
-                  await sendCampaign(campaignId, cancelledContacts, getSelectedInstanceId());
+                  const effectiveInstanceId2 = instanceSelectionMode === 'rotate' ? '__rotate_all__' : getSelectedInstanceId();
+                  await sendCampaign(campaignId, cancelledContacts, effectiveInstanceId2);
                 }
               } catch (error) {
                 console.error('Error retrying cancelled contacts:', error);
