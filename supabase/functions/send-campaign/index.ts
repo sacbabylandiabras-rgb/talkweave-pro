@@ -59,8 +59,22 @@ serve(async (req) => {
     let zapiToken = credentials.token;
     let zapiClientToken = credentials.clientToken;
 
-    // If a specific instance was requested, look it up
-    if (requestedInstanceId) {
+    // Round-robin rotation: load all active instances
+    const isRotateMode = requestedInstanceId === '__rotate_all__';
+    let rotatePool: any[] = [];
+    
+    if (isRotateMode) {
+      const { data: allActiveInstances } = await supabase
+        .from('zapi_instances')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+      
+      rotatePool = allActiveInstances || [];
+      console.log(`🔄 Rotate mode: ${rotatePool.length} instances loaded for round-robin`);
+    } else if (requestedInstanceId) {
+      // If a specific instance was requested, look it up
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
         .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
@@ -78,6 +92,25 @@ serve(async (req) => {
         console.log(`⚠️ Requested instance ${requestedInstanceId} not found, using default`);
       }
     }
+
+    // Helper to get credentials for a given contact index (supports rotation)
+    const getInstanceForIndex = (index: number) => {
+      if (isRotateMode && rotatePool.length > 0) {
+        const inst = rotatePool[index % rotatePool.length];
+        return {
+          zapiInstanceId: inst.zapi_instance_id,
+          zapiToken: inst.zapi_token,
+          zapiClientToken: inst.zapi_client_token,
+          instanceName: inst.instance_name,
+        };
+      }
+      return {
+        zapiInstanceId,
+        zapiToken,
+        zapiClientToken,
+        instanceName: credentials.instanceName,
+      };
+    };
 
     console.log(`✅ Using Z-API credentials for user ${credentials.userId}`);
 

@@ -680,7 +680,8 @@ const Campanhas = () => {
                   setSendingCampaignId(campaignId);
                   setShowProgressDialog(true);
 
-                  await sendCampaign(campaignId, cancelledContacts, getSelectedInstanceId());
+                  const effectiveInstanceId2 = instanceSelectionMode === 'rotate' ? '__rotate_all__' : getSelectedInstanceId();
+                  await sendCampaign(campaignId, cancelledContacts, effectiveInstanceId2);
                 }
               } catch (error) {
                 console.error('Error retrying cancelled contacts:', error);
