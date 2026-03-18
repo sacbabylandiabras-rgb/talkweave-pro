@@ -146,9 +146,17 @@ function SocialProofSection() {
   const [index, setIndex] = useState(0);
   const provas = [prova1, prova2, prova3, prova4, prova5];
   const slidesToShow = 3;
+  const maxIndex = provas.length - slidesToShow;
 
-  const prev = () => setIndex((i) => Math.max(0, i - 1));
-  const next = () => setIndex((i) => Math.min(provas.length - slidesToShow, i + 1));
+  const prev = () => setIndex((i) => (i <= 0 ? maxIndex : i - 1));
+  const next = () => setIndex((i) => (i >= maxIndex ? 0 : i + 1));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i >= maxIndex ? 0 : i + 1));
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [maxIndex]);
 
   return (
     <section className="w-[90%] max-w-[1200px] mx-auto py-20">
