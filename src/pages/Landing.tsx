@@ -1,6 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import zaplynxLogo from "@/assets/zaplynx-logo.png";
+import prova1 from "@/assets/prova1.jpg";
+import prova2 from "@/assets/prova2.jpg";
+import prova3 from "@/assets/prova3.jpg";
+import prova4 from "@/assets/prova4.jpg";
+import prova5 from "@/assets/prova5.jpg";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -139,11 +144,11 @@ const Landing = () => {
 function SocialProofSection() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const totalSlides = 8;
+  const provas = [prova1, prova2, prova3, prova4, prova5];
   const slidesToShow = 3;
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
-  const next = () => setIndex((i) => Math.min(totalSlides - slidesToShow, i + 1));
+  const next = () => setIndex((i) => Math.min(provas.length - slidesToShow, i + 1));
 
   return (
     <section className="w-[90%] max-w-[1200px] mx-auto py-20">
@@ -162,11 +167,13 @@ function SocialProofSection() {
           className="flex transition-transform duration-400 ease-in-out"
           style={{ transform: `translateX(-${index * (100 / slidesToShow)}%)` }}
         >
-          {Array.from({ length: totalSlides }).map((_, i) => (
+          {provas.map((src, i) => (
             <div key={i} className="min-w-[33.3333%] px-3 max-md:min-w-full">
-              <div className="w-full aspect-[4/3] bg-secondary rounded-2xl flex items-center justify-center border border-border">
-                <span className="text-muted-foreground text-sm">Prova {i + 1}</span>
-              </div>
+              <img
+                src={src}
+                alt={`Prova social ${i + 1}`}
+                className="w-full h-auto rounded-2xl object-contain"
+              />
             </div>
           ))}
         </div>
