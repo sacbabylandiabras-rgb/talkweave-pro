@@ -38,16 +38,8 @@ const Landing = () => {
         </p>
 
         {/* VSL Placeholder */}
-        <div className="max-w-3xl mx-auto aspect-video rounded-2xl overflow-hidden border border-border mb-8">
-          <video
-            src="/videos/apresentacao.mp4"
-            controls
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          />
+        <div className="max-w-3xl mx-auto aspect-video bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-border mb-8">
+          <span className="text-muted-foreground text-sm">Vídeo de apresentação</span>
         </div>
 
         <button
@@ -60,6 +52,21 @@ const Landing = () => {
 
       {/* Prova Social */}
       <SocialProofSection />
+
+      {/* Vídeo de apresentação */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-10">
+        <div className="max-w-3xl mx-auto aspect-video rounded-2xl overflow-hidden border border-border">
+          <video
+            src="/videos/apresentacao.mp4"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </section>
 
       {/* Benefícios */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
