@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { setZapiInstanceOverride, setZapiRotateMode, getSelectedInstanceId } from "@/hooks/useZapi";
+import { setZapiInstanceOverride, setZapiRotateMode, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
