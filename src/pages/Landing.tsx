@@ -37,9 +37,9 @@ const Landing = () => {
           para transformar mensagens em vendas todos os dias.
         </p>
 
-        {/* VSL Placeholder */}
-        <div className="max-w-3xl mx-auto aspect-video bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-border mb-8">
-          <span className="text-muted-foreground text-sm">Vídeo de apresentação</span>
+        {/* Mockup do Dashboard */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <img src={zaplynxLogo} alt="ZapLynx Dashboard" className="w-full h-auto" />
         </div>
 
         <button
