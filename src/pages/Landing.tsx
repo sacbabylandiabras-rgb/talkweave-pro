@@ -1,226 +1,223 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CheckCircle, Zap, Shield, TrendingUp, Crown, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import zaplynxLogo from "@/assets/zaplynx-logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
 
-  const features = [
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Envios em Massa",
-      description: "Envie mensagens para milhares de contatos de forma rápida e eficiente"
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Seguro e Confiável",
-      description: "Integração direta com WhatsApp via Z-API com máxima segurança"
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: "Relatórios Detalhados",
-      description: "Acompanhe estatísticas e métricas de todas as suas campanhas"
-    }
-  ];
-
-  const plans = [
-    {
-      name: "Plano Básico",
-      price: "197",
-      description: "Perfeito para começar",
-      instances: 1,
-      features: [
-        "1 Instância WhatsApp",
-        "Envios em massa ilimitados",
-        "Automação de boas-vindas",
-        "Respostas automáticas",
-        "Gestão de campanhas",
-        "Modelos de mensagens",
-        "Filtros e segmentação",
-        "Relatórios detalhados",
-        "Suporte via chat"
-      ],
-      popular: false
-    },
-    {
-      name: "Plano Profissional",
-      price: "297",
-      description: "Para crescer seu negócio",
-      instances: 2,
-      features: [
-        "2 Instâncias WhatsApp",
-        "Envios em massa ilimitados",
-        "Automação de boas-vindas",
-        "Respostas automáticas",
-        "Gestão de campanhas",
-        "Modelos de mensagens",
-        "Filtros e segmentação",
-        "Relatórios detalhados",
-        "Suporte prioritário",
-        "API de integração"
-      ],
-      popular: true
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    <div className="min-h-screen landing-bg text-foreground relative">
+      {/* Mouse follow effect */}
+      <MouseFollowEffect />
+
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <img src={zaplynxLogo} alt="ZapLynx" className="h-16 w-auto" />
-          </div>
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => navigate("/auth")}>
-              Entrar
-            </Button>
-            <Button onClick={() => navigate("/auth?signup=true")}>
-              Começar Grátis
-            </Button>
-          </div>
-        </div>
+      <header className="w-[90%] max-w-[1200px] mx-auto flex justify-between items-center py-6">
+        <img src={zaplynxLogo} alt="ZapLynx Logo" className="h-14" />
+        <button
+          onClick={() => navigate("/auth?signup=true")}
+          className="landing-btn"
+        >
+          Começar Agora
+        </button>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <div className="flex justify-center mb-6">
-            <img src={zaplynxLogo} alt="ZapLynx" className="h-32 md:h-40 w-auto" />
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-            Gerencie suas mensagens do{" "}
-            <span className="text-primary">WhatsApp</span> em escala
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Plataforma completa para automação, envio em massa e gestão profissional
-            de mensagens via WhatsApp
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate("/auth?signup=true")} className="gap-2">
-              Começar Agora <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-              Fazer Login
-            </Button>
-          </div>
+      {/* Hero */}
+      <section className="w-[90%] max-w-[1200px] mx-auto text-center py-20 md:py-24">
+        <h1 className="text-3xl md:text-[42px] font-extrabold leading-tight text-foreground mb-5">
+          Gerencie suas mensagens do{" "}
+          <span className="text-primary">WhatsApp</span> em escala
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-[600px] mx-auto mb-8">
+          Automação profissional, agente inteligente com IA e gestão completa
+          para transformar mensagens em vendas todos os dias.
+        </p>
+
+        {/* VSL Placeholder */}
+        <div className="max-w-3xl mx-auto aspect-video bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-border mb-8">
+          <span className="text-muted-foreground text-sm">Vídeo de apresentação</span>
         </div>
+
+        <button
+          onClick={() => navigate("/auth?signup=true")}
+          className="landing-btn mt-8"
+        >
+          Criar Conta
+        </button>
       </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Recursos Poderosos
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Tudo que você precisa para gerenciar suas mensagens
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
+      {/* Prova Social */}
+      <SocialProofSection />
+
+      {/* Benefícios */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
+          Plataforma Completa de Automação
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { emoji: "🤖", title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
+            { emoji: "🚀", title: "Envios Estratégicos", desc: "Dispare campanhas segmentadas com alta performance." },
+            { emoji: "📊", title: "Relatórios Avançados", desc: "Acompanhe métricas e resultados em tempo real." },
+            { emoji: "⚙", title: "Gestão Multi-Instância", desc: "Gerencie vários números em um único painel." },
+          ].map((card, i) => (
             <div
-              key={index}
-              className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow"
+              key={i}
+              className="bg-card border border-border rounded-xl p-6 transition-transform hover:-translate-y-1"
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <h3 className="text-foreground font-semibold mb-2">
+                {card.emoji} {card.title}
+              </h3>
+              <p className="text-muted-foreground text-[15px]">{card.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Escolha o plano ideal para você
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Preços transparentes, sem taxas ocultas
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan, index) => (
-            <Card 
-              key={index} 
-              className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
+      {/* Planos */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
+          Planos e Preços
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { name: "Plano Start", price: "397", popular: false },
+            { name: "Plano Pro", price: "497", popular: true },
+            { name: "Plano Scale", price: "897", popular: false },
+          ].map((plan, i) => (
+            <div
+              key={i}
+              className={`bg-card border rounded-2xl p-8 text-center transition-transform hover:-translate-y-1 ${
+                plan.popular ? "border-primary shadow-lg scale-105" : "border-border"
+              }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                    <Crown className="w-4 h-4" /> Mais Popular
-                  </span>
-                </div>
+                <span className="inline-block bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full mb-3">
+                  MAIS POPULAR
+                </span>
               )}
-              <CardHeader className="text-center pb-8 pt-8">
-                <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-                <div className="mt-4">
-                  <span className="text-5xl font-bold">R$ {plan.price}</span>
-                  <span className="text-muted-foreground">/mês</span>
-                </div>
-                <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-primary">
-                    {plan.instances} {plan.instances === 1 ? 'Instância' : 'Instâncias'} WhatsApp
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  size="lg" 
-                  className="w-full" 
-                  variant={plan.popular ? "default" : "outline"}
-                  onClick={() => navigate("/auth?signup=true")}
-                >
-                  Começar Agora
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardFooter>
-            </Card>
+              <h3 className="text-foreground font-semibold text-xl mb-4">{plan.name}</h3>
+              <div className="mb-5">
+                <span className="text-[32px] font-extrabold text-primary">R${plan.price}</span>
+                <span className="text-sm text-muted-foreground">/mês</span>
+              </div>
+              <button
+                onClick={() => navigate("/auth?signup=true")}
+                className="landing-btn w-full"
+              >
+                Assinar
+              </button>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Pronto para começar?
-          </h2>
-          <p className="text-xl text-muted-foreground">
-            Crie sua conta gratuitamente e comece a gerenciar suas mensagens hoje mesmo
-          </p>
-          <Button size="lg" onClick={() => navigate("/auth?signup=true")} className="gap-2">
-            Criar Conta Grátis <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
+      {/* CTA Final */}
+      <section className="bg-secondary/50 text-center py-20 px-5">
+        <h2 className="text-[30px] font-extrabold text-foreground mb-4">
+          Escalone seu WhatsApp com Inteligência Artificial
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          Transforme mensagens em vendas automaticamente.
+        </p>
+        <button
+          onClick={() => navigate("/auth?signup=true")}
+          className="landing-btn"
+        >
+          Começar Agora
+        </button>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 mt-20">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2025 ZapLynx. Todos os direitos reservados.</p>
-        </div>
+      <footer className="text-center py-6 border-t border-border text-sm text-muted-foreground">
+        © 2026 ZapLynx - Todos os direitos reservados
       </footer>
     </div>
   );
 };
+
+/* ===== Social Proof Carousel ===== */
+function SocialProofSection() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+  const totalSlides = 8;
+  const slidesToShow = 3;
+
+  const prev = () => setIndex((i) => Math.max(0, i - 1));
+  const next = () => setIndex((i) => Math.min(totalSlides - slidesToShow, i + 1));
+
+  return (
+    <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+      <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
+        Quem usa, recomenda 🔥
+      </h2>
+      <div className="relative overflow-hidden">
+        <button
+          onClick={prev}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-primary-foreground border-none text-lg px-3 py-2 rounded-md cursor-pointer hover:bg-primary/80"
+        >
+          &#10094;
+        </button>
+        <div
+          ref={trackRef}
+          className="flex transition-transform duration-400 ease-in-out"
+          style={{ transform: `translateX(-${index * (100 / slidesToShow)}%)` }}
+        >
+          {Array.from({ length: totalSlides }).map((_, i) => (
+            <div key={i} className="min-w-[33.3333%] px-3 max-md:min-w-full">
+              <div className="w-full aspect-[4/3] bg-secondary rounded-2xl flex items-center justify-center border border-border">
+                <span className="text-muted-foreground text-sm">Prova {i + 1}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={next}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-primary-foreground border-none text-lg px-3 py-2 rounded-md cursor-pointer hover:bg-primary/80"
+        >
+          &#10095;
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ===== Mouse Follow Effect ===== */
+function MouseFollowEffect() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const move = (x: number, y: number) => {
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+    };
+
+    const onMouse = (e: MouseEvent) => move(e.clientX, e.clientY);
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      move(t.clientX, t.clientY);
+    };
+
+    document.addEventListener("mousemove", onMouse);
+    document.addEventListener("touchmove", onTouch);
+    return () => {
+      document.removeEventListener("mousemove", onMouse);
+      document.removeEventListener("touchmove", onTouch);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="fixed w-[140px] h-[140px] rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2 z-[99999]"
+      style={{
+        background:
+          "radial-gradient(circle, rgba(239,68,68,0.35) 0%, rgba(239,68,68,0.15) 40%, transparent 70%)",
+      }}
+    />
+  );
+}
 
 export default Landing;
