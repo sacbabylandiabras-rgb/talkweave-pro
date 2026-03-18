@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import zaplynxLogo from "@/assets/zaplynx-logo.png";
+import logoImage from "@/assets/logo.png";
+import dashboardMockup from "@/assets/dashboard-mockup.png";
 import prova1 from "@/assets/prova1.jpg";
 import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
@@ -17,7 +18,7 @@ const Landing = () => {
 
       {/* Header */}
       <header className="w-[90%] max-w-[1200px] mx-auto flex justify-between items-center py-6">
-        <img src={zaplynxLogo} alt="ZapLynx Logo" className="h-14" />
+        <img src={logoImage} alt="ZapLynx Logo" className="h-14" />
         <button
           onClick={() => navigate("/auth?signup=true")}
           className="landing-btn"
@@ -37,9 +38,9 @@ const Landing = () => {
           para transformar mensagens em vendas todos os dias.
         </p>
 
-        {/* VSL Placeholder */}
-        <div className="max-w-3xl mx-auto aspect-video bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-border mb-8">
-          <span className="text-muted-foreground text-sm">Vídeo de apresentação</span>
+        {/* Mockup do Dashboard */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto" />
         </div>
 
         <button
