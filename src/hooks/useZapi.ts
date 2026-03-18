@@ -26,6 +26,14 @@ export const getSelectedInstanceId = (): string | undefined => {
   return _instanceOverride?.id || undefined;
 };
 
+export const getSelectedCampaignInstanceId = (): string | undefined => {
+  if (_rotateInstances.length > 0) {
+    return '__rotate_all__';
+  }
+
+  return _instanceOverride?.id || undefined;
+};
+
 
 const getZAPIConfig = async () => {
   // Se há modo revezamento ativo, ciclar entre instâncias
