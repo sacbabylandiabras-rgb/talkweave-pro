@@ -94,6 +94,7 @@ const Landing = () => {
                 "Envios em massa ilimitados",
                 "Gestão de contatos",
                 "Modelos de mensagens",
+                "Fluxos visuais básicos",
                 "Relatórios básicos",
                 "Suporte via chat",
               ],
