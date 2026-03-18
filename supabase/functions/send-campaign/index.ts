@@ -184,6 +184,16 @@ serve(async (req) => {
       for (let i = 0; i < contacts.length; i++) {
         const contact = contacts[i];
         let campaignSend: CampaignSendRecord | undefined;
+
+        // Resolve instance for this contact (supports round-robin rotation)
+        const currentInstance = getInstanceForIndex(i);
+        zapiInstanceId = currentInstance.zapiInstanceId;
+        zapiToken = currentInstance.zapiToken;
+        zapiClientToken = currentInstance.zapiClientToken;
+        
+        if (isRotateMode) {
+          console.log(`🔄 Contact ${i+1}: using instance "${currentInstance.instanceName}" (rotation index ${i % rotatePool.length})`);
+        }
         
         try {
           // TIME GUARD: If approaching timeout, re-invoke with remaining contacts
