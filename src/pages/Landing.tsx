@@ -85,9 +85,49 @@ const Landing = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { name: "Plano Start", price: "397", popular: false },
-            { name: "Plano Pro", price: "497", popular: true },
-            { name: "Plano Scale", price: "897", popular: false },
+            {
+              name: "Plano Start",
+              price: "397",
+              popular: false,
+              features: [
+                "1 Instância WhatsApp",
+                "Envios em massa ilimitados",
+                "Gestão de contatos",
+                "Modelos de mensagens",
+                "Relatórios básicos",
+                "Suporte via chat",
+              ],
+            },
+            {
+              name: "Plano Pro",
+              price: "497",
+              popular: true,
+              features: [
+                "3 Instâncias WhatsApp",
+                "Envios em massa ilimitados",
+                "Agente de IA treinável",
+                "Automação de boas-vindas",
+                "Respostas automáticas",
+                "Campanhas agendadas",
+                "Relatórios avançados",
+                "Suporte prioritário",
+              ],
+            },
+            {
+              name: "Plano Scale",
+              price: "897",
+              popular: false,
+              features: [
+                "10 Instâncias WhatsApp",
+                "Tudo do Plano Pro",
+                "Fluxos visuais avançados",
+                "Gateway de integrações",
+                "API completa",
+                "Gestão multi-usuário",
+                "Relatórios personalizados",
+                "Suporte dedicado",
+              ],
+            },
           ].map((plan, i) => (
             <div
               key={i}
@@ -105,6 +145,14 @@ const Landing = () => {
                 <span className="text-[32px] font-extrabold text-primary">R${plan.price}</span>
                 <span className="text-sm text-muted-foreground">/mês</span>
               </div>
+              <ul className="text-left space-y-2 mb-6">
+                {plan.features.map((feat, fi) => (
+                  <li key={fi} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-primary mt-0.5">✓</span>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
               <button
                 onClick={() => navigate("/auth?signup=true")}
                 className="landing-btn w-full"
