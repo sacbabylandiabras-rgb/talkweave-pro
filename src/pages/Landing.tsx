@@ -38,10 +38,6 @@ const Landing = () => {
           para transformar mensagens em vendas todos os dias.
         </p>
 
-        {/* Mockup do Dashboard */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto" />
-        </div>
 
         <button
           onClick={() => navigate("/auth?signup=true")}
@@ -66,6 +62,13 @@ const Landing = () => {
             playsInline
             className="w-full h-full object-cover"
           />
+        </div>
+      </section>
+
+      {/* Mockup do Dashboard */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-10">
+        <div className="max-w-3xl mx-auto">
+          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto" />
         </div>
       </section>
 
