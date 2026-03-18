@@ -38,8 +38,16 @@ const Landing = () => {
         </p>
 
         {/* VSL Placeholder */}
-        <div className="max-w-3xl mx-auto aspect-video bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-border mb-8">
-          <span className="text-muted-foreground text-sm">Vídeo de apresentação</span>
+        <div className="max-w-3xl mx-auto aspect-video rounded-2xl overflow-hidden border border-border mb-8">
+          <video
+            src="/videos/apresentacao.mp4"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
         </div>
 
         <button
