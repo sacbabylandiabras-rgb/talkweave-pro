@@ -53,8 +53,12 @@ const Landing = () => {
 
       {/* Mockup do Dashboard */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-10">
-        <div className="max-w-3xl mx-auto">
-          <img src={dashboardMockup} alt="ZapLynx Dashboard" className="w-full h-auto mix-blend-multiply" />
+        <div className="max-w-3xl mx-auto isolate">
+          <img
+            src={dashboardMockup}
+            alt="ZapLynx Dashboard"
+            className="w-full h-auto mix-blend-darken contrast-125 brightness-95"
+          />
         </div>
       </section>
 
