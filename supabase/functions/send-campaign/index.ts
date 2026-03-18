@@ -356,7 +356,7 @@ serve(async (req) => {
             message_content: messageContent,
             status: 'pending',
             user_id: credentials.userId,
-            instance_name: credentials.instanceName,
+            instance_name: currentInstance.instanceName,
           };
 
           // Build full message with header and footer
