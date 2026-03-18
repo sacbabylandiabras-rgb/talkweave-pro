@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getSelectedCampaignInstanceId } from '@/hooks/useZapi';
 import type { MessageTemplate } from './useMessageTemplates';
 
 export interface Campaign {
@@ -459,7 +460,7 @@ export const useCampaigns = () => {
         body: {
           campaignId: id,
           contacts: remainingContacts,
-          instanceId: undefined, // Resume uses default instance
+          instanceId: getSelectedCampaignInstanceId(),
         },
       });
 
