@@ -57,7 +57,7 @@ const Landing = () => {
           <img
             src={dashboardMockup}
             alt="ZapLynx Dashboard"
-            className="w-full h-auto mix-blend-multiply"
+            className="w-full h-auto"
           />
         </div>
       </section>
