@@ -243,8 +243,7 @@ const Campanhas = () => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      const effectiveInstanceId = instanceSelectionMode === 'rotate' ? '__rotate_all__' : getSelectedInstanceId();
-      await sendCampaign(campaign.id, campaign.target_audience.contacts, effectiveInstanceId);
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedCampaignInstanceId());
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
