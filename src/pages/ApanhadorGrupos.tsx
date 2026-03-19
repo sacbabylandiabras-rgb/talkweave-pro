@@ -197,7 +197,7 @@ const ApanhadorGrupos = () => {
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {grupo.membros > 0 ? `${grupo.membros} membros` : "Membros não disponível"}
+                          {grupo.membros > 0 ? `${grupo.membros} membros` : "Clique em 'Extrair Números' para ver"}
                         </span>
                         {numbers && (
                           <Badge variant="secondary" className="text-xs">
