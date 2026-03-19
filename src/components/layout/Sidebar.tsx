@@ -14,7 +14,8 @@ import {
   MessageCircle,
   UserPlus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Bot
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const menuItems = [
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
+  { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
 ];
 
 const bottomItems = [

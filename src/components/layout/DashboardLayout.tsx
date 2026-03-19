@@ -60,6 +60,7 @@ export function DashboardLayout() {
       "/gateway": "gateway",
       "/mensagens": "mensagens",
       "/apanhador-grupos": "apanhador-grupos",
+      "/agente-ia": "agente-ia",
     };
     return map[path] || "painel";
   };
