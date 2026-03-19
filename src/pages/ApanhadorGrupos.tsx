@@ -235,7 +235,7 @@ const ApanhadorGrupos = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => extractParticipants(grupo.id)}
+                          onClick={() => extractParticipants(grupo.id, grupo.participantes || [])}
                           disabled={extracting === grupo.id}
                         >
                           {extracting === grupo.id ? (
