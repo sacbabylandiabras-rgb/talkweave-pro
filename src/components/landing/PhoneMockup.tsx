@@ -1,4 +1,4 @@
-import messageReference from "@/assets/whatsapp-message-reference.png";
+import messageReference from "@/assets/whatsapp-chat-cropped.png";
 
 const PhoneMockup = () => {
   return (
