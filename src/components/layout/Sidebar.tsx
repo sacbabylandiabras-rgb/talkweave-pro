@@ -41,6 +41,7 @@ const menuItems = [
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
+  { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
 ];
 
 const bottomItems = [

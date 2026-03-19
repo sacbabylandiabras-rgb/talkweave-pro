@@ -50,6 +50,7 @@ const App = () => (
               <Route path="/gateway" element={<GatewayIntegracoes />} />
               <Route path="/mensagens" element={<MensagensRecebidas />} />
               <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
+              <Route path="/agente-ia" element={<AgenteIA />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
