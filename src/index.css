@@ -194,6 +194,32 @@
   filter: drop-shadow(0 30px 60px rgb(var(--primary) / 0.18));
 }
 
+.landing-laptop-frame {
+  position: relative;
+  width: 100%;
+  animation: landing-float 4.5s ease-in-out infinite;
+}
+
+.landing-laptop-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 0.75rem 0.75rem 0 0;
+  border: 3px solid rgb(var(--foreground) / 0.8);
+  border-bottom: none;
+  overflow: hidden;
+  background: rgb(var(--foreground));
+}
+
+.landing-laptop-base {
+  width: 110%;
+  margin-left: -5%;
+  height: 1rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: linear-gradient(180deg, rgb(var(--foreground) / 0.7) 0%, rgb(var(--foreground) / 0.9) 100%);
+  box-shadow: 0 4px 12px rgb(var(--foreground) / 0.15);
+}
+
 .landing-mockup-wrap::before {
   content: "";
   position: absolute;
