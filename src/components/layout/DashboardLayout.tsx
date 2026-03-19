@@ -37,7 +37,7 @@ export function DashboardLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -58,19 +58,21 @@ export function DashboardLayout() {
       "/fluxo-visual": "fluxo-visual",
       "/admin": "admin",
       "/gateway": "gateway",
+      "/mensagens": "mensagens",
+      "/apanhador-grupos": "apanhador-grupos",
     };
     return map[path] || "painel";
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-muted/30">
       <Sidebar activeItem={getActiveItem()} userId={userId} />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onNavigate={(item) => {
           if (item === "painel") navigate("/dashboard");
           else navigate(`/${item}`);
         }} />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 bg-muted/30">
           <Outlet />
         </main>
       </div>

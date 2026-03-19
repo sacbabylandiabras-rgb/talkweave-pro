@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Eye, EyeOff, CalendarIcon } from "lucide-react";
+import { Loader2, Eye, EyeOff, CalendarIcon, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -38,34 +38,20 @@ export function VolumeChart() {
 
   const handleSelectFrom = (selected?: Date) => {
     setDateFrom(selected);
-
-    if (!selected) {
-      setDateTo(undefined);
-      return;
-    }
-
+    if (!selected) { setDateTo(undefined); return; }
     setDateTo(selected);
   };
 
   const handleSelectTo = (selected?: Date) => {
     setDateTo(selected);
     if (!selected) return;
-
-    if (!dateFrom || selected < dateFrom) {
-      setDateFrom(selected);
-    }
+    if (!dateFrom || selected < dateFrom) setDateFrom(selected);
   };
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        loadRawData();
-      } else {
-        setLoading(false);
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { loadRawData(); } else { setLoading(false); }
     };
     init();
   }, []);
@@ -73,13 +59,9 @@ export function VolumeChart() {
   useEffect(() => {
     const filtered = allSends.filter((send) => {
       const sendLocalDate = toLocalDateStr(new Date(send.created_at));
-
       if (dateFrom && dateTo) {
-        const fromStr = toLocalDateStr(dateFrom);
-        const toStr = toLocalDateStr(dateTo);
-        return sendLocalDate >= fromStr && sendLocalDate <= toStr;
+        return sendLocalDate >= toLocalDateStr(dateFrom) && sendLocalDate <= toLocalDateStr(dateTo);
       }
-
       if (dateFrom) return sendLocalDate === toLocalDateStr(dateFrom);
       if (dateTo) return sendLocalDate === toLocalDateStr(dateTo);
       return true;
@@ -88,11 +70,9 @@ export function VolumeChart() {
     const grouped = filtered.reduce((acc: Record<string, { sent: number; delivered: number; failed: number }>, send) => {
       const key = toLocalDateStr(new Date(send.created_at));
       if (!acc[key]) acc[key] = { sent: 0, delivered: 0, failed: 0 };
-
       acc[key].sent++;
       if (send.status === "sent" || send.status === "delivered") acc[key].delivered++;
       if (send.status === "failed") acc[key].failed++;
-
       return acc;
     }, {});
 
@@ -101,43 +81,25 @@ export function VolumeChart() {
       const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
       const cursor = new Date(start);
       const rangeData: ChartData[] = [];
-
       while (cursor <= end) {
         const key = toLocalDateStr(cursor);
         const totals = grouped[key] ?? { sent: 0, delivered: 0, failed: 0 };
-
-        rangeData.push({
-          date: format(cursor, "dd/MM/yyyy", { locale: ptBR }),
-          enviadas: totals.sent,
-          entregues: totals.delivered,
-          erros: totals.failed,
-        });
-
+        rangeData.push({ date: format(cursor, "dd/MM", { locale: ptBR }), enviadas: totals.sent, entregues: totals.delivered, erros: totals.failed });
         cursor.setDate(cursor.getDate() + 1);
         if (rangeData.length > 366) break;
       }
-
       setChartData(rangeData);
       return;
     }
 
     const sortedKeys = Object.keys(grouped).sort();
-
     if (sortedKeys.length > 0) {
-      setChartData(
-        sortedKeys.map((key) => {
-          const [year, month, day] = key.split("-").map(Number);
-          const localDate = new Date(year, month - 1, day);
-          const totals = grouped[key];
-
-          return {
-            date: format(localDate, "dd/MM/yyyy", { locale: ptBR }),
-            enviadas: totals.sent,
-            entregues: totals.delivered,
-            erros: totals.failed,
-          };
-        })
-      );
+      setChartData(sortedKeys.map((key) => {
+        const [year, month, day] = key.split("-").map(Number);
+        const localDate = new Date(year, month - 1, day);
+        const totals = grouped[key];
+        return { date: format(localDate, "dd/MM", { locale: ptBR }), enviadas: totals.sent, entregues: totals.delivered, erros: totals.failed };
+      }));
     } else {
       setChartData([]);
     }
@@ -145,11 +107,7 @@ export function VolumeChart() {
 
   const loadRawData = async () => {
     try {
-      const { data: sends, error } = await supabase
-        .from("campaign_sends")
-        .select("created_at, status")
-        .order("created_at", { ascending: true });
-
+      const { data: sends, error } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
       console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
       setAllSends(sends || []);
     } catch (error) {
@@ -167,60 +125,23 @@ export function VolumeChart() {
       const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
       const rangeData: ChartData[] = [];
       const cursor = new Date(start);
-
       while (cursor <= end) {
-        rangeData.push({
-          date: format(cursor, "dd/MM/yyyy", { locale: ptBR }),
-          enviadas: 0,
-          entregues: 0,
-          erros: 0,
-        });
+        rangeData.push({ date: format(cursor, "dd/MM", { locale: ptBR }), enviadas: 0, entregues: 0, erros: 0 });
         cursor.setDate(cursor.getDate() + 1);
         if (rangeData.length > 31) break;
       }
-
       return rangeData;
     }
-
-    if (dateFrom) {
-      return [
-        {
-          date: format(dateFrom, "dd/MM/yyyy", { locale: ptBR }),
-          enviadas: 0,
-          entregues: 0,
-          erros: 0,
-        },
-      ];
-    }
-
-    if (dateTo) {
-      return [
-        {
-          date: format(dateTo, "dd/MM/yyyy", { locale: ptBR }),
-          enviadas: 0,
-          entregues: 0,
-          erros: 0,
-        },
-      ];
-    }
-
-    return Array.from({ length: 5 }).map((_, index) => {
-      const date = subDays(new Date(), 4 - index);
-      return {
-        date: format(date, "dd/MM/yyyy", { locale: ptBR }),
-        enviadas: 0,
-        entregues: 0,
-        erros: 0,
-      };
+    if (dateFrom) return [{ date: format(dateFrom, "dd/MM", { locale: ptBR }), enviadas: 0, entregues: 0, erros: 0 }];
+    if (dateTo) return [{ date: format(dateTo, "dd/MM", { locale: ptBR }), enviadas: 0, entregues: 0, erros: 0 }];
+    return Array.from({ length: 7 }).map((_, index) => {
+      const date = subDays(new Date(), 6 - index);
+      return { date: format(date, "dd/MM", { locale: ptBR }), enviadas: 0, entregues: 0, erros: 0 };
     });
   };
 
   const displayData = chartData.length > 0 ? chartData : buildFallbackData();
-
-  const formatYAxis = (v: number) => {
-    if (v >= 1000) return `${(v / 1000).toFixed(2)}k`;
-    return v.toString();
-  };
+  const formatYAxis = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toString());
 
   const series = [
     { key: "enviadas", label: "Enviadas", color: "rgb(var(--warning))", gradientId: "gEnviadas" },
@@ -230,94 +151,62 @@ export function VolumeChart() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[300px] rounded-xl border bg-card">
+      <div className="flex items-center justify-center h-[340px] rounded-xl border border-border/60 bg-card">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="rounded-xl border border-border/60 bg-card p-5 hover:shadow-md transition-shadow duration-300">
       {/* Header */}
-      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-primary">Gráfico de mensagens</span>
-          {chartData.length === 0 && (
-            <span className="text-[10px] text-muted-foreground">(sem envios ainda)</span>
-          )}
+          <div className="p-1.5 rounded-lg bg-accent/10">
+            <TrendingUp className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-foreground">Volume de mensagens</span>
+            {chartData.length === 0 && (
+              <p className="text-[11px] text-muted-foreground">Nenhum envio registrado ainda</p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Date From */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "justify-start text-left font-normal text-xs h-8",
-                  !dateFrom && "text-muted-foreground"
-                )}
-              >
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded-lg border-border/60", !dateFrom && "text-muted-foreground")}>
                 <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
                 {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFrom}
-                onSelect={handleSelectFrom}
-                disabled={(date) => (dateTo ? date > dateTo : date > new Date())}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
+              <Calendar mode="single" selected={dateFrom} onSelect={handleSelectFrom} disabled={(date) => (dateTo ? date > dateTo : date > new Date())} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 
-          <span className="text-xs text-muted-foreground">até</span>
+          <span className="text-[11px] text-muted-foreground">até</span>
 
-          {/* Date To */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "justify-start text-left font-normal text-xs h-8",
-                  !dateTo && "text-muted-foreground"
-                )}
-              >
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded-lg border-border/60", !dateTo && "text-muted-foreground")}>
                 <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
                 {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={dateTo}
-                onSelect={handleSelectTo}
-                disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
+              <Calendar mode="single" selected={dateTo} onSelect={handleSelectTo} disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
 
-          {/* Series toggles */}
-          <div className="flex items-center gap-3 ml-2">
+          <div className="h-5 w-px bg-border/60 mx-1 hidden sm:block" />
+
+          <div className="flex items-center gap-3">
             {series.map((s) => (
-              <button
-                key={s.key}
-                onClick={() => toggle(s.key)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {visible[s.key] ? (
-                  <Eye className="w-3.5 h-3.5" />
-                ) : (
-                  <EyeOff className="w-3.5 h-3.5 opacity-40" />
-                )}
-                <span className={!visible[s.key] ? "opacity-40 line-through" : ""}>{s.label}</span>
+              <button key={s.key} onClick={() => toggle(s.key)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {visible[s.key] ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 opacity-40" />}
+                <span className={cn("text-[11px]", !visible[s.key] && "opacity-40 line-through")}>{s.label}</span>
               </button>
             ))}
           </div>
@@ -329,53 +218,35 @@ export function VolumeChart() {
         <AreaChart data={displayData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="gEnviadas" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--warning))" stopOpacity={0.45} />
-              <stop offset="95%" stopColor="rgb(var(--warning))" stopOpacity={0.04} />
+              <stop offset="5%" stopColor="rgb(var(--warning))" stopOpacity={0.35} />
+              <stop offset="95%" stopColor="rgb(var(--warning))" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gEntregues" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0.04} />
+              <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gErros" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--destructive))" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="rgb(var(--destructive))" stopOpacity={0.04} />
+              <stop offset="5%" stopColor="rgb(var(--destructive))" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="rgb(var(--destructive))" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" opacity={0.4} />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }}
-            axisLine={{ stroke: "rgb(var(--border))" }}
-            tickLine={false}
-          />
-          <YAxis
-            tickFormatter={formatYAxis}
-            tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }}
-            axisLine={false}
-            tickLine={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" opacity={0.3} vertical={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{
               backgroundColor: "rgb(var(--card))",
               border: "1px solid rgb(var(--border))",
-              borderRadius: "8px",
+              borderRadius: "10px",
               fontSize: "12px",
-              padding: "8px 12px",
+              padding: "10px 14px",
+              boxShadow: "0 4px 16px rgb(var(--foreground) / 0.08)",
             }}
-            labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+            labelStyle={{ fontWeight: 600, marginBottom: 4, fontSize: 11 }}
           />
           {series.map((s) =>
             visible[s.key] ? (
-              <Area
-                key={s.key}
-                type="monotone"
-                dataKey={s.key}
-                stroke={s.color}
-                strokeWidth={2.5}
-                fill={`url(#${s.gradientId})`}
-                animationDuration={1200}
-                animationEasing="ease-in-out"
-              />
+              <Area key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2} fill={`url(#${s.gradientId})`} animationDuration={1200} animationEasing="ease-in-out" dot={false} activeDot={{ r: 4, strokeWidth: 2, fill: "rgb(var(--card))" }} />
             ) : null
           )}
         </AreaChart>
