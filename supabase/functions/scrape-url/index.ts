@@ -1,0 +1,80 @@
+import { corsHeaders } from "../_shared/cors.ts";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { url } = await req.json();
+
+    if (!url || typeof url !== "string") {
+      return new Response(
+        JSON.stringify({ error: "URL é obrigatória" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
+
+    console.log("Scraping URL:", formattedUrl);
+
+    const response = await fetch(formattedUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; Bot/1.0)",
+        "Accept": "text/html,application/xhtml+xml,text/plain",
+      },
+    });
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: `Erro ao acessar a URL: ${response.status}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const html = await response.text();
+
+    // Strip HTML tags, scripts, styles to get plain text
+    let text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Limit to ~10000 chars to avoid huge prompts
+    if (text.length > 10000) {
+      text = text.substring(0, 10000) + "...";
+    }
+
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : new URL(formattedUrl).hostname;
+
+    console.log(`Scraped ${text.length} chars from ${formattedUrl}`);
+
+    return new Response(
+      JSON.stringify({ title, content: text, url: formattedUrl }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Scrape error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao processar URL" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
