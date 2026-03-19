@@ -16,27 +16,31 @@ export function Header({ onNavigate }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-card/80 backdrop-blur border-b border-border px-4 py-2 flex items-center justify-end gap-1">
+      <header className="bg-card/60 backdrop-blur-xl border-b border-border/60 px-5 py-2.5 flex items-center justify-end gap-1.5">
         <Button
           variant="outline"
           size="sm"
-          className="text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-7 px-2"
+          className="text-destructive border-destructive/20 hover:bg-destructive/5 text-xs h-8 px-3 rounded-lg font-medium"
           onClick={() => setRenewOpen(true)}
         >
           Renovar
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative h-8 w-8" onClick={() => setNotificationsOpen(true)}>
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-destructive rounded-full" />
+        <div className="w-px h-5 bg-border/60 mx-1" />
+
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => setNotificationsOpen(true)}>
+          <Bell className="w-4 h-4 text-muted-foreground" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full ring-2 ring-card" />
         </Button>
 
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(true)}>
-          <Settings className="w-4 h-4" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => setSettingsOpen(true)}>
+          <Settings className="w-4 h-4 text-muted-foreground" />
         </Button>
 
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onNavigate?.("perfil")}>
-          <User className="w-4 h-4" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => onNavigate?.("perfil")}>
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="w-3.5 h-3.5 text-primary" />
+          </div>
         </Button>
       </header>
 

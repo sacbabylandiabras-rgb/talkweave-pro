@@ -12,13 +12,16 @@ import {
   Workflow,
   Webhook,
   MessageCircle,
-  UserPlus
+  UserPlus,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useState } from "react";
 
 interface SidebarProps {
   activeItem?: string;
@@ -30,7 +33,7 @@ const menuItems = [
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
-  { id: "fluxo-visual", label: "Fluxo", icon: Workflow, path: "/fluxo-visual" },
+  { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
   { id: "enviar-mensagem", label: "Enviar", icon: Send, path: "/enviar-mensagem" },
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
@@ -42,11 +45,12 @@ const menuItems = [
 const bottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
-  { id: "configuracao-zapi", label: "Config", icon: Settings, path: "/configuracao-zapi", adminOnly: true },
+  { id: "configuracao-zapi", label: "Configuração", icon: Settings, path: "/configuracao-zapi", adminOnly: true },
 ];
 
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
+  const [collapsed, setCollapsed] = useState(false);
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
@@ -61,40 +65,82 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             <Link
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl text-[10px] font-medium transition-all",
+                "group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200",
+                collapsed && "justify-center px-2",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
               )}
             >
-              <Icon className="w-5 h-5" />
-              <span className="leading-none">{item.label}</span>
+              <Icon className={cn(
+                "shrink-0 transition-colors duration-200",
+                collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )} />
+              {!collapsed && (
+                <span className="truncate">{item.label}</span>
+              )}
             </Link>
           </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">
-            {item.label}
-          </TooltipContent>
+          {collapsed && (
+            <TooltipContent side="right" className="font-medium text-xs">
+              {item.label}
+            </TooltipContent>
+          )}
         </Tooltip>
       </li>
     );
   };
 
   return (
-    <div className="w-[72px] bg-card border-r border-border h-screen flex flex-col items-center py-3 gap-1">
-      {/* Logo */}
-      <div className="mb-3">
-        <LogoImage className="w-9 h-9 object-contain" />
+    <div className={cn(
+      "bg-card border-r border-border h-screen flex flex-col transition-all duration-300 ease-in-out relative",
+      collapsed ? "w-[60px]" : "w-[220px]"
+    )}>
+      {/* Logo + Brand */}
+      <div className={cn(
+        "flex items-center gap-2.5 px-4 py-4 border-b border-border",
+        collapsed && "justify-center px-2"
+      )}>
+        <LogoImage className="w-8 h-8 object-contain shrink-0" />
+        {!collapsed && (
+          <span className="text-sm font-bold text-foreground tracking-tight">ZapLynx</span>
+        )}
       </div>
 
+      {/* Collapse toggle */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute -right-3 top-[52px] z-10 w-6 h-6 rounded-full border border-border bg-card shadow-sm flex items-center justify-center hover:bg-muted transition-colors"
+      >
+        {collapsed ? (
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+        )}
+      </button>
+
+      {/* Section label */}
+      {!collapsed && (
+        <div className="px-4 pt-4 pb-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Menu</span>
+        </div>
+      )}
+
       {/* Main Menu */}
-      <nav className="flex-1 overflow-y-auto w-full px-1.5">
+      <nav className="flex-1 overflow-y-auto px-2 py-1">
         <ul className="space-y-0.5">
           {menuItems.map(renderItem)}
         </ul>
       </nav>
 
       {/* Bottom */}
-      <div className="w-full px-1.5 pt-2 border-t border-border">
+      {!collapsed && (
+        <div className="px-4 pb-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Sistema</span>
+        </div>
+      )}
+      <div className="px-2 pb-3 border-t border-border pt-2">
         <ul className="space-y-0.5">
           {bottomItems.map(renderItem)}
         </ul>
