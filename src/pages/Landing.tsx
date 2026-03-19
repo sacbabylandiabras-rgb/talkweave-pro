@@ -91,11 +91,11 @@ const Landing = () => {
       {/* Feature Showcase */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-          <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
+          <div className="flex justify-center">
             <img
               src={featureScreenshot}
               alt="Funcionalidade ZapLynx"
-              className="w-full h-auto object-cover"
+              className="w-full h-auto object-contain"
             />
           </div>
           <div className="space-y-5">
