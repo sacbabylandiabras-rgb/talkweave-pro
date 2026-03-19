@@ -181,6 +181,66 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Extração de Leads de Grupos */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="order-2 md:order-1 flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-8 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">👥</span>
+                <h4 className="text-foreground font-bold text-lg">Grupos Detectados</h4>
+              </div>
+              {[
+                { name: "Marketing Digital 2026", members: 847 },
+                { name: "Vendas Online BR", members: 1243 },
+                { name: "Empreendedores SP", members: 562 },
+              ].map((group, i) => (
+                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div>
+                    <p className="text-foreground text-sm font-medium">{group.name}</p>
+                    <p className="text-muted-foreground text-xs">{group.members} membros</p>
+                  </div>
+                  <span className="text-primary text-xs font-bold">Extrair</span>
+                </div>
+              ))}
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">+ 12 grupos disponíveis</span>
+              </div>
+            </div>
+          </div>
+          <div className="order-1 md:order-2 space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Extraia Leads Diretamente dos Grupos
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Transforme grupos do WhatsApp em listas de contatos qualificados. 
+              Nosso apanhador de grupos identifica automaticamente todos os grupos 
+              das suas instâncias e permite extrair os números dos participantes 
+              com um clique.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Detecção automática de todos os seus grupos",
+                "Extração de números dos participantes",
+                "Sincronização entre múltiplas instâncias",
+                "Envie campanhas direto para os leads extraídos",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Extrair Leads Agora
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
