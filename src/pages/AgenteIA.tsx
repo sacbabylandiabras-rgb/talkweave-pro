@@ -320,6 +320,7 @@ const AgenteIA = () => {
                   </div>
 
                   {/* Manual Document */}
+                  <div className="grid gap-3">
                     <Input
                       value={docTitle}
                       onChange={e => setDocTitle(e.target.value)}
