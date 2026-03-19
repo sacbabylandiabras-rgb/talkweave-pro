@@ -19,15 +19,9 @@ Deno.serve(async (req) => {
       throw new Error('groupId is required');
     }
 
-    // Convert -group suffix back to @g.us for Z-API
-    const zapiGroupId = groupId.endsWith('-group')
-      ? groupId.replace('-group', '@g.us')
-      : groupId;
+    console.log(`📱 Fetching participants for group: ${groupId}`);
 
-    console.log(`📱 Fetching participants for group: ${groupId} -> Z-API ID: ${zapiGroupId}`);
-
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/group-metadata/${zapiGroupId}`;
-
+    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/group-metadata/${groupId}`;
     const response = await fetch(zapiUrl, {
       method: 'GET',
       headers: {
