@@ -183,7 +183,7 @@ const Landing = () => {
                 <div className="landing-laptop-frame">
                   <div className="landing-laptop-screen">
                     <img
-                      src={fluxoScreenshot2}
+                      src={fluxoScreenshot3}
                       alt="Exemplo de fluxo visual de automação"
                       className="w-full h-full object-cover object-left-top"
                     />
