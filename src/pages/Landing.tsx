@@ -128,21 +128,6 @@ const Landing = () => {
 
       {/* Fluxo Visual Section */}
       <section className="w-full">
-        {/* Red section with notebook mockup */}
-        <div className="bg-primary py-20 px-5">
-          <div className="max-w-[900px] mx-auto isolate landing-mockup-wrap">
-            <div className="landing-laptop-frame">
-              <div className="landing-laptop-screen">
-                <img
-                  src={fluxoScreenshot1}
-                  alt="Fluxo Visual de Automação ZapLynx"
-                  className="w-full h-full object-cover object-left-top"
-                />
-              </div>
-              <div className="landing-laptop-base" />
-            </div>
-          </div>
-        </div>
 
         {/* White section with flow description */}
         <div className="bg-card py-20 px-5">
