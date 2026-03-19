@@ -11,6 +11,8 @@ export interface WhatsAppGroup {
   ultimaMensagem: string | null;
   isAdmin: boolean;
   participantes: any[];
+  sourceInstanceId?: string | null;
+  sourceInstanceName?: string | null;
 }
 
 export function useWhatsAppGroups() {
