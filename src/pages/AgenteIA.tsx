@@ -294,8 +294,32 @@ const AgenteIA = () => {
                     Cole textos, instruções ou informações para o agente absorver como contexto
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3">
+                <CardContent className="space-y-6">
+                  {/* URL Import */}
+                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-primary" />
+                      <Label className="text-sm font-medium">Importar de URL</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Cole uma URL e o agente extrairá automaticamente o conteúdo para usar como base de conhecimento
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        value={urlInput}
+                        onChange={e => setUrlInput(e.target.value)}
+                        placeholder="https://seusite.com/pagina"
+                        disabled={urlLoading}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleImportUrl} disabled={!urlInput.trim() || urlLoading} size="sm">
+                        {urlLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Link className="w-4 h-4 mr-1" />}
+                        Importar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Manual Document */}
                     <Input
                       value={docTitle}
                       onChange={e => setDocTitle(e.target.value)}
