@@ -88,6 +88,42 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Feature Showcase */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
+            <img
+              src={featureScreenshot}
+              alt="Funcionalidade ZapLynx"
+              className="w-full h-auto object-cover"
+            />
+          </div>
+          <div className="space-y-5">
+            <h3 className="text-2xl font-extrabold text-foreground">
+              Envios em Massa com Controle Total
+            </h3>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Dispare mensagens para milhares de contatos com intervalos inteligentes, 
+              revezamento automático entre instâncias e acompanhamento em tempo real 
+              do progresso de cada envio.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Envio segmentado por grupos e listas",
+                "Delay configurável entre mensagens",
+                "Relatório detalhado de entregas",
+                "Suporte a texto, imagem, áudio e vídeo",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
