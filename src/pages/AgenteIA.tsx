@@ -23,6 +23,8 @@ import {
   Loader2,
   Sparkles,
   Save,
+  Globe,
+  Link,
 } from "lucide-react";
 
 interface ChatMessage {

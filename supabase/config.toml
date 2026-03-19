@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.agent-chat]
 verify_jwt = false
+
+[functions.scrape-url]
+verify_jwt = false
