@@ -2,7 +2,7 @@ import messageReference from "@/assets/whatsapp-message-reference.png";
 
 const PhoneMockup = () => {
   return (
-    <div className="landing-phone-showcase" aria-hidden="true">
+    <div className="landing-phone-showcase">
       <div className="landing-phone-frame">
         <span className="landing-phone-button landing-phone-button--volume-up" />
         <span className="landing-phone-button landing-phone-button--volume-down" />
