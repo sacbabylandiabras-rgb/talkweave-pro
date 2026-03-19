@@ -7,6 +7,7 @@ import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
 import prova4 from "@/assets/prova4.jpg";
 import prova5 from "@/assets/prova5.jpg";
+import featureScreenshot from "@/assets/feature-screenshot.png";
 
 const Landing = () => {
   const navigate = useNavigate();
