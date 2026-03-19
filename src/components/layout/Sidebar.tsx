@@ -14,7 +14,8 @@ import {
   MessageCircle,
   UserPlus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Bot
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
