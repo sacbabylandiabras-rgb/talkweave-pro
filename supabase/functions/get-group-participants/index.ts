@@ -2,6 +2,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+interface Participant {
+  phone: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  name: string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,9 +22,7 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { groupId, fallbackParticipants = [], sourceInstanceId = null } = await req.json();
-    if (!groupId) {
-      throw new Error('groupId is required');
-    }
+    if (!groupId) throw new Error('groupId is required');
 
     let instanceId = credentials.instanceId;
     let token = credentials.token;
@@ -40,43 +45,84 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`📱 Fetching participants for group: ${groupId} | instance: ${instanceId}`);
+    const headers = {
+      'Content-Type': 'application/json',
+      'Client-Token': clientToken,
+    };
 
-    const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${groupId}`;
-    const response = await fetch(zapiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': clientToken,
-      },
-    });
+    const fetchGroupMetadata = async (targetId: string) => {
+      const response = await fetch(
+        `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${targetId}`,
+        { method: 'GET', headers }
+      );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Z-API error: ${response.status} - ${errorText}`);
-      throw new Error(`Z-API error: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Z-API error: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    };
+
+    const fetchCommunityMetadata = async (communityId: string) => {
+      const normalizedCommunityId = communityId.replace('-group', '');
+      const response = await fetch(
+        `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${normalizedCommunityId}`,
+        { method: 'GET', headers }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`⚠️ Community metadata unavailable for ${normalizedCommunityId}: ${response.status} - ${errorText}`);
+        return null;
+      }
+
+      return await response.json();
+    };
+
+    console.log(`📱 Fetching participants for group/community: ${groupId} | instance: ${instanceId}`);
+
+    const primaryData = await fetchGroupMetadata(groupId);
+    let apiParticipants = Array.isArray(primaryData.participants) ? primaryData.participants : [];
+
+    if (apiParticipants.length === 0) {
+      const candidateCommunityId = primaryData.communityId || groupId;
+      const communityData = await fetchCommunityMetadata(candidateCommunityId);
+      const subGroups = Array.isArray(communityData?.subGroups) ? communityData.subGroups : [];
+
+      if (subGroups.length > 0) {
+        console.log(`🏘️ Community detected for ${candidateCommunityId}. Linked groups: ${subGroups.length}`);
+        const aggregatedParticipants: any[] = [];
+
+        for (const subGroup of subGroups) {
+          const subGroupId = subGroup.phone || subGroup.id;
+          if (!subGroupId) continue;
+
+          try {
+            const subGroupData = await fetchGroupMetadata(subGroupId);
+            const subGroupParticipants = Array.isArray(subGroupData.participants) ? subGroupData.participants : [];
+            console.log(`👥 Subgroup ${subGroupId}: ${subGroupParticipants.length} participants`);
+            aggregatedParticipants.push(...subGroupParticipants);
+          } catch (subGroupError) {
+            console.error(`❌ Failed to fetch subgroup ${subGroupId}:`, subGroupError);
+          }
+        }
+
+        if (aggregatedParticipants.length > 0) {
+          apiParticipants = aggregatedParticipants;
+        }
+      }
     }
 
-    const data = await response.json();
-    const apiParticipants = Array.isArray(data.participants) ? data.participants : [];
     const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
     const fallbackHasOnlyAdmins = fallbackList.length > 0 && fallbackList.every((p) => Boolean(p?.isAdmin) || Boolean(p?.isSuperAdmin));
     const shouldUseFallback = apiParticipants.length === 0 && fallbackList.length > 0 && !fallbackHasOnlyAdmins;
     const rawParticipants = shouldUseFallback ? fallbackList : apiParticipants;
+
     console.log(`✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackList.length}, fallback only admins: ${fallbackHasOnlyAdmins}`);
 
-    const resolvedParticipants: Array<{
-      phone: string;
-      isAdmin: boolean;
-      isSuperAdmin: boolean;
-      name: string;
-    }> = [];
-    const unresolvedLidParticipants: Array<{
-      phone: string;
-      isAdmin: boolean;
-      isSuperAdmin: boolean;
-      name: string;
-    }> = [];
+    const resolvedParticipants: Participant[] = [];
+    const unresolvedLidParticipants: Participant[] = [];
     const lidParticipants: string[] = [];
 
     for (const p of rawParticipants) {
@@ -116,27 +162,18 @@ Deno.serve(async (req) => {
           .eq('keyword_matched', '__lid_map__')
           .in('message_received', lidParticipants);
 
-        if (lidMappings && lidMappings.length > 0) {
-          console.log(`🔗 Resolved ${lidMappings.length} LID mappings from database`);
-          const mappingByLid = new Map(
-            lidMappings
-              .map((mapping) => [mapping.message_received, String(mapping.phone || '').replace(/\D/g, '')])
-              .filter(([, phone]) => Boolean(phone))
-          );
+        const mappingByLid = new Map(
+          (lidMappings || [])
+            .map((mapping) => [mapping.message_received, String(mapping.phone || '').replace(/\D/g, '')])
+            .filter(([, phone]) => Boolean(phone))
+        );
 
-          for (const participant of unresolvedLidParticipants) {
-            const resolvedPhone = mappingByLid.get(participant.phone);
-            if (resolvedPhone) {
-              resolvedParticipants.push({
-                ...participant,
-                phone: resolvedPhone,
-              });
-            } else {
-              resolvedParticipants.push(participant);
-            }
-          }
-        } else {
-          resolvedParticipants.push(...unresolvedLidParticipants);
+        for (const participant of unresolvedLidParticipants) {
+          const resolvedPhone = mappingByLid.get(participant.phone);
+          resolvedParticipants.push({
+            ...participant,
+            phone: resolvedPhone || participant.phone,
+          });
         }
 
         const resolvedLids = new Set((lidMappings || []).map((m) => m.message_received));
@@ -160,9 +197,9 @@ Deno.serve(async (req) => {
     console.log(`✅ Final unique participants: ${uniqueParticipants.length}`);
 
     return new Response(JSON.stringify({
-      groupName: data.subject || data.name || '',
-      description: data.description || '',
-      owner: data.owner || '',
+      groupName: primaryData.subject || primaryData.name || '',
+      description: primaryData.description || '',
+      owner: primaryData.owner || '',
       participants: uniqueParticipants,
       totalLids: lidParticipants.length,
       resolvedLids: uniqueParticipants.filter((p) => !String(p.phone).includes('@lid')).length,
