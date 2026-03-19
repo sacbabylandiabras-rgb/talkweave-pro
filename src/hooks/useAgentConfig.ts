@@ -1,0 +1,174 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+interface AgentConfig {
+  id?: string;
+  agent_name: string;
+  system_prompt: string;
+  active: boolean;
+}
+
+interface KnowledgeItem {
+  id: string;
+  type: "faq" | "document";
+  question?: string;
+  answer?: string;
+  title?: string;
+  content?: string;
+  active: boolean;
+  created_at: string;
+}
+
+export function useAgentConfig() {
+  const [config, setConfig] = useState<AgentConfig>({
+    agent_name: "Assistente",
+    system_prompt: "Você é um assistente virtual prestativo e educado. Responda as perguntas dos clientes de forma clara e objetiva.",
+    active: false,
+  });
+  const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data } = await supabase
+        .from("agent_config")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (data) {
+        setConfig({
+          id: data.id,
+          agent_name: data.agent_name || "Assistente",
+          system_prompt: data.system_prompt || "",
+          active: data.active,
+        });
+      }
+
+      const { data: knowledgeData } = await supabase
+        .from("agent_knowledge")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: true });
+
+      setKnowledge((knowledgeData as any[]) || []);
+    } catch (error) {
+      console.error("Error loading agent config:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  const saveConfig = async (newConfig: Partial<AgentConfig>) => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const payload = {
+        user_id: session.user.id,
+        agent_name: newConfig.agent_name ?? config.agent_name,
+        system_prompt: newConfig.system_prompt ?? config.system_prompt,
+        active: newConfig.active ?? config.active,
+      };
+
+      if (config.id) {
+        const { error } = await supabase
+          .from("agent_config")
+          .update(payload)
+          .eq("id", config.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("agent_config")
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setConfig(prev => ({ ...prev, id: data.id }));
+      }
+
+      setConfig(prev => ({ ...prev, ...newConfig }));
+      toast({ title: "Configuração salva!" });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addFaq = async (question: string, answer: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const { data, error } = await supabase
+        .from("agent_knowledge")
+        .insert({
+          user_id: session.user.id,
+          type: "faq",
+          question,
+          answer,
+          active: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setKnowledge(prev => [...prev, data as any]);
+      toast({ title: "FAQ adicionado!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const addDocument = async (title: string, content: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const { data, error } = await supabase
+        .from("agent_knowledge")
+        .insert({
+          user_id: session.user.id,
+          type: "document",
+          title,
+          content,
+          active: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setKnowledge(prev => [...prev, data as any]);
+      toast({ title: "Documento adicionado!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const removeKnowledge = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("agent_knowledge")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      setKnowledge(prev => prev.filter(k => k.id !== id));
+      toast({ title: "Item removido!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  return { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge, loadConfig };
+}
