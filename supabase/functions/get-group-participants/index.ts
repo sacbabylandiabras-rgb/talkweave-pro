@@ -59,8 +59,11 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
     const apiParticipants = Array.isArray(data.participants) ? data.participants : [];
-    const rawParticipants = apiParticipants.length > 0 ? apiParticipants : fallbackParticipants;
-    console.log(`✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackParticipants.length}`);
+    const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
+    const fallbackHasOnlyAdmins = fallbackList.length > 0 && fallbackList.every((p) => Boolean(p?.isAdmin) || Boolean(p?.isSuperAdmin));
+    const shouldUseFallback = apiParticipants.length === 0 && fallbackList.length > 0 && !fallbackHasOnlyAdmins;
+    const rawParticipants = shouldUseFallback ? fallbackList : apiParticipants;
+    console.log(`✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackList.length}, fallback only admins: ${fallbackHasOnlyAdmins}`);
 
     const resolvedParticipants: Array<{
       phone: string;
@@ -141,7 +144,8 @@ Deno.serve(async (req) => {
       participants: uniqueParticipants,
       totalLids: lidParticipants.length,
       resolvedLids: lidParticipants.filter((lid) => uniqueParticipants.some((p) => p.phone)).length,
-      usedFallbackParticipants: apiParticipants.length === 0 && fallbackParticipants.length > 0,
+      usedFallbackParticipants: shouldUseFallback,
+      partialAdminsOnlyFallback: apiParticipants.length === 0 && fallbackHasOnlyAdmins,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

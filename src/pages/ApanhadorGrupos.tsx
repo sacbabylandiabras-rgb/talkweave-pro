@@ -39,7 +39,11 @@ const ApanhadorGrupos = () => {
         .map((p: any) => p.phone)
         .filter((p: string) => p && p.length > 5);
       setExtractedNumbers(prev => new Map(prev).set(groupId, phones));
-      toast.success(`${phones.length} números extraídos!`);
+      if (data.partialAdminsOnlyFallback) {
+        toast.warning('Esta comunidade retornou apenas admins na listagem. Abra novamente após novas interações para mapear mais membros.');
+      } else {
+        toast.success(`${phones.length} números extraídos!`);
+      }
     } catch (err: any) {
       console.error('Erro ao extrair participantes:', err);
       toast.error('Erro ao extrair participantes do grupo');
