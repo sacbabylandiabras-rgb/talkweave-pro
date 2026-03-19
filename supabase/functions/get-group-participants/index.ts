@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { groupId } = await req.json();
+    const { groupId, fallbackParticipants = [] } = await req.json();
     if (!groupId) {
       throw new Error('groupId is required');
     }
@@ -37,26 +37,33 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const rawParticipants = data.participants || [];
-    console.log(`✅ Group metadata received, raw participants: ${rawParticipants.length}`);
+    const apiParticipants = Array.isArray(data.participants) ? data.participants : [];
+    const rawParticipants = apiParticipants.length > 0 ? apiParticipants : fallbackParticipants;
+    console.log(`✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackParticipants.length}`);
 
-    // Separate participants with phone numbers vs @lid identifiers
-    const resolvedParticipants: any[] = [];
+    const resolvedParticipants: Array<{
+      phone: string;
+      isAdmin: boolean;
+      isSuperAdmin: boolean;
+      name: string;
+    }> = [];
     const lidParticipants: string[] = [];
 
     for (const p of rawParticipants) {
-      const id = p.phone || p.id || '';
-      const cleanId = id.replace('@c.us', '').replace('@lid', '');
+      const rawId = p.phone || p.id || p.participant || '';
+      const normalizedId = String(rawId).trim();
+      const cleanPhone = normalizedId.replace('@c.us', '').replace(/\D/g, '');
 
-      if (id.includes('@lid') || (!id.includes('@c.us') && cleanId.length < 8)) {
-        // This is a @lid identifier, needs resolution
-        lidParticipants.push(cleanId);
-      } else {
-        // Normal phone number
+      if (normalizedId.includes('@lid')) {
+        lidParticipants.push(normalizedId);
+        continue;
+      }
+
+      if (cleanPhone.length >= 8) {
         resolvedParticipants.push({
-          phone: cleanId,
-          isAdmin: p.isAdmin || false,
-          isSuperAdmin: p.isSuperAdmin || false,
+          phone: cleanPhone,
+          isAdmin: Boolean(p.isAdmin),
+          isSuperAdmin: Boolean(p.isSuperAdmin),
           name: p.name || p.short || p.notify || '',
         });
       }
@@ -64,7 +71,6 @@ Deno.serve(async (req) => {
 
     console.log(`📊 Direct phones: ${resolvedParticipants.length}, LID identifiers: ${lidParticipants.length}`);
 
-    // Resolve @lid identifiers from message_logs mapping
     if (lidParticipants.length > 0) {
       try {
         const { data: lidMappings } = await adminClient
@@ -72,13 +78,15 @@ Deno.serve(async (req) => {
           .select('phone, message_received')
           .eq('user_id', credentials.userId)
           .eq('keyword_matched', '__lid_map__')
-          .in('response_sent', lidParticipants);
+          .in('message_received', lidParticipants);
 
         if (lidMappings && lidMappings.length > 0) {
           console.log(`🔗 Resolved ${lidMappings.length} LID mappings from database`);
           for (const mapping of lidMappings) {
+            const phone = String(mapping.phone || '').replace(/\D/g, '');
+            if (!phone) continue;
             resolvedParticipants.push({
-              phone: mapping.phone,
+              phone,
               isAdmin: false,
               isSuperAdmin: false,
               name: '',
@@ -86,9 +94,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // For unresolved LIDs, try to include them with a marker
-        const resolvedLids = new Set(lidMappings?.map(m => m.response_sent) || []);
-        const unresolvedCount = lidParticipants.filter(lid => !resolvedLids.has(lid)).length;
+        const resolvedLids = new Set((lidMappings || []).map((m) => m.message_received));
+        const unresolvedCount = lidParticipants.filter((lid) => !resolvedLids.has(lid)).length;
         if (unresolvedCount > 0) {
           console.log(`⚠️ ${unresolvedCount} LID identifiers could not be resolved`);
         }
@@ -97,9 +104,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Deduplicate by phone
     const seenPhones = new Set<string>();
-    const uniqueParticipants = resolvedParticipants.filter(p => {
+    const uniqueParticipants = resolvedParticipants.filter((p) => {
       if (!p.phone || seenPhones.has(p.phone)) return false;
       seenPhones.add(p.phone);
       return true;
@@ -113,7 +119,8 @@ Deno.serve(async (req) => {
       owner: data.owner || '',
       participants: uniqueParticipants,
       totalLids: lidParticipants.length,
-      resolvedLids: lidParticipants.length > 0 ? uniqueParticipants.length - resolvedParticipants.filter(p => !lidParticipants.includes(p.phone)).length : 0,
+      resolvedLids: lidParticipants.filter((lid) => uniqueParticipants.some((p) => p.phone)).length,
+      usedFallbackParticipants: apiParticipants.length === 0 && fallbackParticipants.length > 0,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
