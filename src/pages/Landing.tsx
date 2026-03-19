@@ -7,7 +7,7 @@ import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
 import prova4 from "@/assets/prova4.jpg";
 import prova5 from "@/assets/prova5.jpg";
-import featureScreenshot from "@/assets/feature-screenshot-transparent.png";
+import PhoneMockup from "@/components/landing/PhoneMockup";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -92,11 +92,7 @@ const Landing = () => {
       <section className="w-[90%] max-w-[1200px] mx-auto py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="flex justify-center">
-            <img
-              src={featureScreenshot}
-              alt="Funcionalidade ZapLynx"
-              className="w-full max-w-[320px] h-auto object-contain drop-shadow-2xl"
-            />
+            <PhoneMockup />
           </div>
           <div className="space-y-5">
             <h3 className="text-2xl font-extrabold text-foreground">

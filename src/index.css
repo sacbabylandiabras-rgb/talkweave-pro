@@ -220,7 +220,107 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-mockup {
+  .landing-mockup,
+  .landing-phone-showcase {
     animation: none;
+  }
+}
+
+.landing-phone-showcase {
+  position: relative;
+  width: min(100%, 350px);
+  display: flex;
+  justify-content: center;
+  filter: drop-shadow(0 34px 60px rgb(var(--foreground) / 0.16));
+  animation: landing-float 4.5s ease-in-out infinite;
+}
+
+.landing-phone-showcase::before {
+  content: "";
+  position: absolute;
+  inset: auto 18% -4% 18%;
+  height: 14%;
+  background: radial-gradient(circle, rgb(var(--primary) / 0.18) 0%, transparent 72%);
+  filter: blur(18px);
+  z-index: -1;
+}
+
+.landing-phone-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.52;
+  border-radius: 2.75rem;
+  padding: 0.75rem;
+  background: linear-gradient(145deg, rgb(var(--foreground)) 0%, rgb(var(--foreground) / 0.88) 56%, rgb(var(--foreground) / 0.96) 100%);
+  box-shadow: inset 0 0 0 1px rgb(var(--background) / 0.14), inset 0 0 0 4px rgb(var(--foreground) / 0.72);
+}
+
+.landing-phone-screen-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 2.2rem;
+  padding: 0.42rem;
+  background: linear-gradient(180deg, rgb(var(--muted)) 0%, rgb(var(--background)) 100%);
+  overflow: hidden;
+}
+
+.landing-phone-notch {
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: rgb(var(--foreground));
+  z-index: 2;
+}
+
+.landing-phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 1.9rem;
+  overflow: hidden;
+  background: rgb(var(--background));
+}
+
+.landing-phone-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.landing-phone-button {
+  position: absolute;
+  left: -0.18rem;
+  width: 0.22rem;
+  border-radius: 999px;
+  background: rgb(var(--foreground) / 0.82);
+  box-shadow: 0 0 0 1px rgb(var(--background) / 0.08);
+}
+
+.landing-phone-button--volume-up {
+  top: 24%;
+  height: 3.4rem;
+}
+
+.landing-phone-button--volume-down {
+  top: 33%;
+  height: 3.4rem;
+}
+
+.landing-phone-button--power {
+  left: auto;
+  right: -0.18rem;
+  top: 29%;
+  height: 5.6rem;
+}
+
+@media (max-width: 768px) {
+  .landing-phone-showcase {
+    width: min(100%, 300px);
   }
 }
