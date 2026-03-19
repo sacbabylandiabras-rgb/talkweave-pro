@@ -95,7 +95,7 @@ const Landing = () => {
             <img
               src={featureScreenshot}
               alt="Funcionalidade ZapLynx"
-              className="w-full h-auto object-contain"
+              className="w-full max-w-[320px] h-auto object-contain drop-shadow-2xl"
             />
           </div>
           <div className="space-y-5">
