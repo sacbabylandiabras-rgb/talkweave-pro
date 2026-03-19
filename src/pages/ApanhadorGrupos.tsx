@@ -124,7 +124,7 @@ const ApanhadorGrupos = () => {
             </div>
             <Button
               variant="outline"
-              onClick={refetch}
+              onClick={() => { setExtractedNumbers(new Map()); refetch(); }}
               disabled={loading}
               className="flex items-center gap-2"
             >
