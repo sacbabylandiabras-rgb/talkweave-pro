@@ -38,13 +38,22 @@ Deno.serve(async (req) => {
 
     const html = await response.text();
 
-    // Strip HTML tags, scripts, styles to get plain text
+    // Convert <a> tags to markdown links BEFORE stripping other tags to preserve URLs
     let text = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
       .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
       .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
       .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, linkText) => {
+        const cleanText = linkText.replace(/<[^>]+>/g, "").trim();
+        if (href && cleanText && !href.startsWith("#") && !href.startsWith("javascript:")) {
+          let fullUrl = href;
+          try { fullUrl = new URL(href, formattedUrl).href; } catch {}
+          return ` ${cleanText} ( ${fullUrl} ) `;
+        }
+        return ` ${cleanText} `;
+      })
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
