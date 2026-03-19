@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_config: {
+        Row: {
+          active: boolean
+          agent_name: string
+          created_at: string
+          id: string
+          system_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          agent_name?: string
+          created_at?: string
+          id?: string
+          system_prompt?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          agent_name?: string
+          created_at?: string
+          id?: string
+          system_prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_knowledge: {
+        Row: {
+          active: boolean
+          answer: string | null
+          content: string | null
+          created_at: string
+          id: string
+          question: string | null
+          title: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          answer?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          question?: string | null
+          title?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          answer?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          question?: string | null
+          title?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auto_response_config: {
         Row: {
           active: boolean
