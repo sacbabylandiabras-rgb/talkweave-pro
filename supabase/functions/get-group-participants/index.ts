@@ -71,6 +71,12 @@ Deno.serve(async (req) => {
       isSuperAdmin: boolean;
       name: string;
     }> = [];
+    const unresolvedLidParticipants: Array<{
+      phone: string;
+      isAdmin: boolean;
+      isSuperAdmin: boolean;
+      name: string;
+    }> = [];
     const lidParticipants: string[] = [];
 
     for (const p of rawParticipants) {
@@ -80,6 +86,12 @@ Deno.serve(async (req) => {
 
       if (normalizedId.includes('@lid')) {
         lidParticipants.push(normalizedId);
+        unresolvedLidParticipants.push({
+          phone: normalizedId,
+          isAdmin: Boolean(p.isAdmin),
+          isSuperAdmin: Boolean(p.isSuperAdmin),
+          name: p.name || p.short || p.notify || '',
+        });
         continue;
       }
 
@@ -106,16 +118,25 @@ Deno.serve(async (req) => {
 
         if (lidMappings && lidMappings.length > 0) {
           console.log(`🔗 Resolved ${lidMappings.length} LID mappings from database`);
-          for (const mapping of lidMappings) {
-            const phone = String(mapping.phone || '').replace(/\D/g, '');
-            if (!phone) continue;
-            resolvedParticipants.push({
-              phone,
-              isAdmin: false,
-              isSuperAdmin: false,
-              name: '',
-            });
+          const mappingByLid = new Map(
+            lidMappings
+              .map((mapping) => [mapping.message_received, String(mapping.phone || '').replace(/\D/g, '')])
+              .filter(([, phone]) => Boolean(phone))
+          );
+
+          for (const participant of unresolvedLidParticipants) {
+            const resolvedPhone = mappingByLid.get(participant.phone);
+            if (resolvedPhone) {
+              resolvedParticipants.push({
+                ...participant,
+                phone: resolvedPhone,
+              });
+            } else {
+              resolvedParticipants.push(participant);
+            }
           }
+        } else {
+          resolvedParticipants.push(...unresolvedLidParticipants);
         }
 
         const resolvedLids = new Set((lidMappings || []).map((m) => m.message_received));
@@ -125,6 +146,7 @@ Deno.serve(async (req) => {
         }
       } catch (dbError) {
         console.error('❌ Error resolving LID mappings:', dbError);
+        resolvedParticipants.push(...unresolvedLidParticipants);
       }
     }
 
@@ -143,7 +165,8 @@ Deno.serve(async (req) => {
       owner: data.owner || '',
       participants: uniqueParticipants,
       totalLids: lidParticipants.length,
-      resolvedLids: lidParticipants.filter((lid) => uniqueParticipants.some((p) => p.phone)).length,
+      resolvedLids: uniqueParticipants.filter((p) => !String(p.phone).includes('@lid')).length,
+      unresolvedLids: uniqueParticipants.filter((p) => String(p.phone).includes('@lid')).length,
       usedFallbackParticipants: shouldUseFallback,
       partialAdminsOnlyFallback: apiParticipants.length === 0 && fallbackHasOnlyAdmins,
     }), {

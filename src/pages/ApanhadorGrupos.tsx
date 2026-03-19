@@ -39,7 +39,9 @@ const ApanhadorGrupos = () => {
         .map((p: any) => p.phone)
         .filter((p: string) => p && p.length > 5);
       setExtractedNumbers(prev => new Map(prev).set(groupId, phones));
-      if (data.partialAdminsOnlyFallback) {
+      if (data.unresolvedLids > 0) {
+        toast.success(`${phones.length} contatos extraídos (${data.unresolvedLids} com @lid).`);
+      } else if (data.partialAdminsOnlyFallback) {
         toast.warning('Esta comunidade retornou apenas admins na listagem. Abra novamente após novas interações para mapear mais membros.');
       } else {
         toast.success(`${phones.length} números extraídos!`);
