@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import logoImage from "@/assets/logo.png";
 import dashboardMockup from "@/assets/dashboard-new.png";
+import fluxoScreenshot1 from "@/assets/fluxo-screenshot-1.png";
+import fluxoScreenshot2 from "@/assets/fluxo-screenshot-2.png";
 import prova1 from "@/assets/prova1.jpg";
 import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
@@ -119,6 +121,69 @@ const Landing = () => {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Fluxo Visual Section */}
+      <section className="w-full">
+        {/* Red section with notebook mockup */}
+        <div className="bg-primary py-20 px-5">
+          <div className="max-w-[900px] mx-auto isolate landing-mockup-wrap">
+            <div className="landing-laptop-frame">
+              <div className="landing-laptop-screen">
+                <img
+                  src={fluxoScreenshot1}
+                  alt="Fluxo Visual de Automação ZapLynx"
+                  className="w-full h-full object-cover object-left-top"
+                />
+              </div>
+              <div className="landing-laptop-base" />
+            </div>
+          </div>
+        </div>
+
+        {/* White section with flow description */}
+        <div className="bg-card py-20 px-5">
+          <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+                Fluxos Visuais de Automação
+              </h2>
+              <p className="text-muted-foreground text-base leading-relaxed">
+                Crie automações poderosas arrastando e conectando blocos visuais. 
+                Sem código, sem complicação — monte jornadas completas para seus 
+                clientes com lógica condicional, ações automáticas e gatilhos inteligentes.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Editor visual drag-and-drop intuitivo",
+                  "Gatilhos por palavra-chave ou evento",
+                  "Condições e ramificações inteligentes",
+                  "Envio de mensagens, mídias e links automáticos",
+                  "Integração com webhooks e APIs externas",
+                  "Ativação e desativação com um clique",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-primary mt-0.5 font-bold">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => navigate("/auth?signup=true")}
+                className="landing-btn"
+              >
+                Criar Meus Fluxos
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <img
+                src={fluxoScreenshot2}
+                alt="Exemplo de fluxo visual de automação"
+                className="w-full max-w-md rounded-2xl shadow-lg border border-border"
+              />
+            </div>
           </div>
         </div>
       </section>
