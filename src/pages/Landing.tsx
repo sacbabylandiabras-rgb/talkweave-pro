@@ -130,7 +130,7 @@ const Landing = () => {
       <section className="w-full">
 
         {/* White section with flow description */}
-        <div className="bg-card py-20 px-5">
+        <div className="py-20 px-5">
           <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
