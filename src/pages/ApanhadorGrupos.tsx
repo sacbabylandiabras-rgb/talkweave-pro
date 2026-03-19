@@ -24,11 +24,11 @@ const ApanhadorGrupos = () => {
     );
   });
 
-  const extractParticipants = async (groupId: string) => {
+  const extractParticipants = async (groupId: string, fallbackParticipants: any[] = []) => {
     setExtracting(groupId);
     try {
       const { data, error } = await supabase.functions.invoke('get-group-participants', {
-        body: { groupId },
+        body: { groupId, fallbackParticipants },
       });
       if (error) throw error;
       const phones = (data.participants || [])
