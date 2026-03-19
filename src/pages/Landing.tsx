@@ -56,6 +56,21 @@ const Landing = () => {
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
           Plataforma Completa de Automação
         </h2>
+
+        {/* Mockup do Dashboard */}
+        <div className="max-w-2xl mx-auto isolate landing-mockup-wrap mb-14">
+          <div className="landing-laptop-frame">
+            <div className="landing-laptop-screen">
+              <img
+                src={dashboardMockup}
+                alt="ZapLynx Dashboard"
+                className="w-full h-full object-cover object-right-top"
+              />
+            </div>
+            <div className="landing-laptop-base" />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { emoji: "🤖", title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
@@ -73,22 +88,6 @@ const Landing = () => {
               <p className="text-muted-foreground text-[15px]">{card.desc}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* Mockup do Dashboard */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-10">
-        <div className="max-w-2xl mx-auto isolate landing-mockup-wrap">
-          <div className="landing-laptop-frame">
-            <div className="landing-laptop-screen">
-              <img
-                src={dashboardMockup}
-                alt="ZapLynx Dashboard"
-                className="w-full h-full object-cover object-right-top"
-              />
-            </div>
-            <div className="landing-laptop-base" />
-          </div>
         </div>
       </section>
 
