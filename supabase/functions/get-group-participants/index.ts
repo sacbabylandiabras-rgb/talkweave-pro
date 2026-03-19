@@ -14,19 +14,40 @@ Deno.serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { groupId, fallbackParticipants = [] } = await req.json();
+    const { groupId, fallbackParticipants = [], sourceInstanceId = null } = await req.json();
     if (!groupId) {
       throw new Error('groupId is required');
     }
 
-    console.log(`📱 Fetching participants for group: ${groupId}`);
+    let instanceId = credentials.instanceId;
+    let token = credentials.token;
+    let clientToken = credentials.clientToken;
 
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/group-metadata/${groupId}`;
+    if (sourceInstanceId) {
+      const { data: sourceInstance } = await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .eq('user_id', credentials.userId)
+        .eq('zapi_instance_id', sourceInstanceId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (sourceInstance) {
+        instanceId = sourceInstance.zapi_instance_id;
+        token = sourceInstance.zapi_token;
+        clientToken = sourceInstance.zapi_client_token;
+      }
+    }
+
+    console.log(`📱 Fetching participants for group: ${groupId} | instance: ${instanceId}`);
+
+    const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${groupId}`;
     const response = await fetch(zapiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Client-Token': credentials.clientToken,
+        'Client-Token': clientToken,
       },
     });
 
