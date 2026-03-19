@@ -254,7 +254,7 @@
 
 .landing-phone-showcase {
   position: relative;
-  width: min(100%, 350px);
+  width: min(100%, 260px);
   display: flex;
   justify-content: center;
   filter: drop-shadow(0 34px 60px rgb(var(--foreground) / 0.16));
