@@ -274,7 +274,7 @@
 .landing-phone-frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 0.52;
+  aspect-ratio: 0.48;
   border-radius: 2.75rem;
   padding: 0.75rem;
   background: linear-gradient(145deg, rgb(var(--foreground)) 0%, rgb(var(--foreground) / 0.88) 56%, rgb(var(--foreground) / 0.96) 100%);
