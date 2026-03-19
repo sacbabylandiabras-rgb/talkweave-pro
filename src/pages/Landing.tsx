@@ -178,11 +178,18 @@ const Landing = () => {
               </button>
             </div>
             <div className="flex justify-center">
-              <img
-                src={fluxoScreenshot2}
-                alt="Exemplo de fluxo visual de automação"
-                className="w-full max-w-md rounded-2xl shadow-lg border border-border"
-              />
+              <div className="w-full max-w-md isolate landing-mockup-wrap">
+                <div className="landing-laptop-frame">
+                  <div className="landing-laptop-screen">
+                    <img
+                      src={fluxoScreenshot2}
+                      alt="Exemplo de fluxo visual de automação"
+                      className="w-full h-full object-cover object-left-top"
+                    />
+                  </div>
+                  <div className="landing-laptop-base" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
