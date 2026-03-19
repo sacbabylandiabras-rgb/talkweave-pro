@@ -88,6 +88,32 @@ const AgenteIA = () => {
     setDocContent("");
   };
 
+  const handleImportUrl = async () => {
+    if (!urlInput.trim() || urlLoading) return;
+    setUrlLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-url", {
+        body: { url: urlInput },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const title = data.title || urlInput;
+      const content = data.content;
+      if (!content || content.length < 10) {
+        toast({ title: "Conteúdo insuficiente", description: "Não foi possível extrair conteúdo relevante desta URL.", variant: "destructive" });
+        return;
+      }
+      await addDocument(`🌐 ${title}`, content);
+      setUrlInput("");
+      toast({ title: "URL importada!", description: `${content.length} caracteres extraídos com sucesso.` });
+    } catch (err: any) {
+      toast({ title: "Erro ao importar URL", description: err.message, variant: "destructive" });
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   const handleSendChat = async () => {
     if (!chatInput.trim() || chatLoading) return;
 
