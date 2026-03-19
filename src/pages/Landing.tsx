@@ -4,6 +4,7 @@ import logoImage from "@/assets/logo.png";
 import dashboardMockup from "@/assets/dashboard-new.png";
 import fluxoScreenshot1 from "@/assets/fluxo-screenshot-1.png";
 import fluxoScreenshot2 from "@/assets/fluxo-screenshot-2.png";
+import fluxoScreenshot3 from "@/assets/fluxo-screenshot-3.png";
 import prova1 from "@/assets/prova1.jpg";
 import prova2 from "@/assets/prova2.jpg";
 import prova3 from "@/assets/prova3.jpg";
