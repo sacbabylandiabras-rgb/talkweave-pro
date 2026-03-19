@@ -48,6 +48,10 @@ const AgenteIA = () => {
   const [docTitle, setDocTitle] = useState("");
   const [docContent, setDocContent] = useState("");
 
+  // URL import
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
