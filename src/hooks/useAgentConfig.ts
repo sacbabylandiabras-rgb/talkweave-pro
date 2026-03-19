@@ -35,7 +35,7 @@ export function useAgentConfig() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("agent_config")
         .select("*")
         .eq("user_id", session.user.id)
@@ -50,13 +50,13 @@ export function useAgentConfig() {
         });
       }
 
-      const { data: knowledgeData } = await supabase
+      const { data: knowledgeData } = await (supabase as any)
         .from("agent_knowledge")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: true });
 
-      setKnowledge((knowledgeData as any[]) || []);
+      setKnowledge(knowledgeData || []);
     } catch (error) {
       console.error("Error loading agent config:", error);
     } finally {
@@ -82,13 +82,13 @@ export function useAgentConfig() {
       };
 
       if (config.id) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("agent_config")
           .update(payload)
           .eq("id", config.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("agent_config")
           .insert(payload)
           .select()
@@ -111,20 +111,14 @@ export function useAgentConfig() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_knowledge")
-        .insert({
-          user_id: session.user.id,
-          type: "faq",
-          question,
-          answer,
-          active: true,
-        })
+        .insert({ user_id: session.user.id, type: "faq", question, answer, active: true })
         .select()
         .single();
 
       if (error) throw error;
-      setKnowledge(prev => [...prev, data as any]);
+      setKnowledge(prev => [...prev, data]);
       toast({ title: "FAQ adicionado!" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -136,20 +130,14 @@ export function useAgentConfig() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_knowledge")
-        .insert({
-          user_id: session.user.id,
-          type: "document",
-          title,
-          content,
-          active: true,
-        })
+        .insert({ user_id: session.user.id, type: "document", title, content, active: true })
         .select()
         .single();
 
       if (error) throw error;
-      setKnowledge(prev => [...prev, data as any]);
+      setKnowledge(prev => [...prev, data]);
       toast({ title: "Documento adicionado!" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -158,7 +146,7 @@ export function useAgentConfig() {
 
   const removeKnowledge = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("agent_knowledge")
         .delete()
         .eq("id", id);
