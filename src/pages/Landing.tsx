@@ -309,6 +309,67 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Integração com Checkouts e Gateways */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="order-2 md:order-1 flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">🔗</span>
+                <h4 className="text-foreground font-bold text-lg">Integrações Conectadas</h4>
+              </div>
+              {[
+                { name: "PerfectPay", status: "Ativo", icon: "💳" },
+                { name: "Hotmart", status: "Ativo", icon: "🔥" },
+                { name: "Kiwify", status: "Ativo", icon: "🥝" },
+                { name: "Stripe", status: "Ativo", icon: "💎" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span>{item.icon}</span>
+                    <p className="text-foreground text-sm font-medium">{item.name}</p>
+                  </div>
+                  <span className="text-primary text-xs font-bold">{item.status}</span>
+                </div>
+              ))}
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">+ qualquer plataforma com webhook</span>
+              </div>
+            </div>
+          </div>
+          <div className="order-1 md:order-2 space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Integração com Qualquer Checkout ou Gateway
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Conecte sua plataforma de vendas ao ZapLynx via webhook e automatize 
+              o envio de mensagens com base em eventos de pagamento. Funciona com 
+              qualquer checkout, gateway ou plataforma que envie webhooks.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Compatível com PerfectPay, Hotmart, Kiwify, Stripe e mais",
+                "Disparo automático por evento (aprovado, cancelado, reembolso)",
+                "Mensagens personalizadas por tipo de evento",
+                "Configuração simples via URL de webhook única",
+                "Histórico completo de eventos recebidos",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Conectar Meu Checkout
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
