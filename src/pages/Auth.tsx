@@ -94,7 +94,7 @@ const Auth = () => {
       if (data.user) {
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("is_active")
+          .select("is_active, subscription_status")
           .eq("id", data.user.id)
           .single();
 
