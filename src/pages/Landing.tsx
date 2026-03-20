@@ -276,7 +276,7 @@ const Landing = () => {
           <div className="flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🤖</span>
+                <span className="text-3xl">🧠</span>
                 <h4 className="text-foreground font-bold text-lg">Agente Inteligente</h4>
               </div>
               <div className="space-y-3">
