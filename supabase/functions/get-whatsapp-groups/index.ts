@@ -105,8 +105,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    const allGroups = Array.from(groupsById.values());
-    console.log(`✅ Total unique groups found: ${allGroups.length}`);
+    // Filter out communities (isCommunity or isCommunityAnnounce flags from Z-API)
+    const allGroups = Array.from(groupsById.values()).filter((group: any) => {
+      return !group.isCommunity && !group.isCommunityAnnounce && !group.isGroupAnnouncement;
+    });
+    console.log(`✅ Total unique groups found (excluding communities): ${allGroups.length}`);
 
     const mappedGroups = allGroups.map((group: any, index: number) => ({
       id: group.phone || group.id || `group-${index}`,
