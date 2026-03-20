@@ -240,6 +240,75 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Agente de IA */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Agente de IA que Vende por Você 24h
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Treine um agente inteligente com o conhecimento do seu negócio. 
+              Ele responde seus clientes no WhatsApp automaticamente, tira dúvidas, 
+              envia links de produtos e conduz a venda — mesmo enquanto você dorme.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Treinável com FAQ, documentos e sites",
+                "Respostas naturais e personalizadas",
+                "Funciona 24 horas por dia, 7 dias por semana",
+                "Integrado diretamente ao seu WhatsApp",
+                "Chat de teste no painel para validar respostas",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Testar Agente de IA
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">🤖</span>
+                <h4 className="text-foreground font-bold text-lg">Agente Inteligente</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-end">
+                  <div className="bg-primary/10 text-foreground text-sm rounded-xl rounded-br-sm px-4 py-2 max-w-[80%]">
+                    Oi, vocês têm esse produto disponível?
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
+                    Olá! Sim, temos disponível 😊 Posso te enviar o link com mais detalhes e condições especiais?
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <div className="bg-primary/10 text-foreground text-sm rounded-xl rounded-br-sm px-4 py-2 max-w-[80%]">
+                    Sim, por favor!
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
+                    Aqui está! 🔗 Qualquer dúvida, estou aqui pra te ajudar.
+                  </div>
+                </div>
+              </div>
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">Resposta automática via IA · 2s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
