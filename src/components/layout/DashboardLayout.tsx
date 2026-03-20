@@ -16,9 +16,25 @@ export function DashboardLayout() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
-      } else {
-        setUserId(session.user.id);
+        setLoading(false);
+        return;
       }
+
+      // Check if subscription is active
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_active, subscription_status")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile && (!profile.is_active || profile.subscription_status === "canceled" || profile.subscription_status === "refunded" || profile.subscription_status === "chargeback")) {
+        await supabase.auth.signOut();
+        navigate("/auth");
+        setLoading(false);
+        return;
+      }
+
+      setUserId(session.user.id);
       setLoading(false);
     };
 
