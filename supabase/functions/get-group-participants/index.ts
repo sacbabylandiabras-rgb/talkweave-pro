@@ -239,6 +239,10 @@ Deno.serve(async (req) => {
         communityData = await fetchCommunityMetadata(candidateCommunityId);
         if (communityData) {
           const extractedIds = extractSubGroupIds(communityData);
+          console.log(
+            `🧩 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
+          );
+          console.log(`🧩 Extracted subgroup ids for ${candidateCommunityId}: ${extractedIds.join(", ") || "none"}`);
           if (extractedIds.length > 0) {
             detectedSubGroupIds = extractedIds;
             console.log(`🏘️ Community ${candidateCommunityId} returned ${extractedIds.length} linked groups`);
@@ -251,7 +255,11 @@ Deno.serve(async (req) => {
         ...detectedSubGroupIds,
         normalizeGroupId(primaryData?.announcementGroup?.phone),
         normalizeGroupId(primaryData?.announcementGroup?.id),
+        normalizeGroupId(primaryData?.linkedGroupId),
+        normalizeGroupId(primaryData?.parentGroupId),
       ]).filter((subGroupId) => subGroupId && subGroupId !== normalizeGroupId(groupId));
+
+      console.log(`🧩 Final subgroup ids for ${groupId}: ${fallbackSubGroupIds.join(", ") || "none"}`);
 
       if (fallbackSubGroupIds.length > 0) {
         const aggregatedParticipants: any[] = [];
