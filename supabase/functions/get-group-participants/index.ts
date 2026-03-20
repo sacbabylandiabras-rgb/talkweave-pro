@@ -46,18 +46,39 @@ const extractParticipantArray = (payload: any) => {
   return candidates.find(Array.isArray) || [];
 };
 
+const normalizeCollection = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") {
+    const nestedArray = Object.values(value).find(Array.isArray);
+    if (Array.isArray(nestedArray)) return nestedArray;
+  }
+  return [];
+};
+
 const extractSubGroups = (payload: any) => {
   const candidates = [
+    payload,
     payload?.subGroups,
     payload?.subgroups,
     payload?.groups,
     payload?.linkedGroups,
     payload?.communityGroups,
+    payload?.children,
+    payload?.data,
     payload?.data?.subGroups,
+    payload?.data?.subgroups,
     payload?.data?.groups,
+    payload?.result,
+    payload?.result?.subGroups,
+    payload?.result?.groups,
   ];
 
-  return candidates.find(Array.isArray) || [];
+  for (const candidate of candidates) {
+    const normalized = normalizeCollection(candidate);
+    if (normalized.length > 0) return normalized;
+  }
+
+  return [];
 };
 
 const extractSubGroupIds = (payload: any) => {
@@ -69,6 +90,9 @@ const extractSubGroupIds = (payload: any) => {
       normalizeGroupId(subGroup?.id),
       normalizeGroupId(subGroup?.groupId),
       normalizeGroupId(subGroup?.jid),
+      normalizeGroupId(subGroup?.chatId),
+      normalizeGroupId(subGroup?.group?.phone),
+      normalizeGroupId(subGroup?.group?.id),
     ]),
   );
 };
