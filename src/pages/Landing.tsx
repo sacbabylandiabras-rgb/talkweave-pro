@@ -320,6 +320,7 @@ const Landing = () => {
               name: "Plano Start",
               price: "397",
               popular: false,
+              link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NN",
               features: [
                 "1 Instância WhatsApp",
                 "Envios em massa ilimitados",
@@ -334,6 +335,7 @@ const Landing = () => {
               name: "Plano Pro",
               price: "497",
               popular: true,
+              link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NP",
               features: [
                 "3 Instâncias WhatsApp",
                 "Envios em massa ilimitados",
@@ -350,6 +352,7 @@ const Landing = () => {
               name: "Plano Scale",
               price: "897",
               popular: false,
+              link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NO",
               features: [
                 "10 Instâncias WhatsApp",
                 "Tudo do Plano Pro",
@@ -386,12 +389,14 @@ const Landing = () => {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={() => navigate("/auth?signup=true")}
-                className="landing-btn w-full"
+              <a
+                href={plan.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="landing-btn w-full inline-block text-center"
               >
                 Assinar
-              </button>
+              </a>
             </div>
           ))}
         </div>
