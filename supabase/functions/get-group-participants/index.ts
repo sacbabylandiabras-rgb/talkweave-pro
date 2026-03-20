@@ -9,98 +9,233 @@ interface Participant {
   name: string;
 }
 
+interface GroupCredentials {
+  instanceId: string;
+  token: string;
+  clientToken: string;
+  userId: string;
+}
+
+const normalizeGroupId = (value: string | null | undefined) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("@g.us")) return raw.replace("@g.us", "-group");
+  return raw;
+};
+
+const normalizeCommunityId = (value: string | null | undefined) => {
+  return String(value || "")
+    .trim()
+    .replace(/@g\.us$/i, "")
+    .replace(/-group$/i, "");
+};
+
+const uniqueStrings = (values: Array<string | null | undefined>) => {
+  return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
+};
+
+const extractParticipantArray = (payload: any) => {
+  const candidates = [
+    payload?.participants,
+    payload?.members,
+    payload?.groupParticipants,
+    payload?.data?.participants,
+    payload?.data?.members,
+  ];
+
+  return candidates.find(Array.isArray) || [];
+};
+
+const extractSubGroups = (payload: any) => {
+  const candidates = [
+    payload?.subGroups,
+    payload?.subgroups,
+    payload?.groups,
+    payload?.linkedGroups,
+    payload?.communityGroups,
+    payload?.data?.subGroups,
+    payload?.data?.groups,
+  ];
+
+  return candidates.find(Array.isArray) || [];
+};
+
+const extractSubGroupIds = (payload: any) => {
+  const subGroups = extractSubGroups(payload);
+
+  return uniqueStrings(
+    subGroups.flatMap((subGroup: any) => [
+      normalizeGroupId(subGroup?.phone),
+      normalizeGroupId(subGroup?.id),
+      normalizeGroupId(subGroup?.groupId),
+      normalizeGroupId(subGroup?.jid),
+    ]),
+  );
+};
+
+const buildCommunityCandidates = (groupId: string, primaryData: any) => {
+  return uniqueStrings([
+    normalizeCommunityId(primaryData?.communityId),
+    normalizeCommunityId(primaryData?.parentCommunityId),
+    normalizeCommunityId(primaryData?.linkedCommunityId),
+    normalizeCommunityId(primaryData?.id),
+    normalizeCommunityId(primaryData?.phone),
+    normalizeCommunityId(groupId),
+  ]);
+};
+
+const fetchJson = async (url: string, headers: Record<string, string>) => {
+  const response = await fetch(url, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Z-API error: ${response.status} - ${errorText}`);
+  }
+
+  return await response.json();
+};
+
+const resolveCredentials = async (
+  req: Request,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  sourceInstanceId: string | null,
+): Promise<GroupCredentials> => {
+  const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+  if (!sourceInstanceId) {
+    return credentials;
+  }
+
+  const { data: sourceInstance } = await adminClient
+    .from("zapi_instances")
+    .select("zapi_instance_id, zapi_token, zapi_client_token")
+    .eq("user_id", credentials.userId)
+    .eq("zapi_instance_id", sourceInstanceId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (!sourceInstance) {
+    return credentials;
+  }
+
+  return {
+    ...credentials,
+    instanceId: sourceInstance.zapi_instance_id,
+    token: sourceInstance.zapi_token,
+    clientToken: sourceInstance.zapi_client_token,
+  };
+};
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { groupId, fallbackParticipants = [], sourceInstanceId = null } = await req.json();
-    if (!groupId) throw new Error('groupId is required');
+    if (!groupId) throw new Error("groupId is required");
 
-    let instanceId = credentials.instanceId;
-    let token = credentials.token;
-    let clientToken = credentials.clientToken;
-
-    if (sourceInstanceId) {
-      const { data: sourceInstance } = await adminClient
-        .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token')
-        .eq('user_id', credentials.userId)
-        .eq('zapi_instance_id', sourceInstanceId)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
-
-      if (sourceInstance) {
-        instanceId = sourceInstance.zapi_instance_id;
-        token = sourceInstance.zapi_token;
-        clientToken = sourceInstance.zapi_client_token;
-      }
-    }
+    const credentials = await resolveCredentials(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
+    const instanceId = credentials.instanceId;
+    const token = credentials.token;
+    const clientToken = credentials.clientToken;
 
     const headers = {
-      'Content-Type': 'application/json',
-      'Client-Token': clientToken,
+      "Content-Type": "application/json",
+      "Client-Token": clientToken,
     };
 
     const fetchGroupMetadata = async (targetId: string) => {
-      const response = await fetch(
-        `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${targetId}`,
-        { method: 'GET', headers }
-      );
+      const normalizedTargetId = normalizeGroupId(targetId);
+      const targetCandidates = uniqueStrings([
+        normalizedTargetId,
+        normalizedTargetId.replace(/-group$/i, "@g.us"),
+      ]);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Z-API error: ${response.status} - ${errorText}`);
+      let lastError: Error | null = null;
+
+      for (const candidateId of targetCandidates) {
+        try {
+          return await fetchJson(
+            `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`,
+            headers,
+          );
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+        }
       }
 
-      return await response.json();
+      throw lastError || new Error(`Unable to fetch group metadata for ${targetId}`);
     };
 
     const fetchCommunityMetadata = async (communityId: string) => {
-      const normalizedCommunityId = communityId.replace('-group', '');
-      const response = await fetch(
-        `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${normalizedCommunityId}`,
-        { method: 'GET', headers }
-      );
+      const candidates = uniqueStrings([
+        normalizeCommunityId(communityId),
+        normalizeGroupId(communityId),
+      ]);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`⚠️ Community metadata unavailable for ${normalizedCommunityId}: ${response.status} - ${errorText}`);
-        return null;
+      for (const candidateId of candidates) {
+        try {
+          const data = await fetchJson(
+            `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`,
+            headers,
+          );
+          console.log(`🏘️ Community metadata loaded for ${candidateId}`);
+          return data;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.log(`⚠️ Community metadata unavailable for ${candidateId}: ${message}`);
+        }
       }
 
-      return await response.json();
+      return null;
     };
 
     console.log(`📱 Fetching participants for group/community: ${groupId} | instance: ${instanceId}`);
 
     const primaryData = await fetchGroupMetadata(groupId);
-    let apiParticipants = Array.isArray(primaryData.participants) ? primaryData.participants : [];
+    let apiParticipants = extractParticipantArray(primaryData);
+    let detectedSubGroupIds = extractSubGroupIds(primaryData);
 
     if (apiParticipants.length === 0) {
-      const candidateCommunityId = primaryData.communityId || groupId;
-      const communityData = await fetchCommunityMetadata(candidateCommunityId);
-      const subGroups = Array.isArray(communityData?.subGroups) ? communityData.subGroups : [];
+      const communityCandidates = buildCommunityCandidates(groupId, primaryData);
+      let communityData: any = null;
 
-      if (subGroups.length > 0) {
-        console.log(`🏘️ Community detected for ${candidateCommunityId}. Linked groups: ${subGroups.length}`);
+      for (const candidateCommunityId of communityCandidates) {
+        communityData = await fetchCommunityMetadata(candidateCommunityId);
+        if (communityData) {
+          const extractedIds = extractSubGroupIds(communityData);
+          if (extractedIds.length > 0) {
+            detectedSubGroupIds = extractedIds;
+            console.log(`🏘️ Community ${candidateCommunityId} returned ${extractedIds.length} linked groups`);
+            break;
+          }
+        }
+      }
+
+      const fallbackSubGroupIds = uniqueStrings([
+        ...detectedSubGroupIds,
+        normalizeGroupId(primaryData?.announcementGroup?.phone),
+        normalizeGroupId(primaryData?.announcementGroup?.id),
+      ]).filter((subGroupId) => subGroupId && subGroupId !== normalizeGroupId(groupId));
+
+      if (fallbackSubGroupIds.length > 0) {
         const aggregatedParticipants: any[] = [];
 
-        for (const subGroup of subGroups) {
-          const subGroupId = subGroup.phone || subGroup.id;
-          if (!subGroupId) continue;
-
+        for (const subGroupId of fallbackSubGroupIds) {
           try {
             const subGroupData = await fetchGroupMetadata(subGroupId);
-            const subGroupParticipants = Array.isArray(subGroupData.participants) ? subGroupData.participants : [];
+            const subGroupParticipants = extractParticipantArray(subGroupData);
             console.log(`👥 Subgroup ${subGroupId}: ${subGroupParticipants.length} participants`);
             aggregatedParticipants.push(...subGroupParticipants);
           } catch (subGroupError) {
@@ -115,28 +250,31 @@ Deno.serve(async (req) => {
     }
 
     const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
-    const fallbackHasOnlyAdmins = fallbackList.length > 0 && fallbackList.every((p) => Boolean(p?.isAdmin) || Boolean(p?.isSuperAdmin));
+    const fallbackHasOnlyAdmins =
+      fallbackList.length > 0 && fallbackList.every((p) => Boolean(p?.isAdmin) || Boolean(p?.isSuperAdmin));
     const shouldUseFallback = apiParticipants.length === 0 && fallbackList.length > 0 && !fallbackHasOnlyAdmins;
     const rawParticipants = shouldUseFallback ? fallbackList : apiParticipants;
 
-    console.log(`✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackList.length}, fallback only admins: ${fallbackHasOnlyAdmins}`);
+    console.log(
+      `✅ Group metadata received, API participants: ${apiParticipants.length}, fallback participants: ${fallbackList.length}, fallback only admins: ${fallbackHasOnlyAdmins}`,
+    );
 
     const resolvedParticipants: Participant[] = [];
     const unresolvedLidParticipants: Participant[] = [];
     const lidParticipants: string[] = [];
 
     for (const p of rawParticipants) {
-      const rawId = p.phone || p.id || p.participant || '';
+      const rawId = p.phone || p.id || p.participant || "";
       const normalizedId = String(rawId).trim();
-      const cleanPhone = normalizedId.replace('@c.us', '').replace(/\D/g, '');
+      const cleanPhone = normalizedId.replace("@c.us", "").replace(/\D/g, "");
 
-      if (normalizedId.includes('@lid')) {
+      if (normalizedId.includes("@lid")) {
         lidParticipants.push(normalizedId);
         unresolvedLidParticipants.push({
           phone: normalizedId,
           isAdmin: Boolean(p.isAdmin),
           isSuperAdmin: Boolean(p.isSuperAdmin),
-          name: p.name || p.short || p.notify || '',
+          name: p.name || p.short || p.notify || "",
         });
         continue;
       }
@@ -146,7 +284,7 @@ Deno.serve(async (req) => {
           phone: cleanPhone,
           isAdmin: Boolean(p.isAdmin),
           isSuperAdmin: Boolean(p.isSuperAdmin),
-          name: p.name || p.short || p.notify || '',
+          name: p.name || p.short || p.notify || "",
         });
       }
     }
@@ -156,16 +294,16 @@ Deno.serve(async (req) => {
     if (lidParticipants.length > 0) {
       try {
         const { data: lidMappings } = await adminClient
-          .from('message_logs')
-          .select('phone, message_received')
-          .eq('user_id', credentials.userId)
-          .eq('keyword_matched', '__lid_map__')
-          .in('message_received', lidParticipants);
+          .from("message_logs")
+          .select("phone, message_received")
+          .eq("user_id", credentials.userId)
+          .eq("keyword_matched", "__lid_map__")
+          .in("message_received", lidParticipants);
 
         const mappingByLid = new Map(
           (lidMappings || [])
-            .map((mapping) => [mapping.message_received, String(mapping.phone || '').replace(/\D/g, '')])
-            .filter(([, phone]) => Boolean(phone))
+            .map((mapping) => [mapping.message_received, String(mapping.phone || "").replace(/\D/g, "")])
+            .filter(([, phone]) => Boolean(phone)),
         );
 
         for (const participant of unresolvedLidParticipants) {
@@ -176,44 +314,47 @@ Deno.serve(async (req) => {
           });
         }
 
-        const resolvedLids = new Set((lidMappings || []).map((m) => m.message_received));
+        const resolvedLids = new Set((lidMappings || []).map((mapping) => mapping.message_received));
         const unresolvedCount = lidParticipants.filter((lid) => !resolvedLids.has(lid)).length;
         if (unresolvedCount > 0) {
           console.log(`⚠️ ${unresolvedCount} LID identifiers could not be resolved`);
         }
       } catch (dbError) {
-        console.error('❌ Error resolving LID mappings:', dbError);
+        console.error("❌ Error resolving LID mappings:", dbError);
         resolvedParticipants.push(...unresolvedLidParticipants);
       }
     }
 
     const seenPhones = new Set<string>();
-    const uniqueParticipants = resolvedParticipants.filter((p) => {
-      if (!p.phone || seenPhones.has(p.phone)) return false;
-      seenPhones.add(p.phone);
+    const uniqueParticipants = resolvedParticipants.filter((participant) => {
+      if (!participant.phone || seenPhones.has(participant.phone)) return false;
+      seenPhones.add(participant.phone);
       return true;
     });
 
     console.log(`✅ Final unique participants: ${uniqueParticipants.length}`);
 
-    return new Response(JSON.stringify({
-      groupName: primaryData.subject || primaryData.name || '',
-      description: primaryData.description || '',
-      owner: primaryData.owner || '',
-      participants: uniqueParticipants,
-      totalLids: lidParticipants.length,
-      resolvedLids: uniqueParticipants.filter((p) => !String(p.phone).includes('@lid')).length,
-      unresolvedLids: uniqueParticipants.filter((p) => String(p.phone).includes('@lid')).length,
-      usedFallbackParticipants: shouldUseFallback,
-      partialAdminsOnlyFallback: apiParticipants.length === 0 && fallbackHasOnlyAdmins,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('❌ Error fetching group participants:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        groupName: primaryData.subject || primaryData.name || "",
+        description: primaryData.description || "",
+        owner: primaryData.owner || "",
+        participants: uniqueParticipants,
+        totalLids: lidParticipants.length,
+        resolvedLids: uniqueParticipants.filter((participant) => !String(participant.phone).includes("@lid")).length,
+        unresolvedLids: uniqueParticipants.filter((participant) => String(participant.phone).includes("@lid")).length,
+        usedFallbackParticipants: shouldUseFallback,
+        partialAdminsOnlyFallback: apiParticipants.length === 0 && fallbackHasOnlyAdmins,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
+  } catch (error) {
+    console.error("❌ Error fetching group participants:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
