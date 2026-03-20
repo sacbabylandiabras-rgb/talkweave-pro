@@ -52,28 +52,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Tema */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Sun className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Aparência</h3>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="theme" className="text-sm">Tema do sistema</Label>
-              <Select value={theme} onValueChange={setTheme}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Claro</SelectItem>
-                  <SelectItem value="dark">Escuro</SelectItem>
-                  <SelectItem value="system">Sistema</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Separator />
+          {/* Tema removido - apenas modo escuro */}
 
           {/* Notificações */}
           <div className="space-y-4">
