@@ -94,7 +94,7 @@ const Auth = () => {
       if (data.user) {
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("is_active")
+          .select("is_active, subscription_status")
           .eq("id", data.user.id)
           .single();
 
@@ -106,7 +106,17 @@ const Auth = () => {
           await supabase.auth.signOut();
           toast({
             title: "Conta desativada",
-            description: "Sua conta foi desativada. Entre em contato com o administrador.",
+            description: "Sua assinatura não está ativa. Finalize o pagamento para acessar.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (profile && profile.subscription_status !== 'active') {
+          await supabase.auth.signOut();
+          toast({
+            title: "Assinatura pendente",
+            description: "Finalize o pagamento para acessar a plataforma.",
             variant: "destructive"
           });
           return;
@@ -254,65 +264,51 @@ const Auth = () => {
               </TabsContent>
 
               <TabsContent value="signup">
-                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    📧 <strong>Importante:</strong> Após criar sua conta, você receberá um email de confirmação. Verifique sua caixa de entrada (e spam) antes de fazer login.
+                <div className="space-y-6 py-4">
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                      <span className="text-3xl">🔒</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Cadastro via Pagamento</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Para acessar o ZapLynx, é necessário assinar um dos nossos planos. 
+                      Sua conta será criada automaticamente após a confirmação do pagamento.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { name: "Plano Start", price: "R$397/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NN" },
+                      { name: "Plano Pro", price: "R$497/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NP", popular: true },
+                      { name: "Plano Scale", price: "R$897/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NO" },
+                    ].map((plan, i) => (
+                      <a
+                        key={i}
+                        href={plan.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all hover:-translate-y-0.5 ${
+                          plan.popular 
+                            ? "border-primary bg-primary/5 shadow-sm" 
+                            : "border-border bg-card hover:border-primary/50"
+                        }`}
+                      >
+                        <div>
+                          <p className="text-foreground font-semibold text-sm">{plan.name}</p>
+                          <p className="text-muted-foreground text-xs">{plan.price}</p>
+                        </div>
+                        {plan.popular && (
+                          <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">
+                            POPULAR
+                          </span>
+                        )}
+                        <span className="text-primary text-sm font-bold">Assinar →</span>
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Após o pagamento, você receberá um email para definir sua senha e acessar a plataforma.
                   </p>
                 </div>
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-whatsapp">WhatsApp</Label>
-                    <Input
-                      id="signup-whatsapp"
-                      type="tel"
-                      placeholder="+5511999999999"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Formato: +5511999999999
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Mínimo de 6 caracteres
-                    </p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Criando conta...
-                      </>
-                    ) : (
-                      "Criar Conta"
-                    )}
-                  </Button>
-                </form>
               </TabsContent>
             </Tabs>
           </CardContent>
