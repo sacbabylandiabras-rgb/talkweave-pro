@@ -19,11 +19,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Extract data from PerfectPay payload
     const saleStatus = payload.sale_status_enum;
     const customerEmail = payload.customer?.email?.toLowerCase()?.trim();
-    const customerName = payload.customer?.name || payload.customer?.full_name || "";
-    const customerPhone = payload.customer?.phone_number || payload.customer?.phone || "";
+    const customerName = payload.customer?.full_name || payload.customer?.name || "";
+    
+    // Build full phone: extension + area_code + number
+    const phoneExt = payload.customer?.phone_extension || "55";
+    const phoneArea = payload.customer?.phone_area_code || "";
+    const phoneNum = payload.customer?.phone_number || payload.customer?.phone || "";
+    const customerPhone = phoneArea && phoneNum ? `+${phoneExt}${phoneArea}${phoneNum}` : "";
 
     if (!customerEmail) {
       console.error("No customer email in webhook payload");
@@ -35,41 +39,70 @@ Deno.serve(async (req) => {
 
     console.log(`Processing: email=${customerEmail}, status=${saleStatus}, name=${customerName}, phone=${customerPhone}`);
 
-    // PerfectPay sale_status_enum:
-    // 1 = pending (boleto)
-    // 2 = approved/paid
-    // 3 = canceled
-    // 4 = refunded  
-    // 5 = chargeback
-    // 6 = waiting_refund
-    // 7 = expired
+    // Helper: find user by email with pagination
+    const findUserByEmail = async (email: string) => {
+      let page = 1;
+      const perPage = 100;
+      while (true) {
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (error || !data?.users?.length) return null;
+        const found = data.users.find((u) => u.email?.toLowerCase() === email);
+        if (found) return found;
+        if (data.users.length < perPage) return null;
+        page++;
+      }
+    };
+
+    // Helper: ensure profile exists (upsert)
+    const ensureProfile = async (userId: string, data: Record<string, any>) => {
+      // Try update first
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update(data)
+        .eq("id", userId)
+        .select("id");
+
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+      }
+
+      // If no row was updated, insert
+      if (!updated || updated.length === 0) {
+        console.log(`Profile not found for ${userId}, creating...`);
+        const { error: insertError } = await supabaseAdmin
+          .from("profiles")
+          .insert({
+            id: userId,
+            email: data.email || customerEmail,
+            full_name: data.full_name || "",
+            whatsapp: data.whatsapp || "",
+            is_active: data.is_active ?? true,
+            subscription_status: data.subscription_status || "active",
+          });
+
+        if (insertError) {
+          console.error("Error inserting profile:", insertError);
+        } else {
+          console.log(`Profile created for ${userId}`);
+        }
+      }
+    };
 
     if (saleStatus === 2) {
-      // PAYMENT APPROVED - Create user account automatically
-      
-      // Check if user already exists
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === customerEmail
-      );
+      // PAYMENT APPROVED
+      const existingUser = await findUserByEmail(customerEmail);
 
       if (existingUser) {
-        // User exists - just activate subscription
         console.log(`User already exists: ${existingUser.id}, activating subscription`);
         
-        const { error: updateError } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            is_active: true,
-            subscription_status: "active",
-            subscription_expires_at: null,
-            full_name: customerName || undefined,
-          })
-          .eq("id", existingUser.id);
-
-        if (updateError) {
-          console.error("Error updating profile:", updateError);
-        }
+        await ensureProfile(existingUser.id, {
+          is_active: true,
+          subscription_status: "active",
+          subscription_expires_at: null,
+          full_name: customerName || undefined,
+          whatsapp: customerPhone || undefined,
+          email: customerEmail,
+        });
 
         return new Response(JSON.stringify({ 
           success: true, 
@@ -81,13 +114,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Create new user with random password
+      // Create new user
       const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
       
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: customerEmail,
         password: tempPassword,
-        email_confirm: true, // Auto-confirm email
+        email_confirm: true,
         user_metadata: {
           full_name: customerName,
           whatsapp: customerPhone,
@@ -104,27 +137,33 @@ Deno.serve(async (req) => {
 
       console.log(`User created: ${newUser.user.id}`);
 
-      // Update profile with subscription active
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          is_active: true,
-          subscription_status: "active",
-          full_name: customerName,
-          whatsapp: customerPhone,
-        })
-        .eq("id", newUser.user.id);
+      // Wait a moment for the trigger to create the profile, then ensure it
+      await new Promise((r) => setTimeout(r, 1000));
+      
+      await ensureProfile(newUser.user.id, {
+        is_active: true,
+        subscription_status: "active",
+        full_name: customerName,
+        whatsapp: customerPhone,
+        email: customerEmail,
+      });
 
-      if (profileError) {
-        console.error("Error updating new user profile:", profileError);
+      // Also ensure user_roles exists
+      const { data: existingRoles } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", newUser.user.id);
+
+      if (!existingRoles || existingRoles.length === 0) {
+        await supabaseAdmin.from("user_roles").insert({
+          user_id: newUser.user.id,
+          role: "user",
+        });
+        console.log(`Role 'user' assigned to ${newUser.user.id}`);
       }
 
-      // Send password reset email so user can set their own password
-      // The user will receive an email to define their password
-      const siteUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "").replace("https://", "");
-      
-      // Use Supabase's built-in password recovery
-      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      // Generate password recovery so user can set their own password
+      const { data: linkData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email: customerEmail,
         options: {
@@ -134,6 +173,8 @@ Deno.serve(async (req) => {
 
       if (resetError) {
         console.error("Error generating recovery link:", resetError);
+      } else {
+        console.log("Recovery link generated for:", customerEmail);
       }
 
       return new Response(JSON.stringify({ 
@@ -146,12 +187,8 @@ Deno.serve(async (req) => {
       });
 
     } else if ([3, 4, 5, 7].includes(saleStatus)) {
-      // CANCELED, REFUNDED, CHARGEBACK, or EXPIRED - Deactivate user
-      
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === customerEmail
-      );
+      // CANCELED, REFUNDED, CHARGEBACK, or EXPIRED
+      const existingUser = await findUserByEmail(customerEmail);
 
       if (!existingUser) {
         console.log(`No user found for email: ${customerEmail}, nothing to deactivate`);
@@ -168,19 +205,13 @@ Deno.serve(async (req) => {
         7: "expired",
       };
 
-      const { error: deactivateError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          is_active: false,
-          subscription_status: statusMap[saleStatus] || "inactive",
-        })
-        .eq("id", existingUser.id);
+      await ensureProfile(existingUser.id, {
+        is_active: false,
+        subscription_status: statusMap[saleStatus] || "inactive",
+        email: customerEmail,
+      });
 
-      if (deactivateError) {
-        console.error("Error deactivating user:", deactivateError);
-      }
-
-      console.log(`User ${existingUser.id} deactivated with status: ${statusMap[saleStatus]}`);
+      console.log(`User ${existingUser.id} deactivated: ${statusMap[saleStatus]}`);
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -193,7 +224,6 @@ Deno.serve(async (req) => {
       });
 
     } else {
-      // Other statuses (pending, waiting_refund, etc.) - just log
       console.log(`Ignoring sale_status_enum: ${saleStatus} for ${customerEmail}`);
       return new Response(JSON.stringify({ success: true, action: "ignored", status: saleStatus }), {
         status: 200,
