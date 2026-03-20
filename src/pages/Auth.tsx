@@ -106,7 +106,17 @@ const Auth = () => {
           await supabase.auth.signOut();
           toast({
             title: "Conta desativada",
-            description: "Sua conta foi desativada. Entre em contato com o administrador.",
+            description: "Sua assinatura não está ativa. Finalize o pagamento para acessar.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (profile && profile.subscription_status !== 'active') {
+          await supabase.auth.signOut();
+          toast({
+            title: "Assinatura pendente",
+            description: "Finalize o pagamento para acessar a plataforma.",
             variant: "destructive"
           });
           return;
