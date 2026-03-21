@@ -30,8 +30,9 @@ const CriarGrupos = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="criar">Criar Grupo</TabsTrigger>
+          <TabsTrigger value="gerenciar">Gerenciar</TabsTrigger>
           <TabsTrigger value="links">Links Rotativos</TabsTrigger>
           <TabsTrigger value="participantes">Participantes</TabsTrigger>
         </TabsList>
