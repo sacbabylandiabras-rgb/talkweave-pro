@@ -21,6 +21,7 @@ import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
+import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
 import NotFound from "./pages/NotFound";
 
