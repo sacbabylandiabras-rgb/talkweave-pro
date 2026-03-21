@@ -156,13 +156,19 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     return () => clearInterval(statusInterval);
   }, [instance.id]);
 
+  // Fetch phone when connected
+  useEffect(() => {
+    if (deviceStatus?.connected === true && !connectedPhone) {
+      fetchConnectedPhone();
+    }
+  }, [deviceStatus?.connected]);
+
   // Auto-sync history when device transitions from disconnected to connected
   useEffect(() => {
     const isConnectedNow = deviceStatus?.connected === true;
     
     if (prevConnected === false && isConnectedNow && !hasSynced) {
       setHasSynced(true);
-      // Wait a bit for the connection to stabilize before syncing
       setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
