@@ -46,48 +46,34 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       const status = await withInstance(() => getDeviceStatus());
       setDeviceStatus(status.data);
-      
-      // Fetch connected phone number when connected
-      if (status.data?.connected === true && !connectedPhone) {
-        const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-        const hdrs = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
-        
-        // Try /device endpoint (returns phone info)
-        try {
-          const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /device:", JSON.stringify(d));
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /device failed:", e); }
-
-        // Try /host-device endpoint
-        try {
-          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /host-device:", JSON.stringify(d));
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /host-device failed:", e); }
-
-        // Try /me and extract from connected webhook logs as last resort
-        try {
-          const res = await fetch(`${baseUrl}/contacts/me`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /contacts/me:", JSON.stringify(d));
-            const num = d?.phone || d?.id?.replace?.("@c.us", "") || d?.wid?.user || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /contacts/me failed:", e); }
-      }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
     }
+  };
+
+  // Fetch connected phone number separately
+  const fetchConnectedPhone = async () => {
+    if (connectedPhone) return;
+    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+    const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+    
+    try {
+      const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+      if (res.ok) {
+        const d = await res.json();
+        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+        if (num) { setConnectedPhone(num); return; }
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+      if (res.ok) {
+        const d = await res.json();
+        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+        if (num) { setConnectedPhone(num); return; }
+      }
+    } catch {}
   };
 
   const fetchQRCode = async () => {
