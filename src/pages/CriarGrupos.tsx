@@ -113,7 +113,7 @@ function GerenciarGrupoTab() {
       );
       if (action === "update-group-name") setNewName("");
       if (action === "update-group-description") setNewDescription("");
-      if (action === "update-group-photo") setNewPhotoUrl("");
+      if (action === "update-group-photo") { setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview(""); }
       refetch();
     } catch (err: any) {
       toast.error("Erro: " + (err.message || "Falha na operação"));
