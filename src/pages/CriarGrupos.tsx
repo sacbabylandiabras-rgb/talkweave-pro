@@ -56,10 +56,15 @@ function CriarGrupoTab() {
   const [groupName, setGroupName] = useState("");
   const [phones, setPhones] = useState("");
   const [creating, setCreating] = useState(false);
+  const { instances, activeInstance, selectInstance } = useZapiInstances();
 
   const handleCreate = async () => {
     if (!groupName.trim()) {
       toast.error("Nome do grupo é obrigatório");
+      return;
+    }
+    if (!activeInstance) {
+      toast.error("Selecione uma instância conectada");
       return;
     }
     setCreating(true);
@@ -70,10 +75,21 @@ function CriarGrupoTab() {
         .filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("manage-groups", {
-        body: { action: "create-group", groupName: groupName.trim(), phones: phoneList },
+        body: {
+          action: "create-group",
+          groupName: groupName.trim(),
+          phones: phoneList,
+          instanceId: activeInstance.zapi_instance_id,
+          instanceToken: activeInstance.zapi_token,
+          instanceClientToken: activeInstance.zapi_client_token,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) {
+        toast.error("Erro Z-API: " + data.error);
+        return;
+      }
       toast.success("Grupo criado com sucesso!");
       setGroupName("");
       setPhones("");
