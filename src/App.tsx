@@ -21,6 +21,7 @@ import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
+import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/gateway" element={<GatewayIntegracoes />} />
               <Route path="/mensagens" element={<MensagensRecebidas />} />
               <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
+              <Route path="/criar-grupos" element={<CriarGrupos />} />
               <Route path="/agente-ia" element={<AgenteIA />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
