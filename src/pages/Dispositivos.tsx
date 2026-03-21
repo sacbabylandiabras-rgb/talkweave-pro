@@ -48,18 +48,30 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       setDeviceStatus(status.data);
       
       // Fetch connected phone number when connected
-      if (status.data?.connected === true) {
+      if (status.data?.connected === true && !connectedPhone) {
         try {
           const phoneRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/me`,
-            { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/contacts`,
+            { 
+              method: "POST",
+              headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" },
+              body: JSON.stringify({ page: 1, pageSize: 1 })
+            }
           );
           if (phoneRes.ok) {
-            const phoneData = await phoneRes.json();
-            const num = phoneData?.phone || phoneData?.phoneNumber || phoneData?.id?.replace("@c.us", "") || null;
-            if (num) setConnectedPhone(num);
+            // Try the device-info endpoint instead
+            const infoRes = await fetch(
+              `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/phone`,
+              { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
+            );
+            if (infoRes.ok) {
+              const infoData = await infoRes.json();
+              const num = infoData?.phone || infoData?.phoneNumber || infoData?.wid?.user || infoData?.number || null;
+              if (num) setConnectedPhone(num);
+            }
           }
         } catch {}
+      }
       }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
