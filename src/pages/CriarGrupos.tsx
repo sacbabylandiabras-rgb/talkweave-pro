@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const CriarGrupos = () => {
-  const [activeTab, setActiveTab] = useState("criar");
+  const [activeTab, setActiveTab] = useState("gerenciar");
 
   return (
     <div className="space-y-6">
