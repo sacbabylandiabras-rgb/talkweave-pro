@@ -46,6 +46,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       const status = await withInstance(() => getDeviceStatus());
       setDeviceStatus(status.data);
+      
+      // Fetch connected phone number when connected
+      if (status.data?.connected === true) {
+        try {
+          const phoneRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/me`,
+            { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
+          );
+          if (phoneRes.ok) {
+            const phoneData = await phoneRes.json();
+            const num = phoneData?.phone || phoneData?.phoneNumber || phoneData?.id?.replace("@c.us", "") || null;
+            if (num) setConnectedPhone(num);
+          }
+        } catch {}
+      }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
     }
