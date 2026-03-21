@@ -60,6 +60,8 @@ const CriarGrupos = () => {
 /* ============= TAB: Criar Grupo ============= */
 function CriarGrupoTab() {
   const [groupName, setGroupName] = useState("");
+  const [description, setDescription] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [phones, setPhones] = useState("");
   const [creating, setCreating] = useState(false);
   const { instances, activeInstance, selectInstance } = useZapiInstances();
