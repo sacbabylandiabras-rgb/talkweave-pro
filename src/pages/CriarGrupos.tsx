@@ -175,7 +175,10 @@ function GerenciarGrupoTab() {
       if (error) throw error;
       if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
       toast.success("Foto atualizada!");
-      setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview("");
+      // Keep the preview showing the uploaded photo URL so it doesn't disappear
+      setNewPhotoPreview(imageUrl);
+      setNewPhotoUrl("");
+      setNewPhotoFile(null);
       refetch();
     } catch (err: any) {
       toast.error("Erro: " + (err.message || "Falha na operação"));
