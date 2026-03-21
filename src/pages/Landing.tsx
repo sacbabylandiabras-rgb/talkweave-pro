@@ -445,14 +445,14 @@ const Landing = () => {
                 <div className="bg-secondary/50 rounded-lg px-4 py-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-foreground text-sm font-medium">Grupo VIP Clientes</p>
-                    <span className="text-xs font-bold text-green-400">Ativo</span>
+                    <span className="text-xs font-bold text-primary">Ativo</span>
                   </div>
                   <p className="text-muted-foreground text-xs">Tipo: Modelo com imagem + botão</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg px-4 py-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-foreground text-sm font-medium">Suporte Premium</p>
-                    <span className="text-xs font-bold text-green-400">Ativo</span>
+                    <span className="text-xs font-bold text-primary">Ativo</span>
                   </div>
                   <p className="text-muted-foreground text-xs">Tipo: Fluxo visual completo</p>
                 </div>
