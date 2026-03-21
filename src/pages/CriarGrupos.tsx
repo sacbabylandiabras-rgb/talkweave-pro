@@ -212,6 +212,179 @@ function CriarGrupoTab() {
   );
 }
 
+/* ============= TAB: Gerenciar Grupo ============= */
+function GerenciarGrupoTab() {
+  const { groups, loading, refetch } = useWhatsAppGroups();
+  const { instances } = useZapiInstances();
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+
+  const getInstanceCredentials = (group: any) => {
+    const inst = instances.find((i) => i.zapi_instance_id === group?.sourceInstanceId);
+    if (inst) {
+      return {
+        instanceId: inst.zapi_instance_id,
+        instanceToken: inst.zapi_token,
+        instanceClientToken: inst.zapi_client_token,
+      };
+    }
+    return {};
+  };
+
+  const handleGroupAction = async (action: string, extraBody: Record<string, any> = {}) => {
+    if (!selectedGroup) return;
+    setActionLoading(action);
+    try {
+      const credentials = getInstanceCredentials(selectedGroup);
+      const { data, error } = await supabase.functions.invoke("manage-groups", {
+        body: { action, groupId: selectedGroup.id, ...credentials, ...extraBody },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error("Erro Z-API: " + data.error);
+        return;
+      }
+      toast.success(
+        action === "update-group-name" ? "Nome atualizado!" :
+        action === "update-group-description" ? "Descrição atualizada!" :
+        action === "update-group-photo" ? "Foto atualizada!" :
+        action === "admin-only-messages" ? "Configuração atualizada!" :
+        "Operação realizada!"
+      );
+      if (action === "update-group-name") setNewName("");
+      if (action === "update-group-description") setNewDescription("");
+      if (action === "update-group-photo") setNewPhotoUrl("");
+      refetch();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || "Falha na operação"));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary" />
+            Gerenciar Grupo
+          </CardTitle>
+          <CardDescription>Altere nome, descrição, foto e configurações do grupo</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Selecione um grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.nome} ({g.membros} membros)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+
+          {selectedGroup && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={selectedGroup.foto || ""} />
+                  <AvatarFallback>{selectedGroup.nome?.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-foreground">{selectedGroup.nome}</p>
+                  <p className="text-xs text-muted-foreground">{selectedGroup.membros} membros • {selectedGroup.descricao || "Sem descrição"}</p>
+                  {selectedGroup.isAdmin && <Badge variant="default" className="mt-1 text-[10px]">Admin</Badge>}
+                </div>
+              </div>
+
+              {/* Update Name */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Pencil className="w-3.5 h-3.5" />
+                  Alterar Nome
+                </label>
+                <div className="flex gap-2">
+                  <Input placeholder="Novo nome do grupo" value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-1" />
+                  <Button size="sm" disabled={!newName.trim() || actionLoading === "update-group-name"} onClick={() => handleGroupAction("update-group-name", { groupName: newName.trim() })}>
+                    {actionLoading === "update-group-name" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Update Description */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" />
+                  Alterar Descrição
+                </label>
+                <div className="flex gap-2">
+                  <textarea
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px] placeholder:text-muted-foreground"
+                    placeholder="Nova descrição do grupo"
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                  />
+                  <Button size="sm" className="self-end" disabled={!newDescription.trim() || actionLoading === "update-group-description"} onClick={() => handleGroupAction("update-group-description", { description: newDescription.trim() })}>
+                    {actionLoading === "update-group-description" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Update Photo */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" />
+                  Alterar Foto
+                </label>
+                <div className="flex gap-2">
+                  <Input placeholder="URL da nova foto" value={newPhotoUrl} onChange={(e) => setNewPhotoUrl(e.target.value)} className="flex-1" />
+                  <Button size="sm" disabled={!newPhotoUrl.trim() || actionLoading === "update-group-photo"} onClick={() => handleGroupAction("update-group-photo", { imageUrl: newPhotoUrl.trim() })}>
+                    {actionLoading === "update-group-photo" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+                {newPhotoUrl && (
+                  <img src={newPhotoUrl} alt="Preview" className="w-12 h-12 rounded-full object-cover border border-border" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                )}
+              </div>
+
+              {/* Admin-only messages */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Mensagens
+                </label>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: true })}>
+                    {actionLoading === "admin-only-messages" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
+                    Só admins
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: false })}>
+                    <ShieldOff className="w-4 h-4 mr-1" />
+                    Todos podem enviar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
