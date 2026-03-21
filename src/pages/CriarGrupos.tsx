@@ -183,7 +183,6 @@ function GerenciarGrupoTab() {
       setActionLoading(null);
     }
   };
-  };
 
   const handleCreate = async () => {
     if (!groupName.trim()) { toast.error("Nome do grupo é obrigatório"); return; }
@@ -461,6 +460,8 @@ function GerenciarGrupoTab() {
     </div>
   );
 }
+
+/* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
