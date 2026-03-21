@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/update-group-photo`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, groupPhoto: imageUrl }),
         });
