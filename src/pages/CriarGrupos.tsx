@@ -344,104 +344,107 @@ function GerenciarGrupoTab() {
           </div>
 
           {selectedGroup && (
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={selectedGroup.foto || ""} />
-                  <AvatarFallback>{selectedGroup.nome?.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium text-foreground">{selectedGroup.nome}</p>
-                  <p className="text-xs text-muted-foreground">{selectedGroup.membros} membros • {selectedGroup.descricao || "Sem descrição"}</p>
-                  {selectedGroup.isAdmin && <Badge variant="default" className="mt-1 text-[10px]">Admin</Badge>}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Pencil className="w-3.5 h-3.5" />
-                  Alterar Nome
-                </label>
-                <div className="flex gap-2">
-                  <Input placeholder="Novo nome do grupo" value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-1" />
-                  <Button size="sm" disabled={!newName.trim() || actionLoading === "update-group-name"} onClick={() => handleGroupAction("update-group-name", { groupName: newName.trim() })}>
-                    {actionLoading === "update-group-name" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" />
-                  Alterar Descrição
-                </label>
-                <div className="flex gap-2">
-                  <textarea
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px] placeholder:text-muted-foreground"
-                    placeholder="Nova descrição do grupo"
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                  />
-                  <Button size="sm" className="self-end" disabled={!newDescription.trim() || actionLoading === "update-group-description"} onClick={() => handleGroupAction("update-group-description", { description: newDescription.trim() })}>
-                    {actionLoading === "update-group-description" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Image className="w-3.5 h-3.5" />
-                  Alterar Foto
-                </label>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="relative w-14 h-14 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40"
-                    onClick={() => manageFileInputRef.current?.click()}
-                  >
-                    {newPhotoPreview || newPhotoUrl ? (
-                      <img src={newPhotoPreview || newPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                    )}
+            <div className="flex gap-6 pt-2">
+              {/* Left: Form controls */}
+              <div className="flex-1 space-y-4 min-w-0">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={selectedGroup.foto || ""} />
+                    <AvatarFallback>{selectedGroup.nome?.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-foreground">{selectedGroup.nome}</p>
+                    <p className="text-xs text-muted-foreground">{selectedGroup.membros} membros • {selectedGroup.descricao || "Sem descrição"}</p>
+                    {selectedGroup.isAdmin && <Badge variant="default" className="mt-1 text-[10px]">Admin</Badge>}
                   </div>
-                  <div className="flex-1 space-y-1.5">
-                    <Button type="button" variant="outline" size="sm" onClick={() => manageFileInputRef.current?.click()}>
-                      <Upload className="w-3.5 h-3.5 mr-1.5" />
-                      Upload
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Pencil className="w-3.5 h-3.5" />
+                    Alterar Nome
+                  </label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Novo nome do grupo" value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-1" />
+                    <Button size="sm" disabled={!newName.trim() || actionLoading === "update-group-name"} onClick={() => handleGroupAction("update-group-name", { groupName: newName.trim() })}>
+                      {actionLoading === "update-group-name" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
                     </Button>
-                    <Input
-                      placeholder="Ou cole a URL da imagem"
-                      value={newPhotoUrl}
-                      onChange={(e) => { setNewPhotoUrl(e.target.value); setNewPhotoFile(null); setNewPhotoPreview(""); }}
-                      className="h-8 text-xs"
-                    />
                   </div>
-                  <Button size="sm" className="self-end" disabled={(!newPhotoUrl.trim() && !newPhotoFile) || actionLoading === "update-group-photo"} onClick={handleUpdatePhoto}>
-                    {actionLoading === "update-group-photo" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                  <input ref={manageFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleManageFileChange} />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" />
+                    Alterar Descrição
+                  </label>
+                  <div className="flex gap-2">
+                    <textarea
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px] placeholder:text-muted-foreground"
+                      placeholder="Nova descrição do grupo"
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                    />
+                    <Button size="sm" className="self-end" disabled={!newDescription.trim() || actionLoading === "update-group-description"} onClick={() => handleGroupAction("update-group-description", { description: newDescription.trim() })}>
+                      {actionLoading === "update-group-description" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Image className="w-3.5 h-3.5" />
+                    Alterar Foto
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="relative w-14 h-14 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40"
+                      onClick={() => manageFileInputRef.current?.click()}
+                    >
+                      {newPhotoPreview || newPhotoUrl ? (
+                        <img src={newPhotoPreview || newPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <Button type="button" variant="outline" size="sm" onClick={() => manageFileInputRef.current?.click()}>
+                        <Upload className="w-3.5 h-3.5 mr-1.5" />
+                        Upload
+                      </Button>
+                      <Input
+                        placeholder="Ou cole a URL da imagem"
+                        value={newPhotoUrl}
+                        onChange={(e) => { setNewPhotoUrl(e.target.value); setNewPhotoFile(null); setNewPhotoPreview(""); }}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <Button size="sm" className="self-end" disabled={(!newPhotoUrl.trim() && !newPhotoFile) || actionLoading === "update-group-photo"} onClick={handleUpdatePhoto}>
+                      {actionLoading === "update-group-photo" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                    </Button>
+                    <input ref={manageFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleManageFileChange} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Mensagens
+                  </label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: true })}>
+                      {actionLoading === "admin-only-messages" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
+                      Só admins
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: false })}>
+                      <ShieldOff className="w-4 h-4 mr-1" />
+                      Todos podem enviar
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Mensagens
-                </label>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: true })}>
-                    {actionLoading === "admin-only-messages" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
-                    Só admins
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: false })}>
-                    <ShieldOff className="w-4 h-4 mr-1" />
-                    Todos podem enviar
-                  </Button>
-                </div>
-              </div>
-
-              {/* WhatsApp Preview */}
-              <div className="pt-4 border-t border-border">
+              {/* Right: WhatsApp Preview */}
+              <div className="hidden lg:flex flex-col items-center pt-2 w-[300px] flex-shrink-0">
                 <label className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-3">
                   <Phone className="w-3.5 h-3.5" />
                   Preview no WhatsApp
