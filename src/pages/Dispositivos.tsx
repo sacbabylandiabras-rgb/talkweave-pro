@@ -49,28 +49,41 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       
       // Fetch connected phone number when connected
       if (status.data?.connected === true && !connectedPhone) {
+        const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+        const hdrs = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+        
+        // Try /device endpoint (returns phone info)
         try {
-          // Try multiple Z-API endpoints to get connected phone
-          const endpoints = ['device', 'host-device', 'contacts/me'];
-          for (const ep of endpoints) {
-            try {
-              const res = await fetch(
-                `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/${ep}`,
-                { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
-              );
-              if (res.ok) {
-                const data = await res.json();
-                console.log(`📱 ${ep} response:`, JSON.stringify(data));
-                const num = data?.phone || data?.phoneNumber || data?.wid?.user || 
-                           data?.wid?.replace?.("@c.us", "") || data?.id?.replace?.("@c.us", "") || null;
-                if (num) {
-                  setConnectedPhone(num);
-                  break;
-                }
-              }
-            } catch {}
+          const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+          if (res.ok) {
+            const d = await res.json();
+            console.log("📱 /device:", JSON.stringify(d));
+            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+            if (num) { setConnectedPhone(num); return; }
           }
-        } catch {}
+        } catch (e) { console.log("📱 /device failed:", e); }
+
+        // Try /host-device endpoint
+        try {
+          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+          if (res.ok) {
+            const d = await res.json();
+            console.log("📱 /host-device:", JSON.stringify(d));
+            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+            if (num) { setConnectedPhone(num); return; }
+          }
+        } catch (e) { console.log("📱 /host-device failed:", e); }
+
+        // Try /me and extract from connected webhook logs as last resort
+        try {
+          const res = await fetch(`${baseUrl}/contacts/me`, { headers: hdrs });
+          if (res.ok) {
+            const d = await res.json();
+            console.log("📱 /contacts/me:", JSON.stringify(d));
+            const num = d?.phone || d?.id?.replace?.("@c.us", "") || d?.wid?.user || null;
+            if (num) { setConnectedPhone(num); return; }
+          }
+        } catch (e) { console.log("📱 /contacts/me failed:", e); }
       }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
