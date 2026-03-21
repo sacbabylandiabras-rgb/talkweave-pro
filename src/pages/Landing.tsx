@@ -436,37 +436,52 @@ const Landing = () => {
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">👋</span>
-                <h4 className="text-foreground font-bold text-lg">Boas-Vindas Automáticas</h4>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-foreground text-sm font-medium">Grupo VIP Clientes</p>
-                    <span className="text-xs font-bold text-primary">Ativo</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">Tipo: Modelo com imagem + botão</p>
-                </div>
-                <div className="bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-foreground text-sm font-medium">Suporte Premium</p>
-                    <span className="text-xs font-bold text-primary">Ativo</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">Tipo: Fluxo visual completo</p>
-                </div>
-                <div className="bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-foreground text-sm font-medium">Comunidade Geral</p>
-                    <span className="text-xs font-bold text-muted-foreground">Inativo</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">Tipo: Texto personalizado</p>
+            <div className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
+              {/* WhatsApp-style header */}
+              <div className="bg-primary/15 px-4 py-3 flex items-center gap-3 border-b border-border">
+                <div className="w-9 h-9 rounded-full bg-primary/30 flex items-center justify-center text-sm font-bold text-primary">VIP</div>
+                <div>
+                  <p className="text-foreground text-sm font-semibold">Grupo VIP Clientes</p>
+                  <p className="text-muted-foreground text-[10px]">48 participantes</p>
                 </div>
               </div>
-              <div className="border-t border-border pt-3">
-                <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm italic">"Olá <span className="text-primary font-semibold">{'{{nome}}'}</span>! 👋 Bem-vindo ao grupo! Estamos felizes em ter você aqui."</p>
+              {/* Chat area */}
+              <div className="px-4 py-4 space-y-3 bg-secondary/20 min-h-[260px]">
+                {/* System message */}
+                <div className="flex justify-center">
+                  <span className="text-[10px] text-muted-foreground bg-muted/60 px-3 py-1 rounded-full">
+                    Maria Silva entrou no grupo
+                  </span>
+                </div>
+                {/* Arrow indicator */}
+                <div className="flex justify-center">
+                  <span className="text-primary text-lg animate-bounce">⬇</span>
+                </div>
+                {/* Bot welcome message */}
+                <div className="flex justify-end">
+                  <div className="bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 max-w-[85%] shadow-sm">
+                    <p className="text-xs leading-relaxed">Olá <strong>Maria Silva</strong>! 👋</p>
+                    <p className="text-xs leading-relaxed mt-1">Bem-vindo ao nosso grupo VIP! Aqui você terá acesso a ofertas exclusivas e conteúdos especiais.</p>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
+                        🛒 Ver Ofertas
+                      </div>
+                      <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
+                        📞 Falar com Suporte
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-1 mt-1.5">
+                      <span className="text-[9px] opacity-70">🤖 Automático</span>
+                      <span className="text-[9px] opacity-60">14:32</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Response from member */}
+                <div className="flex justify-start">
+                  <div className="bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 max-w-[70%] shadow-sm">
+                    <p className="text-xs text-foreground">Obrigada! 😍</p>
+                    <p className="text-[9px] text-muted-foreground text-right mt-0.5">14:33</p>
+                  </div>
                 </div>
               </div>
             </div>
