@@ -4,17 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups();
+  const { configs: welcomeConfigs, toggleConfig, updateMessage } = useGroupWelcome();
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
+  const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
 
   const filteredGroups = groups.filter((grupo) => {
     const query = busca.toLowerCase();
@@ -23,6 +29,13 @@ const ApanhadorGrupos = () => {
       grupo.descricao.toLowerCase().includes(query)
     );
   });
+
+  const getGroupWelcomeId = (groupId: string) => {
+    // Convert group ID to the -group format used in config
+    if (groupId.includes('@g.us')) return groupId.replace('@g.us', '-group');
+    if (groupId.includes('-group')) return groupId;
+    return groupId + '-group';
+  };
 
   const extractParticipants = async (
     groupId: string,
@@ -82,7 +95,7 @@ const ApanhadorGrupos = () => {
         <p className="text-muted-foreground">Visualize seus grupos do WhatsApp e extraia números dos participantes</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Grupos</CardTitle>
@@ -117,6 +130,19 @@ const ApanhadorGrupos = () => {
               {groups.filter(g => g.isAdmin).length}
             </div>
             <p className="text-xs text-muted-foreground">Você é administrador</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Boas-vindas Ativas</CardTitle>
+            <MessageCircle className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {welcomeConfigs.filter(c => c.active).length}
+            </div>
+            <p className="text-xs text-muted-foreground">Grupos com boas-vindas</p>
           </CardContent>
         </Card>
       </div>
@@ -177,6 +203,12 @@ const ApanhadorGrupos = () => {
         <div className="space-y-3">
           {filteredGroups.map((grupo) => {
             const numbers = extractedNumbers.get(grupo.id);
+            const welcomeGroupId = getGroupWelcomeId(grupo.id);
+            const welcomeConfig = welcomeConfigs.find(c => c.group_id === welcomeGroupId);
+            const isWelcomeActive = welcomeConfig?.active || false;
+            const isExpanded = expandedWelcome === grupo.id;
+            const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
+
             return (
               <Card key={grupo.id}>
                 <CardContent className="p-4">
@@ -195,6 +227,12 @@ const ApanhadorGrupos = () => {
                         </h3>
                         {grupo.isAdmin && (
                           <Badge variant="default" className="text-xs">Admin</Badge>
+                        )}
+                        {isWelcomeActive && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            Boas-vindas
+                          </Badge>
                         )}
                       </div>
 
@@ -217,7 +255,19 @@ const ApanhadorGrupos = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 items-center">
+                      {/* Welcome message toggle */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedWelcome(isExpanded ? null : grupo.id)}
+                        className="text-muted-foreground"
+                        title="Mensagem de boas-vindas"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-1" />
+                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </Button>
+
                       {numbers ? (
                         <>
                           <Button
@@ -258,6 +308,53 @@ const ApanhadorGrupos = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Welcome message config panel */}
+                  {isExpanded && (
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">Mensagem de Boas-vindas</span>
+                        </div>
+                        <Switch
+                          checked={isWelcomeActive}
+                          onCheckedChange={(checked) => {
+                            toggleConfig(welcomeGroupId, grupo.nome, checked, currentMessage);
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Envie automaticamente uma mensagem para novos membros do grupo. Use {'{{nome}}'} para o nome do participante.
+                      </p>
+                      <Textarea
+                        value={currentMessage}
+                        onChange={(e) => {
+                          setEditingMessage(prev => new Map(prev).set(grupo.id, e.target.value));
+                        }}
+                        placeholder="Digite a mensagem de boas-vindas..."
+                        className="min-h-[80px] text-sm"
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const msg = editingMessage.get(grupo.id);
+                            if (msg !== undefined) {
+                              if (welcomeConfig) {
+                                updateMessage(welcomeGroupId, msg);
+                              } else {
+                                toggleConfig(welcomeGroupId, grupo.nome, true, msg);
+                              }
+                            }
+                          }}
+                          disabled={editingMessage.get(grupo.id) === undefined}
+                        >
+                          Salvar Mensagem
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {numbers && numbers.length > 0 && (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
