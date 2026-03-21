@@ -8,6 +8,9 @@ export interface GroupWelcomeConfig {
   group_id: string;
   group_name: string;
   message: string;
+  response_type: 'text' | 'template' | 'flow';
+  template_id: string | null;
+  flow_id: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -34,7 +37,17 @@ export function useGroupWelcome() {
     }
   };
 
-  const toggleConfig = async (groupId: string, groupName: string, active: boolean, message?: string) => {
+  const saveConfig = async (
+    groupId: string,
+    groupName: string,
+    active: boolean,
+    data: {
+      message?: string;
+      response_type?: 'text' | 'template' | 'flow';
+      template_id?: string | null;
+      flow_id?: string | null;
+    }
+  ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -42,14 +55,11 @@ export function useGroupWelcome() {
       const existing = configs.find(c => c.group_id === groupId);
 
       if (existing) {
-        const updateData: any = { active };
-        if (message !== undefined) updateData.message = message;
-
+        const updateData: any = { active, ...data };
         const { error } = await supabase
           .from('group_welcome_config' as any)
           .update(updateData)
           .eq('id', existing.id);
-
         if (error) throw error;
       } else {
         const { error } = await supabase
@@ -58,37 +68,20 @@ export function useGroupWelcome() {
             user_id: user.id,
             group_id: groupId,
             group_name: groupName,
-            message: message || 'Olá {{nome}}! 👋 Bem-vindo ao grupo!',
+            message: data.message || 'Olá {{nome}}! 👋 Bem-vindo ao grupo!',
+            response_type: data.response_type || 'text',
+            template_id: data.template_id || null,
+            flow_id: data.flow_id || null,
             active,
           });
-
         if (error) throw error;
       }
 
       await fetchConfigs();
-      toast.success(active ? 'Mensagem de boas-vindas ativada!' : 'Mensagem de boas-vindas desativada!');
+      toast.success(active ? 'Configuração de boas-vindas salva!' : 'Boas-vindas desativada!');
     } catch (err) {
-      console.error('Error toggling group welcome:', err);
+      console.error('Error saving group welcome:', err);
       toast.error('Erro ao salvar configuração');
-    }
-  };
-
-  const updateMessage = async (groupId: string, message: string) => {
-    try {
-      const existing = configs.find(c => c.group_id === groupId);
-      if (!existing) return;
-
-      const { error } = await supabase
-        .from('group_welcome_config' as any)
-        .update({ message })
-        .eq('id', existing.id);
-
-      if (error) throw error;
-      await fetchConfigs();
-      toast.success('Mensagem atualizada!');
-    } catch (err) {
-      console.error('Error updating message:', err);
-      toast.error('Erro ao atualizar mensagem');
     }
   };
 
@@ -96,5 +89,5 @@ export function useGroupWelcome() {
     fetchConfigs();
   }, []);
 
-  return { configs, loading, toggleConfig, updateMessage, refetch: fetchConfigs };
+  return { configs, loading, saveConfig, refetch: fetchConfigs };
 }
