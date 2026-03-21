@@ -64,6 +64,87 @@ serve(async (req) => {
       return new Response('invalid_json', { status: 400, headers: corsHeaders })
     }
 
+    // === GROUP PARTICIPANT JOIN DETECTION ===
+    // Z-API sends events when participants join/leave groups
+    const webhookAction = webhook?.action || webhook?.event || webhook?.type || ''
+    const isParticipantEvent = 
+      webhookAction === 'add' || 
+      webhookAction === 'join' ||
+      webhook?.status === 'MEMBER_ADD' ||
+      webhook?.groupParticipant?.action === 'add' ||
+      webhook?.participantAction === 'add'
+
+    if (isParticipantEvent) {
+      console.log('👋 Group participant JOIN event detected:', JSON.stringify(webhook).substring(0, 800))
+      
+      const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
+      const joinedPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || 
+                          webhook?.groupParticipant?.phone || ''
+      const joinedName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
+      const eventInstanceId = webhook?.instanceId || webhook?.instance_id || ''
+
+      if (groupPhone && joinedPhone && eventInstanceId) {
+        // Find user by instanceId
+        const { data: instData } = await supabase
+          .from('zapi_instances')
+          .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
+          .eq('zapi_instance_id', eventInstanceId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (instData) {
+          // Normalize group ID
+          let normalizedGroupId = groupPhone
+          if (groupPhone.includes('@g.us')) {
+            normalizedGroupId = groupPhone.replace('@g.us', '-group')
+          } else if (!groupPhone.includes('-group')) {
+            normalizedGroupId = groupPhone + '-group'
+          }
+
+          // Check if welcome message is configured for this group
+          const { data: welcomeConfig } = await supabase
+            .from('group_welcome_config')
+            .select('*')
+            .eq('user_id', instData.user_id)
+            .eq('group_id', normalizedGroupId)
+            .eq('active', true)
+            .maybeSingle()
+
+          if (welcomeConfig) {
+            // Replace variables in message
+            let finalMessage = welcomeConfig.message
+              .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+              .replace(/\{\{telefone\}\}/gi, joinedPhone)
+              .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
+
+            // Send welcome message to the person who joined
+            const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
+            const sendResp = await fetch(`${baseUrl}/send-text`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token },
+              body: JSON.stringify({ phone: joinedPhone, message: finalMessage }),
+            })
+
+            const sendData = await sendResp.json()
+            console.log('📨 Group welcome message sent to', joinedPhone, ':', sendResp.ok, sendData?.id || '')
+
+            // Log the sent message
+            await supabase.from('message_logs').insert({
+              phone: joinedPhone,
+              message_received: null,
+              response_sent: finalMessage,
+              keyword_matched: '__group_welcome__',
+              timestamp: new Date().toISOString(),
+              user_id: instData.user_id,
+              instance_id: instData.zapi_instance_id,
+            })
+          }
+        }
+      }
+
+      return new Response('group_participant_event_handled', { status: 200, headers: corsHeaders })
+    }
+
     // Detect outgoing messages sent by this same WhatsApp instance
     const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
 
