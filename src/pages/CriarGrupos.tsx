@@ -297,12 +297,23 @@ function CriarGrupoTab() {
 /* ============= TAB: Gerenciar Grupo ============= */
 function GerenciarGrupoTab() {
   const { groups, loading, refetch } = useWhatsAppGroups();
-  const { instances } = useZapiInstances();
+  const { instances, activeInstance, selectInstance } = useZapiInstances();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
+
+  // Create group dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createPhotoUrl, setCreatePhotoUrl] = useState("");
+  const [createPhotoFile, setCreatePhotoFile] = useState<File | null>(null);
+  const [createPhotoPreview, setCreatePhotoPreview] = useState("");
+  const [phones, setPhones] = useState("");
+  const [creating, setCreating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
@@ -349,15 +360,168 @@ function GerenciarGrupoTab() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCreatePhotoFile(file);
+    setCreatePhotoUrl("");
+    const reader = new FileReader();
+    reader.onload = () => setCreatePhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (createPhotoUrl.trim()) return createPhotoUrl.trim();
+    if (!createPhotoFile) return null;
+    const fileExt = createPhotoFile.name.split(".").pop();
+    const fileName = `group-photos/${Date.now()}.${fileExt}`;
+    const { data, error } = await supabase.storage
+      .from("template-media")
+      .upload(fileName, createPhotoFile, { contentType: createPhotoFile.type });
+    if (error) throw new Error("Erro ao fazer upload da foto: " + error.message);
+    const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
+    return urlData.publicUrl;
+  };
+
+  const handleCreate = async () => {
+    if (!groupName.trim()) { toast.error("Nome do grupo é obrigatório"); return; }
+    if (!activeInstance) { toast.error("Selecione uma instância conectada"); return; }
+    setCreating(true);
+    try {
+      const phoneList = phones.split(/[,\n]/).map((p) => p.trim()).filter(Boolean);
+      const baseBody = {
+        instanceId: activeInstance.zapi_instance_id,
+        instanceToken: activeInstance.zapi_token,
+        instanceClientToken: activeInstance.zapi_client_token,
+      };
+      const { data, error } = await supabase.functions.invoke("manage-groups", {
+        body: { ...baseBody, action: "create-group", groupName: groupName.trim(), phones: phoneList },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+
+      const groupId = data?.phone || data?.groupId || data?.id;
+      if (groupId && createDescription.trim()) {
+        await supabase.functions.invoke("manage-groups", {
+          body: { ...baseBody, action: "update-group-description", groupId, description: createDescription.trim() },
+        });
+      }
+      const finalPhotoUrl = await uploadPhoto();
+      if (groupId && finalPhotoUrl) {
+        await supabase.functions.invoke("manage-groups", {
+          body: { ...baseBody, action: "update-group-photo", groupId, imageUrl: finalPhotoUrl },
+        });
+      }
+      toast.success("Grupo criado com sucesso!");
+      setGroupName(""); setCreateDescription(""); setCreatePhotoUrl(""); setCreatePhotoFile(null); setCreatePhotoPreview(""); setPhones("");
+      setCreateOpen(false);
+      refetch();
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao criar grupo: " + (err.message || ""));
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5 text-primary" />
-            Gerenciar Grupo
-          </CardTitle>
-          <CardDescription>Altere nome, descrição, foto e configurações do grupo</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
+                Gerenciar Grupo
+              </CardTitle>
+              <CardDescription>Altere nome, descrição, foto e configurações do grupo</CardDescription>
+            </div>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar Grupo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-primary" />
+                    Novo Grupo WhatsApp
+                  </DialogTitle>
+                  <DialogDescription>Preencha os dados para criar o grupo</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Instância</label>
+                    <Select value={activeInstance?.id || ""} onValueChange={selectInstance}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione a instância" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {instances.map((inst) => (
+                          <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <Image className="w-3.5 h-3.5" />
+                      Foto do Grupo <span className="text-muted-foreground">(opcional)</span>
+                    </label>
+                    <div className="mt-2 flex items-center gap-3">
+                      <div
+                        className="relative w-16 h-16 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {createPhotoPreview || createPhotoUrl ? (
+                          <img src={createPhotoPreview || createPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                          <Upload className="w-3.5 h-3.5 mr-1.5" />
+                          Upload
+                        </Button>
+                        <Input
+                          placeholder="Ou cole a URL da imagem"
+                          value={createPhotoUrl}
+                          onChange={(e) => { setCreatePhotoUrl(e.target.value); setCreatePhotoFile(null); setCreatePhotoPreview(""); }}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Nome do Grupo *</label>
+                    <Input placeholder="Ex: Comunidade VIP" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5" />
+                      Descrição <span className="text-muted-foreground">(opcional)</span>
+                    </label>
+                    <Textarea className="mt-1 min-h-[80px]" placeholder="Descrição do grupo..." value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">
+                      Participantes iniciais <span className="text-muted-foreground">(opcional)</span>
+                    </label>
+                    <Textarea className="mt-1 min-h-[80px]" placeholder={"5511999999999\n5511888888888\nOu separados por vírgula"} value={phones} onChange={(e) => setPhones(e.target.value)} />
+                    <p className="text-xs text-muted-foreground mt-1">Insira os números com DDD e DDI</p>
+                  </div>
+                  <Button onClick={handleCreate} disabled={creating} className="w-full">
+                    {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    Criar Grupo
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
@@ -392,7 +556,6 @@ function GerenciarGrupoTab() {
                 </div>
               </div>
 
-              {/* Update Name */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                   <Pencil className="w-3.5 h-3.5" />
@@ -406,7 +569,6 @@ function GerenciarGrupoTab() {
                 </div>
               </div>
 
-              {/* Update Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" />
@@ -425,7 +587,6 @@ function GerenciarGrupoTab() {
                 </div>
               </div>
 
-              {/* Update Photo */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                   <Image className="w-3.5 h-3.5" />
@@ -442,7 +603,6 @@ function GerenciarGrupoTab() {
                 )}
               </div>
 
-              {/* Admin-only messages */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -466,8 +626,6 @@ function GerenciarGrupoTab() {
     </div>
   );
 }
-
-/* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
