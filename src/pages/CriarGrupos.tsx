@@ -82,15 +82,14 @@ function CriarGrupoTab() {
         .map((p) => p.trim())
         .filter(Boolean);
 
+      const baseBody = {
+        instanceId: activeInstance.zapi_instance_id,
+        instanceToken: activeInstance.zapi_token,
+        instanceClientToken: activeInstance.zapi_client_token,
+      };
+
       const { data, error } = await supabase.functions.invoke("manage-groups", {
-        body: {
-          action: "create-group",
-          groupName: groupName.trim(),
-          phones: phoneList,
-          instanceId: activeInstance.zapi_instance_id,
-          instanceToken: activeInstance.zapi_token,
-          instanceClientToken: activeInstance.zapi_client_token,
-        },
+        body: { ...baseBody, action: "create-group", groupName: groupName.trim(), phones: phoneList },
       });
 
       if (error) throw error;
@@ -98,8 +97,25 @@ function CriarGrupoTab() {
         toast.error("Erro Z-API: " + data.error);
         return;
       }
+
+      const groupId = data?.phone || data?.groupId || data?.id;
+
+      if (groupId && description.trim()) {
+        await supabase.functions.invoke("manage-groups", {
+          body: { ...baseBody, action: "update-group-description", groupId, description: description.trim() },
+        });
+      }
+
+      if (groupId && photoUrl.trim()) {
+        await supabase.functions.invoke("manage-groups", {
+          body: { ...baseBody, action: "update-group-photo", groupId, imageUrl: photoUrl.trim() },
+        });
+      }
+
       toast.success("Grupo criado com sucesso!");
       setGroupName("");
+      setDescription("");
+      setPhotoUrl("");
       setPhones("");
     } catch (err: any) {
       console.error(err);
