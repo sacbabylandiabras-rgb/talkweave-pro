@@ -41,6 +41,10 @@ const CriarGrupos = () => {
           <CriarGrupoTab />
         </TabsContent>
 
+        <TabsContent value="gerenciar" className="mt-4">
+          <GerenciarGrupoTab />
+        </TabsContent>
+
         <TabsContent value="links" className="mt-4">
           <LinksRotativosTab />
         </TabsContent>
