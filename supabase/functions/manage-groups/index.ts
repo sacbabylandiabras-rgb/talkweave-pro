@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         if (!groupId) throw new Error("groupId is required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/group-admin-only`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, value: value ?? true }),
         });
