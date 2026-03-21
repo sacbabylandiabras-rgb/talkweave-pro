@@ -344,7 +344,68 @@ serve(async (req) => {
                   .replace(/\{\{telefone\}\}/gi, joinedPhone)
                   .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
 
-                if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
+                const rawButtons = Array.isArray(tpl.buttons) ? tpl.buttons : []
+                const formattedButtons = rawButtons
+                  .map((btn: any) => {
+                    const btnType = String(btn?.type || (btn?.url || btn?.value ? 'url' : 'reply')).toUpperCase()
+                    const label = btn?.text || btn?.label || 'Acessar'
+
+                    if (!label) return null
+
+                    const buttonData: any = { label }
+
+                    if (btnType === 'CALL') {
+                      const phoneValue = btn?.phone || btn?.value || ''
+                      if (!phoneValue) return null
+                      buttonData.type = 'CALL'
+                      buttonData.phone = phoneValue
+                    } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                      buttonData.type = 'REPLY'
+                    } else if (btnType === 'COPY') {
+                      const copyValue = btn?.copyText || btn?.value || ''
+                      if (!copyValue) return null
+                      buttonData.type = 'URL'
+                      buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(copyValue)}`
+                    } else {
+                      const urlValue = btn?.url || btn?.value || ''
+                      if (!urlValue) return null
+                      buttonData.type = 'URL'
+                      buttonData.url = urlValue
+                    }
+
+                    if (btn?.id) {
+                      buttonData.id = btn.id
+                    }
+
+                    return buttonData
+                  })
+                  .filter(Boolean)
+                  .slice(0, 3)
+
+                const canSendInteractiveButtons = formattedButtons.length > 0 && !(tpl.media_url && (tpl.type === 'video' || tpl.type === 'vídeo' || tpl.type === 'audio' || tpl.type === 'áudio'))
+
+                if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image') && canSendInteractiveButtons) {
+                  const buttonResponse = await fetch(`${baseUrl}/send-button-actions`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({
+                      phone: joinedPhone,
+                      message: tplMessage,
+                      image: tpl.media_url,
+                      buttonActions: formattedButtons,
+                    }),
+                  })
+                  console.log('📤 Welcome template image+buttons status:', buttonResponse.status, await buttonResponse.text())
+                } else if (!tpl.media_url && canSendInteractiveButtons) {
+                  const buttonResponse = await fetch(`${baseUrl}/send-button-actions`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({
+                      phone: joinedPhone,
+                      message: tplMessage,
+                      buttonActions: formattedButtons,
+                    }),
+                  })
+                  console.log('📤 Welcome template text+buttons status:', buttonResponse.status, await buttonResponse.text())
+                } else if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
                   const sendResponse = await fetch(`${baseUrl}/send-image`, {
                     method: 'POST', headers,
                     body: JSON.stringify({ phone: joinedPhone, image: tpl.media_url, caption: tplMessage }),
@@ -375,33 +436,6 @@ serve(async (req) => {
                     body: JSON.stringify({ phone: joinedPhone, message: tplMessage }),
                   })
                   console.log('📤 Welcome template text status:', textResponse.status, await textResponse.text())
-                }
-
-                // Send buttons if present
-                const buttons = tpl.buttons as any[]
-                if (buttons && buttons.length > 0) {
-                  for (const btn of buttons) {
-                    const btnUrl = btn.url || btn.value || ''
-                    const btnLabel = btn.label || btn.text || 'Acessar'
-                    const btnType = btn.type || (btnUrl ? 'url' : 'reply')
-
-                    if (btnType === 'url' && btnUrl) {
-                      const buttonResponse = await fetch(`${baseUrl}/send-link`, {
-                        method: 'POST', headers,
-                        body: JSON.stringify({
-                          phone: joinedPhone,
-                          message: btnLabel,
-                          image: '',
-                          linkUrl: btnUrl,
-                          title: btnLabel,
-                          linkDescription: '',
-                        }),
-                      })
-                      console.log('📤 Welcome URL button status:', buttonResponse.status, await buttonResponse.text())
-                    } else if (btnType === 'reply' && btnLabel) {
-                      // Reply buttons are informational only in welcome context, skip empty values
-                    }
-                  }
                 }
 
                 console.log('📋 Template welcome sent to', joinedPhone)
