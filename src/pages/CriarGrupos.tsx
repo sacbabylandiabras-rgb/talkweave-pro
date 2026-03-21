@@ -132,17 +132,57 @@ function GerenciarGrupoTab() {
     reader.readAsDataURL(file);
   };
 
-  const uploadPhoto = async (): Promise<string | null> => {
-    if (createPhotoUrl.trim()) return createPhotoUrl.trim();
-    if (!createPhotoFile) return null;
-    const fileExt = createPhotoFile.name.split(".").pop();
+  const handleManageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNewPhotoFile(file);
+    setNewPhotoUrl("");
+    const reader = new FileReader();
+    reader.onload = () => setNewPhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
     const fileName = `group-photos/${Date.now()}.${fileExt}`;
     const { data, error } = await supabase.storage
       .from("template-media")
-      .upload(fileName, createPhotoFile, { contentType: createPhotoFile.type });
+      .upload(fileName, file, { contentType: file.type });
     if (error) throw new Error("Erro ao fazer upload da foto: " + error.message);
     const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
     return urlData.publicUrl;
+  };
+
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (createPhotoUrl.trim()) return createPhotoUrl.trim();
+    if (!createPhotoFile) return null;
+    return uploadFileToStorage(createPhotoFile);
+  };
+
+  const handleUpdatePhoto = async () => {
+    if (!selectedGroup) return;
+    setActionLoading("update-group-photo");
+    try {
+      let imageUrl = newPhotoUrl.trim();
+      if (!imageUrl && newPhotoFile) {
+        imageUrl = await uploadFileToStorage(newPhotoFile);
+      }
+      if (!imageUrl) { toast.error("Selecione uma foto ou cole uma URL"); return; }
+      const credentials = getInstanceCredentials(selectedGroup);
+      const { data, error } = await supabase.functions.invoke("manage-groups", {
+        body: { action: "update-group-photo", groupId: selectedGroup.id, ...credentials, imageUrl },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+      toast.success("Foto atualizada!");
+      setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview("");
+      refetch();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || "Falha na operação"));
+    } finally {
+      setActionLoading(null);
+    }
+  };
   };
 
   const handleCreate = async () => {
