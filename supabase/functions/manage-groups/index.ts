@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         if (!groupId || !groupName) throw new Error("groupId and groupName are required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/update-group-name`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, groupName }),
         });
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         if (!groupId) throw new Error("groupId is required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/update-group-description`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, description: description || "" }),
         });
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/update-group-photo`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, groupPhoto: imageUrl }),
         });
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         if (!groupId) throw new Error("groupId is required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/group-admin-only`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, value: value ?? true }),
         });
