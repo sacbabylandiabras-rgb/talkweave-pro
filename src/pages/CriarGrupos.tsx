@@ -112,6 +112,21 @@ function CriarGrupoTab() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
+          <label className="text-sm font-medium text-foreground">Instância</label>
+          <Select value={activeInstance?.id || ""} onValueChange={selectInstance}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Selecione a instância" />
+            </SelectTrigger>
+            <SelectContent>
+              {instances.map((inst) => (
+                <SelectItem key={inst.id} value={inst.id}>
+                  {inst.instance_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <label className="text-sm font-medium text-foreground">Nome do Grupo</label>
           <Input
             placeholder="Ex: Comunidade VIP"
