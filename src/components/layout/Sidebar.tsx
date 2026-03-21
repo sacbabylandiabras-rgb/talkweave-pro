@@ -15,7 +15,8 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronRight,
-  Bot
+  Bot,
+  Link2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
