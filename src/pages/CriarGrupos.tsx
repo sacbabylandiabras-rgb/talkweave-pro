@@ -461,6 +461,8 @@ function GerenciarGrupoTab() {
     </div>
   );
 }
+
+/* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
