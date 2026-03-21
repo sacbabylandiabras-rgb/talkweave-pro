@@ -48,15 +48,15 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       setDeviceStatus(status.data);
       
       // Fetch connected phone number when connected
-      if (status.data?.connected === true) {
+      if (status.data?.connected === true && !connectedPhone) {
         try {
-          const phoneRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/me`,
+          const devRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/device`,
             { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
           );
-          if (phoneRes.ok) {
-            const phoneData = await phoneRes.json();
-            const num = phoneData?.phone || phoneData?.phoneNumber || phoneData?.id?.replace("@c.us", "") || null;
+          if (devRes.ok) {
+            const devData = await devRes.json();
+            const num = devData?.phone || devData?.phoneNumber || devData?.wid?.user || null;
             if (num) setConnectedPhone(num);
           }
         } catch {}
