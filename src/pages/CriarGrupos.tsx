@@ -63,7 +63,9 @@ function GerenciarGrupoTab() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
-
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState("");
+  const manageFileInputRef = useRef<HTMLInputElement>(null);
   // Create group dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
