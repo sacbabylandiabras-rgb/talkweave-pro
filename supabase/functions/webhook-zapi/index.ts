@@ -380,17 +380,27 @@ serve(async (req) => {
                 // Send buttons if present
                 const buttons = tpl.buttons as any[]
                 if (buttons && buttons.length > 0) {
-                  const btn = buttons[0]
-                  if (btn.url) {
-                    const buttonResponse = await fetch(`${baseUrl}/send-button-list`, {
-                      method: 'POST', headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        message: btn.text || 'Acesse',
-                        buttonList: [{ id: '1', label: btn.label || btn.text || 'Acessar' }],
-                      }),
-                    })
-                    console.log('📤 Welcome template button status:', buttonResponse.status, await buttonResponse.text())
+                  for (const btn of buttons) {
+                    const btnUrl = btn.url || btn.value || ''
+                    const btnLabel = btn.label || btn.text || 'Acessar'
+                    const btnType = btn.type || (btnUrl ? 'url' : 'reply')
+
+                    if (btnType === 'url' && btnUrl) {
+                      const buttonResponse = await fetch(`${baseUrl}/send-link`, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({
+                          phone: joinedPhone,
+                          message: btnLabel,
+                          image: '',
+                          linkUrl: btnUrl,
+                          title: btnLabel,
+                          linkDescription: '',
+                        }),
+                      })
+                      console.log('📤 Welcome URL button status:', buttonResponse.status, await buttonResponse.text())
+                    } else if (btnType === 'reply' && btnLabel) {
+                      // Reply buttons are informational only in welcome context, skip empty values
+                    }
                   }
                 }
 
