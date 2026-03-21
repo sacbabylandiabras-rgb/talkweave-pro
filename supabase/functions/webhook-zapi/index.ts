@@ -42,6 +42,54 @@ interface FlowEdge {
   sourceHandle?: string
 }
 
+const normalizeParticipantIdentifier = (value: unknown) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.includes('@lid')) return raw
+  if (raw.includes('@c.us')) return raw.replace('@c.us', '').replace(/\D/g, '')
+  const digits = raw.replace(/\D/g, '')
+  return digits.length >= 8 ? digits : raw
+}
+
+const extractParticipantArray = (payload: any) => {
+  const candidates = [
+    payload?.participants,
+    payload?.members,
+    payload?.groupParticipants,
+    payload?.data?.participants,
+    payload?.data?.members,
+  ]
+
+  return candidates.find(Array.isArray) || []
+}
+
+const resolveLidFromParticipants = (participants: any[], targetLid: string) => {
+  for (const participant of participants || []) {
+    const identifiers = [
+      participant?.phone,
+      participant?.id,
+      participant?.participant,
+      participant?.jid,
+      participant?.lid,
+      participant?.participantLid,
+      participant?.user,
+      participant?.waId,
+      participant?.number,
+    ].map((value) => String(value || '').trim()).filter(Boolean)
+
+    const matchesTarget = identifiers.some((value) => value === targetLid)
+    if (!matchesTarget) continue
+
+    const resolved = identifiers
+      .map((value) => normalizeParticipantIdentifier(value))
+      .find((value) => value && !value.includes('@lid') && value.length >= 8)
+
+    if (resolved) return resolved
+  }
+
+  return ''
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -103,10 +151,20 @@ serve(async (req) => {
       'invite',
       'convite',
     ].some((term) => notificationText.includes(term))
+    const hasLeaveNotificationText = [
+      'leave',
+      'left',
+      'remove',
+      'removed',
+      'removeu',
+      'saiu',
+      'group_participant_leave',
+    ].some((term) => notificationText.includes(term))
     const isNotificationJoin = 
       webhook?.isGroup === true &&
       !isStatusCallback &&
       noTextPayload &&
+      !hasLeaveNotificationText &&
       (
         hasNotificationCode ||
         ((webhookType === 'notification' || webhookType === 'ReceivedCallback' || !!webhook?.notification) &&
@@ -132,11 +190,12 @@ serve(async (req) => {
       const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
       
       // For notification events, the joined phone is in notificationParameters or participantPhone
-      let joinedPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || 
-                          webhook?.groupParticipant?.phone || ''
+      let joinedPhone = normalizeParticipantIdentifier(
+        webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.groupParticipant?.phone || ''
+      )
       // notificationParameters typically contains the phone(s) of added participants
       if (!joinedPhone && Array.isArray(notificationParams) && notificationParams.length > 0) {
-        joinedPhone = String(notificationParams[0]).replace('@c.us', '').replace(/\D/g, '')
+        joinedPhone = normalizeParticipantIdentifier(notificationParams[0])
       }
       
       const joinedName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
@@ -158,6 +217,65 @@ serve(async (req) => {
             normalizedGroupId = groupPhone.replace('@g.us', '-group')
           } else if (!groupPhone.includes('-group')) {
             normalizedGroupId = groupPhone + '-group'
+          }
+
+          if (joinedPhone.includes('@lid')) {
+            const lidIdentifier = joinedPhone
+
+            const { data: existingMap } = await supabase
+              .from('message_logs')
+              .select('phone')
+              .eq('user_id', instData.user_id)
+              .eq('keyword_matched', '__lid_map__')
+              .eq('message_received', lidIdentifier)
+              .limit(1)
+              .maybeSingle()
+
+            if (existingMap?.phone) {
+              joinedPhone = String(existingMap.phone).replace(/\D/g, '')
+              console.log(`✅ Resolved join participant LID from cache: ${lidIdentifier} → ${joinedPhone}`)
+            } else {
+              try {
+                const metadataHeaders = {
+                  'Content-Type': 'application/json',
+                  'Client-Token': instData.zapi_client_token,
+                }
+
+                const groupCandidates = [normalizedGroupId, normalizedGroupId.replace(/-group$/i, '@g.us')]
+                for (const candidate of groupCandidates) {
+                  const metadataResponse = await fetch(
+                    `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${candidate}`,
+                    { method: 'GET', headers: metadataHeaders },
+                  )
+
+                  if (!metadataResponse.ok) {
+                    console.log(`⚠️ Failed loading group metadata for ${candidate}:`, metadataResponse.status, await metadataResponse.text())
+                    continue
+                  }
+
+                  const metadata = await metadataResponse.json()
+                  const resolvedPhone = resolveLidFromParticipants(extractParticipantArray(metadata), lidIdentifier)
+                  if (resolvedPhone) {
+                    joinedPhone = resolvedPhone
+                    console.log(`✅ Resolved join participant LID from group metadata: ${lidIdentifier} → ${joinedPhone}`)
+                    break
+                  }
+                }
+              } catch (resolveError) {
+                console.error('❌ Error resolving join participant LID:', resolveError)
+              }
+            }
+          }
+
+          if (!joinedPhone || joinedPhone.includes('@lid') || joinedPhone.length < 8) {
+            console.log('⚠️ Group join detected but participant phone could not be resolved:', JSON.stringify({
+              joinedPhone,
+              notificationParameters: notificationParams,
+              participantPhone: webhook?.participantPhone,
+              participant: webhook?.participant,
+              groupId: normalizedGroupId,
+            }))
+            return new Response('group_participant_unresolved', { status: 200, headers: corsHeaders })
           }
 
           // Check if welcome message is configured for this group
