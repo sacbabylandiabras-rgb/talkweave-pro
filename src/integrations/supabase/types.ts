@@ -415,30 +415,39 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          flow_id: string | null
           group_id: string
           group_name: string
           id: string
           message: string
+          response_type: string
+          template_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean
           created_at?: string
+          flow_id?: string | null
           group_id: string
           group_name?: string
           id?: string
           message?: string
+          response_type?: string
+          template_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean
           created_at?: string
+          flow_id?: string | null
           group_id?: string
           group_name?: string
           id?: string
           message?: string
+          response_type?: string
+          template_id?: string | null
           updated_at?: string
           user_id?: string
         }
