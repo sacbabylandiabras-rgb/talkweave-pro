@@ -97,7 +97,9 @@ Deno.serve(async (req) => {
       case "admin-only-messages": {
         const { groupId, value } = body;
         if (!groupId) throw new Error("groupId is required");
-        const cleanId = groupId.replace("-group", "@g.us");
+        // Z-API update-group-settings expects phone in format "120363...-group"
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        console.log("📋 admin-only-messages groupId:", groupId, "-> cleanId:", cleanId);
         const response = await fetch(`${baseUrl}/update-group-settings`, {
           method: "POST",
           headers,
@@ -107,6 +109,7 @@ Deno.serve(async (req) => {
           }),
         });
         const data = await response.json();
+        console.log("📋 admin-only-messages response:", JSON.stringify(data));
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
