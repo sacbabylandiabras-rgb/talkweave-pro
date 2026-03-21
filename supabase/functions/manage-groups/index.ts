@@ -49,6 +49,66 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "update-group-name": {
+        const { groupId, groupName } = body;
+        if (!groupId || !groupName) throw new Error("groupId and groupName are required");
+        const cleanId = groupId.replace("-group", "@g.us");
+        const response = await fetch(`${baseUrl}/update-group-name`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ groupId: cleanId, groupName }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "update-group-description": {
+        const { groupId, description } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.replace("-group", "@g.us");
+        const response = await fetch(`${baseUrl}/update-group-description`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ groupId: cleanId, description: description || "" }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "update-group-photo": {
+        const { groupId, imageUrl } = body;
+        if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
+        const cleanId = groupId.replace("-group", "@g.us");
+        const response = await fetch(`${baseUrl}/update-group-photo`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ groupId: cleanId, groupPhoto: imageUrl }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "admin-only-messages": {
+        const { groupId, value } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.replace("-group", "@g.us");
+        const response = await fetch(`${baseUrl}/group-admin-only`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ groupId: cleanId, value: value ?? true }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "get-invite-link": {
         const { groupId } = body;
         if (!groupId) throw new Error("groupId is required");
