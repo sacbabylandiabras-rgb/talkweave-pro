@@ -13,12 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
-  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload
+  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
 
 const CriarGrupos = () => {
   const [activeTab, setActiveTab] = useState("gerenciar");
@@ -62,7 +63,9 @@ function GerenciarGrupoTab() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
-
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState("");
+  const manageFileInputRef = useRef<HTMLInputElement>(null);
   // Create group dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -110,7 +113,7 @@ function GerenciarGrupoTab() {
       );
       if (action === "update-group-name") setNewName("");
       if (action === "update-group-description") setNewDescription("");
-      if (action === "update-group-photo") setNewPhotoUrl("");
+      if (action === "update-group-photo") { setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview(""); }
       refetch();
     } catch (err: any) {
       toast.error("Erro: " + (err.message || "Falha na operação"));
@@ -129,17 +132,57 @@ function GerenciarGrupoTab() {
     reader.readAsDataURL(file);
   };
 
-  const uploadPhoto = async (): Promise<string | null> => {
-    if (createPhotoUrl.trim()) return createPhotoUrl.trim();
-    if (!createPhotoFile) return null;
-    const fileExt = createPhotoFile.name.split(".").pop();
+  const handleManageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNewPhotoFile(file);
+    setNewPhotoUrl("");
+    const reader = new FileReader();
+    reader.onload = () => setNewPhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
     const fileName = `group-photos/${Date.now()}.${fileExt}`;
     const { data, error } = await supabase.storage
       .from("template-media")
-      .upload(fileName, createPhotoFile, { contentType: createPhotoFile.type });
+      .upload(fileName, file, { contentType: file.type });
     if (error) throw new Error("Erro ao fazer upload da foto: " + error.message);
     const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
     return urlData.publicUrl;
+  };
+
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (createPhotoUrl.trim()) return createPhotoUrl.trim();
+    if (!createPhotoFile) return null;
+    return uploadFileToStorage(createPhotoFile);
+  };
+
+  const handleUpdatePhoto = async () => {
+    if (!selectedGroup) return;
+    setActionLoading("update-group-photo");
+    try {
+      let imageUrl = newPhotoUrl.trim();
+      if (!imageUrl && newPhotoFile) {
+        imageUrl = await uploadFileToStorage(newPhotoFile);
+      }
+      if (!imageUrl) { toast.error("Selecione uma foto ou cole uma URL"); return; }
+      const credentials = getInstanceCredentials(selectedGroup);
+      const { data, error } = await supabase.functions.invoke("manage-groups", {
+        body: { action: "update-group-photo", groupId: selectedGroup.id, ...credentials, imageUrl },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+      toast.success("Foto atualizada!");
+      setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview("");
+      refetch();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || "Falha na operação"));
+    } finally {
+      setActionLoading(null);
+    }
+  };
   };
 
   const handleCreate = async () => {
@@ -351,15 +394,34 @@ function GerenciarGrupoTab() {
                   <Image className="w-3.5 h-3.5" />
                   Alterar Foto
                 </label>
-                <div className="flex gap-2">
-                  <Input placeholder="URL da nova foto" value={newPhotoUrl} onChange={(e) => setNewPhotoUrl(e.target.value)} className="flex-1" />
-                  <Button size="sm" disabled={!newPhotoUrl.trim() || actionLoading === "update-group-photo"} onClick={() => handleGroupAction("update-group-photo", { imageUrl: newPhotoUrl.trim() })}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="relative w-14 h-14 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40"
+                    onClick={() => manageFileInputRef.current?.click()}
+                  >
+                    {newPhotoPreview || newPhotoUrl ? (
+                      <img src={newPhotoPreview || newPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <Button type="button" variant="outline" size="sm" onClick={() => manageFileInputRef.current?.click()}>
+                      <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      Upload
+                    </Button>
+                    <Input
+                      placeholder="Ou cole a URL da imagem"
+                      value={newPhotoUrl}
+                      onChange={(e) => { setNewPhotoUrl(e.target.value); setNewPhotoFile(null); setNewPhotoPreview(""); }}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <Button size="sm" className="self-end" disabled={(!newPhotoUrl.trim() && !newPhotoFile) || actionLoading === "update-group-photo"} onClick={handleUpdatePhoto}>
                     {actionLoading === "update-group-photo" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
                   </Button>
+                  <input ref={manageFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleManageFileChange} />
                 </div>
-                {newPhotoUrl && (
-                  <img src={newPhotoUrl} alt="Preview" className="w-12 h-12 rounded-full object-cover border border-border" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                )}
               </div>
 
               <div className="space-y-2">
@@ -377,6 +439,20 @@ function GerenciarGrupoTab() {
                     Todos podem enviar
                   </Button>
                 </div>
+              </div>
+
+              {/* WhatsApp Preview */}
+              <div className="pt-4 border-t border-border">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-3">
+                  <Phone className="w-3.5 h-3.5" />
+                  Preview no WhatsApp
+                </label>
+                <WhatsAppGroupPreview
+                  groupName={newName.trim() || selectedGroup.nome}
+                  description={newDescription.trim() || selectedGroup.descricao || ""}
+                  photoUrl={newPhotoPreview || newPhotoUrl || selectedGroup.foto || ""}
+                  membersCount={selectedGroup.membros}
+                />
               </div>
             </div>
           )}
