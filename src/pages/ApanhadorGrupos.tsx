@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,21 +6,53 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface TemplateOption {
+  id: string;
+  name: string;
+  category: string;
+}
+
+interface FlowOption {
+  id: string;
+  name: string;
+  keyword: string;
+}
+
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups();
-  const { configs: welcomeConfigs, toggleConfig, updateMessage } = useGroupWelcome();
+  const { configs: welcomeConfigs, saveConfig } = useGroupWelcome();
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
+  const [editingType, setEditingType] = useState<Map<string, string>>(new Map());
+  const [editingTemplateId, setEditingTemplateId] = useState<Map<string, string>>(new Map());
+  const [editingFlowId, setEditingFlowId] = useState<Map<string, string>>(new Map());
+
+  // Load templates and flows
+  const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [flows, setFlows] = useState<FlowOption[]>([]);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [tplRes, flowRes] = await Promise.all([
+        supabase.from('message_templates').select('id, name, category').eq('active', true).order('name'),
+        supabase.from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
+      ]);
+      if (tplRes.data) setTemplates(tplRes.data);
+      if (flowRes.data) setFlows(flowRes.data);
+    };
+    loadOptions();
+  }, []);
 
   const filteredGroups = groups.filter((grupo) => {
     const query = busca.toLowerCase();
@@ -31,7 +63,6 @@ const ApanhadorGrupos = () => {
   });
 
   const getGroupWelcomeId = (groupId: string) => {
-    // Convert group ID to the -group format used in config
     if (groupId.includes('@g.us')) return groupId.replace('@g.us', '-group');
     if (groupId.includes('-group')) return groupId;
     return groupId + '-group';
@@ -55,7 +86,7 @@ const ApanhadorGrupos = () => {
       if (data.unresolvedLids > 0) {
         toast.success(`${phones.length} contatos extraídos (${data.unresolvedLids} com @lid).`);
       } else if (data.partialAdminsOnlyFallback) {
-        toast.warning('Esta comunidade retornou apenas admins na listagem. Abra novamente após novas interações para mapear mais membros.');
+        toast.warning('Esta comunidade retornou apenas admins na listagem.');
       } else {
         toast.success(`${phones.length} números extraídos!`);
       }
@@ -106,7 +137,6 @@ const ApanhadorGrupos = () => {
             <p className="text-xs text-muted-foreground">Grupos encontrados</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Membros</CardTitle>
@@ -119,29 +149,23 @@ const ApanhadorGrupos = () => {
             <p className="text-xs text-muted-foreground">Contatos nos grupos</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Grupos Admin</CardTitle>
             <Eye className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {groups.filter(g => g.isAdmin).length}
-            </div>
+            <div className="text-2xl font-bold">{groups.filter(g => g.isAdmin).length}</div>
             <p className="text-xs text-muted-foreground">Você é administrador</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Boas-vindas Ativas</CardTitle>
             <MessageCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {welcomeConfigs.filter(c => c.active).length}
-            </div>
+            <div className="text-2xl font-bold">{welcomeConfigs.filter(c => c.active).length}</div>
             <p className="text-xs text-muted-foreground">Grupos com boas-vindas</p>
           </CardContent>
         </Card>
@@ -193,9 +217,7 @@ const ApanhadorGrupos = () => {
               {busca ? "Nenhum grupo encontrado" : "Nenhum grupo disponível"}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {busca
-                ? "Tente buscar com outro termo"
-                : "Verifique se sua instância Z-API está conectada"}
+              {busca ? "Tente buscar com outro termo" : "Verifique se sua instância Z-API está conectada"}
             </p>
           </CardContent>
         </Card>
@@ -207,7 +229,11 @@ const ApanhadorGrupos = () => {
             const welcomeConfig = welcomeConfigs.find(c => c.group_id === welcomeGroupId);
             const isWelcomeActive = welcomeConfig?.active || false;
             const isExpanded = expandedWelcome === grupo.id;
+
+            const currentType = editingType.get(grupo.id) ?? welcomeConfig?.response_type ?? 'text';
             const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
+            const currentTemplateId = editingTemplateId.get(grupo.id) ?? welcomeConfig?.template_id ?? '';
+            const currentFlowId = editingFlowId.get(grupo.id) ?? welcomeConfig?.flow_id ?? '';
 
             return (
               <Card key={grupo.id}>
@@ -222,41 +248,32 @@ const ApanhadorGrupos = () => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-foreground text-base truncate">
-                          {grupo.nome}
-                        </h3>
-                        {grupo.isAdmin && (
-                          <Badge variant="default" className="text-xs">Admin</Badge>
-                        )}
+                        <h3 className="font-semibold text-foreground text-base truncate">{grupo.nome}</h3>
+                        {grupo.isAdmin && <Badge variant="default" className="text-xs">Admin</Badge>}
                         {isWelcomeActive && (
                           <Badge variant="secondary" className="text-xs gap-1">
-                            <MessageCircle className="h-3 w-3" />
+                            {currentType === 'template' ? <FileText className="h-3 w-3" /> :
+                             currentType === 'flow' ? <Workflow className="h-3 w-3" /> :
+                             <MessageCircle className="h-3 w-3" />}
                             Boas-vindas
                           </Badge>
                         )}
                       </div>
-
                       {grupo.descricao && (
-                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                          {grupo.descricao}
-                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{grupo.descricao}</p>
                       )}
-
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
                           {grupo.membros > 0 ? `${grupo.membros} membros` : "Clique em 'Extrair Números' para ver"}
                         </span>
                         {numbers && (
-                          <Badge variant="secondary" className="text-xs">
-                            {numbers.length} números extraídos
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">{numbers.length} números extraídos</Badge>
                         )}
                       </div>
                     </div>
 
                     <div className="flex gap-2 shrink-0 items-center">
-                      {/* Welcome message toggle */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -270,23 +287,11 @@ const ApanhadorGrupos = () => {
 
                       {numbers ? (
                         <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyNumbers(grupo.id)}
-                          >
-                            {copied === grupo.id ? (
-                              <Check className="w-4 h-4 mr-1 text-green-500" />
-                            ) : (
-                              <Copy className="w-4 h-4 mr-1" />
-                            )}
+                          <Button variant="outline" size="sm" onClick={() => copyNumbers(grupo.id)}>
+                            {copied === grupo.id ? <Check className="w-4 h-4 mr-1 text-green-500" /> : <Copy className="w-4 h-4 mr-1" />}
                             Copiar
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => downloadNumbers(grupo.id, grupo.nome)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => downloadNumbers(grupo.id, grupo.nome)}>
                             <Download className="w-4 h-4 mr-1" />
                             Baixar
                           </Button>
@@ -298,11 +303,7 @@ const ApanhadorGrupos = () => {
                           onClick={() => extractParticipants(grupo.id, grupo.participantes || [], grupo.sourceInstanceId)}
                           disabled={extracting === grupo.id}
                         >
-                          {extracting === grupo.id ? (
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                          ) : (
-                            <UserPlus className="w-4 h-4 mr-1" />
-                          )}
+                          {extracting === grupo.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
                           Extrair Números
                         </Button>
                       )}
@@ -311,7 +312,7 @@ const ApanhadorGrupos = () => {
 
                   {/* Welcome message config panel */}
                   {isExpanded && (
-                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border space-y-3">
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <MessageCircle className="h-4 w-4 text-primary" />
@@ -320,37 +321,124 @@ const ApanhadorGrupos = () => {
                         <Switch
                           checked={isWelcomeActive}
                           onCheckedChange={(checked) => {
-                            toggleConfig(welcomeGroupId, grupo.nome, checked, currentMessage);
+                            saveConfig(welcomeGroupId, grupo.nome, checked, {
+                              message: currentMessage,
+                              response_type: currentType as any,
+                              template_id: currentTemplateId || null,
+                              flow_id: currentFlowId || null,
+                            });
                           }}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Envie automaticamente uma mensagem para novos membros do grupo. Use {'{{nome}}'} para o nome do participante.
-                      </p>
-                      <Textarea
-                        value={currentMessage}
-                        onChange={(e) => {
-                          setEditingMessage(prev => new Map(prev).set(grupo.id, e.target.value));
-                        }}
-                        placeholder="Digite a mensagem de boas-vindas..."
-                        className="min-h-[80px] text-sm"
-                      />
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo de Resposta</label>
+                          <Select
+                            value={currentType}
+                            onValueChange={(val) => setEditingType(prev => new Map(prev).set(grupo.id, val))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text">
+                                <span className="flex items-center gap-2">
+                                  <MessageCircle className="h-3.5 w-3.5" /> Mensagem de Texto
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="template">
+                                <span className="flex items-center gap-2">
+                                  <FileText className="h-3.5 w-3.5" /> Modelo
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="flow">
+                                <span className="flex items-center gap-2">
+                                  <Workflow className="h-3.5 w-3.5" /> Fluxo Visual
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {currentType === 'text' && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1.5">
+                              Use {'{{nome}}'} para o nome do participante.
+                            </p>
+                            <Textarea
+                              value={currentMessage}
+                              onChange={(e) => setEditingMessage(prev => new Map(prev).set(grupo.id, e.target.value))}
+                              placeholder="Digite a mensagem de boas-vindas..."
+                              className="min-h-[80px] text-sm"
+                            />
+                          </div>
+                        )}
+
+                        {currentType === 'template' && (
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Selecione o Modelo</label>
+                            {templates.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Nenhum modelo ativo encontrado. Crie um em Modelos.</p>
+                            ) : (
+                              <Select
+                                value={currentTemplateId}
+                                onValueChange={(val) => setEditingTemplateId(prev => new Map(prev).set(grupo.id, val))}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Escolha um modelo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {templates.map(tpl => (
+                                    <SelectItem key={tpl.id} value={tpl.id}>
+                                      {tpl.name} <span className="text-muted-foreground ml-1">({tpl.category})</span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
+
+                        {currentType === 'flow' && (
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Selecione o Fluxo</label>
+                            {flows.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Nenhum fluxo ativo encontrado. Crie um em Fluxo Visual.</p>
+                            ) : (
+                              <Select
+                                value={currentFlowId}
+                                onValueChange={(val) => setEditingFlowId(prev => new Map(prev).set(grupo.id, val))}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Escolha um fluxo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {flows.map(flow => (
+                                    <SelectItem key={flow.id} value={flow.id}>
+                                      {flow.name} {flow.keyword && <span className="text-muted-foreground ml-1">(#{flow.keyword})</span>}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex justify-end">
                         <Button
                           size="sm"
                           onClick={() => {
-                            const msg = editingMessage.get(grupo.id);
-                            if (msg !== undefined) {
-                              if (welcomeConfig) {
-                                updateMessage(welcomeGroupId, msg);
-                              } else {
-                                toggleConfig(welcomeGroupId, grupo.nome, true, msg);
-                              }
-                            }
+                            saveConfig(welcomeGroupId, grupo.nome, true, {
+                              message: currentMessage,
+                              response_type: currentType as any,
+                              template_id: currentTemplateId || null,
+                              flow_id: currentFlowId || null,
+                            });
                           }}
-                          disabled={editingMessage.get(grupo.id) === undefined}
                         >
-                          Salvar Mensagem
+                          Salvar Configuração
                         </Button>
                       </div>
                     </div>
@@ -358,13 +446,9 @@ const ApanhadorGrupos = () => {
 
                   {numbers && numbers.length > 0 && (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Números extraídos ({numbers.length}):
-                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">Números extraídos ({numbers.length}):</p>
                       <div className="max-h-32 overflow-y-auto text-xs font-mono text-foreground space-y-0.5">
-                        {numbers.map((num, i) => (
-                          <div key={i}>{num}</div>
-                        ))}
+                        {numbers.map((num, i) => <div key={i}>{num}</div>)}
                       </div>
                     </div>
                   )}

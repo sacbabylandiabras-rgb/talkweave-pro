@@ -111,33 +111,142 @@ serve(async (req) => {
             .maybeSingle()
 
           if (welcomeConfig) {
-            // Replace variables in message
-            let finalMessage = welcomeConfig.message
-              .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
-              .replace(/\{\{telefone\}\}/gi, joinedPhone)
-              .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
-
-            // Send welcome message to the person who joined
+            const responseType = welcomeConfig.response_type || 'text'
             const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
-            const sendResp = await fetch(`${baseUrl}/send-text`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token },
-              body: JSON.stringify({ phone: joinedPhone, message: finalMessage }),
-            })
+            const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
 
-            const sendData = await sendResp.json()
-            console.log('📨 Group welcome message sent to', joinedPhone, ':', sendResp.ok, sendData?.id || '')
+            if (responseType === 'flow' && welcomeConfig.flow_id) {
+              // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
+              const { data: flowData } = await supabase
+                .from('flow_automations')
+                .select('keyword')
+                .eq('id', welcomeConfig.flow_id)
+                .eq('user_id', instData.user_id)
+                .eq('active', true)
+                .maybeSingle()
 
-            // Log the sent message
-            await supabase.from('message_logs').insert({
-              phone: joinedPhone,
-              message_received: null,
-              response_sent: finalMessage,
-              keyword_matched: '__group_welcome__',
-              timestamp: new Date().toISOString(),
-              user_id: instData.user_id,
-              instance_id: instData.zapi_instance_id,
-            })
+              if (flowData?.keyword) {
+                // Send a virtual trigger to webhook-zapi itself
+                const selfUrl = Deno.env.get('SUPABASE_URL') + '/functions/v1/webhook-zapi'
+                await fetch(selfUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    phone: joinedPhone,
+                    message: { text: flowData.keyword, fromMe: false },
+                    instanceId: instData.zapi_instance_id,
+                    senderName: joinedName,
+                    __manual_flow_trigger__: true,
+                  }),
+                })
+                console.log('🔄 Flow triggered for group welcome:', flowData.keyword, '→', joinedPhone)
+              }
+
+              await supabase.from('message_logs').insert({
+                phone: joinedPhone,
+                message_received: null,
+                response_sent: `[fluxo:${welcomeConfig.flow_id}]`,
+                keyword_matched: '__group_welcome__',
+                timestamp: new Date().toISOString(),
+                user_id: instData.user_id,
+                instance_id: instData.zapi_instance_id,
+              })
+
+            } else if (responseType === 'template' && welcomeConfig.template_id) {
+              // Load template and send its content
+              const { data: tpl } = await supabase
+                .from('message_templates')
+                .select('content, media_url, type, buttons, header, footer')
+                .eq('id', welcomeConfig.template_id)
+                .maybeSingle()
+
+              if (tpl) {
+                let tplMessage = (tpl.content || '')
+                  .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                  .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                  .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
+
+                if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
+                  await fetch(`${baseUrl}/send-image`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ phone: joinedPhone, image: tpl.media_url, caption: tplMessage }),
+                  })
+                } else if (tpl.media_url && (tpl.type === 'video' || tpl.type === 'vídeo')) {
+                  await fetch(`${baseUrl}/send-video`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ phone: joinedPhone, video: tpl.media_url, caption: tplMessage }),
+                  })
+                } else if (tpl.media_url && (tpl.type === 'audio' || tpl.type === 'áudio')) {
+                  await fetch(`${baseUrl}/send-audio`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ phone: joinedPhone, audio: tpl.media_url }),
+                  })
+                  if (tplMessage) {
+                    await fetch(`${baseUrl}/send-text`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({ phone: joinedPhone, message: tplMessage }),
+                    })
+                  }
+                } else {
+                  await fetch(`${baseUrl}/send-text`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ phone: joinedPhone, message: tplMessage }),
+                  })
+                }
+
+                // Send buttons if present
+                const buttons = tpl.buttons as any[]
+                if (buttons && buttons.length > 0) {
+                  const btn = buttons[0]
+                  if (btn.url) {
+                    await fetch(`${baseUrl}/send-button-list`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({
+                        phone: joinedPhone,
+                        message: btn.text || 'Acesse',
+                        buttonList: [{ id: '1', label: btn.label || btn.text || 'Acessar' }],
+                      }),
+                    })
+                  }
+                }
+
+                console.log('📋 Template welcome sent to', joinedPhone)
+              }
+
+              await supabase.from('message_logs').insert({
+                phone: joinedPhone,
+                message_received: null,
+                response_sent: `[modelo:${welcomeConfig.template_id}]`,
+                keyword_matched: '__group_welcome__',
+                timestamp: new Date().toISOString(),
+                user_id: instData.user_id,
+                instance_id: instData.zapi_instance_id,
+              })
+
+            } else {
+              // Default: plain text message
+              let finalMessage = welcomeConfig.message
+                .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
+
+              await fetch(`${baseUrl}/send-text`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ phone: joinedPhone, message: finalMessage }),
+              })
+
+              console.log('📨 Text welcome sent to', joinedPhone)
+
+              await supabase.from('message_logs').insert({
+                phone: joinedPhone,
+                message_received: null,
+                response_sent: finalMessage,
+                keyword_matched: '__group_welcome__',
+                timestamp: new Date().toISOString(),
+                user_id: instData.user_id,
+                instance_id: instData.zapi_instance_id,
+              })
+            }
           }
         }
       }
