@@ -98,10 +98,13 @@ Deno.serve(async (req) => {
         const { groupId, value } = body;
         if (!groupId) throw new Error("groupId is required");
         const cleanId = groupId.replace("-group", "@g.us");
-        const response = await fetch(`${baseUrl}/group-admin-only`, {
+        const response = await fetch(`${baseUrl}/update-group-settings`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ groupId: cleanId, value: value ?? true }),
+          body: JSON.stringify({
+            phone: cleanId,
+            adminOnlyMessage: value ?? true,
+          }),
         });
         const data = await response.json();
         return new Response(JSON.stringify(data), {
