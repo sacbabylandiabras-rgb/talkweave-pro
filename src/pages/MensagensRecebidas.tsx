@@ -111,6 +111,12 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
       let resolved = tpl.content || '';
       if (tpl.header) resolved = `*${tpl.header}*\n${resolved}`;
       if (tpl.footer) resolved += `\n_${tpl.footer}_`;
+      const buttonLabels = (tpl.buttons || [])
+        .map((button) => button?.text?.trim())
+        .filter(Boolean);
+      if (buttonLabels.length > 0) {
+        resolved += `${resolved ? '\n' : ''}[Botões: ${buttonLabels.join(' | ')}]`;
+      }
       return resolved;
     }
     return `📋 Modelo enviado`;
