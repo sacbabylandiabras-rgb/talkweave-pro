@@ -432,6 +432,78 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Mensagem de Boas-Vindas */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">👋</span>
+                <h4 className="text-foreground font-bold text-lg">Boas-Vindas Automáticas</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-foreground text-sm font-medium">Grupo VIP Clientes</p>
+                    <span className="text-xs font-bold text-green-400">Ativo</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">Tipo: Modelo com imagem + botão</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-foreground text-sm font-medium">Suporte Premium</p>
+                    <span className="text-xs font-bold text-green-400">Ativo</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">Tipo: Fluxo visual completo</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-foreground text-sm font-medium">Comunidade Geral</p>
+                    <span className="text-xs font-bold text-muted-foreground">Inativo</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">Tipo: Texto personalizado</p>
+                </div>
+              </div>
+              <div className="border-t border-border pt-3">
+                <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3">
+                  <p className="text-foreground text-sm italic">"Olá <span className="text-primary font-semibold">{'{{nome}}'}</span>! 👋 Bem-vindo ao grupo! Estamos felizes em ter você aqui."</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Boas-Vindas Automáticas nos Grupos
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Receba novos membros nos seus grupos do WhatsApp de forma automática e profissional.
+              Configure mensagens personalizadas com o nome do participante, envie modelos com
+              imagens e botões, ou acione fluxos visuais completos.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Mensagem automática ao entrar no grupo",
+                "Personalização com {{nome}}, {{telefone}} e {{grupo}}",
+                "Suporte a texto, modelos com mídia e botões",
+                "Acione fluxos visuais como resposta de boas-vindas",
+                "Configuração individual por grupo",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Configurar Boas-Vindas
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
