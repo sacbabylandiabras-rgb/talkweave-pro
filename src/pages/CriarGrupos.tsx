@@ -19,6 +19,7 @@ import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
 
 const CriarGrupos = () => {
   const [activeTab, setActiveTab] = useState("gerenciar");
