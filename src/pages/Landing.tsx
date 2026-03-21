@@ -370,6 +370,68 @@ const Landing = () => {
         </div>
       </section>
 
+
+      {/* Modelos de Mensagens */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Modelos Prontos para Envio Rápido
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Crie e salve modelos de mensagens reutilizáveis com texto, imagens, vídeos, 
+              áudios, botões interativos e até carrosséis completos. Padronize sua comunicação 
+              e dispare campanhas em segundos.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Modelos com texto, mídia, botões e carrossel",
+                "Variáveis dinâmicas como {{nome}} e {{telefone}}",
+                "Categorias organizadas (vendas, suporte, remarketing)",
+                "Integração direta com campanhas e fluxos",
+                "Reutilize em envios em massa com um clique",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Criar Meus Modelos
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">📋</span>
+                <h4 className="text-foreground font-bold text-lg">Modelos Salvos</h4>
+              </div>
+              {[
+                { name: "Boas-vindas VIP", type: "Texto + Botão", category: "Vendas" },
+                { name: "Promoção Relâmpago", type: "Imagem + Texto", category: "Marketing" },
+                { name: "Lembrete de Pagamento", type: "Texto", category: "Cobrança" },
+                { name: "Catálogo de Produtos", type: "Carrossel", category: "Vendas" },
+              ].map((tpl, i) => (
+                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div>
+                    <p className="text-foreground text-sm font-medium">{tpl.name}</p>
+                    <p className="text-muted-foreground text-xs">{tpl.type} · {tpl.category}</p>
+                  </div>
+                  <span className="text-primary text-xs font-bold">Usar</span>
+                </div>
+              ))}
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">+ crie modelos ilimitados</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
