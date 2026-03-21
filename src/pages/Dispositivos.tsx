@@ -50,14 +50,25 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       // Fetch connected phone number when connected
       if (status.data?.connected === true && !connectedPhone) {
         try {
-          const devRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/device`,
-            { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
-          );
-          if (devRes.ok) {
-            const devData = await devRes.json();
-            const num = devData?.phone || devData?.phoneNumber || devData?.wid?.user || null;
-            if (num) setConnectedPhone(num);
+          // Try multiple Z-API endpoints to get connected phone
+          const endpoints = ['device', 'host-device', 'contacts/me'];
+          for (const ep of endpoints) {
+            try {
+              const res = await fetch(
+                `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/${ep}`,
+                { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
+              );
+              if (res.ok) {
+                const data = await res.json();
+                console.log(`📱 ${ep} response:`, JSON.stringify(data));
+                const num = data?.phone || data?.phoneNumber || data?.wid?.user || 
+                           data?.wid?.replace?.("@c.us", "") || data?.id?.replace?.("@c.us", "") || null;
+                if (num) {
+                  setConnectedPhone(num);
+                  break;
+                }
+              }
+            } catch {}
           }
         } catch {}
       }
