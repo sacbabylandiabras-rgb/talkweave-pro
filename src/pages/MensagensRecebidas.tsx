@@ -103,9 +103,24 @@ const parseMediaFromContent = (content: string): { mediaType: string | null; med
   return { mediaType: null, mediaUrl: null, text: content };
 };
 
+// Resolve [modelo:UUID] references to template name
+const resolveTemplateRef = (content: string, templates: MessageTemplate[]): string => {
+  return content.replace(/\[modelo:([a-f0-9-]+)\]/gi, (_match, id) => {
+    const tpl = templates.find(t => t.id === id);
+    if (tpl) {
+      let resolved = tpl.content || '';
+      if (tpl.header) resolved = `*${tpl.header}*\n${resolved}`;
+      if (tpl.footer) resolved += `\n_${tpl.footer}_`;
+      return resolved;
+    }
+    return `📋 Modelo enviado`;
+  });
+};
+
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent }: { content: string; isSent: boolean }) => {
-  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(content);
+const MessageContent = ({ content, isSent, templates }: { content: string; isSent: boolean; templates?: MessageTemplate[] }) => {
+  const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
+  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
@@ -507,7 +522,7 @@ const ChatView = ({
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={false} />
+                        <MessageContent content={msg.content} isSent={false} templates={templates} />
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
@@ -516,7 +531,7 @@ const ChatView = ({
                   ) : (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={true} />
+                        <MessageContent content={msg.content} isSent={true} templates={templates} />
                         <div className="flex items-center justify-end gap-1.5 mt-1">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] opacity-70 flex items-center gap-0.5">
