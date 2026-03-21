@@ -46,48 +46,34 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       const status = await withInstance(() => getDeviceStatus());
       setDeviceStatus(status.data);
-      
-      // Fetch connected phone number when connected
-      if (status.data?.connected === true && !connectedPhone) {
-        const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-        const hdrs = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
-        
-        // Try /device endpoint (returns phone info)
-        try {
-          const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /device:", JSON.stringify(d));
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /device failed:", e); }
-
-        // Try /host-device endpoint
-        try {
-          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /host-device:", JSON.stringify(d));
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /host-device failed:", e); }
-
-        // Try /me and extract from connected webhook logs as last resort
-        try {
-          const res = await fetch(`${baseUrl}/contacts/me`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            console.log("📱 /contacts/me:", JSON.stringify(d));
-            const num = d?.phone || d?.id?.replace?.("@c.us", "") || d?.wid?.user || null;
-            if (num) { setConnectedPhone(num); return; }
-          }
-        } catch (e) { console.log("📱 /contacts/me failed:", e); }
-      }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
     }
+  };
+
+  // Fetch connected phone number separately
+  const fetchConnectedPhone = async () => {
+    if (connectedPhone) return;
+    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+    const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+    
+    try {
+      const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+      if (res.ok) {
+        const d = await res.json();
+        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+        if (num) { setConnectedPhone(num); return; }
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+      if (res.ok) {
+        const d = await res.json();
+        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+        if (num) { setConnectedPhone(num); return; }
+      }
+    } catch {}
   };
 
   const fetchQRCode = async () => {
@@ -170,13 +156,19 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     return () => clearInterval(statusInterval);
   }, [instance.id]);
 
+  // Fetch phone when connected
+  useEffect(() => {
+    if (deviceStatus?.connected === true && !connectedPhone) {
+      fetchConnectedPhone();
+    }
+  }, [deviceStatus?.connected]);
+
   // Auto-sync history when device transitions from disconnected to connected
   useEffect(() => {
     const isConnectedNow = deviceStatus?.connected === true;
     
     if (prevConnected === false && isConnectedNow && !hasSynced) {
       setHasSynced(true);
-      // Wait a bit for the connection to stabilize before syncing
       setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
@@ -245,14 +237,13 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                   </Button>
                 </div>
               )}
-              <CardDescription className="flex items-center gap-1.5">
-                {connectedPhone ? (
-                  <>
+              <CardDescription className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">ID: {instance.zapi_instance_id}</div>
+                {connectedPhone && (
+                  <div className="flex items-center gap-1.5">
                     <Phone className="w-3 h-3 text-primary" />
-                    <span className="font-medium text-primary">+{connectedPhone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4')}</span>
-                  </>
-                ) : (
-                  <span>ID: {instance.zapi_instance_id}</span>
+                    <span className="font-medium text-primary text-sm">+{connectedPhone}</span>
+                  </div>
                 )}
               </CardDescription>
             </div>
