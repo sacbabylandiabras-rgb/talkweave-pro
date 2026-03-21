@@ -103,9 +103,24 @@ const parseMediaFromContent = (content: string): { mediaType: string | null; med
   return { mediaType: null, mediaUrl: null, text: content };
 };
 
+// Resolve [modelo:UUID] references to template name
+const resolveTemplateRef = (content: string, templates: MessageTemplate[]): string => {
+  return content.replace(/\[modelo:([a-f0-9-]+)\]/gi, (_match, id) => {
+    const tpl = templates.find(t => t.id === id);
+    if (tpl) {
+      let resolved = tpl.content || '';
+      if (tpl.header) resolved = `*${tpl.header}*\n${resolved}`;
+      if (tpl.footer) resolved += `\n_${tpl.footer}_`;
+      return resolved;
+    }
+    return `📋 Modelo enviado`;
+  });
+};
+
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent }: { content: string; isSent: boolean }) => {
-  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(content);
+const MessageContent = ({ content, isSent, templates }: { content: string; isSent: boolean; templates?: MessageTemplate[] }) => {
+  const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
+  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
