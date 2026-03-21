@@ -65,21 +65,43 @@ serve(async (req) => {
     }
 
     // === GROUP PARTICIPANT JOIN DETECTION ===
-    // Z-API sends events when participants join/leave groups
-    const webhookAction = webhook?.action || webhook?.event || webhook?.type || ''
-    const isParticipantEvent = 
+    // Z-API sends group join events in multiple formats:
+    // 1. action/event: 'add'/'join'
+    // 2. status: 'MEMBER_ADD'
+    // 3. type: 'notification' with code 27 (added) or 32 (joined via link)
+    const webhookAction = webhook?.action || webhook?.event || ''
+    const webhookType = webhook?.type || ''
+    const notificationCode = webhook?.code || webhook?.notification?.code || ''
+    const notificationParams = webhook?.notificationParameters || webhook?.notification?.parameters || []
+    
+    const isDirectJoinAction = 
       webhookAction === 'add' || 
       webhookAction === 'join' ||
       webhook?.status === 'MEMBER_ADD' ||
       webhook?.groupParticipant?.action === 'add' ||
       webhook?.participantAction === 'add'
+    
+    // Z-API notification format: type=notification, code 27=added, 32=joined via invite link
+    const isNotificationJoin = 
+      webhookType === 'notification' && 
+      webhook?.isGroup === true &&
+      (String(notificationCode) === '27' || String(notificationCode) === '32')
+
+    const isParticipantEvent = isDirectJoinAction || isNotificationJoin
 
     if (isParticipantEvent) {
       console.log('👋 Group participant JOIN event detected:', JSON.stringify(webhook).substring(0, 800))
       
       const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
-      const joinedPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || 
+      
+      // For notification events, the joined phone is in notificationParameters or participantPhone
+      let joinedPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || 
                           webhook?.groupParticipant?.phone || ''
+      // notificationParameters typically contains the phone(s) of added participants
+      if (!joinedPhone && Array.isArray(notificationParams) && notificationParams.length > 0) {
+        joinedPhone = String(notificationParams[0]).replace('@c.us', '').replace(/\D/g, '')
+      }
+      
       const joinedName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
       const eventInstanceId = webhook?.instanceId || webhook?.instance_id || ''
 
