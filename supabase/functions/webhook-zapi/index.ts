@@ -247,6 +247,7 @@ serve(async (req) => {
                 instance_id: instData.zapi_instance_id,
               })
             }
+          }
         }
       }
 
