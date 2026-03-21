@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,10 +56,15 @@ function CriarGrupoTab() {
   const [groupName, setGroupName] = useState("");
   const [phones, setPhones] = useState("");
   const [creating, setCreating] = useState(false);
+  const { instances, activeInstance, selectInstance } = useZapiInstances();
 
   const handleCreate = async () => {
     if (!groupName.trim()) {
       toast.error("Nome do grupo é obrigatório");
+      return;
+    }
+    if (!activeInstance) {
+      toast.error("Selecione uma instância conectada");
       return;
     }
     setCreating(true);
@@ -69,10 +75,21 @@ function CriarGrupoTab() {
         .filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("manage-groups", {
-        body: { action: "create-group", groupName: groupName.trim(), phones: phoneList },
+        body: {
+          action: "create-group",
+          groupName: groupName.trim(),
+          phones: phoneList,
+          instanceId: activeInstance.zapi_instance_id,
+          instanceToken: activeInstance.zapi_token,
+          instanceClientToken: activeInstance.zapi_client_token,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) {
+        toast.error("Erro Z-API: " + data.error);
+        return;
+      }
       toast.success("Grupo criado com sucesso!");
       setGroupName("");
       setPhones("");
@@ -94,6 +111,21 @@ function CriarGrupoTab() {
         <CardDescription>Crie um grupo WhatsApp diretamente pela plataforma</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-foreground">Instância</label>
+          <Select value={activeInstance?.id || ""} onValueChange={selectInstance}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Selecione a instância" />
+            </SelectTrigger>
+            <SelectContent>
+              {instances.map((inst) => (
+                <SelectItem key={inst.id} value={inst.id}>
+                  {inst.instance_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <label className="text-sm font-medium text-foreground">Nome do Grupo</label>
           <Input
