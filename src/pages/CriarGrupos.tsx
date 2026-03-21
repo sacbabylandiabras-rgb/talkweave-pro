@@ -142,6 +142,36 @@ function CriarGrupoTab() {
           />
         </div>
         <div>
+          <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            Descrição <span className="text-muted-foreground">(opcional)</span>
+          </label>
+          <textarea
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] placeholder:text-muted-foreground"
+            placeholder="Descrição do grupo..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+            <Image className="w-3.5 h-3.5" />
+            Foto do Grupo <span className="text-muted-foreground">(URL da imagem, opcional)</span>
+          </label>
+          <Input
+            placeholder="https://exemplo.com/foto.jpg"
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            className="mt-1"
+          />
+          {photoUrl && (
+            <div className="mt-2 flex items-center gap-2">
+              <img src={photoUrl} alt="Preview" className="w-12 h-12 rounded-full object-cover border border-border" onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span className="text-xs text-muted-foreground">Preview da foto</span>
+            </div>
+          )}
+        </div>
+        <div>
           <label className="text-sm font-medium text-foreground">
             Participantes iniciais <span className="text-muted-foreground">(opcional)</span>
           </label>
