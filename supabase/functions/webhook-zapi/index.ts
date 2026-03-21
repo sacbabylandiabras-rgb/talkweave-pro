@@ -72,7 +72,17 @@ serve(async (req) => {
     const webhookAction = webhook?.action || webhook?.event || ''
     const webhookType = webhook?.type || ''
     const notificationCode = webhook?.code || webhook?.notification?.code || ''
+    const notificationText = String(webhook?.notification || webhook?.notification?.text || '').toLowerCase()
     const notificationParams = webhook?.notificationParameters || webhook?.notification?.parameters || []
+    const hasParticipantHint = Boolean(
+      webhook?.participantPhone ||
+      webhook?.participant ||
+      webhook?.participantLid ||
+      webhook?.groupParticipant?.phone ||
+      (Array.isArray(notificationParams) && notificationParams.length > 0)
+    )
+    const isStatusCallback = webhookType === 'MessageStatusCallback' || Array.isArray(webhook?.ids)
+    const noTextPayload = !webhook?.text?.message && !webhook?.message?.text && !webhook?.body && !webhook?.caption
     
     const isDirectJoinAction = 
       webhookAction === 'add' || 
@@ -83,16 +93,41 @@ serve(async (req) => {
     
     // Z-API notification format: code 27=added, 32=joined via invite link
     // The event type can be 'notification' OR 'ReceivedCallback' with notification/code fields
-    const hasNotificationCode = String(notificationCode) === '27' || String(notificationCode) === '32'
+    const hasNotificationCode = ['27', '32'].includes(String(notificationCode))
+    const hasJoinNotificationText = [
+      'entrou',
+      'joined',
+      'added',
+      'adicionado',
+      'adicionou',
+      'invite',
+      'convite',
+    ].some((term) => notificationText.includes(term))
     const isNotificationJoin = 
       webhook?.isGroup === true &&
-      hasNotificationCode &&
-      (webhookType === 'notification' || webhookType === 'ReceivedCallback' || !!webhook?.notification)
+      !isStatusCallback &&
+      noTextPayload &&
+      (
+        hasNotificationCode ||
+        ((webhookType === 'notification' || webhookType === 'ReceivedCallback' || !!webhook?.notification) &&
+          (hasParticipantHint || hasJoinNotificationText || webhook?.senderName === 'invite'))
+      )
 
     const isParticipantEvent = isDirectJoinAction || isNotificationJoin
 
     if (isParticipantEvent) {
-      console.log('👋 Group participant JOIN event detected:', JSON.stringify(webhook).substring(0, 800))
+      console.log('👋 Group participant JOIN event detected:', JSON.stringify({
+        type: webhookType,
+        action: webhookAction,
+        code: notificationCode,
+        notification: webhook?.notification,
+        notificationParameters: notificationParams,
+        participantPhone: webhook?.participantPhone,
+        participant: webhook?.participant,
+        senderName: webhook?.senderName,
+        phone: webhook?.phone,
+        instanceId: webhook?.instanceId || webhook?.instance_id,
+      }).substring(0, 800))
       
       const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
       
@@ -135,6 +170,7 @@ serve(async (req) => {
             .maybeSingle()
 
           if (welcomeConfig) {
+            console.log('✅ Group welcome config found for group:', normalizedGroupId, 'type:', welcomeConfig.response_type)
             const responseType = welcomeConfig.response_type || 'text'
             const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
             const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
@@ -191,31 +227,36 @@ serve(async (req) => {
                   .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
 
                 if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
-                  await fetch(`${baseUrl}/send-image`, {
+                  const sendResponse = await fetch(`${baseUrl}/send-image`, {
                     method: 'POST', headers,
                     body: JSON.stringify({ phone: joinedPhone, image: tpl.media_url, caption: tplMessage }),
                   })
+                  console.log('📤 Welcome template image status:', sendResponse.status, await sendResponse.text())
                 } else if (tpl.media_url && (tpl.type === 'video' || tpl.type === 'vídeo')) {
-                  await fetch(`${baseUrl}/send-video`, {
+                  const sendResponse = await fetch(`${baseUrl}/send-video`, {
                     method: 'POST', headers,
                     body: JSON.stringify({ phone: joinedPhone, video: tpl.media_url, caption: tplMessage }),
                   })
+                  console.log('📤 Welcome template video status:', sendResponse.status, await sendResponse.text())
                 } else if (tpl.media_url && (tpl.type === 'audio' || tpl.type === 'áudio')) {
-                  await fetch(`${baseUrl}/send-audio`, {
+                  const audioResponse = await fetch(`${baseUrl}/send-audio`, {
                     method: 'POST', headers,
                     body: JSON.stringify({ phone: joinedPhone, audio: tpl.media_url }),
                   })
+                  console.log('📤 Welcome template audio status:', audioResponse.status, await audioResponse.text())
                   if (tplMessage) {
-                    await fetch(`${baseUrl}/send-text`, {
+                    const textResponse = await fetch(`${baseUrl}/send-text`, {
                       method: 'POST', headers,
                       body: JSON.stringify({ phone: joinedPhone, message: tplMessage }),
                     })
+                    console.log('📤 Welcome template text-after-audio status:', textResponse.status, await textResponse.text())
                   }
                 } else {
-                  await fetch(`${baseUrl}/send-text`, {
+                  const textResponse = await fetch(`${baseUrl}/send-text`, {
                     method: 'POST', headers,
                     body: JSON.stringify({ phone: joinedPhone, message: tplMessage }),
                   })
+                  console.log('📤 Welcome template text status:', textResponse.status, await textResponse.text())
                 }
 
                 // Send buttons if present
@@ -223,7 +264,7 @@ serve(async (req) => {
                 if (buttons && buttons.length > 0) {
                   const btn = buttons[0]
                   if (btn.url) {
-                    await fetch(`${baseUrl}/send-button-list`, {
+                    const buttonResponse = await fetch(`${baseUrl}/send-button-list`, {
                       method: 'POST', headers,
                       body: JSON.stringify({
                         phone: joinedPhone,
@@ -231,6 +272,7 @@ serve(async (req) => {
                         buttonList: [{ id: '1', label: btn.label || btn.text || 'Acessar' }],
                       }),
                     })
+                    console.log('📤 Welcome template button status:', buttonResponse.status, await buttonResponse.text())
                   }
                 }
 
@@ -254,10 +296,11 @@ serve(async (req) => {
                 .replace(/\{\{telefone\}\}/gi, joinedPhone)
                 .replace(/\{\{grupo\}\}/gi, welcomeConfig.group_name || 'grupo')
 
-              await fetch(`${baseUrl}/send-text`, {
+              const textResponse = await fetch(`${baseUrl}/send-text`, {
                 method: 'POST', headers,
                 body: JSON.stringify({ phone: joinedPhone, message: finalMessage }),
               })
+              console.log('📤 Welcome text status:', textResponse.status, await textResponse.text())
 
               console.log('📨 Text welcome sent to', joinedPhone)
 
@@ -273,6 +316,15 @@ serve(async (req) => {
             }
           }
         }
+      } else {
+        console.log('⚠️ Group join ignored after detection due to missing data:', JSON.stringify({
+          groupPhone,
+          joinedPhone,
+          eventInstanceId,
+          notificationParameters: notificationParams,
+          participantPhone: webhook?.participantPhone,
+          participant: webhook?.participant,
+        }))
       }
 
       return new Response('group_participant_event_handled', { status: 200, headers: corsHeaders })
