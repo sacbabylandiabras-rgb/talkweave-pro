@@ -289,6 +289,24 @@ serve(async (req) => {
 
           if (welcomeConfig) {
             console.log('✅ Group welcome config found for group:', normalizedGroupId, 'type:', welcomeConfig.response_type)
+
+            // === DEDUPLICATION: Prevent duplicate welcome messages from multiple instances ===
+            const dedupeWindow = new Date(Date.now() - 60 * 1000).toISOString()
+            const { data: recentWelcome } = await supabase
+              .from('message_logs')
+              .select('id')
+              .eq('user_id', instData.user_id)
+              .eq('phone', joinedPhone)
+              .like('keyword_matched', '%group_welcome%')
+              .gte('created_at', dedupeWindow)
+              .limit(1)
+              .maybeSingle()
+
+            if (recentWelcome) {
+              console.log('⚠️ Duplicate group welcome blocked for', joinedPhone, 'in group', normalizedGroupId, '(already sent in last 60s)')
+              return new Response('group_welcome_deduplicated', { status: 200, headers: corsHeaders })
+            }
+
             const responseType = welcomeConfig.response_type || 'text'
             const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
             const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
