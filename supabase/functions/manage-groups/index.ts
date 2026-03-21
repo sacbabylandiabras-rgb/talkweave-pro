@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         if (!groupId || !groupName) throw new Error("groupId and groupName are required");
         const cleanId = groupId.replace("-group", "@g.us");
         const response = await fetch(`${baseUrl}/update-group-name`, {
-          method: "PUT",
+          method: "POST",
           headers,
           body: JSON.stringify({ groupId: cleanId, groupName }),
         });
