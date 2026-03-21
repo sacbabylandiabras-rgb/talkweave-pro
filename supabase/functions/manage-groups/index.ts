@@ -67,13 +67,16 @@ Deno.serve(async (req) => {
       case "update-group-description": {
         const { groupId, description } = body;
         if (!groupId) throw new Error("groupId is required");
-        const cleanId = groupId.replace("-group", "@g.us");
+        // Z-API expects groupId in "-group" format and field "groupDescription"
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        console.log("📋 update-group-description groupId:", groupId, "-> cleanId:", cleanId, "description:", description);
         const response = await fetch(`${baseUrl}/update-group-description`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ groupId: cleanId, description: description || "" }),
+          body: JSON.stringify({ groupId: cleanId, groupDescription: description || "" }),
         });
         const data = await response.json();
+        console.log("📋 update-group-description response:", JSON.stringify(data));
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
