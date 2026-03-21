@@ -183,7 +183,6 @@ function GerenciarGrupoTab() {
       setActionLoading(null);
     }
   };
-  };
 
   const handleCreate = async () => {
     if (!groupName.trim()) { toast.error("Nome do grupo é obrigatório"); return; }
