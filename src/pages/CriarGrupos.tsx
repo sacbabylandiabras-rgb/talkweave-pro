@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
-  UserPlus, UserMinus, Shield, Loader2, Search
+  UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
+  MessageSquare, ShieldCheck, ShieldOff, Pencil
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
