@@ -297,7 +297,7 @@ serve(async (req) => {
               .select('id')
               .eq('user_id', instData.user_id)
               .eq('phone', joinedPhone)
-              .like('keyword_matched', '%group_welcome%')
+              .eq('keyword_matched', '__group_welcome__')
               .gte('created_at', dedupeWindow)
               .limit(1)
               .maybeSingle()
