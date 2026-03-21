@@ -221,8 +221,15 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                   </Button>
                 </div>
               )}
-              <CardDescription>
-                {deviceStatus?.phone || `ID: ${instance.zapi_instance_id}`}
+              <CardDescription className="flex items-center gap-1.5">
+                {connectedPhone ? (
+                  <>
+                    <Phone className="w-3 h-3 text-primary" />
+                    <span className="font-medium text-primary">+{connectedPhone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4')}</span>
+                  </>
+                ) : (
+                  <span>ID: {instance.zapi_instance_id}</span>
+                )}
               </CardDescription>
             </div>
           </div>
