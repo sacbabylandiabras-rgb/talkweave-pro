@@ -22,6 +22,7 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(instance.instance_name);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [showConnect, setShowConnect] = useState(false);
@@ -45,6 +46,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       const status = await withInstance(() => getDeviceStatus());
       setDeviceStatus(status.data);
+      
+      // Fetch connected phone number when connected
+      if (status.data?.connected === true) {
+        try {
+          const phoneRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/me`,
+            { headers: { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" } }
+          );
+          if (phoneRes.ok) {
+            const phoneData = await phoneRes.json();
+            const num = phoneData?.phone || phoneData?.phoneNumber || phoneData?.id?.replace("@c.us", "") || null;
+            if (num) setConnectedPhone(num);
+          }
+        } catch {}
+      }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
     }
@@ -205,8 +221,15 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                   </Button>
                 </div>
               )}
-              <CardDescription>
-                {deviceStatus?.phone || `ID: ${instance.zapi_instance_id}`}
+              <CardDescription className="flex items-center gap-1.5">
+                {connectedPhone ? (
+                  <>
+                    <Phone className="w-3 h-3 text-primary" />
+                    <span className="font-medium text-primary">+{connectedPhone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4')}</span>
+                  </>
+                ) : (
+                  <span>ID: {instance.zapi_instance_id}</span>
+                )}
               </CardDescription>
             </div>
           </div>
