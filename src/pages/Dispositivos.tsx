@@ -237,14 +237,13 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                   </Button>
                 </div>
               )}
-              <CardDescription className="flex items-center gap-1.5">
-                {connectedPhone ? (
-                  <>
+              <CardDescription className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">ID: {instance.zapi_instance_id}</div>
+                {connectedPhone && (
+                  <div className="flex items-center gap-1.5">
                     <Phone className="w-3 h-3 text-primary" />
-                    <span className="font-medium text-primary">+{connectedPhone.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '$1 ($2) $3-$4')}</span>
-                  </>
-                ) : (
-                  <span>ID: {instance.zapi_instance_id}</span>
+                    <span className="font-medium text-primary text-sm">+{connectedPhone}</span>
+                  </div>
                 )}
               </CardDescription>
             </div>
