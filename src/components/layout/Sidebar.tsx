@@ -41,6 +41,7 @@ const menuItems = [
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
+  { id: "criar-grupos", label: "Criar Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
 ];

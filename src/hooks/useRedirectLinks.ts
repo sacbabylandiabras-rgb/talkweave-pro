@@ -31,14 +31,14 @@ export function useRedirectLinks() {
   const fetchLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: linksData, error } = await supabase
+      const { data: linksData, error } = await (supabase as any)
         .from("redirect_links")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const { data: groupsData } = await supabase
+      const { data: groupsData } = await (supabase as any)
         .from("redirect_link_groups")
         .select("*")
         .order("sort_order", { ascending: true });
@@ -61,7 +61,7 @@ export function useRedirectLinks() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Não autenticado");
 
-    const { error } = await supabase.from("redirect_links").insert({
+    const { error } = await (supabase as any).from("redirect_links").insert({
       user_id: user.id,
       name,
       slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, ""),
@@ -73,13 +73,13 @@ export function useRedirectLinks() {
   };
 
   const deleteLink = async (id: string) => {
-    const { error } = await supabase.from("redirect_links").delete().eq("id", id);
+    const { error } = await (supabase as any).from("redirect_links").delete().eq("id", id);
     if (error) throw error;
     await fetchLinks();
   };
 
   const toggleLink = async (id: string, active: boolean) => {
-    const { error } = await supabase.from("redirect_links").update({ active }).eq("id", id);
+    const { error } = await (supabase as any).from("redirect_links").update({ active }).eq("id", id);
     if (error) throw error;
     await fetchLinks();
   };
@@ -98,7 +98,7 @@ export function useRedirectLinks() {
     const existingLink = links.find((l) => l.id === linkId);
     const nextOrder = existingLink?.groups?.length || 0;
 
-    const { error } = await supabase.from("redirect_link_groups").insert({
+    const { error } = await (supabase as any).from("redirect_link_groups").insert({
       redirect_link_id: linkId,
       user_id: user.id,
       group_id: groupId,
@@ -114,13 +114,13 @@ export function useRedirectLinks() {
   };
 
   const removeGroupFromLink = async (groupRecordId: string) => {
-    const { error } = await supabase.from("redirect_link_groups").delete().eq("id", groupRecordId);
+    const { error } = await (supabase as any).from("redirect_link_groups").delete().eq("id", groupRecordId);
     if (error) throw error;
     await fetchLinks();
   };
 
   const updateGroupInLink = async (groupRecordId: string, updates: Partial<RedirectLinkGroup>) => {
-    const { error } = await supabase.from("redirect_link_groups").update(updates).eq("id", groupRecordId);
+    const { error } = await (supabase as any).from("redirect_link_groups").update(updates).eq("id", groupRecordId);
     if (error) throw error;
     await fetchLinks();
   };
