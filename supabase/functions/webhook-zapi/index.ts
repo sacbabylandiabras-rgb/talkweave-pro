@@ -81,11 +81,13 @@ serve(async (req) => {
       webhook?.groupParticipant?.action === 'add' ||
       webhook?.participantAction === 'add'
     
-    // Z-API notification format: type=notification, code 27=added, 32=joined via invite link
+    // Z-API notification format: code 27=added, 32=joined via invite link
+    // The event type can be 'notification' OR 'ReceivedCallback' with notification/code fields
+    const hasNotificationCode = String(notificationCode) === '27' || String(notificationCode) === '32'
     const isNotificationJoin = 
-      webhookType === 'notification' && 
       webhook?.isGroup === true &&
-      (String(notificationCode) === '27' || String(notificationCode) === '32')
+      hasNotificationCode &&
+      (webhookType === 'notification' || webhookType === 'ReceivedCallback' || !!webhook?.notification)
 
     const isParticipantEvent = isDirectJoinAction || isNotificationJoin
 
