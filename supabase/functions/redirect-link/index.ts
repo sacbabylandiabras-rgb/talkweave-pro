@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get group photo - first from DB, then try Z-API as fallback
+    // Get group photo from DB, fallback to Z-API group-metadata
     let groupPhoto: string | null = targetGroup.group_photo || null;
     
     if (!groupPhoto && targetGroup.instance_id) {
@@ -79,16 +79,14 @@ Deno.serve(async (req) => {
           .eq("zapi_instance_id", targetGroup.instance_id)
           .maybeSingle();
 
-        console.log("Instance lookup result:", instance ? "found" : "not found", "for id:", targetGroup.instance_id);
-
         if (instance) {
-          // Try group-metadata endpoint
           const groupId = targetGroup.group_id.includes("-group")
             ? targetGroup.group_id
             : targetGroup.group_id.replace("@g.us", "-group");
-          
-          const metaRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/group-metadata/${groupId}`,
+
+          // Try profile-picture with query param
+          const picRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture?phone=${encodeURIComponent(groupId)}`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -97,20 +95,18 @@ Deno.serve(async (req) => {
             }
           );
 
-          console.log("Group metadata API status:", metaRes.status);
-          if (metaRes.ok) {
-            const meta = await metaRes.json();
-            console.log("Group metadata response keys:", Object.keys(meta));
-            console.log("Group metadata photo fields:", JSON.stringify({
-              image: meta?.image, imgUrl: meta?.imgUrl, 
-              profilePicture: meta?.profilePicture, photo: meta?.photo,
-              groupImage: meta?.groupImage, pictureUrl: meta?.pictureUrl
-            }));
-            groupPhoto = meta?.image || meta?.imgUrl || meta?.profilePicture || meta?.photo || meta?.groupImage || meta?.pictureUrl || null;
+          if (picRes.ok) {
+            const picData = await picRes.json();
+            const link = picData?.link;
+            if (link && link !== "null") {
+              groupPhoto = link;
+              // Save to DB for next time
+              await client.from("redirect_link_groups").update({ group_photo: link }).eq("id", targetGroup.id);
+            }
           }
         }
-      } catch (e) {
-        console.error("Photo fetch error:", e);
+      } catch {
+        // ignore
       }
     }
 
