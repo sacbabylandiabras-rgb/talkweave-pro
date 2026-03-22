@@ -730,6 +730,7 @@ function LinksRotativosTab() {
 
       if (!photoUrl) {
         const whatsGroup = groups.find((g) => g.id === templateGroup.group_id);
+        console.log("📷 WhatsApp groups list match:", whatsGroup?.id, "foto:", whatsGroup?.foto);
         if (whatsGroup?.foto) {
           photoUrl = whatsGroup.foto;
         }
@@ -737,15 +738,19 @@ function LinksRotativosTab() {
 
       if (!photoUrl) {
         try {
+          console.log("📷 Trying get-profile-picture for:", groupIdForMeta);
           const { data: picData } = await supabase.functions.invoke("get-profile-picture", {
             body: { phone: groupIdForMeta },
           });
+          console.log("📷 get-profile-picture response:", JSON.stringify(picData));
           const link = picData?.data?.link || picData?.data?.imgUrl || picData?.data?.profilePictureUrl || picData?.link || null;
           if (link && link !== "null") {
             photoUrl = link;
           }
         } catch {}
       }
+
+      console.log("📷 Final photoUrl for cloning:", photoUrl);
 
       const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/);
       let baseName = groupName;
@@ -798,7 +803,8 @@ function LinksRotativosTab() {
       }
 
       if (photoUrl) {
-        await supabase.functions.invoke("manage-groups", {
+        console.log("📷 Setting photo on new group:", newGroupId, "url:", photoUrl);
+        const photoResult = await supabase.functions.invoke("manage-groups", {
           body: {
             action: "update-group-photo",
             instanceId: inst.zapi_instance_id,
@@ -807,7 +813,10 @@ function LinksRotativosTab() {
             groupId: newGroupId,
             imageUrl: photoUrl,
           },
-        }).catch(() => {});
+        });
+        console.log("📷 update-group-photo result:", JSON.stringify(photoResult));
+      } else {
+        console.log("📷 No photo URL found to clone!");
       }
 
       if (adminPhones.length > 0) {
