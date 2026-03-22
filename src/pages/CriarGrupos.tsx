@@ -832,14 +832,18 @@ function ParticipantesTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+            <Select value={selectedGroupId} onValueChange={(id) => {
+              setSelectedGroupId(id);
+              const g = groups.find((gr) => gr.id === id);
+              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+            }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.nome} ({g.membros} membros)
+                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                   </SelectItem>
                 ))}
               </SelectContent>
