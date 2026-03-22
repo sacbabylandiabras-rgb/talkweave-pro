@@ -65,8 +65,30 @@ function GerenciarGrupoTab() {
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState("");
-  // Cache local de dados salvos por grupo (descrição/foto que a API de listagem não retorna)
-  const [savedGroupData, setSavedGroupData] = useState<Record<string, { description?: string; photo?: string }>>({});
+  const [savedGroupData, setSavedGroupData] = useState<Record<string, { description?: string; photo?: string }>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = window.localStorage.getItem("group-preview-cache");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+  const persistGroupPreviewData = (groupId: string, updates: { description?: string; photo?: string }) => {
+    setSavedGroupData((prev) => {
+      const next = {
+        ...prev,
+        [groupId]: {
+          ...prev[groupId],
+          ...updates,
+        },
+      };
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("group-preview-cache", JSON.stringify(next));
+      }
+      return next;
+    });
+  };
   const manageFileInputRef = useRef<HTMLInputElement>(null);
   // Create group dialog state
   const [createOpen, setCreateOpen] = useState(false);
