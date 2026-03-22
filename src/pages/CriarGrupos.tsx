@@ -676,10 +676,26 @@ function LinksRotativosTab() {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
         const count = data?.participants?.length || 0;
-        // Also update photo from WhatsApp groups list
         const whatsGroup = groups.find((wg) => wg.id === g.group_id);
         const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
-        if (whatsGroup?.foto) updates.group_photo = whatsGroup.foto;
+        
+        // Update photo from WhatsApp groups list
+        if (whatsGroup?.foto) {
+          updates.group_photo = whatsGroup.foto;
+        } else if (!g.group_photo) {
+          // Try fetching photo via get-profile-picture
+          try {
+            const { data: picData } = await supabase.functions.invoke("get-profile-picture", {
+              body: { phone: g.group_id },
+            });
+            if (picData?.data?.link && picData.data.link !== "null") {
+              updates.group_photo = picData.data.link;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        
         await updateGroupInLink(g.id, updates);
       }
       toast.success("Contagem de membros atualizada!");
