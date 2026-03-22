@@ -79,13 +79,13 @@ Deno.serve(async (req) => {
           .eq("zapi_instance_id", targetGroup.instance_id)
           .maybeSingle();
 
-        if (instance) {
-          const groupId = targetGroup.group_id.includes("-group")
-            ? targetGroup.group_id
-            : targetGroup.group_id.replace("@g.us", "-group");
+        console.log("Instance lookup result:", instance ? "found" : "not found", "for id:", targetGroup.instance_id);
 
-          const metaRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/group-metadata/${groupId}`,
+        if (instance) {
+          // Try profile-picture endpoint with phone format
+          const groupPhone = targetGroup.group_id.replace("-group", "@g.us");
+          const picRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${groupPhone}`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -94,13 +94,15 @@ Deno.serve(async (req) => {
             }
           );
 
-          if (metaRes.ok) {
-            const meta = await metaRes.json();
-            groupPhoto = meta?.image || meta?.imgUrl || meta?.profilePicture || meta?.photo || null;
+          console.log("Profile picture API status:", picRes.status);
+          if (picRes.ok) {
+            const picData = await picRes.json();
+            console.log("Profile picture response:", JSON.stringify(picData));
+            groupPhoto = picData?.link || picData?.imgUrl || picData?.profilePicture || picData?.image || null;
           }
         }
-      } catch {
-        // ignore photo fetch errors
+      } catch (e) {
+        console.error("Photo fetch error:", e);
       }
     }
 
