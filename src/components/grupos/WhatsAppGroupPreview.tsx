@@ -68,18 +68,7 @@ const WhatsAppGroupPreview = ({
             </div>
           </div>
 
-          {/* Description card if exists */}
-          {description && (
-            <div className="flex justify-center mt-2 px-3">
-              <div className="bg-[#182229] rounded-lg px-3 py-2 max-w-[220px]">
-                <p className="text-[10px] text-[#e9edef] text-center leading-tight">
-                  📝 {description}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Group info card */}
+          {/* Group info card with bio/description */}
           <div className="absolute bottom-14 left-0 right-0 px-3">
             <div className="bg-[#202c33] rounded-xl p-3 border border-[#2a3942]">
               <div className="flex items-center gap-2.5">
@@ -95,11 +84,14 @@ const WhatsAppGroupPreview = ({
                   <p className="text-[10px] text-[#8696a0] mt-0.5">
                     Grupo · {membersCount || 1} participante{(membersCount || 1) > 1 ? "s" : ""}
                   </p>
-                  {description && (
-                    <p className="text-[9px] text-[#8696a0] mt-0.5 line-clamp-2">{description}</p>
-                  )}
                 </div>
               </div>
+              {description && (
+                <div className="mt-2.5 pt-2 border-t border-[#2a3942]">
+                  <p className="text-[9px] text-[#8696a0] mb-0.5">Descrição do grupo</p>
+                  <p className="text-[10px] text-[#e9edef] leading-snug line-clamp-3">{description}</p>
+                </div>
+              )}
             </div>
           </div>
 
