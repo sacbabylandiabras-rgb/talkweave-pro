@@ -627,6 +627,7 @@ serve(async (req) => {
                       let groupName = rg.group_name
                       let description = ''
                       let admins: string[] = []
+                      let participantPhones: string[] = []
                       let photoUrl: string | null = rg.group_photo || null
 
                       const meta = await fetchGroupMetadata()
@@ -634,6 +635,10 @@ serve(async (req) => {
                         description = meta.description || ''
                         const participants = extractParticipantArray(meta)
                         if (participants.length > 0) {
+                          participantPhones = participants
+                            .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ''))
+                            .filter((p: string) => p.length > 0)
+
                           admins = participants
                             .filter((p: any) => isAdminParticipant(p))
                             .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || ''))
@@ -660,9 +665,10 @@ serve(async (req) => {
                         .eq('id', instData.user_id)
                         .maybeSingle()
 
+                      const candidatePhones = admins.length > 0 ? admins : participantPhones
                       const seedPhones = expandPhoneCandidates([
+                        ...candidatePhones,
                         String(ownerProfile?.whatsapp || ''),
-                        ...admins,
                       ], connectedPhone)
                         .filter((phone) => phone !== normalizePhoneCandidate(connectedPhone))
                         .slice(0, 10)
