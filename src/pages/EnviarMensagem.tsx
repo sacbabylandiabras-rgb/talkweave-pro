@@ -443,39 +443,57 @@ const EnviarMensagem = () => {
           break;
         }
 
-        // Verificar se o dispositivo está conectado antes de cada envio
-        try {
-          const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
-          const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
-          if (statusData && statusData.data && (!statusData.data.connected || statusData.data.connected === false)) {
-            // Salvar envios pendentes
-            if (campaignSends.length > 0) {
-              await supabase.from('campaign_sends').insert(campaignSends);
-              campaignSends.length = 0;
+        // Verificar se o dispositivo está conectado antes de cada envio (a cada 3 contatos)
+        if (i % 3 === 0) {
+          try {
+            if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+              // Em modo revezamento: checar TODAS as instâncias
+              let allDisconnected = true;
+              for (const inst of instances) {
+                const { data: statusData } = await supabase.functions.invoke('get-device-status', { body: { instanceId: inst.id } });
+                const connected = statusData?.data?.connected === true;
+                console.log(`📡 Status instância "${inst.instance_name}": ${connected ? '✅ conectada' : '❌ desconectada'}`);
+                if (connected) {
+                  allDisconnected = false;
+                }
+              }
+              if (allDisconnected) {
+                if (campaignSends.length > 0) {
+                  await supabase.from('campaign_sends').insert(campaignSends);
+                  campaignSends.length = 0;
+                }
+                await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
+                toast({
+                  title: "Todas as instâncias desconectadas!",
+                  description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+                  variant: "destructive"
+                });
+                setEnviandoEmMassa(false);
+                return;
+              }
+            } else {
+              // Modo instância única: checar a selecionada
+              const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
+              const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
+              if (statusData?.data?.connected === false) {
+                if (campaignSends.length > 0) {
+                  await supabase.from('campaign_sends').insert(campaignSends);
+                  campaignSends.length = 0;
+                }
+                await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
+                try { await supabase.functions.invoke('clear-zapi-queue'); } catch {}
+                toast({
+                  title: "Dispositivo desconectado!",
+                  description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+                  variant: "destructive"
+                });
+                setEnviandoEmMassa(false);
+                return;
+              }
             }
-            // Pausar campanha
-            await supabase
-              .from('campaigns')
-              .update({ status: 'paused' })
-              .eq('id', campanha.id);
-            
-            // Limpar fila da Z-API
-            try {
-              await supabase.functions.invoke('clear-zapi-queue');
-            } catch (qErr) {
-              console.error('Erro ao limpar fila Z-API:', qErr);
-            }
-
-            toast({
-              title: "Dispositivo desconectado!",
-              description: `Envio pausado automaticamente. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
-              variant: "destructive"
-            });
-            setEnviandoEmMassa(false);
-            return;
+          } catch (statusErr) {
+            console.error('Erro ao verificar status do dispositivo:', statusErr);
           }
-        } catch (statusErr) {
-          console.error('Erro ao verificar status do dispositivo:', statusErr);
         }
         
         const contato = contatosProcessados[i];
