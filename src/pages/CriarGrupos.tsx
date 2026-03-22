@@ -668,6 +668,7 @@ function LinksRotativosTab() {
       let description = "";
       let photoUrl: string | null = templateGroup.group_photo || null;
       let participantPhones: string[] = [];
+      let adminPhones: string[] = [];
       let connectedPhone = "";
 
       try {
@@ -697,12 +698,34 @@ function LinksRotativosTab() {
             return Boolean(p?.isAdmin || p?.isSuperAdmin || p?.isSuperadmin || role === "admin" || role === "superadmin");
           };
 
-          participantPhones = participants
+          adminPhones = participants
             .filter((p: any) => isAdmin(p))
             .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ""))
             .filter((phone: string) => phone.length >= 8);
+
+          participantPhones = adminPhones;
+
+          // Get photo URL from metadata if not stored
+          if (!photoUrl && meta.profileThumbnail) {
+            photoUrl = meta.profileThumbnail;
+          }
+          if (!photoUrl && meta.groupPhoto) {
+            photoUrl = meta.groupPhoto;
+          }
         }
       } catch {}
+
+      // Try to get photo via profile-picture endpoint if still missing
+      if (!photoUrl) {
+        try {
+          const cleanId = groupIdForMeta.replace("-group", "@g.us");
+          const photoRes = await fetch(`${baseUrl}/profile-picture/${cleanId}`, { method: "GET", headers });
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            photoUrl = photoData?.link || photoData?.imgUrl || photoData?.profilePicUrl || null;
+          }
+        } catch {}
+      }
 
       // 2. Generate new name
       const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/);
@@ -766,6 +789,10 @@ function LinksRotativosTab() {
       const newGroupId = newGroupPhone.includes("-group")
         ? newGroupPhone
         : newGroupPhone.replace("@g.us", "-group");
+      const newGroupIdClean = newGroupId.replace("-group", "@g.us");
+
+      // Wait for group to be fully created on WhatsApp servers
+      await new Promise((r) => setTimeout(r, 3000));
 
       // 4. Set description
       if (description) {
@@ -795,7 +822,37 @@ function LinksRotativosTab() {
         }).catch(() => {});
       }
 
-      // 6. Get invite link
+      // 6. Promote admins (the seed phones that were added)
+      if (adminPhones.length > 0) {
+        const expandedAdmins = expandPhoneCandidates(adminPhones, connectedPhone)
+          .filter((phone) => phone !== connectedPhone);
+
+        if (expandedAdmins.length > 0) {
+          try {
+            await fetch(`${baseUrl}/add-admin`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ groupId: newGroupId, phones: expandedAdmins }),
+            });
+          } catch {}
+        }
+      }
+
+      // 7. Set admin-only messages (same as template group)
+      try {
+        await supabase.functions.invoke("manage-groups", {
+          body: {
+            action: "admin-only-messages",
+            instanceId: inst.zapi_instance_id,
+            instanceToken: inst.zapi_token,
+            instanceClientToken: inst.zapi_client_token,
+            groupId: newGroupId,
+            value: true,
+          },
+        });
+      } catch {}
+
+      // 8. Get invite link
       let inviteLink: string | null = null;
       try {
         const inviteRes = await fetch(`${baseUrl}/group-invitation-link/${newGroupId}`, { method: "GET", headers });
