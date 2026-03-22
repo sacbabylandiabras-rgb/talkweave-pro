@@ -201,7 +201,7 @@ serve(async (req) => {
       const joinedName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
       const eventInstanceId = webhook?.instanceId || webhook?.instance_id || ''
 
-      if (groupPhone && joinedPhone && eventInstanceId) {
+      if (groupPhone && eventInstanceId) {
         // Find user by instanceId
         const { data: instData } = await supabase
           .from('zapi_instances')
@@ -217,6 +217,30 @@ serve(async (req) => {
             normalizedGroupId = groupPhone.replace('@g.us', '-group')
           } else if (!groupPhone.includes('-group')) {
             normalizedGroupId = groupPhone + '-group'
+          }
+
+          const metadataHeaders = {
+            'Content-Type': 'application/json',
+            'Client-Token': instData.zapi_client_token,
+          }
+
+          const fetchGroupMetadata = async () => {
+            const groupCandidates = [normalizedGroupId, normalizedGroupId.replace(/-group$/i, '@g.us')]
+            for (const candidate of groupCandidates) {
+              const metadataResponse = await fetch(
+                `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${candidate}`,
+                { method: 'GET', headers: metadataHeaders },
+              )
+
+              if (!metadataResponse.ok) {
+                console.log(`⚠️ Failed loading group metadata for ${candidate}:`, metadataResponse.status, await metadataResponse.text())
+                continue
+              }
+
+              return await metadataResponse.json()
+            }
+
+            return null
           }
 
           if (joinedPhone.includes('@lid')) {
@@ -236,29 +260,12 @@ serve(async (req) => {
               console.log(`✅ Resolved join participant LID from cache: ${lidIdentifier} → ${joinedPhone}`)
             } else {
               try {
-                const metadataHeaders = {
-                  'Content-Type': 'application/json',
-                  'Client-Token': instData.zapi_client_token,
-                }
-
-                const groupCandidates = [normalizedGroupId, normalizedGroupId.replace(/-group$/i, '@g.us')]
-                for (const candidate of groupCandidates) {
-                  const metadataResponse = await fetch(
-                    `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${candidate}`,
-                    { method: 'GET', headers: metadataHeaders },
-                  )
-
-                  if (!metadataResponse.ok) {
-                    console.log(`⚠️ Failed loading group metadata for ${candidate}:`, metadataResponse.status, await metadataResponse.text())
-                    continue
-                  }
-
-                  const metadata = await metadataResponse.json()
+                const metadata = await fetchGroupMetadata()
+                if (metadata) {
                   const resolvedPhone = resolveLidFromParticipants(extractParticipantArray(metadata), lidIdentifier)
                   if (resolvedPhone) {
                     joinedPhone = resolvedPhone
                     console.log(`✅ Resolved join participant LID from group metadata: ${lidIdentifier} → ${joinedPhone}`)
-                    break
                   }
                 }
               } catch (resolveError) {
@@ -267,7 +274,9 @@ serve(async (req) => {
             }
           }
 
-          if (!joinedPhone || joinedPhone.includes('@lid') || joinedPhone.length < 8) {
+          const canHandleParticipant = !!joinedPhone && !joinedPhone.includes('@lid') && joinedPhone.length >= 8
+
+          if (!canHandleParticipant) {
             console.log('⚠️ Group join detected but participant phone could not be resolved:', JSON.stringify({
               joinedPhone,
               notificationParameters: notificationParams,
@@ -275,24 +284,24 @@ serve(async (req) => {
               participant: webhook?.participant,
               groupId: normalizedGroupId,
             }))
-            return new Response('group_participant_unresolved', { status: 200, headers: corsHeaders })
           }
 
-          // Check if welcome message is configured for this group
-          const { data: welcomeConfig } = await supabase
-            .from('group_welcome_config')
-            .select('*')
-            .eq('user_id', instData.user_id)
-            .eq('group_id', normalizedGroupId)
-            .eq('active', true)
-            .maybeSingle()
+          if (canHandleParticipant) {
+            // Check if welcome message is configured for this group
+            const { data: welcomeConfig } = await supabase
+              .from('group_welcome_config')
+              .select('*')
+              .eq('user_id', instData.user_id)
+              .eq('group_id', normalizedGroupId)
+              .eq('active', true)
+              .maybeSingle()
 
-          if (welcomeConfig) {
-            console.log('✅ Group welcome config found for group:', normalizedGroupId, 'type:', welcomeConfig.response_type)
+            if (welcomeConfig) {
+              console.log('✅ Group welcome config found for group:', normalizedGroupId, 'type:', welcomeConfig.response_type)
 
-            // === DEDUPLICATION: Prevent duplicate welcome messages from multiple instances ===
-            const dedupeWindow = new Date(Date.now() - 60 * 1000).toISOString()
-            const { data: recentWelcome } = await supabase
+              // === DEDUPLICATION: Prevent duplicate welcome messages from multiple instances ===
+              const dedupeWindow = new Date(Date.now() - 60 * 1000).toISOString()
+              const { data: recentWelcome } = await supabase
               .from('message_logs')
               .select('id')
               .eq('user_id', instData.user_id)
@@ -302,16 +311,16 @@ serve(async (req) => {
               .limit(1)
               .maybeSingle()
 
-            if (recentWelcome) {
-              console.log('⚠️ Duplicate group welcome blocked for', joinedPhone, 'in group', normalizedGroupId, '(already sent in last 60s)')
-              return new Response('group_welcome_deduplicated', { status: 200, headers: corsHeaders })
-            }
+              if (recentWelcome) {
+                console.log('⚠️ Duplicate group welcome blocked for', joinedPhone, 'in group', normalizedGroupId, '(already sent in last 60s)')
+                return new Response('group_welcome_deduplicated', { status: 200, headers: corsHeaders })
+              }
 
-            const responseType = welcomeConfig.response_type || 'text'
-            const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
-            const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
+              const responseType = welcomeConfig.response_type || 'text'
+              const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
+              const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
 
-            if (responseType === 'flow' && welcomeConfig.flow_id) {
+              if (responseType === 'flow' && welcomeConfig.flow_id) {
               // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
               const { data: flowData } = await supabase
                 .from('flow_automations')
@@ -348,7 +357,7 @@ serve(async (req) => {
                 instance_id: instData.zapi_instance_id,
               })
 
-            } else if (responseType === 'template' && welcomeConfig.template_id) {
+              } else if (responseType === 'template' && welcomeConfig.template_id) {
               // Load template and send its content
               const { data: tpl } = await supabase
                 .from('message_templates')
@@ -480,7 +489,7 @@ serve(async (req) => {
                 instance_id: instData.zapi_instance_id,
               })
 
-            } else {
+              } else {
               // Default: plain text message
               let finalMessage = welcomeConfig.message
                 .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
@@ -504,6 +513,7 @@ serve(async (req) => {
                 user_id: instData.user_id,
                 instance_id: instData.zapi_instance_id,
               })
+              }
             }
           }
 
@@ -524,16 +534,8 @@ serve(async (req) => {
                 // Get real member count
                 let realCount = (rg.current_members || 0) + 1
                 try {
-                  const metaHeaders = {
-                    'Content-Type': 'application/json',
-                    'Client-Token': instData.zapi_client_token,
-                  }
-                  const metaRes = await fetch(
-                    `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${normalizedGroupId}`,
-                    { method: 'GET', headers: metaHeaders }
-                  )
-                  if (metaRes.ok) {
-                    const meta = await metaRes.json()
+                  const meta = await fetchGroupMetadata()
+                  if (meta) {
                     realCount = meta.participants?.length || realCount
                   }
                 } catch {
@@ -575,11 +577,8 @@ serve(async (req) => {
                       let admins: string[] = []
                       let photoUrl: string | null = rg.group_photo || null
 
-                      const metaRes = await fetch(`${base}/group-metadata/${normalizedGroupId}`, {
-                        method: 'GET', headers,
-                      })
-                      if (metaRes.ok) {
-                        const meta = await metaRes.json()
+                      const meta = await fetchGroupMetadata()
+                      if (meta) {
                         description = meta.description || ''
                         if (meta.participants) {
                           admins = meta.participants
@@ -602,9 +601,24 @@ serve(async (req) => {
 
                       console.log(`🔄 Creating group: "${newGroupName}"`)
 
+                      const { data: ownerProfile } = await supabase
+                        .from('profiles')
+                        .select('whatsapp')
+                        .eq('id', instData.user_id)
+                        .maybeSingle()
+
+                      const seedPhones = Array.from(new Set([
+                        String(ownerProfile?.whatsapp || '').replace(/\D/g, ''),
+                        ...admins.map((phone) => String(phone || '').replace(/\D/g, '')),
+                      ].filter((phone) => phone.length >= 8))).slice(0, 10)
+
+                      if (seedPhones.length === 0) {
+                        throw new Error('No valid participant phone available to create the group automatically')
+                      }
+
                       const createRes = await fetch(`${base}/create-group`, {
                         method: 'POST', headers,
-                        body: JSON.stringify({ groupName: newGroupName, phones: [] }),
+                        body: JSON.stringify({ groupName: newGroupName, phones: seedPhones }),
                       })
                       const createData = await createRes.json()
                       const newGroupPhone = createData.phone || createData.groupId || null
