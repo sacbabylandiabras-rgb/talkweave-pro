@@ -228,51 +228,103 @@ Deno.serve(async (req) => {
       .order("sort_order", { ascending: true });
 
     const groupsList = allGroups || [];
+    const maxMembers = link.max_members_per_group || 250;
 
-    // Find the first non-full group
-    let targetGroup = groupsList.find((g: any) => !g.is_full) || null;
+    // Helper: get real member count via Z-API
+    async function getRealMemberCount(group: any, instance: ZAPIInstance): Promise<number> {
+      try {
+        const gid = group.group_id.includes("-group")
+          ? group.group_id
+          : group.group_id.replace("@g.us", "-group");
+        const metaRes = await fetch(`${zapiBase(instance)}/group-metadata/${gid}`, {
+          method: "GET",
+          headers: zapiHeaders(instance),
+        });
+        if (metaRes.ok) {
+          const meta = await metaRes.json();
+          return meta.participants?.length || 0;
+        }
+      } catch {
+        // ignore
+      }
+      return group.current_members || 0;
+    }
 
-    // If all groups are full, try to auto-create a new one
+    // Helper: get Z-API instance for a group
+    async function getInstanceForGroup(group: any): Promise<ZAPIInstance | null> {
+      if (!group.instance_id) return null;
+      const { data } = await client
+        .from("zapi_instances")
+        .select("zapi_instance_id, zapi_token, zapi_client_token")
+        .eq("zapi_instance_id", group.instance_id)
+        .maybeSingle();
+      return data || null;
+    }
+
+    // Find a non-full group, checking real member count
+    let targetGroup: any = null;
+
+    for (const group of groupsList) {
+      if (group.is_full) continue;
+
+      // Check real member count via Z-API
+      const instance = await getInstanceForGroup(group);
+      if (instance) {
+        const realCount = await getRealMemberCount(group, instance);
+        console.log(`📊 Group "${group.group_name}": ${realCount}/${maxMembers} members`);
+
+        // Update DB with real count
+        const isFull = realCount >= maxMembers;
+        client.from("redirect_link_groups").update({
+          current_members: realCount,
+          is_full: isFull,
+        }).eq("id", group.id).then(() => {});
+
+        if (!isFull) {
+          targetGroup = group;
+          break;
+        }
+      } else {
+        // No instance, use DB value
+        if (!group.is_full) {
+          targetGroup = group;
+          break;
+        }
+      }
+    }
+
+    // If all groups are full, auto-create a new one
     if (!targetGroup && groupsList.length > 0) {
-      const templateGroup = groupsList[groupsList.length - 1]; // Use last group as template
-      
-      if (templateGroup.instance_id) {
+      const templateGroup = groupsList[groupsList.length - 1];
+      const instance = await getInstanceForGroup(templateGroup);
+
+      if (instance) {
         try {
-          const { data: instance } = await client
-            .from("zapi_instances")
-            .select("zapi_instance_id, zapi_token, zapi_client_token")
-            .eq("zapi_instance_id", templateGroup.instance_id)
-            .maybeSingle();
+          const result = await autoCreateGroup(client, link, templateGroup, instance, groupsList.length);
+          
+          const userAgent = req.headers.get("user-agent") || null;
+          const forwarded = req.headers.get("x-forwarded-for");
+          const ip = forwarded ? forwarded.split(",")[0].trim() : null;
 
-          if (instance) {
-            const result = await autoCreateGroup(client, link, templateGroup, instance, groupsList.length);
-            
-            // Track click and return new group
-            const userAgent = req.headers.get("user-agent") || null;
-            const forwarded = req.headers.get("x-forwarded-for");
-            const ip = forwarded ? forwarded.split(",")[0].trim() : null;
+          client.from("redirect_link_clicks").insert({
+            redirect_link_id: link.id,
+            group_redirected_to: result.group_name,
+            ip_address: ip,
+            user_agent: userAgent,
+          }).then(() => {});
 
-            client.from("redirect_link_clicks").insert({
-              redirect_link_id: link.id,
-              group_redirected_to: result.group_name,
-              ip_address: ip,
-              user_agent: userAgent,
-            }).then(() => {});
-
-            return new Response(JSON.stringify({
-              name: link.name,
-              slug: link.slug,
-              group_name: result.group_name,
-              group_photo: result.group_photo,
-              invite_link: result.invite_link,
-            }), {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+          return new Response(JSON.stringify({
+            name: link.name,
+            slug: link.slug,
+            group_name: result.group_name,
+            group_photo: result.group_photo,
+            invite_link: result.invite_link,
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         } catch (e) {
           console.error("❌ Auto-create failed:", e);
-          // Fall through to use the last group as fallback
         }
       }
 
