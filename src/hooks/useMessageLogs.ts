@@ -50,6 +50,26 @@ export interface Conversation {
   messages: UnifiedMessage[];
 }
 
+const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'sent' || send.status === 'delivered';
+
+const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
+
+const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
+  const latestByPhone = new Map<string, CampaignSendMessage>();
+
+  sends
+    .filter(isCampaignMessageVisible)
+    .forEach((send) => {
+      const current = latestByPhone.get(send.phone);
+
+      if (!current || new Date(getCampaignSendTimestamp(send)).getTime() >= new Date(getCampaignSendTimestamp(current)).getTime()) {
+        latestByPhone.set(send.phone, send);
+      }
+    });
+
+  return Array.from(latestByPhone.values());
+};
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -392,7 +412,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         })
       : campaignSends;
 
-    filteredCampaignSends.forEach(send => {
+    getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
         id: `camp-${send.id}`,
         phone: send.phone,
