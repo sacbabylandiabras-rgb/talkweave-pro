@@ -781,12 +781,6 @@ function LinksRotativosTab() {
                 </div>
               </div>
             </CardHeader>
-            {/* Click chart */}
-            {link.clicks_by_day && link.clicks_by_day.some(d => d.clicks > 0) && (
-              <div className="px-6 pb-2">
-                <ClicksSparkline data={link.clicks_by_day} />
-              </div>
-            )}
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">
