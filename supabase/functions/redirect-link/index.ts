@@ -79,22 +79,30 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (instance) {
-          const photoRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${targetGroup.group_id}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                "Client-Token": instance.zapi_client_token,
-              },
-            }
-          );
+          // Convert group_id to @g.us format for Z-API
+          const groupPhone = targetGroup.group_id
+            .replace("-group", "@g.us")
+            .replace(/@g\.us$/, "") + "@g.us";
+
+          const photoUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${groupPhone}`;
+          console.log("📸 Fetching group photo:", photoUrl);
+
+          const photoRes = await fetch(photoUrl, {
+            headers: {
+              "Content-Type": "application/json",
+              "Client-Token": instance.zapi_client_token,
+            },
+          });
+
+          const photoData = await photoRes.json();
+          console.log("📸 Photo response:", JSON.stringify(photoData));
+          
           if (photoRes.ok) {
-            const photoData = await photoRes.json();
-            groupPhoto = photoData?.link || photoData?.profilePictureUrl || photoData?.imgUrl || null;
+            groupPhoto = photoData?.link || photoData?.profilePictureUrl || photoData?.imgUrl || photoData?.url || null;
           }
         }
-      } catch {
-        // ignore photo fetch errors
+      } catch (e) {
+        console.error("📸 Photo fetch error:", e);
       }
     }
 
