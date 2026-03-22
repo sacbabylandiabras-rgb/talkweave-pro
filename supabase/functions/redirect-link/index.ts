@@ -58,6 +58,31 @@ function expandPhoneCandidates(values: unknown[], referencePhone?: unknown) {
   return expanded;
 }
 
+async function resolveCreateGroupPhones(baseUrl: string, headers: Record<string, string>, phones: string[]) {
+  const uniquePhones = Array.from(new Set(phones.filter((phone) => phone.length >= 10 && phone.length <= 15)));
+  if (uniquePhones.length === 0) return [];
+
+  try {
+    const response = await fetch(`${baseUrl}/phone-exists-batch`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ phones: uniquePhones }),
+    });
+
+    const raw = await response.text();
+    const data = JSON.parse(raw);
+    const normalized = (Array.isArray(data) ? data : [])
+      .filter((item: any) => item?.exists)
+      .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ""))
+      .filter((phone: string) => phone.length >= 10 && phone.length <= 15);
+
+    return Array.from(new Set(normalized));
+  } catch (error) {
+    console.error("Error validating auto-create phones:", error);
+    return uniquePhones;
+  }
+}
+
 function zapiBase(inst: ZAPIInstance) {
   return `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
 }
@@ -159,16 +184,19 @@ async function autoCreateGroup(
     .filter((phone) => phone !== connectedPhone)
     .slice(0, 10);
 
-  console.log("📞 Redirect auto-create seed phones:", JSON.stringify(seedPhones));
+  const validatedSeedPhones = await resolveCreateGroupPhones(base, headers, seedPhones);
 
-  if (seedPhones.length === 0) {
+  console.log("📞 Redirect auto-create seed phones:", JSON.stringify(seedPhones));
+  console.log("✅ Redirect auto-create validated phones:", JSON.stringify(validatedSeedPhones));
+
+  if (validatedSeedPhones.length === 0) {
     throw new Error("Failed to create group - no valid participants available");
   }
 
   // 3. Create the new group
   const createAttempts = [
-    { label: "digits", phones: seedPhones },
-    { label: "jid", phones: seedPhones.map((phone) => `${phone}@c.us`) },
+    { label: "digits", phones: validatedSeedPhones },
+    { label: "jid", phones: validatedSeedPhones.map((phone) => `${phone}@c.us`) },
   ];
 
   let createData: any = null;
@@ -178,7 +206,7 @@ async function autoCreateGroup(
     const createRes = await fetch(`${base}/create-group`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ groupName: newGroupName, phones: attempt.phones }),
+      body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: attempt.phones }),
     });
 
     const createRaw = await createRes.text();
