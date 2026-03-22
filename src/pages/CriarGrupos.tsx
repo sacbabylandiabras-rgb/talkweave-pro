@@ -829,6 +829,7 @@ function LinksRotativosTab() {
 /* ============= TAB: Participantes ============= */
 function ParticipantesTab() {
   const { groups, loading, refetch } = useWhatsAppGroups();
+  const { instances } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [busca, setBusca] = useState("");
@@ -860,19 +861,33 @@ function ParticipantesTab() {
     }
   };
 
+  const getInstanceCredentials = (group: any) => {
+    const inst = instances.find((i) => i.zapi_instance_id === group?.sourceInstanceId);
+    if (inst) {
+      return {
+        instanceId: inst.zapi_instance_id,
+        instanceToken: inst.zapi_token,
+        instanceClientToken: inst.zapi_client_token,
+      };
+    }
+    return { instanceId: group?.sourceInstanceId };
+  };
+
   const handleAction = async (action: string, phone: string) => {
     if (!selectedGroup) return;
     setActionLoading(`${action}-${phone}`);
     try {
+      const credentials = getInstanceCredentials(selectedGroup);
       const { data, error } = await supabase.functions.invoke("manage-groups", {
         body: {
           action,
           groupId: selectedGroup.id,
           phone,
-          instanceId: selectedGroup.sourceInstanceId,
+          ...credentials,
         },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success(
         action === "add-participant" ? "Participante adicionado!" :
         action === "remove-participant" ? "Participante removido!" :
