@@ -581,7 +581,7 @@ function ClicksSparkline({ data }: { data: { date: string; clicks: number }[] })
 
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink } = useRedirectLinks();
+  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, refetch } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
@@ -597,6 +597,41 @@ function LinksRotativosTab() {
   const [creatingNextGroup, setCreatingNextGroup] = useState<string | null>(null);
 
   const baseRedirectUrl = `${window.location.origin}/invite/`;
+
+  const normalizePhoneCandidate = (value: unknown) => String(value || "")
+    .replace("@c.us", "")
+    .replace("@s.whatsapp.net", "")
+    .replace(/\D/g, "");
+
+  const inferCountryCode = (value: unknown) => {
+    const digits = normalizePhoneCandidate(value);
+    if (digits.length >= 12) return digits.slice(0, digits.length - 11);
+    return "55";
+  };
+
+  const expandPhoneCandidates = (values: unknown[], referencePhone?: unknown) => {
+    const countryCode = inferCountryCode(referencePhone);
+    const unique = new Set<string>();
+    const expanded: string[] = [];
+
+    values.forEach((value) => {
+      const digits = normalizePhoneCandidate(value);
+      if (digits.length < 8) return;
+
+      const variants = [digits];
+      if (digits.length >= 10 && digits.length <= 11 && !digits.startsWith(countryCode)) {
+        variants.unshift(`${countryCode}${digits}`);
+      }
+
+      variants.forEach((variant) => {
+        if (variant.length < 10 || variant.length > 15 || unique.has(variant)) return;
+        unique.add(variant);
+        expanded.push(variant);
+      });
+    });
+
+    return expanded;
+  };
 
   const handleForceCreateNextGroup = async (link: any) => {
     if (!link.groups || link.groups.length === 0) {
@@ -632,6 +667,18 @@ function LinksRotativosTab() {
       let groupName = templateGroup.group_name;
       let description = "";
       let photoUrl: string | null = templateGroup.group_photo || null;
+      let participantPhones: string[] = [];
+      let connectedPhone = "";
+
+      try {
+        const meRes = await fetch(`${baseUrl}/me`, { method: "GET", headers });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          connectedPhone = normalizePhoneCandidate(
+            meData?.phone || meData?.phoneNumber || meData?.wid?.user || meData?.me?.user || meData?.id || ""
+          );
+        }
+      } catch {}
 
       try {
         const metaRes = await fetch(`${baseUrl}/group-metadata/${groupIdForMeta}`, { method: "GET", headers });
@@ -639,6 +686,15 @@ function LinksRotativosTab() {
           const meta = await metaRes.json();
           description = meta.description || "";
           if (meta.subject) groupName = meta.subject;
+          const participants = Array.isArray(meta?.participants)
+            ? meta.participants
+            : Array.isArray(meta?.members)
+              ? meta.members
+              : [];
+
+          participantPhones = participants
+            .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ""))
+            .filter((phone: string) => phone.length >= 8);
         }
       } catch {}
 
@@ -652,19 +708,48 @@ function LinksRotativosTab() {
       }
       const newGroupName = `${baseName} ${nextNumber}`;
 
-      // 3. Create empty group via manage-groups edge function
-      const { data: createData, error: createError } = await supabase.functions.invoke("manage-groups", {
-        body: {
-          action: "create-group",
-          instanceId: inst.zapi_instance_id,
-          instanceToken: inst.zapi_token,
-          instanceClientToken: inst.zapi_client_token,
+      // 3. Validate participants and create group with autoInvite
+      const seedPhones = expandPhoneCandidates(participantPhones, connectedPhone)
+        .filter((phone) => phone !== connectedPhone)
+        .slice(0, 10);
+
+      if (seedPhones.length === 0) {
+        toast.error("Não encontrei participantes válidos no grupo modelo");
+        return;
+      }
+
+      let validPhones = seedPhones;
+      try {
+        const validateRes = await fetch(`${baseUrl}/phone-exists-batch`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phones: seedPhones }),
+        });
+
+        if (validateRes.ok) {
+          const validateData = await validateRes.json();
+          const normalizedValidPhones = (Array.isArray(validateData) ? validateData : [])
+            .filter((item: any) => item?.exists)
+            .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ""))
+            .filter((phone: string) => phone.length >= 10 && phone.length <= 15);
+
+          if (normalizedValidPhones.length > 0) {
+            validPhones = Array.from(new Set(normalizedValidPhones)).slice(0, 10);
+          }
+        }
+      } catch {}
+
+      const createRes = await fetch(`${baseUrl}/create-group`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          autoInvite: true,
           groupName: newGroupName,
-          phones: [],
-        },
+          phones: validPhones,
+        }),
       });
 
-      if (createError) throw createError;
+      const createData = await createRes.json();
 
       const newGroupPhone = createData?.phone || createData?.groupId || createData?.id;
       if (!newGroupPhone) {
@@ -732,8 +817,7 @@ function LinksRotativosTab() {
       });
 
       toast.success(`Grupo "${newGroupName}" criado e adicionado!`);
-      // Refresh
-      window.location.reload();
+      await refetch();
     } catch (err: any) {
       console.error("Erro ao criar próximo grupo:", err);
       toast.error("Erro: " + (err.message || "Falha na criação"));
