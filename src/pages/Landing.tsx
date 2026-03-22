@@ -368,9 +368,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Quem usa, recomenda */}
-      <SocialProofSection />
-
 
       {/* Modelos de Mensagens */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
