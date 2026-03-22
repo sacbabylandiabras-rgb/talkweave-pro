@@ -549,6 +549,7 @@ function GerenciarGrupoTab() {
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
+  const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
