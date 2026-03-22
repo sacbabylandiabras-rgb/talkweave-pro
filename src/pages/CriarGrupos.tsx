@@ -16,6 +16,7 @@ import {
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -58,6 +59,7 @@ const CriarGrupos = () => {
 function GerenciarGrupoTab() {
   const { groups, loading, refetch } = useWhatsAppGroups();
   const { instances, activeInstance, selectInstance } = useZapiInstances();
+  const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -356,14 +358,18 @@ function GerenciarGrupoTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+            <Select value={selectedGroupId} onValueChange={(id) => {
+              setSelectedGroupId(id);
+              const g = groups.find((gr) => gr.id === id);
+              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+            }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.nome} ({g.membros} membros)
+                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -384,7 +390,13 @@ function GerenciarGrupoTab() {
                   </Avatar>
                   <div>
                     <p className="font-medium text-foreground">{selectedGroup.nome}</p>
-                    <p className="text-xs text-muted-foreground">{selectedGroup.membros} membros • {selectedGroup.descricao || "Sem descrição"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isMemberLoading(selectedGroup.id) ? (
+                        <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> carregando membros...</span>
+                      ) : (
+                        <>{getMemberCount(selectedGroup.id, selectedGroup.membros) || "—"} membros • {selectedGroup.descricao || "Sem descrição"}</>
+                      )}
+                    </p>
                     {selectedGroup.isAdmin && <Badge variant="default" className="mt-1 text-[10px]">Admin</Badge>}
                   </div>
                 </div>
@@ -522,7 +534,7 @@ function GerenciarGrupoTab() {
                   groupName={newName.trim() || selectedGroup.nome}
                   description={newDescription.trim() || savedGroupData[selectedGroup.id]?.description || selectedGroup.descricao || ""}
                   photoUrl={newPhotoPreview || newPhotoUrl || savedGroupData[selectedGroup.id]?.photo || selectedGroup.foto || ""}
-                  membersCount={selectedGroup.membros}
+                  membersCount={getMemberCount(selectedGroup.id, selectedGroup.membros)}
                 />
               </div>
             </div>
@@ -537,6 +549,7 @@ function GerenciarGrupoTab() {
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
+  const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
@@ -738,7 +751,7 @@ function LinksRotativosTab() {
                         .filter((g) => !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
-                            {g.nome} ({g.membros} membros)
+                            {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -767,6 +780,7 @@ function LinksRotativosTab() {
 /* ============= TAB: Participantes ============= */
 function ParticipantesTab() {
   const { groups, loading, refetch } = useWhatsAppGroups();
+  const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [busca, setBusca] = useState("");
   const [phoneToAdd, setPhoneToAdd] = useState("");
@@ -818,14 +832,18 @@ function ParticipantesTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+            <Select value={selectedGroupId} onValueChange={(id) => {
+              setSelectedGroupId(id);
+              const g = groups.find((gr) => gr.id === id);
+              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+            }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.nome} ({g.membros} membros)
+                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                   </SelectItem>
                 ))}
               </SelectContent>
