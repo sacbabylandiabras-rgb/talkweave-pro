@@ -751,7 +751,7 @@ function LinksRotativosTab() {
                         .filter((g) => !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
-                            {g.nome} ({g.membros} membros)
+                            {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                           </SelectItem>
                         ))}
                     </SelectContent>
