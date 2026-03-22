@@ -834,8 +834,31 @@ function ParticipantesTab() {
   const [busca, setBusca] = useState("");
   const [phoneToAdd, setPhoneToAdd] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+
+  const fetchParticipants = async (group: any) => {
+    setLoadingParticipants(true);
+    setParticipants([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-group-participants", {
+        body: {
+          groupId: group.id,
+          sourceInstanceId: group.sourceInstanceId || null,
+          fallbackParticipants: group.participantes || [],
+        },
+      });
+      if (error) throw error;
+      setParticipants(data?.participants || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar participantes:", err);
+      toast.error("Erro ao buscar participantes do grupo");
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
 
   const handleAction = async (action: string, phone: string) => {
     if (!selectedGroup) return;
@@ -856,7 +879,8 @@ function ParticipantesTab() {
         action === "promote-participant" ? "Promovido a admin!" :
         "Rebaixado!"
       );
-      refetch();
+      // Refresh participants list
+      fetchParticipants(selectedGroup);
     } catch (err: any) {
       toast.error("Erro: " + (err.message || "Falha na operação"));
     } finally {
@@ -864,10 +888,11 @@ function ParticipantesTab() {
     }
   };
 
-  const filteredParticipants = selectedGroup?.participantes?.filter((p: any) => {
+  const filteredParticipants = participants.filter((p: any) => {
     const phone = p.phone || p.id || "";
-    return phone.includes(busca);
-  }) || [];
+    const name = p.name || "";
+    return phone.includes(busca) || name.toLowerCase().includes(busca.toLowerCase());
+  });
 
   return (
     <div className="space-y-4">
