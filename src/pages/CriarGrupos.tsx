@@ -16,6 +16,7 @@ import {
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
