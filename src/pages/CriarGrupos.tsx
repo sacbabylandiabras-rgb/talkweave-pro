@@ -968,10 +968,15 @@ function ParticipantesTab() {
 
               {/* Participants list */}
               <div className="space-y-1 max-h-[400px] overflow-y-auto">
-                {filteredParticipants.length === 0 ? (
+                {loadingParticipants ? (
+                  <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Buscando participantes...</span>
+                  </div>
+                ) : filteredParticipants.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {selectedGroup.participantes?.length === 0
-                      ? "Nenhum participante encontrado. Os dados de participantes podem não estar disponíveis para este grupo."
+                    {participants.length === 0
+                      ? "Nenhum participante encontrado. Selecione um grupo para carregar."
                       : "Nenhum resultado para a busca"}
                   </p>
                 ) : (
