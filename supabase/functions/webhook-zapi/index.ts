@@ -188,6 +188,7 @@ serve(async (req) => {
       }).substring(0, 800))
       
       const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
+      const connectedPhone = String(webhook?.connectedPhone || '').replace(/\D/g, '')
       
       // For notification events, the joined phone is in notificationParameters or participantPhone
       let joinedPhone = normalizeParticipantIdentifier(
@@ -608,9 +609,12 @@ serve(async (req) => {
                         .maybeSingle()
 
                       const seedPhones = Array.from(new Set([
+                        connectedPhone,
                         String(ownerProfile?.whatsapp || '').replace(/\D/g, ''),
                         ...admins.map((phone) => String(phone || '').replace(/\D/g, '')),
                       ].filter((phone) => phone.length >= 8))).slice(0, 10)
+
+                      console.log('📞 Auto-create seed phones:', JSON.stringify(seedPhones))
 
                       if (seedPhones.length === 0) {
                         throw new Error('No valid participant phone available to create the group automatically')
@@ -621,6 +625,7 @@ serve(async (req) => {
                         body: JSON.stringify({ groupName: newGroupName, phones: seedPhones }),
                       })
                       const createData = await createRes.json()
+                      console.log('📦 Auto-create group response:', JSON.stringify(createData))
                       const newGroupPhone = createData.phone || createData.groupId || null
 
                       if (newGroupPhone) {
