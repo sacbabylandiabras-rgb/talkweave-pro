@@ -534,16 +534,8 @@ serve(async (req) => {
                 // Get real member count
                 let realCount = (rg.current_members || 0) + 1
                 try {
-                  const metaHeaders = {
-                    'Content-Type': 'application/json',
-                    'Client-Token': instData.zapi_client_token,
-                  }
-                  const metaRes = await fetch(
-                    `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${normalizedGroupId}`,
-                    { method: 'GET', headers: metaHeaders }
-                  )
-                  if (metaRes.ok) {
-                    const meta = await metaRes.json()
+                  const meta = await fetchGroupMetadata()
+                  if (meta) {
                     realCount = meta.participants?.length || realCount
                   }
                 } catch {
@@ -585,11 +577,8 @@ serve(async (req) => {
                       let admins: string[] = []
                       let photoUrl: string | null = rg.group_photo || null
 
-                      const metaRes = await fetch(`${base}/group-metadata/${normalizedGroupId}`, {
-                        method: 'GET', headers,
-                      })
-                      if (metaRes.ok) {
-                        const meta = await metaRes.json()
+                      const meta = await fetchGroupMetadata()
+                      if (meta) {
                         description = meta.description || ''
                         if (meta.participants) {
                           admins = meta.participants
@@ -612,9 +601,24 @@ serve(async (req) => {
 
                       console.log(`🔄 Creating group: "${newGroupName}"`)
 
+                      const { data: ownerProfile } = await supabase
+                        .from('profiles')
+                        .select('whatsapp')
+                        .eq('id', instData.user_id)
+                        .maybeSingle()
+
+                      const seedPhones = Array.from(new Set([
+                        String(ownerProfile?.whatsapp || '').replace(/\D/g, ''),
+                        ...admins.map((phone) => String(phone || '').replace(/\D/g, '')),
+                      ].filter((phone) => phone.length >= 8))).slice(0, 10)
+
+                      if (seedPhones.length === 0) {
+                        throw new Error('No valid participant phone available to create the group automatically')
+                      }
+
                       const createRes = await fetch(`${base}/create-group`, {
                         method: 'POST', headers,
-                        body: JSON.stringify({ groupName: newGroupName, phones: [] }),
+                        body: JSON.stringify({ groupName: newGroupName, phones: seedPhones }),
                       })
                       const createData = await createRes.json()
                       const newGroupPhone = createData.phone || createData.groupId || null
