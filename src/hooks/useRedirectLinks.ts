@@ -11,6 +11,7 @@ export interface RedirectLink {
   created_at: string;
   groups?: RedirectLinkGroup[];
   click_count?: number;
+  clicks_by_day?: { date: string; clicks: number }[];
 }
 
 export interface RedirectLinkGroup {
@@ -44,21 +45,43 @@ export function useRedirectLinks() {
         .select("*")
         .order("sort_order", { ascending: true });
 
-      // Fetch click counts per link
+      // Fetch click data with dates
       const { data: clicksData } = await (supabase as any)
         .from("redirect_link_clicks")
-        .select("redirect_link_id");
+        .select("redirect_link_id, created_at");
 
       const clickCounts: Record<string, number> = {};
+      const clicksByDay: Record<string, Record<string, number>> = {};
+
       (clicksData || []).forEach((c: any) => {
         clickCounts[c.redirect_link_id] = (clickCounts[c.redirect_link_id] || 0) + 1;
+        const day = new Date(c.created_at).toISOString().split("T")[0];
+        if (!clicksByDay[c.redirect_link_id]) clicksByDay[c.redirect_link_id] = {};
+        clicksByDay[c.redirect_link_id][day] = (clicksByDay[c.redirect_link_id][day] || 0) + 1;
       });
 
-      const enriched = (linksData || []).map((link: any) => ({
-        ...link,
-        groups: (groupsData || []).filter((g: any) => g.redirect_link_id === link.id),
-        click_count: clickCounts[link.id] || 0,
-      }));
+      const enriched = (linksData || []).map((link: any) => {
+        const dayMap = clicksByDay[link.id] || {};
+        const sortedDays = Object.entries(dayMap)
+          .map(([date, clicks]) => ({ date, clicks }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Fill gaps in last 7 days
+        const last7: { date: string; clicks: number }[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = d.toISOString().split("T")[0];
+          last7.push({ date: key, clicks: dayMap[key] || 0 });
+        }
+
+        return {
+          ...link,
+          groups: (groupsData || []).filter((g: any) => g.redirect_link_id === link.id),
+          click_count: clickCounts[link.id] || 0,
+          clicks_by_day: last7,
+        };
+      });
 
       setLinks(enriched);
     } catch (err: any) {
