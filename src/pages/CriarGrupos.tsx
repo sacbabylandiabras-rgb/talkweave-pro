@@ -65,6 +65,8 @@ function GerenciarGrupoTab() {
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState("");
+  // Cache local de dados salvos por grupo (descrição/foto que a API de listagem não retorna)
+  const [savedGroupData, setSavedGroupData] = useState<Record<string, { description?: string; photo?: string }>>({});
   const manageFileInputRef = useRef<HTMLInputElement>(null);
   // Create group dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -112,6 +114,10 @@ function GerenciarGrupoTab() {
         "Operação realizada!"
       );
       if (action === "update-group-name") setNewName("");
+      if (action === "update-group-description") {
+        setSavedGroupData(prev => ({ ...prev, [selectedGroup.id]: { ...prev[selectedGroup.id], description: newDescription.trim() } }));
+        setNewDescription("");
+      }
       if (action === "update-group-photo") { setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview(""); }
       refetch();
     } catch (err: any) {
@@ -174,8 +180,9 @@ function GerenciarGrupoTab() {
       if (error) throw error;
       if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
       toast.success("Foto atualizada!");
-      // Keep the preview showing the uploaded photo URL so it doesn't disappear
-      setNewPhotoPreview(imageUrl);
+      // Cache the photo URL so it persists across tab switches
+      setSavedGroupData(prev => ({ ...prev, [selectedGroup.id]: { ...prev[selectedGroup.id], photo: imageUrl } }));
+      setNewPhotoPreview("");
       setNewPhotoUrl("");
       setNewPhotoFile(null);
       refetch();
@@ -453,8 +460,8 @@ function GerenciarGrupoTab() {
                 </label>
                 <WhatsAppGroupPreview
                   groupName={newName.trim() || selectedGroup.nome}
-                  description={newDescription.trim() || selectedGroup.descricao || ""}
-                  photoUrl={newPhotoPreview || newPhotoUrl || selectedGroup.foto || ""}
+                  description={newDescription.trim() || savedGroupData[selectedGroup.id]?.description || selectedGroup.descricao || ""}
+                  photoUrl={newPhotoPreview || newPhotoUrl || savedGroupData[selectedGroup.id]?.photo || selectedGroup.foto || ""}
                   membersCount={selectedGroup.membros}
                 />
               </div>
