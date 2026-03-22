@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
-  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone
+  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
