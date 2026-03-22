@@ -65,6 +65,8 @@ function GerenciarGrupoTab() {
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState("");
+  // Cache local de dados salvos por grupo (descrição/foto que a API de listagem não retorna)
+  const [savedGroupData, setSavedGroupData] = useState<Record<string, { description?: string; photo?: string }>>({});
   const manageFileInputRef = useRef<HTMLInputElement>(null);
   // Create group dialog state
   const [createOpen, setCreateOpen] = useState(false);
