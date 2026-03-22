@@ -12,6 +12,43 @@ import { useCampaignsRealtime, useAllCampaignSendsRealtime, useCampaignSendsReal
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+type ReportSend = {
+  id: string;
+  campaign_id: string;
+  phone: string;
+  contact_name: string | null;
+  status: string | null;
+  sent_at: string | null;
+  created_at: string;
+  error_message: string | null;
+};
+
+const getSendTimestamp = (send: Pick<ReportSend, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
+
+const buildLatestSendsMap = (sends: ReportSend[]) => {
+  const latestMap = new Map<string, ReportSend>();
+
+  sends.forEach((send) => {
+    const key = `${send.campaign_id}:${send.phone}`;
+    const current = latestMap.get(key);
+
+    if (!current || new Date(getSendTimestamp(send)).getTime() >= new Date(getSendTimestamp(current)).getTime()) {
+      latestMap.set(key, send);
+    }
+  });
+
+  return latestMap;
+};
+
+const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
+  const latestMap = buildLatestSendsMap(sends);
+  return Array.from(latestMap.values()).filter((send) => send.campaign_id === campaignId);
+};
+
+const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
+  (send) => send.status === 'sent' || send.status === 'delivered'
+).length;
+
 const Relatorio = () => {
   const { campaigns: campaignList, loading: campaignsLoading } = useCampaignsRealtime();
   const { sends: allSends, loading: sendsLoading } = useAllCampaignSendsRealtime();
@@ -54,29 +91,31 @@ const Relatorio = () => {
 
   // Compute stats from realtime data
   // Calculate total pending including contacts not yet processed
+  const latestAllSends = Array.from(buildLatestSendsMap(allSends as ReportSend[]).values());
+
   const globalNotProcessed = campaignList.reduce((acc, campaign) => {
     const targetContacts = getTargetContactsCount(campaign.target_audience);
-    const processedForCampaign = allSends.filter(s => s.campaign_id === campaign.id).length;
+    const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = allSends.filter(s => s.status === 'pending' || !s.status).length;
+  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || !s.status).length;
 
   const stats = {
-    totalSent: allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
-    totalDelivered: allSends.filter(s => s.status === 'delivered').length,
-    totalFailed: allSends.filter(s => s.status === 'failed').length,
+    totalSent: countSuccessfulStatuses(latestAllSends),
+    totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
+    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
     totalPending: dbPendingCount + globalNotProcessed,
-    totalMessages: allSends.length + globalNotProcessed,
-    totalContacts: new Set(allSends.map(s => s.phone)).size,
-    deliveryRate: (allSends.length + globalNotProcessed) > 0
-      ? (allSends.filter(s => s.status === 'sent' || s.status === 'delivered').length / (allSends.length + globalNotProcessed)) * 100
+    totalMessages: latestAllSends.length + globalNotProcessed,
+    totalContacts: new Set(latestAllSends.map(s => s.phone)).size,
+    deliveryRate: (latestAllSends.length + globalNotProcessed) > 0
+      ? (countSuccessfulStatuses(latestAllSends) / (latestAllSends.length + globalNotProcessed)) * 100
       : 0,
   };
 
   // Compute campaign reports from realtime data
   const campaignReports = campaignList.map((campaign) => {
-    const campaignSends = allSends.filter(s => s.campaign_id === campaign.id);
-    const sent = campaignSends.filter(s => s.status === 'sent' || s.status === 'delivered').length;
+    const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
+    const sent = countSuccessfulStatuses(campaignSends);
     const failed = campaignSends.filter(s => s.status === 'failed').length;
     const dbPending = campaignSends.filter(s => s.status === 'pending' || !s.status).length;
 
@@ -105,15 +144,16 @@ const Relatorio = () => {
 
   const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
   const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
-  const detailsDbPending = detailsSends.filter(s => s.status === 'pending' || !s.status).length;
-  const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsSends.length);
+  const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
+  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || !s.status).length;
+  const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
 
   // Details dialog stats
   const detailsStats = {
-    sent: detailsSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    sent: countSuccessfulStatuses(detailsLatestSends),
     pending: detailsDbPending + detailsNotProcessed,
-    failed: detailsSends.filter(s => s.status === 'failed').length,
-    total: detailsTargetCount > 0 ? detailsTargetCount : detailsSends.length,
+    failed: detailsLatestSends.filter(s => s.status === 'failed').length,
+    total: detailsTargetCount > 0 ? detailsTargetCount : detailsLatestSends.length,
   };
 
   const openDetails = (campaignId: string, campaignName: string) => {
@@ -229,7 +269,7 @@ const Relatorio = () => {
       {/* Mensagens por Instância */}
       {(() => {
         const instanceMap = new Map<string, { sent: number; failed: number; pending: number; total: number }>();
-        allSends.forEach(send => {
+        latestAllSends.forEach(send => {
           const name = (send as any).instance_name || 'Sem instância';
           const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
           current.total++;
@@ -474,7 +514,7 @@ const Relatorio = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
-          ) : detailsSends.length === 0 ? (
+          ) : detailsLatestSends.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {detailsStats.pending > 0
                 ? `${detailsStats.pending} contato(s) pendente(s) aguardando processamento desta campanha`
@@ -492,7 +532,7 @@ const Relatorio = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {detailsSends.map((send) => (
+                  {detailsLatestSends.map((send) => (
                     <TableRow key={send.id}>
                       <TableCell className="font-medium">{send.contact_name || '-'}</TableCell>
                       <TableCell>{send.phone}</TableCell>

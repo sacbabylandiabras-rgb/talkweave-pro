@@ -26,6 +26,87 @@ interface CampaignSendRecord {
   instance_name?: string;
 }
 
+interface ResolvedInstance {
+  zapiInstanceId: string;
+  zapiToken: string;
+  zapiClientToken: string;
+  instanceName: string;
+}
+
+interface DeviceStatusSnapshot {
+  connected: boolean;
+  explicitlyDisconnected: boolean;
+  ok: boolean;
+  raw: any;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const readDeviceConnectivity = (deviceStatus: any) => {
+  const isConnected = deviceStatus?.connected === true ||
+    (typeof deviceStatus?.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
+    deviceStatus?.status === 'CONNECTED' ||
+    (typeof deviceStatus?.status === 'string' && deviceStatus.status.toLowerCase() === 'connected');
+
+  const isExplicitlyDisconnected = deviceStatus?.connected === false ||
+    deviceStatus?.status === 'DISCONNECTED' ||
+    (typeof deviceStatus?.status === 'string' && deviceStatus.status.toLowerCase() === 'disconnected');
+
+  return {
+    connected: isConnected,
+    explicitlyDisconnected: isExplicitlyDisconnected,
+  };
+};
+
+const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance): Promise<DeviceStatusSnapshot> => {
+  try {
+    const deviceStatusUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/status`;
+    const deviceResponse = await fetch(deviceStatusUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Client-Token': instance.zapiClientToken,
+      },
+    });
+
+    if (!deviceResponse.ok) {
+      return {
+        connected: false,
+        explicitlyDisconnected: false,
+        ok: false,
+        raw: { error: `HTTP ${deviceResponse.status}` },
+      };
+    }
+
+    const raw = await deviceResponse.json();
+    const connectivity = readDeviceConnectivity(raw);
+
+    return {
+      ...connectivity,
+      ok: true,
+      raw,
+    };
+  } catch (error) {
+    return {
+      connected: false,
+      explicitlyDisconnected: false,
+      ok: false,
+      raw: { error: error instanceof Error ? error.message : 'Unknown status error' },
+    };
+  }
+};
+
+const clearInstanceQueue = async (instance: ResolvedInstance) => {
+  const clearQueueUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/queue`;
+  await fetch(clearQueueUrl, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Client-Token': instance.zapiClientToken,
+    },
+  });
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -61,7 +142,7 @@ serve(async (req) => {
 
     // Round-robin rotation: load all active instances
     const isRotateMode = requestedInstanceId === '__rotate_all__';
-    let rotatePool: any[] = [];
+    let rotatePool: ResolvedInstance[] = [];
     
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
@@ -71,7 +152,12 @@ serve(async (req) => {
         .eq('is_active', true)
         .order('created_at', { ascending: true });
       
-      rotatePool = allActiveInstances || [];
+      rotatePool = (allActiveInstances || []).map((instance) => ({
+        zapiInstanceId: instance.zapi_instance_id,
+        zapiToken: instance.zapi_token,
+        zapiClientToken: instance.zapi_client_token,
+        instanceName: instance.instance_name,
+      }));
       console.log(`🔄 Rotate mode: ${rotatePool.length} instances loaded for round-robin`);
     } else if (requestedInstanceId) {
       // If a specific instance was requested, look it up
@@ -96,13 +182,7 @@ serve(async (req) => {
     // Helper to get credentials for a given contact index (supports rotation)
     const getInstanceForIndex = (index: number) => {
       if (isRotateMode && rotatePool.length > 0) {
-        const inst = rotatePool[index % rotatePool.length];
-        return {
-          zapiInstanceId: inst.zapi_instance_id,
-          zapiToken: inst.zapi_token,
-          zapiClientToken: inst.zapi_client_token,
-          instanceName: inst.instance_name,
-        };
+        return rotatePool[index % rotatePool.length];
       }
       return {
         zapiInstanceId,
@@ -241,39 +321,86 @@ serve(async (req) => {
               });
 
               if (deviceResponse.ok) {
-                const deviceStatus = await deviceResponse.json();
-                
-                console.log(`📡 Device status check (contact ${i+1}):`, JSON.stringify(deviceStatus));
-                
-                // Z-API can return { connected: true/false } OR { status: "CONNECTED"/"DISCONNECTED" }
-                // Only pause if we EXPLICITLY detect disconnection
-                const isConnected = deviceStatus.connected === true || 
-                  (typeof deviceStatus.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
-                  deviceStatus.status === 'CONNECTED' ||
-                  (typeof deviceStatus.status === 'string' && deviceStatus.status.toLowerCase() === 'connected');
-                
-                const isExplicitlyDisconnected = deviceStatus.connected === false || 
-                  deviceStatus.status === 'DISCONNECTED' ||
-                  (typeof deviceStatus.status === 'string' && deviceStatus.status.toLowerCase() === 'disconnected');
-                
-                if (isExplicitlyDisconnected && !isConnected) {
-                  console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
-                  
+                const shouldPauseForDisconnect = async () => {
+                  if (isRotateMode && rotatePool.length > 0) {
+                    const firstRound = await Promise.all(
+                      rotatePool.map(async (instance) => ({
+                        instanceName: instance.instanceName,
+                        ...(await fetchDeviceStatusSnapshot(instance)),
+                      }))
+                    );
+
+                    console.log(`📡 Rotation status check (contact ${i + 1}):`, JSON.stringify(firstRound.map((status) => ({
+                      instanceName: status.instanceName,
+                      connected: status.connected,
+                      explicitlyDisconnected: status.explicitlyDisconnected,
+                      ok: status.ok,
+                      raw: status.raw,
+                    }))));
+
+                    const allDisconnectedFirst = firstRound.length > 0 && firstRound.every(
+                      (status) => status.ok && status.explicitlyDisconnected && !status.connected
+                    );
+
+                    if (!allDisconnectedFirst) {
+                      return false;
+                    }
+
+                    await sleep(1500);
+
+                    const secondRound = await Promise.all(
+                      rotatePool.map(async (instance) => ({
+                        instanceName: instance.instanceName,
+                        ...(await fetchDeviceStatusSnapshot(instance)),
+                      }))
+                    );
+
+                    console.log(`📡 Rotation status recheck before pause:`, JSON.stringify(secondRound.map((status) => ({
+                      instanceName: status.instanceName,
+                      connected: status.connected,
+                      explicitlyDisconnected: status.explicitlyDisconnected,
+                      ok: status.ok,
+                      raw: status.raw,
+                    }))));
+
+                    return secondRound.length > 0 && secondRound.every(
+                      (status) => status.ok && status.explicitlyDisconnected && !status.connected
+                    );
+                  }
+
+                  const firstStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  console.log(`📡 Device status check (contact ${i + 1}):`, JSON.stringify(firstStatus.raw));
+
+                  if (!firstStatus.ok || !firstStatus.explicitlyDisconnected || firstStatus.connected) {
+                    return false;
+                  }
+
+                  await sleep(1500);
+
+                  const secondStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  console.log(`📡 Device status recheck before pause:`, JSON.stringify(secondStatus.raw));
+
+                  return secondStatus.ok && secondStatus.explicitlyDisconnected && !secondStatus.connected;
+                };
+
+                if (await shouldPauseForDisconnect()) {
+                  console.log(`❌ DISPOSITIVO DESCONECTADO CONFIRMADO! PAUSANDO campanha ${campaignId}`);
+
                   await supabase
                     .from('campaigns')
                     .update({ status: 'paused', updated_at: new Date().toISOString() })
                     .eq('id', campaignId);
 
                   try {
-                    const clearQueueUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/queue`;
-                    await fetch(clearQueueUrl, {
-                      method: 'DELETE',
-                      headers: { 'Content-Type': 'application/json', 'Client-Token': zapiClientToken }
-                    });
+                    if (isRotateMode && rotatePool.length > 0) {
+                      await Promise.all(rotatePool.map((instance) => clearInstanceQueue(instance)));
+                    } else {
+                      await clearInstanceQueue(currentInstance);
+                    }
                   } catch (queueError) {
                     console.error('Erro ao limpar fila:', queueError);
                   }
-                  
+
                   return;
                 }
               }
