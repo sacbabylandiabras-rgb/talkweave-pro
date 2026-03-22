@@ -116,34 +116,142 @@
   }
 }
 
-/* Landing page styles */
-.landing-bg {
-  background-color: rgb(var(--background));
-  background-image: 
-    linear-gradient(
-      180deg,
-      rgba(239, 68, 68, 0.08) 0%,
-      rgba(239, 68, 68, 0.04) 30%,
-      rgba(255, 255, 255, 0) 60%
-    ),
-    linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
-  background-size: 100% 100%, 60px 60px, 60px 60px;
-  background-position: center;
+/* ========== Landing page - Umbler-inspired dark theme ========== */
+
+.bg-landing-dark {
+  background: linear-gradient(160deg, #0a2520 0%, #0d1f1a 25%, #091a16 50%, #0b1e19 100%);
+  position: relative;
 }
 
-.dark .landing-bg {
-  background-image: 
-    linear-gradient(
-      180deg,
-      rgba(248, 113, 113, 0.06) 0%,
-      rgba(248, 113, 113, 0.02) 30%,
-      rgba(0, 0, 0, 0) 60%
-    ),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+.bg-landing-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(239, 68, 68, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
+/* Decorative curved border line (like Umbler) */
+.landing-deco-line {
+  position: absolute;
+  top: 40px;
+  left: 5%;
+  width: 35%;
+  height: 90vh;
+  border: 2px solid rgba(16, 185, 129, 0.15);
+  border-right: none;
+  border-radius: 0 0 0 80px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.landing-deco-line::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -2px;
+  width: 140%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), transparent);
+}
+
+/* Accent color */
+.text-landing-accent {
+  color: #f87171;
+}
+
+.bg-landing-accent {
+  background-color: #f87171;
+}
+
+/* Primary CTA button */
+.landing-btn-new {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  cursor: pointer;
+}
+
+.landing-btn-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(239, 68, 68, 0.4);
+}
+
+.landing-btn-new:active {
+  transform: translateY(0);
+}
+
+/* Feature cards */
+.landing-feature-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.landing-feature-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(248, 113, 113, 0.2);
+  transform: translateY(-4px);
+}
+
+/* Glass card for visual mockups */
+.landing-glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+/* Mockup card with subtle glow */
+.landing-mockup-card {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(239, 68, 68, 0.08);
+}
+
+/* Plan cards */
+.landing-plan-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.landing-plan-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.landing-plan-card--popular {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.06);
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.1);
+  transform: scale(1.03);
+}
+
+.landing-plan-card--popular:hover {
+  transform: scale(1.03) translateY(-4px);
+}
+
+/* Keep old .landing-btn for backward compat */
 .landing-btn {
   background: linear-gradient(135deg, rgb(var(--primary)), rgb(var(--primary-dark, 220 38 38)));
   color: rgb(var(--primary-foreground));
@@ -164,101 +272,34 @@
   box-shadow: 0 15px 35px rgba(239, 68, 68, 0.45);
 }
 
-.landing-btn:active {
-  transform: translateY(0px);
-}
-
+/* Scrollbar */
 @layer base {
-
-  /* Scrollbar personalizada */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: rgb(var(--muted));
   }
-  
+
   ::-webkit-scrollbar-thumb {
     background: rgb(var(--muted-foreground) / 0.3);
     border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--muted-foreground) / 0.5);
   }
 }
 
-.landing-mockup-wrap {
-  position: relative;
-  filter: drop-shadow(0 30px 60px rgb(var(--primary) / 0.18));
-}
-
-.landing-laptop-frame {
-  position: relative;
-  width: 100%;
-  animation: landing-float 4.5s ease-in-out infinite;
-}
-
-.landing-laptop-screen {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: 0.75rem 0.75rem 0 0;
-  border: 3px solid rgb(var(--foreground) / 0.8);
-  border-bottom: none;
-  overflow: hidden;
-  background: rgb(var(--foreground));
-}
-
-.landing-laptop-base {
-  width: 110%;
-  margin-left: -5%;
-  height: 1rem;
-  border-radius: 0 0 0.75rem 0.75rem;
-  background: linear-gradient(180deg, rgb(var(--foreground) / 0.7) 0%, rgb(var(--foreground) / 0.9) 100%);
-  box-shadow: 0 4px 12px rgb(var(--foreground) / 0.15);
-}
-
-.landing-mockup-wrap::before {
-  content: "";
-  position: absolute;
-  inset: auto 12% -6% 12%;
-  height: 18%;
-  background: radial-gradient(circle, rgb(var(--primary) / 0.18) 0%, transparent 72%);
-  filter: blur(18px);
-  z-index: -1;
-}
-
-.landing-mockup {
-  animation: landing-float 4.5s ease-in-out infinite;
-  will-change: transform;
-}
-
-@keyframes landing-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(0, -14px, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-mockup,
-  .landing-phone-showcase {
-    animation: none;
-  }
-}
-
+/* Phone mockup (kept for PhoneMockup component) */
 .landing-phone-showcase {
   position: relative;
   width: min(100%, 260px);
   display: flex;
   justify-content: center;
-  filter: drop-shadow(0 34px 60px rgb(var(--foreground) / 0.16));
+  filter: drop-shadow(0 34px 60px rgba(0, 0, 0, 0.4));
   animation: landing-float 4.5s ease-in-out infinite;
 }
 
@@ -267,7 +308,7 @@
   position: absolute;
   inset: auto 18% -4% 18%;
   height: 14%;
-  background: radial-gradient(circle, rgb(var(--primary) / 0.18) 0%, transparent 72%);
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.18) 0%, transparent 72%);
   filter: blur(18px);
   z-index: -1;
 }
@@ -277,8 +318,8 @@
   width: 100%;
   border-radius: 2.75rem;
   padding: 0.75rem;
-  background: linear-gradient(145deg, rgb(var(--foreground)) 0%, rgb(var(--foreground) / 0.88) 56%, rgb(var(--foreground) / 0.96) 100%);
-  box-shadow: inset 0 0 0 1px rgb(var(--background) / 0.14), inset 0 0 0 4px rgb(var(--foreground) / 0.72);
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 56%, #0f3460 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
 .landing-phone-screen-wrap {
@@ -287,7 +328,7 @@
   height: 100%;
   border-radius: 2.2rem;
   padding: 0.42rem;
-  background: linear-gradient(180deg, rgb(var(--muted)) 0%, rgb(var(--background)) 100%);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   overflow: hidden;
 }
 
@@ -299,7 +340,7 @@
   width: 34%;
   height: 1.65rem;
   border-radius: 999px;
-  background: rgb(var(--foreground));
+  background: #0a0a0a;
   z-index: 2;
 }
 
@@ -308,7 +349,7 @@
   height: 100%;
   border-radius: 1.9rem;
   overflow: hidden;
-  background: rgb(var(--background));
+  background: #0f172a;
 }
 
 .landing-phone-image {
@@ -323,8 +364,8 @@
   left: -0.18rem;
   width: 0.22rem;
   border-radius: 999px;
-  background: rgb(var(--foreground) / 0.82);
-  box-shadow: 0 0 0 1px rgb(var(--background) / 0.08);
+  background: rgba(30, 41, 59, 0.8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .landing-phone-button--volume-up {
@@ -344,8 +385,57 @@
   height: 5.6rem;
 }
 
-@media (max-width: 768px) {
-  .landing-phone-showcase {
-    width: min(100%, 300px);
-  }
+@keyframes landing-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-phone-showcase { animation: none; }
+}
+
+@media (max-width: 768px) {
+  .landing-phone-showcase { width: min(100%, 300px); }
+  .landing-deco-line { display: none; }
+}
+
+/* Laptop mockup (kept for backward compat) */
+.landing-mockup-wrap {
+  position: relative;
+  filter: drop-shadow(0 30px 60px rgb(var(--primary) / 0.18));
+}
+
+.landing-laptop-frame {
+  position: relative;
+  width: 100%;
+}
+
+.landing-laptop-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 0.75rem 0.75rem 0 0;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-bottom: none;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.landing-laptop-base {
+  width: 110%;
+  margin-left: -5%;
+  height: 1rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.landing-mockup-wrap::before {
+  content: "";
+  position: absolute;
+  inset: auto 12% -6% 12%;
+  height: 18%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 72%);
+  filter: blur(18px);
+  z-index: -1;
+}
+
