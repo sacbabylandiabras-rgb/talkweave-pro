@@ -909,7 +909,10 @@ function ParticipantesTab() {
             <Select value={selectedGroupId} onValueChange={(id) => {
               setSelectedGroupId(id);
               const g = groups.find((gr) => gr.id === id);
-              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+              if (g) {
+                fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+                fetchParticipants(g);
+              }
             }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
@@ -922,8 +925,8 @@ function ParticipantesTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <Button variant="outline" size="icon" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
+              <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
             </Button>
           </div>
 
