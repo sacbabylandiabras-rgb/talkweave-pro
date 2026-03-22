@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -595,8 +595,92 @@ function LinksRotativosTab() {
   const [gettingInvite, setGettingInvite] = useState(false);
   const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
   const [creatingNextGroup, setCreatingNextGroup] = useState<string | null>(null);
+  const [linkPhotoUrl, setLinkPhotoUrl] = useState<Record<string, string>>({});
+  const [linkPhotoFile, setLinkPhotoFile] = useState<Record<string, File | null>>({});
+  const [linkPhotoPreview, setLinkPhotoPreview] = useState<Record<string, string>>({});
+  const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
+  const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const baseRedirectUrl = `${window.location.origin}/invite/`;
+
+  const handleLinkPhotoFileChange = (linkId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLinkPhotoFile((prev) => ({ ...prev, [linkId]: file }));
+    setLinkPhotoUrl((prev) => ({ ...prev, [linkId]: "" }));
+    const reader = new FileReader();
+    reader.onload = () => setLinkPhotoPreview((prev) => ({ ...prev, [linkId]: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `group-photos/${Date.now()}.${fileExt}`;
+    const { data, error } = await supabase.storage
+      .from("template-media")
+      .upload(fileName, file, { contentType: file.type });
+    if (error) throw new Error("Erro ao fazer upload da foto: " + error.message);
+    const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
+    return urlData.publicUrl;
+  };
+
+  const handleApplyPhotoToAll = async (link: any) => {
+    const linkId = link.id;
+    let imageUrl = linkPhotoUrl[linkId]?.trim() || "";
+    const file = linkPhotoFile[linkId];
+
+    if (!imageUrl && !file) {
+      toast.error("Selecione uma foto ou cole uma URL");
+      return;
+    }
+
+    setApplyingPhoto(linkId);
+    try {
+      if (!imageUrl && file) {
+        imageUrl = await uploadFileToStorage(file);
+      }
+
+      const groupsList = link.groups || [];
+      if (groupsList.length === 0) {
+        toast.error("Nenhum grupo neste link");
+        return;
+      }
+
+      let successCount = 0;
+      for (const g of groupsList) {
+        try {
+          const inst = instances.find((i) => i.zapi_instance_id === g.instance_id);
+          const { data, error } = await supabase.functions.invoke("manage-groups", {
+            body: {
+              action: "update-group-photo",
+              groupId: g.group_id,
+              imageUrl,
+              instanceId: inst?.zapi_instance_id || g.instance_id,
+              instanceToken: inst?.zapi_token,
+              instanceClientToken: inst?.zapi_client_token,
+            },
+          });
+          if (!error && !data?.error) {
+            successCount++;
+            // Update group_photo in DB
+            await updateGroupInLink(g.id, { group_photo: imageUrl } as any);
+          }
+        } catch {
+          // continue with next group
+        }
+      }
+
+      toast.success(`Foto aplicada em ${successCount}/${groupsList.length} grupos!`);
+      setLinkPhotoUrl((prev) => ({ ...prev, [linkId]: "" }));
+      setLinkPhotoFile((prev) => ({ ...prev, [linkId]: null }));
+      setLinkPhotoPreview((prev) => ({ ...prev, [linkId]: "" }));
+      await refetch();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || "Falha ao aplicar foto"));
+    } finally {
+      setApplyingPhoto(null);
+    }
+  };
 
   const normalizePhoneCandidate = (value: unknown) => String(value || "")
     .replace("@c.us", "")
@@ -1197,6 +1281,70 @@ function LinksRotativosTab() {
                   )}
                   Criar Próximo Grupo
                 </Button>
+                )}
+
+              {/* Photo upload section */}
+              {link.groups && link.groups.length > 0 && (
+                <div className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Image className="w-3.5 h-3.5 text-primary" />
+                    Foto dos Grupos
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="relative w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
+                    >
+                      {linkPhotoPreview[link.id] || linkPhotoUrl[link.id] ? (
+                        <img src={linkPhotoPreview[link.id] || linkPhotoUrl[link.id]} alt="Preview" className="w-full h-full object-cover" />
+                      ) : link.groups?.[0]?.group_photo ? (
+                        <img src={link.groups[0].group_photo} alt="Current" className="w-full h-full object-cover opacity-60" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Input
+                        placeholder="Cole a URL da imagem ou faça upload"
+                        value={linkPhotoUrl[link.id] || ""}
+                        onChange={(e) => {
+                          setLinkPhotoUrl((prev) => ({ ...prev, [link.id]: e.target.value }));
+                          setLinkPhotoFile((prev) => ({ ...prev, [link.id]: null }));
+                          setLinkPhotoPreview((prev) => ({ ...prev, [link.id]: "" }));
+                        }}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8"
+                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="shrink-0 h-8"
+                      onClick={() => handleApplyPhotoToAll(link)}
+                      disabled={applyingPhoto === link.id || (!linkPhotoUrl[link.id]?.trim() && !linkPhotoFile[link.id])}
+                    >
+                      {applyingPhoto === link.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Image className="w-3.5 h-3.5 mr-1" />
+                      )}
+                      Aplicar em todos
+                    </Button>
+                    <input
+                      ref={(el) => { linkPhotoRefs.current[link.id] = el; }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleLinkPhotoFileChange(link.id, e)}
+                    />
+                  </div>
+                </div>
               )}
             </CardContent>
             {/* Collapsible click chart at the bottom */}
