@@ -656,10 +656,22 @@ serve(async (req) => {
                       let admins: string[] = []
                       let participantPhones: string[] = []
                       let photoUrl: string | null = rg.group_photo || null
+                      let groupSettings = {
+                        adminOnlyMessage: true,
+                        adminOnlySettings: false,
+                        requireAdminApproval: false,
+                        adminOnlyAddMember: true,
+                      }
 
                       const meta = await fetchGroupMetadata()
                       if (meta) {
                         description = meta.description || ''
+                        groupSettings = {
+                          adminOnlyMessage: Boolean(meta?.adminOnlyMessage),
+                          adminOnlySettings: Boolean(meta?.adminOnlySettings),
+                          requireAdminApproval: Boolean(meta?.requireAdminApproval),
+                          adminOnlyAddMember: typeof meta?.adminOnlyAddMember === 'boolean' ? meta.adminOnlyAddMember : true,
+                        }
                         const participants = extractParticipantArray(meta)
                         if (participants.length > 0) {
                           participantPhones = participants
@@ -672,41 +684,27 @@ serve(async (req) => {
                             .filter((p: string) => p.length > 0)
                         }
                         if (meta.subject) groupName = meta.subject
-                        // Try to get photo from metadata
                         if (!photoUrl && (meta.profileThumbnail || meta.groupPhoto || meta.imgUrl)) {
                           photoUrl = meta.profileThumbnail || meta.groupPhoto || meta.imgUrl
                         }
                       }
 
-                      // Fallback: fetch photo via profile-picture endpoint
                       if (!photoUrl) {
                         try {
-                          const cleanGid = normalizedGroupId.includes('-group')
-                            ? normalizedGroupId.replace('-group', '@g.us')
-                            : normalizedGroupId
-                          const candidateUrls = [
-                            `${base}/profile-picture?phone=${encodeURIComponent(cleanGid)}`,
-                            `${base}/profile-picture/${encodeURIComponent(cleanGid)}`,
-                          ]
-                          for (const url of candidateUrls) {
-                            try {
-                              const photoRes = await fetch(url, { method: 'GET', headers })
-                              if (photoRes.ok) {
-                                const photoData = await photoRes.json()
-                                const link = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null
-                                if (link && !photoData?.error) {
-                                  photoUrl = link
-                                  break
-                                }
-                              }
-                            } catch {}
+                          const { data, error } = await supabase.functions.invoke('get-profile-picture', {
+                            body: { phone: normalizedGroupId },
+                          })
+                          if (!error) {
+                            const link = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || data?.link || null
+                            if (link && link !== 'null') {
+                              photoUrl = link
+                            }
                           }
                         } catch (e) {
                           console.error('Failed to fetch group photo:', e)
                         }
                       }
 
-                      // Generate new name
                       const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/)
                       let baseName = groupName
                       let nextNumber = groupCount + 1
@@ -717,12 +715,6 @@ serve(async (req) => {
                       const newGroupName = `${baseName} ${nextNumber}`
 
                       console.log(`🔄 Creating group: "${newGroupName}"`)
-
-                      const { data: ownerProfile } = await supabase
-                        .from('profiles')
-                        .select('whatsapp')
-                        .eq('id', instData.user_id)
-                        .maybeSingle()
 
                       console.log(`📞 Auto-create using temp participant: ${TEMP_PARTICIPANT_PHONE}`)
 
@@ -742,7 +734,6 @@ serve(async (req) => {
 
                         await new Promise(r => setTimeout(r, 2000))
 
-                        // Set description
                         if (description) {
                           await fetch(`${base}/update-group-description`, {
                             method: 'POST', headers,
@@ -750,7 +741,6 @@ serve(async (req) => {
                           }).catch(() => {})
                         }
 
-                        // Set photo
                         if (photoUrl) {
                           await fetch(`${base}/update-group-photo`, {
                             method: 'POST', headers,
@@ -758,18 +748,26 @@ serve(async (req) => {
                           }).catch(() => {})
                         }
 
-                        // Promote admins
                         if (admins.length > 0) {
-                          await fetch(`${base}/add-admin`, {
-                            method: 'POST', headers,
-                            body: JSON.stringify({ groupId: newGroupId, phones: admins }),
-                          }).catch(() => {})
+                          const expandedAdmins = expandPhoneCandidates(admins)
+                            .filter((phone) => phone !== TEMP_PARTICIPANT_PHONE)
+                          if (expandedAdmins.length > 0) {
+                            await fetch(`${base}/add-admin`, {
+                              method: 'POST', headers,
+                              body: JSON.stringify({ groupId: newGroupId, phones: expandedAdmins }),
+                            }).catch(() => {})
+                          }
                         }
 
-                        // Set admin-only messages
                         await fetch(`${base}/update-group-settings`, {
                           method: 'POST', headers,
-                          body: JSON.stringify({ phone: newGroupId, adminOnlyMessage: true }),
+                          body: JSON.stringify({
+                            phone: newGroupId,
+                            adminOnlyMessage: groupSettings.adminOnlyMessage,
+                            adminOnlySettings: groupSettings.adminOnlySettings,
+                            requireAdminApproval: groupSettings.requireAdminApproval,
+                            adminOnlyAddMember: groupSettings.adminOnlyAddMember,
+                          }),
                         }).catch(() => {})
 
                         // Remove temporary participant

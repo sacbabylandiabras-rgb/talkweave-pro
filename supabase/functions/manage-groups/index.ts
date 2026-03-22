@@ -98,18 +98,27 @@ Deno.serve(async (req) => {
       }
 
       case "admin-only-messages": {
-        const { groupId, value } = body;
+        const {
+          groupId,
+          value,
+          adminOnlySettings,
+          requireAdminApproval,
+          adminOnlyAddMember,
+        } = body;
         if (!groupId) throw new Error("groupId is required");
-        // Z-API update-group-settings expects phone in format "120363...-group"
         const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
         console.log("📋 admin-only-messages groupId:", groupId, "-> cleanId:", cleanId);
+        const payload: Record<string, unknown> = {
+          phone: cleanId,
+          adminOnlyMessage: value ?? true,
+        };
+        if (typeof adminOnlySettings === "boolean") payload.adminOnlySettings = adminOnlySettings;
+        if (typeof requireAdminApproval === "boolean") payload.requireAdminApproval = requireAdminApproval;
+        if (typeof adminOnlyAddMember === "boolean") payload.adminOnlyAddMember = adminOnlyAddMember;
         const response = await fetch(`${baseUrl}/update-group-settings`, {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            phone: cleanId,
-            adminOnlyMessage: value ?? true,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await response.json();
         console.log("📋 admin-only-messages response:", JSON.stringify(data));
