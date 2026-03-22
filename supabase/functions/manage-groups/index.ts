@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
         const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/promote-participant`, {
+        const response = await fetch(`${baseUrl}/add-admin`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
         const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/demote-participant`, {
+        const response = await fetch(`${baseUrl}/remove-admin`, {
           method: "POST",
           headers,
           body: JSON.stringify({
