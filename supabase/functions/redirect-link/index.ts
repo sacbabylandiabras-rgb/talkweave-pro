@@ -7,6 +7,57 @@ interface ZAPIInstance {
   zapi_client_token: string;
 }
 
+function normalizePhoneCandidate(value: unknown) {
+  return String(value || "")
+    .replace("@c.us", "")
+    .replace("@s.whatsapp.net", "")
+    .replace(/\D/g, "");
+}
+
+function isAdminParticipant(participant: any) {
+  const adminRole = String(participant?.admin || participant?.role || "").toLowerCase();
+  return Boolean(
+    participant?.isAdmin ||
+    participant?.isSuperAdmin ||
+    participant?.isSuperadmin ||
+    adminRole === "admin" ||
+    adminRole === "superadmin" ||
+    adminRole === "super_admin"
+  );
+}
+
+function inferCountryCode(value: unknown) {
+  const digits = normalizePhoneCandidate(value);
+  if (digits.length >= 12) {
+    return digits.slice(0, digits.length - 11);
+  }
+  return "";
+}
+
+function expandPhoneCandidates(values: unknown[], referencePhone?: unknown) {
+  const countryCode = inferCountryCode(referencePhone);
+  const unique = new Set<string>();
+  const expanded: string[] = [];
+
+  for (const value of values) {
+    const digits = normalizePhoneCandidate(value);
+    if (digits.length < 8) continue;
+
+    const variants = [digits];
+    if (countryCode && digits.length >= 10 && digits.length <= 11 && !digits.startsWith(countryCode)) {
+      variants.unshift(`${countryCode}${digits}`);
+    }
+
+    for (const variant of variants) {
+      if (variant.length < 10 || variant.length > 15 || unique.has(variant)) continue;
+      unique.add(variant);
+      expanded.push(variant);
+    }
+  }
+
+  return expanded;
+}
+
 function zapiBase(inst: ZAPIInstance) {
   return `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
 }
@@ -33,6 +84,7 @@ async function autoCreateGroup(
   let description = "";
   let admins: string[] = [];
   let photoUrl: string | null = templateGroup.group_photo || null;
+  let connectedPhone = "";
 
   try {
     const metaRes = await fetch(`${base}/group-metadata/${templateGroupId}`, {
@@ -45,10 +97,10 @@ async function autoCreateGroup(
       // Extract admin phone numbers (excluding the bot itself)
       if (meta.participants) {
         admins = meta.participants
-          .filter((p: any) => p.isAdmin || p.isSuperAdmin)
+          .filter((p: any) => isAdminParticipant(p))
           .map((p: any) => {
-            const phone = p.phone || p.id || "";
-            return phone.replace("@c.us", "").replace("@s.whatsapp.net", "");
+            const phone = p.phone || p.id || p.participant || p.jid || p.user || "";
+            return normalizePhoneCandidate(phone);
           })
           .filter((p: string) => p.length > 0);
       }
@@ -72,15 +124,66 @@ async function autoCreateGroup(
 
   console.log(`🔄 Auto-creating group: "${newGroupName}" (based on "${groupName}")`);
 
-  // 3. Create the new group
-  const createRes = await fetch(`${base}/create-group`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ groupName: newGroupName, phones: [] }),
-  });
+  try {
+    const meRes = await fetch(`${base}/me`, {
+      method: "GET",
+      headers,
+    });
+    if (meRes.ok) {
+      const meData = await meRes.json();
+      connectedPhone = normalizePhoneCandidate(meData?.phone || meData?.phoneNumber || meData?.wid?.user || meData?.me?.user || meData?.id || "");
+    }
+  } catch (e) {
+    console.error("Error fetching connected phone:", e);
+  }
 
-  const createData = await createRes.json();
-  console.log("📦 Create group response:", JSON.stringify(createData));
+  const { data: ownerProfile } = await client
+    .from("profiles")
+    .select("whatsapp")
+    .eq("id", link.user_id)
+    .maybeSingle();
+
+  const seedPhones = expandPhoneCandidates([
+    ownerProfile?.whatsapp,
+    ...admins,
+  ], connectedPhone)
+    .filter((phone) => phone !== connectedPhone)
+    .slice(0, 10);
+
+  console.log("📞 Redirect auto-create seed phones:", JSON.stringify(seedPhones));
+
+  if (seedPhones.length === 0) {
+    throw new Error("Failed to create group - no valid participants available");
+  }
+
+  // 3. Create the new group
+  const createAttempts = [
+    { label: "digits", phones: seedPhones },
+    { label: "jid", phones: seedPhones.map((phone) => `${phone}@c.us`) },
+  ];
+
+  let createData: any = null;
+
+  for (const attempt of createAttempts) {
+    console.log(`📞 Redirect auto-create attempt (${attempt.label}):`, JSON.stringify(attempt.phones));
+    const createRes = await fetch(`${base}/create-group`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ groupName: newGroupName, phones: attempt.phones }),
+    });
+
+    const createRaw = await createRes.text();
+    try {
+      createData = JSON.parse(createRaw);
+    } catch {
+      createData = { raw: createRaw };
+    }
+    console.log(`📦 Create group response (${attempt.label}):`, JSON.stringify(createData));
+
+    if (createData?.phone || createData?.groupId || createData?.id) {
+      break;
+    }
+  }
 
   const newGroupPhone = createData.phone || createData.groupId || null;
   if (!newGroupPhone) {
