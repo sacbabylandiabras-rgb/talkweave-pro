@@ -537,6 +537,7 @@ function GerenciarGrupoTab() {
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
+  const { instances } = useZapiInstances();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
@@ -572,19 +573,26 @@ function LinksRotativosTab() {
 
     setGettingInvite(true);
     try {
-      // Try to get invite link
+      const instance = instances.find((inst) => inst.zapi_instance_id === group.sourceInstanceId);
       let inviteLink: string | null = null;
-      try {
-        const { data } = await supabase.functions.invoke("manage-groups", {
-          body: {
-            action: "get-invite-link",
-            groupId: group.id,
-            instanceId: group.sourceInstanceId,
-          },
-        });
-        inviteLink = data?.inviteLink || data?.invitationLink || data?.link || null;
-      } catch {
-        console.log("Could not get invite link, proceeding without");
+
+      const { data, error } = await supabase.functions.invoke("manage-groups", {
+        body: {
+          action: "get-invite-link",
+          groupId: group.id,
+          instanceId: instance?.zapi_instance_id || group.sourceInstanceId,
+          instanceToken: instance?.zapi_token,
+          instanceClientToken: instance?.zapi_client_token,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      inviteLink = data?.inviteLink || data?.invitationLink || data?.link || null;
+
+      if (!inviteLink) {
+        throw new Error("Não foi possível obter o link de convite do grupo");
       }
 
       await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, group.membros);
@@ -592,7 +600,7 @@ function LinksRotativosTab() {
       setAddingGroupTo(null);
       setSelectedGroup("");
     } catch (err: any) {
-      toast.error("Erro ao adicionar grupo");
+      toast.error(err.message || "Erro ao adicionar grupo");
     } finally {
       setGettingInvite(false);
     }
