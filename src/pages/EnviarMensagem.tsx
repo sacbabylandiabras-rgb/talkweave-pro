@@ -504,7 +504,16 @@ const EnviarMensagem = () => {
                   campaignSends.length = 0;
                 }
                 await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
-                try { await supabase.functions.invoke('clear-zapi-queue'); } catch {}
+                try {
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  const token = sessionData?.session?.access_token;
+                  if (token) {
+                    await supabase.functions.invoke('clear-zapi-queue', {
+                      headers: { Authorization: `Bearer ${token}` },
+                      body: selectedInstanceId ? { instanceId: selectedInstanceId } : {},
+                    });
+                  }
+                } catch {}
                 toast({
                   title: "Dispositivo desconectado!",
                   description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
