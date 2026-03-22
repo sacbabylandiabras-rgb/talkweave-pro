@@ -10,6 +10,7 @@ export interface RedirectLink {
   active: boolean;
   created_at: string;
   groups?: RedirectLinkGroup[];
+  click_count?: number;
 }
 
 export interface RedirectLinkGroup {
@@ -43,9 +44,20 @@ export function useRedirectLinks() {
         .select("*")
         .order("sort_order", { ascending: true });
 
+      // Fetch click counts per link
+      const { data: clicksData } = await (supabase as any)
+        .from("redirect_link_clicks")
+        .select("redirect_link_id");
+
+      const clickCounts: Record<string, number> = {};
+      (clicksData || []).forEach((c: any) => {
+        clickCounts[c.redirect_link_id] = (clickCounts[c.redirect_link_id] || 0) + 1;
+      });
+
       const enriched = (linksData || []).map((link: any) => ({
         ...link,
         groups: (groupsData || []).filter((g: any) => g.redirect_link_id === link.id),
+        click_count: clickCounts[link.id] || 0,
       }));
 
       setLinks(enriched);

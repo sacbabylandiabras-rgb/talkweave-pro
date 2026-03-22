@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     }
 
     // Find the first non-full group in order
-    const { data: groups, error: groupsError } = await client
+    const { data: groups } = await client
       .from("redirect_link_groups")
       .select("*")
       .eq("redirect_link_id", link.id)
@@ -48,7 +48,6 @@ Deno.serve(async (req) => {
     let targetGroup = groups && groups.length > 0 ? groups[0] : null;
 
     if (!targetGroup) {
-      // Fallback: try any group with an invite link
       const { data: anyGroup } = await client
         .from("redirect_link_groups")
         .select("*")
@@ -69,7 +68,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Return JSON with group data for the landing page
+    // Track the click (fire and forget)
+    const userAgent = req.headers.get("user-agent") || null;
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded ? forwarded.split(",")[0].trim() : null;
+
+    client.from("redirect_link_clicks").insert({
+      redirect_link_id: link.id,
+      group_redirected_to: targetGroup.group_name,
+      ip_address: ip,
+      user_agent: userAgent,
+    }).then(() => {});
+
     return new Response(JSON.stringify({
       name: link.name,
       slug: link.slug,

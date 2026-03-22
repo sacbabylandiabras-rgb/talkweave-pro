@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
-  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone
+  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
@@ -727,6 +727,10 @@ function LinksRotativosTab() {
                 <div className="flex items-center gap-2">
                   <Badge variant={link.active ? "default" : "secondary"}>
                     {link.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <MousePointerClick className="w-3 h-3" />
+                    {link.click_count || 0} cliques
                   </Badge>
                   <Switch checked={link.active} onCheckedChange={(v) => toggleLink(link.id, v)} />
                   <Button variant="ghost" size="icon" onClick={() => copyLink(link.slug)}>
