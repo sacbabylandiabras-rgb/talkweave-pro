@@ -672,6 +672,26 @@ serve(async (req) => {
                             .filter((p: string) => p.length > 0)
                         }
                         if (meta.subject) groupName = meta.subject
+                        // Try to get photo from metadata
+                        if (!photoUrl && (meta.profileThumbnail || meta.groupPhoto || meta.imgUrl)) {
+                          photoUrl = meta.profileThumbnail || meta.groupPhoto || meta.imgUrl
+                        }
+                      }
+
+                      // Fallback: fetch photo via profile-picture endpoint
+                      if (!photoUrl) {
+                        try {
+                          const cleanGid = normalizedGroupId.includes('-group')
+                            ? normalizedGroupId.replace('-group', '@g.us')
+                            : normalizedGroupId
+                          const photoRes = await fetch(`${base}/profile-picture/${cleanGid}`, { method: 'GET', headers })
+                          if (photoRes.ok) {
+                            const photoData = await photoRes.json()
+                            photoUrl = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null
+                          }
+                        } catch (e) {
+                          console.error('Failed to fetch group photo:', e)
+                        }
                       }
 
                       // Generate new name
