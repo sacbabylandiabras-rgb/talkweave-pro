@@ -154,10 +154,22 @@ async function autoCreateGroup(
   if (!photoUrl) {
     try {
       const cleanId = templateGroupId.replace("-group", "@g.us");
-      const photoRes = await fetch(`${base}/profile-picture/${cleanId}`, { method: "GET", headers });
-      if (photoRes.ok) {
-        const photoData = await photoRes.json();
-        photoUrl = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null;
+      const candidateUrls = [
+        `${base}/profile-picture?phone=${encodeURIComponent(cleanId)}`,
+        `${base}/profile-picture/${encodeURIComponent(cleanId)}`,
+      ];
+      for (const url of candidateUrls) {
+        try {
+          const photoRes = await fetch(url, { method: "GET", headers });
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            const link = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null;
+            if (link && !photoData?.error) {
+              photoUrl = link;
+              break;
+            }
+          }
+        } catch {}
       }
     } catch (e) {
       console.error("Failed to fetch group photo:", e);
