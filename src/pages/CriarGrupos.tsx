@@ -603,6 +603,85 @@ function LinksRotativosTab() {
 
   const baseRedirectUrl = `${window.location.origin}/invite/`;
 
+  const handleLinkPhotoFileChange = (linkId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLinkPhotoFile((prev) => ({ ...prev, [linkId]: file }));
+    setLinkPhotoUrl((prev) => ({ ...prev, [linkId]: "" }));
+    const reader = new FileReader();
+    reader.onload = () => setLinkPhotoPreview((prev) => ({ ...prev, [linkId]: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `group-photos/${Date.now()}.${fileExt}`;
+    const { data, error } = await supabase.storage
+      .from("template-media")
+      .upload(fileName, file, { contentType: file.type });
+    if (error) throw new Error("Erro ao fazer upload da foto: " + error.message);
+    const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
+    return urlData.publicUrl;
+  };
+
+  const handleApplyPhotoToAll = async (link: any) => {
+    const linkId = link.id;
+    let imageUrl = linkPhotoUrl[linkId]?.trim() || "";
+    const file = linkPhotoFile[linkId];
+
+    if (!imageUrl && !file) {
+      toast.error("Selecione uma foto ou cole uma URL");
+      return;
+    }
+
+    setApplyingPhoto(linkId);
+    try {
+      if (!imageUrl && file) {
+        imageUrl = await uploadFileToStorage(file);
+      }
+
+      const groupsList = link.groups || [];
+      if (groupsList.length === 0) {
+        toast.error("Nenhum grupo neste link");
+        return;
+      }
+
+      let successCount = 0;
+      for (const g of groupsList) {
+        try {
+          const inst = instances.find((i) => i.zapi_instance_id === g.instance_id);
+          const { data, error } = await supabase.functions.invoke("manage-groups", {
+            body: {
+              action: "update-group-photo",
+              groupId: g.group_id,
+              imageUrl,
+              instanceId: inst?.zapi_instance_id || g.instance_id,
+              instanceToken: inst?.zapi_token,
+              instanceClientToken: inst?.zapi_client_token,
+            },
+          });
+          if (!error && !data?.error) {
+            successCount++;
+            // Update group_photo in DB
+            await updateGroupInLink(g.id, { group_photo: imageUrl } as any);
+          }
+        } catch {
+          // continue with next group
+        }
+      }
+
+      toast.success(`Foto aplicada em ${successCount}/${groupsList.length} grupos!`);
+      setLinkPhotoUrl((prev) => ({ ...prev, [linkId]: "" }));
+      setLinkPhotoFile((prev) => ({ ...prev, [linkId]: null }));
+      setLinkPhotoPreview((prev) => ({ ...prev, [linkId]: "" }));
+      await refetch();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || "Falha ao aplicar foto"));
+    } finally {
+      setApplyingPhoto(null);
+    }
+  };
+
   const normalizePhoneCandidate = (value: unknown) => String(value || "")
     .replace("@c.us", "")
     .replace("@s.whatsapp.net", "")
