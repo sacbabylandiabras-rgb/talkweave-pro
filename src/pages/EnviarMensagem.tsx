@@ -462,10 +462,14 @@ const EnviarMensagem = () => {
                   await supabase.from('campaign_sends').insert(campaignSends);
                   campaignSends.length = 0;
                 }
+                const existingAudience = campanha.target_audience && typeof campanha.target_audience === 'object'
+                  ? campanha.target_audience
+                  : {};
+
                 await supabase.from('campaigns').update({ 
                   status: 'paused',
                   target_audience: {
-                    ...(campanha.target_audience || {}),
+                    ...existingAudience,
                     __sendConfig: {
                       instanceId: null,
                       rotateAll: true,
