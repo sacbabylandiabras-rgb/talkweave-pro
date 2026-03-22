@@ -180,8 +180,9 @@ function GerenciarGrupoTab() {
       if (error) throw error;
       if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
       toast.success("Foto atualizada!");
-      // Keep the preview showing the uploaded photo URL so it doesn't disappear
-      setNewPhotoPreview(imageUrl);
+      // Cache the photo URL so it persists across tab switches
+      setSavedGroupData(prev => ({ ...prev, [selectedGroup.id]: { ...prev[selectedGroup.id], photo: imageUrl } }));
+      setNewPhotoPreview("");
       setNewPhotoUrl("");
       setNewPhotoFile(null);
       refetch();
