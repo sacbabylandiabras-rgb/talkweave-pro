@@ -139,13 +139,13 @@ Deno.serve(async (req) => {
         const { groupId, phone } = body;
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
-        const cleanId = groupId.replace("-group", "@g.us");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
         const response = await fetch(`${baseUrl}/add-participant`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             groupId: cleanId,
-            phone,
+            phones: [phone],
           }),
         });
 
@@ -159,13 +159,13 @@ Deno.serve(async (req) => {
         const { groupId, phone } = body;
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
-        const cleanId = groupId.replace("-group", "@g.us");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
         const response = await fetch(`${baseUrl}/remove-participant`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             groupId: cleanId,
-            phone,
+            phones: [phone],
           }),
         });
 
@@ -179,13 +179,13 @@ Deno.serve(async (req) => {
         const { groupId, phone } = body;
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
-        const cleanId = groupId.replace("-group", "@g.us");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
         const response = await fetch(`${baseUrl}/promote-participant`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             groupId: cleanId,
-            phone,
+            phones: [phone],
           }),
         });
 
@@ -199,13 +199,13 @@ Deno.serve(async (req) => {
         const { groupId, phone } = body;
         if (!groupId || !phone) throw new Error("groupId and phone are required");
 
-        const cleanId = groupId.replace("-group", "@g.us");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
         const response = await fetch(`${baseUrl}/demote-participant`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             groupId: cleanId,
-            phone,
+            phones: [phone],
           }),
         });
 
