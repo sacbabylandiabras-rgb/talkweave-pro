@@ -10,6 +10,7 @@ export interface RedirectLink {
   active: boolean;
   created_at: string;
   groups?: RedirectLinkGroup[];
+  click_count?: number;
 }
 
 export interface RedirectLinkGroup {
