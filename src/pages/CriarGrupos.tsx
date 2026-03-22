@@ -863,6 +863,23 @@ function LinksRotativosTab() {
                 </Button>
               )}
             </CardContent>
+            {/* Collapsible click chart at the bottom */}
+            {link.clicks_by_day && link.clicks_by_day.some(d => d.clicks > 0) && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Ver gráfico de cliques
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-6 py-3 border-t border-border">
+                    <ClicksSparkline data={link.clicks_by_day} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </Card>
         ))
       )}
