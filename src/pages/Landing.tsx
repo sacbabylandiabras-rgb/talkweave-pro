@@ -51,8 +51,6 @@ const Landing = () => {
         </button>
       </section>
 
-      {/* Prova Social */}
-      <SocialProofSection />
 
       {/* Benefícios */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
@@ -619,6 +617,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Quem usa, recomenda */}
+      <SocialProofSection />
 
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
