@@ -141,6 +141,31 @@ const expandPhoneCandidates = (values: unknown[], referencePhone?: unknown) => {
   return expanded
 }
 
+const resolveCreateGroupPhones = async (baseUrl: string, headers: Record<string, string>, phones: string[]) => {
+  const uniquePhones = Array.from(new Set(phones.filter((phone) => phone.length >= 10 && phone.length <= 15)))
+  if (uniquePhones.length === 0) return []
+
+  try {
+    const response = await fetch(`${baseUrl}/phone-exists-batch`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phones: uniquePhones }),
+    })
+
+    const raw = await response.text()
+    const data = JSON.parse(raw)
+    const normalized = (Array.isArray(data) ? data : [])
+      .filter((item: any) => item?.exists)
+      .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ''))
+      .filter((phone: string) => phone.length >= 10 && phone.length <= 15)
+
+    return Array.from(new Set(normalized))
+  } catch (error) {
+    console.error('❌ Failed to validate auto-create phones:', error)
+    return uniquePhones
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -673,15 +698,18 @@ serve(async (req) => {
                         .filter((phone) => phone !== normalizePhoneCandidate(connectedPhone))
                         .slice(0, 10)
 
-                      console.log('📞 Auto-create seed phones:', JSON.stringify(seedPhones))
+                      const validatedSeedPhones = await resolveCreateGroupPhones(base, headers, seedPhones)
 
-                      if (seedPhones.length === 0) {
+                      console.log('📞 Auto-create seed phones:', JSON.stringify(seedPhones))
+                      console.log('✅ Auto-create validated phones:', JSON.stringify(validatedSeedPhones))
+
+                      if (validatedSeedPhones.length === 0) {
                         throw new Error('No valid participant phone available to create the group automatically')
                       }
 
                       const createAttempts = [
-                        { label: 'digits', phones: seedPhones },
-                        { label: 'jid', phones: seedPhones.map((phone) => `${phone}@c.us`) },
+                        { label: 'digits', phones: validatedSeedPhones },
+                        { label: 'jid', phones: validatedSeedPhones.map((phone) => `${phone}@c.us`) },
                       ]
 
                       let createData: any = null
@@ -690,7 +718,7 @@ serve(async (req) => {
                         console.log(`📞 Auto-create attempt (${attempt.label}):`, JSON.stringify(attempt.phones))
                         const createRes = await fetch(`${base}/create-group`, {
                           method: 'POST', headers,
-                          body: JSON.stringify({ groupName: newGroupName, phones: attempt.phones }),
+                          body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: attempt.phones }),
                         })
                         const createRaw = await createRes.text()
                         try {
