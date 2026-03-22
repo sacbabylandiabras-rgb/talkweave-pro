@@ -834,8 +834,31 @@ function ParticipantesTab() {
   const [busca, setBusca] = useState("");
   const [phoneToAdd, setPhoneToAdd] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+
+  const fetchParticipants = async (group: any) => {
+    setLoadingParticipants(true);
+    setParticipants([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-group-participants", {
+        body: {
+          groupId: group.id,
+          sourceInstanceId: group.sourceInstanceId || null,
+          fallbackParticipants: group.participantes || [],
+        },
+      });
+      if (error) throw error;
+      setParticipants(data?.participants || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar participantes:", err);
+      toast.error("Erro ao buscar participantes do grupo");
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
 
   const handleAction = async (action: string, phone: string) => {
     if (!selectedGroup) return;
@@ -856,7 +879,8 @@ function ParticipantesTab() {
         action === "promote-participant" ? "Promovido a admin!" :
         "Rebaixado!"
       );
-      refetch();
+      // Refresh participants list
+      fetchParticipants(selectedGroup);
     } catch (err: any) {
       toast.error("Erro: " + (err.message || "Falha na operação"));
     } finally {
@@ -864,10 +888,11 @@ function ParticipantesTab() {
     }
   };
 
-  const filteredParticipants = selectedGroup?.participantes?.filter((p: any) => {
+  const filteredParticipants = participants.filter((p: any) => {
     const phone = p.phone || p.id || "";
-    return phone.includes(busca);
-  }) || [];
+    const name = p.name || "";
+    return phone.includes(busca) || name.toLowerCase().includes(busca.toLowerCase());
+  });
 
   return (
     <div className="space-y-4">
@@ -884,7 +909,10 @@ function ParticipantesTab() {
             <Select value={selectedGroupId} onValueChange={(id) => {
               setSelectedGroupId(id);
               const g = groups.find((gr) => gr.id === id);
-              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+              if (g) {
+                fetchMemberCount(id, g.sourceInstanceId, g.participantes);
+                fetchParticipants(g);
+              }
             }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
@@ -897,8 +925,8 @@ function ParticipantesTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <Button variant="outline" size="icon" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
+              <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
             </Button>
           </div>
 
@@ -940,10 +968,15 @@ function ParticipantesTab() {
 
               {/* Participants list */}
               <div className="space-y-1 max-h-[400px] overflow-y-auto">
-                {filteredParticipants.length === 0 ? (
+                {loadingParticipants ? (
+                  <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Buscando participantes...</span>
+                  </div>
+                ) : filteredParticipants.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {selectedGroup.participantes?.length === 0
-                      ? "Nenhum participante encontrado. Os dados de participantes podem não estar disponíveis para este grupo."
+                    {participants.length === 0
+                      ? "Nenhum participante encontrado. Selecione um grupo para carregar."
                       : "Nenhum resultado para a busca"}
                   </p>
                 ) : (
