@@ -82,10 +82,13 @@ Deno.serve(async (req) => {
         console.log("Instance lookup result:", instance ? "found" : "not found", "for id:", targetGroup.instance_id);
 
         if (instance) {
-          // Try profile-picture endpoint with phone format
-          const groupPhone = targetGroup.group_id.replace("-group", "@g.us");
+          // Try profile-picture endpoint with -group format
+          const groupId = targetGroup.group_id.includes("-group")
+            ? targetGroup.group_id
+            : targetGroup.group_id.replace("@g.us", "-group");
+          
           const picRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${groupPhone}`,
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${groupId}`,
             {
               headers: {
                 "Content-Type": "application/json",
