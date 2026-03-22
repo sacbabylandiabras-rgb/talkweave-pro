@@ -692,7 +692,13 @@ function LinksRotativosTab() {
               ? meta.members
               : [];
 
+          const isAdmin = (p: any) => {
+            const role = String(p?.admin || p?.role || "").toLowerCase();
+            return Boolean(p?.isAdmin || p?.isSuperAdmin || p?.isSuperadmin || role === "admin" || role === "superadmin");
+          };
+
           participantPhones = participants
+            .filter((p: any) => isAdmin(p))
             .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ""))
             .filter((phone: string) => phone.length >= 8);
         }
