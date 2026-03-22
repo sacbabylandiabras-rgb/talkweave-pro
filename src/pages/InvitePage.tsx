@@ -21,13 +21,6 @@ const InvitePage = () => {
     if (!slug) return;
     (async () => {
       try {
-        const { data: result, error: err } = await supabase.functions.invoke("redirect-link", {
-          body: null,
-          method: "GET",
-          headers: {},
-        });
-
-        // The invoke method doesn't support query params well, so use fetch directly
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const res = await fetch(
           `https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`
