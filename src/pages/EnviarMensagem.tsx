@@ -591,6 +591,17 @@ const EnviarMensagem = () => {
           console.error(`Erro ao enviar para ${contato.nome}:`, error);
         }
         
+        // Determinar nome da instância usada neste envio
+        let instanceNameUsed: string | undefined;
+        if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+          // No modo revezamento, a instância usada foi a do índice i
+          const usedInst = instances[i % instances.length];
+          instanceNameUsed = usedInst?.instance_name;
+        } else if (selectedInstanceId) {
+          const usedInst = instances.find(inst => inst.id === selectedInstanceId);
+          instanceNameUsed = usedInst?.instance_name;
+        }
+
         // Registrar o envio na campanha
         campaignSends.push({
           campaign_id: campanha.id,
@@ -600,7 +611,8 @@ const EnviarMensagem = () => {
           status: sendStatus,
           sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
           error_message: errorMessage,
-          user_id: currentUserId
+          user_id: currentUserId,
+          instance_name: instanceNameUsed,
         });
       }
       
