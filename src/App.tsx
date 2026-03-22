@@ -23,6 +23,7 @@ import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
+import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
