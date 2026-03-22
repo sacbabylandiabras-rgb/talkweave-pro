@@ -728,6 +728,10 @@ function LinksRotativosTab() {
                   <Badge variant={link.active ? "default" : "secondary"}>
                     {link.active ? "Ativo" : "Inativo"}
                   </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <MousePointerClick className="w-3 h-3" />
+                    {link.click_count || 0} cliques
+                  </Badge>
                   <Switch checked={link.active} onCheckedChange={(v) => toggleLink(link.id, v)} />
                   <Button variant="ghost" size="icon" onClick={() => copyLink(link.slug)}>
                     {copied === link.slug ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
