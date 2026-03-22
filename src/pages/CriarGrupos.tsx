@@ -675,7 +675,11 @@ function LinksRotativosTab() {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
         const count = data?.participants?.length || 0;
-        await updateGroupInLink(g.id, { current_members: count, is_full: count >= link.max_members_per_group });
+        // Also update photo from WhatsApp groups list
+        const whatsGroup = groups.find((wg) => wg.id === g.group_id);
+        const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
+        if (whatsGroup?.foto) updates.group_photo = whatsGroup.foto;
+        await updateGroupInLink(g.id, updates);
       }
       toast.success("Contagem de membros atualizada!");
     } catch (err: any) {
