@@ -829,6 +829,7 @@ function LinksRotativosTab() {
 /* ============= TAB: Participantes ============= */
 function ParticipantesTab() {
   const { groups, loading, refetch } = useWhatsAppGroups();
+  const { instances } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [busca, setBusca] = useState("");
