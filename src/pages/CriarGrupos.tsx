@@ -545,6 +545,39 @@ function GerenciarGrupoTab() {
   );
 }
 
+/* ============= Clicks Sparkline Chart ============= */
+function ClicksSparkline({ data }: { data: { date: string; clicks: number }[] }) {
+  const max = Math.max(...data.map(d => d.clicks), 1);
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + "T12:00:00");
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  };
+  const total = data.reduce((s, d) => s + d.clicks, 0);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">Cliques nos últimos 7 dias</p>
+        <p className="text-xs font-semibold text-foreground">{total} total</p>
+      </div>
+      <div className="flex items-end gap-1 h-12">
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+            <div className="w-full flex items-end justify-center" style={{ height: 32 }}>
+              <div
+                className="w-full max-w-[20px] rounded-sm bg-primary/80 hover:bg-primary transition-colors"
+                style={{ height: Math.max(2, (d.clicks / max) * 32) }}
+                title={`${formatDate(d.date)}: ${d.clicks} cliques`}
+              />
+            </div>
+            <span className="text-[9px] text-muted-foreground leading-none">{formatDate(d.date)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink } = useRedirectLinks();
