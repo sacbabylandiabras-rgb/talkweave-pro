@@ -6,6 +6,7 @@ interface InviteData {
   name: string;
   slug: string;
   group_name: string;
+  group_photo: string | null;
   invite_link: string;
 }
 
