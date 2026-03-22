@@ -457,6 +457,45 @@ function GerenciarGrupoTab() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5" />
+                    Link do Grupo
+                  </label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actionLoading === "get-invite-link"}
+                      onClick={async () => {
+                        setActionLoading("get-invite-link");
+                        try {
+                          const credentials = getInstanceCredentials(selectedGroup);
+                          const { data, error } = await supabase.functions.invoke("manage-groups", {
+                            body: { action: "get-invite-link", groupId: selectedGroup.id, ...credentials },
+                          });
+                          if (error) throw error;
+                          if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+                          const link = data?.inviteLink || data?.invitationLink || data?.link || "";
+                          if (link) {
+                            await navigator.clipboard.writeText(link);
+                            toast.success("Link copiado! " + link);
+                          } else {
+                            toast.error("Não foi possível obter o link do grupo");
+                          }
+                        } catch (err: any) {
+                          toast.error("Erro: " + (err.message || "Falha ao obter link"));
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                    >
+                      {actionLoading === "get-invite-link" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                      Copiar Link
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                     <MessageSquare className="w-3.5 h-3.5" />
                     Mensagens
                   </label>
