@@ -653,7 +653,9 @@ function LinksRotativosTab() {
         // fallback to existing count
       }
 
-      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount);
+      // Get photo from savedGroupData or group.foto
+      const groupPhoto = group.foto || null;
+      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount, groupPhoto);
       toast.success("Grupo adicionado ao link!");
       setAddingGroupTo(null);
       setSelectedGroup("");
@@ -673,7 +675,11 @@ function LinksRotativosTab() {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
         const count = data?.participants?.length || 0;
-        await updateGroupInLink(g.id, { current_members: count, is_full: count >= link.max_members_per_group });
+        // Also update photo from WhatsApp groups list
+        const whatsGroup = groups.find((wg) => wg.id === g.group_id);
+        const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
+        if (whatsGroup?.foto) updates.group_photo = whatsGroup.foto;
+        await updateGroupInLink(g.id, updates);
       }
       toast.success("Contagem de membros atualizada!");
     } catch (err: any) {
