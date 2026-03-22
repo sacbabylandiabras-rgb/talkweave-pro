@@ -561,7 +561,7 @@ function LinksRotativosTab() {
   const [gettingInvite, setGettingInvite] = useState(false);
   const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
 
-  const baseRedirectUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redirect-link?slug=`;
+  const baseRedirectUrl = `${window.location.origin}/invite/`;
 
   const handleCreateLink = async () => {
     if (!newName.trim() || !newSlug.trim()) {

@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
       .order("sort_order", { ascending: true })
       .limit(1);
 
-    if (groupsError || !groups || groups.length === 0) {
+    let targetGroup = groups && groups.length > 0 ? groups[0] : null;
+
+    if (!targetGroup) {
       // Fallback: try any group with an invite link
       const { data: anyGroup } = await client
         .from("redirect_link_groups")
@@ -55,35 +57,26 @@ Deno.serve(async (req) => {
         .order("sort_order", { ascending: true })
         .limit(1);
 
-      if (anyGroup && anyGroup.length > 0 && anyGroup[0].invite_link) {
-        return new Response(null, {
-          status: 302,
-          headers: {
-            ...corsHeaders,
-            Location: anyGroup[0].invite_link,
-          },
-        });
+      if (anyGroup && anyGroup.length > 0) {
+        targetGroup = anyGroup[0];
       }
+    }
 
+    if (!targetGroup || !targetGroup.invite_link) {
       return new Response(JSON.stringify({ error: "No available groups" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const targetGroup = groups[0];
-    if (targetGroup.invite_link) {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          ...corsHeaders,
-          Location: targetGroup.invite_link,
-        },
-      });
-    }
-
-    return new Response(JSON.stringify({ error: "Group has no invite link" }), {
-      status: 404,
+    // Return JSON with group data for the landing page
+    return new Response(JSON.stringify({
+      name: link.name,
+      slug: link.slug,
+      group_name: targetGroup.group_name,
+      invite_link: targetGroup.invite_link,
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

@@ -23,6 +23,7 @@ import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
+import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/invite/:slug" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
