@@ -519,6 +519,76 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Gerenciamento de Grupos */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Gestão Completa de Grupos WhatsApp
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Gerencie todos os seus grupos diretamente pelo painel. Crie grupos, altere nome, 
+              descrição e foto, adicione ou remova participantes, promova admins e configure 
+              restrições — tudo sem precisar abrir o WhatsApp.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Criar grupos e adicionar participantes em massa",
+                "Alterar nome, descrição e foto do grupo",
+                "Promover e remover administradores",
+                "Restringir mensagens apenas para admins",
+                "Links de convite e redirecionamento rotativo",
+                "Gerenciamento centralizado de múltiplas instâncias",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Gerenciar Meus Grupos
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">⚙️</span>
+                <h4 className="text-foreground font-bold text-lg">Painel de Grupos</h4>
+              </div>
+              {[
+                { name: "VIP Clientes Premium", members: 128, action: "Editar", icon: "✏️" },
+                { name: "Ofertas Relâmpago", members: 456, action: "Membros", icon: "👥" },
+                { name: "Suporte Técnico", members: 89, action: "Restringir", icon: "🔒" },
+              ].map((group, i) => (
+                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm">
+                      {group.icon}
+                    </div>
+                    <div>
+                      <p className="text-foreground text-sm font-medium">{group.name}</p>
+                      <p className="text-muted-foreground text-xs">{group.members} membros</p>
+                    </div>
+                  </div>
+                  <span className="text-primary text-xs font-bold">{group.action}</span>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-4 py-3 border border-primary/20">
+                <span className="text-lg">➕</span>
+                <p className="text-foreground text-sm font-medium">Criar Novo Grupo</p>
+              </div>
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">Gerencie todos os grupos em um só lugar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Planos */}
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
