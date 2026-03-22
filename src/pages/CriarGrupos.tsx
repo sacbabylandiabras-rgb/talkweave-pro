@@ -668,6 +668,7 @@ function LinksRotativosTab() {
       let description = "";
       let photoUrl: string | null = templateGroup.group_photo || null;
       let participantPhones: string[] = [];
+      let fallbackParticipantPhones: string[] = [];
       let adminPhones: string[] = [];
       let connectedPhone = "";
 
@@ -700,6 +701,11 @@ function LinksRotativosTab() {
 
           adminPhones = participants
             .filter((p: any) => isAdmin(p))
+            .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ""))
+            .filter((phone: string) => phone.length >= 8);
+
+          fallbackParticipantPhones = participants
+            .filter((p: any) => !isAdmin(p))
             .map((p: any) => normalizePhoneCandidate(p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || ""))
             .filter((phone: string) => phone.length >= 8);
 
@@ -767,6 +773,36 @@ function LinksRotativosTab() {
           }
         }
       } catch {}
+
+      let temporaryParticipantPhone: string | null = null;
+      if (validPhones.length === 0) {
+        const fallbackPhones = expandPhoneCandidates(fallbackParticipantPhones, connectedPhone)
+          .filter((phone) => phone !== connectedPhone)
+          .slice(0, 10);
+
+        if (fallbackPhones.length > 0) {
+          try {
+            const validateFallbackRes = await fetch(`${baseUrl}/phone-exists-batch`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ phones: fallbackPhones }),
+            });
+
+            if (validateFallbackRes.ok) {
+              const validateFallbackData = await validateFallbackRes.json();
+              const normalizedFallbackPhones = (Array.isArray(validateFallbackData) ? validateFallbackData : [])
+                .filter((item: any) => item?.exists)
+                .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ""))
+                .filter((phone: string) => phone.length >= 10 && phone.length <= 15);
+
+              if (normalizedFallbackPhones.length > 0) {
+                temporaryParticipantPhone = normalizedFallbackPhones[0];
+                validPhones = [temporaryParticipantPhone];
+              }
+            }
+          } catch {}
+        }
+      }
 
       const createRes = await fetch(`${baseUrl}/create-group`, {
         method: "POST",
@@ -836,6 +872,22 @@ function LinksRotativosTab() {
             });
           } catch {}
         }
+      }
+
+      // 6.1 Remove temporary participant if used just to allow creation
+      if (temporaryParticipantPhone) {
+        try {
+          await supabase.functions.invoke("manage-groups", {
+            body: {
+              action: "remove-participant",
+              instanceId: inst.zapi_instance_id,
+              instanceToken: inst.zapi_token,
+              instanceClientToken: inst.zapi_client_token,
+              groupId: newGroupId,
+              phone: temporaryParticipantPhone,
+            },
+          });
+        } catch {}
       }
 
       // 7. Set admin-only messages (same as template group)
