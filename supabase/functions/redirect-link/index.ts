@@ -83,6 +83,8 @@ async function resolveCreateGroupPhones(baseUrl: string, headers: Record<string,
   }
 }
 
+const TEMP_PARTICIPANT_PHONE = "5518981939571";
+
 function zapiBase(inst: ZAPIInstance) {
   return `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
 }
@@ -176,51 +178,17 @@ async function autoCreateGroup(
     .eq("id", link.user_id)
     .maybeSingle();
 
-  const candidatePhones = admins.length > 0 ? admins : participantPhones;
-  const seedPhones = expandPhoneCandidates([
-    ...candidatePhones,
-    ownerProfile?.whatsapp,
-  ], connectedPhone)
-    .filter((phone) => phone !== connectedPhone)
-    .slice(0, 10);
+  console.log(`📞 Redirect auto-create using temp participant: ${TEMP_PARTICIPANT_PHONE}`);
 
-  const validatedSeedPhones = await resolveCreateGroupPhones(base, headers, seedPhones);
+  // 3. Create the new group with temp participant
+  const createRes = await fetch(`${base}/create-group`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: [TEMP_PARTICIPANT_PHONE] }),
+  });
 
-  console.log("📞 Redirect auto-create seed phones:", JSON.stringify(seedPhones));
-  console.log("✅ Redirect auto-create validated phones:", JSON.stringify(validatedSeedPhones));
-
-  if (validatedSeedPhones.length === 0) {
-    throw new Error("Failed to create group - no valid participants available");
-  }
-
-  // 3. Create the new group
-  const createAttempts = [
-    { label: "digits", phones: validatedSeedPhones },
-    { label: "jid", phones: validatedSeedPhones.map((phone) => `${phone}@c.us`) },
-  ];
-
-  let createData: any = null;
-
-  for (const attempt of createAttempts) {
-    console.log(`📞 Redirect auto-create attempt (${attempt.label}):`, JSON.stringify(attempt.phones));
-    const createRes = await fetch(`${base}/create-group`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: attempt.phones }),
-    });
-
-    const createRaw = await createRes.text();
-    try {
-      createData = JSON.parse(createRaw);
-    } catch {
-      createData = { raw: createRaw };
-    }
-    console.log(`📦 Create group response (${attempt.label}):`, JSON.stringify(createData));
-
-    if (createData?.phone || createData?.groupId || createData?.id) {
-      break;
-    }
-  }
+  const createData = await createRes.json();
+  console.log("📦 Create group response:", JSON.stringify(createData));
 
   const newGroupPhone = createData.phone || createData.groupId || null;
   if (!newGroupPhone) {
@@ -275,6 +243,30 @@ async function autoCreateGroup(
     } catch (e) {
       console.error("Failed to promote admins:", e);
     }
+  }
+
+  // 6.1 Set admin-only messages
+  try {
+    await fetch(`${base}/update-group-settings`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ phone: newGroupId, adminOnlyMessage: true }),
+    });
+    console.log("✅ Admin-only messages set");
+  } catch (e) {
+    console.error("Failed to set admin-only messages:", e);
+  }
+
+  // 6.2 Remove temporary participant
+  try {
+    await fetch(`${base}/remove-participant`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ groupId: newGroupId, phones: [TEMP_PARTICIPANT_PHONE] }),
+    });
+    console.log("✅ Temporary participant removed");
+  } catch (e) {
+    console.error("Failed to remove temp participant:", e);
   }
 
   // 7. Get invite link
