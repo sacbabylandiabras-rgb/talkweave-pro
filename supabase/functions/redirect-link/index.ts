@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get group photo - first from DB, then try Z-API as fallback
+    // Get group photo from DB, fallback to Z-API group-metadata
     let groupPhoto: string | null = targetGroup.group_photo || null;
     
     if (!groupPhoto && targetGroup.instance_id) {
@@ -84,8 +84,9 @@ Deno.serve(async (req) => {
             ? targetGroup.group_id
             : targetGroup.group_id.replace("@g.us", "-group");
 
-          const metaRes = await fetch(
-            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/group-metadata/${groupId}`,
+          // Try profile-picture with query param
+          const picRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture?phone=${encodeURIComponent(groupId)}`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -94,13 +95,18 @@ Deno.serve(async (req) => {
             }
           );
 
-          if (metaRes.ok) {
-            const meta = await metaRes.json();
-            groupPhoto = meta?.image || meta?.imgUrl || meta?.profilePicture || meta?.photo || null;
+          if (picRes.ok) {
+            const picData = await picRes.json();
+            const link = picData?.link;
+            if (link && link !== "null") {
+              groupPhoto = link;
+              // Save to DB for next time
+              await client.from("redirect_link_groups").update({ group_photo: link }).eq("id", targetGroup.id);
+            }
           }
         }
       } catch {
-        // ignore photo fetch errors
+        // ignore
       }
     }
 

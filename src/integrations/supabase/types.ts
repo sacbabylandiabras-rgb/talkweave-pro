@@ -603,12 +603,48 @@ export type Database = {
         }
         Relationships: []
       }
+      redirect_link_clicks: {
+        Row: {
+          created_at: string
+          group_redirected_to: string | null
+          id: string
+          ip_address: string | null
+          redirect_link_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_redirected_to?: string | null
+          id?: string
+          ip_address?: string | null
+          redirect_link_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_redirected_to?: string | null
+          id?: string
+          ip_address?: string | null
+          redirect_link_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redirect_link_clicks_redirect_link_id_fkey"
+            columns: ["redirect_link_id"]
+            isOneToOne: false
+            referencedRelation: "redirect_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       redirect_link_groups: {
         Row: {
           created_at: string
           current_members: number
           group_id: string
           group_name: string
+          group_photo: string | null
           id: string
           instance_id: string | null
           invite_link: string | null
@@ -623,6 +659,7 @@ export type Database = {
           current_members?: number
           group_id: string
           group_name?: string
+          group_photo?: string | null
           id?: string
           instance_id?: string | null
           invite_link?: string | null
@@ -637,6 +674,7 @@ export type Database = {
           current_members?: number
           group_id?: string
           group_name?: string
+          group_photo?: string | null
           id?: string
           instance_id?: string | null
           invite_link?: string | null

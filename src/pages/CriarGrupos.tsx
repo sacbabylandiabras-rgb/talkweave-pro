@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
-  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick
+  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
@@ -675,10 +676,26 @@ function LinksRotativosTab() {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
         const count = data?.participants?.length || 0;
-        // Also update photo from WhatsApp groups list
         const whatsGroup = groups.find((wg) => wg.id === g.group_id);
         const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
-        if (whatsGroup?.foto) updates.group_photo = whatsGroup.foto;
+        
+        // Update photo from WhatsApp groups list
+        if (whatsGroup?.foto) {
+          updates.group_photo = whatsGroup.foto;
+        } else if (!g.group_photo) {
+          // Try fetching photo via get-profile-picture
+          try {
+            const { data: picData } = await supabase.functions.invoke("get-profile-picture", {
+              body: { phone: g.group_id },
+            });
+            if (picData?.data?.link && picData.data.link !== "null") {
+              updates.group_photo = picData.data.link;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        
         await updateGroupInLink(g.id, updates);
       }
       toast.success("Contagem de membros atualizada!");
@@ -781,12 +798,6 @@ function LinksRotativosTab() {
                 </div>
               </div>
             </CardHeader>
-            {/* Click chart */}
-            {link.clicks_by_day && link.clicks_by_day.some(d => d.clicks > 0) && (
-              <div className="px-6 pb-2">
-                <ClicksSparkline data={link.clicks_by_day} />
-              </div>
-            )}
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">
@@ -868,6 +879,23 @@ function LinksRotativosTab() {
                 </Button>
               )}
             </CardContent>
+            {/* Collapsible click chart at the bottom */}
+            {link.clicks_by_day && link.clicks_by_day.some(d => d.clicks > 0) && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Ver gráfico de cliques
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-6 py-3 border-t border-border">
+                    <ClicksSparkline data={link.clicks_by_day} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </Card>
         ))
       )}
