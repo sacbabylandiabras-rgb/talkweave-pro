@@ -534,7 +534,7 @@ function GerenciarGrupoTab() {
                   groupName={newName.trim() || selectedGroup.nome}
                   description={newDescription.trim() || savedGroupData[selectedGroup.id]?.description || selectedGroup.descricao || ""}
                   photoUrl={newPhotoPreview || newPhotoUrl || savedGroupData[selectedGroup.id]?.photo || selectedGroup.foto || ""}
-                  membersCount={selectedGroup.membros}
+                  membersCount={getMemberCount(selectedGroup.id, selectedGroup.membros)}
                 />
               </div>
             </div>
