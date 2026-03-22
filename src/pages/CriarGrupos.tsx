@@ -460,8 +460,8 @@ function GerenciarGrupoTab() {
                 </label>
                 <WhatsAppGroupPreview
                   groupName={newName.trim() || selectedGroup.nome}
-                  description={newDescription.trim() || selectedGroup.descricao || ""}
-                  photoUrl={newPhotoPreview || newPhotoUrl || selectedGroup.foto || ""}
+                  description={newDescription.trim() || savedGroupData[selectedGroup.id]?.description || selectedGroup.descricao || ""}
+                  photoUrl={newPhotoPreview || newPhotoUrl || savedGroupData[selectedGroup.id]?.photo || selectedGroup.foto || ""}
                   membersCount={selectedGroup.membros}
                 />
               </div>
