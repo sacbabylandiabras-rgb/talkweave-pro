@@ -554,35 +554,66 @@ const Landing = () => {
             </button>
           </div>
           <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">⚙️</span>
-                <h4 className="text-foreground font-bold text-lg">Painel de Grupos</h4>
+            <div className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
+              {/* Header - Link Rotativo */}
+              <div className="bg-primary/15 px-4 py-3 flex items-center gap-3 border-b border-border">
+                <span className="text-2xl">🔗</span>
+                <div>
+                  <p className="text-foreground text-sm font-semibold">Link Rotativo: Turma VIP</p>
+                  <p className="text-muted-foreground text-[10px]">zaplynx.app/turma-vip · 1.247 acessos</p>
+                </div>
               </div>
-              {[
-                { name: "VIP Clientes Premium", members: 128, action: "Editar", icon: "✏️" },
-                { name: "Ofertas Relâmpago", members: 456, action: "Membros", icon: "👥" },
-                { name: "Suporte Técnico", members: 89, action: "Restringir", icon: "🔒" },
-              ].map((group, i) => (
-                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm">
-                      {group.icon}
+              <div className="px-4 py-4 space-y-3">
+                {/* Flow visualization */}
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className="bg-primary/20 text-primary text-[10px] font-bold px-2 py-1 rounded-full">Link Único</div>
+                  <span className="text-muted-foreground text-xs">→</span>
+                  <div className="bg-primary/20 text-primary text-[10px] font-bold px-2 py-1 rounded-full">Rotação Automática</div>
+                </div>
+                {/* Groups in rotation */}
+                {[
+                  { name: "Turma VIP #1", members: "248/250", full: true, pct: 99 },
+                  { name: "Turma VIP #2", members: "245/250", full: false, pct: 98 },
+                  { name: "Turma VIP #3", members: "102/250", full: false, pct: 41 },
+                ].map((g, i) => (
+                  <div key={i} className="bg-secondary/50 rounded-lg px-3 py-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                          #{i + 1}
+                        </div>
+                        <div>
+                          <p className="text-foreground text-xs font-medium">{g.name}</p>
+                          <p className="text-muted-foreground text-[10px]">{g.members} membros</p>
+                        </div>
+                      </div>
+                      {g.full ? (
+                        <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">Lotado</span>
+                      ) : i === 1 ? (
+                        <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full">Quase</span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Ativo ←</span>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-foreground text-sm font-medium">{group.name}</p>
-                      <p className="text-muted-foreground text-xs">{group.members} membros</p>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${g.full ? 'bg-destructive' : 'bg-primary'}`}
+                        style={{ width: `${g.pct}%` }}
+                      />
                     </div>
                   </div>
-                  <span className="text-primary text-xs font-bold">{group.action}</span>
+                ))}
+                {/* Auto-create indicator */}
+                <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2.5 border border-dashed border-primary/30">
+                  <span className="text-sm">✨</span>
+                  <div>
+                    <p className="text-foreground text-[11px] font-medium">Próximo grupo criado automaticamente</p>
+                    <p className="text-muted-foreground text-[10px]">Turma VIP #4 será criado ao lotar o #3</p>
+                  </div>
                 </div>
-              ))}
-              <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-4 py-3 border border-primary/20">
-                <span className="text-lg">➕</span>
-                <p className="text-foreground text-sm font-medium">Criar Novo Grupo</p>
-              </div>
-              <div className="text-center pt-2">
-                <span className="text-muted-foreground text-xs">Gerencie todos os grupos em um só lugar</span>
+                <div className="text-center pt-1">
+                  <span className="text-muted-foreground text-[10px]">Um link → vários grupos → sem lotação</span>
+                </div>
               </div>
             </div>
           </div>
