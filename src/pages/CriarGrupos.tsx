@@ -620,6 +620,25 @@ function LinksRotativosTab() {
     }
   };
 
+  const handleRefreshMembers = async (link: any) => {
+    if (!link.groups || link.groups.length === 0) return;
+    setRefreshingMembers(link.id);
+    try {
+      for (const g of link.groups) {
+        const { data } = await supabase.functions.invoke("get-group-participants", {
+          body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
+        });
+        const count = data?.participants?.length || 0;
+        await updateGroupInLink(g.id, { current_members: count, is_full: count >= link.max_members_per_group });
+      }
+      toast.success("Contagem de membros atualizada!");
+    } catch (err: any) {
+      toast.error("Erro ao atualizar membros: " + (err.message || ""));
+    } finally {
+      setRefreshingMembers(null);
+    }
+  };
+
   const copyLink = (slug: string) => {
     navigator.clipboard.writeText(`${baseRedirectUrl}${slug}`);
     setCopied(slug);
