@@ -125,7 +125,8 @@ export function useRedirectLinks() {
     groupName: string,
     inviteLink: string | null,
     instanceId: string | null,
-    currentMembers: number
+    currentMembers: number,
+    groupPhoto?: string | null
   ) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Não autenticado");
@@ -142,6 +143,7 @@ export function useRedirectLinks() {
       instance_id: instanceId,
       sort_order: nextOrder,
       current_members: currentMembers,
+      group_photo: groupPhoto || null,
     });
 
     if (error) throw error;
