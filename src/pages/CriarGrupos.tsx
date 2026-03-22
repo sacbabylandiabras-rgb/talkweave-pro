@@ -725,10 +725,22 @@ function LinksRotativosTab() {
       if (!photoUrl) {
         try {
           const cleanId = groupIdForMeta.replace("-group", "@g.us");
-          const photoRes = await fetch(`${baseUrl}/profile-picture/${cleanId}`, { method: "GET", headers });
-          if (photoRes.ok) {
-            const photoData = await photoRes.json();
-            photoUrl = photoData?.link || photoData?.imgUrl || photoData?.profilePicUrl || null;
+          const candidateUrls = [
+            `${baseUrl}/profile-picture?phone=${encodeURIComponent(cleanId)}`,
+            `${baseUrl}/profile-picture/${encodeURIComponent(cleanId)}`,
+          ];
+          for (const url of candidateUrls) {
+            try {
+              const photoRes = await fetch(url, { method: "GET", headers });
+              if (photoRes.ok) {
+                const photoData = await photoRes.json();
+                const link = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || photoData?.profilePicUrl || null;
+                if (link && !photoData?.error) {
+                  photoUrl = link;
+                  break;
+                }
+              }
+            } catch {}
           }
         } catch {}
       }
