@@ -308,6 +308,11 @@ const Campanhas = () => {
         }}
         campaignId={sendingCampaignId}
         totalContacts={totalContactsCount}
+        onPause={() => {
+          if (sendingCampaignId) {
+            console.log('🛑 Pause triggered from progress dialog');
+          }
+        }}
       />
 
       <div className="grid gap-4">

@@ -282,16 +282,16 @@ serve(async (req) => {
             }
           }
 
-          // CHECK IF CAMPAIGN WAS PAUSED every 3 contacts
-          if (i % 3 === 0) {
+          // CHECK IF CAMPAIGN WAS PAUSED - check EVERY contact for immediate response
+          {
             const { data: currentCampaign } = await supabase
               .from('campaigns')
               .select('status')
               .eq('id', campaignId)
               .single();
             
-            if (currentCampaign?.status === 'paused') {
-              console.log(`🛑 Campaign ${campaignId} paused. Stopping at ${i + 1}/${contacts.length}`);
+            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
+              console.log(`🛑 Campaign ${campaignId} is ${currentCampaign?.status}. Stopping at ${i + 1}/${contacts.length}`);
               return;
             }
           }
