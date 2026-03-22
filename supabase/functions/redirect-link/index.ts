@@ -83,6 +83,7 @@ async function autoCreateGroup(
   let groupName = templateGroup.group_name;
   let description = "";
   let admins: string[] = [];
+  let participantPhones: string[] = [];
   let photoUrl: string | null = templateGroup.group_photo || null;
   let connectedPhone = "";
 
@@ -96,6 +97,13 @@ async function autoCreateGroup(
       description = meta.description || "";
       // Extract admin phone numbers (excluding the bot itself)
       if (meta.participants) {
+        participantPhones = meta.participants
+          .map((p: any) => {
+            const phone = p.phone || p.id || p.participant || p.jid || p.user || p.waId || p.number || "";
+            return normalizePhoneCandidate(phone);
+          })
+          .filter((p: string) => p.length > 0);
+
         admins = meta.participants
           .filter((p: any) => isAdminParticipant(p))
           .map((p: any) => {
@@ -143,9 +151,10 @@ async function autoCreateGroup(
     .eq("id", link.user_id)
     .maybeSingle();
 
+  const candidatePhones = admins.length > 0 ? admins : participantPhones;
   const seedPhones = expandPhoneCandidates([
+    ...candidatePhones,
     ownerProfile?.whatsapp,
-    ...admins,
   ], connectedPhone)
     .filter((phone) => phone !== connectedPhone)
     .slice(0, 10);
