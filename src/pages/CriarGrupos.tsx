@@ -653,7 +653,9 @@ function LinksRotativosTab() {
         // fallback to existing count
       }
 
-      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount);
+      // Get photo from savedGroupData or group.foto
+      const groupPhoto = savedGroupData[group.id]?.photo || group.foto || null;
+      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount, groupPhoto);
       toast.success("Grupo adicionado ao link!");
       setAddingGroupTo(null);
       setSelectedGroup("");
