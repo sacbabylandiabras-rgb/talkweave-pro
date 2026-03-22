@@ -137,7 +137,7 @@ function GerenciarGrupoTab() {
       );
       if (action === "update-group-name") setNewName("");
       if (action === "update-group-description") {
-        setSavedGroupData(prev => ({ ...prev, [selectedGroup.id]: { ...prev[selectedGroup.id], description: newDescription.trim() } }));
+        persistGroupPreviewData(selectedGroup.id, { description: newDescription.trim() });
         setNewDescription("");
       }
       if (action === "update-group-photo") { setNewPhotoUrl(""); setNewPhotoFile(null); setNewPhotoPreview(""); }
