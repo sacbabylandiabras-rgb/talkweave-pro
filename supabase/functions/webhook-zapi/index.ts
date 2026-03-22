@@ -506,6 +506,176 @@ serve(async (req) => {
               })
             }
           }
+
+          // === REDIRECT LINK: Update member count and auto-create group if full ===
+          try {
+            const { data: redirectGroups } = await supabase
+              .from('redirect_link_groups')
+              .select('*, redirect_links:redirect_link_id(*)')
+              .eq('group_id', normalizedGroupId)
+
+            if (redirectGroups && redirectGroups.length > 0) {
+              for (const rg of redirectGroups) {
+                const redirectLink = (rg as any).redirect_links
+                if (!redirectLink) continue
+
+                const maxMembers = redirectLink.max_members_per_group || 250
+
+                // Get real member count
+                let realCount = (rg.current_members || 0) + 1
+                try {
+                  const metaHeaders = {
+                    'Content-Type': 'application/json',
+                    'Client-Token': instData.zapi_client_token,
+                  }
+                  const metaRes = await fetch(
+                    `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}/group-metadata/${normalizedGroupId}`,
+                    { method: 'GET', headers: metaHeaders }
+                  )
+                  if (metaRes.ok) {
+                    const meta = await metaRes.json()
+                    realCount = meta.participants?.length || realCount
+                  }
+                } catch {
+                  // use incremented count
+                }
+
+                const isFull = realCount >= maxMembers
+                console.log(`📊 Redirect link group "${rg.group_name}": ${realCount}/${maxMembers} members${isFull ? ' → FULL!' : ''}`)
+
+                await supabase
+                  .from('redirect_link_groups')
+                  .update({ current_members: realCount, is_full: isFull })
+                  .eq('id', rg.id)
+
+                // If full, auto-create a new group
+                if (isFull && redirectLink.active) {
+                  console.log(`🔄 Group "${rg.group_name}" reached limit. Auto-creating new group...`)
+
+                  // Get all groups for this redirect link
+                  const { data: allLinkGroups } = await supabase
+                    .from('redirect_link_groups')
+                    .select('*')
+                    .eq('redirect_link_id', redirectLink.id)
+                    .order('sort_order', { ascending: true })
+
+                  const allFull = (allLinkGroups || []).every((g: any) => 
+                    g.id === rg.id ? true : g.is_full
+                  )
+
+                  if (allFull) {
+                    try {
+                      const base = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
+                      const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
+                      const groupCount = (allLinkGroups || []).length
+
+                      // Get template group metadata
+                      let groupName = rg.group_name
+                      let description = ''
+                      let admins: string[] = []
+                      let photoUrl: string | null = rg.group_photo || null
+
+                      const metaRes = await fetch(`${base}/group-metadata/${normalizedGroupId}`, {
+                        method: 'GET', headers,
+                      })
+                      if (metaRes.ok) {
+                        const meta = await metaRes.json()
+                        description = meta.description || ''
+                        if (meta.participants) {
+                          admins = meta.participants
+                            .filter((p: any) => p.isAdmin || p.isSuperAdmin)
+                            .map((p: any) => (p.phone || p.id || '').replace('@c.us', '').replace('@s.whatsapp.net', ''))
+                            .filter((p: string) => p.length > 0)
+                        }
+                        if (meta.subject) groupName = meta.subject
+                      }
+
+                      // Generate new name
+                      const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/)
+                      let baseName = groupName
+                      let nextNumber = groupCount + 1
+                      if (numberMatch && numberMatch[3]) {
+                        baseName = numberMatch[1]
+                        nextNumber = parseInt(numberMatch[3]) + 1
+                      }
+                      const newGroupName = `${baseName} ${nextNumber}`
+
+                      console.log(`🔄 Creating group: "${newGroupName}"`)
+
+                      const createRes = await fetch(`${base}/create-group`, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ groupName: newGroupName, phones: [] }),
+                      })
+                      const createData = await createRes.json()
+                      const newGroupPhone = createData.phone || createData.groupId || null
+
+                      if (newGroupPhone) {
+                        const newGroupId = newGroupPhone.includes('-group')
+                          ? newGroupPhone
+                          : newGroupPhone.replace('@g.us', '-group')
+
+                        await new Promise(r => setTimeout(r, 2000))
+
+                        // Set description
+                        if (description) {
+                          await fetch(`${base}/update-group-description`, {
+                            method: 'POST', headers,
+                            body: JSON.stringify({ groupId: newGroupId, groupDescription: description }),
+                          }).catch(() => {})
+                        }
+
+                        // Set photo
+                        if (photoUrl) {
+                          await fetch(`${base}/update-group-photo`, {
+                            method: 'POST', headers,
+                            body: JSON.stringify({ groupId: newGroupId.replace('-group', '@g.us'), groupPhoto: photoUrl }),
+                          }).catch(() => {})
+                        }
+
+                        // Promote admins
+                        if (admins.length > 0) {
+                          await fetch(`${base}/add-admin`, {
+                            method: 'POST', headers,
+                            body: JSON.stringify({ groupId: newGroupId, phones: admins }),
+                          }).catch(() => {})
+                        }
+
+                        // Get invite link
+                        let inviteLink: string | null = null
+                        const inviteRes = await fetch(`${base}/group-invitation-link/${newGroupId}`, {
+                          method: 'GET', headers,
+                        })
+                        if (inviteRes.ok) {
+                          const inviteData = await inviteRes.json()
+                          inviteLink = inviteData.invitationLink || inviteData.inviteLink || inviteData.link || null
+                        }
+
+                        // Save to DB
+                        await supabase.from('redirect_link_groups').insert({
+                          redirect_link_id: redirectLink.id,
+                          user_id: redirectLink.user_id,
+                          group_id: newGroupId,
+                          group_name: newGroupName,
+                          invite_link: inviteLink,
+                          instance_id: instData.zapi_instance_id,
+                          sort_order: groupCount,
+                          current_members: 0,
+                          is_full: false,
+                          group_photo: photoUrl,
+                        })
+
+                        console.log(`✅ Auto-created group "${newGroupName}" for link "${redirectLink.name}"`)
+                      }
+                    } catch (autoCreateErr) {
+                      console.error('❌ Auto-create group failed:', autoCreateErr)
+                    }
+                  }
+                }
+              }
+            }
+          } catch (redirectErr) {
+            console.error('❌ Redirect link tracking error:', redirectErr)
+          }
         }
       } else {
         console.log('⚠️ Group join ignored after detection due to missing data:', JSON.stringify({
