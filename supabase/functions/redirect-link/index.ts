@@ -84,7 +84,6 @@ Deno.serve(async (req) => {
       name: link.name,
       slug: link.slug,
       group_name: targetGroup.group_name,
-      group_photo: targetGroup.group_photo || null,
       invite_link: targetGroup.invite_link,
     }), {
       status: 200,
