@@ -11,6 +11,7 @@ export interface RedirectLink {
   created_at: string;
   groups?: RedirectLinkGroup[];
   click_count?: number;
+  clicks_by_day?: { date: string; clicks: number }[];
 }
 
 export interface RedirectLinkGroup {
