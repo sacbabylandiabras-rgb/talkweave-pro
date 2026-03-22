@@ -141,9 +141,27 @@ async function autoCreateGroup(
       }
       // Use subject as base name if available
       if (meta.subject) groupName = meta.subject;
+      // Try to get photo from metadata
+      if (!photoUrl && (meta.profileThumbnail || meta.groupPhoto || meta.imgUrl)) {
+        photoUrl = meta.profileThumbnail || meta.groupPhoto || meta.imgUrl;
+      }
     }
   } catch (e) {
     console.error("Error fetching template group metadata:", e);
+  }
+
+  // Fallback: fetch photo via profile-picture endpoint
+  if (!photoUrl) {
+    try {
+      const cleanId = templateGroupId.replace("-group", "@g.us");
+      const photoRes = await fetch(`${base}/profile-picture/${cleanId}`, { method: "GET", headers });
+      if (photoRes.ok) {
+        const photoData = await photoRes.json();
+        photoUrl = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null;
+      }
+    } catch (e) {
+      console.error("Failed to fetch group photo:", e);
+    }
   }
 
   // 2. Generate new group name with incremented number
