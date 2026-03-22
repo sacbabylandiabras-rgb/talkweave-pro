@@ -681,7 +681,9 @@ serve(async (req) => {
                       // Fallback: fetch photo via profile-picture endpoint
                       if (!photoUrl) {
                         try {
-                          const cleanGid = templateGroupId.replace('-group', '@g.us')
+                          const cleanGid = normalizedGroupId.includes('-group')
+                            ? normalizedGroupId.replace('-group', '@g.us')
+                            : normalizedGroupId
                           const photoRes = await fetch(`${base}/profile-picture/${cleanGid}`, { method: 'GET', headers })
                           if (photoRes.ok) {
                             const photoData = await photoRes.json()
