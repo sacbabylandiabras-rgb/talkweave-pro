@@ -24,6 +24,7 @@ export interface RedirectLinkGroup {
   is_full: boolean;
   current_members: number;
   instance_id: string | null;
+  group_photo: string | null;
 }
 
 export function useRedirectLinks() {
