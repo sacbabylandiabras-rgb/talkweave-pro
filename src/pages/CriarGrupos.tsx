@@ -547,7 +547,7 @@ function GerenciarGrupoTab() {
 
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
+  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
@@ -559,6 +559,7 @@ function LinksRotativosTab() {
   const [addingGroupTo, setAddingGroupTo] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [gettingInvite, setGettingInvite] = useState(false);
+  const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
 
   const baseRedirectUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redirect-link?slug=`;
 
@@ -608,7 +609,18 @@ function LinksRotativosTab() {
         throw new Error("Não foi possível obter o link de convite do grupo");
       }
 
-      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, group.membros);
+      // Fetch real member count
+      let realMemberCount = group.membros;
+      try {
+        const { data: participantsData } = await supabase.functions.invoke("get-group-participants", {
+          body: { groupId: group.id, sourceInstanceId: group.sourceInstanceId || null },
+        });
+        realMemberCount = participantsData?.participants?.length || group.membros;
+      } catch {
+        // fallback to existing count
+      }
+
+      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount);
       toast.success("Grupo adicionado ao link!");
       setAddingGroupTo(null);
       setSelectedGroup("");
@@ -616,6 +628,25 @@ function LinksRotativosTab() {
       toast.error(err.message || "Erro ao adicionar grupo");
     } finally {
       setGettingInvite(false);
+    }
+  };
+
+  const handleRefreshMembers = async (link: any) => {
+    if (!link.groups || link.groups.length === 0) return;
+    setRefreshingMembers(link.id);
+    try {
+      for (const g of link.groups) {
+        const { data } = await supabase.functions.invoke("get-group-participants", {
+          body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
+        });
+        const count = data?.participants?.length || 0;
+        await updateGroupInLink(g.id, { current_members: count, is_full: count >= link.max_members_per_group });
+      }
+      toast.success("Contagem de membros atualizada!");
+    } catch (err: any) {
+      toast.error("Erro ao atualizar membros: " + (err.message || ""));
+    } finally {
+      setRefreshingMembers(null);
     }
   };
 
@@ -708,8 +739,26 @@ function LinksRotativosTab() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-sm font-medium text-muted-foreground">
-                Grupos na fila ({link.groups?.length || 0}) • Máx. {link.max_members_per_group} membros
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-muted-foreground">
+                  Grupos na fila ({link.groups?.length || 0}) • Máx. {link.max_members_per_group} membros
+                </div>
+                {link.groups && link.groups.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRefreshMembers(link)}
+                    disabled={refreshingMembers === link.id}
+                    className="h-7 text-xs"
+                  >
+                    {refreshingMembers === link.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    Atualizar membros
+                  </Button>
+                )}
               </div>
 
               {link.groups && link.groups.length > 0 ? (
