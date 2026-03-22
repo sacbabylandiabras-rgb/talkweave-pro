@@ -68,6 +68,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Try to fetch group photo via Z-API
+    let groupPhoto: string | null = null;
+    if (targetGroup.instance_id) {
+      try {
+        const { data: instance } = await client
+          .from("zapi_instances")
+          .select("zapi_instance_id, zapi_token, zapi_client_token")
+          .eq("zapi_instance_id", targetGroup.instance_id)
+          .maybeSingle();
+
+        if (instance) {
+          const photoRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${targetGroup.group_id}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "Client-Token": instance.zapi_client_token,
+              },
+            }
+          );
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            groupPhoto = photoData?.link || photoData?.profilePictureUrl || photoData?.imgUrl || null;
+          }
+        }
+      } catch {
+        // ignore photo fetch errors
+      }
+    }
+
     // Track the click (fire and forget)
     const userAgent = req.headers.get("user-agent") || null;
     const forwarded = req.headers.get("x-forwarded-for");
@@ -84,7 +114,7 @@ Deno.serve(async (req) => {
       name: link.name,
       slug: link.slug,
       group_name: targetGroup.group_name,
-      group_photo: targetGroup.group_photo || null,
+      group_photo: groupPhoto,
       invite_link: targetGroup.invite_link,
     }), {
       status: 200,
