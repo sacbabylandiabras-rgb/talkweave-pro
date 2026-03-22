@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try to fetch group photo via Z-API
+    // Try to fetch group photo via Z-API group-metadata
     let groupPhoto: string | null = null;
     if (targetGroup.instance_id) {
       try {
@@ -79,30 +79,27 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (instance) {
-          // Convert group_id to @g.us format for Z-API
-          const groupPhone = targetGroup.group_id
-            .replace("-group", "@g.us")
-            .replace(/@g\.us$/, "") + "@g.us";
+          const groupId = targetGroup.group_id.includes("-group")
+            ? targetGroup.group_id
+            : targetGroup.group_id.replace("@g.us", "-group");
 
-          const photoUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/profile-picture/${groupPhone}`;
-          console.log("📸 Fetching group photo:", photoUrl);
+          const metaRes = await fetch(
+            `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/group-metadata/${groupId}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "Client-Token": instance.zapi_client_token,
+              },
+            }
+          );
 
-          const photoRes = await fetch(photoUrl, {
-            headers: {
-              "Content-Type": "application/json",
-              "Client-Token": instance.zapi_client_token,
-            },
-          });
-
-          const photoData = await photoRes.json();
-          console.log("📸 Photo response:", JSON.stringify(photoData));
-          
-          if (photoRes.ok) {
-            groupPhoto = photoData?.link || photoData?.profilePictureUrl || photoData?.imgUrl || photoData?.url || null;
+          if (metaRes.ok) {
+            const meta = await metaRes.json();
+            groupPhoto = meta?.image || meta?.imgUrl || meta?.profilePicture || meta?.photo || null;
           }
         }
-      } catch (e) {
-        console.error("📸 Photo fetch error:", e);
+      } catch {
+        // ignore photo fetch errors
       }
     }
 
