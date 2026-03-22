@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         if (!groupId) throw new Error("groupId is required");
 
         const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/invite-link/${cleanId}`, {
+        const response = await fetch(`${baseUrl}/group-invitation-link/${cleanId}`, {
           method: "GET",
           headers,
         });
