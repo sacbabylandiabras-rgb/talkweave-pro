@@ -671,6 +671,12 @@ function LinksRotativosTab() {
       let fallbackParticipantPhones: string[] = [];
       let adminPhones: string[] = [];
       let connectedPhone = "";
+      let groupSettings = {
+        adminOnlyMessage: true,
+        adminOnlySettings: false,
+        requireAdminApproval: false,
+        adminOnlyAddMember: true,
+      };
 
       try {
         const meRes = await fetch(`${baseUrl}/me`, { method: "GET", headers });
@@ -688,6 +694,12 @@ function LinksRotativosTab() {
           const meta = await metaRes.json();
           description = meta.description || "";
           if (meta.subject) groupName = meta.subject;
+          groupSettings = {
+            adminOnlyMessage: Boolean(meta?.adminOnlyMessage),
+            adminOnlySettings: Boolean(meta?.adminOnlySettings),
+            requireAdminApproval: Boolean(meta?.requireAdminApproval),
+            adminOnlyAddMember: typeof meta?.adminOnlyAddMember === "boolean" ? meta.adminOnlyAddMember : true,
+          };
           const participants = Array.isArray(meta?.participants)
             ? meta.participants
             : Array.isArray(meta?.members)
@@ -711,41 +723,23 @@ function LinksRotativosTab() {
 
           participantPhones = adminPhones;
 
-          // Get photo URL from metadata if not stored
-          if (!photoUrl && meta.profileThumbnail) {
-            photoUrl = meta.profileThumbnail;
-          }
-          if (!photoUrl && meta.groupPhoto) {
-            photoUrl = meta.groupPhoto;
-          }
+          if (!photoUrl && meta.profileThumbnail) photoUrl = meta.profileThumbnail;
+          if (!photoUrl && meta.groupPhoto) photoUrl = meta.groupPhoto;
         }
       } catch {}
 
-      // Try to get photo via profile-picture endpoint if still missing
       if (!photoUrl) {
         try {
-          const cleanId = groupIdForMeta.replace("-group", "@g.us");
-          const candidateUrls = [
-            `${baseUrl}/profile-picture?phone=${encodeURIComponent(cleanId)}`,
-            `${baseUrl}/profile-picture/${encodeURIComponent(cleanId)}`,
-          ];
-          for (const url of candidateUrls) {
-            try {
-              const photoRes = await fetch(url, { method: "GET", headers });
-              if (photoRes.ok) {
-                const photoData = await photoRes.json();
-                const link = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || photoData?.profilePicUrl || null;
-                if (link && !photoData?.error) {
-                  photoUrl = link;
-                  break;
-                }
-              }
-            } catch {}
+          const { data: picData } = await supabase.functions.invoke("get-profile-picture", {
+            body: { phone: groupIdForMeta },
+          });
+          const link = picData?.data?.link || picData?.data?.imgUrl || picData?.data?.profilePictureUrl || picData?.link || null;
+          if (link && link !== "null") {
+            photoUrl = link;
           }
         } catch {}
       }
 
-      // 2. Generate new name
       const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/);
       let baseName = groupName;
       let nextNumber = link.groups.length + 1;
@@ -755,7 +749,6 @@ function LinksRotativosTab() {
       }
       const newGroupName = `${baseName} ${nextNumber}`;
 
-      // 3. Always use the fixed temporary participant to create the group
       const TEMP_PARTICIPANT = "5518981939571";
       const validPhones = [TEMP_PARTICIPANT];
       const temporaryParticipantPhone = TEMP_PARTICIPANT;
@@ -781,12 +774,9 @@ function LinksRotativosTab() {
       const newGroupId = newGroupPhone.includes("-group")
         ? newGroupPhone
         : newGroupPhone.replace("@g.us", "-group");
-      const newGroupIdClean = newGroupId.replace("-group", "@g.us");
 
-      // Wait for group to be fully created on WhatsApp servers
       await new Promise((r) => setTimeout(r, 3000));
 
-      // 4. Set description
       if (description) {
         await supabase.functions.invoke("manage-groups", {
           body: {
@@ -800,7 +790,6 @@ function LinksRotativosTab() {
         }).catch(() => {});
       }
 
-      // 5. Set photo
       if (photoUrl) {
         await supabase.functions.invoke("manage-groups", {
           body: {
@@ -814,7 +803,6 @@ function LinksRotativosTab() {
         }).catch(() => {});
       }
 
-      // 6. Promote admins (the seed phones that were added)
       if (adminPhones.length > 0) {
         const expandedAdmins = expandPhoneCandidates(adminPhones, connectedPhone)
           .filter((phone) => phone !== connectedPhone);
@@ -830,7 +818,6 @@ function LinksRotativosTab() {
         }
       }
 
-      // 6.1 Remove temporary participant if used just to allow creation
       try {
         await supabase.functions.invoke("manage-groups", {
           body: {
@@ -844,7 +831,6 @@ function LinksRotativosTab() {
         });
       } catch {}
 
-      // 7. Set admin-only messages (same as template group)
       try {
         await supabase.functions.invoke("manage-groups", {
           body: {
@@ -853,7 +839,10 @@ function LinksRotativosTab() {
             instanceToken: inst.zapi_token,
             instanceClientToken: inst.zapi_client_token,
             groupId: newGroupId,
-            value: true,
+            value: groupSettings.adminOnlyMessage,
+            adminOnlySettings: groupSettings.adminOnlySettings,
+            requireAdminApproval: groupSettings.requireAdminApproval,
+            adminOnlyAddMember: groupSettings.adminOnlyAddMember,
           },
         });
       } catch {}

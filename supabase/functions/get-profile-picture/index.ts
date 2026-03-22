@@ -29,7 +29,10 @@ serve(async (req) => {
       })
     }
 
-    const normalizedPhone = String(phone).replace(/\D/g, '')
+    const rawPhone = String(phone).trim()
+    const normalizedPhone = rawPhone.includes('@g.us') || rawPhone.includes('-group')
+      ? rawPhone.replace(/-group$/i, '@g.us')
+      : rawPhone.replace(/\D/g, '')
     if (!normalizedPhone) {
       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
         status: 400,
@@ -38,11 +41,17 @@ serve(async (req) => {
     }
 
     const base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
-    const candidateUrls = [
-      `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
-      `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
-      `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
-    ]
+    const candidateUrls = normalizedPhone.includes('@g.us')
+      ? [
+          `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
+          `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
+          `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
+        ]
+      : [
+          `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
+          `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
+          `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
+        ]
 
     let lastStatus = 404
     let lastData: any = null
