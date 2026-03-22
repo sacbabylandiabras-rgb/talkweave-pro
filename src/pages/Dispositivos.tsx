@@ -135,7 +135,14 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       if (error) throw error;
       if (activeCampaigns && activeCampaigns.length > 0) {
         try {
-          await supabase.functions.invoke('clear-zapi-queue', { body: { clearAllActive: true } });
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            await supabase.functions.invoke('clear-zapi-queue', {
+              headers: { Authorization: `Bearer ${token}` },
+              body: { clearAllActive: true },
+            });
+          }
         } catch {}
         await supabase.from('campaigns').update({ status: 'cancelled' }).eq('status', 'active');
         toast({
