@@ -728,8 +728,26 @@ function LinksRotativosTab() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-sm font-medium text-muted-foreground">
-                Grupos na fila ({link.groups?.length || 0}) • Máx. {link.max_members_per_group} membros
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-muted-foreground">
+                  Grupos na fila ({link.groups?.length || 0}) • Máx. {link.max_members_per_group} membros
+                </div>
+                {link.groups && link.groups.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRefreshMembers(link)}
+                    disabled={refreshingMembers === link.id}
+                    className="h-7 text-xs"
+                  >
+                    {refreshingMembers === link.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    Atualizar membros
+                  </Button>
+                )}
               </div>
 
               {link.groups && link.groups.length > 0 ? (
