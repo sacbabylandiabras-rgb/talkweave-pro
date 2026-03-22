@@ -603,6 +603,92 @@ export type Database = {
         }
         Relationships: []
       }
+      redirect_link_groups: {
+        Row: {
+          created_at: string
+          current_members: number
+          group_id: string
+          group_name: string
+          id: string
+          instance_id: string | null
+          invite_link: string | null
+          is_full: boolean
+          redirect_link_id: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_members?: number
+          group_id: string
+          group_name?: string
+          id?: string
+          instance_id?: string | null
+          invite_link?: string | null
+          is_full?: boolean
+          redirect_link_id: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_members?: number
+          group_id?: string
+          group_name?: string
+          id?: string
+          instance_id?: string | null
+          invite_link?: string | null
+          is_full?: boolean
+          redirect_link_id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redirect_link_groups_redirect_link_id_fkey"
+            columns: ["redirect_link_id"]
+            isOneToOne: false
+            referencedRelation: "redirect_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      redirect_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          max_members_per_group: number
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_members_per_group?: number
+          name: string
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_members_per_group?: number
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_contacts: {
         Row: {
           created_at: string | null
