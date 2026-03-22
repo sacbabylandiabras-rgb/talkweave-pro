@@ -743,66 +743,10 @@ function LinksRotativosTab() {
       }
       const newGroupName = `${baseName} ${nextNumber}`;
 
-      // 3. Validate participants and create group with autoInvite
-      const seedPhones = expandPhoneCandidates(participantPhones, connectedPhone)
-        .filter((phone) => phone !== connectedPhone)
-        .slice(0, 10);
-
-      if (seedPhones.length === 0) {
-        toast.error("Não encontrei participantes válidos no grupo modelo");
-        return;
-      }
-
-      let validPhones = seedPhones;
-      try {
-        const validateRes = await fetch(`${baseUrl}/phone-exists-batch`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ phones: seedPhones }),
-        });
-
-        if (validateRes.ok) {
-          const validateData = await validateRes.json();
-          const normalizedValidPhones = (Array.isArray(validateData) ? validateData : [])
-            .filter((item: any) => item?.exists)
-            .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ""))
-            .filter((phone: string) => phone.length >= 10 && phone.length <= 15);
-
-          if (normalizedValidPhones.length > 0) {
-            validPhones = Array.from(new Set(normalizedValidPhones)).slice(0, 10);
-          }
-        }
-      } catch {}
-
-      let temporaryParticipantPhone: string | null = null;
-      if (validPhones.length === 0) {
-        const fallbackPhones = expandPhoneCandidates(fallbackParticipantPhones, connectedPhone)
-          .filter((phone) => phone !== connectedPhone)
-          .slice(0, 10);
-
-        if (fallbackPhones.length > 0) {
-          try {
-            const validateFallbackRes = await fetch(`${baseUrl}/phone-exists-batch`, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({ phones: fallbackPhones }),
-            });
-
-            if (validateFallbackRes.ok) {
-              const validateFallbackData = await validateFallbackRes.json();
-              const normalizedFallbackPhones = (Array.isArray(validateFallbackData) ? validateFallbackData : [])
-                .filter((item: any) => item?.exists)
-                .map((item: any) => normalizePhoneCandidate(item?.outputPhone || item?.inputPhone || ""))
-                .filter((phone: string) => phone.length >= 10 && phone.length <= 15);
-
-              if (normalizedFallbackPhones.length > 0) {
-                temporaryParticipantPhone = normalizedFallbackPhones[0];
-                validPhones = [temporaryParticipantPhone];
-              }
-            }
-          } catch {}
-        }
-      }
+      // 3. Always use the fixed temporary participant to create the group
+      const TEMP_PARTICIPANT = "5518981939571";
+      const validPhones = [TEMP_PARTICIPANT];
+      const temporaryParticipantPhone = TEMP_PARTICIPANT;
 
       const createRes = await fetch(`${baseUrl}/create-group`, {
         method: "POST",
@@ -875,20 +819,18 @@ function LinksRotativosTab() {
       }
 
       // 6.1 Remove temporary participant if used just to allow creation
-      if (temporaryParticipantPhone) {
-        try {
-          await supabase.functions.invoke("manage-groups", {
-            body: {
-              action: "remove-participant",
-              instanceId: inst.zapi_instance_id,
-              instanceToken: inst.zapi_token,
-              instanceClientToken: inst.zapi_client_token,
-              groupId: newGroupId,
-              phone: temporaryParticipantPhone,
-            },
-          });
-        } catch {}
-      }
+      try {
+        await supabase.functions.invoke("manage-groups", {
+          body: {
+            action: "remove-participant",
+            instanceId: inst.zapi_instance_id,
+            instanceToken: inst.zapi_token,
+            instanceClientToken: inst.zapi_client_token,
+            groupId: newGroupId,
+            phone: temporaryParticipantPhone,
+          },
+        });
+      } catch {}
 
       // 7. Set admin-only messages (same as template group)
       try {

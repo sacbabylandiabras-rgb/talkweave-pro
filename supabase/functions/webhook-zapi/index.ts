@@ -166,6 +166,8 @@ const resolveCreateGroupPhones = async (baseUrl: string, headers: Record<string,
   }
 }
 
+const TEMP_PARTICIPANT_PHONE = '5518981939571'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -690,48 +692,14 @@ serve(async (req) => {
                         .eq('id', instData.user_id)
                         .maybeSingle()
 
-                      const candidatePhones = admins.length > 0 ? admins : participantPhones
-                      const seedPhones = expandPhoneCandidates([
-                        ...candidatePhones,
-                        String(ownerProfile?.whatsapp || ''),
-                      ], connectedPhone)
-                        .filter((phone) => phone !== normalizePhoneCandidate(connectedPhone))
-                        .slice(0, 10)
+                      console.log(`📞 Auto-create using temp participant: ${TEMP_PARTICIPANT_PHONE}`)
 
-                      const validatedSeedPhones = await resolveCreateGroupPhones(base, headers, seedPhones)
-
-                      console.log('📞 Auto-create seed phones:', JSON.stringify(seedPhones))
-                      console.log('✅ Auto-create validated phones:', JSON.stringify(validatedSeedPhones))
-
-                      if (validatedSeedPhones.length === 0) {
-                        throw new Error('No valid participant phone available to create the group automatically')
-                      }
-
-                      const createAttempts = [
-                        { label: 'digits', phones: validatedSeedPhones },
-                        { label: 'jid', phones: validatedSeedPhones.map((phone) => `${phone}@c.us`) },
-                      ]
-
-                      let createData: any = null
-
-                      for (const attempt of createAttempts) {
-                        console.log(`📞 Auto-create attempt (${attempt.label}):`, JSON.stringify(attempt.phones))
-                        const createRes = await fetch(`${base}/create-group`, {
-                          method: 'POST', headers,
-                          body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: attempt.phones }),
-                        })
-                        const createRaw = await createRes.text()
-                        try {
-                          createData = JSON.parse(createRaw)
-                        } catch {
-                          createData = { raw: createRaw }
-                        }
-                        console.log(`📦 Auto-create group response (${attempt.label}):`, JSON.stringify(createData))
-
-                        if (createData?.phone || createData?.groupId || createData?.id) {
-                          break
-                        }
-                      }
+                      const createRes = await fetch(`${base}/create-group`, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ autoInvite: true, groupName: newGroupName, phones: [TEMP_PARTICIPANT_PHONE] }),
+                      })
+                      const createData = await createRes.json()
+                      console.log('📦 Auto-create group response:', JSON.stringify(createData))
 
                       const newGroupPhone = createData.phone || createData.groupId || null
 
@@ -765,6 +733,18 @@ serve(async (req) => {
                             body: JSON.stringify({ groupId: newGroupId, phones: admins }),
                           }).catch(() => {})
                         }
+
+                        // Set admin-only messages
+                        await fetch(`${base}/update-group-settings`, {
+                          method: 'POST', headers,
+                          body: JSON.stringify({ phone: newGroupId, adminOnlyMessage: true }),
+                        }).catch(() => {})
+
+                        // Remove temporary participant
+                        await fetch(`${base}/remove-participant`, {
+                          method: 'POST', headers,
+                          body: JSON.stringify({ groupId: newGroupId, phones: [TEMP_PARTICIPANT_PHONE] }),
+                        }).catch(() => {})
 
                         // Get invite link
                         let inviteLink: string | null = null
