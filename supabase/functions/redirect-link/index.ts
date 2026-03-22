@@ -113,6 +113,12 @@ async function autoCreateGroup(
   let participantPhones: string[] = [];
   let photoUrl: string | null = templateGroup.group_photo || null;
   let connectedPhone = "";
+  let groupSettings = {
+    adminOnlyMessage: true,
+    adminOnlySettings: false,
+    requireAdminApproval: false,
+    adminOnlyAddMember: true,
+  };
 
   try {
     const metaRes = await fetch(`${base}/group-metadata/${templateGroupId}`, {
@@ -122,7 +128,12 @@ async function autoCreateGroup(
     if (metaRes.ok) {
       const meta = await metaRes.json();
       description = meta.description || "";
-      // Extract admin phone numbers (excluding the bot itself)
+      groupSettings = {
+        adminOnlyMessage: Boolean(meta?.adminOnlyMessage),
+        adminOnlySettings: Boolean(meta?.adminOnlySettings),
+        requireAdminApproval: Boolean(meta?.requireAdminApproval),
+        adminOnlyAddMember: typeof meta?.adminOnlyAddMember === "boolean" ? meta.adminOnlyAddMember : true,
+      };
       if (meta.participants) {
         participantPhones = meta.participants
           .map((p: any) => {
@@ -139,9 +150,7 @@ async function autoCreateGroup(
           })
           .filter((p: string) => p.length > 0);
       }
-      // Use subject as base name if available
       if (meta.subject) groupName = meta.subject;
-      // Try to get photo from metadata
       if (!photoUrl && (meta.profileThumbnail || meta.groupPhoto || meta.imgUrl)) {
         photoUrl = meta.profileThumbnail || meta.groupPhoto || meta.imgUrl;
       }
@@ -150,34 +159,22 @@ async function autoCreateGroup(
     console.error("Error fetching template group metadata:", e);
   }
 
-  // Fallback: fetch photo via profile-picture endpoint
   if (!photoUrl) {
     try {
-      const cleanId = templateGroupId.replace("-group", "@g.us");
-      const candidateUrls = [
-        `${base}/profile-picture?phone=${encodeURIComponent(cleanId)}`,
-        `${base}/profile-picture/${encodeURIComponent(cleanId)}`,
-      ];
-      for (const url of candidateUrls) {
-        try {
-          const photoRes = await fetch(url, { method: "GET", headers });
-          if (photoRes.ok) {
-            const photoData = await photoRes.json();
-            const link = photoData?.link || photoData?.imgUrl || photoData?.profilePictureUrl || null;
-            if (link && !photoData?.error) {
-              photoUrl = link;
-              break;
-            }
-          }
-        } catch {}
+      const { data, error } = await client.functions.invoke("get-profile-picture", {
+        body: { phone: templateGroupId },
+      });
+      if (!error) {
+        const link = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || data?.link || null;
+        if (link && link !== "null") {
+          photoUrl = link;
+        }
       }
     } catch (e) {
       console.error("Failed to fetch group photo:", e);
     }
   }
 
-  // 2. Generate new group name with incremented number
-  // Try to detect pattern like "Group Name 2" -> "Group Name 3"
   const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/);
   let baseName = groupName;
   let nextNumber = allGroupsCount + 1;
@@ -202,15 +199,8 @@ async function autoCreateGroup(
     console.error("Error fetching connected phone:", e);
   }
 
-  const { data: ownerProfile } = await client
-    .from("profiles")
-    .select("whatsapp")
-    .eq("id", link.user_id)
-    .maybeSingle();
-
   console.log(`📞 Redirect auto-create using temp participant: ${TEMP_PARTICIPANT_PHONE}`);
 
-  // 3. Create the new group with temp participant
   const createRes = await fetch(`${base}/create-group`, {
     method: "POST",
     headers,
@@ -229,10 +219,8 @@ async function autoCreateGroup(
     ? newGroupPhone
     : newGroupPhone.replace("@g.us", "-group");
 
-  // Wait a moment for group to be fully created
   await new Promise((r) => setTimeout(r, 2000));
 
-  // 4. Set description (fire and forget style, don't block)
   if (description) {
     try {
       await fetch(`${base}/update-group-description`, {
@@ -246,7 +234,6 @@ async function autoCreateGroup(
     }
   }
 
-  // 5. Set photo
   if (photoUrl) {
     try {
       const cleanId = newGroupId.replace("-group", "@g.us");
@@ -261,30 +248,38 @@ async function autoCreateGroup(
     }
   }
 
-  // 6. Promote admins
   if (admins.length > 0) {
     try {
-      await fetch(`${base}/add-admin`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ groupId: newGroupId, phones: admins }),
-      });
-      console.log(`✅ Promoted ${admins.length} admins`);
+      const expandedAdmins = expandPhoneCandidates(admins, connectedPhone)
+        .filter((phone) => phone !== connectedPhone && phone !== TEMP_PARTICIPANT_PHONE);
+      if (expandedAdmins.length > 0) {
+        await fetch(`${base}/add-admin`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ groupId: newGroupId, phones: expandedAdmins }),
+        });
+        console.log(`✅ Promoted ${expandedAdmins.length} admins`);
+      }
     } catch (e) {
       console.error("Failed to promote admins:", e);
     }
   }
 
-  // 6.1 Set admin-only messages
   try {
     await fetch(`${base}/update-group-settings`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ phone: newGroupId, adminOnlyMessage: true }),
+      body: JSON.stringify({
+        phone: newGroupId,
+        adminOnlyMessage: groupSettings.adminOnlyMessage,
+        adminOnlySettings: groupSettings.adminOnlySettings,
+        requireAdminApproval: groupSettings.requireAdminApproval,
+        adminOnlyAddMember: groupSettings.adminOnlyAddMember,
+      }),
     });
-    console.log("✅ Admin-only messages set");
+    console.log("✅ Group settings cloned");
   } catch (e) {
-    console.error("Failed to set admin-only messages:", e);
+    console.error("Failed to clone group settings:", e);
   }
 
   // 6.2 Remove temporary participant
