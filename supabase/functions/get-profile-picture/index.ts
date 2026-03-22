@@ -30,9 +30,13 @@ serve(async (req) => {
     }
 
     const rawPhone = String(phone).trim()
-    const normalizedPhone = rawPhone.includes('@g.us') || rawPhone.includes('-group')
-      ? rawPhone.replace(/-group$/i, '@g.us')
+    const isGroup = rawPhone.includes('@g.us') || rawPhone.includes('-group')
+    
+    // For groups: Z-API expects "-group" suffix, NOT "@g.us"
+    const normalizedPhone = isGroup
+      ? rawPhone.replace(/@g\.us$/i, '-group').replace(/-group$/, '-group') // ensure -group suffix
       : rawPhone.replace(/\D/g, '')
+    
     if (!normalizedPhone) {
       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
         status: 400,
@@ -40,12 +44,14 @@ serve(async (req) => {
       })
     }
 
+    console.log(`📷 get-profile-picture: raw=${rawPhone} normalized=${normalizedPhone} isGroup=${isGroup}`)
+
     const base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
-    const candidateUrls = normalizedPhone.includes('@g.us')
+    
+    const candidateUrls = isGroup
       ? [
           `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
           `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
-          `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
         ]
       : [
           `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
@@ -57,6 +63,7 @@ serve(async (req) => {
     let lastData: any = null
 
     for (const zapiUrl of candidateUrls) {
+      console.log(`📷 Trying URL: ${zapiUrl}`)
       const zapiResponse = await fetch(zapiUrl, {
         method: 'GET',
         headers: {
@@ -69,6 +76,8 @@ serve(async (req) => {
       const link = extractUrl(zapiData)
       lastStatus = zapiResponse.status
       lastData = zapiData
+
+      console.log(`📷 Response status=${zapiResponse.status} link=${link} data=${JSON.stringify(zapiData)?.substring(0, 300)}`)
 
       if (zapiResponse.ok && link) {
         return new Response(
@@ -83,6 +92,7 @@ serve(async (req) => {
       { status: lastStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error(`📷 Error:`, error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
