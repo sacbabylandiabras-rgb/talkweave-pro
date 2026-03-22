@@ -462,7 +462,19 @@ const EnviarMensagem = () => {
                   await supabase.from('campaign_sends').insert(campaignSends);
                   campaignSends.length = 0;
                 }
-                await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
+                await supabase.from('campaigns').update({ 
+                  status: 'paused',
+                  target_audience: {
+                    ...(campanha.target_audience || {}),
+                    __sendConfig: {
+                      instanceId: null,
+                      rotateAll: true,
+                    },
+                  },
+                }).eq('id', campanha.id);
+                try {
+                  await supabase.functions.invoke('clear-zapi-queue', { body: { clearAllActive: true } });
+                } catch {}
                 toast({
                   title: "Todas as instâncias desconectadas!",
                   description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
