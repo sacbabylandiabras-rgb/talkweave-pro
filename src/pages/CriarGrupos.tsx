@@ -595,6 +595,11 @@ function LinksRotativosTab() {
   const [gettingInvite, setGettingInvite] = useState(false);
   const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
   const [creatingNextGroup, setCreatingNextGroup] = useState<string | null>(null);
+  const [linkPhotoUrl, setLinkPhotoUrl] = useState<Record<string, string>>({});
+  const [linkPhotoFile, setLinkPhotoFile] = useState<Record<string, File | null>>({});
+  const [linkPhotoPreview, setLinkPhotoPreview] = useState<Record<string, string>>({});
+  const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
+  const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const baseRedirectUrl = `${window.location.origin}/invite/`;
 
