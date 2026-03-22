@@ -729,6 +729,13 @@ function LinksRotativosTab() {
       } catch {}
 
       if (!photoUrl) {
+        const whatsGroup = groups.find((g) => g.id === templateGroup.group_id);
+        if (whatsGroup?.foto) {
+          photoUrl = whatsGroup.foto;
+        }
+      }
+
+      if (!photoUrl) {
         try {
           const { data: picData } = await supabase.functions.invoke("get-profile-picture", {
             body: { phone: groupIdForMeta },

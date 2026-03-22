@@ -161,6 +161,26 @@ async function autoCreateGroup(
 
   if (!photoUrl) {
     try {
+      const groupsRes = await fetch(`${base}/groups`, {
+        method: "GET",
+        headers,
+      });
+      if (groupsRes.ok) {
+        const groupsData = await groupsRes.json();
+        const matchedGroup = (Array.isArray(groupsData) ? groupsData : []).find((group: any) => {
+          const candidateId = group?.phone || group?.id || "";
+          return candidateId === templateGroup.group_id || candidateId === templateGroupId;
+        });
+        const listPhoto = matchedGroup?.imgUrl || matchedGroup?.profilePicture || matchedGroup?.image || matchedGroup?.photo || null;
+        if (listPhoto) photoUrl = listPhoto;
+      }
+    } catch (e) {
+      console.error("Failed to fetch group photo from groups list:", e);
+    }
+  }
+
+  if (!photoUrl) {
+    try {
       const { data, error } = await client.functions.invoke("get-profile-picture", {
         body: { phone: templateGroupId },
       });
