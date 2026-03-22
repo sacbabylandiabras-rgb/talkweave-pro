@@ -32,64 +32,116 @@ serve(async (req) => {
     const rawPhone = String(phone).trim()
     const isGroup = rawPhone.includes('@g.us') || rawPhone.includes('-group')
     
-    // For groups: Z-API expects "-group" suffix, NOT "@g.us"
-    const normalizedPhone = isGroup
-      ? rawPhone.replace(/@g\.us$/i, '-group').replace(/-group$/, '-group') // ensure -group suffix
-      : rawPhone.replace(/\D/g, '')
+    // Extract numeric part for groups
+    const numericId = rawPhone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')
     
-    if (!normalizedPhone) {
+    if (!numericId) {
       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log(`📷 get-profile-picture: raw=${rawPhone} normalized=${normalizedPhone} isGroup=${isGroup}`)
-
     const base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
-    
-    const candidateUrls = isGroup
-      ? [
-          `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
-          `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
-        ]
-      : [
-          `${base}/profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
-          `${base}/profile-picture/${encodeURIComponent(normalizedPhone)}`,
-          `${base}/contacts/${encodeURIComponent(normalizedPhone)}`,
-        ]
+    const headers = {
+      'Content-Type': 'application/json',
+      'Client-Token': credentials.clientToken
+    }
 
-    let lastStatus = 404
-    let lastData: any = null
+    // For groups, try multiple formats and also try group-metadata for photo
+    if (isGroup) {
+      const groupIdGroup = `${numericId}-group`
+      const groupIdGus = `${numericId}@g.us`
+      
+      console.log(`📷 Group photo lookup: numericId=${numericId}`)
 
-    for (const zapiUrl of candidateUrls) {
-      console.log(`📷 Trying URL: ${zapiUrl}`)
-      const zapiResponse = await fetch(zapiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': credentials.clientToken
+      // Strategy 1: Try profile-picture with @g.us format
+      const candidatePhones = [groupIdGus, groupIdGroup, numericId]
+      for (const phoneFormat of candidatePhones) {
+        const url = `${base}/profile-picture?phone=${encodeURIComponent(phoneFormat)}`
+        console.log(`📷 Trying: ${url}`)
+        try {
+          const res = await fetch(url, { method: 'GET', headers })
+          const data = await res.json().catch(() => null)
+          const link = extractUrl(data)
+          console.log(`📷 Result status=${res.status} link=${link} data=${JSON.stringify(data)?.substring(0, 200)}`)
+          if (res.ok && link) {
+            return new Response(
+              JSON.stringify({ success: true, data: { link, raw: data } }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } catch (e) {
+          console.log(`📷 Fetch error: ${e}`)
         }
-      })
-
-      const zapiData = await zapiResponse.json().catch(() => null)
-      const link = extractUrl(zapiData)
-      lastStatus = zapiResponse.status
-      lastData = zapiData
-
-      console.log(`📷 Response status=${zapiResponse.status} link=${link} data=${JSON.stringify(zapiData)?.substring(0, 300)}`)
-
-      if (zapiResponse.ok && link) {
-        return new Response(
-          JSON.stringify({ success: true, data: { link, raw: zapiData } }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
       }
+
+      // Strategy 2: Fetch from /groups list to get imgUrl
+      console.log(`📷 Trying /groups list for imgUrl`)
+      try {
+        const groupsRes = await fetch(`${base}/groups?page=1&pageSize=100`, { method: 'GET', headers })
+        if (groupsRes.ok) {
+          const groupsData = await groupsRes.json()
+          const groups = Array.isArray(groupsData) ? groupsData : []
+          const match = groups.find((g: any) => {
+            const gId = g.phone || g.id || ''
+            return gId.includes(numericId)
+          })
+          console.log(`📷 Groups list match: id=${match?.phone} imgUrl=${match?.imgUrl} photo=${match?.photo}`)
+          const photoUrl = match?.imgUrl || match?.profilePicture || match?.image || match?.photo || null
+          if (photoUrl) {
+            return new Response(
+              JSON.stringify({ success: true, data: { link: photoUrl, raw: match } }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        }
+      } catch (e) {
+        console.log(`📷 Groups list error: ${e}`)
+      }
+
+      // Strategy 3: group-metadata sometimes has imgUrl
+      console.log(`📷 Trying /group-metadata/${groupIdGroup}`)
+      try {
+        const metaRes = await fetch(`${base}/group-metadata/${groupIdGroup}`, { method: 'GET', headers })
+        if (metaRes.ok) {
+          const metaData = await metaRes.json()
+          console.log(`📷 group-metadata keys: ${Object.keys(metaData || {}).join(',')}`)
+          const photoUrl = metaData?.imgUrl || metaData?.profilePicture || metaData?.image || metaData?.photo || metaData?.groupPhoto || null
+          if (photoUrl) {
+            return new Response(
+              JSON.stringify({ success: true, data: { link: photoUrl, raw: metaData } }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        }
+      } catch (e) {
+        console.log(`📷 Metadata error: ${e}`)
+      }
+
+      console.log(`📷 All strategies failed for group ${numericId}`)
+      return new Response(
+        JSON.stringify({ success: false, data: { link: null, raw: null } }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // For contacts (non-group)
+    const url = `${base}/profile-picture?phone=${encodeURIComponent(numericId)}`
+    const zapiResponse = await fetch(url, { method: 'GET', headers })
+    const zapiData = await zapiResponse.json().catch(() => null)
+    const link = extractUrl(zapiData)
+
+    if (zapiResponse.ok && link) {
+      return new Response(
+        JSON.stringify({ success: true, data: { link, raw: zapiData } }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: lastData } }),
-      { status: lastStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, data: { link: null, raw: zapiData } }),
+      { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error(`📷 Error:`, error)
