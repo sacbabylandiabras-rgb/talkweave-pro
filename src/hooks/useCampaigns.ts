@@ -257,15 +257,40 @@ export const useCampaigns = () => {
     }
   };
 
+  const getQueueClearPayload = (campaign?: Campaign) => {
+    const sendConfig = campaign?.target_audience?.__sendConfig;
+
+    if (sendConfig?.rotateAll) {
+      return { clearAllActive: true };
+    }
+
+    if (sendConfig?.instanceId && sendConfig.instanceId !== '__rotate_all__') {
+      return { instanceId: sendConfig.instanceId };
+    }
+
+    return {};
+  };
+
   const sendCampaign = async (
     campaignId: string,
     contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>,
     instanceId?: string
   ) => {
     try {
-      // Update status to active BEFORE invoking edge function
-      // so the edge function doesn't reject cancelled/paused campaigns
-      await updateCampaign(campaignId, { status: 'active' });
+      const currentCampaign = campaigns.find(campaign => campaign.id === campaignId);
+      const sendConfig = {
+        instanceId: instanceId && instanceId !== '__rotate_all__' ? instanceId : null,
+        rotateAll: instanceId === '__rotate_all__',
+      };
+
+      // Persist send mode before invoking edge function so pause/cancel can clear the right queues
+      await updateCampaign(campaignId, {
+        status: 'active',
+        target_audience: {
+          ...(currentCampaign?.target_audience || {}),
+          __sendConfig: sendConfig,
+        },
+      });
 
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -343,10 +368,12 @@ export const useCampaigns = () => {
   };
 
   const pauseCampaign = async (id: string) => {
+    const campaign = campaigns.find(c => c.id === id);
+
     // 1. Update status to paused immediately
     const result = await updateCampaign(id, { status: 'paused' });
     
-    // 2. Clear Z-API queue to stop any messages already queued
+    // 2. Clear Z-API queue(s) to stop any messages already queued
     try {
       console.log('🧹 Clearing Z-API queue after pause...');
       const { data: sessionData } = await supabase.auth.getSession();
@@ -354,7 +381,8 @@ export const useCampaigns = () => {
       
       if (token) {
         await supabase.functions.invoke('clear-zapi-queue', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          body: getQueueClearPayload(campaign),
         });
         console.log('✅ Z-API queue cleared after pause');
       }
@@ -371,6 +399,11 @@ export const useCampaigns = () => {
       if (!campaign) {
         throw new Error('Campaign not found');
       }
+
+      const storedSendConfig = campaign.target_audience?.__sendConfig;
+      const resumeInstanceId = storedSendConfig?.rotateAll
+        ? '__rotate_all__'
+        : (storedSendConfig?.instanceId || getSelectedCampaignInstanceId());
 
       console.log('=== RESUMING CAMPAIGN ===');
       console.log('Campaign ID:', id);
@@ -442,8 +475,17 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
-      // Update status to active
-      await updateCampaign(id, { status: 'active' });
+      // Update status to active and preserve original send mode
+      await updateCampaign(id, {
+        status: 'active',
+        target_audience: {
+          ...(campaign.target_audience || {}),
+          __sendConfig: {
+            instanceId: resumeInstanceId && resumeInstanceId !== '__rotate_all__' ? resumeInstanceId : null,
+            rotateAll: resumeInstanceId === '__rotate_all__',
+          },
+        },
+      });
       
       console.log(`🔄 Retomando campanha ${id} com ${remainingContacts.length} contatos restantes`);
       
@@ -460,7 +502,7 @@ export const useCampaigns = () => {
         body: {
           campaignId: id,
           contacts: remainingContacts,
-          instanceId: getSelectedCampaignInstanceId(),
+          instanceId: resumeInstanceId,
         },
       });
 
@@ -483,7 +525,24 @@ export const useCampaigns = () => {
   };
 
   const cancelCampaign = async (id: string) => {
-    return await updateCampaign(id, { status: 'cancelled' });
+    const campaign = campaigns.find(c => c.id === id);
+    const result = await updateCampaign(id, { status: 'cancelled' });
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (token) {
+        await supabase.functions.invoke('clear-zapi-queue', {
+          headers: { Authorization: `Bearer ${token}` },
+          body: getQueueClearPayload(campaign),
+        });
+      }
+    } catch (err) {
+      console.error('Error clearing Z-API queue on cancel:', err);
+    }
+
+    return result;
   };
 
   const duplicateCampaign = async (campaign: Campaign) => {

@@ -39,6 +39,19 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     if (campaignId && !isPausing) {
       try {
         setIsPausing(true);
+
+        const { data: campaignData } = await supabase
+          .from('campaigns')
+          .select('target_audience')
+          .eq('id', campaignId)
+          .single();
+
+        const sendConfig = (campaignData?.target_audience as any)?.__sendConfig;
+        const clearBody = sendConfig?.rotateAll
+          ? { clearAllActive: true }
+          : sendConfig?.instanceId && sendConfig.instanceId !== '__rotate_all__'
+            ? { instanceId: sendConfig.instanceId }
+            : {};
         
         // 1. Update status to paused
         const { error } = await supabase
@@ -48,13 +61,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         
         if (error) throw error;
         
-        // 2. Clear Z-API queue to stop queued messages
+        // 2. Clear Z-API queue(s) to stop queued messages
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           const token = sessionData?.session?.access_token;
           if (token) {
             await supabase.functions.invoke('clear-zapi-queue', {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
+              body: clearBody,
             });
             console.log('✅ Z-API queue cleared after pause from dialog');
           }
