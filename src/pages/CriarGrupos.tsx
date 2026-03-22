@@ -547,7 +547,7 @@ function GerenciarGrupoTab() {
 
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink } = useRedirectLinks();
+  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
@@ -559,6 +559,7 @@ function LinksRotativosTab() {
   const [addingGroupTo, setAddingGroupTo] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [gettingInvite, setGettingInvite] = useState(false);
+  const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
 
   const baseRedirectUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redirect-link?slug=`;
 
