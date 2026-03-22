@@ -568,6 +568,10 @@ const EnviarMensagem = () => {
             );
           } else if (!temMidia && !temBotoes) {
             // Se não tem botões nem mídia, enviar mensagem simples
+            if (instanceSelectionMode === 'rotate') {
+              const rotInst = instances[i % instances.length];
+              console.log(`🔄 [${i+1}/${contatosProcessados.length}] Enviando via "${rotInst?.instance_name}" para ${contato.telefone}`);
+            }
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
