@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.scrape-url]
 verify_jwt = false
+
+[functions.redirect-link]
+verify_jwt = false
