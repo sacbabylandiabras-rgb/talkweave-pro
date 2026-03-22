@@ -68,9 +68,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try to fetch group photo via Z-API group-metadata
-    let groupPhoto: string | null = null;
-    if (targetGroup.instance_id) {
+    // Get group photo - first from DB, then try Z-API as fallback
+    let groupPhoto: string | null = targetGroup.group_photo || null;
+    
+    if (!groupPhoto && targetGroup.instance_id) {
       try {
         const { data: instance } = await client
           .from("zapi_instances")
