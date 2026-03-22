@@ -609,7 +609,18 @@ function LinksRotativosTab() {
         throw new Error("Não foi possível obter o link de convite do grupo");
       }
 
-      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, group.membros);
+      // Fetch real member count
+      let realMemberCount = group.membros;
+      try {
+        const { data: participantsData } = await supabase.functions.invoke("get-group-participants", {
+          body: { groupId: group.id, sourceInstanceId: group.sourceInstanceId || null },
+        });
+        realMemberCount = participantsData?.participants?.length || group.membros;
+      } catch {
+        // fallback to existing count
+      }
+
+      await addGroupToLink(linkId, group.id, group.nome, inviteLink, group.sourceInstanceId || null, realMemberCount);
       toast.success("Grupo adicionado ao link!");
       setAddingGroupTo(null);
       setSelectedGroup("");
