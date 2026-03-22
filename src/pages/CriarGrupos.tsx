@@ -390,7 +390,13 @@ function GerenciarGrupoTab() {
                   </Avatar>
                   <div>
                     <p className="font-medium text-foreground">{selectedGroup.nome}</p>
-                    <p className="text-xs text-muted-foreground">{selectedGroup.membros} membros • {selectedGroup.descricao || "Sem descrição"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isMemberLoading(selectedGroup.id) ? (
+                        <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> carregando membros...</span>
+                      ) : (
+                        <>{getMemberCount(selectedGroup.id, selectedGroup.membros) || "—"} membros • {selectedGroup.descricao || "Sem descrição"}</>
+                      )}
+                    </p>
                     {selectedGroup.isAdmin && <Badge variant="default" className="mt-1 text-[10px]">Admin</Badge>}
                   </div>
                 </div>
