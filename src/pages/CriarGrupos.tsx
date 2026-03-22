@@ -594,8 +594,153 @@ function LinksRotativosTab() {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [gettingInvite, setGettingInvite] = useState(false);
   const [refreshingMembers, setRefreshingMembers] = useState<string | null>(null);
+  const [creatingNextGroup, setCreatingNextGroup] = useState<string | null>(null);
 
   const baseRedirectUrl = `${window.location.origin}/invite/`;
+
+  const handleForceCreateNextGroup = async (link: any) => {
+    if (!link.groups || link.groups.length === 0) {
+      toast.error("Adicione pelo menos um grupo modelo primeiro");
+      return;
+    }
+    setCreatingNextGroup(link.id);
+    try {
+      const templateGroup = link.groups[link.groups.length - 1];
+      if (!templateGroup.instance_id) {
+        toast.error("Grupo modelo não tem instância associada");
+        return;
+      }
+
+      // Find instance credentials
+      const inst = instances.find((i) => i.zapi_instance_id === templateGroup.instance_id);
+      if (!inst) {
+        toast.error("Instância não encontrada");
+        return;
+      }
+
+      const baseUrl = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Client-Token": inst.zapi_client_token,
+      };
+
+      // 1. Get template group metadata
+      const groupIdForMeta = templateGroup.group_id.includes("-group")
+        ? templateGroup.group_id
+        : templateGroup.group_id.replace("@g.us", "-group");
+
+      let groupName = templateGroup.group_name;
+      let description = "";
+      let photoUrl: string | null = templateGroup.group_photo || null;
+
+      try {
+        const metaRes = await fetch(`${baseUrl}/group-metadata/${groupIdForMeta}`, { method: "GET", headers });
+        if (metaRes.ok) {
+          const meta = await metaRes.json();
+          description = meta.description || "";
+          if (meta.subject) groupName = meta.subject;
+        }
+      } catch {}
+
+      // 2. Generate new name
+      const numberMatch = groupName.match(/^(.*?)(\s+(\d+))?\s*$/);
+      let baseName = groupName;
+      let nextNumber = link.groups.length + 1;
+      if (numberMatch && numberMatch[3]) {
+        baseName = numberMatch[1];
+        nextNumber = parseInt(numberMatch[3]) + 1;
+      }
+      const newGroupName = `${baseName} ${nextNumber}`;
+
+      // 3. Create empty group via manage-groups edge function
+      const { data: createData, error: createError } = await supabase.functions.invoke("manage-groups", {
+        body: {
+          action: "create-group",
+          instanceId: inst.zapi_instance_id,
+          instanceToken: inst.zapi_token,
+          instanceClientToken: inst.zapi_client_token,
+          groupName: newGroupName,
+          phones: [],
+        },
+      });
+
+      if (createError) throw createError;
+
+      const newGroupPhone = createData?.phone || createData?.groupId || createData?.id;
+      if (!newGroupPhone) {
+        toast.error("Falha ao criar grupo: " + JSON.stringify(createData));
+        return;
+      }
+
+      const newGroupId = newGroupPhone.includes("-group")
+        ? newGroupPhone
+        : newGroupPhone.replace("@g.us", "-group");
+
+      // 4. Set description
+      if (description) {
+        await supabase.functions.invoke("manage-groups", {
+          body: {
+            action: "update-group-description",
+            instanceId: inst.zapi_instance_id,
+            instanceToken: inst.zapi_token,
+            instanceClientToken: inst.zapi_client_token,
+            groupId: newGroupId,
+            description,
+          },
+        }).catch(() => {});
+      }
+
+      // 5. Set photo
+      if (photoUrl) {
+        await supabase.functions.invoke("manage-groups", {
+          body: {
+            action: "update-group-photo",
+            instanceId: inst.zapi_instance_id,
+            instanceToken: inst.zapi_token,
+            instanceClientToken: inst.zapi_client_token,
+            groupId: newGroupId,
+            imageUrl: photoUrl,
+          },
+        }).catch(() => {});
+      }
+
+      // 6. Get invite link
+      let inviteLink: string | null = null;
+      try {
+        const inviteRes = await fetch(`${baseUrl}/group-invitation-link/${newGroupId}`, { method: "GET", headers });
+        if (inviteRes.ok) {
+          const inviteData = await inviteRes.json();
+          inviteLink = inviteData.invitationLink || inviteData.inviteLink || inviteData.link || null;
+        }
+      } catch {}
+
+      // 7. Save to redirect_link_groups
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      await (supabase as any).from("redirect_link_groups").insert({
+        redirect_link_id: link.id,
+        user_id: user.id,
+        group_id: newGroupId,
+        group_name: newGroupName,
+        invite_link: inviteLink,
+        instance_id: inst.zapi_instance_id,
+        sort_order: link.groups.length,
+        current_members: 0,
+        is_full: false,
+        group_photo: photoUrl,
+      });
+
+      toast.success(`Grupo "${newGroupName}" criado e adicionado!`);
+      // Refresh
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Erro ao criar próximo grupo:", err);
+      toast.error("Erro: " + (err.message || "Falha na criação"));
+    } finally {
+      setCreatingNextGroup(null);
+    }
+  };
 
   const handleCreateLink = async () => {
     if (!newName.trim() || !newSlug.trim()) {
@@ -876,6 +1021,23 @@ function LinksRotativosTab() {
                 <Button variant="outline" size="sm" onClick={() => setAddingGroupTo(link.id)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Grupo
+                </Button>
+              )}
+
+              {link.groups && link.groups.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleForceCreateNextGroup(link)}
+                  disabled={creatingNextGroup === link.id}
+                  className="ml-2"
+                >
+                  {creatingNextGroup === link.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  Criar Próximo Grupo
                 </Button>
               )}
             </CardContent>
