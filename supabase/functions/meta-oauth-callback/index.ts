@@ -130,7 +130,8 @@ serve(async (req) => {
     }
 
     // Return success page that closes the popup
-    return Response.redirect(`${SUPABASE_URL.replace(/\/$/, "")}/meta-oauth-callback?name=${encodeURIComponent(wabaData.name || "Conta conectada")}`, 302);
+    const redirectBase = (appOrigin || "https://zaplynx.pro").replace(/\/$/, "");
+    return Response.redirect(`${redirectBase}/meta-oauth-callback?name=${encodeURIComponent(wabaData.name || "Conta conectada")}`, 302);
 
   } catch (err) {
     console.error("OAuth callback error:", err);
