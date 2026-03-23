@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 serve(async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state"); // user_id
+  const state = url.searchParams.get("state");
 
   if (!code || !state) {
     return new Response(errorPage("Parâmetros inválidos. Feche esta janela e tente novamente."), {
@@ -27,6 +27,17 @@ serve(async (req) => {
   }
 
   try {
+    let userId = state;
+    let appOrigin: string | null = null;
+
+    try {
+      const decodedState = JSON.parse(atob(state));
+      if (decodedState?.userId) userId = decodedState.userId;
+      if (decodedState?.origin && /^https?:\/\//.test(decodedState.origin)) appOrigin = decodedState.origin;
+    } catch {
+      // Backward compatibility with old state format
+    }
+
     // Exchange code for access token
     const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(SUPABASE_URL + "/functions/v1/meta-oauth-callback")}&client_secret=${META_APP_SECRET}&code=${code}`;
 
@@ -98,7 +109,7 @@ serve(async (req) => {
     const { error: dbError } = await supabase
       .from("meta_credentials")
       .upsert({
-        user_id: state,
+        user_id: userId,
         access_token: finalToken,
         app_id: META_APP_ID,
         phone_number_id: phoneNumberId,
@@ -119,7 +130,8 @@ serve(async (req) => {
     }
 
     // Return success page that closes the popup
-    return Response.redirect(`${SUPABASE_URL.replace(/\/$/, "")}/meta-oauth-callback?name=${encodeURIComponent(wabaData.name || "Conta conectada")}`, 302);
+    const redirectBase = (appOrigin || "https://zaplynx.pro").replace(/\/$/, "");
+    return Response.redirect(`${redirectBase}/meta-oauth-callback?name=${encodeURIComponent(wabaData.name || "Conta conectada")}`, 302);
 
   } catch (err) {
     console.error("OAuth callback error:", err);
