@@ -11,6 +11,7 @@ import prova3 from "@/assets/prova3.jpg";
 import prova4 from "@/assets/prova4.jpg";
 import prova5 from "@/assets/prova5.jpg";
 import PhoneMockup from "@/components/landing/PhoneMockup";
+import UseCasesSection from "@/components/landing/UseCasesSection";
 
 const Landing = () => {
   const navigate = useNavigate();
