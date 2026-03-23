@@ -1507,10 +1507,10 @@ export default function FluxoVisual() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="url">🔗 Link (URL)</SelectItem>
-                          <SelectItem value="reply">💬 Resposta rápida</SelectItem>
-                          <SelectItem value="call">📞 Ligação</SelectItem>
-                          <SelectItem value="flow">➡️ Navegar para bloco</SelectItem>
+                          <SelectItem value="url">Link (URL)</SelectItem>
+                          <SelectItem value="reply">Resposta rápida</SelectItem>
+                          <SelectItem value="call">Ligação</SelectItem>
+                          <SelectItem value="flow">Navegar para bloco</SelectItem>
                         </SelectContent>
                       </Select>
 
