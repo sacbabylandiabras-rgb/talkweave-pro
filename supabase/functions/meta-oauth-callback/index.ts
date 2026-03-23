@@ -8,7 +8,7 @@ serve(async (req) => {
 
   if (!code || !state) {
     return new Response(errorPage("Parâmetros inválidos. Feche esta janela e tente novamente."), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 400,
     });
   }
@@ -21,7 +21,7 @@ serve(async (req) => {
   if (!META_APP_ID || !META_APP_SECRET) {
     console.error("META_APP_ID or META_APP_SECRET not configured");
     return new Response(errorPage("Configuração do servidor incompleta."), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 500,
     });
   }
@@ -36,7 +36,7 @@ serve(async (req) => {
     if (tokenData.error) {
       console.error("Token exchange error:", tokenData.error);
       return new Response(errorPage("Erro ao trocar código: " + (tokenData.error.message || "desconhecido")), {
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
         status: 400,
       });
     }
@@ -113,20 +113,20 @@ serve(async (req) => {
     if (dbError) {
       console.error("DB error:", dbError);
       return new Response(errorPage("Erro ao salvar credenciais."), {
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
         status: 500,
       });
     }
 
     // Return success page that closes the popup
     return new Response(successPage(wabaData.name || "Conta conectada"), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
 
   } catch (err) {
     console.error("OAuth callback error:", err);
     return new Response(errorPage("Erro interno: " + (err as Error).message), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 500,
     });
   }
