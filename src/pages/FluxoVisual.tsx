@@ -57,6 +57,13 @@ import {
   Image,
   Video,
   Mic,
+  GripVertical,
+  Link2,
+  MessageCircle,
+  Phone as PhoneIcon,
+  ArrowRight,
+  MousePointerClick,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
