@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Bell, Settings, User } from "lucide-react";
+import { Bell, Settings, User, Blocks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationsDialog } from "./NotificationsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
+import { MetaApiDialog } from "./MetaApiDialog";
 
 interface HeaderProps {
   onNavigate?: (page: string) => void;
@@ -13,10 +14,21 @@ export function Header({ onNavigate }: HeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renewOpen, setRenewOpen] = useState(false);
+  const [metaApiOpen, setMetaApiOpen] = useState(false);
 
   return (
     <>
       <header className="bg-card/60 backdrop-blur-xl border-b border-border/60 px-5 py-2.5 flex items-center justify-end gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-8 px-3 rounded-lg font-medium gap-1.5 mr-auto"
+          onClick={() => setMetaApiOpen(true)}
+        >
+          <Blocks className="w-4 h-4" />
+          Workspace
+        </Button>
+
         <Button
           variant="outline"
           size="sm"
@@ -47,6 +59,7 @@ export function Header({ onNavigate }: HeaderProps) {
       <NotificationsDialog open={notificationsOpen} onOpenChange={setNotificationsOpen} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <RenewDialog open={renewOpen} onOpenChange={setRenewOpen} />
+      <MetaApiDialog open={metaApiOpen} onOpenChange={setMetaApiOpen} />
     </>
   );
 }
