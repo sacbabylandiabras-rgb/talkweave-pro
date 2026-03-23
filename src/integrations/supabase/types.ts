@@ -555,6 +555,51 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_credentials: {
+        Row: {
+          access_token: string | null
+          app_id: string | null
+          business_account_id: string | null
+          connected: boolean | null
+          created_at: string | null
+          fb_user_id: string | null
+          fb_user_name: string | null
+          id: string
+          phone_number_id: string | null
+          updated_at: string | null
+          user_id: string
+          waba_id: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          app_id?: string | null
+          business_account_id?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          fb_user_id?: string | null
+          fb_user_name?: string | null
+          id?: string
+          phone_number_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          waba_id?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          app_id?: string | null
+          business_account_id?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          fb_user_id?: string | null
+          fb_user_name?: string | null
+          id?: string
+          phone_number_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          waba_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
