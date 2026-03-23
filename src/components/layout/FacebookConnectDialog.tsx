@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Shield, CheckCircle2, Loader2, MessageSquare, Users, BarChart3 } from "lucide-react";
+import { Shield, CheckCircle2, Loader2, MessageSquare, Users, BarChart3, LogOut, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 
 interface FacebookConnectDialogProps {
   open: boolean;
@@ -20,15 +21,17 @@ const SCOPES = "whatsapp_business_management,whatsapp_business_messaging,busines
 
 export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
   const [connecting, setConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [connectedName, setConnectedName] = useState("");
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const queryClient = useQueryClient();
+  const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials();
+
+  const isConnected = metaCreds?.connected === true;
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === "META_OAUTH_SUCCESS") {
         setConnecting(false);
-        setConnected(true);
         toast.success("Conta Facebook Business conectada com sucesso!");
         queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
       }
@@ -70,6 +73,38 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
     }, 500);
   };
 
+  const handleDisconnect = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setDisconnecting(true);
+    try {
+      const { error } = await supabase
+        .from("meta_credentials")
+        .update({
+          connected: false,
+          access_token: null,
+          phone_number_id: null,
+          business_account_id: null,
+          waba_id: null,
+          fb_user_id: null,
+          fb_user_name: null,
+        } as any)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      toast.success("Conta desconectada com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      setShowDisconnectConfirm(false);
+    } catch (err) {
+      console.error("Disconnect error:", err);
+      toast.error("Erro ao desconectar conta");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -81,15 +116,111 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
               </svg>
             </div>
             <div>
-              <DialogTitle className="text-base">Conectar com Facebook</DialogTitle>
+              <DialogTitle className="text-base">
+                {isConnected ? "Conta Facebook Conectada" : "Conectar com Facebook"}
+              </DialogTitle>
               <DialogDescription className="text-xs mt-0.5">
-                Vincule sua conta Business para usar a API oficial
+                {isConnected
+                  ? `Conectado como ${metaCreds?.fb_user_name || "Conta Business"}`
+                  : "Vincule sua conta Business para usar a API oficial"}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        {!connected ? (
+        {loadingCreds ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : isConnected && !showDisconnectConfirm ? (
+          <div className="space-y-4">
+            <div className="text-center py-4 space-y-3">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {metaCreds?.fb_user_name || "Conta conectada"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sua conta Facebook Business está vinculada e ativa.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Status</span>
+                <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20">
+                  Conectado
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">WABA ID</span>
+                <span className="text-[11px] font-mono text-foreground">
+                  {metaCreds?.waba_id || "—"}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">API Version</span>
+                <span className="text-[11px] font-mono text-foreground">v21.0</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                onClick={() => setShowDisconnectConfirm(true)}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Desconectar
+              </Button>
+            </div>
+          </div>
+        ) : isConnected && showDisconnectConfirm ? (
+          <div className="space-y-4">
+            <div className="text-center py-4 space-y-3">
+              <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-7 h-7 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Desconectar conta?</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Isso removerá o acesso à API oficial do WhatsApp. Você poderá reconectar a qualquer momento.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowDisconnectConfirm(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 gap-1.5"
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+              >
+                {disconnecting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                {disconnecting ? "Desconectando..." : "Confirmar"}
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-3">
               <p className="text-xs font-semibold text-foreground">Permissões solicitadas:</p>
@@ -137,38 +268,6 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
             <p className="text-[10px] text-muted-foreground text-center">
               Ao continuar, você autoriza o ZapLynx a acessar sua conta WhatsApp Business via API oficial da Meta.
             </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-center py-4 space-y-3">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-7 h-7 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Conta conectada!</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sua conta Facebook Business foi vinculada com sucesso.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Status</span>
-                <Badge className="text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                  Conectado
-                </Badge>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">API Version</span>
-                <span className="text-[11px] font-mono text-foreground">v21.0</span>
-              </div>
-            </div>
-
-            <Button className="w-full" onClick={() => onOpenChange(false)}>
-              Começar a usar
-            </Button>
           </div>
         )}
       </DialogContent>
