@@ -126,7 +126,7 @@ serve(async (req) => {
   } catch (err) {
     console.error("OAuth callback error:", err);
     return new Response(errorPage("Erro interno: " + (err as Error).message), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 500,
     });
   }
