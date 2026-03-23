@@ -761,7 +761,7 @@ function SocialProofSection() {
   return (
     <section className="w-[90%] max-w-[1200px] mx-auto py-20">
       <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
-        Quem usa, recomenda 🔥
+        Quem usa, recomenda
       </h2>
       <div className="relative overflow-hidden">
         <button
