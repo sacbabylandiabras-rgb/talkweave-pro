@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -27,17 +27,17 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
 
-    if (authError || !user) {
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Sessão inválida" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const userId = claimsData.claims.sub as string;
 
     // Get user's Meta credentials
     const serviceClient = createClient(
@@ -48,7 +48,7 @@ serve(async (req) => {
     const { data: creds, error: credsError } = await serviceClient
       .from("meta_credentials")
       .select("access_token, phone_number_id, waba_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("connected", true)
       .maybeSingle();
 
