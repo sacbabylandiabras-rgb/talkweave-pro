@@ -1,0 +1,95 @@
+import { useState } from "react";
+import { Check, ChevronDown, Zap, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
+import { MetaApiDialog } from "./MetaApiDialog";
+import { cn } from "@/lib/utils";
+
+const workspaces = [
+  {
+    id: "zapi" as WorkspaceType,
+    label: "ZapLynx",
+    description: "API não oficial (Z-API)",
+    icon: Zap,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    id: "meta" as WorkspaceType,
+    label: "Meta API Oficial",
+    description: "WhatsApp Business Platform",
+    icon: Globe,
+    color: "text-[#0668E1]",
+    bg: "bg-[#0668E1]/10",
+  },
+];
+
+export function WorkspaceSelector() {
+  const { activeWorkspace, setActiveWorkspace } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const [metaDialogOpen, setMetaDialogOpen] = useState(false);
+
+  const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
+  const CurrentIcon = current.icon;
+
+  const handleSelect = (ws: WorkspaceType) => {
+    if (ws === "meta") {
+      setMetaDialogOpen(true);
+    }
+    setActiveWorkspace(ws);
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-xs font-medium gap-2 rounded-lg"
+          >
+            <div className={cn("w-5 h-5 rounded flex items-center justify-center", current.bg)}>
+              <CurrentIcon className={cn("w-3 h-3", current.color)} />
+            </div>
+            <span className="hidden sm:inline">{current.label}</span>
+            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 py-1.5">
+            Workspace
+          </p>
+          {workspaces.map((ws) => {
+            const Icon = ws.icon;
+            const isActive = activeWorkspace === ws.id;
+            return (
+              <button
+                key={ws.id}
+                onClick={() => handleSelect(ws.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-left transition-colors",
+                  isActive
+                    ? "bg-muted"
+                    : "hover:bg-muted/60"
+                )}
+              >
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
+                  <Icon className={cn("w-4 h-4", ws.color)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground">{ws.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{ws.description}</p>
+                </div>
+                {isActive && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+              </button>
+            );
+          })}
+        </PopoverContent>
+      </Popover>
+
+      <MetaApiDialog open={metaDialogOpen} onOpenChange={setMetaDialogOpen} />
+    </>
+  );
+}
