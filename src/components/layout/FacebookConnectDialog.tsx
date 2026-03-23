@@ -1,0 +1,154 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Shield, CheckCircle2, Loader2, ExternalLink, MessageSquare, Users, BarChart3 } from "lucide-react";
+import { toast } from "sonner";
+
+interface FacebookConnectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
+  const [connecting, setConnecting] = useState(false);
+  const [connected, setConnected] = useState(false);
+
+  const handleFacebookConnect = () => {
+    setConnecting(true);
+
+    // Simula o popup do Facebook OAuth (Facebook Login for Business)
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const popup = window.open(
+      `https://www.facebook.com/v21.0/dialog/oauth?client_id=YOUR_META_APP_ID&redirect_uri=${encodeURIComponent(window.location.origin + "/meta/callback")}&scope=whatsapp_business_management,whatsapp_business_messaging,business_management,pages_show_list&response_type=code`,
+      "facebook_connect",
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+    );
+
+    // Monitor popup
+    const checkPopup = setInterval(() => {
+      if (!popup || popup.closed) {
+        clearInterval(checkPopup);
+        setConnecting(false);
+        // In production, the callback page would handle the OAuth code exchange
+        // For now, simulate success
+        setTimeout(() => {
+          setConnected(true);
+          toast.success("Conta Facebook Business conectada com sucesso!");
+        }, 500);
+      }
+    }, 500);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#1877F2]/10 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#1877F2]" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </div>
+            <div>
+              <DialogTitle className="text-base">Conectar com Facebook</DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                Vincule sua conta Business para usar a API oficial
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {!connected ? (
+          <div className="space-y-4">
+            {/* Permissions info */}
+            <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground">Permissões solicitadas:</p>
+              <div className="space-y-2">
+                {[
+                  { icon: MessageSquare, label: "WhatsApp Business Messaging", desc: "Enviar e receber mensagens" },
+                  { icon: Users, label: "Business Management", desc: "Gerenciar conta Business" },
+                  { icon: BarChart3, label: "WhatsApp Business Management", desc: "Templates e configurações" },
+                ].map((perm) => (
+                  <div key={perm.label} className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-background flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <perm.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">{perm.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{perm.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Security note */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+              <Shield className="w-4 h-4 text-primary flex-shrink-0" />
+              <p className="text-[10px] text-muted-foreground">
+                Conexão segura via OAuth. Não armazenamos sua senha do Facebook.
+              </p>
+            </div>
+
+            <Button
+              className="w-full gap-2.5 h-11 bg-[#1877F2] hover:bg-[#166FE5] text-white"
+              onClick={handleFacebookConnect}
+              disabled={connecting}
+            >
+              {connecting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              )}
+              {connecting ? "Conectando..." : "Continuar com Facebook"}
+            </Button>
+
+            <p className="text-[10px] text-muted-foreground text-center">
+              Ao continuar, você autoriza o ZapLynx a acessar sua conta WhatsApp Business via API oficial da Meta.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-center py-4 space-y-3">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Conta conectada!</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sua conta Facebook Business foi vinculada com sucesso.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Status</span>
+                <Badge className="text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                  Conectado
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">API Version</span>
+                <span className="text-[11px] font-mono text-foreground">v21.0</span>
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={() => onOpenChange(false)}>
+              Começar a usar
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
