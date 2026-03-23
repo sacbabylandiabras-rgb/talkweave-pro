@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const API_VERSION = "v21.0";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,10 +17,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Não autorizado" }, 401);
     }
 
     const supabase = createClient(
@@ -31,15 +30,11 @@ serve(async (req) => {
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
 
     if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Sessão inválida" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Sessão inválida" }, 401);
     }
 
     const userId = claimsData.claims.sub as string;
 
-    // Get user's Meta credentials
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -53,56 +48,74 @@ serve(async (req) => {
       .maybeSingle();
 
     if (credsError || !creds) {
-      return new Response(
-        JSON.stringify({ error: "Conta Meta não conectada. Conecte via Facebook primeiro." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Conta Meta não conectada. Conecte via Facebook primeiro." }, 400);
     }
 
     if (!creds.access_token || !creds.phone_number_id) {
-      return new Response(
-        JSON.stringify({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
     }
 
     const body = await req.json();
     const { action } = body;
 
-    // Route actions
-    if (action === "send_template") {
-      return await sendTemplateMessage(creds, body, corsHeaders);
-    } else if (action === "send_text") {
-      return await sendTextMessage(creds, body, corsHeaders);
-    } else if (action === "list_templates") {
-      return await listTemplates(creds, corsHeaders);
-    } else {
-      return new Response(JSON.stringify({ error: "Ação inválida" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    switch (action) {
+      case "send_template":
+        return await sendTemplateMessage(creds, body);
+      case "send_text":
+        return await sendTextMessage(creds, body);
+      case "list_templates":
+        return await listTemplates(creds);
+      case "get_profile":
+        return await getBusinessProfile(creds);
+      case "update_profile_name":
+        return await updateProfileName(creds, body);
+      case "update_profile_photo":
+        return await updateProfilePhoto(creds, body);
+      case "get_phone_numbers":
+        return await getPhoneNumbers(creds);
+      default:
+        return jsonResponse({ error: "Ação inválida" }, 400);
     }
   } catch (err) {
     console.error("send-meta-message error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: (err as Error).message || "Erro interno" }, 500);
   }
 });
 
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function metaFetch(url: string, token: string, options?: RequestInit) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...options?.headers,
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("Meta API error:", data);
+    return jsonResponse(
+      { error: data?.error?.message || "Erro na Meta API", details: data?.error },
+      res.status
+    );
+  }
+  return { data, ok: true };
+}
+
+// ── Send Template ──
 async function sendTemplateMessage(
   creds: { access_token: string; phone_number_id: string },
-  body: { phone: string; template_name: string; language?: string; variables?: string[] },
-  headers: Record<string, string>
+  body: { phone: string; template_name: string; language?: string; variables?: string[] }
 ) {
   const { phone, template_name, language = "pt_BR", variables = [] } = body;
-
   if (!phone || !template_name) {
-    return new Response(JSON.stringify({ error: "Número e template são obrigatórios" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Número e template são obrigatórios" }, 400);
   }
 
   const components: any[] = [];
@@ -117,69 +130,35 @@ async function sendTemplateMessage(
     messaging_product: "whatsapp",
     to: phone.replace(/\D/g, ""),
     type: "template",
-    template: {
-      name: template_name,
-      language: { code: language },
-    },
+    template: { name: template_name, language: { code: language } },
   };
+  if (components.length > 0) payload.template.components = components;
 
-  if (components.length > 0) {
-    payload.template.components = components;
-  }
-
-  const res = await fetch(
-    `https://graph.facebook.com/v21.0/${creds.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${creds.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/messages`,
+    creds.access_token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
   );
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error("Meta API error:", data);
-    return new Response(
-      JSON.stringify({
-        error: data?.error?.message || "Erro ao enviar mensagem",
-        details: data?.error,
-      }),
-      { status: res.status, headers: { ...headers, "Content-Type": "application/json" } }
-    );
-  }
-
-  return new Response(JSON.stringify({ success: true, data }), {
-    status: 200,
-    headers: { ...headers, "Content-Type": "application/json" },
-  });
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true, data: result.data });
 }
 
+// ── Send Text ──
 async function sendTextMessage(
   creds: { access_token: string; phone_number_id: string },
-  body: { phone: string; message: string },
-  headers: Record<string, string>
+  body: { phone: string; message: string }
 ) {
   const { phone, message } = body;
-
   if (!phone || !message) {
-    return new Response(JSON.stringify({ error: "Número e mensagem são obrigatórios" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Número e mensagem são obrigatórios" }, 400);
   }
 
-  const res = await fetch(
-    `https://graph.facebook.com/v21.0/${creds.phone_number_id}/messages`,
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/messages`,
+    creds.access_token,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${creds.access_token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to: phone.replace(/\D/g, ""),
@@ -188,56 +167,130 @@ async function sendTextMessage(
       }),
     }
   );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true, data: result.data });
+}
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error("Meta API text error:", data);
-    return new Response(
-      JSON.stringify({
-        error: data?.error?.message || "Erro ao enviar mensagem de texto",
-        details: data?.error,
-      }),
-      { status: res.status, headers: { ...headers, "Content-Type": "application/json" } }
-    );
+// ── List Templates ──
+async function listTemplates(creds: { access_token: string; phone_number_id: string; waba_id?: string }) {
+  if (!creds.waba_id) {
+    return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
   }
 
-  return new Response(JSON.stringify({ success: true, data }), {
-    status: 200,
-    headers: { ...headers, "Content-Type": "application/json" },
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/message_templates?limit=250`,
+    creds.access_token
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ templates: result.data.data || [] });
+}
+
+// ── Get Business Profile ──
+async function getBusinessProfile(creds: { access_token: string; phone_number_id: string }) {
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`,
+    creds.access_token
+  );
+  if (result instanceof Response) return result;
+
+  // Also get the phone number details
+  const phoneResult = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,name_status`,
+    creds.access_token
+  );
+  if (phoneResult instanceof Response) return phoneResult;
+
+  return jsonResponse({
+    profile: result.data.data?.[0] || {},
+    phone_info: phoneResult.data || {},
   });
 }
 
-async function listTemplates(
-  creds: { access_token: string; phone_number_id: string; waba_id?: string },
-  headers: Record<string, string>
+// ── Update Profile Name (about) ──
+async function updateProfileName(
+  creds: { access_token: string; phone_number_id: string },
+  body: { about?: string; description?: string; address?: string; email?: string; websites?: string[] }
 ) {
-  if (!creds.waba_id) {
-    return new Response(
-      JSON.stringify({ error: "WABA ID não configurado. Reconecte sua conta." }),
-      { status: 400, headers: { ...headers, "Content-Type": "application/json" } }
-    );
+  const updateData: any = { messaging_product: "whatsapp" };
+  if (body.about !== undefined) updateData.about = body.about;
+  if (body.description !== undefined) updateData.description = body.description;
+  if (body.address !== undefined) updateData.address = body.address;
+  if (body.email !== undefined) updateData.email = body.email;
+  if (body.websites !== undefined) updateData.websites = body.websites;
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile`,
+    creds.access_token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updateData) }
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true });
+}
+
+// ── Update Profile Photo ──
+async function updateProfilePhoto(
+  creds: { access_token: string; phone_number_id: string },
+  body: { photo_url: string }
+) {
+  if (!body.photo_url) {
+    return jsonResponse({ error: "URL da foto é obrigatória" }, 400);
   }
 
-  const res = await fetch(
-    `https://graph.facebook.com/v21.0/${creds.waba_id}/message_templates?limit=100`,
+  // Download the image first
+  const imageRes = await fetch(body.photo_url);
+  if (!imageRes.ok) {
+    return jsonResponse({ error: "Não foi possível baixar a imagem" }, 400);
+  }
+  const imageBlob = await imageRes.blob();
+
+  // Upload to Meta as media
+  const formData = new FormData();
+  formData.append("messaging_product", "whatsapp");
+  formData.append("file", imageBlob, "profile.jpg");
+  formData.append("type", "image/jpeg");
+
+  const uploadResult = await fetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/media`,
     {
+      method: "POST",
       headers: { Authorization: `Bearer ${creds.access_token}` },
+      body: formData,
     }
   );
+  const uploadData = await uploadResult.json();
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error("Meta templates error:", data);
-    return new Response(
-      JSON.stringify({ error: data?.error?.message || "Erro ao buscar templates" }),
-      { status: res.status, headers: { ...headers, "Content-Type": "application/json" } }
-    );
+  if (!uploadResult.ok) {
+    console.error("Upload error:", uploadData);
+    return jsonResponse({ error: uploadData?.error?.message || "Erro ao fazer upload da foto" }, uploadResult.status);
   }
 
-  return new Response(JSON.stringify({ templates: data.data || [] }), {
-    status: 200,
-    headers: { ...headers, "Content-Type": "application/json" },
-  });
+  // Set profile picture using the media handle
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile`,
+    creds.access_token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        profile_picture_handle: uploadData.id,
+      }),
+    }
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true });
+}
+
+// ── Get Phone Numbers ──
+async function getPhoneNumbers(creds: { access_token: string; phone_number_id: string; waba_id?: string }) {
+  if (!creds.waba_id) {
+    return jsonResponse({ error: "WABA ID não configurado" }, 400);
+  }
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/phone_numbers?fields=display_phone_number,verified_name,quality_rating,name_status,code_verification_status`,
+    creds.access_token
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ phone_numbers: result.data.data || [] });
 }
