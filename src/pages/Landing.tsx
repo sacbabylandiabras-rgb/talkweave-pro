@@ -557,7 +557,7 @@ const Landing = () => {
             <div className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
               {/* Header - Link Rotativo */}
               <div className="bg-primary/15 px-4 py-3 flex items-center gap-3 border-b border-border">
-                <span className="text-2xl">🔗</span>
+                <Link className="w-6 h-6 text-primary" />
                 <div>
                   <p className="text-foreground text-sm font-semibold">Link Rotativo: Turma VIP</p>
                   <p className="text-muted-foreground text-[10px]">zaplynx.app/turma-vip · 1.247 acessos</p>
