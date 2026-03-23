@@ -76,6 +76,16 @@ export default function TemplatesAprovados() {
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<MetaTemplate | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({
+    name: "",
+    category: "MARKETING",
+    language: "pt_BR",
+    headerText: "",
+    bodyText: "",
+    footerText: "",
+  });
 
   useEffect(() => {
     if (isConnected) fetchTemplates();
