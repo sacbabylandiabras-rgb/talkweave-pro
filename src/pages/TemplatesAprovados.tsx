@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle } from "lucide-react";
+import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
