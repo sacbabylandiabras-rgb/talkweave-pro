@@ -73,6 +73,7 @@ const App = () => (
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
+              <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
