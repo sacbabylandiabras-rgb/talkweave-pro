@@ -120,7 +120,7 @@ serve(async (req) => {
 
     // Return success page that closes the popup
     return new Response(successPage(wabaData.name || "Conta conectada"), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
 
   } catch (err) {
