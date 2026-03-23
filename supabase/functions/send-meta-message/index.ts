@@ -189,7 +189,7 @@ async function listTemplates(creds: { access_token: string; phone_number_id: str
 // ── Create Template ──
 async function createTemplate(
   creds: { access_token: string; phone_number_id: string; waba_id?: string },
-  body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string }
+  body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string; buttons?: { type: string; text: string; url?: string; phone_number?: string }[] }
 ) {
   if (!creds.waba_id) {
     return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
@@ -208,6 +208,15 @@ async function createTemplate(
 
   if (body.footer_text) {
     components.push({ type: "FOOTER", text: body.footer_text });
+  }
+
+  if (body.buttons && body.buttons.length > 0) {
+    const btns = body.buttons.map((b) => {
+      if (b.type === "URL") return { type: "URL", text: b.text, url: b.url };
+      if (b.type === "PHONE_NUMBER") return { type: "PHONE_NUMBER", text: b.text, phone_number: b.phone_number };
+      return { type: "QUICK_REPLY", text: b.text };
+    });
+    components.push({ type: "BUTTONS", buttons: btns });
   }
 
   const payload = {
