@@ -236,35 +236,9 @@ async function updateProfilePhoto(
     return jsonResponse({ error: "URL da foto é obrigatória" }, 400);
   }
 
-  // Download the image first
-  const imageRes = await fetch(body.photo_url);
-  if (!imageRes.ok) {
-    return jsonResponse({ error: "Não foi possível baixar a imagem" }, 400);
-  }
-  const imageBlob = await imageRes.blob();
+  console.log("Updating profile photo via profile_picture_url");
 
-  // Upload to Meta as media
-  const formData = new FormData();
-  formData.append("messaging_product", "whatsapp");
-  formData.append("file", imageBlob, "profile.jpg");
-  formData.append("type", "image/jpeg");
-
-  const uploadResult = await fetch(
-    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/media`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${creds.access_token}` },
-      body: formData,
-    }
-  );
-  const uploadData = await uploadResult.json();
-
-  if (!uploadResult.ok) {
-    console.error("Upload error:", uploadData);
-    return jsonResponse({ error: uploadData?.error?.message || "Erro ao fazer upload da foto" }, uploadResult.status);
-  }
-
-  // Set profile picture using the media handle
+  // Use the WhatsApp Business Profile API with profile_picture_url
   const result = await metaFetch(
     `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile`,
     creds.access_token,
@@ -273,7 +247,7 @@ async function updateProfilePhoto(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messaging_product: "whatsapp",
-        profile_picture_handle: uploadData.id,
+        profile_picture_url: body.photo_url,
       }),
     }
   );
