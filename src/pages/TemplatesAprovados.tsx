@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus } from "lucide-react";
+import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus, Trash2, Link, Phone as PhoneIcon, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +85,7 @@ export default function TemplatesAprovados() {
     headerText: "",
     bodyText: "",
     footerText: "",
+    buttons: [] as { type: string; text: string; url?: string; phone_number?: string }[],
   });
 
   useEffect(() => {
@@ -131,13 +132,14 @@ export default function TemplatesAprovados() {
           header_text: newTemplate.headerText || undefined,
           body_text: newTemplate.bodyText,
           footer_text: newTemplate.footerText || undefined,
+          buttons: newTemplate.buttons.length > 0 ? newTemplate.buttons : undefined,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success("Template criado e enviado para aprovação da Meta!");
       setShowCreate(false);
-      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "" });
+      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "", buttons: [] });
       fetchTemplates();
     } catch (err) {
       const msg = await getInvokeErrorMessage(err, "Erro ao criar template");
@@ -452,6 +454,93 @@ export default function TemplatesAprovados() {
                 onChange={(e) => setNewTemplate({ ...newTemplate, footerText: e.target.value })}
                 className="h-9 text-sm"
               />
+            </div>
+
+            {/* Buttons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Botões (máx. 3)</Label>
+                {newTemplate.buttons.length < 3 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2">
+                        <Plus className="w-3 h-3" /> Adicionar
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "URL", text: "", url: "" }]
+                      })}>
+                        <Link className="w-3.5 h-3.5" /> Botão URL
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "PHONE_NUMBER", text: "", phone_number: "" }]
+                      })}>
+                        <PhoneIcon className="w-3.5 h-3.5" /> Botão Ligar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "QUICK_REPLY", text: "" }]
+                      })}>
+                        <MessageSquare className="w-3.5 h-3.5" /> Resposta Rápida
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+
+              {newTemplate.buttons.map((btn, i) => (
+                <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-[9px]">
+                      {btn.type === "URL" ? "URL" : btn.type === "PHONE_NUMBER" ? "Ligar" : "Resposta Rápida"}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                      const next = [...newTemplate.buttons];
+                      next.splice(i, 1);
+                      setNewTemplate({ ...newTemplate, buttons: next });
+                    }}>
+                      <Trash2 className="w-3 h-3 text-destructive" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Texto do botão"
+                    value={btn.text}
+                    onChange={(e) => {
+                      const next = [...newTemplate.buttons];
+                      next[i] = { ...next[i], text: e.target.value };
+                      setNewTemplate({ ...newTemplate, buttons: next });
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  {btn.type === "URL" && (
+                    <Input
+                      placeholder="https://exemplo.com"
+                      value={btn.url || ""}
+                      onChange={(e) => {
+                        const next = [...newTemplate.buttons];
+                        next[i] = { ...next[i], url: e.target.value };
+                        setNewTemplate({ ...newTemplate, buttons: next });
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  )}
+                  {btn.type === "PHONE_NUMBER" && (
+                    <Input
+                      placeholder="+5511999999999"
+                      value={btn.phone_number || ""}
+                      onChange={(e) => {
+                        const next = [...newTemplate.buttons];
+                        next[i] = { ...next[i], phone_number: e.target.value };
+                        setNewTemplate({ ...newTemplate, buttons: next });
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
           <DialogFooter>
