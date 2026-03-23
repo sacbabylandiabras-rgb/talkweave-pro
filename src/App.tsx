@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import TemplatesAprovados from "./pages/TemplatesAprovados";
 import EnvioCloudAPI from "./pages/EnvioCloudAPI";
 import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 
 const queryClient = new QueryClient();
 
