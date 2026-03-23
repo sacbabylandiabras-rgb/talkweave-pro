@@ -49,6 +49,14 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+interface PhoneNumber {
+  display_phone_number: string;
+  verified_name: string;
+  quality_rating: string;
+  name_status: string;
+  id: string;
+}
+
 export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const [sendType, setSendType] = useState<"template" | "text">("template");
@@ -59,14 +67,33 @@ export default function EnvioCloudAPI() {
   const [sending, setSending] = useState(false);
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [loadingPhones, setLoadingPhones] = useState(false);
 
   const isConnected = creds?.connected === true;
 
   useEffect(() => {
     if (isConnected) {
       fetchTemplates();
+      fetchPhoneNumbers();
     }
   }, [isConnected]);
+
+  const fetchPhoneNumbers = async () => {
+    setLoadingPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPhoneNumbers(data.phone_numbers || []);
+    } catch (err) {
+      console.error("Error fetching phone numbers:", err);
+    } finally {
+      setLoadingPhones(false);
+    }
+  };
 
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
