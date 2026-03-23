@@ -109,7 +109,7 @@ serve(async (req) => {
     const { error: dbError } = await supabase
       .from("meta_credentials")
       .upsert({
-        user_id: state,
+        user_id: userId,
         access_token: finalToken,
         app_id: META_APP_ID,
         phone_number_id: phoneNumberId,
