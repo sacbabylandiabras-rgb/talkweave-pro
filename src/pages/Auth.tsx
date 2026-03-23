@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -31,6 +32,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
+  const [fbLoading, setFbLoading] = useState(false);
 
   useEffect(() => {
     // Verificar se usuário já está logado
@@ -59,6 +61,33 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
+
+  const handleFacebookLogin = async () => {
+    setFbLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: window.location.origin + "/dashboard",
+        },
+      });
+      if (error) {
+        toast({
+          title: "Erro ao entrar com Facebook",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Erro",
+        description: "Falha ao conectar com Facebook",
+        variant: "destructive",
+      });
+    } finally {
+      setFbLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +288,30 @@ const Auth = () => {
                     ) : (
                       "Entrar"
                     )}
+                  </Button>
+
+                  <div className="relative my-2">
+                    <Separator />
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-[10px] text-muted-foreground uppercase tracking-wider">
+                      ou
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white border-[#1877F2] hover:border-[#166FE5] hover:text-white"
+                    onClick={handleFacebookLogin}
+                    disabled={fbLoading}
+                  >
+                    {fbLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                    )}
+                    Entrar com Facebook
                   </Button>
                 </form>
               </TabsContent>
