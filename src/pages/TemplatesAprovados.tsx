@@ -139,7 +139,7 @@ export default function TemplatesAprovados() {
       if (data?.error) throw new Error(data.error);
       toast.success("Template criado e enviado para aprovação da Meta!");
       setShowCreate(false);
-      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "" });
+      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "", buttons: [] });
       fetchTemplates();
     } catch (err) {
       const msg = await getInvokeErrorMessage(err, "Erro ao criar template");
