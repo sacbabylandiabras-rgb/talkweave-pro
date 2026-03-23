@@ -132,6 +132,7 @@ export default function TemplatesAprovados() {
           header_text: newTemplate.headerText || undefined,
           body_text: newTemplate.bodyText,
           footer_text: newTemplate.footerText || undefined,
+          buttons: newTemplate.buttons.length > 0 ? newTemplate.buttons : undefined,
         },
       });
       if (error) throw error;
