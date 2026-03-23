@@ -21,6 +21,34 @@ interface MetaTemplate {
   components: any[];
 }
 
+async function getInvokeErrorMessage(error: unknown, fallback: string) {
+  if (!error) return fallback;
+
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const context = (error as { context?: Response }).context;
+
+    if (context) {
+      try {
+        const payload = await context.clone().json();
+        if (payload?.error) return payload.error;
+      } catch {
+        try {
+          const text = await context.clone().text();
+          if (text) return text;
+        } catch {
+          // ignore parse failures
+        }
+      }
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+
+  return fallback;
+}
+
 export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const [sendType, setSendType] = useState<"template" | "text">("template");
@@ -54,9 +82,10 @@ export default function EnvioCloudAPI() {
         (t: MetaTemplate) => t.status === "APPROVED"
       );
       setTemplates(approved);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching templates:", err);
-      toast.error("Erro ao buscar templates: " + (err.message || "desconhecido"));
+      const message = await getInvokeErrorMessage(err, "Erro desconhecido");
+      toast.error("Erro ao buscar templates: " + message);
     } finally {
       setLoadingTemplates(false);
     }
@@ -115,9 +144,10 @@ export default function EnvioCloudAPI() {
       toast.success("Mensagem enviada com sucesso via Meta API!");
       setPhone("");
       setMessage("");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Send error:", err);
-      toast.error(err.message || "Erro ao enviar mensagem");
+      const message = await getInvokeErrorMessage(err, "Erro ao enviar mensagem");
+      toast.error(message);
     } finally {
       setSending(false);
     }
