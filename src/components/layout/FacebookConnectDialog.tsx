@@ -50,8 +50,11 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
     const height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
+    const statePayload = encodeURIComponent(
+      btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
+    );
 
-    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${user.id}&response_type=code`;
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${statePayload}&response_type=code`;
 
     const popup = window.open(
       oauthUrl,
@@ -62,7 +65,6 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
     const checkPopup = setInterval(() => {
       if (!popup || popup.closed) {
         clearInterval(checkPopup);
-        // Give a moment for the postMessage to arrive
         setTimeout(() => setConnecting(false), 1500);
       }
     }, 500);
