@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { Bot, Rocket, BarChart3, Settings, Users, Brain, Link, CreditCard, Flame, Cherry, Gem, ClipboardList, ArrowDown, ShoppingCart, Phone, Sparkles, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import logoImage from "@/assets/logo.png";
 import dashboardMockup from "@/assets/dashboard-new.png";
 import fluxoScreenshot1 from "@/assets/fluxo-screenshot-1.png";
