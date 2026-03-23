@@ -48,7 +48,7 @@ serve(async (req) => {
     const { data: creds, error: credsError } = await serviceClient
       .from("meta_credentials")
       .select("access_token, phone_number_id, waba_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("connected", true)
       .maybeSingle();
 
