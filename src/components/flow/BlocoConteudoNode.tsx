@@ -1,5 +1,5 @@
 import { Handle, Position } from "reactflow";
-import { MessageSquare, Image, Video, Mic, FileText } from "lucide-react";
+import { MessageSquare, Image, Video, Mic, FileText, Link2, MessageCircle, Phone, ArrowRight, BarChart3 } from "lucide-react";
 
 const typeIcons: Record<string, any> = {
   text: MessageSquare,
@@ -17,11 +17,11 @@ const typeLabels: Record<string, string> = {
   document: "Documento",
 };
 
-const buttonTypeLabels: Record<string, string> = {
-  url: "🔗",
-  reply: "💬",
-  call: "📞",
-  flow: "➡️",
+const buttonTypeIcons: Record<string, any> = {
+  url: Link2,
+  reply: MessageCircle,
+  call: Phone,
+  flow: ArrowRight,
 };
 
 function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl: string }) {
@@ -93,7 +93,7 @@ export function BlocoConteudoNode({ data }: any) {
   const flowButtons = buttons.filter((b: any) => b.type === "flow" || b.type === "reply");
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[260px]">
+    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[280px]">
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-blue-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-blue-500" />
       <div className="flex items-center gap-2">
@@ -114,41 +114,41 @@ export function BlocoConteudoNode({ data }: any) {
       <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} />
 
       {data.content && (
-        <div className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+        <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap break-words">
           {data.content}
         </div>
       )}
 
       {buttons.length > 0 && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-2 space-y-1.5">
           {buttons.map((btn: any, idx: number) => {
             const btnText = btn.text || `Botão ${idx + 1}`;
+            const BtnIcon = buttonTypeIcons[btn.type] || Link2;
             const stats = data.buttonStats || {};
             const totalRecipients = data.totalFlowRecipients || 0;
             const clickCount = stats[btnText] || 0;
             const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
-            const hasStats = clickCount > 0;
 
             return (
-              <div key={btn.id || idx}>
-                <div className="text-[10px] text-primary flex items-center gap-1">
-                  {buttonTypeLabels[btn.type] || "🔗"} {btnText}
+              <div key={btn.id || idx} className="bg-muted/50 rounded-md px-2 py-1.5">
+                <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
+                  <BtnIcon className="h-3 w-3 flex-shrink-0" />
+                  {btnText}
                 </div>
-                {hasStats && (
-                  <div className="ml-4 mt-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
-                        {clickCount} ({percentage}%)
-                      </span>
+                {/* Always show metrics bar */}
+                <div className="mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                      />
                     </div>
+                    <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
+                      {clickCount} ({percentage}%)
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
