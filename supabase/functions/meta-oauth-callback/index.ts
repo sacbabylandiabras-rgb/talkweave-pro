@@ -119,9 +119,7 @@ serve(async (req) => {
     }
 
     // Return success page that closes the popup
-    return new Response(successPage(wabaData.name || "Conta conectada"), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    return Response.redirect(`${SUPABASE_URL.replace(/\/$/, "")}/meta-oauth-callback?name=${encodeURIComponent(wabaData.name || "Conta conectada")}`, 302);
 
   } catch (err) {
     console.error("OAuth callback error:", err);
