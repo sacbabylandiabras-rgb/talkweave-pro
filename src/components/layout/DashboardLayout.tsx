@@ -84,6 +84,8 @@ export function DashboardLayout() {
       "/meta/enviar": "envio-cloud",
       "/meta/configuracao": "configuracao-meta",
     };
+    return map[path] || "painel";
+  };
 
   return (
     <div className="flex h-screen bg-muted/30">
