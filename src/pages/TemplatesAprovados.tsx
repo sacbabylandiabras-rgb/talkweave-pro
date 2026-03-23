@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle } from "lucide-react";
+import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
@@ -73,6 +76,16 @@ export default function TemplatesAprovados() {
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<MetaTemplate | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({
+    name: "",
+    category: "MARKETING",
+    language: "pt_BR",
+    headerText: "",
+    bodyText: "",
+    footerText: "",
+  });
 
   useEffect(() => {
     if (isConnected) fetchTemplates();
@@ -101,6 +114,38 @@ export default function TemplatesAprovados() {
     if (activeTab === "all") return matchSearch;
     return matchSearch && t.status === activeTab.toUpperCase();
   });
+
+  const handleCreateTemplate = async () => {
+    if (!newTemplate.name || !newTemplate.bodyText) {
+      toast.error("Nome e corpo do template são obrigatórios");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: {
+          action: "create_template",
+          name: newTemplate.name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+          category: newTemplate.category,
+          language: newTemplate.language,
+          header_text: newTemplate.headerText || undefined,
+          body_text: newTemplate.bodyText,
+          footer_text: newTemplate.footerText || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Template criado e enviado para aprovação da Meta!");
+      setShowCreate(false);
+      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "" });
+      fetchTemplates();
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao criar template");
+      toast.error(msg);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const counts = {
     approved: templates.filter((t) => t.status === "APPROVED").length,
@@ -135,10 +180,16 @@ export default function TemplatesAprovados() {
             Templates reais da sua conta WABA — sincronizados com a Meta
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchTemplates} disabled={loading}>
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          Sincronizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowCreate(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            Criar Template
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchTemplates} disabled={loading}>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Sincronizar
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -325,6 +376,91 @@ export default function TemplatesAprovados() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Template Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Criar Novo Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Nome do template</Label>
+              <Input
+                placeholder="meu_template (letras minúsculas, sem espaços)"
+                value={newTemplate.name}
+                onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                className="h-9 text-sm"
+              />
+              <p className="text-[10px] text-muted-foreground">Apenas letras minúsculas, números e underscores</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Categoria</Label>
+                <Select value={newTemplate.category} onValueChange={(v) => setNewTemplate({ ...newTemplate, category: v })}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MARKETING">Marketing</SelectItem>
+                    <SelectItem value="UTILITY">Utilidade</SelectItem>
+                    <SelectItem value="AUTHENTICATION">Autenticação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Idioma</Label>
+                <Select value={newTemplate.language} onValueChange={(v) => setNewTemplate({ ...newTemplate, language: v })}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pt_BR">Português (BR)</SelectItem>
+                    <SelectItem value="en_US">English (US)</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Cabeçalho (opcional)</Label>
+              <Input
+                placeholder="Texto do cabeçalho"
+                value={newTemplate.headerText}
+                onChange={(e) => setNewTemplate({ ...newTemplate, headerText: e.target.value })}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Corpo da mensagem *</Label>
+              <Textarea
+                placeholder="Olá {{1}}, sua compra {{2}} foi confirmada!"
+                value={newTemplate.bodyText}
+                onChange={(e) => setNewTemplate({ ...newTemplate, bodyText: e.target.value })}
+                rows={4}
+                className="text-sm resize-none"
+              />
+              <p className="text-[10px] text-muted-foreground">Use {"{{1}}"}, {"{{2}}"} etc. para variáveis</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Rodapé (opcional)</Label>
+              <Input
+                placeholder="Texto do rodapé"
+                value={newTemplate.footerText}
+                onChange={(e) => setNewTemplate({ ...newTemplate, footerText: e.target.value })}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowCreate(false)}>Cancelar</Button>
+            <Button size="sm" className="gap-1.5" onClick={handleCreateTemplate} disabled={creating}>
+              {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {creating ? "Criando..." : "Criar Template"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

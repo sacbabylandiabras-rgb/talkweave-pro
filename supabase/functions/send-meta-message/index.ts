@@ -64,6 +64,8 @@ serve(async (req) => {
         return await sendTextMessage(creds, body);
       case "list_templates":
         return await listTemplates(creds);
+      case "create_template":
+        return await createTemplate(creds, body);
       case "get_profile":
         return await getBusinessProfile(creds);
       case "update_profile_name":
@@ -184,7 +186,46 @@ async function listTemplates(creds: { access_token: string; phone_number_id: str
   return jsonResponse({ templates: result.data.data || [] });
 }
 
-// ── Get Business Profile ──
+// ── Create Template ──
+async function createTemplate(
+  creds: { access_token: string; phone_number_id: string; waba_id?: string },
+  body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string }
+) {
+  if (!creds.waba_id) {
+    return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
+  }
+  if (!body.name || !body.body_text) {
+    return jsonResponse({ error: "Nome e corpo do template são obrigatórios" }, 400);
+  }
+
+  const components: any[] = [];
+
+  if (body.header_text) {
+    components.push({ type: "HEADER", format: "TEXT", text: body.header_text });
+  }
+
+  components.push({ type: "BODY", text: body.body_text });
+
+  if (body.footer_text) {
+    components.push({ type: "FOOTER", text: body.footer_text });
+  }
+
+  const payload = {
+    name: body.name,
+    category: body.category || "MARKETING",
+    language: body.language || "pt_BR",
+    components,
+  };
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/message_templates`,
+    creds.access_token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true, template: result.data });
+}
+
 async function getBusinessProfile(creds: { access_token: string; phone_number_id: string }) {
   const result = await metaFetch(
     `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`,
