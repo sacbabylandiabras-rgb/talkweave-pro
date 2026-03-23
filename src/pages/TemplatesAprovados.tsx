@@ -85,6 +85,7 @@ export default function TemplatesAprovados() {
     headerText: "",
     bodyText: "",
     footerText: "",
+    buttons: [] as { type: string; text: string; url?: string; phone_number?: string }[],
   });
 
   useEffect(() => {
