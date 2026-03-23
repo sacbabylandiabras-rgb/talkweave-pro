@@ -75,18 +75,19 @@ const Landing = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { emoji: "🤖", title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
-            { emoji: "🚀", title: "Envios Estratégicos", desc: "Dispare campanhas segmentadas com alta performance." },
-            { emoji: "📊", title: "Relatórios Avançados", desc: "Acompanhe métricas e resultados em tempo real." },
-            { emoji: "⚙", title: "Gestão Multi-Instância", desc: "Gerencie vários números em um único painel." },
+            { icon: <Bot className="w-6 h-6 text-primary" />, title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
+            { icon: <Rocket className="w-6 h-6 text-primary" />, title: "Envios Estratégicos", desc: "Dispare campanhas segmentadas com alta performance." },
+            { icon: <BarChart3 className="w-6 h-6 text-primary" />, title: "Relatórios Avançados", desc: "Acompanhe métricas e resultados em tempo real." },
+            { icon: <Settings className="w-6 h-6 text-primary" />, title: "Gestão Multi-Instância", desc: "Gerencie vários números em um único painel." },
           ].map((card, i) => (
             <div
               key={i}
               className="bg-card border border-border rounded-xl p-6 transition-transform hover:-translate-y-1"
             >
-              <h3 className="text-foreground font-semibold mb-2">
-                {card.emoji} {card.title}
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                {card.icon}
+                <h3 className="text-foreground font-semibold">{card.title}</h3>
+              </div>
               <p className="text-muted-foreground text-[15px]">{card.desc}</p>
             </div>
           ))}
