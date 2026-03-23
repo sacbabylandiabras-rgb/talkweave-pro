@@ -471,7 +471,7 @@ const Landing = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-1 mt-1.5">
-                      <span className="text-[9px] opacity-70">🤖 Automático</span>
+                      <span className="text-[9px] opacity-70">Automático</span>
                       <span className="text-[9px] opacity-60">14:32</span>
                     </div>
                   </div>
