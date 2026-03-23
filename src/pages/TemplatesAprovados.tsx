@@ -180,10 +180,16 @@ export default function TemplatesAprovados() {
             Templates reais da sua conta WABA — sincronizados com a Meta
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchTemplates} disabled={loading}>
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          Sincronizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowCreate(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            Criar Template
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchTemplates} disabled={loading}>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Sincronizar
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
