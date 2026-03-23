@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Users, FileText, Plus, Loader2, Phone, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
+import { Send, Users, FileText, Plus, Loader2, Phone, MessageSquare, AlertCircle, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,14 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+interface PhoneNumber {
+  display_phone_number: string;
+  verified_name: string;
+  quality_rating: string;
+  name_status: string;
+  id: string;
+}
+
 export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const [sendType, setSendType] = useState<"template" | "text">("template");
@@ -59,14 +67,33 @@ export default function EnvioCloudAPI() {
   const [sending, setSending] = useState(false);
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [loadingPhones, setLoadingPhones] = useState(false);
 
   const isConnected = creds?.connected === true;
 
   useEffect(() => {
     if (isConnected) {
       fetchTemplates();
+      fetchPhoneNumbers();
     }
   }, [isConnected]);
+
+  const fetchPhoneNumbers = async () => {
+    setLoadingPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPhoneNumbers(data.phone_numbers || []);
+    } catch (err) {
+      console.error("Error fetching phone numbers:", err);
+    } finally {
+      setLoadingPhones(false);
+    }
+  };
 
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
@@ -192,6 +219,56 @@ export default function EnvioCloudAPI() {
           Envie mensagens utilizando a API oficial do WhatsApp Business (Graph API v21.0)
         </p>
       </div>
+
+      {/* Connected Phone Numbers */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-medium flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5" />
+            Números conectados na BM
+          </Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[10px] gap-1 px-2"
+            onClick={fetchPhoneNumbers}
+            disabled={loadingPhones}
+          >
+            <RefreshCw className={`w-3 h-3 ${loadingPhones ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
+        {loadingPhones ? (
+          <div className="flex items-center gap-2 py-3 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Buscando números...</span>
+          </div>
+        ) : phoneNumbers.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-2">Nenhum número encontrado na BM.</p>
+        ) : (
+          <div className="space-y-2">
+            {phoneNumbers.map((pn) => (
+              <div key={pn.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{pn.display_phone_number}</p>
+                    <p className="text-[10px] text-muted-foreground">{pn.verified_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={pn.quality_rating === "GREEN" ? "default" : "secondary"} className="text-[9px]">
+                    {pn.quality_rating || "N/A"}
+                  </Badge>
+                  <Badge variant="outline" className="text-[9px]">
+                    {pn.name_status || "N/A"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Send type tabs */}
       <div className="flex gap-2">
