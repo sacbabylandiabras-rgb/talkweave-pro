@@ -27,6 +27,17 @@ serve(async (req) => {
   }
 
   try {
+    let userId = state;
+    let appOrigin: string | null = null;
+
+    try {
+      const decodedState = JSON.parse(atob(state));
+      if (decodedState?.userId) userId = decodedState.userId;
+      if (decodedState?.origin && /^https?:\/\//.test(decodedState.origin)) appOrigin = decodedState.origin;
+    } catch {
+      // Backward compatibility with old state format
+    }
+
     // Exchange code for access token
     const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(SUPABASE_URL + "/functions/v1/meta-oauth-callback")}&client_secret=${META_APP_SECRET}&code=${code}`;
 
