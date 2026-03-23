@@ -455,6 +455,93 @@ export default function TemplatesAprovados() {
                 className="h-9 text-sm"
               />
             </div>
+
+            {/* Buttons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Botões (máx. 3)</Label>
+                {newTemplate.buttons.length < 3 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2">
+                        <Plus className="w-3 h-3" /> Adicionar
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "URL", text: "", url: "" }]
+                      })}>
+                        <Link className="w-3.5 h-3.5" /> Botão URL
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "PHONE_NUMBER", text: "", phone_number: "" }]
+                      })}>
+                        <PhoneIcon className="w-3.5 h-3.5" /> Botão Ligar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-xs gap-2" onClick={() => setNewTemplate({
+                        ...newTemplate,
+                        buttons: [...newTemplate.buttons, { type: "QUICK_REPLY", text: "" }]
+                      })}>
+                        <MessageSquare className="w-3.5 h-3.5" /> Resposta Rápida
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+
+              {newTemplate.buttons.map((btn, i) => (
+                <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-[9px]">
+                      {btn.type === "URL" ? "URL" : btn.type === "PHONE_NUMBER" ? "Ligar" : "Resposta Rápida"}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                      const next = [...newTemplate.buttons];
+                      next.splice(i, 1);
+                      setNewTemplate({ ...newTemplate, buttons: next });
+                    }}>
+                      <Trash2 className="w-3 h-3 text-destructive" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Texto do botão"
+                    value={btn.text}
+                    onChange={(e) => {
+                      const next = [...newTemplate.buttons];
+                      next[i] = { ...next[i], text: e.target.value };
+                      setNewTemplate({ ...newTemplate, buttons: next });
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  {btn.type === "URL" && (
+                    <Input
+                      placeholder="https://exemplo.com"
+                      value={btn.url || ""}
+                      onChange={(e) => {
+                        const next = [...newTemplate.buttons];
+                        next[i] = { ...next[i], url: e.target.value };
+                        setNewTemplate({ ...newTemplate, buttons: next });
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  )}
+                  {btn.type === "PHONE_NUMBER" && (
+                    <Input
+                      placeholder="+5511999999999"
+                      value={btn.phone_number || ""}
+                      onChange={(e) => {
+                        const next = [...newTemplate.buttons];
+                        next[i] = { ...next[i], phone_number: e.target.value };
+                        setNewTemplate({ ...newTemplate, buttons: next });
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setShowCreate(false)}>Cancelar</Button>
