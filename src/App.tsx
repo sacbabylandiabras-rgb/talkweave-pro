@@ -32,6 +32,7 @@ import EnvioCloudAPI from "./pages/EnvioCloudAPI";
 import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
+import MetaOAuthCallback from "./pages/MetaOAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
               <Route element={<DashboardLayout />}>
                 {/* Shared routes */}
                 <Route path="/dashboard" element={<Dashboard />} />
