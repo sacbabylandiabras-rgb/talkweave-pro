@@ -147,7 +147,7 @@ export default function TemplatesAprovados() {
     }
   };
 
-
+  const counts = {
     approved: templates.filter((t) => t.status === "APPROVED").length,
     pending: templates.filter((t) => t.status === "PENDING").length,
     rejected: templates.filter((t) => t.status === "REJECTED").length,
