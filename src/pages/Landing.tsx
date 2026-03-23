@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { Bot, Rocket, BarChart3, Settings, Users, Brain, Link, CreditCard, Flame, Cherry, Gem, ClipboardList, ArrowDown, ShoppingCart, Phone, Sparkles, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import logoImage from "@/assets/logo.png";
 import dashboardMockup from "@/assets/dashboard-new.png";
 import fluxoScreenshot1 from "@/assets/fluxo-screenshot-1.png";
@@ -74,18 +75,19 @@ const Landing = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { emoji: "🤖", title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
-            { emoji: "🚀", title: "Envios Estratégicos", desc: "Dispare campanhas segmentadas com alta performance." },
-            { emoji: "📊", title: "Relatórios Avançados", desc: "Acompanhe métricas e resultados em tempo real." },
-            { emoji: "⚙", title: "Gestão Multi-Instância", desc: "Gerencie vários números em um único painel." },
+            { icon: <Bot className="w-6 h-6 text-primary" />, title: "Agente de IA Treinável", desc: "Responde automaticamente seus clientes 24h por dia." },
+            { icon: <Rocket className="w-6 h-6 text-primary" />, title: "Envios Estratégicos", desc: "Dispare campanhas segmentadas com alta performance." },
+            { icon: <BarChart3 className="w-6 h-6 text-primary" />, title: "Relatórios Avançados", desc: "Acompanhe métricas e resultados em tempo real." },
+            { icon: <Settings className="w-6 h-6 text-primary" />, title: "Gestão Multi-Instância", desc: "Gerencie vários números em um único painel." },
           ].map((card, i) => (
             <div
               key={i}
               className="bg-card border border-border rounded-xl p-6 transition-transform hover:-translate-y-1"
             >
-              <h3 className="text-foreground font-semibold mb-2">
-                {card.emoji} {card.title}
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                {card.icon}
+                <h3 className="text-foreground font-semibold">{card.title}</h3>
+              </div>
               <p className="text-muted-foreground text-[15px]">{card.desc}</p>
             </div>
           ))}
@@ -114,8 +116,8 @@ const Landing = () => {
                 "Relatório detalhado de entregas",
                 "Suporte a texto, imagem, áudio e vídeo",
               ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5">✓</span>
+                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -149,7 +151,7 @@ const Landing = () => {
                   "Ativação e desativação com um clique",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <span className="text-primary mt-0.5 font-bold">✓</span>
+                    <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -185,7 +187,7 @@ const Landing = () => {
           <div className="order-2 md:order-1 flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-8 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">👥</span>
+                <Users className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Grupos & Comunidades</h4>
               </div>
               {[
@@ -223,7 +225,7 @@ const Landing = () => {
                 "Envie campanhas direto para os leads extraídos",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -259,7 +261,7 @@ const Landing = () => {
                 "Chat de teste no painel para validar respostas",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -274,7 +276,7 @@ const Landing = () => {
           <div className="flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🧠</span>
+                <Brain className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Agente Inteligente</h4>
               </div>
               <div className="space-y-3">
@@ -295,7 +297,7 @@ const Landing = () => {
                 </div>
                 <div className="flex justify-start">
                   <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
-                    Aqui está! 🔗 Qualquer dúvida, estou aqui pra te ajudar.
+                    Aqui está! Qualquer dúvida, estou aqui pra te ajudar.
                   </div>
                 </div>
               </div>
@@ -313,14 +315,14 @@ const Landing = () => {
           <div className="order-2 md:order-1 flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🔗</span>
+                <Link className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Integrações Conectadas</h4>
               </div>
               {[
-                { name: "PerfectPay", status: "Ativo", icon: "💳" },
-                { name: "Hotmart", status: "Ativo", icon: "🔥" },
-                { name: "Kiwify", status: "Ativo", icon: "🥝" },
-                { name: "Stripe", status: "Ativo", icon: "💎" },
+                { name: "PerfectPay", status: "Ativo", icon: <CreditCard className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Hotmart", status: "Ativo", icon: <Flame className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Kiwify", status: "Ativo", icon: <Cherry className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Stripe", status: "Ativo", icon: <Gem className="w-4 h-4 text-muted-foreground" /> },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -353,7 +355,7 @@ const Landing = () => {
                 "Histórico completo de eventos recebidos",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -390,7 +392,7 @@ const Landing = () => {
                 "Reutilize em envios em massa com um clique",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -405,7 +407,7 @@ const Landing = () => {
           <div className="flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">📋</span>
+                <ClipboardList className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Modelos Salvos</h4>
               </div>
               {[
@@ -453,7 +455,7 @@ const Landing = () => {
                 </div>
                 {/* Arrow indicator */}
                 <div className="flex justify-center">
-                  <span className="text-primary text-lg animate-bounce">⬇</span>
+                  <ArrowDown className="w-5 h-5 text-primary animate-bounce" />
                 </div>
                 {/* Bot welcome message */}
                 <div className="flex justify-end">
@@ -462,14 +464,14 @@ const Landing = () => {
                     <p className="text-xs leading-relaxed mt-1">Bem-vindo ao nosso grupo VIP! Aqui você terá acesso a ofertas exclusivas e conteúdos especiais.</p>
                     <div className="mt-2 space-y-1">
                       <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
-                        🛒 Ver Ofertas
+                        Ver Ofertas
                       </div>
                       <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
-                        📞 Falar com Suporte
+                        Falar com Suporte
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-1 mt-1.5">
-                      <span className="text-[9px] opacity-70">🤖 Automático</span>
+                      <span className="text-[9px] opacity-70">Automático</span>
                       <span className="text-[9px] opacity-60">14:32</span>
                     </div>
                   </div>
@@ -502,7 +504,7 @@ const Landing = () => {
                 "Configuração individual por grupo",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -539,7 +541,7 @@ const Landing = () => {
                 "Gerenciamento centralizado de múltiplas instâncias",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 font-bold">✓</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -555,7 +557,7 @@ const Landing = () => {
             <div className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
               {/* Header - Link Rotativo */}
               <div className="bg-primary/15 px-4 py-3 flex items-center gap-3 border-b border-border">
-                <span className="text-2xl">🔗</span>
+                <Link className="w-6 h-6 text-primary" />
                 <div>
                   <p className="text-foreground text-sm font-semibold">Link Rotativo: Turma VIP</p>
                   <p className="text-muted-foreground text-[10px]">zaplynx.app/turma-vip · 1.247 acessos</p>
@@ -603,7 +605,7 @@ const Landing = () => {
                 ))}
                 {/* Auto-create indicator */}
                 <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2.5 border border-dashed border-primary/30">
-                  <span className="text-sm">✨</span>
+                  <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                   <div>
                     <p className="text-foreground text-[11px] font-medium">Próximo grupo criado automaticamente</p>
                     <p className="text-muted-foreground text-[10px]">Turma VIP #4 será criado ao lotar o #3</p>
@@ -696,7 +698,7 @@ const Landing = () => {
               <ul className="text-left space-y-2 mb-6">
                 {plan.features.map((feat, fi) => (
                   <li key={fi} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <span className="text-primary mt-0.5">✓</span>
+                    <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                     {feat}
                   </li>
                 ))}
@@ -759,7 +761,7 @@ function SocialProofSection() {
   return (
     <section className="w-[90%] max-w-[1200px] mx-auto py-20">
       <h2 className="text-center text-[32px] font-extrabold text-foreground mb-10">
-        Quem usa, recomenda 🔥
+        Quem usa, recomenda
       </h2>
       <div className="relative overflow-hidden">
         <button
