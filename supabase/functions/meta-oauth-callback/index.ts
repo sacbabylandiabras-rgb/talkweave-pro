@@ -21,7 +21,7 @@ serve(async (req) => {
   if (!META_APP_ID || !META_APP_SECRET) {
     console.error("META_APP_ID or META_APP_SECRET not configured");
     return new Response(errorPage("Configuração do servidor incompleta."), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 500,
     });
   }
