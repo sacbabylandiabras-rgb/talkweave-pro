@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Users, FileText, Plus, Loader2, Phone, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
+import { Send, Users, FileText, Plus, Loader2, Phone, MessageSquare, AlertCircle, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
