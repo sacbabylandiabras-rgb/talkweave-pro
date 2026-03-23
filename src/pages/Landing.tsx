@@ -455,7 +455,7 @@ const Landing = () => {
                 </div>
                 {/* Arrow indicator */}
                 <div className="flex justify-center">
-                  <span className="text-primary text-lg animate-bounce">⬇</span>
+                  <ArrowDown className="w-5 h-5 text-primary animate-bounce" />
                 </div>
                 {/* Bot welcome message */}
                 <div className="flex justify-end">
