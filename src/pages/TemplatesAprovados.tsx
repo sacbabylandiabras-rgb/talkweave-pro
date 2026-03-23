@@ -115,7 +115,39 @@ export default function TemplatesAprovados() {
     return matchSearch && t.status === activeTab.toUpperCase();
   });
 
-  const counts = {
+  const handleCreateTemplate = async () => {
+    if (!newTemplate.name || !newTemplate.bodyText) {
+      toast.error("Nome e corpo do template são obrigatórios");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: {
+          action: "create_template",
+          name: newTemplate.name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+          category: newTemplate.category,
+          language: newTemplate.language,
+          header_text: newTemplate.headerText || undefined,
+          body_text: newTemplate.bodyText,
+          footer_text: newTemplate.footerText || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Template criado e enviado para aprovação da Meta!");
+      setShowCreate(false);
+      setNewTemplate({ name: "", category: "MARKETING", language: "pt_BR", headerText: "", bodyText: "", footerText: "" });
+      fetchTemplates();
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao criar template");
+      toast.error(msg);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+
     approved: templates.filter((t) => t.status === "APPROVED").length,
     pending: templates.filter((t) => t.status === "PENDING").length,
     rejected: templates.filter((t) => t.status === "REJECTED").length,
