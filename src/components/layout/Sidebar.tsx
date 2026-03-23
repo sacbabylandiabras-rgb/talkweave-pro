@@ -16,12 +16,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Bot,
-  Link2
+  Link2,
+  FileCheck,
+  CloudUpload,
+  Globe
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
@@ -30,7 +34,7 @@ interface SidebarProps {
   userId?: string;
 }
 
-const menuItems = [
+const zapiMenuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
@@ -46,15 +50,36 @@ const menuItems = [
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
 ];
 
-const bottomItems = [
+const metaMenuItems = [
+  { id: "painel-meta", label: "Painel", icon: LayoutDashboard, path: "/meta/dashboard" },
+  { id: "templates-aprovados", label: "Templates", icon: FileCheck, path: "/meta/templates" },
+  { id: "envio-cloud", label: "Enviar", icon: CloudUpload, path: "/meta/enviar" },
+  { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
+  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+  { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
+  { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
+];
+
+const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
   { id: "configuracao-zapi", label: "Configuração", icon: Settings, path: "/configuracao-zapi", adminOnly: true },
 ];
 
+const metaBottomItems = [
+  { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
+  { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
+  { id: "configuracao-meta", label: "Configuração", icon: Globe, path: "/meta/configuracao", adminOnly: false },
+];
+
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
+  const { activeWorkspace, workspaceLabel } = useWorkspace();
   const [collapsed, setCollapsed] = useState(false);
+
+  const menuItems = activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
+  const bottomItems = activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
+  const brandLabel = activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
@@ -106,9 +131,15 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         "flex items-center gap-2.5 px-4 py-4 border-b border-border",
         collapsed && "justify-center px-2"
       )}>
-        <LogoImage className="w-8 h-8 object-contain shrink-0" />
+        {activeWorkspace === "meta" ? (
+          <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
+            <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
+          </div>
+        ) : (
+          <LogoImage className="w-8 h-8 object-contain shrink-0" />
+        )}
         {!collapsed && (
-          <span className="text-sm font-bold text-foreground tracking-tight">ZapLynx</span>
+          <span className="text-sm font-bold text-foreground tracking-tight">{brandLabel}</span>
         )}
       </div>
 

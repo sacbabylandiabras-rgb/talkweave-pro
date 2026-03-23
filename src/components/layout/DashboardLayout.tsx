@@ -77,6 +77,12 @@ export function DashboardLayout() {
       "/mensagens": "mensagens",
       "/apanhador-grupos": "apanhador-grupos",
       "/agente-ia": "agente-ia",
+      "/criar-grupos": "criar-grupos",
+      // Meta API routes
+      "/meta/dashboard": "painel-meta",
+      "/meta/templates": "templates-aprovados",
+      "/meta/enviar": "envio-cloud",
+      "/meta/configuracao": "configuracao-meta",
     };
     return map[path] || "painel";
   };
