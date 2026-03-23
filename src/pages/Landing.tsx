@@ -297,7 +297,7 @@ const Landing = () => {
                 </div>
                 <div className="flex justify-start">
                   <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
-                    Aqui está! 🔗 Qualquer dúvida, estou aqui pra te ajudar.
+                    Aqui está! Qualquer dúvida, estou aqui pra te ajudar.
                   </div>
                 </div>
               </div>
