@@ -464,10 +464,10 @@ const Landing = () => {
                     <p className="text-xs leading-relaxed mt-1">Bem-vindo ao nosso grupo VIP! Aqui você terá acesso a ofertas exclusivas e conteúdos especiais.</p>
                     <div className="mt-2 space-y-1">
                       <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
-                        🛒 Ver Ofertas
+                        Ver Ofertas
                       </div>
                       <div className="text-center text-[11px] font-medium py-1.5 rounded-md border border-primary-foreground/30 bg-primary-foreground/10">
-                        📞 Falar com Suporte
+                        Falar com Suporte
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-1 mt-1.5">
