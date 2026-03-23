@@ -36,7 +36,7 @@ serve(async (req) => {
     if (tokenData.error) {
       console.error("Token exchange error:", tokenData.error);
       return new Response(errorPage("Erro ao trocar código: " + (tokenData.error.message || "desconhecido")), {
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
         status: 400,
       });
     }
