@@ -8,7 +8,7 @@ serve(async (req) => {
 
   if (!code || !state) {
     return new Response(errorPage("Parâmetros inválidos. Feche esta janela e tente novamente."), {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html; charset=utf-8" },
       status: 400,
     });
   }
