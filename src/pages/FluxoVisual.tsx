@@ -818,106 +818,118 @@ export default function FluxoVisual() {
 
   if (showFluxosList) {
     return (
-      <div className="p-6">
-        <div className="w-full">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Fluxos Visuais</h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                Crie fluxos automáticos disparados por palavra-chave
-              </p>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Fluxos Visuais</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Crie automações visuais disparadas por palavra-chave
+            </p>
+          </div>
+          <Button onClick={handleNovoFluxo} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Fluxo
+          </Button>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-muted-foreground text-sm">Carregando fluxos...</p>
+          </div>
+        ) : fluxosSalvos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border rounded-xl bg-card/50">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <Workflow className="h-8 w-8 text-primary" />
             </div>
-            <Button onClick={handleNovoFluxo}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Fluxo
+            <h3 className="font-semibold text-lg mb-1">Nenhum fluxo criado</h3>
+            <p className="text-muted-foreground text-sm mb-6 max-w-sm text-center">
+              Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp
+            </p>
+            <Button onClick={handleNovoFluxo} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Criar Primeiro Fluxo
             </Button>
           </div>
-
-          <ScrollArea className="h-[600px]">
-            {loading ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Carregando fluxos...</p>
-              </div>
-            ) : fluxosSalvos.length === 0 ? (
-              <div className="text-center py-12">
-                <Workflow className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">
-                  Nenhum fluxo salvo ainda
-                </p>
-                <Button onClick={handleNovoFluxo} variant="outline">
-                  Criar Primeiro Fluxo
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {fluxosSalvos.map((fluxo) => (
-                  <Card key={fluxo.id} className="p-4 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-lg">{fluxo.name}</h3>
-                          <Badge variant={fluxo.active ? "default" : "secondary"}>
-                            {fluxo.active ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </div>
-                        {fluxo.keyword && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Key className="h-3 w-3 text-primary" />
-                            <span className="text-xs text-primary font-mono">
-                              {fluxo.keyword}
-                            </span>
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Atualizado em {new Date(fluxo.updated_at).toLocaleDateString('pt-BR')}
-                        </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {fluxosSalvos.map((fluxo) => (
+              <div
+                key={fluxo.id}
+                className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-200"
+              >
+                {/* Card accent bar */}
+                <div className={`h-1 ${fluxo.active ? 'bg-primary' : 'bg-muted-foreground/20'}`} />
+                
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-base truncate">{fluxo.name}</h3>
                       </div>
-                      <Switch
-                        checked={fluxo.active}
-                        onCheckedChange={() => handleToggleActive(fluxo)}
-                      />
+                      {fluxo.keyword && (
+                        <div className="flex items-center gap-1.5">
+                          <Key className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span className="text-xs text-primary font-mono truncate">
+                            {fluxo.keyword}
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    <Switch
+                      checked={fluxo.active}
+                      onCheckedChange={() => handleToggleActive(fluxo)}
+                    />
+                  </div>
 
-                    <div className="flex gap-2 text-xs text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        {(fluxo.nodes as any[])?.length || 0} blocos
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <GitBranch className="h-3 w-3" />
-                        {(fluxo.edges as any[])?.length || 0} conexões
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" />
+                      {(fluxo.nodes as any[])?.length || 0} blocos
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="h-3 w-3" />
+                      {(fluxo.edges as any[])?.length || 0} conexões
+                    </span>
+                  </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleCarregarFluxo(fluxo)}
-                      >
-                        Abrir
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDuplicarFluxo(fluxo)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleExcluirFluxo(fluxo.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                  <p className="text-[11px] text-muted-foreground mb-4">
+                    Atualizado em {new Date(fluxo.updated_at).toLocaleDateString('pt-BR')}
+                  </p>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleCarregarFluxo(fluxo)}
+                    >
+                      Abrir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDuplicarFluxo(fluxo)}
+                      title="Duplicar"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleExcluirFluxo(fluxo.id)}
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
-          </ScrollArea>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
