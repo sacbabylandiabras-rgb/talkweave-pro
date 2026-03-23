@@ -220,6 +220,56 @@ export default function EnvioCloudAPI() {
         </p>
       </div>
 
+      {/* Connected Phone Numbers */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-medium flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5" />
+            Números conectados na BM
+          </Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[10px] gap-1 px-2"
+            onClick={fetchPhoneNumbers}
+            disabled={loadingPhones}
+          >
+            <RefreshCw className={`w-3 h-3 ${loadingPhones ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
+        {loadingPhones ? (
+          <div className="flex items-center gap-2 py-3 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Buscando números...</span>
+          </div>
+        ) : phoneNumbers.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-2">Nenhum número encontrado na BM.</p>
+        ) : (
+          <div className="space-y-2">
+            {phoneNumbers.map((pn) => (
+              <div key={pn.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{pn.display_phone_number}</p>
+                    <p className="text-[10px] text-muted-foreground">{pn.verified_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={pn.quality_rating === "GREEN" ? "default" : "secondary"} className="text-[9px]">
+                    {pn.quality_rating || "N/A"}
+                  </Badge>
+                  <Badge variant="outline" className="text-[9px]">
+                    {pn.name_status || "N/A"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Send type tabs */}
       <div className="flex gap-2">
         <Button
