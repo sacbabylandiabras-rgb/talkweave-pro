@@ -113,7 +113,7 @@ serve(async (req) => {
     if (dbError) {
       console.error("DB error:", dbError);
       return new Response(errorPage("Erro ao salvar credenciais."), {
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
         status: 500,
       });
     }
