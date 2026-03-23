@@ -3,7 +3,7 @@ import { Check, ChevronDown, Zap, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
-import { MetaApiDialog } from "./MetaApiDialog";
+import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { cn } from "@/lib/utils";
 
 const workspaces = [
@@ -28,14 +28,14 @@ const workspaces = [
 export function WorkspaceSelector() {
   const { activeWorkspace, setActiveWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
-  const [metaDialogOpen, setMetaDialogOpen] = useState(false);
+  const [fbDialogOpen, setFbDialogOpen] = useState(false);
 
   const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
   const CurrentIcon = current.icon;
 
   const handleSelect = (ws: WorkspaceType) => {
     if (ws === "meta") {
-      setMetaDialogOpen(true);
+      setFbDialogOpen(true);
     }
     setActiveWorkspace(ws);
     setOpen(false);
@@ -89,7 +89,7 @@ export function WorkspaceSelector() {
         </PopoverContent>
       </Popover>
 
-      <MetaApiDialog open={metaDialogOpen} onOpenChange={setMetaDialogOpen} />
+      <FacebookConnectDialog open={fbDialogOpen} onOpenChange={setFbDialogOpen} />
     </>
   );
 }
