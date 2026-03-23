@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus } from "lucide-react";
+import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus, Trash2, Link, Phone as PhoneIcon, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
