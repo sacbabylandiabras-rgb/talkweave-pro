@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -32,35 +33,36 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dispositivos" element={<Dispositivos />} />
-              <Route path="/perfil" element={<Perfil />} />
-              <Route path="/campanhas" element={<Campanhas />} />
-              <Route path="/contatos" element={<Contatos />} />
-              <Route path="/modelos" element={<Modelos />} />
-              <Route path="/fluxo-visual" element={<FluxoVisual />} />
-              <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
-              <Route path="/relatorio" element={<Relatorio />} />
-              <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
-              <Route path="/gateway" element={<GatewayIntegracoes />} />
-              <Route path="/mensagens" element={<MensagensRecebidas />} />
-              <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
-              <Route path="/criar-grupos" element={<CriarGrupos />} />
-              <Route path="/agente-ia" element={<AgenteIA />} />
-              <Route path="/admin" element={<Admin />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="/invite/:slug" element={<InvitePage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <WorkspaceProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dispositivos" element={<Dispositivos />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/campanhas" element={<Campanhas />} />
+                <Route path="/contatos" element={<Contatos />} />
+                <Route path="/modelos" element={<Modelos />} />
+                <Route path="/fluxo-visual" element={<FluxoVisual />} />
+                <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
+                <Route path="/relatorio" element={<Relatorio />} />
+                <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
+                <Route path="/gateway" element={<GatewayIntegracoes />} />
+                <Route path="/mensagens" element={<MensagensRecebidas />} />
+                <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
+                <Route path="/criar-grupos" element={<CriarGrupos />} />
+                <Route path="/agente-ia" element={<AgenteIA />} />
+                <Route path="/admin" element={<Admin />} />
+              </Route>
+              <Route path="/invite/:slug" element={<InvitePage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </WorkspaceProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
