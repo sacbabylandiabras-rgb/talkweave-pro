@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.redirect-link]
 verify_jwt = false
+
+[functions.meta-oauth-callback]
+verify_jwt = false

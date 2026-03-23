@@ -1,46 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Shield, CheckCircle2, Loader2, ExternalLink, MessageSquare, Users, BarChart3 } from "lucide-react";
+import { Shield, CheckCircle2, Loader2, MessageSquare, Users, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface FacebookConnectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const META_APP_ID = "2578302429253794";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
+const SCOPES = "whatsapp_business_management,whatsapp_business_messaging,business_management";
+
 export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [connectedName, setConnectedName] = useState("");
+  const queryClient = useQueryClient();
 
-  const handleFacebookConnect = () => {
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "META_OAUTH_SUCCESS") {
+        setConnecting(false);
+        setConnected(true);
+        toast.success("Conta Facebook Business conectada com sucesso!");
+        queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [queryClient]);
+
+  const handleFacebookConnect = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+
     setConnecting(true);
 
-    // Simula o popup do Facebook OAuth (Facebook Login for Business)
     const width = 600;
     const height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${user.id}&response_type=code`;
+
     const popup = window.open(
-      `https://www.facebook.com/v21.0/dialog/oauth?client_id=YOUR_META_APP_ID&redirect_uri=${encodeURIComponent(window.location.origin + "/meta/callback")}&scope=whatsapp_business_management,whatsapp_business_messaging,business_management,pages_show_list&response_type=code`,
+      oauthUrl,
       "facebook_connect",
       `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
     );
 
-    // Monitor popup
     const checkPopup = setInterval(() => {
       if (!popup || popup.closed) {
         clearInterval(checkPopup);
-        setConnecting(false);
-        // In production, the callback page would handle the OAuth code exchange
-        // For now, simulate success
-        setTimeout(() => {
-          setConnected(true);
-          toast.success("Conta Facebook Business conectada com sucesso!");
-        }, 500);
+        // Give a moment for the postMessage to arrive
+        setTimeout(() => setConnecting(false), 1500);
       }
     }, 500);
   };
@@ -66,7 +89,6 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
 
         {!connected ? (
           <div className="space-y-4">
-            {/* Permissions info */}
             <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-3">
               <p className="text-xs font-semibold text-foreground">Permissões solicitadas:</p>
               <div className="space-y-2">
@@ -88,7 +110,6 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
               </div>
             </div>
 
-            {/* Security note */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
               <Shield className="w-4 h-4 text-primary flex-shrink-0" />
               <p className="text-[10px] text-muted-foreground">
