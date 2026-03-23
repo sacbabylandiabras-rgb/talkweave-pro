@@ -605,7 +605,7 @@ const Landing = () => {
                 ))}
                 {/* Auto-create indicator */}
                 <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2.5 border border-dashed border-primary/30">
-                  <span className="text-sm">✨</span>
+                  <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                   <div>
                     <p className="text-foreground text-[11px] font-medium">Próximo grupo criado automaticamente</p>
                     <p className="text-muted-foreground text-[10px]">Turma VIP #4 será criado ao lotar o #3</p>
