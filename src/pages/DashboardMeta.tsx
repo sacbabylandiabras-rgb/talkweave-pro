@@ -1,55 +1,426 @@
-import { BarChart3, MessageCircle, Send, Clock, TrendingUp, CheckCircle2, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  BarChart3, MessageCircle, Send, Clock, TrendingUp, CheckCircle2, XCircle,
+  Phone, User, Image, Loader2, AlertCircle, RefreshCw, Edit2, Camera, Globe, Mail, MapPin, X, Save
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 
-const recentSends = [
-  { phone: "+55 11 9****-1234", template: "boas_vindas_cliente", status: "delivered", time: "2 min atrás" },
-  { phone: "+55 21 9****-5678", template: "confirmacao_pedido", status: "sent", time: "5 min atrás" },
-  { phone: "+55 31 9****-9012", template: "lembrete_pagamento", status: "failed", time: "8 min atrás" },
-  { phone: "+55 41 9****-3456", template: "boas_vindas_cliente", status: "delivered", time: "12 min atrás" },
-];
+interface PhoneInfo {
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  name_status?: string;
+  platform_type?: string;
+}
 
-const statusMap = {
-  delivered: { label: "Entregue", icon: CheckCircle2, color: "text-emerald-500" },
-  sent: { label: "Enviado", icon: Send, color: "text-primary" },
-  failed: { label: "Falhou", icon: XCircle, color: "text-destructive" },
-};
+interface BusinessProfile {
+  about?: string;
+  address?: string;
+  description?: string;
+  email?: string;
+  profile_picture_url?: string;
+  websites?: string[];
+  vertical?: string;
+}
+
+async function getInvokeErrorMessage(error: unknown, fallback: string) {
+  if (!error) return fallback;
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      try {
+        const payload = await context.clone().json();
+        if (payload?.error) return payload.error;
+      } catch {
+        try { const text = await context.clone().text(); if (text) return text; } catch {}
+      }
+    }
+  }
+  if (error instanceof Error) return error.message || fallback;
+  return fallback;
+}
 
 export default function DashboardMeta() {
+  const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
+  const isConnected = creds?.connected === true;
+
+  const [profile, setProfile] = useState<BusinessProfile>({});
+  const [phoneInfo, setPhoneInfo] = useState<PhoneInfo>({});
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({ about: "", description: "", address: "", email: "" });
+
+  // Quick send state
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickMessage, setQuickMessage] = useState("");
+  const [quickSending, setQuickSending] = useState(false);
+
+  // Photo upload
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  useEffect(() => {
+    if (isConnected) fetchProfile();
+  }, [isConnected]);
+
+  const fetchProfile = async () => {
+    setLoadingProfile(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_profile" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setProfile(data.profile || {});
+      setPhoneInfo(data.phone_info || {});
+      setEditForm({
+        about: data.profile?.about || "",
+        description: data.profile?.description || "",
+        address: data.profile?.address || "",
+        email: data.profile?.email || "",
+      });
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao buscar perfil");
+      toast.error(msg);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "update_profile_name", ...editForm },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Perfil atualizado com sucesso!");
+      setEditingProfile(false);
+      fetchProfile();
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao atualizar perfil");
+      toast.error(msg);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const fileName = `meta-profile-${Date.now()}.${file.name.split(".").pop()}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("template-media")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("template-media")
+        .getPublicUrl(uploadData.path);
+
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "update_profile_photo", photo_url: urlData.publicUrl },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Foto de perfil atualizada!");
+      fetchProfile();
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao atualizar foto");
+      toast.error(msg);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleQuickSend = async () => {
+    if (!quickPhone || !quickMessage.trim()) {
+      toast.error("Preencha número e mensagem");
+      return;
+    }
+    setQuickSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "send_text", phone: quickPhone, message: quickMessage },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Mensagem enviada!");
+      setQuickPhone("");
+      setQuickMessage("");
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, "Erro ao enviar");
+      toast.error(msg);
+    } finally {
+      setQuickSending(false);
+    }
+  };
+
+  const qualityColor: Record<string, string> = {
+    GREEN: "text-emerald-500",
+    YELLOW: "text-amber-500",
+    RED: "text-destructive",
+  };
+
+  if (loadingCreds) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-foreground">Painel — Meta API</h1>
+        <Card className="p-6 text-center space-y-3">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+          <p className="text-sm font-medium">Conta não conectada</p>
+          <p className="text-xs text-muted-foreground">Conecte via Configuração Meta para acessar o painel.</p>
+          <Button variant="outline" size="sm" onClick={() => window.location.href = "/meta/configuracao"}>
+            Ir para Configuração
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Painel — Meta API</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Visão geral dos envios via WhatsApp Cloud API
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Painel — Meta API</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie seu perfil WhatsApp Business e envie mensagens
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchProfile} disabled={loadingProfile}>
+          <RefreshCw className={`w-3.5 h-3.5 ${loadingProfile ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </div>
+
+      {/* Profile Card */}
+      <Card className="p-5">
+        {loadingProfile ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              {/* Profile Photo */}
+              <div className="relative group">
+                <Avatar className="w-16 h-16 border-2 border-border">
+                  <AvatarImage src={profile.profile_picture_url} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {phoneInfo.verified_name?.[0] || "W"}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  {uploadingPhoto ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    <Camera className="w-5 h-5 text-white" />
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
+              </div>
+
+              {/* Name & Status */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-foreground truncate">
+                    {phoneInfo.verified_name || "Sem nome"}
+                  </h2>
+                  {phoneInfo.quality_rating && (
+                    <Badge variant="outline" className={`text-[9px] ${qualityColor[phoneInfo.quality_rating] || ""}`}>
+                      Qualidade: {phoneInfo.quality_rating}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  {phoneInfo.display_phone_number || "—"}
+                </p>
+                {profile.about && (
+                  <p className="text-xs text-muted-foreground mt-1">{profile.about}</p>
+                )}
+                {phoneInfo.name_status && (
+                  <Badge variant="secondary" className="text-[9px] mt-1.5">
+                    Status: {phoneInfo.name_status}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Edit Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs flex-shrink-0"
+                onClick={() => setEditingProfile(!editingProfile)}
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                {editingProfile ? "Cancelar" : "Editar Perfil"}
+              </Button>
+            </div>
+
+            {/* Profile Details */}
+            {!editingProfile && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {profile.description && (
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <User className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <span>{profile.description}</span>
+                  </div>
+                )}
+                {profile.email && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{profile.email}</span>
+                  </div>
+                )}
+                {profile.address && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{profile.address}</span>
+                  </div>
+                )}
+                {profile.websites && profile.websites.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{profile.websites.join(", ")}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Edit Form */}
+            {editingProfile && (
+              <div className="space-y-3 pt-2 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Status (About)</Label>
+                    <Input
+                      value={editForm.about}
+                      onChange={(e) => setEditForm({ ...editForm, about: e.target.value })}
+                      placeholder="Ex: Atendimento 24h"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">E-mail</Label>
+                    <Input
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="contato@empresa.com"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Descrição</Label>
+                  <Textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="Descrição do negócio..."
+                    rows={2}
+                    className="text-xs resize-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Endereço</Label>
+                  <Input
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    placeholder="Rua, número, cidade"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button size="sm" className="gap-1.5 text-xs" onClick={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Salvar Alterações
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
 
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Mensagens Hoje", value: "0", icon: MessageCircle, trend: "+0%" },
-          { label: "Templates Ativos", value: "3", icon: Send, trend: "" },
-          { label: "Taxa de Entrega", value: "0%", icon: TrendingUp, trend: "" },
-          { label: "Tempo Médio", value: "—", icon: Clock, trend: "" },
+          { label: "Número Verificado", value: phoneInfo.display_phone_number || "—", icon: Phone },
+          { label: "Nome Verificado", value: phoneInfo.verified_name || "—", icon: User },
+          { label: "Qualidade", value: phoneInfo.quality_rating || "—", icon: TrendingUp },
+          { label: "Verificação do Nome", value: phoneInfo.name_status || "—", icon: CheckCircle2 },
         ].map((metric) => (
           <Card key={metric.label} className="p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
                 <metric.icon className="w-4.5 h-4.5 text-primary" />
               </div>
-              {metric.trend && (
-                <Badge variant="secondary" className="text-[10px]">{metric.trend}</Badge>
-              )}
             </div>
-            <p className="text-2xl font-bold text-foreground">{metric.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{metric.label}</p>
+            <p className="text-sm font-bold text-foreground truncate">{metric.value}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{metric.label}</p>
           </Card>
         ))}
       </div>
 
-      {/* Conversation costs */}
+      {/* Quick Send + Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Quick Send */}
+        <Card className="p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Send className="w-4 h-4 text-primary" />
+            Envio Rápido
+          </h3>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px]">Número</Label>
+              <Input
+                placeholder="5511999999999"
+                value={quickPhone}
+                onChange={(e) => setQuickPhone(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px]">Mensagem</Label>
+              <Textarea
+                placeholder="Digite sua mensagem..."
+                value={quickMessage}
+                onChange={(e) => setQuickMessage(e.target.value)}
+                rows={3}
+                className="text-xs resize-none"
+              />
+            </div>
+            <Button size="sm" className="w-full gap-1.5 text-xs" onClick={handleQuickSend} disabled={quickSending}>
+              {quickSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Enviar Texto
+            </Button>
+            <p className="text-[9px] text-muted-foreground">⚠️ Texto livre requer janela de 24h aberta.</p>
+          </div>
+        </Card>
+
+        {/* Costs by Category */}
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
@@ -57,48 +428,24 @@ export default function DashboardMeta() {
           </h3>
           <div className="space-y-3">
             {[
-              { category: "Marketing", count: 0, cost: "R$ 0,00", color: "bg-primary" },
-              { category: "Utilidade", count: 0, cost: "R$ 0,00", color: "bg-emerald-500" },
-              { category: "Autenticação", count: 0, cost: "R$ 0,00", color: "bg-amber-500" },
-              { category: "Serviço", count: 0, cost: "Gratuito (24h)", color: "bg-muted-foreground" },
+              { category: "Marketing", color: "bg-primary" },
+              { category: "Utilidade", color: "bg-emerald-500" },
+              { category: "Autenticação", color: "bg-amber-500" },
+              { category: "Serviço", color: "bg-muted-foreground" },
             ].map((item) => (
               <div key={item.category} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
                   <span className="text-xs text-foreground">{item.category}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">{item.count} msgs</span>
-                  <span className="text-xs font-medium text-foreground">{item.cost}</span>
-                </div>
+                <span className="text-xs text-muted-foreground">Via Meta Insights</span>
               </div>
             ))}
           </div>
-        </Card>
-
-        <Card className="p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary" />
-            Últimos Envios
-          </h3>
-          <div className="space-y-3">
-            {recentSends.map((send, i) => {
-              const s = statusMap[send.status as keyof typeof statusMap];
-              const Icon = s.icon;
-              return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-3.5 h-3.5 ${s.color}`} />
-                    <div>
-                      <p className="text-xs text-foreground">{send.phone}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{send.template}</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{send.time}</span>
-                </div>
-              );
-            })}
-          </div>
+          <Separator className="my-4" />
+          <p className="text-[10px] text-muted-foreground">
+            💡 Consulte o painel da Meta para dados detalhados de custos e analytics.
+          </p>
         </Card>
       </div>
     </div>
