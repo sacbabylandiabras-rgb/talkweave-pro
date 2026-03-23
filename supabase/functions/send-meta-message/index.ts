@@ -64,6 +64,8 @@ serve(async (req) => {
         return await sendTextMessage(creds, body);
       case "list_templates":
         return await listTemplates(creds);
+      case "create_template":
+        return await createTemplate(creds, body);
       case "get_profile":
         return await getBusinessProfile(creds);
       case "update_profile_name":
