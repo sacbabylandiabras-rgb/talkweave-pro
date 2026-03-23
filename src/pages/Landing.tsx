@@ -187,7 +187,7 @@ const Landing = () => {
           <div className="order-2 md:order-1 flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-8 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">👥</span>
+                <Users className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Grupos & Comunidades</h4>
               </div>
               {[
