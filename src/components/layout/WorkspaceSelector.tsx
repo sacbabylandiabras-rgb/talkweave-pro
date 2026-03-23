@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronDown, Zap, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { cn } from "@/lib/utils";
 
 const workspaces = [
@@ -27,18 +28,53 @@ const workspaces = [
 
 export function WorkspaceSelector() {
   const { activeWorkspace, setActiveWorkspace } = useWorkspace();
+  const { data: metaCreds } = useMetaCredentials();
   const [open, setOpen] = useState(false);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
+  const [pendingMetaSwitch, setPendingMetaSwitch] = useState(false);
+
+  const isMetaConnected = metaCreds?.connected === true;
+
+  // When Meta credentials become connected and we have a pending switch, do the switch
+  useEffect(() => {
+    if (pendingMetaSwitch && isMetaConnected) {
+      setActiveWorkspace("meta");
+      setPendingMetaSwitch(false);
+    }
+  }, [isMetaConnected, pendingMetaSwitch, setActiveWorkspace]);
+
+  // If user disconnects Meta while on Meta workspace, switch back to zapi
+  useEffect(() => {
+    if (activeWorkspace === "meta" && metaCreds !== undefined && !isMetaConnected) {
+      setActiveWorkspace("zapi");
+    }
+  }, [isMetaConnected, activeWorkspace, metaCreds, setActiveWorkspace]);
 
   const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
   const CurrentIcon = current.icon;
 
   const handleSelect = (ws: WorkspaceType) => {
     if (ws === "meta") {
-      setFbDialogOpen(true);
+      if (isMetaConnected) {
+        // Already connected, switch immediately
+        setActiveWorkspace("meta");
+      } else {
+        // Not connected, show dialog and wait for connection
+        setPendingMetaSwitch(true);
+        setFbDialogOpen(true);
+      }
+    } else {
+      setActiveWorkspace(ws);
     }
-    setActiveWorkspace(ws);
     setOpen(false);
+  };
+
+  const handleFbDialogClose = (open: boolean) => {
+    setFbDialogOpen(open);
+    if (!open && !isMetaConnected) {
+      // User closed dialog without connecting, cancel pending switch
+      setPendingMetaSwitch(false);
+    }
   };
 
   return (
@@ -89,7 +125,7 @@ export function WorkspaceSelector() {
         </PopoverContent>
       </Popover>
 
-      <FacebookConnectDialog open={fbDialogOpen} onOpenChange={setFbDialogOpen} />
+      <FacebookConnectDialog open={fbDialogOpen} onOpenChange={handleFbDialogClose} />
     </>
   );
 }
