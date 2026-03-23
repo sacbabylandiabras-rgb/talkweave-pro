@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Send, Users, FileText, ChevronDown, Plus, Loader2, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Users, FileText, Plus, Loader2, Phone, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,144 +9,303 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+
+interface MetaTemplate {
+  id: string;
+  name: string;
+  status: string;
+  language: string;
+  category: string;
+  components: any[];
+}
 
 export default function EnvioCloudAPI() {
-  const [sendType, setSendType] = useState<"single" | "bulk">("single");
+  const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
+  const [sendType, setSendType] = useState<"template" | "text">("template");
   const [phone, setPhone] = useState("");
-  const [template, setTemplate] = useState("");
-  const [variables, setVariables] = useState<string[]>([""]);
+  const [message, setMessage] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [variables, setVariables] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  const [templates, setTemplates] = useState<MetaTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
-  const mockTemplates = [
-    { id: "1", name: "boas_vindas_cliente", vars: 1 },
-    { id: "2", name: "confirmacao_pedido", vars: 3 },
-    { id: "5", name: "lembrete_pagamento", vars: 3 },
-  ];
+  const isConnected = creds?.connected === true;
 
-  const selectedTemplate = mockTemplates.find((t) => t.id === template);
+  useEffect(() => {
+    if (isConnected) {
+      fetchTemplates();
+    }
+  }, [isConnected]);
 
-  const handleSend = () => {
-    if (!phone || !template) {
-      toast.error("Preencha todos os campos obrigatórios");
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "list_templates" },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const approved = (data.templates || []).filter(
+        (t: MetaTemplate) => t.status === "APPROVED"
+      );
+      setTemplates(approved);
+    } catch (err: any) {
+      console.error("Error fetching templates:", err);
+      toast.error("Erro ao buscar templates: " + (err.message || "desconhecido"));
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const getBodyVarCount = (tpl: MetaTemplate): number => {
+    const bodyComp = tpl.components?.find((c: any) => c.type === "BODY");
+    if (!bodyComp?.text) return 0;
+    const matches = bodyComp.text.match(/\{\{\d+\}\}/g);
+    return matches ? matches.length : 0;
+  };
+
+  const selectedTemplate = templates.find((t) => t.name === templateName);
+
+  const handleSend = async () => {
+    if (!phone) {
+      toast.error("Informe o número do destinatário");
       return;
     }
+
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
-      toast.success("Mensagem enviada via Cloud API!");
+    try {
+      let body: any;
+
+      if (sendType === "template") {
+        if (!templateName) {
+          toast.error("Selecione um template");
+          setSending(false);
+          return;
+        }
+        body = {
+          action: "send_template",
+          phone,
+          template_name: templateName,
+          language: selectedTemplate?.language || "pt_BR",
+          variables: variables.filter(Boolean),
+        };
+      } else {
+        if (!message.trim()) {
+          toast.error("Digite a mensagem");
+          setSending(false);
+          return;
+        }
+        body = {
+          action: "send_text",
+          phone,
+          message,
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke("send-meta-message", { body });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Mensagem enviada com sucesso via Meta API!");
       setPhone("");
-    }, 2000);
+      setMessage("");
+    } catch (err: any) {
+      console.error("Send error:", err);
+      toast.error(err.message || "Erro ao enviar mensagem");
+    } finally {
+      setSending(false);
+    }
   };
+
+  if (loadingCreds) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6 max-w-3xl">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Enviar via Meta API</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Envie mensagens utilizando a API oficial do WhatsApp Business
+          </p>
+        </div>
+        <Card className="p-6 text-center space-y-3">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+          <p className="text-sm font-medium text-foreground">Conta não conectada</p>
+          <p className="text-xs text-muted-foreground">
+            Conecte sua conta Facebook Business na página de Configuração para enviar mensagens.
+          </p>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.location.href = "/meta/configuracao"}>
+            Ir para Configuração
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Envio via Cloud API</h1>
+        <h1 className="text-2xl font-bold text-foreground">Enviar via Meta API</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Envie mensagens utilizando a API oficial do WhatsApp Business
+          Envie mensagens utilizando a API oficial do WhatsApp Business (Graph API v21.0)
         </p>
       </div>
 
       {/* Send type tabs */}
       <div className="flex gap-2">
         <Button
-          variant={sendType === "single" ? "default" : "outline"}
+          variant={sendType === "template" ? "default" : "outline"}
           size="sm"
           className="gap-2 text-xs"
-          onClick={() => setSendType("single")}
+          onClick={() => setSendType("template")}
         >
-          <Phone className="w-3.5 h-3.5" />
-          Envio Individual
+          <FileText className="w-3.5 h-3.5" />
+          Template Aprovado
         </Button>
         <Button
-          variant={sendType === "bulk" ? "default" : "outline"}
+          variant={sendType === "text" ? "default" : "outline"}
           size="sm"
           className="gap-2 text-xs"
-          onClick={() => setSendType("bulk")}
+          onClick={() => setSendType("text")}
         >
-          <Users className="w-3.5 h-3.5" />
-          Envio em Massa
+          <MessageSquare className="w-3.5 h-3.5" />
+          Texto Livre
         </Button>
       </div>
 
       <Card className="p-5 space-y-5">
         {/* Destination */}
         <div className="space-y-2">
-          <Label className="text-xs font-medium">
-            {sendType === "single" ? "Número do destinatário" : "Lista de contatos"}
-          </Label>
-          {sendType === "single" ? (
-            <Input
-              placeholder="+55 11 99999-9999"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="h-9 text-sm"
-            />
-          ) : (
-            <div className="border border-dashed border-border rounded-lg p-6 text-center">
-              <Users className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Selecione uma lista de contatos ou importe um CSV
-              </p>
-              <Button variant="outline" size="sm" className="mt-3 text-xs gap-1.5">
-                <Plus className="w-3.5 h-3.5" />
-                Selecionar contatos
-              </Button>
-            </div>
-          )}
+          <Label className="text-xs font-medium">Número do destinatário</Label>
+          <Input
+            placeholder="5511999999999"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-9 text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Formato: código do país + DDD + número (ex: 5511999999999)
+          </p>
         </div>
 
         <Separator />
 
-        {/* Template selection */}
-        <div className="space-y-2">
-          <Label className="text-xs font-medium flex items-center gap-2">
-            <FileText className="w-3.5 h-3.5" />
-            Template aprovado
-            <Badge variant="secondary" className="text-[9px]">Obrigatório</Badge>
-          </Label>
-          <Select value={template} onValueChange={(v) => {
-            setTemplate(v);
-            const t = mockTemplates.find((mt) => mt.id === v);
-            if (t) setVariables(Array(t.vars).fill(""));
-          }}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Selecione um template aprovado" />
-            </SelectTrigger>
-            <SelectContent>
-              {mockTemplates.map((t) => (
-                <SelectItem key={t.id} value={t.id} className="text-sm">
-                  {t.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-[10px] text-muted-foreground">
-            Apenas templates com status "Aprovado" pela Meta podem ser usados para envio.
-          </p>
-        </div>
-
-        {/* Variables */}
-        {selectedTemplate && selectedTemplate.vars > 0 && (
-          <div className="space-y-3">
-            <Label className="text-xs font-medium">Variáveis do template</Label>
-            {variables.map((v, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                  {`{{${i + 1}}}`}
-                </Badge>
-                <Input
-                  placeholder={`Valor para variável ${i + 1}`}
-                  value={v}
-                  onChange={(e) => {
-                    const next = [...variables];
-                    next[i] = e.target.value;
-                    setVariables(next);
-                  }}
-                  className="h-8 text-xs"
-                />
+        {sendType === "template" ? (
+          <>
+            {/* Template selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" />
+                  Template aprovado
+                  <Badge variant="secondary" className="text-[9px]">Obrigatório</Badge>
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] gap-1 px-2"
+                  onClick={fetchTemplates}
+                  disabled={loadingTemplates}
+                >
+                  <RefreshCw className={`w-3 h-3 ${loadingTemplates ? "animate-spin" : ""}`} />
+                  Atualizar
+                </Button>
               </div>
-            ))}
+
+              {loadingTemplates ? (
+                <div className="flex items-center gap-2 py-4 justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Buscando templates da Meta...</span>
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="border border-dashed border-border rounded-lg p-4 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum template aprovado encontrado na sua conta WABA.
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={templateName}
+                  onValueChange={(v) => {
+                    setTemplateName(v);
+                    const t = templates.find((tpl) => tpl.name === v);
+                    if (t) {
+                      const count = getBodyVarCount(t);
+                      setVariables(Array(count).fill(""));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Selecione um template aprovado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.name} className="text-sm">
+                        <div className="flex items-center gap-2">
+                          <span>{t.name}</span>
+                          <Badge variant="outline" className="text-[9px] font-mono">
+                            {t.language}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Variables */}
+            {selectedTemplate && getBodyVarCount(selectedTemplate) > 0 && (
+              <div className="space-y-3">
+                <Label className="text-xs font-medium">Variáveis do template</Label>
+                {variables.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
+                      {`{{${i + 1}}}`}
+                    </Badge>
+                    <Input
+                      placeholder={`Valor para variável ${i + 1}`}
+                      value={v}
+                      onChange={(e) => {
+                        const next = [...variables];
+                        next[i] = e.target.value;
+                        setVariables(next);
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="space-y-2">
+            <Label className="text-xs font-medium flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5" />
+              Mensagem
+            </Label>
+            <Textarea
+              placeholder="Digite sua mensagem..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className="text-sm resize-none"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              ⚠️ Mensagens de texto livre só funcionam dentro da janela de 24h de conversação.
+            </p>
           </div>
         )}
 
@@ -154,12 +313,15 @@ export default function EnvioCloudAPI() {
 
         {/* Info box */}
         <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1">
-          <p className="text-[11px] font-medium text-foreground">Informações do envio</p>
+          <p className="text-[11px] font-medium text-foreground">Informações</p>
           <ul className="text-[10px] text-muted-foreground space-y-0.5">
-            <li>• Mensagens enviadas via WhatsApp Cloud API v21.0</li>
-            <li>• Apenas templates aprovados podem ser utilizados</li>
-            <li>• Conversas de marketing consomem créditos da Meta</li>
-            <li>• Rate limit: 80 mensagens/segundo (Business Tier)</li>
+            <li>• Mensagens enviadas via Graph API v21.0</li>
+            <li>• Phone Number ID: {creds?.phone_number_id || "não detectado"}</li>
+            {sendType === "template" ? (
+              <li>• Templates aprovados podem iniciar conversas a qualquer momento</li>
+            ) : (
+              <li>• Texto livre requer janela de 24h aberta pelo destinatário</li>
+            )}
           </ul>
         </div>
 
@@ -169,7 +331,7 @@ export default function EnvioCloudAPI() {
           ) : (
             <Send className="w-4 h-4" />
           )}
-          {sending ? "Enviando..." : "Enviar via Cloud API"}
+          {sending ? "Enviando..." : "Enviar via Meta API"}
         </Button>
       </Card>
     </div>
