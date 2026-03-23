@@ -315,14 +315,14 @@ const Landing = () => {
           <div className="order-2 md:order-1 flex justify-center">
             <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🔗</span>
+                <Link className="w-7 h-7 text-primary" />
                 <h4 className="text-foreground font-bold text-lg">Integrações Conectadas</h4>
               </div>
               {[
-                { name: "PerfectPay", status: "Ativo", icon: "💳" },
-                { name: "Hotmart", status: "Ativo", icon: "🔥" },
-                { name: "Kiwify", status: "Ativo", icon: "🥝" },
-                { name: "Stripe", status: "Ativo", icon: "💎" },
+                { name: "PerfectPay", status: "Ativo", icon: <CreditCard className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Hotmart", status: "Ativo", icon: <Flame className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Kiwify", status: "Ativo", icon: <Cherry className="w-4 h-4 text-muted-foreground" /> },
+                { name: "Stripe", status: "Ativo", icon: <Gem className="w-4 h-4 text-muted-foreground" /> },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-2">
