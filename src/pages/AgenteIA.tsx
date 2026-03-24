@@ -149,6 +149,7 @@ const AgenteIA = () => {
         return;
       }
       await addDocument(`🌐 ${title}`, content);
+      analyzeContent("url", { title, content });
       setUrlInput("");
       toast({ title: "URL importada!", description: `${content.length} caracteres extraídos com sucesso.` });
     } catch (err: any) {
