@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 import {
   Bot,
   Brain,
@@ -25,6 +27,7 @@ import {
   Save,
   Globe,
   Link,
+  Search,
 } from "lucide-react";
 
 interface ChatMessage {
