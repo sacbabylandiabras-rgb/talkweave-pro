@@ -1204,6 +1204,9 @@ function LinksRotativosTab() {
                     {link.click_count || 0} cliques
                   </Badge>
                   <Switch checked={link.active} onCheckedChange={(v) => toggleLink(link.id, v)} />
+                  <Button variant="ghost" size="icon" onClick={() => setAnalyticsLinkId(link.id)} title="Análises">
+                    <BarChart3 className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => setEditPageLinkId(link.id)} title="Editar página">
                     <Pencil className="w-4 h-4" />
                   </Button>
