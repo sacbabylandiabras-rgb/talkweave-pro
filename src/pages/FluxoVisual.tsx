@@ -943,35 +943,51 @@ export default function FluxoVisual() {
 
   return (
     <>
-      <div className="flex h-screen w-full bg-background">
-        {/* Sidebar */}
-        <div className="w-64 m-2 shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden">
-          {/* Sidebar Header */}
-          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+      <div className="flex flex-col h-screen w-full bg-background">
+        {/* Top Bar */}
+        <div className="shrink-0 bg-card border-b border-border">
+          {/* Row 1: Header + Actions */}
+          <div className="flex items-center gap-3 px-4 py-2">
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setShowFluxosList(true)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h2 className="text-base font-semibold flex-1">Blocos</h2>
-          </div>
+            
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                value={nomeFluxo}
+                onChange={(e) => setNomeFluxo(e.target.value)}
+                placeholder="Nome do fluxo"
+                className="h-8 w-40 text-sm"
+              />
+              <div className="flex items-center gap-1">
+                <Key className="h-3 w-3 text-muted-foreground" />
+                <Input
+                  value={keywordFluxo}
+                  onChange={(e) => setKeywordFluxo(e.target.value)}
+                  placeholder="Palavra-chave"
+                  className="h-8 w-36 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Ativo</Label>
+                <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
+              </div>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="px-3 py-3 border-b border-border space-y-2">
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="flex-1 h-9" disabled={savingFluxo}>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="h-8" disabled={savingFluxo}>
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
               </Button>
-              <Button size="sm" onClick={handleEnviarAgora} className="flex-1 h-9">
+              <Button size="sm" onClick={handleEnviarAgora} className="h-8">
                 <Send className="h-4 w-4 mr-1.5" />
                 Enviar
               </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleExportJson} className="flex-1 h-9">
+              <Button size="sm" variant="outline" onClick={handleExportJson} className="h-8">
                 <Download className="h-4 w-4 mr-1.5" />
                 Exportar
               </Button>
-              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1 h-9">
+              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="h-8">
                 <FileUp className="h-4 w-4 mr-1.5" />
                 Importar
               </Button>
@@ -985,85 +1001,31 @@ export default function FluxoVisual() {
             </div>
           </div>
 
-          {/* Flow Settings */}
-          <div className="px-3 py-3 border-b border-border space-y-3">
-            <div>
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome do Fluxo</Label>
-              <Input
-                value={nomeFluxo}
-                onChange={(e) => setNomeFluxo(e.target.value)}
-                placeholder="Digite o nome do fluxo"
-                className="mt-1 h-9"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Key className="h-3 w-3" />
-                Palavra-chave (gatilho)
-              </Label>
-              <Input
-                value={keywordFluxo}
-                onChange={(e) => setKeywordFluxo(e.target.value)}
-                placeholder="Ex: oi, menu, preco"
-                className="mt-1 h-9"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Quando alguém enviar essa palavra, o fluxo será disparado automaticamente
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Fluxo Ativo</Label>
-              <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
-            </div>
-          </div>
-
-          {/* Draggable Blocks */}
-          <div className="flex-1 overflow-auto px-3 py-3">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Arrastar para o canvas</p>
-            <div className="space-y-2">
-              {blocosDisponiveis.map((bloco) => (
-                <div
-                  key={bloco.type}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/30 cursor-grab hover:bg-accent/50 hover:border-primary/30 transition-all active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => onDragStart(e, bloco.type)}
-                >
-                  <div className="p-1.5 rounded-md bg-primary/10">
-                    <bloco.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm">{bloco.label}</h3>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                      {bloco.description}
-                    </p>
-                  </div>
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+          {/* Row 2: Draggable Blocks */}
+          <div className="flex items-center gap-2 px-4 py-2 border-t border-border overflow-x-auto">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider shrink-0">Blocos:</p>
+            {blocosDisponiveis.map((bloco) => (
+              <div
+                key={bloco.type}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-secondary/30 cursor-grab hover:bg-accent/50 hover:border-primary/30 transition-all active:cursor-grabbing shrink-0"
+                draggable
+                onDragStart={(e) => onDragStart(e, bloco.type)}
+              >
+                <div className="p-1 rounded-md bg-primary/10">
+                  <bloco.icon className="h-4 w-4 text-primary" />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tips */}
-          <div className="px-3 py-3 border-t border-border space-y-1.5">
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <MousePointerClick className="h-3 w-3 flex-shrink-0" />
-              <span>Arraste blocos para o canvas</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <Link2 className="h-3 w-3 flex-shrink-0" />
-              <span>Clique numa conexão para removê-la</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <Trash2 className="h-3 w-3 flex-shrink-0" />
-              <span>Pressione Delete para excluir bloco</span>
-            </div>
+                <div>
+                  <h3 className="font-medium text-xs">{bloco.label}</h3>
+                  <p className="text-[10px] text-muted-foreground leading-tight">{bloco.description}</p>
+                </div>
+                <GripVertical className="h-3 w-3 text-muted-foreground/40" />
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 m-2 ml-0 relative" ref={reactFlowWrapper}>
+        <div className="flex-1 m-2 relative" ref={reactFlowWrapper}>
           {/* Preview button */}
           <Button
             size="sm"
@@ -1089,22 +1051,20 @@ export default function FluxoVisual() {
             nodeTypes={nodeTypes}
             fitView
             deleteKeyCode={["Backspace", "Delete"]}
-            className="rounded-lg border border-blue-500/30"
-            style={{ backgroundColor: '#0a1628' }}
+            className="bg-background rounded-lg border"
             defaultEdgeOptions={{
               animated: true,
-              style: { stroke: '#3b82f6', strokeWidth: 2 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+              style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
             }}
           >
-            <Background variant={BackgroundVariant.Dots} color="#1e3a5f" gap={20} size={1} />
-            <Controls className="!bg-slate-800 !border-blue-500/30 !rounded-lg [&>button]:!bg-slate-700 [&>button]:!border-blue-500/20 [&>button]:!text-blue-300 [&>button:hover]:!bg-slate-600" />
+            <Background variant={BackgroundVariant.Dots} />
+            <Controls />
             <MiniMap
               nodeStrokeWidth={3}
               zoomable
               pannable
-              className="!bg-slate-900 !border !border-blue-500/30 !rounded-lg"
-              nodeColor="#3b82f6"
+              className="!bg-card !border !border-border !rounded-lg"
             />
           </ReactFlow>
         </div>
