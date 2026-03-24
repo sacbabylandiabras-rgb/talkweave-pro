@@ -81,6 +81,7 @@ const nodeTypes: NodeTypes = {
   blocoConteudo: BlocoConteudoNode,
   blocoCondicao: BlocoCondicaoNode,
   blocoAcao: BlocoAcaoNode,
+  blocoGatilho: BlocoGatilhoNode,
 };
 
 const initialNodes: Node[] = [
