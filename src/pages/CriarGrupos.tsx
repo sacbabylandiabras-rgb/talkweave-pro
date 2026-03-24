@@ -601,7 +601,31 @@ function LinksRotativosTab() {
   const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
   const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Page customization dialog state
+  const [editPageLinkId, setEditPageLinkId] = useState<string | null>(null);
+  const [pageConfig, setPageConfig] = useState<Record<string, {
+    title?: string;
+    description?: string;
+    photo?: string;
+    buttonColor?: string;
+    bgColor?: string;
+    textColor?: string;
+  }>>(() => {
+    try {
+      const stored = localStorage.getItem("link-page-config");
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+
+  const savePageConfig = (linkId: string, config: typeof pageConfig[string]) => {
+    const updated = { ...pageConfig, [linkId]: config };
+    setPageConfig(updated);
+    localStorage.setItem("link-page-config", JSON.stringify(updated));
+  };
+
   const baseRedirectUrl = `${window.location.origin}/invite/`;
+  const editingLink = links.find(l => l.id === editPageLinkId);
+  const editingConfig = editPageLinkId ? (pageConfig[editPageLinkId] || {}) : {};
 
   const handleLinkPhotoFileChange = (linkId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1094,7 +1118,10 @@ function LinksRotativosTab() {
   };
 
   const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${baseRedirectUrl}${slug}`);
+    const link = links.find(l => l.slug === slug);
+    const config = link ? pageConfig[link.id] : null;
+    const hash = config && Object.keys(config).length > 0 ? `#${encodeURIComponent(JSON.stringify(config))}` : "";
+    navigator.clipboard.writeText(`${baseRedirectUrl}${slug}${hash}`);
     setCopied(slug);
     toast.success("Link copiado!");
     setTimeout(() => setCopied(null), 2000);
@@ -1176,6 +1203,9 @@ function LinksRotativosTab() {
                     {link.click_count || 0} cliques
                   </Badge>
                   <Switch checked={link.active} onCheckedChange={(v) => toggleLink(link.id, v)} />
+                  <Button variant="ghost" size="icon" onClick={() => setEditPageLinkId(link.id)} title="Editar página">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => copyLink(link.slug)}>
                     {copied === link.slug ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                   </Button>
@@ -1367,6 +1397,77 @@ function LinksRotativosTab() {
           </Card>
         ))
       )}
+
+      {/* Edit Page Dialog */}
+      <Dialog open={!!editPageLinkId} onOpenChange={(open) => !open && setEditPageLinkId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Personalizar Página do Link</DialogTitle>
+            <DialogDescription>Configure a aparência da página de convite</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Título da Página</label>
+                <Input value={editingConfig.title || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })} placeholder={editingLink?.name || "Nome do grupo"} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Descrição</label>
+                <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">URL da Foto</label>
+                <Input value={editingConfig.photo || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Cor do Botão</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Cor de Fundo</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Cor do Texto</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="flex-1" />
+                </div>
+              </div>
+            </div>
+            <div className="rounded-lg p-6 flex flex-col items-center justify-center gap-4 border border-border" style={{ backgroundColor: editingConfig.bgColor || "#f5f5f5" }}>
+              {editingConfig.photo ? (
+                <img src={editingConfig.photo} alt="Preview" className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white" />
+              ) : (
+                <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
+                  <Users className="w-10 h-10 text-white" />
+                </div>
+              )}
+              <h3 className="text-lg font-bold text-center" style={{ color: editingConfig.textColor || "#1f2937" }}>
+                {editingConfig.title || editingLink?.name || "Nome do Grupo"}
+              </h3>
+              {editingConfig.description && (
+                <p className="text-sm text-center max-w-[200px]" style={{ color: editingConfig.textColor || "#1f2937", opacity: 0.7 }}>
+                  {editingConfig.description}
+                </p>
+              )}
+              <div className="w-full max-w-[200px] py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
+                <ExternalLink className="w-4 h-4" />
+                Entrar no grupo
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

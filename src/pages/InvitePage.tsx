@@ -10,6 +10,15 @@ interface InviteData {
   invite_link: string;
 }
 
+interface PageConfig {
+  title?: string;
+  description?: string;
+  photo?: string;
+  buttonColor?: string;
+  bgColor?: string;
+  textColor?: string;
+}
+
 const InvitePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<InviteData | null>(null);
@@ -17,6 +26,19 @@ const InvitePage = () => {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+
+  const [pageConfig, setPageConfig] = useState<PageConfig>({});
+
+  useEffect(() => {
+    // Read page config from URL hash
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const config = JSON.parse(decodeURIComponent(hash));
+        setPageConfig(config);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -27,7 +49,6 @@ const InvitePage = () => {
           `https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`
         );
         const json = await res.json();
-
         if (!res.ok) {
           setError(json.error || "Link não encontrado");
         } else {
@@ -86,37 +107,34 @@ const InvitePage = () => {
     );
   }
 
+  const bgColor = pageConfig.bgColor || "#f5f5f5";
+  const textColor = pageConfig.textColor || "#1f2937";
+  const buttonColor = pageConfig.buttonColor || "#25D366";
+  const displayPhoto = pageConfig.photo || data.group_photo;
+  const displayTitle = pageConfig.title || data.group_name;
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: bgColor }}>
       <div className="w-full max-w-md text-center space-y-6">
-        {/* Avatar / Group Photo */}
         <div className="flex justify-center">
-          {data.group_photo ? (
-            <img
-              src={data.group_photo}
-              alt={data.group_name}
-              className="w-28 h-28 rounded-full object-cover shadow-lg ring-4 ring-white"
-            />
+          {displayPhoto ? (
+            <img src={displayPhoto} alt={displayTitle} className="w-28 h-28 rounded-full object-cover shadow-lg ring-4 ring-white" />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg ring-4 ring-white">
+            <div className="w-28 h-28 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white" style={{ backgroundColor: buttonColor }}>
               <Users className="w-14 h-14 text-white" />
             </div>
           )}
         </div>
-
-        {/* Group name */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{data.group_name}</h1>
-          <p className="text-sm text-gray-500 mt-1">{data.name}</p>
+          <h1 className="text-2xl font-bold" style={{ color: textColor }}>{displayTitle}</h1>
+          {pageConfig.description ? (
+            <p className="text-sm mt-2" style={{ color: textColor, opacity: 0.7 }}>{pageConfig.description}</p>
+          ) : (
+            <p className="text-sm mt-1" style={{ color: textColor, opacity: 0.5 }}>{data.name}</p>
+          )}
         </div>
-
-        {/* Join button */}
-        <button
-          onClick={handleJoin}
-          className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-base transition-colors shadow-md flex items-center justify-center gap-2"
-        >
-          <ExternalLink className="w-5 h-5" />
-          Entrar no grupo
+        <button onClick={handleJoin} className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-colors shadow-md flex items-center justify-center gap-2" style={{ backgroundColor: buttonColor }}>
+          <ExternalLink className="w-5 h-5" /> Entrar no grupo
         </button>
 
         {/* Copy link button */}
