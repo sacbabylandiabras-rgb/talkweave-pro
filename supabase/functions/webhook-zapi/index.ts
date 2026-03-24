@@ -871,6 +871,54 @@ serve(async (req) => {
       return new Response('group_participant_event_handled', { status: 200, headers: corsHeaders })
     }
 
+    // === GROUP PARTICIPANT LEAVE DETECTION ===
+    const isLeaveEvent = 
+      webhook?.isGroup === true &&
+      !isStatusCallback &&
+      noTextPayload &&
+      hasLeaveNotificationText &&
+      (hasParticipantHint || hasNotificationCode || webhookAction === 'remove' || webhookAction === 'leave')
+
+    if (isLeaveEvent) {
+      const groupPhone = webhook?.phone || webhook?.chatPhone || webhook?.groupId || ''
+      const leaveInstanceId = webhook?.instanceId || webhook?.instance_id || ''
+      
+      let leftPhone = normalizeParticipantIdentifier(
+        webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.groupParticipant?.phone || ''
+      )
+      if (!leftPhone && Array.isArray(notificationParams) && notificationParams.length > 0) {
+        leftPhone = normalizeParticipantIdentifier(notificationParams[0])
+      }
+      const leftName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
+
+      if (groupPhone && leaveInstanceId && leftPhone && !leftPhone.includes('@lid') && leftPhone.length >= 8) {
+        const { data: instData } = await supabase
+          .from('zapi_instances')
+          .select('user_id, zapi_instance_id')
+          .eq('zapi_instance_id', leaveInstanceId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (instData) {
+          let normalizedGroupId = groupPhone
+          if (groupPhone.includes('@g.us')) normalizedGroupId = groupPhone.replace('@g.us', '-group')
+          else if (!groupPhone.includes('-group')) normalizedGroupId = groupPhone + '-group'
+
+          await supabase.from('message_logs').insert({
+            phone: leftPhone,
+            message_received: normalizedGroupId,
+            response_sent: leftName || '',
+            keyword_matched: '__group_leave__',
+            timestamp: new Date().toISOString(),
+            user_id: instData.user_id,
+            instance_id: instData.zapi_instance_id,
+          })
+          console.log(`📝 Logged group leave: ${leftPhone} left ${normalizedGroupId}`)
+        }
+      }
+
+      return new Response('group_leave_handled', { status: 200, headers: corsHeaders })
+
     // Detect outgoing messages sent by this same WhatsApp instance
     const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
 
