@@ -71,13 +71,14 @@ serve(async (req) => {
       .eq('active', true)
       .order('created_at', { ascending: true })
 
-    // Build system prompt with knowledge
-    let systemPrompt = agentConfig.system_prompt || 'Você é um assistente virtual prestativo.'
+    // Build system prompt with safe fallback for analysis calls without saved config
+    const effectiveAgentName = agentConfig?.agent_name || 'Assistente'
+    let systemPrompt = agentConfig?.system_prompt || 'Você é um assistente virtual prestativo.'
     systemPrompt += '\n\n--- REGRAS ---'
     systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
     systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
     systemPrompt += '\n- Se não souber a resposta, diga que vai encaminhar para um atendente humano.'
-    systemPrompt += `\n- Nome do agente: ${agentConfig.agent_name || 'Assistente'}`
+    systemPrompt += `\n- Nome do agente: ${effectiveAgentName}`
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
