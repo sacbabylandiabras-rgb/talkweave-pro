@@ -1118,7 +1118,10 @@ function LinksRotativosTab() {
   };
 
   const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${baseRedirectUrl}${slug}`);
+    const link = links.find(l => l.slug === slug);
+    const config = link ? pageConfig[link.id] : null;
+    const hash = config && Object.keys(config).length > 0 ? `#${encodeURIComponent(JSON.stringify(config))}` : "";
+    navigator.clipboard.writeText(`${baseRedirectUrl}${slug}${hash}`);
     setCopied(slug);
     toast.success("Link copiado!");
     setTimeout(() => setCopied(null), 2000);
