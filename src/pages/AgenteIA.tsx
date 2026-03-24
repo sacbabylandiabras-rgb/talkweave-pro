@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 import {
   Bot,
   Brain,
@@ -25,6 +27,7 @@ import {
   Save,
   Globe,
   Link,
+  Search,
 } from "lucide-react";
 
 interface ChatMessage {
@@ -58,6 +61,45 @@ const AgenteIA = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Analysis state
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisContent, setAnalysisContent] = useState("");
+  const [analysisTitle, setAnalysisTitle] = useState("");
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
+  const analyzeContent = async (type: "faq" | "document" | "url", data: { question?: string; answer?: string; title?: string; content?: string }) => {
+    setAnalysisLoading(true);
+    setAnalysisOpen(true);
+    setAnalysisContent("");
+    setAnalysisTitle(
+      type === "faq" ? `Análise do FAQ: ${data.question}` :
+      type === "url" ? `Análise da URL: ${data.title}` :
+      `Análise do Documento: ${data.title}`
+    );
+
+    try {
+      let promptContent = "";
+      if (type === "faq") {
+        promptContent = `Analise detalhadamente este FAQ que foi adicionado à base de conhecimento do meu agente de IA.\n\nPergunta: ${data.question}\nResposta: ${data.answer}\n\nFaça uma análise extensa e detalhada cobrindo:\n1. **Clareza da pergunta**: A pergunta está clara e bem formulada? Sugira melhorias se necessário.\n2. **Qualidade da resposta**: A resposta é completa, precisa e objetiva? Há informações faltando?\n3. **Tom e linguagem**: O tom está adequado para atendimento ao cliente?\n4. **Possíveis variações**: Quais outras formas o cliente poderia fazer essa mesma pergunta? O agente conseguiria reconhecer?\n5. **Sugestões de melhoria**: O que poderia ser adicionado ou alterado para tornar essa FAQ mais eficiente?\n6. **Pontuação geral**: De 1 a 10, qual a qualidade desta FAQ?\n\nSeja detalhado e construtivo na análise.`;
+      } else {
+        promptContent = `Analise detalhadamente este documento/conteúdo que foi adicionado à base de conhecimento do meu agente de IA.\n\nTítulo: ${data.title}\nConteúdo:\n${data.content?.substring(0, 5000)}\n\nFaça uma análise extensa e detalhada cobrindo:\n1. **Resumo do conteúdo**: Faça um resumo claro do que este documento contém.\n2. **Qualidade da informação**: As informações estão completas, atualizadas e precisas?\n3. **Organização**: O conteúdo está bem estruturado e organizado?\n4. **Cobertura de tópicos**: Quais tópicos principais são abordados? Há lacunas importantes?\n5. **Utilidade para o agente**: Como o agente poderá usar essas informações para responder clientes?\n6. **Possíveis perguntas**: Liste 5-10 perguntas que os clientes poderiam fazer e que este documento ajudaria a responder.\n7. **Sugestões de melhoria**: O que poderia ser adicionado para tornar a base de conhecimento mais completa?\n8. **Pontuação geral**: De 1 a 10, qual a qualidade e utilidade deste conteúdo?\n\nSeja detalhado e construtivo na análise.`;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke("agent-chat", {
+        body: {
+          messages: [{ role: "user", content: promptContent }],
+        },
+      });
+
+      if (error) throw error;
+      setAnalysisContent(result?.reply || "Não foi possível gerar a análise.");
+    } catch (err: any) {
+      setAnalysisContent("❌ Erro ao gerar análise: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
       setAgentName(config.agent_name);
@@ -74,16 +116,18 @@ const AgenteIA = () => {
     saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive });
   };
 
-  const handleAddFaq = () => {
+  const handleAddFaq = async () => {
     if (!faqQuestion.trim() || !faqAnswer.trim()) return;
-    addFaq(faqQuestion, faqAnswer);
+    await addFaq(faqQuestion, faqAnswer);
+    analyzeContent("faq", { question: faqQuestion, answer: faqAnswer });
     setFaqQuestion("");
     setFaqAnswer("");
   };
 
-  const handleAddDoc = () => {
+  const handleAddDoc = async () => {
     if (!docTitle.trim() || !docContent.trim()) return;
-    addDocument(docTitle, docContent);
+    await addDocument(docTitle, docContent);
+    analyzeContent("document", { title: docTitle, content: docContent });
     setDocTitle("");
     setDocContent("");
   };
@@ -105,6 +149,7 @@ const AgenteIA = () => {
         return;
       }
       await addDocument(`🌐 ${title}`, content);
+      analyzeContent("url", { title, content });
       setUrlInput("");
       toast({ title: "URL importada!", description: `${content.length} caracteres extraídos com sucesso.` });
     } catch (err: any) {
@@ -456,6 +501,33 @@ const AgenteIA = () => {
           </Card>
         </div>
       </div>
+
+      {/* Analysis Dialog */}
+      <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              {analysisTitle}
+            </DialogTitle>
+            <DialogDescription>
+              Análise automática gerada pela IA sobre o conteúdo adicionado
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-4" style={{ maxHeight: "65vh" }}>
+            {analysisLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Gerando análise detalhada...</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+                <ReactMarkdown>{analysisContent}</ReactMarkdown>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
