@@ -586,9 +586,6 @@ function LinksRotativosTab() {
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
-  const { groups } = useWhatsAppGroups();
-  const { getMemberCount } = useGroupMemberCount();
-  const { instances } = useZapiInstances();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
