@@ -70,6 +70,7 @@ import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
 import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
+import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +81,7 @@ const nodeTypes: NodeTypes = {
   blocoConteudo: BlocoConteudoNode,
   blocoCondicao: BlocoCondicaoNode,
   blocoAcao: BlocoAcaoNode,
+  blocoGatilho: BlocoGatilhoNode,
 };
 
 const initialNodes: Node[] = [
@@ -111,6 +113,12 @@ const blocosDisponiveis = [
     label: "Ação",
     icon: Zap,
     description: "Executar uma ação específica",
+  },
+  {
+    type: "blocoGatilho",
+    label: "Gatilho",
+    icon: Key,
+    description: "Palavra-chave que dispara o fluxo",
   },
 ];
 
@@ -350,7 +358,7 @@ export default function FluxoVisual() {
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : "Ação"}`,
           content: "",
         },
       };
@@ -1524,22 +1532,6 @@ export default function FluxoVisual() {
             {selectedNode?.type === "blocoCondicao" && (
               <>
                 <div>
-                  <Label className="flex items-center gap-1">
-                    <Key className="h-3 w-3" />
-                    Palavra-chave (Gatilho)
-                  </Label>
-                  <Input
-                    value={keywordFluxo}
-                    onChange={(e) => setKeywordFluxo(e.target.value)}
-                    placeholder="Ex: oi, menu, preco"
-                    className="mt-1"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Quando alguém enviar essa palavra, o fluxo será disparado
-                  </p>
-                </div>
-
-                <div>
                   <Label>Tipo de Condição</Label>
                   <Select
                     value={selectedNode.data.conditionType || "keyword"}
@@ -1573,6 +1565,26 @@ export default function FluxoVisual() {
                     }
                     placeholder="Ex: Se resposta contém 'sim'"
                   />
+                </div>
+              </>
+            )}
+
+            {selectedNode?.type === "blocoGatilho" && (
+              <>
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <Key className="h-3 w-3" />
+                    Palavra-chave (Gatilho)
+                  </Label>
+                  <Input
+                    value={keywordFluxo}
+                    onChange={(e) => setKeywordFluxo(e.target.value)}
+                    placeholder="Ex: oi, menu, preco"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Quando alguém enviar essa palavra, o fluxo será disparado automaticamente
+                  </p>
                 </div>
               </>
             )}
