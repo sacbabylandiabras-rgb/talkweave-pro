@@ -29,7 +29,7 @@ function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl
 
   if (contentType === "image") {
     return (
-      <div className="mt-2 rounded-md overflow-hidden border border-border">
+      <div className="mt-2 rounded-md overflow-hidden border border-blue-500/30">
         <img
           src={mediaUrl}
           alt="Preview"
@@ -44,10 +44,10 @@ function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl
 
   if (contentType === "video") {
     return (
-      <div className="mt-2 rounded-md overflow-hidden border border-border">
+      <div className="mt-2 rounded-md overflow-hidden border border-blue-500/30">
         <video
           src={mediaUrl}
-          className="w-full max-h-32 object-contain bg-black/5"
+          className="w-full max-h-32 object-contain bg-black/20"
           controls
           muted
           preload="metadata"
@@ -76,9 +76,9 @@ function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl
   if (contentType === "document") {
     const fileName = mediaUrl.split("/").pop() || "documento";
     return (
-      <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/50 p-2">
-        <FileText className="h-5 w-5 text-primary shrink-0" />
-        <span className="text-[10px] text-muted-foreground truncate">{decodeURIComponent(fileName)}</span>
+      <div className="mt-2 flex items-center gap-2 rounded-md border border-blue-500/30 bg-slate-700/50 p-2">
+        <FileText className="h-5 w-5 text-blue-400 shrink-0" />
+        <span className="text-[10px] text-blue-300/70 truncate">{decodeURIComponent(fileName)}</span>
       </div>
     );
   }
@@ -93,18 +93,18 @@ export function BlocoConteudoNode({ data }: any) {
   const flowButtons = buttons.filter((b: any) => b.type === "flow" || b.type === "reply");
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[280px]">
+    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-slate-800 min-w-[200px] max-w-[280px]">
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-blue-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-blue-500" />
       <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded bg-blue-500/10">
-          <Icon className="h-4 w-4 text-blue-500" />
+        <div className="p-1.5 rounded bg-blue-500/20">
+          <Icon className="h-4 w-4 text-blue-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-card-foreground">
+          <div className="text-sm font-semibold text-white">
             {data.label}
           </div>
-          <div className="text-[10px] text-muted-foreground">
+          <div className="text-[10px] text-blue-300/70">
             {typeLabels[contentType]}
           </div>
         </div>
@@ -114,7 +114,7 @@ export function BlocoConteudoNode({ data }: any) {
       <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} />
 
       {data.content && (
-        <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap break-words">
+        <div className="text-xs text-blue-200/80 mt-1.5 whitespace-pre-wrap break-words">
           {data.content}
         </div>
       )}
@@ -130,21 +130,20 @@ export function BlocoConteudoNode({ data }: any) {
             const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
 
             return (
-              <div key={btn.id || idx} className="bg-muted/50 rounded-md px-2 py-1.5">
-                <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
+              <div key={btn.id || idx} className="bg-slate-700/50 rounded-md px-2 py-1.5">
+                <div className="text-[10px] text-blue-300 flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
                 </div>
-                {/* Always show metrics bar */}
                 <div className="mt-1">
                   <div className="flex items-center gap-1.5">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-slate-600 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
+                        className="h-full bg-blue-500 rounded-full transition-all"
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
+                    <span className="text-[9px] text-blue-300/70 font-medium whitespace-nowrap">
                       {clickCount} ({percentage}%)
                     </span>
                   </div>
@@ -176,7 +175,7 @@ export function BlocoConteudoNode({ data }: any) {
                 type="source"
                 position={Position.Right}
                 id={`button-${btnIndex}`}
-                className="w-2.5 h-2.5 !bg-primary"
+                className="w-2.5 h-2.5 !bg-blue-400"
                 style={{ top: `${pos}%` }}
               />
             );
