@@ -261,6 +261,7 @@ const Auth = () => {
                     ) : (
                       "Entrar"
                     )}
+                  </Button>
                 </form>
               </TabsContent>
 
