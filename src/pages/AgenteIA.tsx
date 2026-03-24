@@ -61,6 +61,45 @@ const AgenteIA = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Analysis state
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisContent, setAnalysisContent] = useState("");
+  const [analysisTitle, setAnalysisTitle] = useState("");
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
+  const analyzeContent = async (type: "faq" | "document" | "url", data: { question?: string; answer?: string; title?: string; content?: string }) => {
+    setAnalysisLoading(true);
+    setAnalysisOpen(true);
+    setAnalysisContent("");
+    setAnalysisTitle(
+      type === "faq" ? `Análise do FAQ: ${data.question}` :
+      type === "url" ? `Análise da URL: ${data.title}` :
+      `Análise do Documento: ${data.title}`
+    );
+
+    try {
+      let promptContent = "";
+      if (type === "faq") {
+        promptContent = `Analise detalhadamente este FAQ que foi adicionado à base de conhecimento do meu agente de IA.\n\nPergunta: ${data.question}\nResposta: ${data.answer}\n\nFaça uma análise extensa e detalhada cobrindo:\n1. **Clareza da pergunta**: A pergunta está clara e bem formulada? Sugira melhorias se necessário.\n2. **Qualidade da resposta**: A resposta é completa, precisa e objetiva? Há informações faltando?\n3. **Tom e linguagem**: O tom está adequado para atendimento ao cliente?\n4. **Possíveis variações**: Quais outras formas o cliente poderia fazer essa mesma pergunta? O agente conseguiria reconhecer?\n5. **Sugestões de melhoria**: O que poderia ser adicionado ou alterado para tornar essa FAQ mais eficiente?\n6. **Pontuação geral**: De 1 a 10, qual a qualidade desta FAQ?\n\nSeja detalhado e construtivo na análise.`;
+      } else {
+        promptContent = `Analise detalhadamente este documento/conteúdo que foi adicionado à base de conhecimento do meu agente de IA.\n\nTítulo: ${data.title}\nConteúdo:\n${data.content?.substring(0, 5000)}\n\nFaça uma análise extensa e detalhada cobrindo:\n1. **Resumo do conteúdo**: Faça um resumo claro do que este documento contém.\n2. **Qualidade da informação**: As informações estão completas, atualizadas e precisas?\n3. **Organização**: O conteúdo está bem estruturado e organizado?\n4. **Cobertura de tópicos**: Quais tópicos principais são abordados? Há lacunas importantes?\n5. **Utilidade para o agente**: Como o agente poderá usar essas informações para responder clientes?\n6. **Possíveis perguntas**: Liste 5-10 perguntas que os clientes poderiam fazer e que este documento ajudaria a responder.\n7. **Sugestões de melhoria**: O que poderia ser adicionado para tornar a base de conhecimento mais completa?\n8. **Pontuação geral**: De 1 a 10, qual a qualidade e utilidade deste conteúdo?\n\nSeja detalhado e construtivo na análise.`;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke("agent-chat", {
+        body: {
+          messages: [{ role: "user", content: promptContent }],
+        },
+      });
+
+      if (error) throw error;
+      setAnalysisContent(result?.reply || "Não foi possível gerar a análise.");
+    } catch (err: any) {
+      setAnalysisContent("❌ Erro ao gerar análise: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
       setAgentName(config.agent_name);
