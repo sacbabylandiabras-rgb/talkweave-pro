@@ -66,6 +66,8 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         const d = await res.json();
         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
         if (num) foundPhone = num;
+        const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+        if (pic) setProfilePicUrl(pic);
       }
     } catch {}
 
@@ -82,15 +84,6 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
 
     if (foundPhone) {
       setConnectedPhone(foundPhone);
-      // Fetch profile picture
-      try {
-        const picRes = await fetch(`${baseUrl}/profile-picture/${foundPhone}`, { headers: hdrs });
-        if (picRes.ok) {
-          const picData = await picRes.json();
-          const url = picData?.link || picData?.profilePictureUrl || picData?.imgUrl || picData?.url || null;
-          if (url) setProfilePicUrl(url);
-        }
-      } catch {}
     }
   };
 
