@@ -124,9 +124,10 @@ const AgenteIA = () => {
     setFaqAnswer("");
   };
 
-  const handleAddDoc = () => {
+  const handleAddDoc = async () => {
     if (!docTitle.trim() || !docContent.trim()) return;
-    addDocument(docTitle, docContent);
+    await addDocument(docTitle, docContent);
+    analyzeContent("document", { title: docTitle, content: docContent });
     setDocTitle("");
     setDocContent("");
   };
