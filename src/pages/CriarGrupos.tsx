@@ -601,7 +601,27 @@ function LinksRotativosTab() {
   const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
   const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const baseRedirectUrl = `${window.location.origin}/invite/`;
+  // Page customization dialog state
+  const [editPageLinkId, setEditPageLinkId] = useState<string | null>(null);
+  const [pageConfig, setPageConfig] = useState<Record<string, {
+    title?: string;
+    description?: string;
+    photo?: string;
+    buttonColor?: string;
+    bgColor?: string;
+    textColor?: string;
+  }>>(() => {
+    try {
+      const stored = localStorage.getItem("link-page-config");
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+
+  const savePageConfig = (linkId: string, config: typeof pageConfig[string]) => {
+    const updated = { ...pageConfig, [linkId]: config };
+    setPageConfig(updated);
+    localStorage.setItem("link-page-config", JSON.stringify(updated));
+  };
 
   const handleLinkPhotoFileChange = (linkId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
