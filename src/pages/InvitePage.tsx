@@ -10,6 +10,15 @@ interface InviteData {
   invite_link: string;
 }
 
+interface PageConfig {
+  title?: string;
+  description?: string;
+  photo?: string;
+  buttonColor?: string;
+  bgColor?: string;
+  textColor?: string;
+}
+
 const InvitePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<InviteData | null>(null);
