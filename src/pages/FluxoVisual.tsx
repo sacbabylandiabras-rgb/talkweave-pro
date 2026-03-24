@@ -1089,22 +1089,20 @@ export default function FluxoVisual() {
             nodeTypes={nodeTypes}
             fitView
             deleteKeyCode={["Backspace", "Delete"]}
-            className="rounded-lg border border-blue-500/30"
-            style={{ backgroundColor: '#0a1628' }}
+            className="bg-background rounded-lg border"
             defaultEdgeOptions={{
               animated: true,
-              style: { stroke: '#3b82f6', strokeWidth: 2 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+              style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
             }}
           >
-            <Background variant={BackgroundVariant.Dots} color="#1e3a5f" gap={20} size={1} />
-            <Controls className="!bg-slate-800 !border-blue-500/30 !rounded-lg [&>button]:!bg-slate-700 [&>button]:!border-blue-500/20 [&>button]:!text-blue-300 [&>button:hover]:!bg-slate-600" />
+            <Background variant={BackgroundVariant.Dots} />
+            <Controls />
             <MiniMap
               nodeStrokeWidth={3}
               zoomable
               pannable
-              className="!bg-slate-900 !border !border-blue-500/30 !rounded-lg"
-              nodeColor="#3b82f6"
+              className="!bg-card !border !border-border !rounded-lg"
             />
           </ReactFlow>
         </div>
