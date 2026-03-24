@@ -501,6 +501,33 @@ const AgenteIA = () => {
           </Card>
         </div>
       </div>
+
+      {/* Analysis Dialog */}
+      <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              {analysisTitle}
+            </DialogTitle>
+            <DialogDescription>
+              Análise automática gerada pela IA sobre o conteúdo adicionado
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-4" style={{ maxHeight: "65vh" }}>
+            {analysisLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Gerando análise detalhada...</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+                <ReactMarkdown>{analysisContent}</ReactMarkdown>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
