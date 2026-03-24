@@ -23,6 +23,7 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [tempName, setTempName] = useState(instance.instance_name);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
+  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [showConnect, setShowConnect] = useState(false);
