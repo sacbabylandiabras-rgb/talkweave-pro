@@ -1400,101 +1400,52 @@ function LinksRotativosTab() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Personalizar Página do Link</DialogTitle>
-            <DialogDescription>Configure a aparência da página de convite para "{editingLink?.name}"</DialogDescription>
+            <DialogDescription>Configure a aparência da página de convite</DialogDescription>
           </DialogHeader>
-
           <div className="grid grid-cols-2 gap-6">
-            {/* Form */}
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Título da Página</label>
-                <Input
-                  value={editingConfig.title || ""}
-                  onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })}
-                  placeholder={editingLink?.name || "Nome do grupo"}
-                />
+                <Input value={editingConfig.title || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })} placeholder={editingLink?.name || "Nome do grupo"} />
               </div>
               <div>
                 <label className="text-sm font-medium">Descrição</label>
-                <Textarea
-                  value={editingConfig.description || ""}
-                  onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })}
-                  placeholder="Descrição que aparece na página de convite"
-                  rows={3}
-                />
+                <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
               </div>
               <div>
                 <label className="text-sm font-medium">URL da Foto</label>
-                <Input
-                  value={editingConfig.photo || ""}
-                  onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })}
-                  placeholder="https://... ou deixe vazio para usar a foto do grupo"
-                />
+                <Input value={editingConfig.photo || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })} placeholder="https://..." />
               </div>
               <div>
                 <label className="text-sm font-medium">Cor do Botão</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={editingConfig.buttonColor || "#25D366"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })}
-                    className="w-10 h-10 rounded cursor-pointer border border-border"
-                  />
-                  <Input
-                    value={editingConfig.buttonColor || "#25D366"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })}
-                    className="flex-1"
-                  />
+                  <input type="color" value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Cor de Fundo</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={editingConfig.bgColor || "#f5f5f5"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })}
-                    className="w-10 h-10 rounded cursor-pointer border border-border"
-                  />
-                  <Input
-                    value={editingConfig.bgColor || "#f5f5f5"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })}
-                    className="flex-1"
-                  />
+                  <input type="color" value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Cor do Texto</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={editingConfig.textColor || "#1f2937"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })}
-                    className="w-10 h-10 rounded cursor-pointer border border-border"
-                  />
-                  <Input
-                    value={editingConfig.textColor || "#1f2937"}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })}
-                    className="flex-1"
-                  />
+                  <input type="color" value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
             </div>
-
-            {/* Preview */}
-            <div
-              className="rounded-lg p-6 flex flex-col items-center justify-center gap-4 border border-border"
-              style={{ backgroundColor: editingConfig.bgColor || "#f5f5f5" }}
-            >
-              <div className="flex justify-center">
-                {editingConfig.photo ? (
-                  <img src={editingConfig.photo} alt="Preview" className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white" />
-                ) : (
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
-                    <Users className="w-10 h-10 text-white" />
-                  </div>
-                )}
-              </div>
+            <div className="rounded-lg p-6 flex flex-col items-center justify-center gap-4 border border-border" style={{ backgroundColor: editingConfig.bgColor || "#f5f5f5" }}>
+              {editingConfig.photo ? (
+                <img src={editingConfig.photo} alt="Preview" className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white" />
+              ) : (
+                <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
+                  <Users className="w-10 h-10 text-white" />
+                </div>
+              )}
               <h3 className="text-lg font-bold text-center" style={{ color: editingConfig.textColor || "#1f2937" }}>
                 {editingConfig.title || editingLink?.name || "Nome do Grupo"}
               </h3>
@@ -1503,21 +1454,18 @@ function LinksRotativosTab() {
                   {editingConfig.description}
                 </p>
               )}
-              <button
-                className="w-full max-w-[200px] py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2"
-                style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}
-              >
+              <div className="w-full max-w-[200px] py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
                 <ExternalLink className="w-4 h-4" />
                 Entrar no grupo
-              </button>
+              </div>
             </div>
           </div>
-
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>
+    </div>
   );
 }
 
