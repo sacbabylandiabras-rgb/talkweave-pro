@@ -1284,99 +1284,112 @@ serve(async (req) => {
     }
 
     // === FALLBACK: AI AGENT ===
-    const { data: agentConfig } = await supabase
+    const { data: latestAgentConfig, error: agentConfigError } = await supabase
       .from('agent_config')
-      .select('active, agent_name, system_prompt')
+      .select('id, active, agent_name, system_prompt, updated_at')
       .eq('user_id', userId)
-      .eq('active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
-    if (agentConfig) {
-      console.log('🤖 Agente IA ativo, gerando resposta...')
+    if (agentConfigError) {
+      console.error('Erro ao carregar configuração do agente IA:', agentConfigError)
+    }
 
-      try {
-        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
-        if (!LOVABLE_API_KEY) {
-          console.error('LOVABLE_API_KEY não configurada para agente IA')
-        } else {
-          // Fetch knowledge base
-          const { data: knowledge } = await supabase
-            .from('agent_knowledge')
-            .select('type, question, answer, content, title')
-            .eq('user_id', userId)
-            .eq('active', true)
+    const isAgentEnabled = latestAgentConfig?.active === true
 
-          let systemPrompt = agentConfig.system_prompt || 'Você é um assistente virtual prestativo.'
-          systemPrompt += '\n\n--- REGRAS ---'
-          systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
-          systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
-          systemPrompt += '\n- Se não souber a resposta, diga que vai encaminhar para um atendente humano.'
-          systemPrompt += `\n- Nome do agente: ${agentConfig.agent_name || 'Assistente'}`
-          systemPrompt += '\n- Responda de forma curta e direta, como em uma conversa de WhatsApp.'
+    if (!isAgentEnabled) {
+      console.log('🤖 Agente IA desativado para o usuário:', userId, '| instância:', zapiConfig.zapi_instance_id)
+      await releaseMessageProcessingLock(supabase, lockId)
+      return new Response('ai_agent_disabled', { status: 200, headers: corsHeaders })
+    }
 
-          if (knowledge && knowledge.length > 0) {
-            systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
-            for (const item of knowledge) {
-              if (item.type === 'faq') {
-                systemPrompt += `\n\nPergunta: ${item.question}\nResposta: ${item.answer}`
-              } else if (item.type === 'document') {
-                systemPrompt += `\n\nDocumento "${item.title || 'Sem título'}":\n${item.content}`
-              }
+    console.log('🤖 Agente IA ativo, gerando resposta...', {
+      userId,
+      instanceId: zapiConfig.zapi_instance_id,
+      agentConfigId: latestAgentConfig?.id,
+    })
+
+    try {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+      if (!LOVABLE_API_KEY) {
+        console.error('LOVABLE_API_KEY não configurada para agente IA')
+      } else {
+        const { data: knowledge } = await supabase
+          .from('agent_knowledge')
+          .select('type, question, answer, content, title')
+          .eq('user_id', userId)
+          .eq('active', true)
+
+        let systemPrompt = latestAgentConfig.system_prompt || 'Você é um assistente virtual prestativo.'
+        systemPrompt += '\n\n--- REGRAS ---'
+        systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
+        systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
+        systemPrompt += '\n- Se não souber a resposta, diga que vai encaminhar para um atendente humano.'
+        systemPrompt += `\n- Nome do agente: ${latestAgentConfig.agent_name || 'Assistente'}`
+        systemPrompt += '\n- Responda de forma curta e direta, como em uma conversa de WhatsApp.'
+
+        if (knowledge && knowledge.length > 0) {
+          systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
+          for (const item of knowledge) {
+            if (item.type === 'faq') {
+              systemPrompt += `\n\nPergunta: ${item.question}\nResposta: ${item.answer}`
+            } else if (item.type === 'document') {
+              systemPrompt += `\n\nDocumento "${item.title || 'Sem título'}":\n${item.content}`
             }
-          }
-
-          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-3-flash-preview',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: messageRaw },
-              ],
-              stream: false,
-            }),
-          })
-
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json()
-            const aiReply = aiData.choices?.[0]?.message?.content || ''
-
-            if (aiReply) {
-              // Send AI reply via Z-API
-              const zapiAiResponse = await fetch(
-                `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Client-Token': zapiConfig.zapi_client_token,
-                  },
-                  body: JSON.stringify({ phone, message: aiReply }),
-                }
-              )
-
-              const zapiAiResult = await zapiAiResponse.text()
-              console.log('🤖 Resposta IA enviada:', zapiAiResponse.status, zapiAiResult.substring(0, 200))
-
-              await finalizeMessageLog(supabase, lockId, {
-                keywordMatched: '[Agente IA]',
-                responseSent: aiReply,
-              })
-
-              return new Response('ai_agent_response_sent', { status: 200, headers: corsHeaders })
-            }
-          } else {
-            const errText = await aiResponse.text()
-            console.error('Erro AI Gateway:', aiResponse.status, errText.substring(0, 300))
           }
         }
-      } catch (aiError) {
-        console.error('Erro ao processar agente IA:', aiError)
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: messageRaw },
+            ],
+            stream: false,
+          }),
+        })
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json()
+          const aiReply = aiData.choices?.[0]?.message?.content || ''
+
+          if (aiReply) {
+            const zapiAiResponse = await fetch(
+              `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Client-Token': zapiConfig.zapi_client_token,
+                },
+                body: JSON.stringify({ phone, message: aiReply }),
+              }
+            )
+
+            const zapiAiResult = await zapiAiResponse.text()
+            console.log('🤖 Resposta IA enviada:', zapiAiResponse.status, zapiAiResult.substring(0, 200))
+
+            await finalizeMessageLog(supabase, lockId, {
+              keywordMatched: '[Agente IA]',
+              responseSent: aiReply,
+            })
+
+            return new Response('ai_agent_response_sent', { status: 200, headers: corsHeaders })
+          }
+        } else {
+          const errText = await aiResponse.text()
+          console.error('Erro AI Gateway:', aiResponse.status, errText.substring(0, 300))
+        }
       }
+    } catch (aiError) {
+      console.error('Erro ao processar agente IA:', aiError)
     }
 
     await releaseMessageProcessingLock(supabase, lockId)
