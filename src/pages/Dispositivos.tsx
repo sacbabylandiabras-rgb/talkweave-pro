@@ -232,54 +232,66 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
 
   return (
     <>
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md hover:border-primary/30 transition-all">
-        {/* Header: number + status */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`} />
-            {isEditingName ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  className="h-7 text-sm w-28"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
-                    if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
-                  }}
-                  autoFocus
-                />
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
-                  <Check className="w-3 h-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
+      <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 hover:shadow-md hover:border-primary/30 transition-all min-h-[280px]">
+        {/* Profile picture + name */}
+        <div className="flex items-start gap-4">
+          <div className="shrink-0">
+            {profilePicUrl ? (
+              <img
+                src={profilePicUrl}
+                alt="Perfil"
+                className="w-14 h-14 rounded-full object-cover border-2 border-border"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
             ) : (
-              <span className="font-semibold text-sm truncate">{instanceName}</span>
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                <Smartphone className="w-6 h-6 text-muted-foreground" />
+              </div>
             )}
-            {instance.is_default && <Badge variant="default" className="text-[10px] px-1.5 py-0">Padrão</Badge>}
-            {!isEditingName && (
-              <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" onClick={() => { setIsEditingName(true); setTempName(instanceName); }}>
-                <Edit2 className="w-2.5 h-2.5" />
-              </Button>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`} />
+              {isEditingName ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="h-7 text-sm w-28"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
+                      if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
+                    }}
+                    autoFocus
+                  />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
+                    <Check className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <span className="font-semibold text-sm truncate">{instanceName}</span>
+              )}
+              {instance.is_default && <Badge variant="default" className="text-[10px] px-1.5 py-0">Padrão</Badge>}
+              {!isEditingName && (
+                <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" onClick={() => { setIsEditingName(true); setTempName(instanceName); }}>
+                  <Edit2 className="w-2.5 h-2.5" />
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">{instance.zapi_instance_id}</p>
+            {connectedPhone && (
+              <div className="flex items-center gap-1 mt-1">
+                <Phone className="w-3 h-3 text-primary" />
+                <span className="text-xs font-medium text-primary">+{connectedPhone}</span>
+              </div>
             )}
           </div>
           <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px] shrink-0">
             {isOnline ? 'Online' : 'Offline'}
           </Badge>
-        </div>
-
-        {/* Info */}
-        <div className="space-y-1">
-          <p className="text-[11px] text-muted-foreground font-mono truncate">{instance.zapi_instance_id}</p>
-          {connectedPhone && (
-            <div className="flex items-center gap-1">
-              <Phone className="w-3 h-3 text-primary" />
-              <span className="text-xs font-medium text-primary">+{connectedPhone}</span>
-            </div>
-          )}
         </div>
 
         {/* Status dots */}
