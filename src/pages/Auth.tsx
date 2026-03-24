@@ -61,32 +61,6 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
-  const handleFacebookLogin = async () => {
-    setFbLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "facebook",
-        options: {
-          redirectTo: window.location.origin + "/dashboard",
-        },
-      });
-      if (error) {
-        toast({
-          title: "Erro ao entrar com Facebook",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({
-        title: "Erro",
-        description: "Falha ao conectar com Facebook",
-        variant: "destructive",
-      });
-    } finally {
-      setFbLoading(false);
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
