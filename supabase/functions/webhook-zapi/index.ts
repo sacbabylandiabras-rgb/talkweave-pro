@@ -918,6 +918,7 @@ serve(async (req) => {
       }
 
       return new Response('group_leave_handled', { status: 200, headers: corsHeaders })
+    }
 
     // Detect outgoing messages sent by this same WhatsApp instance
     const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
