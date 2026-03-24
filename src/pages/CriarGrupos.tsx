@@ -1340,9 +1340,86 @@ function LinksRotativosTab() {
                 <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
               </div>
               <div>
-                <label className="text-sm font-medium">URL da Foto</label>
-                <Input value={editingConfig.photo || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })} placeholder="https://..." />
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" />
+                  Foto da Página
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div
+                    className="relative w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                    onClick={() => editPageLinkId && linkPhotoRefs.current[editPageLinkId]?.click()}
+                  >
+                    {editingConfig.photo ? (
+                      <img src={editingConfig.photo} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    value={editingConfig.photo || ""}
+                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })}
+                    placeholder="Cole a URL da imagem ou faça upload"
+                    className="flex-1 h-8 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-8"
+                    onClick={() => editPageLinkId && linkPhotoRefs.current[editPageLinkId]?.click()}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                  </Button>
+                  <input
+                    ref={(el) => { if (editPageLinkId) linkPhotoRefs.current[editPageLinkId] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !editPageLinkId) return;
+                      try {
+                        const url = await uploadFileToStorage(file);
+                        savePageConfig(editPageLinkId, { ...editingConfig, photo: url });
+                        toast.success("Foto enviada!");
+                      } catch (err: any) {
+                        toast.error(err.message || "Erro no upload");
+                      }
+                    }}
+                  />
+                </div>
+                {editingConfig.photo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1 h-7 text-xs text-destructive"
+                    onClick={() => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: "" })}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remover foto
+                  </Button>
+                )}
               </div>
+              {/* Apply photo to all WhatsApp groups */}
+              {editingConfig.photo && editingLink?.groups && editingLink.groups.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    if (!editPageLinkId || !editingConfig.photo) return;
+                    setLinkPhotoUrl((prev) => ({ ...prev, [editPageLinkId]: editingConfig.photo || "" }));
+                    setLinkPhotoFile((prev) => ({ ...prev, [editPageLinkId]: null }));
+                    handleApplyPhotoToAll(editingLink);
+                  }}
+                  disabled={applyingPhoto === editPageLinkId}
+                >
+                  {applyingPhoto === editPageLinkId ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Image className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  Aplicar foto em todos os grupos
+                </Button>
+              )}
               <div>
                 <label className="text-sm font-medium">Cor do Botão</label>
                 <div className="flex items-center gap-2">
