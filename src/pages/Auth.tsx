@@ -31,7 +31,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
-  const [fbLoading, setFbLoading] = useState(false);
+  
 
   useEffect(() => {
     // Verificar se usuário já está logado
