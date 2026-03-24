@@ -114,6 +114,12 @@ const blocosDisponiveis = [
     icon: Zap,
     description: "Executar uma ação específica",
   },
+  {
+    type: "blocoGatilho",
+    label: "Gatilho",
+    icon: Key,
+    description: "Palavra-chave que dispara o fluxo",
+  },
 ];
 
 interface FlowAutomation {
