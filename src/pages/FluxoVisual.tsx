@@ -1532,29 +1532,7 @@ export default function FluxoVisual() {
             {selectedNode?.type === "blocoCondicao" && (
               <>
                 <div>
-                  <Label>Tipo de Condição</Label>
-                  <Select
-                    value={selectedNode.data.conditionType || "keyword"}
-                    onValueChange={(value) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, conditionType: value },
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="keyword">Palavra-chave</SelectItem>
-                      <SelectItem value="menu">Menu</SelectItem>
-                      <SelectItem value="variable">Variável</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Descrição da Condição</Label>
+                  <Label>Palavra-chave para este caminho</Label>
                   <Input
                     value={selectedNode.data.condition || ""}
                     onChange={(e) =>
@@ -1563,8 +1541,11 @@ export default function FluxoVisual() {
                         data: { ...selectedNode.data, condition: e.target.value },
                       })
                     }
-                    placeholder="Ex: Se resposta contém 'sim'"
+                    placeholder="Ex: sim, não, 1, 2"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Se a mensagem recebida contém essa palavra, segue por este caminho
+                  </p>
                 </div>
               </>
             )}
