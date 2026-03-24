@@ -743,6 +743,11 @@ export default function FluxoVisual() {
       if (!targetNode) continue;
 
       if (targetNode.type === "blocoConteudo") {
+        const delayMs = (targetNode.data.delaySeconds || 0) * 1000;
+        if (delayMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
         const contentType = targetNode.data.contentType || "text";
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
