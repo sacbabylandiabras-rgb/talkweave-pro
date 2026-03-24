@@ -92,6 +92,7 @@ export function useRedirectLinks() {
           groups: (groupsData || []).filter((g: any) => g.redirect_link_id === link.id),
           click_count: clickCounts[link.id] || 0,
           clicks_by_day: last7,
+          clicks_raw: (clicksData || []).filter((c: any) => c.redirect_link_id === link.id),
         };
       });
 
