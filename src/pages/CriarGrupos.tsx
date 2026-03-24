@@ -1317,69 +1317,6 @@ function LinksRotativosTab() {
                 </Button>
                 )}
 
-              {/* Photo upload section */}
-              {link.groups && link.groups.length > 0 && (
-                <div className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Image className="w-3.5 h-3.5 text-primary" />
-                    Foto dos Grupos
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="relative w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
-                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
-                    >
-                      {linkPhotoPreview[link.id] || linkPhotoUrl[link.id] ? (
-                        <img src={linkPhotoPreview[link.id] || linkPhotoUrl[link.id]} alt="Preview" className="w-full h-full object-cover" />
-                      ) : link.groups?.[0]?.group_photo ? (
-                        <img src={link.groups[0].group_photo} alt="Current" className="w-full h-full object-cover opacity-60" />
-                      ) : (
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        placeholder="Cole a URL da imagem ou faça upload"
-                        value={linkPhotoUrl[link.id] || ""}
-                        onChange={(e) => {
-                          setLinkPhotoUrl((prev) => ({ ...prev, [link.id]: e.target.value }));
-                          setLinkPhotoFile((prev) => ({ ...prev, [link.id]: null }));
-                          setLinkPhotoPreview((prev) => ({ ...prev, [link.id]: "" }));
-                        }}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 h-8"
-                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="shrink-0 h-8"
-                      onClick={() => handleApplyPhotoToAll(link)}
-                      disabled={applyingPhoto === link.id || (!linkPhotoUrl[link.id]?.trim() && !linkPhotoFile[link.id])}
-                    >
-                      {applyingPhoto === link.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
-                      ) : (
-                        <Image className="w-3.5 h-3.5 mr-1" />
-                      )}
-                      Aplicar em todos
-                    </Button>
-                    <input
-                      ref={(el) => { linkPhotoRefs.current[link.id] = el; }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleLinkPhotoFileChange(link.id, e)}
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))
@@ -1403,9 +1340,86 @@ function LinksRotativosTab() {
                 <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
               </div>
               <div>
-                <label className="text-sm font-medium">URL da Foto</label>
-                <Input value={editingConfig.photo || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })} placeholder="https://..." />
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" />
+                  Foto da Página
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div
+                    className="relative w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                    onClick={() => editPageLinkId && linkPhotoRefs.current[editPageLinkId]?.click()}
+                  >
+                    {editingConfig.photo ? (
+                      <img src={editingConfig.photo} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    value={editingConfig.photo || ""}
+                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })}
+                    placeholder="Cole a URL da imagem ou faça upload"
+                    className="flex-1 h-8 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-8"
+                    onClick={() => editPageLinkId && linkPhotoRefs.current[editPageLinkId]?.click()}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                  </Button>
+                  <input
+                    ref={(el) => { if (editPageLinkId) linkPhotoRefs.current[editPageLinkId] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !editPageLinkId) return;
+                      try {
+                        const url = await uploadFileToStorage(file);
+                        savePageConfig(editPageLinkId, { ...editingConfig, photo: url });
+                        toast.success("Foto enviada!");
+                      } catch (err: any) {
+                        toast.error(err.message || "Erro no upload");
+                      }
+                    }}
+                  />
+                </div>
+                {editingConfig.photo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1 h-7 text-xs text-destructive"
+                    onClick={() => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: "" })}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remover foto
+                  </Button>
+                )}
               </div>
+              {/* Apply photo to all WhatsApp groups */}
+              {editingConfig.photo && editingLink?.groups && editingLink.groups.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    if (!editPageLinkId || !editingConfig.photo) return;
+                    setLinkPhotoUrl((prev) => ({ ...prev, [editPageLinkId]: editingConfig.photo || "" }));
+                    setLinkPhotoFile((prev) => ({ ...prev, [editPageLinkId]: null }));
+                    handleApplyPhotoToAll(editingLink);
+                  }}
+                  disabled={applyingPhoto === editPageLinkId}
+                >
+                  {applyingPhoto === editPageLinkId ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Image className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  Aplicar foto em todos os grupos
+                </Button>
+              )}
               <div>
                 <label className="text-sm font-medium">Cor do Botão</label>
                 <div className="flex items-center gap-2">
