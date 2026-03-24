@@ -1524,6 +1524,22 @@ export default function FluxoVisual() {
             {selectedNode?.type === "blocoCondicao" && (
               <>
                 <div>
+                  <Label className="flex items-center gap-1">
+                    <Key className="h-3 w-3" />
+                    Palavra-chave (Gatilho)
+                  </Label>
+                  <Input
+                    value={keywordFluxo}
+                    onChange={(e) => setKeywordFluxo(e.target.value)}
+                    placeholder="Ex: oi, menu, preco"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Quando alguém enviar essa palavra, o fluxo será disparado
+                  </p>
+                </div>
+
+                <div>
                   <Label>Tipo de Condição</Label>
                   <Select
                     value={selectedNode.data.conditionType || "keyword"}
