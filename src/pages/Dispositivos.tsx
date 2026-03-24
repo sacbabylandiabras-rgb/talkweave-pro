@@ -210,192 +210,200 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
   const isConnected = deviceStatus?.connected === true;
 
+  const [showDetails, setShowDetails] = useState(false);
+
   return (
-    <Card>
-      <CardHeader>
+    <>
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md hover:border-primary/30 transition-all">
+        {/* Header: number + status */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Smartphone className="w-8 h-8 text-primary" />
-            <div className="flex-1">
-              {isEditingName ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    className="text-lg font-semibold h-8"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
-                      if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
-                    }}
-                  />
-                  <Button size="sm" variant="ghost" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
-                    <Check className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg">{instanceName}</CardTitle>
-                  {instance.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
-                  <Button size="sm" variant="ghost" onClick={() => { setIsEditingName(true); setTempName(instanceName); }}>
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-              <CardDescription className="space-y-0.5">
-                <div className="text-xs text-muted-foreground">ID: {instance.zapi_instance_id}</div>
-                {connectedPhone && (
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="w-3 h-3 text-primary" />
-                    <span className="font-medium text-primary text-sm">+{connectedPhone}</span>
-                  </div>
-                )}
-              </CardDescription>
-            </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`} />
+            {isEditingName ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="h-7 text-sm w-28"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
+                    if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
+                  }}
+                  autoFocus
+                />
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
+                  <Check className="w-3 h-3" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : (
+              <span className="font-semibold text-sm truncate">{instanceName}</span>
+            )}
+            {instance.is_default && <Badge variant="default" className="text-[10px] px-1.5 py-0">Padrão</Badge>}
+            {!isEditingName && (
+              <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" onClick={() => { setIsEditingName(true); setTempName(instanceName); }}>
+                <Edit2 className="w-2.5 h-2.5" />
+              </Button>
+            )}
           </div>
-          <Badge variant={isOnline ? 'default' : 'secondary'}>
-            {isOnline ? <><Wifi className="w-3 h-3 mr-1" /> Online</> : <><WifiOff className="w-3 h-3 mr-1" /> Offline</>}
+          <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px] shrink-0">
+            {isOnline ? 'Online' : 'Offline'}
           </Badge>
         </div>
-        
-        <div className="flex flex-wrap gap-2 pt-4">
-          <Button variant="outline" size="sm" onClick={fetchDeviceStatus} disabled={loading} className="flex items-center gap-2">
-            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
+
+        {/* Info */}
+        <div className="space-y-1">
+          <p className="text-[11px] text-muted-foreground font-mono truncate">{instance.zapi_instance_id}</p>
+          {connectedPhone && (
+            <div className="flex items-center gap-1">
+              <Phone className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">+{connectedPhone}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Status dots */}
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${deviceStatus?.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            Conectado
+          </div>
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${deviceStatus?.session ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            Sessão
+          </div>
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${deviceStatus?.smartphoneConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            Celular
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <Button variant="outline" size="sm" onClick={fetchDeviceStatus} disabled={loading} className="h-7 text-[11px] px-2">
+            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} /> Status
           </Button>
           {isConnected && (
-            <Button variant="outline" size="sm" disabled={loading} className="flex items-center gap-2"
+            <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
               onClick={async () => {
                 try {
                   await withInstance(() => disconnectDevice());
-                  // Clear old messages when disconnecting so only new ones appear with new number
                   try {
                     await supabase.from('message_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
                     await supabase.from('campaign_sends').delete().neq('id', '00000000-0000-0000-0000-000000000000');
                     localStorage.removeItem('readConversations');
-                    toast({ title: "🗑️ Histórico limpo", description: "Mensagens antigas foram removidas. Novas mensagens aparecerão com o próximo número." });
-                  } catch (e) {
-                    console.error('Erro ao limpar mensagens:', e);
-                  }
+                    toast({ title: "🗑️ Histórico limpo" });
+                  } catch {}
                   setTimeout(fetchDeviceStatus, 1000);
                 } catch {}
               }}>
-              <PowerOff className="w-3 h-3" /> Desconectar
+              <PowerOff className="w-3 h-3 mr-1" /> Desconectar
             </Button>
           )}
-          <Button variant="outline" size="sm" disabled={loading} className="flex items-center gap-2"
+          <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
             onClick={async () => { try { await withInstance(() => restartInstance()); setTimeout(fetchDeviceStatus, 3000); } catch {} }}>
-            <RotateCcw className="w-3 h-3" /> Reiniciar
+            <RotateCcw className="w-3 h-3 mr-1" /> Reiniciar
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => navigate('/enviar-mensagem')}>
-            <Send className="w-3 h-3" /> Enviar
+          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
+            <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
           {!isConnected && (
-            <Button size="sm" className="flex items-center gap-2" onClick={() => setShowConnect(!showConnect)}>
-              <Wifi className="w-3 h-3" /> Conectar
+            <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
+              <Wifi className="w-3 h-3 mr-1" /> Conectar
             </Button>
           )}
+          <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => setShowDetails(!showDetails)}>
+            {showDetails ? 'Ocultar' : 'Detalhes'}
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
 
-        <Dialog open={!isConnected && showConnect} onOpenChange={setShowConnect}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">🔗 Conectar dispositivo</DialogTitle>
-            </DialogHeader>
-            <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="qr-code" className="flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Code</TabsTrigger>
-                <TabsTrigger value="phone-number" className="flex items-center gap-2"><Phone className="w-4 h-4" /> Com Número</TabsTrigger>
-              </TabsList>
-              <TabsContent value="qr-code" className="space-y-4">
-                <div className="text-center space-y-4">
-                  {!qrCodeImage ? (
-                    <div>
-                      <Button onClick={fetchQRCode} disabled={loading} size="lg">
-                        <QrCode className="w-4 h-4 mr-2" /> Gerar QR Code
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">Clique para gerar o QR Code</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex justify-center mb-4">
-                        <img src={qrCodeImage} alt="QR Code" className="w-64 h-64 border rounded-lg" />
-                      </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>1. Abra o WhatsApp</p>
-                        <p>2. Vá em ⋮ → <strong>Aparelhos conectados</strong></p>
-                        <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
-                        <p>4. Escaneie este código</p>
-                      </div>
-                      <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode} disabled={loading}>
-                        🔄 Renovar QR Code
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="phone-number" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Número do WhatsApp</label>
-                    <Input type="tel" placeholder="Ex: 5511999999999" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="text-center" />
-                  </div>
-                  <Button className="w-full" disabled={!phoneNumber || loading} onClick={fetchPairingCode}>
-                    <Phone className="w-4 h-4 mr-2" /> Gerar Código de Pareamento
-                  </Button>
-                  {pairingCode && (
-                    <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
-                      <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
-                        {pairingCode}
-                      </div>
-                      <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
-
-
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">📊 Status Detalhado</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Conectado:</span>
-                <Badge variant={deviceStatus?.connected ? 'default' : 'secondary'}>{deviceStatus?.connected ? 'Sim' : 'Não'}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Sessão:</span>
-                <Badge variant={deviceStatus?.session ? 'default' : 'secondary'}>{deviceStatus?.session ? 'Ativa' : 'Inativa'}</Badge>
-              </div>
+        {/* Expandable details */}
+        {showDetails && deviceStatus && (
+          <div className="border-t border-border pt-2 space-y-2">
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Smartphone:</span>
-                <Badge variant={deviceStatus?.smartphoneConnected ? 'default' : 'secondary'}>{deviceStatus?.smartphoneConnected ? 'Conectado' : 'Desconectado'}</Badge>
+                <Badge variant={deviceStatus?.smartphoneConnected ? 'default' : 'secondary'} className="text-[10px]">
+                  {deviceStatus?.smartphoneConnected ? 'Conectado' : 'Desconectado'}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Criado:</span>
-                <span className="text-sm">{deviceStatus?.created ? new Date(deviceStatus.created).toLocaleString('pt-BR') : 'N/A'}</span>
+                <span>{deviceStatus?.created ? new Date(deviceStatus.created).toLocaleString('pt-BR') : 'N/A'}</span>
               </div>
             </div>
+            <details className="text-[10px]">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Debug</summary>
+              <pre className="mt-1 p-2 bg-muted rounded overflow-auto max-h-32">{JSON.stringify(deviceStatus, null, 2)}</pre>
+            </details>
           </div>
-          {deviceStatus && (
-            <div className="border-t pt-4">
-              <details className="text-xs">
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Dados Técnicos (Debug)</summary>
-                <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">{JSON.stringify(deviceStatus, null, 2)}</pre>
-              </details>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        )}
+      </div>
+
+      {/* Connection Dialog */}
+      <Dialog open={!isConnected && showConnect} onOpenChange={setShowConnect}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">🔗 Conectar dispositivo</DialogTitle>
+          </DialogHeader>
+          <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="qr-code" className="flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Code</TabsTrigger>
+              <TabsTrigger value="phone-number" className="flex items-center gap-2"><Phone className="w-4 h-4" /> Com Número</TabsTrigger>
+            </TabsList>
+            <TabsContent value="qr-code" className="space-y-4">
+              <div className="text-center space-y-4">
+                {!qrCodeImage ? (
+                  <div>
+                    <Button onClick={fetchQRCode} disabled={loading} size="lg">
+                      <QrCode className="w-4 h-4 mr-2" /> Gerar QR Code
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2">Clique para gerar o QR Code</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex justify-center mb-4">
+                      <img src={qrCodeImage} alt="QR Code" className="w-64 h-64 border rounded-lg" />
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>1. Abra o WhatsApp</p>
+                      <p>2. Vá em ⋮ → <strong>Aparelhos conectados</strong></p>
+                      <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
+                      <p>4. Escaneie este código</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode} disabled={loading}>
+                      🔄 Renovar QR Code
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="phone-number" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Número do WhatsApp</label>
+                  <Input type="tel" placeholder="Ex: 5511999999999" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="text-center" />
+                </div>
+                <Button className="w-full" disabled={!phoneNumber || loading} onClick={fetchPairingCode}>
+                  <Phone className="w-4 h-4 mr-2" /> Gerar Código de Pareamento
+                </Button>
+                {pairingCode && (
+                  <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
+                    <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
+                      {pairingCode}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -425,7 +433,7 @@ const Dispositivos = () => {
         </Card>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {instances.map((instance) => (
           <DeviceCard key={instance.id} instance={instance} />
         ))}
