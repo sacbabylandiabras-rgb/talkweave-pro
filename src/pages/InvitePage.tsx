@@ -27,6 +27,19 @@ const InvitePage = () => {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
+  const [pageConfig, setPageConfig] = useState<PageConfig>({});
+
+  useEffect(() => {
+    // Read page config from URL hash
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const config = JSON.parse(decodeURIComponent(hash));
+        setPageConfig(config);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
     (async () => {
@@ -36,7 +49,6 @@ const InvitePage = () => {
           `https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`
         );
         const json = await res.json();
-
         if (!res.ok) {
           setError(json.error || "Link não encontrado");
         } else {
