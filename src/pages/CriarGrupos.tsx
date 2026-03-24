@@ -1317,69 +1317,6 @@ function LinksRotativosTab() {
                 </Button>
                 )}
 
-              {/* Photo upload section */}
-              {link.groups && link.groups.length > 0 && (
-                <div className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Image className="w-3.5 h-3.5 text-primary" />
-                    Foto dos Grupos
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="relative w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
-                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
-                    >
-                      {linkPhotoPreview[link.id] || linkPhotoUrl[link.id] ? (
-                        <img src={linkPhotoPreview[link.id] || linkPhotoUrl[link.id]} alt="Preview" className="w-full h-full object-cover" />
-                      ) : link.groups?.[0]?.group_photo ? (
-                        <img src={link.groups[0].group_photo} alt="Current" className="w-full h-full object-cover opacity-60" />
-                      ) : (
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        placeholder="Cole a URL da imagem ou faça upload"
-                        value={linkPhotoUrl[link.id] || ""}
-                        onChange={(e) => {
-                          setLinkPhotoUrl((prev) => ({ ...prev, [link.id]: e.target.value }));
-                          setLinkPhotoFile((prev) => ({ ...prev, [link.id]: null }));
-                          setLinkPhotoPreview((prev) => ({ ...prev, [link.id]: "" }));
-                        }}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 h-8"
-                      onClick={() => linkPhotoRefs.current[link.id]?.click()}
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="shrink-0 h-8"
-                      onClick={() => handleApplyPhotoToAll(link)}
-                      disabled={applyingPhoto === link.id || (!linkPhotoUrl[link.id]?.trim() && !linkPhotoFile[link.id])}
-                    >
-                      {applyingPhoto === link.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
-                      ) : (
-                        <Image className="w-3.5 h-3.5 mr-1" />
-                      )}
-                      Aplicar em todos
-                    </Button>
-                    <input
-                      ref={(el) => { linkPhotoRefs.current[link.id] = el; }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleLinkPhotoFileChange(link.id, e)}
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))
