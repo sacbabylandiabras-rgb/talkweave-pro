@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from "@supabase/supabase-js";
 import {
   Bot,
   Brain,
@@ -34,6 +35,37 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+const getEdgeFunctionErrorMessage = async (err: unknown) => {
+  if (err instanceof FunctionsHttpError) {
+    try {
+      const payload = await err.context.json();
+      if (payload?.error) return payload.error;
+    } catch {
+      try {
+        const text = await err.context.text();
+        if (text) return text;
+      } catch {
+        return "A função retornou um erro inesperado.";
+      }
+    }
+    return "A função retornou um erro inesperado.";
+  }
+
+  if (err instanceof FunctionsRelayError) {
+    return "Falha de comunicação com a Edge Function.";
+  }
+
+  if (err instanceof FunctionsFetchError) {
+    return "Não foi possível conectar à Edge Function.";
+  }
+
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+
+  return "Erro desconhecido";
+};
 
 const AgenteIA = () => {
   const { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge } = useAgentConfig();
@@ -94,8 +126,9 @@ const AgenteIA = () => {
 
       if (error) throw error;
       setAnalysisContent(result?.reply || "Não foi possível gerar a análise.");
-    } catch (err: any) {
-      setAnalysisContent("❌ Erro ao gerar análise: " + (err.message || "Erro desconhecido"));
+    } catch (err) {
+      const errorMessage = await getEdgeFunctionErrorMessage(err);
+      setAnalysisContent("❌ Erro ao gerar análise: " + errorMessage);
     } finally {
       setAnalysisLoading(false);
     }
