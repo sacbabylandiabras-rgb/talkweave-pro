@@ -59,7 +59,8 @@ export function useRedirectLinks() {
       // Fetch click data with dates
       const { data: clicksData } = await (supabase as any)
         .from("redirect_link_clicks")
-        .select("redirect_link_id, created_at");
+        .select("*")
+        .order("created_at", { ascending: false });
 
       const clickCounts: Record<string, number> = {};
       const clicksByDay: Record<string, Record<string, number>> = {};
