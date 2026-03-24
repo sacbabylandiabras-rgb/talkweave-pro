@@ -58,23 +58,40 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
     const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
     
+    let foundPhone: string | null = null;
+
     try {
       const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
       if (res.ok) {
         const d = await res.json();
         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-        if (num) { setConnectedPhone(num); return; }
+        if (num) foundPhone = num;
       }
     } catch {}
 
-    try {
-      const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
-      if (res.ok) {
-        const d = await res.json();
-        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
-        if (num) { setConnectedPhone(num); return; }
-      }
-    } catch {}
+    if (!foundPhone) {
+      try {
+        const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+        if (res.ok) {
+          const d = await res.json();
+          const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+          if (num) foundPhone = num;
+        }
+      } catch {}
+    }
+
+    if (foundPhone) {
+      setConnectedPhone(foundPhone);
+      // Fetch profile picture
+      try {
+        const picRes = await fetch(`${baseUrl}/profile-picture/${foundPhone}`, { headers: hdrs });
+        if (picRes.ok) {
+          const picData = await picRes.json();
+          const url = picData?.link || picData?.profilePictureUrl || picData?.imgUrl || picData?.url || null;
+          if (url) setProfilePicUrl(url);
+        }
+      } catch {}
+    }
   };
 
   const fetchQRCode = async () => {
