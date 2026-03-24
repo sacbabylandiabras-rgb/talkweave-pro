@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface RedirectLinkClick {
+  id: string;
+  redirect_link_id: string;
+  group_redirected_to: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export interface RedirectLink {
   id: string;
   name: string;
@@ -12,6 +21,7 @@ export interface RedirectLink {
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];
+  clicks_raw?: RedirectLinkClick[];
 }
 
 export interface RedirectLinkGroup {
