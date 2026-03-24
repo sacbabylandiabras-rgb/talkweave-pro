@@ -82,15 +82,6 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
 
     if (foundPhone) {
       setConnectedPhone(foundPhone);
-      // Fetch profile picture
-      try {
-        const picRes = await fetch(`${baseUrl}/profile-picture/${foundPhone}`, { headers: hdrs });
-        if (picRes.ok) {
-          const picData = await picRes.json();
-          const url = picData?.link || picData?.profilePictureUrl || picData?.imgUrl || picData?.url || null;
-          if (url) setProfilePicUrl(url);
-        }
-      } catch {}
     }
   };
 
