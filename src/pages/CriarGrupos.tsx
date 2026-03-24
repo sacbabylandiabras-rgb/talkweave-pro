@@ -585,6 +585,7 @@ function LinksRotativosTab() {
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
+  const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
@@ -1203,6 +1204,9 @@ function LinksRotativosTab() {
                     {link.click_count || 0} cliques
                   </Badge>
                   <Switch checked={link.active} onCheckedChange={(v) => toggleLink(link.id, v)} />
+                  <Button variant="ghost" size="icon" onClick={() => setAnalyticsLinkId(link.id)} title="Análises">
+                    <BarChart3 className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => setEditPageLinkId(link.id)} title="Editar página">
                     <Pencil className="w-4 h-4" />
                   </Button>
@@ -1377,23 +1381,6 @@ function LinksRotativosTab() {
                 </div>
               )}
             </CardContent>
-            {/* Collapsible click chart at the bottom */}
-            {link.clicks_by_day && link.clicks_by_day.some(d => d.clicks > 0) && (
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <button className="w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    Ver gráfico de cliques
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="px-6 py-3 border-t border-border">
-                    <ClicksSparkline data={link.clicks_by_day} />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
           </Card>
         ))
       )}
@@ -1465,6 +1452,110 @@ function LinksRotativosTab() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics Dialog */}
+      <Dialog open={!!analyticsLinkId} onOpenChange={(open) => !open && setAnalyticsLinkId(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Análises do Link
+            </DialogTitle>
+            <DialogDescription>
+              {links.find(l => l.id === analyticsLinkId)?.name || ""}
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const analyticsLink = links.find(l => l.id === analyticsLinkId);
+            if (!analyticsLink) return null;
+            const clicks = analyticsLink.clicks_raw || [];
+            const totalClicks = analyticsLink.click_count || 0;
+
+            // Group entries by group name
+            const groupEntries: Record<string, number> = {};
+            clicks.forEach(c => {
+              const g = c.group_redirected_to || "Desconhecido";
+              groupEntries[g] = (groupEntries[g] || 0) + 1;
+            });
+
+            return (
+              <div className="space-y-6">
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <p className="text-2xl font-bold text-foreground">{totalClicks}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total de Cliques</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <p className="text-2xl font-bold text-foreground">{Object.keys(groupEntries).length}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Grupos Utilizados</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <p className="text-2xl font-bold text-foreground">{analyticsLink.groups?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Grupos na Fila</p>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                {analyticsLink.clicks_by_day && analyticsLink.clicks_by_day.some(d => d.clicks > 0) && (
+                  <div className="p-4 rounded-lg border border-border">
+                    <h4 className="text-sm font-medium mb-3">Cliques nos últimos 7 dias</h4>
+                    <ClicksSparkline data={analyticsLink.clicks_by_day} />
+                  </div>
+                )}
+
+                {/* Entries per group */}
+                {Object.keys(groupEntries).length > 0 && (
+                  <div className="p-4 rounded-lg border border-border space-y-3">
+                    <h4 className="text-sm font-medium">Entradas por Grupo</h4>
+                    <div className="space-y-2">
+                      {Object.entries(groupEntries)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([groupName, count]) => (
+                          <div key={groupName} className="flex items-center justify-between p-2 rounded bg-muted/30">
+                            <span className="text-sm">{groupName}</span>
+                            <Badge variant="secondary">{count} entradas</Badge>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent clicks log */}
+                <div className="p-4 rounded-lg border border-border space-y-3">
+                  <h4 className="text-sm font-medium">Histórico de Acessos</h4>
+                  {clicks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum acesso registrado</p>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto space-y-1.5">
+                      {clicks.slice(0, 50).map((click) => (
+                        <div key={click.id} className="flex items-center justify-between p-2 rounded bg-muted/20 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <MousePointerClick className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="truncate">{click.group_redirected_to || "—"}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 text-muted-foreground">
+                            {click.ip_address && (
+                              <span className="font-mono">{click.ip_address}</span>
+                            )}
+                            <span>
+                              {new Date(click.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}{" "}
+                              {new Date(click.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <div className="flex justify-end mt-2">
+            <Button variant="outline" onClick={() => setAnalyticsLinkId(null)}>Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>

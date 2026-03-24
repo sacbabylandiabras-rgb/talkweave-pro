@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface RedirectLinkClick {
+  id: string;
+  redirect_link_id: string;
+  group_redirected_to: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export interface RedirectLink {
   id: string;
   name: string;
@@ -12,6 +21,7 @@ export interface RedirectLink {
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];
+  clicks_raw?: RedirectLinkClick[];
 }
 
 export interface RedirectLinkGroup {
@@ -49,7 +59,8 @@ export function useRedirectLinks() {
       // Fetch click data with dates
       const { data: clicksData } = await (supabase as any)
         .from("redirect_link_clicks")
-        .select("redirect_link_id, created_at");
+        .select("*")
+        .order("created_at", { ascending: false });
 
       const clickCounts: Record<string, number> = {};
       const clicksByDay: Record<string, Record<string, number>> = {};
@@ -81,6 +92,7 @@ export function useRedirectLinks() {
           groups: (groupsData || []).filter((g: any) => g.redirect_link_id === link.id),
           click_count: clickCounts[link.id] || 0,
           clicks_by_day: last7,
+          clicks_raw: (clicksData || []).filter((c: any) => c.redirect_link_id === link.id),
         };
       });
 
