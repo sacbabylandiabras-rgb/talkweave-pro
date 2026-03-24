@@ -66,6 +66,8 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         const d = await res.json();
         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
         if (num) foundPhone = num;
+        const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+        if (pic) setProfilePicUrl(pic);
       }
     } catch {}
 
