@@ -594,6 +594,30 @@ serve(async (req) => {
               })
               }
             }
+
+            // === LOG GROUP JOIN EVENT ===
+            // Find redirect link for this group to associate the join
+            let joinRedirectLinkId: string | null = null
+            try {
+              const { data: rlg } = await supabase
+                .from('redirect_link_groups')
+                .select('redirect_link_id, group_name')
+                .eq('group_id', normalizedGroupId)
+                .limit(1)
+                .maybeSingle()
+              if (rlg) joinRedirectLinkId = rlg.redirect_link_id
+            } catch {}
+
+            await supabase.from('message_logs').insert({
+              phone: joinedPhone,
+              message_received: normalizedGroupId,
+              response_sent: joinedName || '',
+              keyword_matched: '__group_join__',
+              timestamp: new Date().toISOString(),
+              user_id: instData.user_id,
+              instance_id: instData.zapi_instance_id,
+            })
+            console.log(`📝 Logged group join: ${joinedPhone} → ${normalizedGroupId}`)
           }
 
           // === REDIRECT LINK: Update member count and auto-create group if full ===
