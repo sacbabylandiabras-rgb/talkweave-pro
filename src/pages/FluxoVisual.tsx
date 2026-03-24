@@ -743,6 +743,11 @@ export default function FluxoVisual() {
       if (!targetNode) continue;
 
       if (targetNode.type === "blocoConteudo") {
+        const delayMs = (targetNode.data.delaySeconds || 0) * 1000;
+        if (delayMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
         const contentType = targetNode.data.contentType || "text";
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
@@ -1525,6 +1530,27 @@ export default function FluxoVisual() {
                       )}
                     </Card>
                   ))}
+                </div>
+
+                <Separator />
+                <div>
+                  <Label>⏱️ Delay antes de enviar (segundos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={selectedNode.data.delaySeconds ?? 0}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, delaySeconds: parseInt(e.target.value) || 0 },
+                      })
+                    }
+                    placeholder="0"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Tempo de espera antes de enviar esta mensagem (0 = sem delay)
+                  </p>
                 </div>
               </>
             )}
