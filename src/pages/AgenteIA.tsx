@@ -116,9 +116,10 @@ const AgenteIA = () => {
     saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive });
   };
 
-  const handleAddFaq = () => {
+  const handleAddFaq = async () => {
     if (!faqQuestion.trim() || !faqAnswer.trim()) return;
-    addFaq(faqQuestion, faqAnswer);
+    await addFaq(faqQuestion, faqAnswer);
+    analyzeContent("faq", { question: faqQuestion, answer: faqAnswer });
     setFaqQuestion("");
     setFaqAnswer("");
   };
