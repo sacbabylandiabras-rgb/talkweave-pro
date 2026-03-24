@@ -1394,7 +1394,6 @@ function LinksRotativosTab() {
           </Card>
         ))
       )}
-    </div>
 
       {/* Edit Page Dialog */}
       <Dialog open={!!editPageLinkId} onOpenChange={(open) => !open && setEditPageLinkId(null)}>
