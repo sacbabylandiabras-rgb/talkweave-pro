@@ -1168,125 +1168,66 @@ const Modelos = () => {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filteredTemplates.map((template) => (
-          <Card key={template.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+          <Card key={template.id} className="min-h-[220px] flex flex-col">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
                   {getTemplateIcon(template.type)}
-                  <div>
-                    <CardTitle className="text-lg">{template.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline">{template.category}</Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {getTypeFriendlyName(template.type)}
-                      </Badge>
-                      <span>•</span>
-                      <span>Usado {template.usage_count} vezes</span>
-                    </CardDescription>
-                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1"
-                    onClick={() => setPreviewTemplate(template)}
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden sm:inline">Prévia</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1"
-                    onClick={() => handleDuplicateTemplate(template)}
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Duplicar</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleEditTemplate(template)}
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span className="hidden sm:inline">Editar</span>
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => handleDeleteTemplate(template.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Excluir</span>
-                  </Button>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-sm truncate">{template.name}</CardTitle>
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{template.category}</Badge>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {getTypeFriendlyName(template.type)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                {template.header && (
-                  <Badge variant="outline" className="text-xs">📋 {template.header}</Badge>
-                )}
-                {template.mediaUrl && (
-                  <Badge variant="outline" className="text-xs">🔗 Mídia</Badge>
-                )}
-                {template.fileName && (
-                  <Badge variant="outline" className="text-xs">📄 {template.fileName}</Badge>
-                )}
-                {template.footer && (
-                  <Badge variant="outline" className="text-xs">📝 Rodapé</Badge>
-                )}
-                {template.carouselCards && template.carouselCards.length > 0 && (
-                  <Badge variant="outline" className="text-xs">🎠 {template.carouselCards.length} cards</Badge>
-                )}
-                <span className="text-xs italic ml-auto">
-                  {template.content.length > 50 ? template.content.substring(0, 50) + "..." : template.content}
-                </span>
+            <CardContent className="flex-1 flex flex-col justify-between pt-0">
+              <div>
+                <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
+                  {template.content}
+                </p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {template.header && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">📋 Header</Badge>
+                  )}
+                  {template.mediaUrl && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">🔗 Mídia</Badge>
+                  )}
+                  {template.footer && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">📝 Rodapé</Badge>
+                  )}
+                  {template.buttons && template.buttons.length > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">🔘 {template.buttons.length} botões</Badge>
+                  )}
+                  {template.carouselCards && template.carouselCards.length > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">🎠 {template.carouselCards.length} cards</Badge>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Usado {template.usage_count}x</p>
               </div>
-              
-              {/* Ações rápidas */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  onClick={() => navigator.clipboard.writeText(template.content)}
-                >
-                  <Copy className="w-4 h-4 mr-1" />
-                  Copiar Texto
+              <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border">
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setPreviewTemplate(template)}>
+                  <Eye className="w-3 h-3 mr-1" /> Prévia
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => navigator.clipboard.writeText(template.content)}>
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleEditTemplate(template)}>
+                  <Edit className="w-3 h-3" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleDuplicateTemplate(template)}>
+                  <Copy className="w-3 h-3" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive" onClick={() => handleDeleteTemplate(template.id)}>
+                  <Trash2 className="w-3 h-3" />
                 </Button>
               </div>
-
-              {template.variables && template.variables.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-1">Variáveis utilizadas:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {template.variables.map((variable, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {`{${variable}}`}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {template.buttons && template.buttons.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-1">Botões configurados:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {template.buttons.map((button, index) => (
-                      <Badge key={index} variant="outline" className="text-xs flex items-center gap-1">
-                        {button.type === 'reply' && <MessageCircle className="w-3 h-3" />}
-                        {button.type === 'url' && <Link className="w-3 h-3" />}
-                        {button.type === 'call' && <Phone className="w-3 h-3" />}
-                        {button.text || 'Botão sem texto'}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
