@@ -1381,7 +1381,6 @@ function LinksRotativosTab() {
                 </div>
               )}
             </CardContent>
-            </CardContent>
           </Card>
         ))
       )}
