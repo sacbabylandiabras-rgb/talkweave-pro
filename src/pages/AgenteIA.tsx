@@ -88,6 +88,7 @@ const AgenteIA = () => {
       const { data: result, error } = await supabase.functions.invoke("agent-chat", {
         body: {
           messages: [{ role: "user", content: promptContent }],
+          skip_config: true,
         },
       });
 

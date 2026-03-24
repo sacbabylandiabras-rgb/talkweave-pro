@@ -35,7 +35,7 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { messages, user_id } = body
+    const { messages, user_id, skip_config } = body
 
     // Allow service-level calls (from webhook-zapi) with user_id directly
     const effectiveUserId = user_id || userId
@@ -45,15 +45,19 @@ serve(async (req) => {
       })
     }
 
-    // Fetch agent config
-    const { data: agentConfig } = await supabase
+    // Fetch agent config (skip active check for analysis/utility calls)
+    const query = supabase
       .from('agent_config')
       .select('*')
       .eq('user_id', effectiveUserId)
-      .eq('active', true)
-      .maybeSingle()
 
-    if (!agentConfig) {
+    if (!skip_config) {
+      query.eq('active', true)
+    }
+
+    const { data: agentConfig } = await query.maybeSingle()
+
+    if (!agentConfig && !skip_config) {
       return new Response(JSON.stringify({ error: 'Agente não configurado ou desativado' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
