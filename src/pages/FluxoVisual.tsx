@@ -959,15 +959,6 @@ export default function FluxoVisual() {
                 placeholder="Nome do fluxo"
                 className="h-8 w-40 text-sm"
               />
-              <div className="flex items-center gap-1">
-                <Key className="h-3 w-3 text-muted-foreground" />
-                <Input
-                  value={keywordFluxo}
-                  onChange={(e) => setKeywordFluxo(e.target.value)}
-                  placeholder="Palavra-chave"
-                  className="h-8 w-36 text-sm"
-                />
-              </div>
               <div className="flex items-center gap-2">
                 <Label className="text-xs text-muted-foreground">Ativo</Label>
                 <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
