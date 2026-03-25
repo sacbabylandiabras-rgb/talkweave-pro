@@ -534,7 +534,9 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                   <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
                     {pairingCode.startsWith('data:image') ? (
                       <>
-                        <p className="text-sm text-muted-foreground mb-2">Escaneie o QR Code no WhatsApp:</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Código de pareamento não disponível nesta versão da Evolution API. Use o QR Code abaixo:
+                        </p>
                         <div className="flex justify-center">
                           <img src={pairingCode} alt="QR Code" className="w-64 h-64 rounded-lg" />
                         </div>
