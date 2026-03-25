@@ -90,37 +90,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
-  const fetchEvolutionInstances = async () => {
-    if (!newEvolutionUrl || !newEvolutionKey) {
-      toast({ title: "Preencha URL e API Key primeiro", variant: "destructive" });
-      return;
-    }
-    setLoadingEvoInstances(true);
-    try {
-      const { data: responseData, error } = await supabase.functions.invoke('fetch-evolution-instances', {
-        body: { evolution_api_url: newEvolutionUrl, evolution_api_key: newEvolutionKey },
-      });
-      if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
-      if (responseData?.error) throw new Error(responseData.error);
-      const data = responseData;
-      const list = (Array.isArray(data) ? data : []).map((item: any) => ({
-        instanceName: item?.instance?.instanceName || 'unknown',
-        status: item?.instance?.status || 'unknown',
-        apikey: item?.instance?.apikey || '',
-      }));
-      setEvolutionInstances(list);
-      if (list.length === 0) {
-        toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
-      } else {
-        toast({ title: `✅ ${list.length} instância(s) encontrada(s)` });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
-      setEvolutionInstances([]);
-    } finally {
-      setLoadingEvoInstances(false);
-    }
-  };
 
   const handleAddInstance = async () => {
     if (!user) return;
