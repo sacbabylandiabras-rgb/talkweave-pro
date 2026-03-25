@@ -453,10 +453,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                 </Button>
                 {pairingCode && (
                   <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
-                    <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
-                      {pairingCode}
-                    </div>
+                    {pairingCode.startsWith('data:image') ? (
+                      <>
+                        <p className="text-sm text-muted-foreground mb-2">Escaneie o QR Code no WhatsApp:</p>
+                        <div className="flex justify-center">
+                          <img src={pairingCode} alt="QR Code" className="w-64 h-64 rounded-lg" />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
+                        <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
+                          {pairingCode}
+                        </div>
+                      </>
+                    )}
                     <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
                   </div>
                 )}
