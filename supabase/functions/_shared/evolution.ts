@@ -248,10 +248,52 @@ export const isEvolutionConnected = (payload: any): boolean => {
 // QR / pairing code extraction
 // ---------------------------------------------------------------------------
 
+const detectBase64ImageMime = (value: string): string | null => {
+  if (value.startsWith('iVBOR')) return 'image/png';
+  if (value.startsWith('/9j/')) return 'image/jpeg';
+  if (value.startsWith('R0lGOD')) return 'image/gif';
+  if (value.startsWith('UklGR')) return 'image/webp';
+  if (value.startsWith('PHN2Zy')) return 'image/svg+xml';
+  return null;
+};
+
+const normalizeQrImageValue = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:image')) return trimmed;
+
+  const mime = detectBase64ImageMime(trimmed);
+  if (mime) {
+    return `data:${mime};base64,${trimmed}`;
+  }
+
+  return trimmed;
+};
+
 export const extractQrCodeValue = (payload: any): string | null => {
-  return payload?.base64 || payload?.data?.base64 || payload?.qrCode?.base64 ||
-    payload?.qrcode?.base64 || payload?.code || payload?.data?.code ||
-    payload?.qrCode || payload?.qrcode || payload?.value || null;
+  const candidates = [
+    payload?.base64,
+    payload?.data?.base64,
+    payload?.qrCode?.base64,
+    payload?.qrcode?.base64,
+    payload?.qr_code,
+    payload?.data?.qr_code,
+    payload?.qr,
+    payload?.data?.qr,
+    payload?.code,
+    payload?.data?.code,
+    payload?.qrCode,
+    payload?.qrcode,
+    payload?.value,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeQrImageValue(candidate);
+    if (normalized) return normalized;
+  }
+
+  return null;
 };
 
 export const extractPairingCode = (payload: any): string | null => {
