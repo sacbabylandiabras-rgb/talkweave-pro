@@ -692,47 +692,37 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const { instanceId, token, clientToken } = await getZAPIConfig();
-      const zapiUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/phone-code/${phoneNumber}`;
-      
-      console.log('Gerando código de pareamento Z-API para:', phoneNumber);
-      
+      const selectedInstanceId = getSelectedInstanceId();
+
       toast({
-        title: "🔍 Gerando código Z-API",
+        title: "🔍 Gerando código de pareamento",
         description: "Processando solicitação...",
       });
-      
-      const response = await fetch(zapiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': clientToken
-        }
+
+      const { data, error } = await supabase.functions.invoke('get-pairing-code', {
+        body: {
+          phoneNumber,
+          ...(selectedInstanceId ? { instanceId: selectedInstanceId } : {}),
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao gerar código de pareamento');
+      }
+
+      if (!data?.success || !data?.data?.code) {
+        throw new Error(data?.error || data?.message || 'Falha ao gerar código de pareamento');
+      }
+
+      toast({
+        title: "🎯 Código gerado!",
+        description: `Código: ${data.data.code}`,
+        variant: "default"
       });
       
-      const result = await response.json();
-      
-      if (response.ok && result.code) {
-        toast({
-          title: "🎯 Código Z-API gerado!",
-          description: `Código: ${result.code}`,
-          variant: "default"
-        });
-        
-        return { 
-          success: true, 
-          data: { 
-            code: result.code,
-            isReal: true,
-            method: 'zapi'
-          } 
-        };
-      } else {
-        throw new Error(result.error || "Falha ao gerar código na Z-API");
-      }
-      
+      return data;
     } catch (error) {
-      console.error('Erro ao gerar código de pareamento Z-API:', error);
+      console.error('Erro ao gerar código de pareamento:', error);
       
       toast({
         title: "❌ Erro ao gerar código",
