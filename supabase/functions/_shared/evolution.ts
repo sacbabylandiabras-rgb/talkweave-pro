@@ -150,14 +150,7 @@ export const buildQrCodeStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
 export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Evolution v2 GET /instance/connect/{name}?number={phone} (some versions)
-    {
-      url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(phone)}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
-      label: 'evo-v2-pairing-get',
-    },
-    // Strategy 2: Evolution v2 POST /instance/connect/{name} with number body
+    // Strategy 1: Evolution v2 POST with number (triggers pairing mode)
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'POST',
@@ -165,7 +158,7 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
       body: JSON.stringify({ number: phone }),
       label: 'evo-v2-pairing-post',
     },
-    // Strategy 3: Evolution v2 POST with pairing flag
+    // Strategy 2: Evolution v2 POST with pairing flag
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'POST',
@@ -173,12 +166,12 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
       body: JSON.stringify({ number: phone, pairing: true }),
       label: 'evo-v2-pairing-flag',
     },
-    // Strategy 4: Custom API fallback
+    // Strategy 3: GET with number query param
     {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
+      url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(phone)}`,
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-qr-fallback',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      label: 'evo-v2-pairing-get',
     },
   ];
 };
