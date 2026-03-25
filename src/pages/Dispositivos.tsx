@@ -160,7 +160,7 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       setQrCode(null);
       setQrCodeImage(null);
-      
+
       const { data, error } = await supabase.functions.invoke('get-qr-code', {
         body: { instanceId: instance.id },
       });
@@ -173,15 +173,19 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         throw new Error(data?.message || data?.error || 'Erro ao buscar QR Code');
       }
 
-      const qrValue = data?.data?.value;
+      const rawQrValue = data?.data?.value ?? data?.data?.qrCode ?? data?.data?.qrcode ?? data?.data?.raw?.qrCode ?? data?.data?.raw?.qrcode ?? null;
+      const qrValue = normalizeQrImageValue(rawQrValue);
 
       if (typeof qrValue === 'string' && qrValue.startsWith('data:image')) {
         setQrCodeImage(qrValue);
         setQrCode(qrValue);
         toast({ title: "✅ QR Code gerado", description: "Escaneie para conectar" });
-      } else if (typeof qrValue === 'string' && qrValue.length > 50) {
+        return;
+      }
+
+      if (typeof qrValue === 'string' && qrValue.length > 50) {
         setQrCode(qrValue);
-        
+
         try {
           const qrImageDataURL = await QRCodeLib.toDataURL(qrValue, {
             width: 256,
@@ -193,12 +197,13 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         } catch {
           toast({ title: "❌ Erro ao gerar imagem", variant: "destructive" });
         }
+        return;
+      }
+
+      if (data?.data?.connected === true) {
+        toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
       } else {
-        if (data?.data?.connected === true) {
-          toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
-        } else {
-          toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
-        }
+        toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
       }
     } catch (error) {
       const message = await getInvokeErrorMessage(error, 'Erro ao buscar QR Code');
