@@ -71,27 +71,41 @@ serve(async (req) => {
         }
 
         console.log(`📋 Checking Evolution API status for: ${evoInstanceName}`);
-        
-        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
+
+        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+        let evoData: any = null;
+        let rawText = '';
+        let lastStatus = 500;
+
+        for (const candidateUrl of evoUrls) {
+          const evoResponse = await fetch(`${candidateUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evoKey,
+            }
+          });
+
+          lastStatus = evoResponse.status;
+          const parsed = await parseEvolutionResponse(evoResponse);
+          evoData = parsed.data;
+          rawText = parsed.rawText;
+
+          if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
+            break;
           }
-        });
+        }
 
-        const { data: evoData, rawText } = await parseApiResponse(evoResponse);
-
-        if (!evoResponse.ok) {
+        if (lastStatus < 200 || lastStatus >= 300) {
           return new Response(
             JSON.stringify({
               error: 'Failed to get device status',
-              message: evoData?.message || evoData?.error || `Evolution status request failed with ${evoResponse.status}`,
+              message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution status request failed'),
               details: evoData,
               rawText,
             }),
             {
-              status: evoResponse.status,
+              status: lastStatus,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           );
