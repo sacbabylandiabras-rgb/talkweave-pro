@@ -110,14 +110,18 @@ serve(async (req) => {
         try { lastPayload = JSON.parse(rawText); } catch { lastPayload = { rawText }; }
         
         const code = extractPairingCode(lastPayload);
-        console.log(`📱 Extracted code: ${code}`);
+        const qrCode = extractQrCode(lastPayload);
+        console.log(`📱 Extracted pairing code: ${code}`);
+        console.log(`📱 Extracted QR fallback: ${qrCode ? 'yes' : 'no'}`);
 
-        if (code) {
+        if (code || qrCode) {
           return new Response(
             JSON.stringify({
               success: true,
               data: {
-                code,
+                code: code || qrCode,
+                pairingCode: code,
+                qrCode,
                 phoneNumber: sanitizedPhone,
                 method: 'evolution',
                 isReal: true,
@@ -134,7 +138,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Failed to get pairing code',
-          message: lastPayload?.response?.message || lastPayload?.message || 'Evolution did not return a valid pairing code',
+          message: lastPayload?.response?.message || lastPayload?.message || 'Evolution did not return a valid pairing code or QR code',
           details: lastPayload,
         }),
         {
