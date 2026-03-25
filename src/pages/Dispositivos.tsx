@@ -32,6 +32,19 @@ const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const normalizeQrImageValue = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("data:image")) return trimmed;
+  if (trimmed.startsWith("iVBOR")) return `data:image/png;base64,${trimmed}`;
+  if (trimmed.startsWith("/9j/")) return `data:image/jpeg;base64,${trimmed}`;
+  if (trimmed.startsWith("R0lGOD")) return `data:image/gif;base64,${trimmed}`;
+  if (trimmed.startsWith("UklGR")) return `data:image/webp;base64,${trimmed}`;
+  if (trimmed.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${trimmed}`;
+  return trimmed;
+};
+
 const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
