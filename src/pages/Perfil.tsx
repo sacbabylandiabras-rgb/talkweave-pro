@@ -139,6 +139,30 @@ const Perfil = () => {
         </p>
       </div>
 
+      {/* Dados do Usuário */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Dados da Conta
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <Avatar className="h-14 w-14">
+            <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+              {userName ? userName.charAt(0).toUpperCase() : userEmail.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            {userName && <p className="font-semibold text-foreground">{userName}</p>}
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Mail className="w-3.5 h-3.5" />
+              {userEmail}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Seletor de Instância */}
       {instances.length > 1 && (
         <Card>
