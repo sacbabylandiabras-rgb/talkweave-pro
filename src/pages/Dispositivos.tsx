@@ -154,8 +154,17 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       setPairingCode(null);
       const result = await withInstance(() => getPairingCode(phoneNumber));
-      if (result.success && result.data?.code) {
-        setPairingCode(result.data.code);
+      if (result.success && result.data) {
+        if (result.data.pairingCode) {
+          setPairingCode(result.data.pairingCode);
+        } else if (result.data.qrCode) {
+          // Evolution returned QR instead of pairing code - show as QR
+          const qr = result.data.qrCode;
+          const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
+          setPairingCode(isBase64Image ? qr : result.data.code || null);
+        } else if (result.data.code) {
+          setPairingCode(result.data.code);
+        }
       }
     } catch (error) {
       toast({ title: "❌ Erro ao solicitar código", variant: "destructive" });
