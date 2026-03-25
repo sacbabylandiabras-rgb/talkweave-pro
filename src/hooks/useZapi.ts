@@ -522,67 +522,38 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      let response: Response;
+      const selectedInstanceId = getSelectedInstanceId();
+      const { data, error } = await supabase.functions.invoke('get-device-status', {
+        body: selectedInstanceId ? { instanceId: selectedInstanceId } : {},
+      });
 
-      if (config.apiProvider === 'evolution') {
-        const baseUrl = String(config.evolutionApiUrl || '').replace(/\/$/, '');
-        if (!baseUrl || !config.evolutionApiKey) {
-          throw new Error('Evolution API não configurada corretamente nesta instância.');
-        }
-
-        const url = `${baseUrl}/instance/connectionState/${config.instanceId}`;
-        console.log('Buscando status do dispositivo Evolution:', url);
-
-        response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': config.evolutionApiKey,
-          },
-        });
-      } else {
-        const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
-        console.log('Buscando status do dispositivo Z-API:', url);
-
-        response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Client-Token': config.clientToken
-          },
-        });
+      if (error) {
+        throw new Error(error.message || 'Erro ao buscar status do dispositivo');
       }
 
-      console.log('Status response:', response.status);
-      const data = await response.json();
-      console.log('Status data:', data);
-
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        if (data.response?.message) errorMessage += `: ${data.response.message}`;
-        
+      if (data?.error) {
+        const details = data?.details;
+        let errorMessage = data.error;
+        if (data?.message) errorMessage += `: ${data.message}`;
+        if (details?.message) errorMessage += `: ${details.message}`;
+        if (details?.error) errorMessage += `: ${details.error}`;
+        if (details?.response?.message) errorMessage += `: ${details.response.message}`;
         throw new Error(errorMessage);
       }
 
-      if (config.apiProvider === 'evolution') {
-        const connected = data?.instance?.state === 'open' || data?.state === 'open';
-        return {
-          success: true,
-          data: {
-            connected,
-            session: connected,
-            smartphoneConnected: connected,
-            provider: 'evolution',
-            raw: data,
-          },
-        };
-      }
-
-      return { success: true, data };
+      return data;
     } catch (error) {
+      console.error('Erro ao buscar status:', error);
+      toast({
+        title: "Erro ao buscar status",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
       console.error('Erro ao buscar status:', error);
       toast({
         title: "Erro ao buscar status",

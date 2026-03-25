@@ -99,6 +99,53 @@ serve(async (req) => {
     } else {
       // Use default credentials
       const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+
+      if (credentials.apiProvider === 'evolution') {
+        const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
+        const evoKey = credentials.evolutionApiKey;
+        const evoInstanceName = credentials.instanceId;
+
+        if (!evoUrl || !evoKey) {
+          throw new Error('Evolution API URL or Key not configured');
+        }
+
+        console.log(`📋 Checking default Evolution API status for: ${evoInstanceName}`);
+
+        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${evoInstanceName}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evoKey,
+          }
+        });
+
+        const evoData = await evoResponse.json();
+
+        if (!evoResponse.ok) {
+          return new Response(
+            JSON.stringify({ error: 'Failed to get device status', details: evoData }),
+            {
+              status: evoResponse.status,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
+        const isConnected = evoData?.instance?.state === 'open' || evoData?.state === 'open';
+        const normalizedData = {
+          connected: isConnected,
+          session: isConnected,
+          smartphoneConnected: isConnected,
+          provider: 'evolution',
+          raw: evoData,
+        };
+
+        return new Response(
+          JSON.stringify({ success: true, data: normalizedData }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       instanceId = credentials.instanceId;
       token = credentials.token;
       clientToken = credentials.clientToken;
