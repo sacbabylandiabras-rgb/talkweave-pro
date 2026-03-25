@@ -578,11 +578,53 @@ serve(async (req) => {
           const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
           const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
           
-          let zapiUrl: string;
-          let requestBody: any;
+          // ============ EVOLUTION API SHORTCUT ============
+          if (currentInstance.apiProvider === 'evolution') {
+            console.log(`📤 [Evolution] Sending to ${contact.phone} via ${currentInstance.instanceName}`);
+            
+            let evoMediaType: string | undefined;
+            if (hasMedia) {
+              if (templateType === 'imagem' || templateType === 'imagem_botoes') evoMediaType = 'image';
+              else if (templateType === 'video' || templateType === 'video_botoes') evoMediaType = 'video';
+              else if (templateType === 'audio') evoMediaType = 'audio';
+              else if (templateType === 'documento' || templateType === 'arquivo') evoMediaType = 'document';
+            }
 
-          // PRIORITY 0: Carousel (carrossel)
+            const evoResponse = await sendViaEvolution(currentInstance, contact.phone, {
+              message: fullMessage,
+              mediaUrl: hasMedia ? campaign.template.media_url : undefined,
+              mediaType: evoMediaType,
+              caption: fullMessage,
+              fileName: campaign.template.file_name || 'arquivo',
+            });
+
+            let evoResult: any = {};
+            try {
+              const responseText = await evoResponse.text();
+              console.log(`📥 Evolution Response (${evoResponse.status}):`, responseText);
+              if (responseText && responseText.trim()) evoResult = JSON.parse(responseText);
+            } catch {}
+
+            if (evoResponse.ok) {
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              results.push({ phone: contact.phone, success: true, messageId: evoResult?.key?.id || 'evo-sent' });
+              console.log(`✅ [Evolution] Sent to ${contact.phone}`);
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = evoResult?.message || `HTTP ${evoResponse.status}`;
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+              console.error(`❌ [Evolution] Failed for ${contact.phone}:`, campaignSend.error_message);
+            }
+
+            // Save + delay handled below (falls through to existing save logic)
+
+          // ============ Z-API LOGIC ============
+          } else
           if (templateType === 'carrossel' && hasCarouselCards) {
+            let zapiUrl: string;
+            let requestBody: any;
+            // PRIORITY 0: Carousel (carrossel)
             // First, send the carousel cards
             const carouselCards = campaign.template.carousel_cards.map((card: any) => {
               const cardData: any = {
@@ -630,23 +672,23 @@ serve(async (req) => {
               return cardData;
             });
             
-            const carouselUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
-            const carouselBody = {
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
+            requestBody = {
               phone: contact.phone,
               cards: carouselCards
             };
             
             console.log(`[1/2] Sending carousel with ${carouselCards.length} card(s) to ${contact.phone}`);
-            console.log(`📞 Z-API URL: ${carouselUrl}`);
-            console.log(`📦 Request body:`, JSON.stringify(carouselBody, null, 2));
+            console.log(`📞 Z-API URL: ${zapiUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
             
-            const carouselResponse = await fetch(carouselUrl, {
+            const carouselResponse = await fetch(zapiUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Client-Token': zapiClientToken,
               },
-              body: JSON.stringify(carouselBody),
+              body: JSON.stringify(requestBody),
             });
             
             const carouselText = await carouselResponse.text();
