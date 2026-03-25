@@ -37,9 +37,18 @@ export const useZapiInstances = () => {
       if (error) throw error;
 
       const typed = (data || []) as ZapiInstance[];
-      setInstances(typed);
+      const deduped = typed.filter((instance, index, list) => {
+        const duplicateIndex = list.findIndex((candidate) =>
+          candidate.api_provider === instance.api_provider &&
+          candidate.zapi_instance_id === instance.zapi_instance_id &&
+          candidate.instance_name === instance.instance_name
+        );
+        return duplicateIndex === index;
+      });
 
-      const defaultInst = typed.find(i => i.is_default) || typed[0] || null;
+      setInstances(deduped);
+
+      const defaultInst = deduped.find(i => i.is_default) || deduped[0] || null;
       setActiveInstance(defaultInst);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);
