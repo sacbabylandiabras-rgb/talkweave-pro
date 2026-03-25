@@ -28,6 +28,11 @@ serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
 
+    // Determine if we're using Evolution API
+    let useEvolution = credentials.apiProvider === 'evolution';
+    let evolutionApiUrl = credentials.evolutionApiUrl;
+    let evolutionApiKey = credentials.evolutionApiKey;
+
     // If phone is @lid format, resolve to clean phone using LID mapping
     let resolvedPhone = phone;
     if (phone.includes('@lid')) {
@@ -52,7 +57,7 @@ serve(async (req) => {
         if (mapping.instance_id) {
           const { data: lidInstance } = await adminClient
             .from('zapi_instances')
-            .select('zapi_instance_id, zapi_token, zapi_client_token')
+            .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
             .eq('zapi_instance_id', mapping.instance_id)
             .eq('user_id', credentials.userId)
             .eq('is_active', true)
@@ -63,6 +68,9 @@ serve(async (req) => {
             instanceId = lidInstance.zapi_instance_id;
             token = lidInstance.zapi_token;
             clientToken = lidInstance.zapi_client_token;
+            useEvolution = lidInstance.api_provider === 'evolution';
+            evolutionApiUrl = lidInstance.evolution_api_url || undefined;
+            evolutionApiKey = lidInstance.evolution_api_key || undefined;
           }
         }
       } else {
@@ -70,47 +78,90 @@ serve(async (req) => {
       }
     }
 
-    const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
-
     let zapiResponse: Response;
     let logMessage = message || '';
 
-    if (mediaUrl && mediaType) {
-      if (mediaType === 'audio') {
-        zapiResponse = await fetch(`${baseUrl}/send-audio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
-        });
-        logMessage = logMessage || '🎤 Áudio';
-      } else if (mediaType === 'image') {
-        zapiResponse = await fetch(`${baseUrl}/send-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
-        });
-        logMessage = logMessage || '📷 Imagem';
-      } else if (mediaType === 'video') {
-        zapiResponse = await fetch(`${baseUrl}/send-video`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
-        });
-        logMessage = logMessage || '🎥 Vídeo';
+    if (useEvolution && evolutionApiUrl && evolutionApiKey) {
+      // ========== EVOLUTION API ==========
+      const evoBase = evolutionApiUrl.replace(/\/$/, '');
+      const evoHeaders = { 'Content-Type': 'application/json', 'apikey': evolutionApiKey };
+      const evoInstanceName = instanceId;
+
+      console.log(`📤 Sending via Evolution API: ${evoInstanceName}`);
+
+      if (mediaUrl && mediaType) {
+        if (mediaType === 'audio') {
+          zapiResponse = await fetch(`${evoBase}/message/sendWhatsAppAudio/${evoInstanceName}`, {
+            method: 'POST', headers: evoHeaders,
+            body: JSON.stringify({ number: resolvedPhone, audio: mediaUrl }),
+          });
+          logMessage = logMessage || '🎤 Áudio';
+        } else if (mediaType === 'image') {
+          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+            method: 'POST', headers: evoHeaders,
+            body: JSON.stringify({ number: resolvedPhone, mediatype: 'image', media: mediaUrl, caption: message || '' }),
+          });
+          logMessage = logMessage || '📷 Imagem';
+        } else if (mediaType === 'video') {
+          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+            method: 'POST', headers: evoHeaders,
+            body: JSON.stringify({ number: resolvedPhone, mediatype: 'video', media: mediaUrl, caption: message || '' }),
+          });
+          logMessage = logMessage || '🎥 Vídeo';
+        } else {
+          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+            method: 'POST', headers: evoHeaders,
+            body: JSON.stringify({ number: resolvedPhone, mediatype: 'document', media: mediaUrl, fileName: message || 'arquivo' }),
+          });
+          logMessage = logMessage || '📎 Arquivo';
+        }
       } else {
-        zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+        zapiResponse = await fetch(`${evoBase}/message/sendText/${evoInstanceName}`, {
+          method: 'POST', headers: evoHeaders,
+          body: JSON.stringify({ number: resolvedPhone, text: message }),
         });
-        logMessage = logMessage || '📎 Arquivo';
       }
     } else {
-      zapiResponse = await fetch(`${baseUrl}/send-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message }),
-      });
+      // ========== Z-API ==========
+      const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
+
+      if (mediaUrl && mediaType) {
+        if (mediaType === 'audio') {
+          zapiResponse = await fetch(`${baseUrl}/send-audio`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
+          });
+          logMessage = logMessage || '🎤 Áudio';
+        } else if (mediaType === 'image') {
+          zapiResponse = await fetch(`${baseUrl}/send-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
+          });
+          logMessage = logMessage || '📷 Imagem';
+        } else if (mediaType === 'video') {
+          zapiResponse = await fetch(`${baseUrl}/send-video`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
+          });
+          logMessage = logMessage || '🎥 Vídeo';
+        } else {
+          zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+          });
+          logMessage = logMessage || '📎 Arquivo';
+        }
+      } else {
+        zapiResponse = await fetch(`${baseUrl}/send-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone: resolvedPhone, message }),
+        });
+      }
     }
 
     const zapiData = await zapiResponse.json()

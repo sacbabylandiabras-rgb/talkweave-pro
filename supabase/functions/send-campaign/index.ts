@@ -31,6 +31,9 @@ interface ResolvedInstance {
   zapiToken: string;
   zapiClientToken: string;
   instanceName: string;
+  apiProvider: 'zapi' | 'evolution';
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
 }
 
 interface DeviceStatusSnapshot {
@@ -107,6 +110,63 @@ const clearInstanceQueue = async (instance: ResolvedInstance) => {
   });
 };
 
+// Evolution API send helper
+const sendViaEvolution = async (
+  instance: ResolvedInstance,
+  phone: string,
+  options: {
+    message?: string;
+    mediaUrl?: string;
+    mediaType?: string;
+    caption?: string;
+    fileName?: string;
+  }
+): Promise<Response> => {
+  const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
+  const evoHeaders = { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' };
+  const evoName = instance.zapiInstanceId;
+
+  if (options.mediaUrl && options.mediaType) {
+    if (options.mediaType === 'audio') {
+      return fetch(`${evoBase}/message/sendWhatsAppAudio/${evoName}`, {
+        method: 'POST', headers: evoHeaders,
+        body: JSON.stringify({ number: phone, audio: options.mediaUrl }),
+      });
+    } else {
+      const mtype = options.mediaType === 'image' ? 'image' : options.mediaType === 'video' ? 'video' : 'document';
+      const body: any = { number: phone, mediatype: mtype, media: options.mediaUrl };
+      if (options.caption) body.caption = options.caption;
+      if (mtype === 'document' && options.fileName) body.fileName = options.fileName;
+      return fetch(`${evoBase}/message/sendMedia/${evoName}`, {
+        method: 'POST', headers: evoHeaders,
+        body: JSON.stringify(body),
+      });
+    }
+  }
+
+  return fetch(`${evoBase}/message/sendText/${evoName}`, {
+    method: 'POST', headers: evoHeaders,
+    body: JSON.stringify({ number: phone, text: options.message || '' }),
+  });
+};
+
+// Evolution API status check
+const fetchEvolutionStatusSnapshot = async (instance: ResolvedInstance): Promise<DeviceStatusSnapshot> => {
+  try {
+    const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
+    const res = await fetch(`${evoBase}/instance/connectionState/${instance.zapiInstanceId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' },
+    });
+    if (!res.ok) return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: `HTTP ${res.status}` } };
+    const raw = await res.json();
+    const isConnected = raw?.instance?.state === 'open' || raw?.state === 'open';
+    return { connected: isConnected, explicitlyDisconnected: !isConnected, ok: true, raw };
+  } catch (error) {
+    return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: error instanceof Error ? error.message : 'Unknown' } };
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -147,7 +207,7 @@ serve(async (req) => {
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
         .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
@@ -157,13 +217,16 @@ serve(async (req) => {
         zapiToken: instance.zapi_token,
         zapiClientToken: instance.zapi_client_token,
         instanceName: instance.instance_name,
+        apiProvider: instance.api_provider || 'zapi',
+        evolutionApiUrl: instance.evolution_api_url || undefined,
+        evolutionApiKey: instance.evolution_api_key || undefined,
       }));
       console.log(`🔄 Rotate mode: ${rotatePool.length} instances loaded for round-robin`);
     } else if (requestedInstanceId) {
       // If a specific instance was requested, look it up
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -189,6 +252,9 @@ serve(async (req) => {
         zapiToken,
         zapiClientToken,
         instanceName: credentials.instanceName,
+        apiProvider: credentials.apiProvider || 'zapi',
+        evolutionApiUrl: credentials.evolutionApiUrl,
+        evolutionApiKey: credentials.evolutionApiKey,
       };
     };
 
@@ -309,24 +375,28 @@ serve(async (req) => {
           }
           // CHECK DEVICE STATUS every 5 contacts (not every single one)
           if (i % 5 === 0) {
-            const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
-            
             try {
-              const deviceResponse = await fetch(deviceStatusUrl, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Client-Token': zapiClientToken
-                }
-              });
-
-              if (deviceResponse.ok) {
+              // Use appropriate status check based on provider
+              const statusCheckOk = true;
+              if (currentInstance.apiProvider !== 'evolution') {
+                const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
+                const deviceResponse = await fetch(deviceStatusUrl, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Client-Token': zapiClientToken
+                  }
+                });
+              }
+              {
                 const shouldPauseForDisconnect = async () => {
                   if (isRotateMode && rotatePool.length > 0) {
                     const firstRound = await Promise.all(
                       rotatePool.map(async (instance) => ({
                         instanceName: instance.instanceName,
-                        ...(await fetchDeviceStatusSnapshot(instance)),
+                        ...(instance.apiProvider === 'evolution'
+                          ? await fetchEvolutionStatusSnapshot(instance)
+                          : await fetchDeviceStatusSnapshot(instance)),
                       }))
                     );
 
@@ -351,7 +421,9 @@ serve(async (req) => {
                     const secondRound = await Promise.all(
                       rotatePool.map(async (instance) => ({
                         instanceName: instance.instanceName,
-                        ...(await fetchDeviceStatusSnapshot(instance)),
+                        ...(instance.apiProvider === 'evolution'
+                          ? await fetchEvolutionStatusSnapshot(instance)
+                          : await fetchDeviceStatusSnapshot(instance)),
                       }))
                     );
 
@@ -368,7 +440,9 @@ serve(async (req) => {
                     );
                   }
 
-                  const firstStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  const firstStatus = currentInstance.apiProvider === 'evolution'
+                    ? await fetchEvolutionStatusSnapshot(currentInstance)
+                    : await fetchDeviceStatusSnapshot(currentInstance);
                   console.log(`📡 Device status check (contact ${i + 1}):`, JSON.stringify(firstStatus.raw));
 
                   if (!firstStatus.ok || !firstStatus.explicitlyDisconnected || firstStatus.connected) {
@@ -377,7 +451,9 @@ serve(async (req) => {
 
                   await sleep(1500);
 
-                  const secondStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  const secondStatus = currentInstance.apiProvider === 'evolution'
+                    ? await fetchEvolutionStatusSnapshot(currentInstance)
+                    : await fetchDeviceStatusSnapshot(currentInstance);
                   console.log(`📡 Device status recheck before pause:`, JSON.stringify(secondStatus.raw));
 
                   return secondStatus.ok && secondStatus.explicitlyDisconnected && !secondStatus.connected;
@@ -502,11 +578,54 @@ serve(async (req) => {
           const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
           const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
           
-          let zapiUrl: string;
-          let requestBody: any;
+          // ============ EVOLUTION API SHORTCUT ============
+          let zapiUrl: string = '';
+          let requestBody: any = {};
 
-          // PRIORITY 0: Carousel (carrossel)
+          if (currentInstance.apiProvider === 'evolution') {
+            console.log(`📤 [Evolution] Sending to ${contact.phone} via ${currentInstance.instanceName}`);
+            
+            let evoMediaType: string | undefined;
+            if (hasMedia) {
+              if (templateType === 'imagem' || templateType === 'imagem_botoes') evoMediaType = 'image';
+              else if (templateType === 'video' || templateType === 'video_botoes') evoMediaType = 'video';
+              else if (templateType === 'audio') evoMediaType = 'audio';
+              else if (templateType === 'documento' || templateType === 'arquivo') evoMediaType = 'document';
+            }
+
+            const evoResponse = await sendViaEvolution(currentInstance, contact.phone, {
+              message: fullMessage,
+              mediaUrl: hasMedia ? campaign.template.media_url : undefined,
+              mediaType: evoMediaType,
+              caption: fullMessage,
+              fileName: campaign.template.file_name || 'arquivo',
+            });
+
+            let evoResult: any = {};
+            try {
+              const responseText = await evoResponse.text();
+              console.log(`📥 Evolution Response (${evoResponse.status}):`, responseText);
+              if (responseText && responseText.trim()) evoResult = JSON.parse(responseText);
+            } catch {}
+
+            if (evoResponse.ok) {
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              results.push({ phone: contact.phone, success: true, messageId: evoResult?.key?.id || 'evo-sent' });
+              console.log(`✅ [Evolution] Sent to ${contact.phone}`);
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = evoResult?.message || `HTTP ${evoResponse.status}`;
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+              console.error(`❌ [Evolution] Failed for ${contact.phone}:`, campaignSend.error_message);
+            }
+
+            // Save + delay handled below (falls through to existing save logic)
+
+          // ============ Z-API LOGIC ============
+          } else
           if (templateType === 'carrossel' && hasCarouselCards) {
+            // PRIORITY 0: Carousel
             // First, send the carousel cards
             const carouselCards = campaign.template.carousel_cards.map((card: any) => {
               const cardData: any = {
@@ -554,23 +673,23 @@ serve(async (req) => {
               return cardData;
             });
             
-            const carouselUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
-            const carouselBody = {
+            zapiUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/send-carousel`;
+            requestBody = {
               phone: contact.phone,
               cards: carouselCards
             };
             
             console.log(`[1/2] Sending carousel with ${carouselCards.length} card(s) to ${contact.phone}`);
-            console.log(`📞 Z-API URL: ${carouselUrl}`);
-            console.log(`📦 Request body:`, JSON.stringify(carouselBody, null, 2));
+            console.log(`📞 Z-API URL: ${zapiUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
             
-            const carouselResponse = await fetch(carouselUrl, {
+            const carouselResponse = await fetch(zapiUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Client-Token': zapiClientToken,
               },
-              body: JSON.stringify(carouselBody),
+              body: JSON.stringify(requestBody),
             });
             
             const carouselText = await carouselResponse.text();
@@ -846,53 +965,55 @@ serve(async (req) => {
             console.log(`Sending text message to ${contact.phone}`);
           }
           
-          console.log(`📞 Z-API URL: ${zapiUrl}`);
-          console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
-          
-          const zapiResponse = await fetch(zapiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Client-Token': zapiClientToken,
-            },
-            body: JSON.stringify(requestBody),
-          });
+          // Only send via Z-API if not already handled by Evolution
+          if (currentInstance.apiProvider !== 'evolution' && zapiUrl) {
+            console.log(`📞 Z-API URL: ${zapiUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
+            
+            const zapiResponse = await fetch(zapiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': zapiClientToken,
+              },
+              body: JSON.stringify(requestBody),
+            });
 
-          let zapiResult: any = {};
-          
-          // Try to parse JSON response, but handle empty responses
-          try {
-            const responseText = await zapiResponse.text();
-            console.log(`📥 Z-API Response (${zapiResponse.status}):`, responseText);
-            if (responseText && responseText.trim()) {
-              zapiResult = JSON.parse(responseText);
+            let zapiResult: any = {};
+            
+            try {
+              const responseText = await zapiResponse.text();
+              console.log(`📥 Z-API Response (${zapiResponse.status}):`, responseText);
+              if (responseText && responseText.trim()) {
+                zapiResult = JSON.parse(responseText);
+              }
+            } catch (parseError) {
+              console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
             }
-          } catch (parseError) {
-            console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
-          }
 
-          if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
-            campaignSend.status = 'sent';
-            campaignSend.sent_at = new Date().toISOString();
-            
-            results.push({
-              phone: contact.phone,
-              success: true,
-              messageId: zapiResult.messageId,
-            });
+            if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              
+              results.push({
+                phone: contact.phone,
+                success: true,
+                messageId: zapiResult.messageId,
+              });
 
-            console.log(`✅ Message sent successfully to ${contact.phone} - MessageID: ${zapiResult.messageId}`);
-          } else {
-            campaignSend.status = 'failed';
-            campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
-            
-            results.push({
-              phone: contact.phone,
-              success: false,
-              error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
-            });
+              console.log(`✅ Message sent successfully to ${contact.phone} - MessageID: ${zapiResult.messageId}`);
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
+              
+              results.push({
+                phone: contact.phone,
+                success: false,
+                error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
+              });
 
-            console.error(`❌ Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+              console.error(`❌ Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+            }
           }
 
         } catch (error) {
