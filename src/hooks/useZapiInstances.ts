@@ -37,9 +37,18 @@ export const useZapiInstances = () => {
       if (error) throw error;
 
       const typed = (data || []) as ZapiInstance[];
-      setInstances(typed);
+      const deduped = typed.filter((instance, index, list) => {
+        const duplicateIndex = list.findIndex((candidate) =>
+          candidate.api_provider === instance.api_provider &&
+          candidate.zapi_instance_id === instance.zapi_instance_id &&
+          candidate.instance_name === instance.instance_name
+        );
+        return duplicateIndex === index;
+      });
 
-      const defaultInst = typed.find(i => i.is_default) || typed[0] || null;
+      setInstances(deduped);
+
+      const defaultInst = deduped.find(i => i.is_default) || deduped[0] || null;
       setActiveInstance(defaultInst);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);
@@ -103,6 +112,24 @@ export const useAdminZapiInstances = (userId?: string) => {
         toast({
           title: "Limite atingido",
           description: "Máximo de 5 instâncias por usuário",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      const normalizedName = data.instance_name.trim().toLowerCase();
+      const normalizedId = data.zapi_instance_id.trim().toLowerCase();
+      const duplicatedInstance = instances.find((instance) => {
+        const sameProvider = instance.api_provider === (data.api_provider || 'zapi');
+        const sameName = instance.instance_name.trim().toLowerCase() === normalizedName;
+        const sameId = instance.zapi_instance_id.trim().toLowerCase() === normalizedId;
+        return sameProvider && (sameName || sameId);
+      });
+
+      if (duplicatedInstance) {
+        toast({
+          title: "Instância duplicada",
+          description: "Essa instância já está cadastrada para este usuário.",
           variant: "destructive"
         });
         return false;
