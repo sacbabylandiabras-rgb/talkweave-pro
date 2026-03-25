@@ -17,6 +17,7 @@ import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -37,10 +38,13 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
   // New instance form
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newApiProvider, setNewApiProvider] = useState<'zapi' | 'evolution'>('zapi');
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
+  const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
+  const [newEvolutionKey, setNewEvolutionKey] = useState('');
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
 
@@ -86,24 +90,38 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
   const handleAddInstance = async () => {
     if (!user) return;
-    if (!newInstanceId || !newToken || !newClientToken) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
+
+    if (newApiProvider === 'zapi') {
+      if (!newInstanceId || !newToken || !newClientToken) {
+        toast({ title: "Preencha todos os campos da Z-API", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!newEvolutionUrl || !newEvolutionKey || !newInstanceName) {
+        toast({ title: "Preencha todos os campos da Evolution API", variant: "destructive" });
+        return;
+      }
     }
 
     const success = await addInstance(user.id, {
       instance_name: newInstanceName || 'Nova Instância',
-      zapi_instance_id: newInstanceId,
-      zapi_token: newToken,
-      zapi_client_token: newClientToken,
+      zapi_instance_id: newApiProvider === 'zapi' ? newInstanceId : newInstanceName.replace(/\s+/g, '-').toLowerCase(),
+      zapi_token: newApiProvider === 'zapi' ? newToken : 'evolution',
+      zapi_client_token: newApiProvider === 'zapi' ? newClientToken : 'evolution',
+      api_provider: newApiProvider,
+      evolution_api_url: newApiProvider === 'evolution' ? newEvolutionUrl : undefined,
+      evolution_api_key: newApiProvider === 'evolution' ? newEvolutionKey : undefined,
     });
 
     if (success) {
       setShowAddForm(false);
+      setNewApiProvider('zapi');
       setNewInstanceName('');
       setNewInstanceId('');
       setNewToken('');
       setNewClientToken('');
+      setNewEvolutionUrl('');
+      setNewEvolutionKey('');
     }
   };
 
@@ -165,10 +183,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             </Popover>
           </div>
 
-          {/* Instâncias Z-API */}
+          {/* Instâncias WhatsApp */}
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Instâncias Z-API ({instances.length}/5)</h3>
+              <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/5)</h3>
               <Button
                 size="sm"
                 variant="outline"
@@ -185,6 +203,19 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <Card className="mb-4">
                 <CardContent className="pt-4 space-y-3">
                   <div className="space-y-2">
+                    <Label>Provedor da API</Label>
+                    <Select value={newApiProvider} onValueChange={(v) => setNewApiProvider(v as 'zapi' | 'evolution')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="zapi">Z-API</SelectItem>
+                        <SelectItem value="evolution">Evolution API</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>Nome da Instância</Label>
                     <Input
                       value={newInstanceName}
@@ -192,30 +223,55 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       placeholder="Ex: WhatsApp Vendas"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Instance ID *</Label>
-                    <Input
-                      value={newInstanceId}
-                      onChange={(e) => setNewInstanceId(e.target.value)}
-                      placeholder="Ex: 3C12345678"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Token *</Label>
-                    <Input
-                      value={newToken}
-                      onChange={(e) => setNewToken(e.target.value)}
-                      placeholder="Token Z-API"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Client Token *</Label>
-                    <Input
-                      value={newClientToken}
-                      onChange={(e) => setNewClientToken(e.target.value)}
-                      placeholder="Client Token Z-API"
-                    />
-                  </div>
+
+                  {newApiProvider === 'zapi' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Instance ID *</Label>
+                        <Input
+                          value={newInstanceId}
+                          onChange={(e) => setNewInstanceId(e.target.value)}
+                          placeholder="Ex: 3C12345678"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Token *</Label>
+                        <Input
+                          value={newToken}
+                          onChange={(e) => setNewToken(e.target.value)}
+                          placeholder="Token Z-API"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Client Token *</Label>
+                        <Input
+                          value={newClientToken}
+                          onChange={(e) => setNewClientToken(e.target.value)}
+                          placeholder="Client Token Z-API"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>URL da Evolution API *</Label>
+                        <Input
+                          value={newEvolutionUrl}
+                          onChange={(e) => setNewEvolutionUrl(e.target.value)}
+                          placeholder="https://sua-evolution-api.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>API Key *</Label>
+                        <Input
+                          value={newEvolutionKey}
+                          onChange={(e) => setNewEvolutionKey(e.target.value)}
+                          placeholder="Chave de API da Evolution"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
                     <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
@@ -239,8 +295,16 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
                           {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
                           {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
+                          <Badge variant="outline" className="text-xs">
+                            {inst.api_provider === 'evolution' ? 'Evolution' : 'Z-API'}
+                          </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {inst.api_provider === 'evolution'
+                            ? `URL: ${inst.evolution_api_url || '-'}`
+                            : `ID: ${inst.zapi_instance_id}`
+                          }
+                        </p>
                       </div>
                       <div className="flex items-center gap-1">
                         {!inst.is_default && (
