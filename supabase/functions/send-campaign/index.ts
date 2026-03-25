@@ -31,6 +31,9 @@ interface ResolvedInstance {
   zapiToken: string;
   zapiClientToken: string;
   instanceName: string;
+  apiProvider: 'zapi' | 'evolution';
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
 }
 
 interface DeviceStatusSnapshot {
@@ -107,6 +110,63 @@ const clearInstanceQueue = async (instance: ResolvedInstance) => {
   });
 };
 
+// Evolution API send helper
+const sendViaEvolution = async (
+  instance: ResolvedInstance,
+  phone: string,
+  options: {
+    message?: string;
+    mediaUrl?: string;
+    mediaType?: string;
+    caption?: string;
+    fileName?: string;
+  }
+): Promise<Response> => {
+  const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
+  const evoHeaders = { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' };
+  const evoName = instance.zapiInstanceId;
+
+  if (options.mediaUrl && options.mediaType) {
+    if (options.mediaType === 'audio') {
+      return fetch(`${evoBase}/message/sendWhatsAppAudio/${evoName}`, {
+        method: 'POST', headers: evoHeaders,
+        body: JSON.stringify({ number: phone, audio: options.mediaUrl }),
+      });
+    } else {
+      const mtype = options.mediaType === 'image' ? 'image' : options.mediaType === 'video' ? 'video' : 'document';
+      const body: any = { number: phone, mediatype: mtype, media: options.mediaUrl };
+      if (options.caption) body.caption = options.caption;
+      if (mtype === 'document' && options.fileName) body.fileName = options.fileName;
+      return fetch(`${evoBase}/message/sendMedia/${evoName}`, {
+        method: 'POST', headers: evoHeaders,
+        body: JSON.stringify(body),
+      });
+    }
+  }
+
+  return fetch(`${evoBase}/message/sendText/${evoName}`, {
+    method: 'POST', headers: evoHeaders,
+    body: JSON.stringify({ number: phone, text: options.message || '' }),
+  });
+};
+
+// Evolution API status check
+const fetchEvolutionStatusSnapshot = async (instance: ResolvedInstance): Promise<DeviceStatusSnapshot> => {
+  try {
+    const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
+    const res = await fetch(`${evoBase}/instance/connectionState/${instance.zapiInstanceId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' },
+    });
+    if (!res.ok) return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: `HTTP ${res.status}` } };
+    const raw = await res.json();
+    const isConnected = raw?.instance?.state === 'open' || raw?.state === 'open';
+    return { connected: isConnected, explicitlyDisconnected: !isConnected, ok: true, raw };
+  } catch (error) {
+    return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: error instanceof Error ? error.message : 'Unknown' } };
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -147,7 +207,7 @@ serve(async (req) => {
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
         .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
@@ -157,13 +217,16 @@ serve(async (req) => {
         zapiToken: instance.zapi_token,
         zapiClientToken: instance.zapi_client_token,
         instanceName: instance.instance_name,
+        apiProvider: instance.api_provider || 'zapi',
+        evolutionApiUrl: instance.evolution_api_url || undefined,
+        evolutionApiKey: instance.evolution_api_key || undefined,
       }));
       console.log(`🔄 Rotate mode: ${rotatePool.length} instances loaded for round-robin`);
     } else if (requestedInstanceId) {
       // If a specific instance was requested, look it up
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -189,6 +252,9 @@ serve(async (req) => {
         zapiToken,
         zapiClientToken,
         instanceName: credentials.instanceName,
+        apiProvider: credentials.apiProvider || 'zapi',
+        evolutionApiUrl: credentials.evolutionApiUrl,
+        evolutionApiKey: credentials.evolutionApiKey,
       };
     };
 
@@ -309,24 +375,28 @@ serve(async (req) => {
           }
           // CHECK DEVICE STATUS every 5 contacts (not every single one)
           if (i % 5 === 0) {
-            const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
-            
             try {
-              const deviceResponse = await fetch(deviceStatusUrl, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Client-Token': zapiClientToken
-                }
-              });
-
-              if (deviceResponse.ok) {
+              // Use appropriate status check based on provider
+              const statusCheckOk = true;
+              if (currentInstance.apiProvider !== 'evolution') {
+                const deviceStatusUrl = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/status`;
+                const deviceResponse = await fetch(deviceStatusUrl, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Client-Token': zapiClientToken
+                  }
+                });
+              }
+              {
                 const shouldPauseForDisconnect = async () => {
                   if (isRotateMode && rotatePool.length > 0) {
                     const firstRound = await Promise.all(
                       rotatePool.map(async (instance) => ({
                         instanceName: instance.instanceName,
-                        ...(await fetchDeviceStatusSnapshot(instance)),
+                        ...(instance.apiProvider === 'evolution'
+                          ? await fetchEvolutionStatusSnapshot(instance)
+                          : await fetchDeviceStatusSnapshot(instance)),
                       }))
                     );
 
@@ -351,7 +421,9 @@ serve(async (req) => {
                     const secondRound = await Promise.all(
                       rotatePool.map(async (instance) => ({
                         instanceName: instance.instanceName,
-                        ...(await fetchDeviceStatusSnapshot(instance)),
+                        ...(instance.apiProvider === 'evolution'
+                          ? await fetchEvolutionStatusSnapshot(instance)
+                          : await fetchDeviceStatusSnapshot(instance)),
                       }))
                     );
 
@@ -368,7 +440,9 @@ serve(async (req) => {
                     );
                   }
 
-                  const firstStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  const firstStatus = currentInstance.apiProvider === 'evolution'
+                    ? await fetchEvolutionStatusSnapshot(currentInstance)
+                    : await fetchDeviceStatusSnapshot(currentInstance);
                   console.log(`📡 Device status check (contact ${i + 1}):`, JSON.stringify(firstStatus.raw));
 
                   if (!firstStatus.ok || !firstStatus.explicitlyDisconnected || firstStatus.connected) {
@@ -377,7 +451,9 @@ serve(async (req) => {
 
                   await sleep(1500);
 
-                  const secondStatus = await fetchDeviceStatusSnapshot(currentInstance);
+                  const secondStatus = currentInstance.apiProvider === 'evolution'
+                    ? await fetchEvolutionStatusSnapshot(currentInstance)
+                    : await fetchDeviceStatusSnapshot(currentInstance);
                   console.log(`📡 Device status recheck before pause:`, JSON.stringify(secondStatus.raw));
 
                   return secondStatus.ok && secondStatus.explicitlyDisconnected && !secondStatus.connected;
