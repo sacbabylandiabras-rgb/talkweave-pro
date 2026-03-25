@@ -34,7 +34,25 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    return new Response(JSON.stringify(data), {
+    const normalized = (Array.isArray(data) ? data : []).map((item: any) => ({
+      raw: item,
+      instanceName:
+        item?.instance?.instanceName ||
+        item?.instanceName ||
+        item?.instance?.name ||
+        item?.name ||
+        item?.instance?.id ||
+        item?.instanceId ||
+        item?.id ||
+        '',
+      status:
+        item?.instance?.status ||
+        item?.status ||
+        item?.connectionStatus ||
+        'unknown',
+    }));
+
+    return new Response(JSON.stringify(normalized), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
