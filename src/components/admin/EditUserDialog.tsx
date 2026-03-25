@@ -307,8 +307,44 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           placeholder="API Key global do servidor Evolution"
                         />
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={fetchEvolutionInstances}
+                        disabled={loadingEvoInstances || !newEvolutionUrl || !newEvolutionKey}
+                        className="w-full"
+                      >
+                        <RefreshCw className={`w-3 h-3 mr-1 ${loadingEvoInstances ? 'animate-spin' : ''}`} />
+                        Buscar Instâncias do Servidor
+                      </Button>
+                      {evolutionInstances.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Selecionar Instância</Label>
+                          <Select value={selectedEvoInstance} onValueChange={setSelectedEvoInstance}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma instância" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {evolutionInstances.map((inst) => (
+                                <SelectItem key={inst.instanceName} value={inst.instanceName}>
+                                  <div className="flex items-center gap-2">
+                                    {inst.status === 'open' ? (
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <XCircle className="w-3 h-3 text-red-500" />
+                                    )}
+                                    {inst.instanceName}
+                                    <span className="text-xs text-muted-foreground">({inst.status})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="space-y-2">
-                        <Label>ID da Instância *</Label>
+                        <Label>Ou digite o ID manualmente</Label>
                         <Input
                           value={selectedEvoInstance}
                           onChange={(e) => setSelectedEvoInstance(e.target.value)}
