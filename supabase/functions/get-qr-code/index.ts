@@ -60,21 +60,35 @@ serve(async (req) => {
 
         console.log(`📸 Fetching Evolution QR Code for: ${evoInstanceName}`);
 
-        const evoResponse = await fetch(`${evoUrl}/instance/connect/${evoInstanceName}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
+        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+        let evoData: any = null;
+        let rawText = '';
+        let lastStatus = 500;
+
+        for (const candidateUrl of evoUrls) {
+          const evoResponse = await fetch(`${candidateUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evoKey,
+            }
+          });
+
+          lastStatus = evoResponse.status;
+          const parsed = await parseEvolutionResponse(evoResponse);
+          evoData = parsed.data;
+          rawText = parsed.rawText;
+
+          if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
+            break;
           }
-        });
+        }
 
-        const evoData = await evoResponse.json();
-
-        if (!evoResponse.ok) {
+        if (lastStatus < 200 || lastStatus >= 300) {
           return new Response(
-            JSON.stringify({ error: 'Failed to get QR code', details: evoData }),
+            JSON.stringify({ error: 'Failed to get QR code', message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution QR request failed'), details: evoData, rawText }),
             {
-              status: evoResponse.status,
+              status: lastStatus,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           )
