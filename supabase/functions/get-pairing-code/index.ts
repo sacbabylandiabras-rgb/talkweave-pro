@@ -3,6 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const extractPairingCode = (payload: any): string | null => {
+  return payload?.code || payload?.pairingCode || payload?.data?.code || payload?.data?.pairingCode || payload?.instance?.code || payload?.instance?.pairingCode || null;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -71,6 +75,7 @@ serve(async (req) => {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
       const evoInstanceName = credentials.instanceId;
+      const sanitizedPhone = String(phoneNumber).replace(/\D/g, '');
 
       if (!evoUrl || !evoKey) {
         throw new Error('Evolution API URL or Key not configured');
@@ -78,41 +83,49 @@ serve(async (req) => {
 
       console.log(`📱 Generating Evolution pairing code for: ${evoInstanceName}`);
 
-      const evoResponse = await fetch(`${evoUrl}/instance/connect/${evoInstanceName}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': evoKey,
-        },
-        body: JSON.stringify({ number: phoneNumber.replace(/\D/g, '') })
-      });
+      let lastPayload: any = null;
+      let lastStatus = 500;
 
-      const evoData = await evoResponse.json();
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        const evoResponse = await fetch(`${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}?number=${encodeURIComponent(sanitizedPhone)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evoKey,
+          },
+        });
 
-      if (!evoResponse.ok) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to get pairing code', details: evoData, message: evoData?.response?.message || evoData?.message }),
-          {
-            status: evoResponse.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
+        lastStatus = evoResponse.status;
+        lastPayload = await evoResponse.json().catch(() => null);
+        const code = extractPairingCode(lastPayload);
+
+        if (evoResponse.ok && code) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                code,
+                phoneNumber: sanitizedPhone,
+                method: 'evolution',
+                isReal: true,
+                raw: lastPayload,
+              }
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
       }
-
-      const code = evoData?.code || evoData?.pairingCode || evoData?.data?.code || evoData?.data?.pairingCode;
 
       return new Response(
         JSON.stringify({
-          success: true,
-          data: {
-            code,
-            phoneNumber,
-            method: 'evolution',
-            isReal: true,
-            raw: evoData,
-          }
+          error: 'Failed to get pairing code',
+          message: lastPayload?.response?.message || lastPayload?.message || 'Evolution did not return a valid pairing code',
+          details: lastPayload,
         }),
         {
+          status: lastStatus,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
