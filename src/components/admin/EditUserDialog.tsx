@@ -127,7 +127,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setNewClientToken('');
       setNewEvolutionUrl('');
       setNewEvolutionKey('');
-      setEvolutionInstances([]);
+      setSelectedEvoInstance('');
       setSelectedEvoInstance('');
     }
   };
