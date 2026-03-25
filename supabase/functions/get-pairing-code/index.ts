@@ -17,13 +17,13 @@ const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanc
   const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
   const sanitizedPhone = String(phone).replace(/\D/g, '');
 
-  console.log(`📱 Evolution pairing for: ${evoInstanceName}, phone: ${sanitizedPhone}`);
+  console.log(`📱 Evolution pairing for candidates: ${instanceCandidates.join(', ')}, phone: ${sanitizedPhone}`);
 
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildPairingCodeStrategies(cfg, sanitizedPhone),
     evoKey,
-    evoInstanceName,
+    instanceCandidates,
     '📱',
   );
 
