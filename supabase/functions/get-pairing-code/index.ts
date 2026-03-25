@@ -4,8 +4,11 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
 const extractPairingCode = (payload: any): string | null => {
-  // pairingCode is the numeric code; 'code' is the QR string — prioritize pairingCode
   return payload?.pairingCode || payload?.data?.pairingCode || payload?.instance?.pairingCode || null;
+};
+
+const extractQrCode = (payload: any): string | null => {
+  return payload?.base64 || payload?.data?.base64 || payload?.qrCode?.base64 || payload?.qrcode?.base64 || payload?.code || payload?.data?.code || null;
 };
 
 serve(async (req) => {
