@@ -117,7 +117,7 @@ serve(async (req) => {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
       if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionPairing(evoUrl, evoKey, credentials.instanceId, phoneNumber);
+      return await handleEvolutionPairing(evoUrl, evoKey, credentials.instanceId, credentials.instanceName, phoneNumber);
     }
 
     // Z-API path
