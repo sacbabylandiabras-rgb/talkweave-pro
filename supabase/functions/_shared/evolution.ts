@@ -177,6 +177,38 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
 };
 
 /**
+ * Build endpoint strategies for fetching WhatsApp groups.
+ */
+export const buildGroupsStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  return [
+    // Evolution v2: fetchAllGroups
+    {
+      url: `${baseUrl}/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=true`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      label: 'evo-v2-groups',
+    },
+  ];
+};
+
+/**
+ * Build endpoint strategies for sending text messages.
+ */
+export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, text: string): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  return [
+    {
+      url: `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      body: JSON.stringify({ number: phone, text }),
+      label: 'evo-v2-sendText',
+    },
+  ];
+};
+
+/**
  * Execute strategies across URL candidates. Returns first successful result.
  */
 export const executeStrategies = async (
