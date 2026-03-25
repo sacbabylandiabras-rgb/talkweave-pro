@@ -82,25 +82,34 @@ serve(async (req) => {
         throw new Error('Evolution API URL or Key not configured');
       }
 
-      console.log(`📱 Generating Evolution pairing code for: ${evoInstanceName}`);
+      console.log(`📱 Generating Evolution pairing code for: ${evoInstanceName}, phone: ${sanitizedPhone}`);
+      console.log(`📱 URL: ${evoUrl}/instance/connect/${evoInstanceName}`);
 
       let lastPayload: any = null;
       let lastStatus = 500;
 
       for (let attempt = 1; attempt <= 4; attempt++) {
-        const evoResponse = await fetch(`${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}?number=${encodeURIComponent(sanitizedPhone)}`, {
-          method: 'GET',
+        console.log(`📱 Attempt ${attempt}...`);
+        
+        const evoResponse = await fetch(`${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': evoKey,
           },
+          body: JSON.stringify({ number: sanitizedPhone }),
         });
 
         lastStatus = evoResponse.status;
-        lastPayload = await evoResponse.json().catch(() => null);
+        const rawText = await evoResponse.text();
+        console.log(`📱 Attempt ${attempt} status: ${lastStatus}, body: ${rawText.substring(0, 500)}`);
+        
+        try { lastPayload = JSON.parse(rawText); } catch { lastPayload = { rawText }; }
+        
         const code = extractPairingCode(lastPayload);
+        console.log(`📱 Extracted code: ${code}`);
 
-        if (evoResponse.ok && code) {
+        if (code) {
           return new Response(
             JSON.stringify({
               success: true,
