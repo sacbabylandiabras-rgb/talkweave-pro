@@ -46,8 +46,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newClientToken, setNewClientToken] = useState('');
   const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
   const [newEvolutionKey, setNewEvolutionKey] = useState('');
-  const [evolutionInstances, setEvolutionInstances] = useState<Array<{instanceName: string; status: string; apikey: string}>>([]);
-  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
   const [selectedEvoInstance, setSelectedEvoInstance] = useState('');
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
