@@ -104,19 +104,19 @@ export const buildEvolutionInstanceCandidates = (...values: Array<string | null 
 export const buildStatusStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Custom API (/instances/{id}/status with Client-Token)
-    {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/status`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-status',
-    },
-    // Strategy 2: Standard Evolution v2 (/instance/connectionState/{name} with apikey)
+    // Strategy 1 (primary): Evolution v2 (/instance/connectionState/{name} with apikey)
     {
       url: `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-status',
+    },
+    // Strategy 2 (fallback): Custom API (/instances/{id}/status with Client-Token)
+    {
+      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/status`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      label: 'custom-status',
     },
   ];
 };
@@ -127,19 +127,19 @@ export const buildStatusStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
 export const buildQrCodeStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Custom API
-    {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-qr',
-    },
-    // Strategy 2: Standard Evolution v2
+    // Strategy 1 (primary): Evolution v2
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-qr',
+    },
+    // Strategy 2 (fallback): Custom API
+    {
+      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      label: 'custom-qr',
     },
   ];
 };
@@ -172,6 +172,38 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-pairing-get',
+    },
+  ];
+};
+
+/**
+ * Build endpoint strategies for fetching WhatsApp groups.
+ */
+export const buildGroupsStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  return [
+    // Evolution v2: fetchAllGroups
+    {
+      url: `${baseUrl}/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=true`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      label: 'evo-v2-groups',
+    },
+  ];
+};
+
+/**
+ * Build endpoint strategies for sending text messages.
+ */
+export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, text: string): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  return [
+    {
+      url: `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      body: JSON.stringify({ number: phone, text }),
+      label: 'evo-v2-sendText',
     },
   ];
 };
