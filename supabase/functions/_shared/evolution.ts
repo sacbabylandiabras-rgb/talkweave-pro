@@ -127,19 +127,19 @@ export const buildStatusStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
 export const buildQrCodeStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Custom API
-    {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-qr',
-    },
-    // Strategy 2: Standard Evolution v2
+    // Strategy 1 (primary): Evolution v2
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-qr',
+    },
+    // Strategy 2 (fallback): Custom API
+    {
+      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      label: 'custom-qr',
     },
   ];
 };
