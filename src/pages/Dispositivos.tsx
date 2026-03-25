@@ -240,6 +240,7 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
         const qr = data.data.qrCode;
         const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
         setPairingCode(isBase64Image ? qr : data.data.code || null);
+        toast({ title: "ℹ️ Código de pareamento indisponível", description: "Sua instância Evolution não suporta pairing code. Use o QR Code abaixo ou recrie a instância com pairingCode habilitado." });
       } else if (data.data.code) {
         setPairingCode(data.data.code);
       }
