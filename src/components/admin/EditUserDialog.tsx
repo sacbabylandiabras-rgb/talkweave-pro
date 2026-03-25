@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -45,6 +46,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newClientToken, setNewClientToken] = useState('');
   const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
   const [newEvolutionKey, setNewEvolutionKey] = useState('');
+  const [evolutionInstances, setEvolutionInstances] = useState<Array<{instanceName: string; status: string; apikey: string}>>([]);
+  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
+  const [selectedEvoInstance, setSelectedEvoInstance] = useState('');
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
 
@@ -88,6 +92,41 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
+  const fetchEvolutionInstances = async () => {
+    if (!newEvolutionUrl || !newEvolutionKey) {
+      toast({ title: "Preencha URL e API Key primeiro", variant: "destructive" });
+      return;
+    }
+    setLoadingEvoInstances(true);
+    try {
+      const baseUrl = newEvolutionUrl.replace(/\/$/, '');
+      const res = await fetch(`${baseUrl}/instance/fetchInstances`, {
+        headers: { 'apikey': newEvolutionKey, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const list = (Array.isArray(data) ? data : []).map((item: any) => ({
+        instanceName: item?.instance?.instanceName || 'unknown',
+        status: item?.instance?.status || 'unknown',
+        apikey: item?.instance?.apikey || '',
+      }));
+      setEvolutionInstances(list);
+      if (list.length === 0) {
+        toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
+      } else {
+        toast({ title: `✅ ${list.length} instância(s) encontrada(s)` });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
+      setEvolutionInstances([]);
+    } finally {
+      setLoadingEvoInstances(false);
+    }
+  };
+
   const handleAddInstance = async () => {
     if (!user) return;
 
@@ -97,20 +136,25 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         return;
       }
     } else {
-      if (!newEvolutionUrl || !newEvolutionKey || !newInstanceName) {
-        toast({ title: "Preencha todos os campos da Evolution API", variant: "destructive" });
+      if (!newEvolutionUrl || !newEvolutionKey || !selectedEvoInstance) {
+        toast({ title: "Preencha URL, API Key e selecione uma instância", variant: "destructive" });
         return;
       }
     }
 
+    const evoInstanceName = newApiProvider === 'evolution' ? selectedEvoInstance : '';
+    const evoInstanceApiKey = newApiProvider === 'evolution'
+      ? (evolutionInstances.find(i => i.instanceName === selectedEvoInstance)?.apikey || newEvolutionKey)
+      : '';
+
     const success = await addInstance(user.id, {
-      instance_name: newInstanceName || 'Nova Instância',
-      zapi_instance_id: newApiProvider === 'zapi' ? newInstanceId : newInstanceName.replace(/\s+/g, '-').toLowerCase(),
+      instance_name: newApiProvider === 'evolution' ? evoInstanceName : (newInstanceName || 'Nova Instância'),
+      zapi_instance_id: newApiProvider === 'zapi' ? newInstanceId : evoInstanceName,
       zapi_token: newApiProvider === 'zapi' ? newToken : 'evolution',
       zapi_client_token: newApiProvider === 'zapi' ? newClientToken : 'evolution',
       api_provider: newApiProvider,
       evolution_api_url: newApiProvider === 'evolution' ? newEvolutionUrl : undefined,
-      evolution_api_key: newApiProvider === 'evolution' ? newEvolutionKey : undefined,
+      evolution_api_key: newApiProvider === 'evolution' ? evoInstanceApiKey : undefined,
     });
 
     if (success) {
@@ -122,6 +166,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setNewClientToken('');
       setNewEvolutionUrl('');
       setNewEvolutionKey('');
+      setEvolutionInstances([]);
+      setSelectedEvoInstance('');
     }
   };
 
@@ -224,6 +270,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     />
                   </div>
 
+                  {newApiProvider === 'evolution' && (
+                    <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                      💡 Preencha a URL e API Key (Global) do servidor Evolution, depois clique em "Buscar Instâncias" para selecionar.
+                    </p>
+                  )}
+
                   {newApiProvider === 'zapi' ? (
                     <>
                       <div className="space-y-2">
@@ -258,17 +310,53 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <Input
                           value={newEvolutionUrl}
                           onChange={(e) => setNewEvolutionUrl(e.target.value)}
-                          placeholder="https://sua-evolution-api.com"
+                          placeholder="http://seu-servidor:8080"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>API Key *</Label>
+                        <Label>API Key Global *</Label>
                         <Input
                           value={newEvolutionKey}
                           onChange={(e) => setNewEvolutionKey(e.target.value)}
-                          placeholder="Chave de API da Evolution"
+                          placeholder="API Key global do servidor Evolution"
                         />
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={fetchEvolutionInstances}
+                        disabled={loadingEvoInstances || !newEvolutionUrl || !newEvolutionKey}
+                        className="w-full"
+                      >
+                        <RefreshCw className={`w-3 h-3 mr-1 ${loadingEvoInstances ? 'animate-spin' : ''}`} />
+                        Buscar Instâncias do Servidor
+                      </Button>
+                      {evolutionInstances.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Selecionar Instância *</Label>
+                          <Select value={selectedEvoInstance} onValueChange={setSelectedEvoInstance}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma instância" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {evolutionInstances.map((inst) => (
+                                <SelectItem key={inst.instanceName} value={inst.instanceName}>
+                                  <div className="flex items-center gap-2">
+                                    {inst.status === 'open' ? (
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <XCircle className="w-3 h-3 text-red-500" />
+                                    )}
+                                    {inst.instanceName}
+                                    <span className="text-xs text-muted-foreground">({inst.status})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </>
                   )}
 
