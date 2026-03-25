@@ -114,9 +114,13 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       setQrCodeImage(null);
       
       const qrData = await withInstance(() => getQRCode());
-      
-      if (qrData.data && qrData.data.value && typeof qrData.data.value === 'string' && qrData.data.value.length > 50) {
-        const qrValue = qrData.data.value;
+      const qrValue = qrData?.data?.value;
+
+      if (typeof qrValue === 'string' && qrValue.startsWith('data:image')) {
+        setQrCodeImage(qrValue);
+        setQrCode(qrValue);
+        toast({ title: "✅ QR Code gerado", description: "Escaneie para conectar" });
+      } else if (typeof qrValue === 'string' && qrValue.length > 50) {
         setQrCode(qrValue);
         
         try {
