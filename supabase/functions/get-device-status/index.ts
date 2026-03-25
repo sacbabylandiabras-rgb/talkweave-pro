@@ -3,6 +3,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const parseApiResponse = async (response: Response) => {
+  const rawText = await response.text();
+
+  try {
+    return {
+      data: rawText ? JSON.parse(rawText) : null,
+      rawText,
+    };
+  } catch {
+    return {
+      data: { rawText },
+      rawText,
+    };
+  }
+};
+
+const isEvolutionConnected = (payload: any) => {
+  const state = payload?.instance?.state || payload?.state || payload?.status || payload?.instance?.status || null;
+  return ['open', 'connected'].includes(String(state).toLowerCase());
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -66,7 +87,7 @@ serve(async (req) => {
 
         console.log(`📋 Checking Evolution API status for: ${evoInstanceName}`);
         
-        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${evoInstanceName}`, {
+        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -74,10 +95,25 @@ serve(async (req) => {
           }
         });
 
-        const evoData = await evoResponse.json();
+        const { data: evoData, rawText } = await parseApiResponse(evoResponse);
+
+        if (!evoResponse.ok) {
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to get device status',
+              message: evoData?.message || evoData?.error || `Evolution status request failed with ${evoResponse.status}`,
+              details: evoData,
+              rawText,
+            }),
+            {
+              status: evoResponse.status,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
         
         // Normalize Evolution API response to match Z-API format
-        const isConnected = evoData?.instance?.state === 'open' || evoData?.state === 'open';
+        const isConnected = isEvolutionConnected(evoData);
         const normalizedData = {
           connected: isConnected,
           session: isConnected,
@@ -111,7 +147,7 @@ serve(async (req) => {
 
         console.log(`📋 Checking default Evolution API status for: ${evoInstanceName}`);
 
-        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${evoInstanceName}`, {
+        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -119,11 +155,16 @@ serve(async (req) => {
           }
         });
 
-        const evoData = await evoResponse.json();
+        const { data: evoData, rawText } = await parseApiResponse(evoResponse);
 
         if (!evoResponse.ok) {
           return new Response(
-            JSON.stringify({ error: 'Failed to get device status', details: evoData }),
+            JSON.stringify({
+              error: 'Failed to get device status',
+              message: evoData?.message || evoData?.error || `Evolution status request failed with ${evoResponse.status}`,
+              details: evoData,
+              rawText,
+            }),
             {
               status: evoResponse.status,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -131,7 +172,7 @@ serve(async (req) => {
           );
         }
 
-        const isConnected = evoData?.instance?.state === 'open' || evoData?.state === 'open';
+        const isConnected = isEvolutionConnected(evoData);
         const normalizedData = {
           connected: isConnected,
           session: isConnected,
