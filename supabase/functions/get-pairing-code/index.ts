@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 import {
+  buildEvolutionInstanceCandidates,
   buildEvolutionUrlCandidates,
   buildPairingCodeStrategies,
   executeStrategies,
@@ -11,8 +12,9 @@ import {
   getEvolutionErrorMessage,
 } from "../_shared/evolution.ts";
 
-const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanceName: string, phone: string) => {
+const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName: string | undefined, phone: string) => {
   const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
   const sanitizedPhone = String(phone).replace(/\D/g, '');
 
   console.log(`📱 Evolution pairing for: ${evoInstanceName}, phone: ${sanitizedPhone}`);

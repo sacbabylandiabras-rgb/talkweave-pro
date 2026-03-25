@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 import {
+  buildEvolutionInstanceCandidates,
   buildEvolutionUrlCandidates,
   buildStatusStrategies,
   executeStrategies,
@@ -10,14 +11,15 @@ import {
   isEvolutionConnected,
 } from "../_shared/evolution.ts";
 
-const handleEvolutionStatus = async (evoUrl: string, evoKey: string, evoInstanceName: string) => {
+const handleEvolutionStatus = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName?: string) => {
   const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
 
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildStatusStrategies(cfg),
     evoKey,
-    evoInstanceName,
+    instanceCandidates,
     '📋',
   );
 

@@ -94,6 +94,10 @@ interface EndpointStrategy {
   label: string; // for logging
 }
 
+export const buildEvolutionInstanceCandidates = (...values: Array<string | null | undefined>) => {
+  return [...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])];
+};
+
 /**
  * Build endpoint strategies for checking device connection status.
  */

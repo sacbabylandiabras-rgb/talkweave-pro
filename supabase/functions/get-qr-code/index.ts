@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 import {
+  buildEvolutionInstanceCandidates,
   buildEvolutionUrlCandidates,
   buildQrCodeStrategies,
   executeStrategies,
@@ -10,14 +11,15 @@ import {
   getEvolutionErrorMessage,
 } from "../_shared/evolution.ts";
 
-const handleEvolutionQr = async (evoUrl: string, evoKey: string, evoInstanceName: string) => {
+const handleEvolutionQr = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName?: string) => {
   const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
 
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildQrCodeStrategies(cfg),
     evoKey,
-    evoInstanceName,
+    instanceCandidates,
     '📸',
   );
 
