@@ -2,22 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-
-const parseApiResponse = async (response: Response) => {
-  const rawText = await response.text();
-
-  try {
-    return {
-      data: rawText ? JSON.parse(rawText) : null,
-      rawText,
-    };
-  } catch {
-    return {
-      data: { rawText },
-      rawText,
-    };
-  }
-};
+import { buildEvolutionUrlCandidates, getEvolutionErrorMessage, isEvolutionInstanceNotFound, parseEvolutionResponse } from "../_shared/evolution.ts";
 
 const isEvolutionConnected = (payload: any) => {
   const state = payload?.instance?.state || payload?.state || payload?.status || payload?.instance?.status || null;
