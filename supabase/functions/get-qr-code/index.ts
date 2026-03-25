@@ -2,7 +2,44 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-import { buildEvolutionUrlCandidates, getEvolutionErrorMessage, isEvolutionInstanceNotFound, parseEvolutionResponse } from "../_shared/evolution.ts";
+import {
+  buildEvolutionUrlCandidates,
+  buildQrCodeStrategies,
+  executeStrategies,
+  extractQrCodeValue,
+  getEvolutionErrorMessage,
+} from "../_shared/evolution.ts";
+
+const handleEvolutionQr = async (evoUrl: string, evoKey: string, evoInstanceName: string) => {
+  const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+
+  const result = await executeStrategies(
+    evoUrls,
+    (cfg) => buildQrCodeStrategies(cfg),
+    evoKey,
+    evoInstanceName,
+    '📸',
+  );
+
+  if (result.status < 200 || result.status >= 300) {
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to get QR code',
+        message: getEvolutionErrorMessage(result.data, result.status, 'Evolution QR request failed'),
+        details: result.data,
+        rawText: result.rawText,
+      }),
+      { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const qrValue = extractQrCodeValue(result.data);
+
+  return new Response(
+    JSON.stringify({ success: true, data: { value: qrValue, provider: 'evolution', raw: result.data } }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,9 +50,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase configuration');
-    }
+    if (!supabaseUrl || !supabaseServiceKey) throw new Error('Missing Supabase configuration');
 
     let specificInstanceId: string | null = null;
     try {
@@ -23,9 +58,7 @@ serve(async (req) => {
         const body = await req.json();
         specificInstanceId = body?.instanceId || null;
       }
-    } catch {
-      specificInstanceId = null;
-    }
+    } catch { /* no body */ }
 
     if (specificInstanceId) {
       const authHeader = req.headers.get('authorization');
@@ -45,185 +78,58 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .single();
 
-      if (instError || !instance) {
-        throw new Error('Instance not found');
-      }
+      if (instError || !instance) throw new Error('Instance not found');
 
       if (instance.api_provider === 'evolution') {
         const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
         const evoKey = instance.evolution_api_key;
-        const evoInstanceName = instance.zapi_instance_id;
-
-        if (!evoUrl || !evoKey) {
-          throw new Error('Evolution API URL or Key not configured');
-        }
-
-        console.log(`📸 Fetching Evolution QR Code for: ${evoInstanceName}`);
-
-        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-        let evoData: any = null;
-        let rawText = '';
-        let lastStatus = 500;
-
-        for (const candidateUrl of evoUrls) {
-          const evoResponse = await fetch(`${candidateUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': evoKey,
-            }
-          });
-
-          lastStatus = evoResponse.status;
-          const parsed = await parseEvolutionResponse(evoResponse);
-          evoData = parsed.data;
-          rawText = parsed.rawText;
-
-          if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
-            break;
-          }
-        }
-
-        if (lastStatus < 200 || lastStatus >= 300) {
-          return new Response(
-            JSON.stringify({ error: 'Failed to get QR code', message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution QR request failed'), details: evoData, rawText }),
-            {
-              status: lastStatus,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          )
-        }
-
-        const qrValue = evoData?.base64 || evoData?.qrcode?.base64 || evoData?.code || evoData?.qrcode || null;
-
-        return new Response(
-          JSON.stringify({ success: true, data: { value: qrValue, provider: 'evolution', raw: evoData } }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
+        if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
+        return await handleEvolutionQr(evoUrl, evoKey, instance.zapi_instance_id);
       }
 
-      const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code`
+      const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code`;
       const zapiResponse = await fetch(zapiUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': instance.zapi_client_token
-        }
-      })
-
-      const zapiData = await zapiResponse.json()
+        headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token }
+      });
+      const zapiData = await zapiResponse.json();
 
       if (!zapiResponse.ok) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
-          {
-            status: zapiResponse.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
+        return new Response(JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
+          { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-
-      return new Response(
-        JSON.stringify({ success: true, data: zapiData }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+      return new Response(JSON.stringify({ success: true, data: zapiData }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Default credentials path
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
     if (credentials.apiProvider === 'evolution') {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
-      const evoInstanceName = credentials.instanceId;
-
-      if (!evoUrl || !evoKey) {
-        throw new Error('Evolution API URL or Key not configured');
-      }
-
-      console.log(`📸 Fetching default Evolution QR Code for: ${evoInstanceName}`);
-
-      const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-      let evoData: any = null;
-      let rawText = '';
-      let lastStatus = 500;
-
-      for (const candidateUrl of evoUrls) {
-        const evoResponse = await fetch(`${candidateUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
-          }
-        });
-
-        lastStatus = evoResponse.status;
-        const parsed = await parseEvolutionResponse(evoResponse);
-        evoData = parsed.data;
-        rawText = parsed.rawText;
-
-        if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
-          break;
-        }
-      }
-
-      if (lastStatus < 200 || lastStatus >= 300) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to get QR code', message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution QR request failed'), details: evoData, rawText }),
-          {
-            status: lastStatus,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-
-      const qrValue = evoData?.base64 || evoData?.qrcode?.base64 || evoData?.code || evoData?.qrcode || null;
-
-      return new Response(
-        JSON.stringify({ success: true, data: { value: qrValue, provider: 'evolution', raw: evoData } }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+      if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
+      return await handleEvolutionQr(evoUrl, evoKey, credentials.instanceId);
     }
 
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/qr-code`
+    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/qr-code`;
     const zapiResponse = await fetch(zapiUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': credentials.clientToken
-      }
-    })
-
-    const zapiData = await zapiResponse.json()
+      headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
+    });
+    const zapiData = await zapiResponse.json();
 
     if (!zapiResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
-        {
-          status: zapiResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
+        { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    return new Response(JSON.stringify({ success: true, data: zapiData }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    return new Response(
-      JSON.stringify({ success: true, data: zapiData }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
   } catch (error) {
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 })
