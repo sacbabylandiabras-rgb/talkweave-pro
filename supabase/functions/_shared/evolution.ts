@@ -251,7 +251,7 @@ export const executeStrategies = async (
     }
   }
 
-  return authFailure || { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+  return authFailure || firstOkResult || { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
 };
 
 // ---------------------------------------------------------------------------
