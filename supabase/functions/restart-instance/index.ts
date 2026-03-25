@@ -1,198 +1,40 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts';
-import {
-  buildEvolutionInstanceCandidates,
-  buildEvolutionUrlCandidates,
-  buildStatusStrategies,
-  executeStrategies,
-  getEvolutionErrorMessage,
-  isEvolutionConnected,
-  parseEvolutionResponse,
-} from '../_shared/evolution.ts';
+import { parseEvolutionResponse } from '../_shared/evolution.ts';
 
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-interface RestartStrategy {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-  body?: string;
-  label: string;
-}
+/**
+ * For Evolution API: delete the stuck instance and recreate it.
+ * This is the only reliable way to unstick "connecting" state in v2.2.x.
+ */
+const deleteAndRecreate = async (baseUrl: string, apiKey: string, name: string) => {
+  const h = { 'Content-Type': 'application/json', apikey: apiKey };
+  const enc = encodeURIComponent(name);
 
-const buildRestartStrategies = (baseUrl: string, apiKey: string, instanceName: string): RestartStrategy[] => {
-  const encodedName = encodeURIComponent(instanceName);
-
-  return [
-    {
-      url: `${baseUrl}/instance/restart/${encodedName}`,
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-restart-put',
-    },
-    {
-      url: `${baseUrl}/instance/restart/${encodedName}`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-restart-post',
-    },
-    {
-      url: `${baseUrl}/instance/restart/${encodedName}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-restart-get',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/restart`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-restart-post',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/restart`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-restart-get',
-    },
-  ];
-};
-
-const buildRecoveryStrategies = (baseUrl: string, apiKey: string, instanceName: string): RestartStrategy[] => {
-  const encodedName = encodeURIComponent(instanceName);
-
-  return [
-    {
-      url: `${baseUrl}/instance/logout/${encodedName}`,
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-logout-delete',
-    },
-    {
-      url: `${baseUrl}/instance/logout/${encodedName}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-logout-get',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/logout`,
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-logout-delete',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/logout`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-logout-post',
-    },
-    {
-      url: `${baseUrl}/instance/connect/${encodedName}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      label: 'evo-connect-get',
-    },
-    {
-      url: `${baseUrl}/instance/connect/${encodedName}`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      body: JSON.stringify({}),
-      label: 'evo-connect-post',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/connect`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-connect-get',
-    },
-    {
-      url: `${baseUrl}/instances/${encodedName}/connect`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      body: JSON.stringify({}),
-      label: 'custom-connect-post',
-    },
-  ];
-};
-
-const executeRestartStrategies = async (
-  urlCandidates: string[],
-  instanceCandidates: string[],
-  apiKey: string,
-  buildStrategies: (baseUrl: string, apiKey: string, instanceName: string) => RestartStrategy[],
-  logPrefix: string,
-) => {
-  let lastResult: { status: number; data: any; rawText: string; strategy: string } = {
-    status: 500,
-    data: null,
-    rawText: '',
-    strategy: '',
-  };
-
-  for (const baseUrl of urlCandidates) {
-    for (const instanceName of instanceCandidates) {
-      for (const strategy of buildStrategies(baseUrl, apiKey, instanceName)) {
-        try {
-          console.log(`${logPrefix} Trying ${strategy.label} with instance '${instanceName}': ${strategy.url}`);
-          const response = await fetch(strategy.url, {
-            method: strategy.method,
-            headers: strategy.headers,
-            body: strategy.body,
-          });
-
-          const parsed = await parseEvolutionResponse(response);
-          lastResult = {
-            status: response.status,
-            data: parsed.data,
-            rawText: parsed.rawText,
-            strategy: `${strategy.label}:${instanceName}`,
-          };
-
-          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' status=${response.status} body=${parsed.rawText.substring(0, 300)}`);
-
-          if (response.ok) {
-            return lastResult;
-          }
-        } catch (error) {
-          lastResult = {
-            status: 500,
-            data: { error: String(error) },
-            rawText: String(error),
-            strategy: `${strategy.label}:${instanceName}`,
-          };
-          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${error}`);
-        }
-      }
-    }
+  // 1) Delete
+  console.log(`🗑️ DELETE instance '${name}'`);
+  const del = await fetch(`${baseUrl}/instance/delete/${enc}`, { method: 'DELETE', headers: h });
+  const delP = await parseEvolutionResponse(del);
+  console.log(`🗑️ status=${del.status} body=${delP.rawText.substring(0, 200)}`);
+  if (!del.ok && del.status !== 404) {
+    return { ok: false, step: 'delete', status: del.status, data: delP.data };
   }
 
-  return lastResult;
-};
+  await sleep(2000);
 
-const getEvolutionStatus = async (urlCandidates: string[], instanceCandidates: string[], apiKey: string) => {
-  return await executeStrategies(
-    urlCandidates,
-    (cfg) => buildStatusStrategies(cfg),
-    apiKey,
-    instanceCandidates,
-    '🔍',
-  );
-};
+  // 2) Recreate
+  console.log(`🆕 CREATE instance '${name}'`);
+  const create = await fetch(`${baseUrl}/instance/create`, {
+    method: 'POST',
+    headers: h,
+    body: JSON.stringify({ instanceName: name, integration: 'WHATSAPP-BAILEYS', qrcode: true }),
+  });
+  const createP = await parseEvolutionResponse(create);
+  console.log(`🆕 status=${create.status} body=${createP.rawText.substring(0, 200)}`);
 
-const pollUntilRecovered = async (urlCandidates: string[], instanceCandidates: string[], apiKey: string) => {
-  let lastStatus = await getEvolutionStatus(urlCandidates, instanceCandidates, apiKey);
-
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (lastStatus.status >= 200 && lastStatus.status < 300 && isEvolutionConnected(lastStatus.data)) {
-      return { recovered: true, status: lastStatus };
-    }
-
-    await sleep(1500);
-    lastStatus = await getEvolutionStatus(urlCandidates, instanceCandidates, apiKey);
-  }
-
-  return { recovered: false, status: lastStatus };
+  return { ok: create.ok, step: 'create', status: create.status, data: createP.data };
 };
 
 Deno.serve(async (req) => {
@@ -234,82 +76,40 @@ Deno.serve(async (req) => {
       const evoInstanceName = instance.zapi_instance_id;
       console.log(`🔄 Restarting Evolution instance: ${evoInstanceName}`);
 
-      // Try restart endpoint
-      const restartRes = await fetch(`${evoUrl}/instance/restart/${encodeURIComponent(evoInstanceName)}`, {
-        method: 'PUT',
+      // Step 1: Try logout (works if actually connected)
+      const logoutRes = await fetch(`${evoUrl}/instance/logout/${encodeURIComponent(evoInstanceName)}`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'apikey': evoKey },
       });
+      console.log(`🔄 Logout: ${logoutRes.status}`);
 
-      console.log(`🔄 Restart response: ${restartRes.status}`);
-
-      if (restartRes.ok) {
-        const data = await restartRes.json().catch(() => ({}));
-        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-        const instanceCandidates = buildEvolutionInstanceCandidates(instance.zapi_instance_id, instance.instance_name);
-        const statusCheck = await pollUntilRecovered(evoUrls, instanceCandidates, evoKey);
-
-        if (statusCheck.recovered) {
-          return new Response(JSON.stringify({ success: true, data, method: 'restart', status: statusCheck.status.data }), {
-            headers: jsonHeaders,
-          });
-        }
-
-        console.log(`🔄 Restart endpoint respondeu mas a instância continua travada; iniciando recuperação...`);
-      }
-
-      const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-      const instanceCandidates = buildEvolutionInstanceCandidates(instance.zapi_instance_id, instance.instance_name);
-
-      console.log(`🔄 Restart falhou/não destravou, tentando estratégias alternativas...`);
-
-      const restartAttempt = await executeRestartStrategies(
-        evoUrls,
-        instanceCandidates,
-        evoKey,
-        buildRestartStrategies,
-        '🔄',
-      );
-
-      if (restartAttempt.status < 200 || restartAttempt.status >= 300) {
-        console.log(`🔄 Restart direto sem sucesso (${restartAttempt.status}), tentando logout + connect...`);
-      }
-
-      const recoveryAttempt = await executeRestartStrategies(
-        evoUrls,
-        instanceCandidates,
-        evoKey,
-        buildRecoveryStrategies,
-        '♻️',
-      );
-
-      const statusCheck = await pollUntilRecovered(evoUrls, instanceCandidates, evoKey);
-
-      if (!statusCheck.recovered) {
-        return new Response(JSON.stringify({
-          error: 'Failed to restart',
-          message: `A instância continua em '${statusCheck.status.data?.instance?.state || statusCheck.status.data?.state || statusCheck.status.data?.status || 'connecting'}' após a tentativa de reinício.`,
-          details: {
-            restartAttempt,
-            recoveryAttempt,
-            finalStatus: statusCheck.status,
-          },
-        }), {
-          status: 409,
-          headers: jsonHeaders,
+      if (logoutRes.ok) {
+        await sleep(2000);
+        const connectRes = await fetch(`${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'apikey': evoKey },
         });
+        const connectData = await connectRes.json().catch(() => ({}));
+        console.log(`🔄 Connect after logout: ${connectRes.status}`);
+
+        return new Response(JSON.stringify({
+          success: true, data: connectData, method: 'logout-connect',
+          message: 'Instância desconectada. Escaneie o QR Code para reconectar.',
+        }), { headers: jsonHeaders });
       }
+
+      // Step 2: Logout failed (stuck in connecting) — delete & recreate
+      console.log(`🔄 Logout falhou (${logoutRes.status}), deletando e recriando...`);
+      const result = await deleteAndRecreate(evoUrl, evoKey, evoInstanceName);
 
       return new Response(JSON.stringify({
-        success: true,
-        data: {
-          restartAttempt,
-          recoveryAttempt,
-          finalStatus: statusCheck.status.data,
-        },
-        method: recoveryAttempt.strategy || restartAttempt.strategy,
-      }), {
-        headers: jsonHeaders,
-      });
+        success: result.ok,
+        data: result.data,
+        method: 'delete-recreate',
+        message: result.ok
+          ? 'Instância recriada com sucesso. Escaneie o QR Code para conectar.'
+          : `Falha ao ${result.step === 'delete' ? 'deletar' : 'recriar'} a instância.`,
+      }), { status: result.ok ? 200 : 500, headers: jsonHeaders });
     }
 
     // Z-API restart
