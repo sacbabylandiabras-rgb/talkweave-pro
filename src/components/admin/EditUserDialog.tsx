@@ -134,7 +134,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       }
     } else {
       if (!newEvolutionUrl || !newEvolutionKey || !selectedEvoInstance) {
-        toast({ title: "Preencha URL, API Key e selecione uma instância", variant: "destructive" });
+        toast({ title: "Preencha URL Base, API Key Global e ID da Instância", variant: "destructive" });
         return;
       }
     }
