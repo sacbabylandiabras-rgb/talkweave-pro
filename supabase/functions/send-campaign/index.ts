@@ -622,9 +622,7 @@ serve(async (req) => {
           // ============ Z-API LOGIC ============
           } else
           if (templateType === 'carrossel' && hasCarouselCards) {
-            let zapiUrl: string;
-            let requestBody: any;
-            // PRIORITY 0: Carousel (carrossel)
+            // PRIORITY 0: Carousel
             // First, send the carousel cards
             const carouselCards = campaign.template.carousel_cards.map((card: any) => {
               const cardData: any = {
