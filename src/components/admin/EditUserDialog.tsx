@@ -159,7 +159,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setNewEvolutionUrl('');
       setNewEvolutionKey('');
       setSelectedEvoInstance('');
-      setSelectedEvoInstance('');
+      setEvolutionInstances([]);
     }
   };
 
