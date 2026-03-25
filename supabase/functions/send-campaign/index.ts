@@ -965,53 +965,55 @@ serve(async (req) => {
             console.log(`Sending text message to ${contact.phone}`);
           }
           
-          console.log(`📞 Z-API URL: ${zapiUrl}`);
-          console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
-          
-          const zapiResponse = await fetch(zapiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Client-Token': zapiClientToken,
-            },
-            body: JSON.stringify(requestBody),
-          });
+          // Only send via Z-API if not already handled by Evolution
+          if (currentInstance.apiProvider !== 'evolution' && zapiUrl) {
+            console.log(`📞 Z-API URL: ${zapiUrl}`);
+            console.log(`📦 Request body:`, JSON.stringify(requestBody, null, 2));
+            
+            const zapiResponse = await fetch(zapiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': zapiClientToken,
+              },
+              body: JSON.stringify(requestBody),
+            });
 
-          let zapiResult: any = {};
-          
-          // Try to parse JSON response, but handle empty responses
-          try {
-            const responseText = await zapiResponse.text();
-            console.log(`📥 Z-API Response (${zapiResponse.status}):`, responseText);
-            if (responseText && responseText.trim()) {
-              zapiResult = JSON.parse(responseText);
+            let zapiResult: any = {};
+            
+            try {
+              const responseText = await zapiResponse.text();
+              console.log(`📥 Z-API Response (${zapiResponse.status}):`, responseText);
+              if (responseText && responseText.trim()) {
+                zapiResult = JSON.parse(responseText);
+              }
+            } catch (parseError) {
+              console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
             }
-          } catch (parseError) {
-            console.warn(`Could not parse Z-API response for ${contact.phone}:`, parseError);
-          }
 
-          if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
-            campaignSend.status = 'sent';
-            campaignSend.sent_at = new Date().toISOString();
-            
-            results.push({
-              phone: contact.phone,
-              success: true,
-              messageId: zapiResult.messageId,
-            });
+            if (zapiResponse.ok && zapiResponse.status >= 200 && zapiResponse.status < 300) {
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              
+              results.push({
+                phone: contact.phone,
+                success: true,
+                messageId: zapiResult.messageId,
+              });
 
-            console.log(`✅ Message sent successfully to ${contact.phone} - MessageID: ${zapiResult.messageId}`);
-          } else {
-            campaignSend.status = 'failed';
-            campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
-            
-            results.push({
-              phone: contact.phone,
-              success: false,
-              error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
-            });
+              console.log(`✅ Message sent successfully to ${contact.phone} - MessageID: ${zapiResult.messageId}`);
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`;
+              
+              results.push({
+                phone: contact.phone,
+                success: false,
+                error: zapiResult.error || `HTTP ${zapiResponse.status}: ${zapiResponse.statusText}`,
+              });
 
-            console.error(`❌ Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+              console.error(`❌ Failed to send message to ${contact.phone}:`, zapiResult.error || `HTTP ${zapiResponse.status}`);
+            }
           }
 
         } catch (error) {
