@@ -45,6 +45,9 @@ const getZAPIConfig = async () => {
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
       clientToken: inst.zapi_client_token,
+      apiProvider: inst.api_provider || 'zapi',
+      evolutionApiUrl: inst.evolution_api_url || null,
+      evolutionApiKey: inst.evolution_api_key || null,
     };
   }
 
@@ -55,6 +58,9 @@ const getZAPIConfig = async () => {
       instanceId: _instanceOverride.zapi_instance_id,
       token: _instanceOverride.zapi_token,
       clientToken: _instanceOverride.zapi_client_token,
+      apiProvider: _instanceOverride.api_provider || 'zapi',
+      evolutionApiUrl: _instanceOverride.evolution_api_url || null,
+      evolutionApiKey: _instanceOverride.evolution_api_key || null,
     };
   }
 
@@ -67,7 +73,7 @@ const getZAPIConfig = async () => {
   // Buscar instância padrão da nova tabela
   const { data: instances, error } = await (supabase as any)
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id)
     .eq('is_default', true)
     .limit(1);
@@ -93,14 +99,20 @@ const getZAPIConfig = async () => {
     return {
       instanceId: profile.zapi_instance_id,
       token: profile.zapi_token,
-      clientToken: profile.zapi_client_token
+      clientToken: profile.zapi_client_token,
+      apiProvider: 'zapi',
+      evolutionApiUrl: null,
+      evolutionApiKey: null,
     };
   }
 
   return {
     instanceId: instance.zapi_instance_id,
     token: instance.zapi_token,
-    clientToken: instance.zapi_client_token
+    clientToken: instance.zapi_client_token,
+    apiProvider: instance.api_provider || 'zapi',
+    evolutionApiUrl: instance.evolution_api_url || null,
+    evolutionApiKey: instance.evolution_api_key || null,
   };
 };
 
@@ -511,17 +523,36 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
-      console.log('Buscando status do dispositivo Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-      });
+      let response: Response;
+
+      if (config.apiProvider === 'evolution') {
+        const baseUrl = String(config.evolutionApiUrl || '').replace(/\/$/, '');
+        if (!baseUrl || !config.evolutionApiKey) {
+          throw new Error('Evolution API não configurada corretamente nesta instância.');
+        }
+
+        const url = `${baseUrl}/instance/connectionState/${config.instanceId}`;
+        console.log('Buscando status do dispositivo Evolution:', url);
+
+        response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': config.evolutionApiKey,
+          },
+        });
+      } else {
+        const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/status`;
+        console.log('Buscando status do dispositivo Z-API:', url);
+
+        response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Token': config.clientToken
+          },
+        });
+      }
 
       console.log('Status response:', response.status);
       const data = await response.json();
@@ -531,8 +562,23 @@ export const useZapi = () => {
         let errorMessage = `Erro ${response.status}`;
         if (data.message) errorMessage += `: ${data.message}`;
         if (data.error) errorMessage += `: ${data.error}`;
+        if (data.response?.message) errorMessage += `: ${data.response.message}`;
         
         throw new Error(errorMessage);
+      }
+
+      if (config.apiProvider === 'evolution') {
+        const connected = data?.instance?.state === 'open' || data?.state === 'open';
+        return {
+          success: true,
+          data: {
+            connected,
+            session: connected,
+            smartphoneConnected: connected,
+            provider: 'evolution',
+            raw: data,
+          },
+        };
       }
 
       return { success: true, data };
