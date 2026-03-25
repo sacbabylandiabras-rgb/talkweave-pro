@@ -104,19 +104,19 @@ export const buildEvolutionInstanceCandidates = (...values: Array<string | null 
 export const buildStatusStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Custom API (/instances/{id}/status with Client-Token)
-    {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/status`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-status',
-    },
-    // Strategy 2: Standard Evolution v2 (/instance/connectionState/{name} with apikey)
+    // Strategy 1 (primary): Evolution v2 (/instance/connectionState/{name} with apikey)
     {
       url: `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-status',
+    },
+    // Strategy 2 (fallback): Custom API (/instances/{id}/status with Client-Token)
+    {
+      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/status`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      label: 'custom-status',
     },
   ];
 };
