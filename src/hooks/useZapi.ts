@@ -554,17 +554,6 @@ export const useZapi = () => {
       setLoading(false);
     }
   };
-      console.error('Erro ao buscar status:', error);
-      toast({
-        title: "Erro ao buscar status",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getQRCode = async () => {
     setLoading(true);
