@@ -154,8 +154,17 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     try {
       setPairingCode(null);
       const result = await withInstance(() => getPairingCode(phoneNumber));
-      if (result.success && result.data?.code) {
-        setPairingCode(result.data.code);
+      if (result.success && result.data) {
+        if (result.data.pairingCode) {
+          setPairingCode(result.data.pairingCode);
+        } else if (result.data.qrCode) {
+          // Evolution returned QR instead of pairing code - show as QR
+          const qr = result.data.qrCode;
+          const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
+          setPairingCode(isBase64Image ? qr : result.data.code || null);
+        } else if (result.data.code) {
+          setPairingCode(result.data.code);
+        }
       }
     } catch (error) {
       toast({ title: "❌ Erro ao solicitar código", variant: "destructive" });
@@ -444,10 +453,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                 </Button>
                 {pairingCode && (
                   <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
-                    <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
-                      {pairingCode}
-                    </div>
+                    {pairingCode.startsWith('data:image') ? (
+                      <>
+                        <p className="text-sm text-muted-foreground mb-2">Escaneie o QR Code no WhatsApp:</p>
+                        <div className="flex justify-center">
+                          <img src={pairingCode} alt="QR Code" className="w-64 h-64 rounded-lg" />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground mb-2">Seu código de pareamento:</p>
+                        <div className="text-3xl font-mono font-bold tracking-wider bg-background border-2 border-primary rounded-lg py-4 px-6 text-primary">
+                          {pairingCode}
+                        </div>
+                      </>
+                    )}
                     <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
                   </div>
                 )}
