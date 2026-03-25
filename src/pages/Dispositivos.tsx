@@ -444,7 +444,21 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
             </Button>
           )}
           <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
-            onClick={async () => { try { await withInstance(() => restartInstance()); setTimeout(fetchDeviceStatus, 3000); } catch {} }}>
+            onClick={async () => {
+              try {
+                toast({ title: "🔄 Reiniciando...", description: "Aguarde alguns segundos." });
+                const { data, error } = await supabase.functions.invoke('restart-instance', {
+                  body: { instanceId: instance.id },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.message || data.error);
+                toast({ title: "✅ Instância reiniciada", description: "Aguarde reconectar." });
+                setTimeout(fetchDeviceStatus, 3000);
+              } catch (err) {
+                const message = await getInvokeErrorMessage(err, 'Erro ao reiniciar');
+                toast({ title: "❌ Erro ao reiniciar", description: message, variant: "destructive" });
+              }
+            }}>
             <RotateCcw className="w-3 h-3 mr-1" /> Reiniciar
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
