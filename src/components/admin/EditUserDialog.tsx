@@ -140,9 +140,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
 
     const evoInstanceName = newApiProvider === 'evolution' ? selectedEvoInstance : '';
-    const evoInstanceApiKey = newApiProvider === 'evolution'
-      ? (evolutionInstances.find(i => i.instanceName === selectedEvoInstance)?.apikey || newEvolutionKey)
-      : '';
 
     const success = await addInstance(user.id, {
       instance_name: newApiProvider === 'evolution' ? evoInstanceName : (newInstanceName || 'Nova Instância'),
@@ -151,7 +148,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       zapi_client_token: newApiProvider === 'zapi' ? newClientToken : 'evolution',
       api_provider: newApiProvider,
       evolution_api_url: newApiProvider === 'evolution' ? newEvolutionUrl : undefined,
-      evolution_api_key: newApiProvider === 'evolution' ? evoInstanceApiKey : undefined,
+      evolution_api_key: newApiProvider === 'evolution' ? newEvolutionKey : undefined,
     });
 
     if (success) {

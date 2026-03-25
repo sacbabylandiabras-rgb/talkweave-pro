@@ -182,6 +182,7 @@ export const executeStrategies = async (
   let lastRawText = '';
   let lastStatus = 500;
   let lastStrategy = '';
+  let authFailure: { data: any; rawText: string; status: number; strategy: string } | null = null;
 
   for (const candidateUrl of urlCandidates) {
     for (const instanceName of instanceCandidates) {
@@ -212,6 +213,7 @@ export const executeStrategies = async (
           }
 
           if (lastStatus === 401 || lastStatus === 403) {
+            authFailure = { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
             continue;
           }
 
@@ -229,7 +231,7 @@ export const executeStrategies = async (
     }
   }
 
-  return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+  return authFailure || { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
 };
 
 // ---------------------------------------------------------------------------

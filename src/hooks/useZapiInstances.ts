@@ -37,13 +37,28 @@ export const useZapiInstances = () => {
       if (error) throw error;
 
       const typed = (data || []) as ZapiInstance[];
-      const deduped = typed.filter((instance, index, list) => {
-        const duplicateIndex = list.findIndex((candidate) =>
-          candidate.api_provider === instance.api_provider &&
-          candidate.zapi_instance_id === instance.zapi_instance_id &&
-          candidate.instance_name === instance.instance_name
-        );
-        return duplicateIndex === index;
+      const dedupedMap = new Map<string, ZapiInstance>();
+
+      for (const instance of typed) {
+        const key = [instance.api_provider, instance.zapi_instance_id, instance.instance_name].join('::');
+        const previous = dedupedMap.get(key);
+
+        if (!previous) {
+          dedupedMap.set(key, instance);
+          continue;
+        }
+
+        dedupedMap.set(key, {
+          ...instance,
+          is_default: previous.is_default || instance.is_default,
+        });
+      }
+
+      const deduped = Array.from(dedupedMap.values()).sort((a, b) => {
+        if (a.is_default === b.is_default) {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
+        return a.is_default ? -1 : 1;
       });
 
       setInstances(deduped);
