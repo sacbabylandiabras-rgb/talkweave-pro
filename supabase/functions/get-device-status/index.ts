@@ -122,7 +122,7 @@ serve(async (req) => {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
       if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionStatus(evoUrl, evoKey, credentials.instanceId);
+      return await handleEvolutionStatus(evoUrl, evoKey, credentials.instanceId, credentials.instanceName);
     }
 
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/status`;
