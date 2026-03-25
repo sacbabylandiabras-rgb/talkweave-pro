@@ -873,7 +873,10 @@ export type Database = {
       }
       zapi_instances: {
         Row: {
+          api_provider: string
           created_at: string
+          evolution_api_key: string | null
+          evolution_api_url: string | null
           id: string
           instance_name: string
           is_active: boolean
@@ -885,7 +888,10 @@ export type Database = {
           zapi_token: string
         }
         Insert: {
+          api_provider?: string
           created_at?: string
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
           id?: string
           instance_name?: string
           is_active?: boolean
@@ -897,7 +903,10 @@ export type Database = {
           zapi_token: string
         }
         Update: {
+          api_provider?: string
           created_at?: string
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
           id?: string
           instance_name?: string
           is_active?: boolean
