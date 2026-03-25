@@ -19,12 +19,18 @@ const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanc
 
   console.log(`📱 Evolution pairing for candidates: ${instanceCandidates.join(', ')}, phone: ${sanitizedPhone}`);
 
+  // Validator: prefer responses that have a real pairingCode
+  const hasPairingCode = (data: any) => {
+    return !!(data?.pairingCode || data?.data?.pairingCode || data?.instance?.pairingCode);
+  };
+
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildPairingCodeStrategies(cfg, sanitizedPhone),
     evoKey,
     instanceCandidates,
     '📱',
+    hasPairingCode,
   );
 
   if (result.status >= 200 && result.status < 300) {

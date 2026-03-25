@@ -150,14 +150,7 @@ export const buildQrCodeStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
 export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string): EndpointStrategy[] => {
   const { baseUrl, apiKey, instanceName } = cfg;
   return [
-    // Strategy 1: Evolution v2 GET /instance/connect/{name}?number={phone} (some versions)
-    {
-      url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(phone)}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
-      label: 'evo-v2-pairing-get',
-    },
-    // Strategy 2: Evolution v2 POST /instance/connect/{name} with number body
+    // Strategy 1: Evolution v2 POST with number (triggers pairing mode)
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'POST',
@@ -165,7 +158,7 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
       body: JSON.stringify({ number: phone }),
       label: 'evo-v2-pairing-post',
     },
-    // Strategy 3: Evolution v2 POST with pairing flag
+    // Strategy 2: Evolution v2 POST with pairing flag
     {
       url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
       method: 'POST',
@@ -173,12 +166,12 @@ export const buildPairingCodeStrategies = (cfg: ApiAttemptConfig, phone: string)
       body: JSON.stringify({ number: phone, pairing: true }),
       label: 'evo-v2-pairing-flag',
     },
-    // Strategy 4: Custom API fallback
+    // Strategy 3: GET with number query param
     {
-      url: `${baseUrl}/instances/${encodeURIComponent(instanceName)}/qr-code`,
+      url: `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(phone)}`,
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
-      label: 'custom-qr-fallback',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      label: 'evo-v2-pairing-get',
     },
   ];
 };
@@ -192,12 +185,14 @@ export const executeStrategies = async (
   apiKey: string,
   instanceCandidates: string[],
   logPrefix: string,
+  validateSuccess?: (data: any) => boolean,
 ): Promise<{ data: any; rawText: string; status: number; strategy: string }> => {
   let lastPayload: any = null;
   let lastRawText = '';
   let lastStatus = 500;
   let lastStrategy = '';
   let authFailure: { data: any; rawText: string; status: number; strategy: string } | null = null;
+  let firstOkResult: { data: any; rawText: string; status: number; strategy: string } | null = null;
 
   for (const candidateUrl of urlCandidates) {
     for (const instanceName of instanceCandidates) {
@@ -224,7 +219,17 @@ export const executeStrategies = async (
           console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' status=${lastStatus} body=${lastRawText.substring(0, 300)}`);
 
           if (response.ok) {
-            return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+            const result = { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+            // If there's a validator, only return if it passes; otherwise save as fallback
+            if (validateSuccess) {
+              if (validateSuccess(lastPayload)) {
+                return result;
+              }
+              console.log(`${logPrefix} ${strategy.label} returned 200 but failed validation, continuing...`);
+              if (!firstOkResult) firstOkResult = result;
+              continue;
+            }
+            return result;
           }
 
           if (lastStatus === 401 || lastStatus === 403) {
@@ -246,7 +251,7 @@ export const executeStrategies = async (
     }
   }
 
-  return authFailure || { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+  return authFailure || firstOkResult || { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
 };
 
 // ---------------------------------------------------------------------------
