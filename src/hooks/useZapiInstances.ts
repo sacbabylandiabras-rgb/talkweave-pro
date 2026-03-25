@@ -117,6 +117,24 @@ export const useAdminZapiInstances = (userId?: string) => {
         return false;
       }
 
+      const normalizedName = data.instance_name.trim().toLowerCase();
+      const normalizedId = data.zapi_instance_id.trim().toLowerCase();
+      const duplicatedInstance = instances.find((instance) => {
+        const sameProvider = instance.api_provider === (data.api_provider || 'zapi');
+        const sameName = instance.instance_name.trim().toLowerCase() === normalizedName;
+        const sameId = instance.zapi_instance_id.trim().toLowerCase() === normalizedId;
+        return sameProvider && (sameName || sameId);
+      });
+
+      if (duplicatedInstance) {
+        toast({
+          title: "Instância duplicada",
+          description: "Essa instância já está cadastrada para este usuário.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       if (data.is_default) {
         await fromZapiInstances()
           .update({ is_default: false })
