@@ -86,7 +86,7 @@ serve(async (req) => {
       }
 
       console.log(`📱 Generating Evolution pairing code for: ${evoInstanceName}, phone: ${sanitizedPhone}`);
-      const connectUrl = `${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}?number=${sanitizedPhone}`;
+      const connectUrl = `${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`;
       console.log(`📱 URL: ${connectUrl}`);
 
       let lastPayload: any = null;
@@ -96,11 +96,12 @@ serve(async (req) => {
         console.log(`📱 Attempt ${attempt}...`);
         
         const evoResponse = await fetch(connectUrl, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': evoKey,
           },
+          body: JSON.stringify({ number: sanitizedPhone }),
         });
 
         lastStatus = evoResponse.status;
