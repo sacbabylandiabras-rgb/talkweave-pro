@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 import {
+  buildEvolutionInstanceCandidates,
   buildEvolutionUrlCandidates,
   buildPairingCodeStrategies,
   executeStrategies,
@@ -11,17 +12,18 @@ import {
   getEvolutionErrorMessage,
 } from "../_shared/evolution.ts";
 
-const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanceName: string, phone: string) => {
+const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName: string | undefined, phone: string) => {
   const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
   const sanitizedPhone = String(phone).replace(/\D/g, '');
 
-  console.log(`📱 Evolution pairing for: ${evoInstanceName}, phone: ${sanitizedPhone}`);
+  console.log(`📱 Evolution pairing for candidates: ${instanceCandidates.join(', ')}, phone: ${sanitizedPhone}`);
 
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildPairingCodeStrategies(cfg, sanitizedPhone),
     evoKey,
-    evoInstanceName,
+    instanceCandidates,
     '📱',
   );
 
@@ -103,6 +105,7 @@ serve(async (req) => {
         instanceId: instance.zapi_instance_id,
         token: instance.zapi_token,
         clientToken: instance.zapi_client_token,
+        instanceName: instance.instance_name || instance.zapi_instance_id,
         apiProvider: (instance.api_provider || 'zapi') as 'zapi' | 'evolution',
         evolutionApiUrl: instance.evolution_api_url || undefined,
         evolutionApiKey: instance.evolution_api_key || undefined,
@@ -115,7 +118,7 @@ serve(async (req) => {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
       if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionPairing(evoUrl, evoKey, credentials.instanceId, phoneNumber);
+      return await handleEvolutionPairing(evoUrl, evoKey, credentials.instanceId, credentials.instanceName, phoneNumber);
     }
 
     // Z-API path

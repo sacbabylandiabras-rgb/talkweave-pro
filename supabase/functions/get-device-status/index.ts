@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 import {
+  buildEvolutionInstanceCandidates,
   buildEvolutionUrlCandidates,
   buildStatusStrategies,
   executeStrategies,
@@ -10,14 +11,15 @@ import {
   isEvolutionConnected,
 } from "../_shared/evolution.ts";
 
-const handleEvolutionStatus = async (evoUrl: string, evoKey: string, evoInstanceName: string) => {
+const handleEvolutionStatus = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName?: string) => {
   const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
 
   const result = await executeStrategies(
     evoUrls,
     (cfg) => buildStatusStrategies(cfg),
     evoKey,
-    evoInstanceName,
+    instanceCandidates,
     '📋',
   );
 
@@ -84,7 +86,7 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: instance, error: instError } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', specificInstanceId)
         .eq('user_id', user.id)
         .single();
@@ -95,7 +97,7 @@ serve(async (req) => {
         const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
         const evoKey = instance.evolution_api_key;
         if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-        return await handleEvolutionStatus(evoUrl, evoKey, instance.zapi_instance_id);
+        return await handleEvolutionStatus(evoUrl, evoKey, instance.zapi_instance_id, instance.instance_name);
       }
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/status`;
@@ -120,7 +122,7 @@ serve(async (req) => {
       const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
       const evoKey = credentials.evolutionApiKey;
       if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionStatus(evoUrl, evoKey, credentials.instanceId);
+      return await handleEvolutionStatus(evoUrl, evoKey, credentials.instanceId, credentials.instanceName);
     }
 
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/status`;

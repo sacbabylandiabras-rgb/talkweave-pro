@@ -94,6 +94,10 @@ interface EndpointStrategy {
   label: string; // for logging
 }
 
+export const buildEvolutionInstanceCandidates = (...values: Array<string | null | undefined>) => {
+  return [...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])];
+};
+
 /**
  * Build endpoint strategies for checking device connection status.
  */
@@ -171,7 +175,7 @@ export const executeStrategies = async (
   urlCandidates: string[],
   buildStrategies: (cfg: ApiAttemptConfig) => EndpointStrategy[],
   apiKey: string,
-  instanceName: string,
+  instanceCandidates: string[],
   logPrefix: string,
 ): Promise<{ data: any; rawText: string; status: number; strategy: string }> => {
   let lastPayload: any = null;
@@ -180,50 +184,47 @@ export const executeStrategies = async (
   let lastStrategy = '';
 
   for (const candidateUrl of urlCandidates) {
-    const strategies = buildStrategies({ baseUrl: candidateUrl, apiKey, instanceName });
+    for (const instanceName of instanceCandidates) {
+      const strategies = buildStrategies({ baseUrl: candidateUrl, apiKey, instanceName });
 
-    for (const strategy of strategies) {
-      console.log(`${logPrefix} Trying ${strategy.label}: ${strategy.url}`);
+      for (const strategy of strategies) {
+        console.log(`${logPrefix} Trying ${strategy.label} with instance '${instanceName}': ${strategy.url}`);
 
-      try {
-        const fetchOpts: RequestInit = {
-          method: strategy.method,
-          headers: strategy.headers,
-        };
-        if (strategy.body) fetchOpts.body = strategy.body;
+        try {
+          const fetchOpts: RequestInit = {
+            method: strategy.method,
+            headers: strategy.headers,
+          };
+          if (strategy.body) fetchOpts.body = strategy.body;
 
-        const response = await fetch(strategy.url, fetchOpts);
-        const parsed = await parseEvolutionResponse(response);
+          const response = await fetch(strategy.url, fetchOpts);
+          const parsed = await parseEvolutionResponse(response);
 
-        lastStatus = response.status;
-        lastPayload = parsed.data;
-        lastRawText = parsed.rawText;
-        lastStrategy = strategy.label;
+          lastStatus = response.status;
+          lastPayload = parsed.data;
+          lastRawText = parsed.rawText;
+          lastStrategy = `${strategy.label}:${instanceName}`;
 
-        console.log(`${logPrefix} ${strategy.label} status=${lastStatus} body=${lastRawText.substring(0, 300)}`);
+          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' status=${lastStatus} body=${lastRawText.substring(0, 300)}`);
 
-        // Success
-        if (response.ok) {
-          return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: strategy.label };
-        }
+          if (response.ok) {
+            return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+          }
 
-        // If 401/403, try next strategy (maybe wrong auth header)
-        if (lastStatus === 401 || lastStatus === 403) {
+          if (lastStatus === 401 || lastStatus === 403) {
+            continue;
+          }
+
+          if (lastStatus === 404 || isEvolutionInstanceNotFound(lastPayload, lastRawText)) {
+            continue;
+          }
+
+          return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
+        } catch (err) {
+          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${err}`);
+          lastRawText = String(err);
           continue;
         }
-
-        // If not found, try next strategy
-        if (lastStatus === 404 || isEvolutionInstanceNotFound(lastPayload, lastRawText)) {
-          continue;
-        }
-
-        // Other error, return it
-        return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: strategy.label };
-
-      } catch (err) {
-        console.log(`${logPrefix} ${strategy.label} fetch error: ${err}`);
-        lastRawText = String(err);
-        continue;
       }
     }
   }
