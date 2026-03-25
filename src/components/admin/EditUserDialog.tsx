@@ -103,10 +103,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       });
       if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
       if (responseData?.error) throw new Error(responseData.error);
-      const list = (Array.isArray(responseData) ? responseData : []).map((item: any) => ({
-        instanceName: item?.instance?.instanceName || item?.instanceName || 'unknown',
-        status: item?.instance?.status || item?.status || 'unknown',
-      }));
+      const list = (Array.isArray(responseData) ? responseData : [])
+        .map((item: any) => ({
+          instanceName:
+            item?.instanceName ||
+            item?.instance?.instanceName ||
+            item?.name ||
+            item?.instance?.name ||
+            item?.instanceId ||
+            item?.instance?.id ||
+            item?.id ||
+            '',
+          status: item?.status || item?.instance?.status || item?.connectionStatus || 'unknown',
+        }))
+        .filter((item) => item.instanceName);
+
       setEvolutionInstances(list);
       if (list.length === 0) {
         toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
