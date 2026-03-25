@@ -222,11 +222,20 @@ export const useAdminZapiInstances = (userId?: string) => {
 
   const deleteInstance = async (instanceId: string, uid: string) => {
     try {
-      const { error } = await fromZapiInstances()
+      const { data, error } = await fromZapiInstances()
         .delete()
-        .eq('id', instanceId);
+        .eq('id', instanceId)
+        .select();
 
       if (error) throw error;
+
+      if (!data || data.length === 0) {
+        console.warn('Delete retornou 0 linhas — possível bloqueio de RLS. Tentando via edge function...');
+        const { error: fnError } = await supabase.functions.invoke('cleanup-orphan-data', {
+          body: { action: 'delete-instance', instanceId }
+        });
+        if (fnError) throw new Error('Falha ao remover instância: permissão negada');
+      }
 
       toast({ title: "✅ Instância removida" });
       await fetchUserInstances(uid);
