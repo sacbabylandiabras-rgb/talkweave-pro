@@ -15,48 +15,81 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
+    // Verify caller is admin
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) throw new Error('No authorization header');
+
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized');
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if admin
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!roleData;
+
+    // Handle specific actions
+    let body: any = {};
+    try { body = await req.json(); } catch { /* no body */ }
+
+    if (body?.action === 'delete-instance' && body?.instanceId) {
+      if (!isAdmin) throw new Error('Only admins can delete instances');
+      
+      const { data: deleted, error: delError } = await supabase
+        .from('zapi_instances')
+        .delete()
+        .eq('id', body.instanceId)
+        .select();
+
+      if (delError) throw delError;
+
+      console.log(`🗑️ Admin ${user.id} deleted instance ${body.instanceId}, rows: ${deleted?.length || 0}`);
+
+      return new Response(
+        JSON.stringify({ success: true, deleted: deleted?.length || 0 }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isAdmin) throw new Error('Only admins can run cleanup');
 
     console.log('🧹 Starting cleanup of orphan data...');
 
-    // Delete orphan message templates (without user_id)
     const { data: orphanTemplates, error: templatesError } = await supabase
       .from('message_templates')
       .delete()
       .is('user_id', null)
       .select();
 
-    if (templatesError) {
-      console.error('Error deleting orphan templates:', templatesError);
-    } else {
-      console.log(`✅ Deleted ${orphanTemplates?.length || 0} orphan templates`);
-    }
+    if (templatesError) console.error('Error deleting orphan templates:', templatesError);
+    else console.log(`✅ Deleted ${orphanTemplates?.length || 0} orphan templates`);
 
-    // Delete orphan campaigns (without user_id)
     const { data: orphanCampaigns, error: campaignsError } = await supabase
       .from('campaigns')
       .delete()
       .is('user_id', null)
       .select();
 
-    if (campaignsError) {
-      console.error('Error deleting orphan campaigns:', campaignsError);
-    } else {
-      console.log(`✅ Deleted ${orphanCampaigns?.length || 0} orphan campaigns`);
-    }
+    if (campaignsError) console.error('Error deleting orphan campaigns:', campaignsError);
+    else console.log(`✅ Deleted ${orphanCampaigns?.length || 0} orphan campaigns`);
 
-    // Delete orphan campaign_sends (without user_id)
     const { data: orphanSends, error: sendsError } = await supabase
       .from('campaign_sends')
       .delete()
       .is('user_id', null)
       .select();
 
-    if (sendsError) {
-      console.error('Error deleting orphan campaign_sends:', sendsError);
-    } else {
-      console.log(`✅ Deleted ${orphanSends?.length || 0} orphan campaign sends`);
-    }
+    if (sendsError) console.error('Error deleting orphan campaign_sends:', sendsError);
+    else console.log(`✅ Deleted ${orphanSends?.length || 0} orphan campaign sends`);
 
     return new Response(
       JSON.stringify({ 
@@ -67,10 +100,7 @@ serve(async (req) => {
           campaign_sends: orphanSends?.length || 0
         }
       }),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
