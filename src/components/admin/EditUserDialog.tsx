@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Star, StarOff } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star, StarOff, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
   const [newEvolutionKey, setNewEvolutionKey] = useState('');
   const [selectedEvoInstance, setSelectedEvoInstance] = useState('');
+  const [evolutionInstances, setEvolutionInstances] = useState<Array<{instanceName: string; status: string}>>([]);
+  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
 
@@ -89,6 +91,35 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setLoading(false);
     }
   };
+  const fetchEvolutionInstances = async () => {
+    if (!newEvolutionUrl || !newEvolutionKey) {
+      toast({ title: "Preencha URL e API Key primeiro", variant: "destructive" });
+      return;
+    }
+    setLoadingEvoInstances(true);
+    try {
+      const { data: responseData, error } = await supabase.functions.invoke('fetch-evolution-instances', {
+        body: { evolution_api_url: newEvolutionUrl, evolution_api_key: newEvolutionKey },
+      });
+      if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
+      if (responseData?.error) throw new Error(responseData.error);
+      const list = (Array.isArray(responseData) ? responseData : []).map((item: any) => ({
+        instanceName: item?.instance?.instanceName || item?.instanceName || 'unknown',
+        status: item?.instance?.status || item?.status || 'unknown',
+      }));
+      setEvolutionInstances(list);
+      if (list.length === 0) {
+        toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
+      } else {
+        toast({ title: `✅ ${list.length} instância(s) encontrada(s)` });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
+      setEvolutionInstances([]);
+    } finally {
+      setLoadingEvoInstances(false);
+    }
+  };
 
 
   const handleAddInstance = async () => {
@@ -128,7 +159,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setNewEvolutionUrl('');
       setNewEvolutionKey('');
       setSelectedEvoInstance('');
-      setSelectedEvoInstance('');
+      setEvolutionInstances([]);
     }
   };
 
@@ -276,8 +307,44 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           placeholder="API Key global do servidor Evolution"
                         />
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={fetchEvolutionInstances}
+                        disabled={loadingEvoInstances || !newEvolutionUrl || !newEvolutionKey}
+                        className="w-full"
+                      >
+                        <RefreshCw className={`w-3 h-3 mr-1 ${loadingEvoInstances ? 'animate-spin' : ''}`} />
+                        Buscar Instâncias do Servidor
+                      </Button>
+                      {evolutionInstances.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Selecionar Instância</Label>
+                          <Select value={selectedEvoInstance} onValueChange={setSelectedEvoInstance}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma instância" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {evolutionInstances.map((inst) => (
+                                <SelectItem key={inst.instanceName} value={inst.instanceName}>
+                                  <div className="flex items-center gap-2">
+                                    {inst.status === 'open' ? (
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <XCircle className="w-3 h-3 text-red-500" />
+                                    )}
+                                    {inst.instanceName}
+                                    <span className="text-xs text-muted-foreground">({inst.status})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="space-y-2">
-                        <Label>ID da Instância *</Label>
+                        <Label>Ou digite o ID manualmente</Label>
                         <Input
                           value={selectedEvoInstance}
                           onChange={(e) => setSelectedEvoInstance(e.target.value)}
