@@ -2,22 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-
-const parseApiResponse = async (response: Response) => {
-  const rawText = await response.text();
-
-  try {
-    return {
-      data: rawText ? JSON.parse(rawText) : null,
-      rawText,
-    };
-  } catch {
-    return {
-      data: { rawText },
-      rawText,
-    };
-  }
-};
+import { buildEvolutionUrlCandidates, getEvolutionErrorMessage, isEvolutionInstanceNotFound, parseEvolutionResponse } from "../_shared/evolution.ts";
 
 const isEvolutionConnected = (payload: any) => {
   const state = payload?.instance?.state || payload?.state || payload?.status || payload?.instance?.status || null;
@@ -86,27 +71,41 @@ serve(async (req) => {
         }
 
         console.log(`📋 Checking Evolution API status for: ${evoInstanceName}`);
-        
-        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
+
+        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+        let evoData: any = null;
+        let rawText = '';
+        let lastStatus = 500;
+
+        for (const candidateUrl of evoUrls) {
+          const evoResponse = await fetch(`${candidateUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evoKey,
+            }
+          });
+
+          lastStatus = evoResponse.status;
+          const parsed = await parseEvolutionResponse(evoResponse);
+          evoData = parsed.data;
+          rawText = parsed.rawText;
+
+          if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
+            break;
           }
-        });
+        }
 
-        const { data: evoData, rawText } = await parseApiResponse(evoResponse);
-
-        if (!evoResponse.ok) {
+        if (lastStatus < 200 || lastStatus >= 300) {
           return new Response(
             JSON.stringify({
               error: 'Failed to get device status',
-              message: evoData?.message || evoData?.error || `Evolution status request failed with ${evoResponse.status}`,
+              message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution status request failed'),
               details: evoData,
               rawText,
             }),
             {
-              status: evoResponse.status,
+              status: lastStatus,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           );
@@ -147,26 +146,40 @@ serve(async (req) => {
 
         console.log(`📋 Checking default Evolution API status for: ${evoInstanceName}`);
 
-        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
+        const evoUrls = buildEvolutionUrlCandidates(evoUrl);
+        let evoData: any = null;
+        let rawText = '';
+        let lastStatus = 500;
+
+        for (const candidateUrl of evoUrls) {
+          const evoResponse = await fetch(`${candidateUrl}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evoKey,
+            }
+          });
+
+          lastStatus = evoResponse.status;
+          const parsed = await parseEvolutionResponse(evoResponse);
+          evoData = parsed.data;
+          rawText = parsed.rawText;
+
+          if (evoResponse.ok || !isEvolutionInstanceNotFound(evoData, rawText)) {
+            break;
           }
-        });
+        }
 
-        const { data: evoData, rawText } = await parseApiResponse(evoResponse);
-
-        if (!evoResponse.ok) {
+        if (lastStatus < 200 || lastStatus >= 300) {
           return new Response(
             JSON.stringify({
               error: 'Failed to get device status',
-              message: evoData?.message || evoData?.error || `Evolution status request failed with ${evoResponse.status}`,
+              message: getEvolutionErrorMessage(evoData, lastStatus, 'Evolution status request failed'),
               details: evoData,
               rawText,
             }),
             {
-              status: evoResponse.status,
+              status: lastStatus,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           );

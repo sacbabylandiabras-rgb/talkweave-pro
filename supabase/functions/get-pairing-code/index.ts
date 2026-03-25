@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
+import { buildEvolutionUrlCandidates, getEvolutionErrorMessage, isEvolutionInstanceNotFound, parseEvolutionResponse } from "../_shared/evolution.ts";
 
 const extractPairingCode = (payload: any): string | null => {
   return payload?.pairingCode || payload?.data?.pairingCode || payload?.instance?.pairingCode || null;
@@ -86,60 +87,72 @@ serve(async (req) => {
       }
 
       console.log(`📱 Generating Evolution pairing code for: ${evoInstanceName}, phone: ${sanitizedPhone}`);
-      const connectUrl = `${evoUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`;
-      console.log(`📱 URL: ${connectUrl}`);
 
+      const evoUrls = buildEvolutionUrlCandidates(evoUrl);
       let lastPayload: any = null;
       let lastStatus = 500;
 
-      for (let attempt = 1; attempt <= 4; attempt++) {
-        console.log(`📱 Attempt ${attempt}...`);
-        
-        const evoResponse = await fetch(connectUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evoKey,
-          },
-          body: JSON.stringify({ number: sanitizedPhone }),
-        });
+      for (const candidateUrl of evoUrls) {
+        const connectUrl = `${candidateUrl}/instance/connect/${encodeURIComponent(evoInstanceName)}`;
+        console.log(`📱 URL: ${connectUrl}`);
 
-        lastStatus = evoResponse.status;
-        const rawText = await evoResponse.text();
-        console.log(`📱 Attempt ${attempt} status: ${lastStatus}, body: ${rawText.substring(0, 500)}`);
-        
-        try { lastPayload = JSON.parse(rawText); } catch { lastPayload = { rawText }; }
-        
-        const code = extractPairingCode(lastPayload);
-        const qrCode = extractQrCode(lastPayload);
-        console.log(`📱 Extracted pairing code: ${code}`);
-        console.log(`📱 Extracted QR fallback: ${qrCode ? 'yes' : 'no'}`);
+        for (let attempt = 1; attempt <= 4; attempt++) {
+          console.log(`📱 Attempt ${attempt}...`);
 
-        if (code || qrCode) {
-          return new Response(
-            JSON.stringify({
-              success: true,
-              data: {
-                code: code || qrCode,
-                pairingCode: code,
-                qrCode,
-                phoneNumber: sanitizedPhone,
-                method: 'evolution',
-                isReal: true,
-                raw: lastPayload,
+          const evoResponse = await fetch(connectUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evoKey,
+            },
+            body: JSON.stringify({ number: sanitizedPhone }),
+          });
+
+          lastStatus = evoResponse.status;
+          const parsed = await parseEvolutionResponse(evoResponse);
+          lastPayload = parsed.data;
+          const rawText = parsed.rawText;
+          console.log(`📱 Attempt ${attempt} status: ${lastStatus}, body: ${rawText.substring(0, 500)}`);
+
+          const code = extractPairingCode(lastPayload);
+          const qrCode = extractQrCode(lastPayload);
+          console.log(`📱 Extracted pairing code: ${code}`);
+          console.log(`📱 Extracted QR fallback: ${qrCode ? 'yes' : 'no'}`);
+
+          if (code || qrCode) {
+            return new Response(
+              JSON.stringify({
+                success: true,
+                data: {
+                  code: code || qrCode,
+                  pairingCode: code,
+                  qrCode,
+                  phoneNumber: sanitizedPhone,
+                  method: 'evolution',
+                  isReal: true,
+                  raw: lastPayload,
+                }
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
               }
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          )
+            )
+          }
+
+          if (!isEvolutionInstanceNotFound(lastPayload, rawText)) {
+            break;
+          }
+        }
+
+        if (!isEvolutionInstanceNotFound(lastPayload)) {
+          break;
         }
       }
 
       return new Response(
         JSON.stringify({
           error: 'Failed to get pairing code',
-          message: lastPayload?.response?.message || lastPayload?.message || 'Evolution did not return a valid pairing code or QR code',
+          message: getEvolutionErrorMessage(lastPayload, lastStatus, 'Evolution did not return a valid pairing code or QR code'),
           details: lastPayload,
         }),
         {
