@@ -105,6 +105,7 @@ serve(async (req) => {
         instanceId: instance.zapi_instance_id,
         token: instance.zapi_token,
         clientToken: instance.zapi_client_token,
+        instanceName: instance.instance_name || instance.zapi_instance_id,
         apiProvider: (instance.api_provider || 'zapi') as 'zapi' | 'evolution',
         evolutionApiUrl: instance.evolution_api_url || undefined,
         evolutionApiKey: instance.evolution_api_key || undefined,
