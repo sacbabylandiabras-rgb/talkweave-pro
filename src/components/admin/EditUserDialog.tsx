@@ -99,15 +99,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
     setLoadingEvoInstances(true);
     try {
-      const baseUrl = newEvolutionUrl.replace(/\/$/, '');
-      const res = await fetch(`${baseUrl}/instance/fetchInstances`, {
-        headers: { 'apikey': newEvolutionKey, 'Content-Type': 'application/json' },
+      const { data: responseData, error } = await supabase.functions.invoke('fetch-evolution-instances', {
+        body: { evolution_api_url: newEvolutionUrl, evolution_api_key: newEvolutionKey },
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.message || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
+      if (responseData?.error) throw new Error(responseData.error);
+      const data = responseData;
       const list = (Array.isArray(data) ? data : []).map((item: any) => ({
         instanceName: item?.instance?.instanceName || 'unknown',
         status: item?.instance?.status || 'unknown',
