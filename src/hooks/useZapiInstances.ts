@@ -13,6 +13,9 @@ export interface ZapiInstance {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  api_provider: 'zapi' | 'evolution';
+  evolution_api_url?: string;
+  evolution_api_key?: string;
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');
@@ -91,6 +94,9 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
+    api_provider?: 'zapi' | 'evolution';
+    evolution_api_url?: string;
+    evolution_api_key?: string;
   }) => {
     try {
       if (instances.length >= 5) {
@@ -118,6 +124,9 @@ export const useAdminZapiInstances = (userId?: string) => {
           zapi_token: data.zapi_token,
           zapi_client_token: data.zapi_client_token,
           is_default: data.is_default || isFirst,
+          api_provider: data.api_provider || 'zapi',
+          evolution_api_url: data.evolution_api_url || null,
+          evolution_api_key: data.evolution_api_key || null,
         });
 
       if (error) throw error;
