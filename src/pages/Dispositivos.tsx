@@ -13,6 +13,24 @@ import QRCodeLib from 'qrcode';
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
+const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = await error.context.json();
+      return payload?.message || payload?.error || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
@@ -29,11 +47,11 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   const [showConnect, setShowConnect] = useState(false);
   const [hasSynced, setHasSynced] = useState(false);
   const [prevConnected, setPrevConnected] = useState<boolean | null>(null);
-  const { getDeviceStatus, getQRCode, getPairingCode, disconnectDevice, restartInstance, loading } = useZapi();
+  const { disconnectDevice, restartInstance, loading } = useZapi();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Set instance override for this card's operations
+  // Set instance override only for operations that still use the shared hook state
   const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setZapiInstanceOverride(instance);
     try {
@@ -45,10 +63,27 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
 
   const fetchDeviceStatus = async () => {
     try {
-      const status = await withInstance(() => getDeviceStatus());
-      setDeviceStatus(status.data);
+      const { data, error } = await supabase.functions.invoke('get-device-status', {
+        body: { instanceId: instance.id },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data?.message || data?.error || 'Erro ao buscar status do dispositivo');
+      }
+
+      setDeviceStatus(data?.data ?? null);
     } catch (error) {
+      const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
       console.error('Erro ao buscar status:', error);
+      toast({
+        title: 'Erro ao buscar status',
+        description: message,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -113,8 +148,19 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
       setQrCode(null);
       setQrCodeImage(null);
       
-      const qrData = await withInstance(() => getQRCode());
-      const qrValue = qrData?.data?.value;
+      const { data, error } = await supabase.functions.invoke('get-qr-code', {
+        body: { instanceId: instance.id },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data?.message || data?.error || 'Erro ao buscar QR Code');
+      }
+
+      const qrValue = data?.data?.value;
 
       if (typeof qrValue === 'string' && qrValue.startsWith('data:image')) {
         setQrCodeImage(qrValue);
@@ -131,18 +177,19 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
           });
           setQrCodeImage(qrImageDataURL);
           toast({ title: "✅ QR Code gerado", description: "Escaneie para conectar" });
-        } catch (qrError) {
+        } catch {
           toast({ title: "❌ Erro ao gerar imagem", variant: "destructive" });
         }
       } else {
-        if (qrData.data?.connected === true) {
+        if (data?.data?.connected === true) {
           toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
         } else {
           toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
         }
       }
     } catch (error) {
-      toast({ title: "❌ Erro de conexão", variant: "destructive" });
+      const message = await getInvokeErrorMessage(error, 'Erro ao buscar QR Code');
+      toast({ title: "❌ Erro de conexão", description: message, variant: "destructive" });
     }
   };
 
@@ -153,21 +200,34 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
     }
     try {
       setPairingCode(null);
-      const result = await withInstance(() => getPairingCode(phoneNumber));
-      if (result.success && result.data) {
-        if (result.data.pairingCode) {
-          setPairingCode(result.data.pairingCode);
-        } else if (result.data.qrCode) {
-          // Evolution returned QR instead of pairing code - show as QR
-          const qr = result.data.qrCode;
-          const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
-          setPairingCode(isBase64Image ? qr : result.data.code || null);
-        } else if (result.data.code) {
-          setPairingCode(result.data.code);
-        }
+
+      const { data, error } = await supabase.functions.invoke('get-pairing-code', {
+        body: {
+          phoneNumber,
+          instanceId: instance.id,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.success || !data?.data) {
+        throw new Error(data?.message || data?.error || 'Falha ao gerar código de pareamento');
+      }
+
+      if (data.data.pairingCode) {
+        setPairingCode(data.data.pairingCode);
+      } else if (data.data.qrCode) {
+        const qr = data.data.qrCode;
+        const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
+        setPairingCode(isBase64Image ? qr : data.data.code || null);
+      } else if (data.data.code) {
+        setPairingCode(data.data.code);
       }
     } catch (error) {
-      toast({ title: "❌ Erro ao solicitar código", variant: "destructive" });
+      const message = await getInvokeErrorMessage(error, 'Erro ao solicitar código');
+      toast({ title: "❌ Erro ao solicitar código", description: message, variant: "destructive" });
     }
   };
 
