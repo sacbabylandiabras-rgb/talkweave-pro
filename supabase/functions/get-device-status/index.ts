@@ -45,13 +45,51 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: instance, error: instError } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', specificInstanceId)
         .eq('user_id', user.id)
         .single();
 
       if (instError || !instance) {
         throw new Error('Instance not found');
+      }
+
+      // Handle Evolution API
+      if (instance.api_provider === 'evolution') {
+        const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
+        const evoKey = instance.evolution_api_key;
+        const evoInstanceName = instance.zapi_instance_id;
+        
+        if (!evoUrl || !evoKey) {
+          throw new Error('Evolution API URL or Key not configured');
+        }
+
+        console.log(`📋 Checking Evolution API status for: ${evoInstanceName}`);
+        
+        const evoResponse = await fetch(`${evoUrl}/instance/connectionState/${evoInstanceName}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evoKey,
+          }
+        });
+
+        const evoData = await evoResponse.json();
+        
+        // Normalize Evolution API response to match Z-API format
+        const isConnected = evoData?.instance?.state === 'open' || evoData?.state === 'open';
+        const normalizedData = {
+          connected: isConnected,
+          session: isConnected,
+          smartphoneConnected: isConnected,
+          provider: 'evolution',
+          raw: evoData,
+        };
+
+        return new Response(
+          JSON.stringify({ success: true, data: normalizedData }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       instanceId = instance.zapi_instance_id;
