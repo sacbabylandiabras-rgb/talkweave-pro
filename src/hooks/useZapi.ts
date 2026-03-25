@@ -559,32 +559,26 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/qr-code`;
-      console.log('Buscando QR Code da Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
+      const selectedInstanceId = getSelectedInstanceId();
+      const { data, error } = await supabase.functions.invoke('get-qr-code', {
+        body: selectedInstanceId ? { instanceId: selectedInstanceId } : {},
       });
 
-      console.log('QR Code response status:', response.status);
-      const data = await response.json();
-      console.log('QR Code data:', data);
+      if (error) {
+        throw new Error(error.message || 'Erro ao buscar QR Code');
+      }
 
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
+      if (data?.error) {
+        const details = data?.details;
+        let errorMessage = data.error;
+        if (data?.message) errorMessage += `: ${data.message}`;
+        if (details?.message) errorMessage += `: ${details.message}`;
+        if (details?.error) errorMessage += `: ${details.error}`;
+        if (details?.response?.message) errorMessage += `: ${details.response.message}`;
         throw new Error(errorMessage);
       }
 
-      return { success: true, data };
+      return data;
     } catch (error) {
       console.error('Erro ao buscar QR Code:', error);
       toast({
