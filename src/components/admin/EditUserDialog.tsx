@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -46,8 +46,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newClientToken, setNewClientToken] = useState('');
   const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
   const [newEvolutionKey, setNewEvolutionKey] = useState('');
-  const [evolutionInstances, setEvolutionInstances] = useState<Array<{instanceName: string; status: string; apikey: string}>>([]);
-  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
   const [selectedEvoInstance, setSelectedEvoInstance] = useState('');
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
@@ -92,37 +90,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
-  const fetchEvolutionInstances = async () => {
-    if (!newEvolutionUrl || !newEvolutionKey) {
-      toast({ title: "Preencha URL e API Key primeiro", variant: "destructive" });
-      return;
-    }
-    setLoadingEvoInstances(true);
-    try {
-      const { data: responseData, error } = await supabase.functions.invoke('fetch-evolution-instances', {
-        body: { evolution_api_url: newEvolutionUrl, evolution_api_key: newEvolutionKey },
-      });
-      if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
-      if (responseData?.error) throw new Error(responseData.error);
-      const data = responseData;
-      const list = (Array.isArray(data) ? data : []).map((item: any) => ({
-        instanceName: item?.instance?.instanceName || 'unknown',
-        status: item?.instance?.status || 'unknown',
-        apikey: item?.instance?.apikey || '',
-      }));
-      setEvolutionInstances(list);
-      if (list.length === 0) {
-        toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
-      } else {
-        toast({ title: `✅ ${list.length} instância(s) encontrada(s)` });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
-      setEvolutionInstances([]);
-    } finally {
-      setLoadingEvoInstances(false);
-    }
-  };
 
   const handleAddInstance = async () => {
     if (!user) return;
@@ -134,7 +101,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       }
     } else {
       if (!newEvolutionUrl || !newEvolutionKey || !selectedEvoInstance) {
-        toast({ title: "Preencha URL, API Key e selecione uma instância", variant: "destructive" });
+        toast({ title: "Preencha URL Base, API Key Global e ID da Instância", variant: "destructive" });
         return;
       }
     }
@@ -160,7 +127,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setNewClientToken('');
       setNewEvolutionUrl('');
       setNewEvolutionKey('');
-      setEvolutionInstances([]);
+      setSelectedEvoInstance('');
       setSelectedEvoInstance('');
     }
   };
@@ -264,12 +231,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     />
                   </div>
 
-                  {newApiProvider === 'evolution' && (
-                    <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                      💡 Preencha a URL e API Key (Global) do servidor Evolution, depois clique em "Buscar Instâncias" para selecionar.
-                    </p>
-                  )}
-
                   {newApiProvider === 'zapi' ? (
                     <>
                       <div className="space-y-2">
@@ -300,7 +261,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   ) : (
                     <>
                       <div className="space-y-2">
-                        <Label>URL da Evolution API *</Label>
+                        <Label>URL Base *</Label>
                         <Input
                           value={newEvolutionUrl}
                           onChange={(e) => setNewEvolutionUrl(e.target.value)}
@@ -315,42 +276,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           placeholder="API Key global do servidor Evolution"
                         />
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={fetchEvolutionInstances}
-                        disabled={loadingEvoInstances || !newEvolutionUrl || !newEvolutionKey}
-                        className="w-full"
-                      >
-                        <RefreshCw className={`w-3 h-3 mr-1 ${loadingEvoInstances ? 'animate-spin' : ''}`} />
-                        Buscar Instâncias do Servidor
-                      </Button>
-                      {evolutionInstances.length > 0 && (
-                        <div className="space-y-2">
-                          <Label>Selecionar Instância *</Label>
-                          <Select value={selectedEvoInstance} onValueChange={setSelectedEvoInstance}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma instância" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {evolutionInstances.map((inst) => (
-                                <SelectItem key={inst.instanceName} value={inst.instanceName}>
-                                  <div className="flex items-center gap-2">
-                                    {inst.status === 'open' ? (
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                    ) : (
-                                      <XCircle className="w-3 h-3 text-red-500" />
-                                    )}
-                                    {inst.instanceName}
-                                    <span className="text-xs text-muted-foreground">({inst.status})</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                      <div className="space-y-2">
+                        <Label>ID da Instância *</Label>
+                        <Input
+                          value={selectedEvoInstance}
+                          onChange={(e) => setSelectedEvoInstance(e.target.value)}
+                          placeholder="Nome/ID da instância na Evolution"
+                        />
+                      </div>
                     </>
                   )}
 
