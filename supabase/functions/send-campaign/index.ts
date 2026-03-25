@@ -579,6 +579,9 @@ serve(async (req) => {
           const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
           
           // ============ EVOLUTION API SHORTCUT ============
+          let zapiUrl: string = '';
+          let requestBody: any = {};
+
           if (currentInstance.apiProvider === 'evolution') {
             console.log(`📤 [Evolution] Sending to ${contact.phone} via ${currentInstance.instanceName}`);
             
