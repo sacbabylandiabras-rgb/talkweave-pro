@@ -55,31 +55,52 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
   // Fetch connected phone number separately
   const fetchConnectedPhone = async () => {
     if (connectedPhone) return;
-    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-    const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
-    
     let foundPhone: string | null = null;
 
-    try {
-      const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-      if (res.ok) {
-        const d = await res.json();
-        const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-        if (num) foundPhone = num;
-        const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
-        if (pic) setProfilePicUrl(pic);
-      }
-    } catch {}
-
-    if (!foundPhone) {
+    if (instance.api_provider === 'evolution') {
+      // Evolution API - fetch instance info
+      const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
+      const evoKey = instance.evolution_api_key;
+      if (!evoUrl || !evoKey) return;
       try {
-        const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+        const res = await fetch(`${evoUrl}/instance/fetchInstances/${instance.zapi_instance_id}`, {
+          headers: { 'apikey': evoKey, 'Content-Type': 'application/json' }
+        });
         if (res.ok) {
           const d = await res.json();
-          const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+          const info = Array.isArray(d) ? d[0] : d;
+          const num = info?.instance?.owner?.split?.('@')?.[0] || info?.ownerJid?.split?.('@')?.[0] || null;
           if (num) foundPhone = num;
+          const pic = info?.instance?.profilePictureUrl || info?.profilePicUrl || null;
+          if (pic) setProfilePicUrl(pic);
         }
       } catch {}
+    } else {
+      // Z-API
+      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+      const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+
+      try {
+        const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+        if (res.ok) {
+          const d = await res.json();
+          const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+          if (num) foundPhone = num;
+          const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+          if (pic) setProfilePicUrl(pic);
+        }
+      } catch {}
+
+      if (!foundPhone) {
+        try {
+          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+          if (res.ok) {
+            const d = await res.json();
+            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+            if (num) foundPhone = num;
+          }
+        } catch {}
+      }
     }
 
     if (foundPhone) {
@@ -274,7 +295,12 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
                 </Button>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">{instance.zapi_instance_id}</p>
+            <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">
+              ID: {instance.zapi_instance_id}
+              {instance.api_provider === 'evolution' && (
+                <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">Evolution</Badge>
+              )}
+            </p>
             {connectedPhone && (
               <div className="flex items-center gap-1 mt-1">
                 <Phone className="w-3 h-3 text-primary" />
