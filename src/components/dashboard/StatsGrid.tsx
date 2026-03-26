@@ -9,15 +9,19 @@ export function StatsGrid() {
 
   const loadStats = useCallback(async () => {
     try {
-      const { data: sends } = await supabase.from('campaign_sends').select('status');
-      if (sends) {
-        setStats({
-          total: sends.length,
-          sent: sends.filter(s => s.status === 'sent').length,
-          delivered: sends.filter(s => s.status === 'delivered').length,
-          failed: sends.filter(s => s.status === 'failed').length,
-        });
-      }
+      // Use individual count queries to avoid the 1000-row default limit
+      const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'delivered'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }),
+      ]);
+      setStats({
+        total: totalRes.count ?? 0,
+        sent: sentRes.count ?? 0,
+        delivered: deliveredRes.count ?? 0,
+        failed: failedRes.count ?? 0,
+      });
     } catch (error) {
       console.error('Error loading stats:', error);
     } finally {
