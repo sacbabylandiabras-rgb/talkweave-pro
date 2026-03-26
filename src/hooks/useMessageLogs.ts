@@ -172,6 +172,25 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     }
   }, []);
 
+  // Build LID → real phone mapping from message_logs
+  const lidMapRef = useRef<Map<string, string>>(new Map());
+
+  const fetchLidMap = useCallback(async () => {
+    const { data } = await supabase
+      .from('message_logs')
+      .select('phone, message_received')
+      .eq('keyword_matched', '__lid_map__');
+    if (data) {
+      const map = new Map<string, string>();
+      data.forEach((r: any) => {
+        if (r.message_received && r.phone) {
+          map.set(r.message_received, r.phone); // @lid → real phone
+        }
+      });
+      lidMapRef.current = map;
+    }
+  }, []);
+
   const fetchCampaignSends = useCallback(async () => {
     let allData: CampaignSendMessage[] = [];
     let from = 0;
@@ -189,6 +208,14 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       hasMore = data.length === batchSize;
       from += batchSize;
     }
+    // Resolve @lid phones to real numbers
+    allData = allData.map(send => {
+      if (send.phone.includes('@lid')) {
+        const resolved = lidMapRef.current.get(send.phone);
+        if (resolved) return { ...send, phone: resolved };
+      }
+      return send;
+    });
     const dataKey = JSON.stringify(allData.map(d => d.id));
     if (dataKey !== lastSendsRef.current) {
       lastSendsRef.current = dataKey;
@@ -197,6 +224,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   }, []);
 
   const fetchAll = useCallback(async () => {
+    await fetchLidMap();
     await Promise.all([fetchMessageLogs(), fetchCampaignSends()]);
     setLoading(false);
   }, [fetchMessageLogs, fetchCampaignSends]);

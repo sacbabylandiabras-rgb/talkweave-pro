@@ -182,9 +182,19 @@ Deno.serve(async (req) => {
       const phone = String(chat?.phone || "").trim();
       if (!phone || existingPhoneSet.has(phone)) continue;
 
-      const lastMessageTime = chat?.lastMessageTime 
-        ? new Date(Number(chat.lastMessageTime) * 1000).toISOString() 
-        : new Date().toISOString();
+      let lastMessageTime: string;
+      try {
+        const rawTime = Number(chat.lastMessageTime);
+        // If timestamp is in seconds (before year 2100), convert to ms; otherwise treat as ms
+        const ms = rawTime < 4102444800 ? rawTime * 1000 : rawTime;
+        const parsed = new Date(ms);
+        // Validate the date is reasonable (between 2000 and 2100)
+        lastMessageTime = (parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100)
+          ? parsed.toISOString()
+          : new Date().toISOString();
+      } catch {
+        lastMessageTime = new Date().toISOString();
+      }
 
       const chatName = chat?.name || "";
 
