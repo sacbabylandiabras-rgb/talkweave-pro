@@ -189,6 +189,13 @@ export const buildGroupsStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
       headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
       label: 'evo-v2-groups',
     },
+    // Custom API fallback
+    {
+      url: `${baseUrl}/${encodeURIComponent(instanceName)}/groups`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      label: 'custom-groups',
+    },
   ];
 };
 
