@@ -382,9 +382,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </div>
             <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">
               ID: {instance.zapi_instance_id}
-              {instance.api_provider === 'evolution' && (
-                <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">Evolution</Badge>
-              )}
             </p>
             {connectedPhone && (
               <div className="flex items-center gap-1 mt-1">
@@ -583,216 +580,18 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   );
 };
 
-const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: () => void }) => {
-  const { toast } = useToast();
-  const [provider, setProvider] = useState<'zapi' | 'evolution'>('evolution');
-  const [instanceName, setInstanceName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [zapiInstanceId, setZapiInstanceId] = useState('');
-  const [zapiToken, setZapiToken] = useState('');
-  const [zapiClientToken, setZapiClientToken] = useState('');
-  const [isDefault, setIsDefault] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const resetForm = () => {
-    setProvider('evolution');
-    setInstanceName('');
-    setPhoneNumber('');
-    setZapiInstanceId('');
-    setZapiToken('');
-    setZapiClientToken('');
-    setIsDefault(false);
-  };
-
-  const handleSave = async () => {
-    if (provider === 'evolution') {
-      if (!instanceName.trim()) {
-        toast({ title: "Nome da instância é obrigatório", variant: "destructive" });
-        return;
-      }
-
-      setSaving(true);
-      try {
-        // 1. Create instance on Evolution API server (uses secrets for URL/Key)
-        const { data: evoData, error: evoError } = await supabase.functions.invoke('create-evolution-instance', {
-          body: {
-            instance_name: instanceName.trim().replace(/\s+/g, '-'),
-            phone_number: (() => {
-              let num = phoneNumber.replace(/\D/g, '');
-              if (num && !num.startsWith('55')) num = '55' + num;
-              return num;
-            })(),
-          },
-        });
-
-        if (evoError) throw evoError;
-        if (evoData?.error) throw new Error(evoData.error);
-
-        const createdName = evoData?.instanceName || instanceName.trim();
-        const evoUrl = evoData?.apiUrl || '';
-        const evoKey = evoData?.apiKey || '';
-
-        // 2. Save to database
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Não autenticado');
-
-        if (isDefault) {
-          await (supabase as any).from('zapi_instances').update({ is_default: false }).eq('user_id', user.id);
-        }
-
-        const { error: dbError } = await (supabase as any).from('zapi_instances').insert({
-          user_id: user.id,
-          instance_name: instanceName.trim(),
-          zapi_instance_id: createdName,
-          zapi_token: 'evolution-token',
-          zapi_client_token: 'evolution-client',
-          is_default: isDefault,
-          api_provider: 'evolution',
-          evolution_api_url: evoUrl,
-          evolution_api_key: evoKey,
-        });
-
-        if (dbError) throw dbError;
-
-        toast({ title: "✅ Instância criada com sucesso!", description: "A instância foi criada no servidor Evolution e salva." });
-        resetForm();
-        onOpenChange(false);
-        onCreated();
-      } catch (err: any) {
-        toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
-      } finally {
-        setSaving(false);
-      }
-    } else {
-      // Z-API flow (unchanged)
-      if (!instanceName.trim() || !zapiInstanceId || !zapiToken || !zapiClientToken) {
-        toast({ title: "Preencha todos os campos Z-API", variant: "destructive" });
-        return;
-      }
-
-      setSaving(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Não autenticado');
-
-        if (isDefault) {
-          await (supabase as any).from('zapi_instances').update({ is_default: false }).eq('user_id', user.id);
-        }
-
-        const { error } = await (supabase as any).from('zapi_instances').insert({
-          user_id: user.id,
-          instance_name: instanceName.trim(),
-          zapi_instance_id: zapiInstanceId.trim(),
-          zapi_token: zapiToken.trim(),
-          zapi_client_token: zapiClientToken.trim(),
-          is_default: isDefault,
-          api_provider: 'zapi',
-        });
-
-        if (error) throw error;
-
-        toast({ title: "✅ Instância criada com sucesso!" });
-        resetForm();
-        onOpenChange(false);
-        onCreated();
-      } catch (err: any) {
-        toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" /> Criar Instância
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Provedor</Label>
-            <Select value={provider} onValueChange={(v: 'zapi' | 'evolution') => setProvider(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="evolution">Evolution API</SelectItem>
-                <SelectItem value="zapi">Z-API</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {provider === 'evolution' && (
-            <>
-              <div className="space-y-2">
-                <Label>Nome da Instância</Label>
-                <Input placeholder="Ex: minha-instancia" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
-                <p className="text-[11px] text-muted-foreground">Nome usado para identificar no servidor Evolution (sem espaços)</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Número do Telefone</Label>
-                <Input placeholder="11964216015" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-                <p className="text-[11px] text-muted-foreground">DDD + número (o 55 é adicionado automaticamente)</p>
-              </div>
-            </>
-          )}
-
-          {provider === 'zapi' && (
-            <>
-              <div className="space-y-2">
-                <Label>Nome da Instância</Label>
-                <Input placeholder="Ex: WhatsApp Principal" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Instance ID</Label>
-                <Input placeholder="ID da instância Z-API" value={zapiInstanceId} onChange={(e) => setZapiInstanceId(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Token</Label>
-                <Input placeholder="Token Z-API" value={zapiToken} onChange={(e) => setZapiToken(e.target.value)} type="password" />
-              </div>
-              <div className="space-y-2">
-                <Label>Client Token</Label>
-                <Input placeholder="Client Token Z-API" value={zapiClientToken} onChange={(e) => setZapiClientToken(e.target.value)} type="password" />
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="is-default" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="rounded" />
-            <Label htmlFor="is-default" className="text-sm cursor-pointer">Definir como instância padrão</Label>
-          </div>
-
-          <Button className="w-full" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-            {provider === 'evolution' ? 'Criar Instância no Servidor' : 'Criar Instância'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
-  const [showCreate, setShowCreate] = useState(false);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length}/5)</h1>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setShowCreate(true)} disabled={instances.length >= 5}>
-            <Plus className="w-4 h-4 mr-1" /> Criar Instância
-          </Button>
-          <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
+        <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
+        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       {instances.length === 0 && !loading && (
@@ -800,12 +599,9 @@ const Dispositivos = () => {
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
-            <p className="text-muted-foreground mb-4">
-              Crie sua primeira instância para conectar ao WhatsApp.
+            <p className="text-muted-foreground">
+              As instâncias são gerenciadas pelo administrador.
             </p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Criar Instância
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -815,8 +611,7 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
-
-      <CreateInstanceDialog open={showCreate} onOpenChange={setShowCreate} onCreated={refetch} />
+      
     </div>
   );
 };
