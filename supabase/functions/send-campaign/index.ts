@@ -1098,6 +1098,17 @@ serve(async (req) => {
           await new Promise(resolve => setTimeout(resolve, delayMs));
           const endWait = Date.now();
           console.log(`✅ Delay concluído! Esperou ${Math.round((endWait - startWait) / 1000)}s`);
+
+          const { data: afterDelayCampaign } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campaignId)
+            .single();
+
+          if (afterDelayCampaign?.status === 'paused' || afterDelayCampaign?.status === 'cancelled' || afterDelayCampaign?.status === 'completed') {
+            console.log(`🛑 Campaign ${campaignId} is ${afterDelayCampaign?.status} after delay. Stopping before next contact.`);
+            return;
+          }
         }
       }
 
