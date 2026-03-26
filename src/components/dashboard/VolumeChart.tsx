@@ -54,7 +54,15 @@ export function VolumeChart() {
       if (session) { loadRawData(); } else { setLoading(false); }
     };
     init();
-  }, []);
+
+    // Realtime: refresh when campaign_sends change
+    const channel = supabase
+      .channel('volume-chart-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadRawData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [loadRawData]);
 
   useEffect(() => {
     const filtered = allSends.filter((send) => {
