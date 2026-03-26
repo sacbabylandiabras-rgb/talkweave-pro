@@ -584,8 +584,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
   const [zapiInstanceId, setZapiInstanceId] = useState('');
   const [zapiToken, setZapiToken] = useState('');
   const [zapiClientToken, setZapiClientToken] = useState('');
-  const [evolutionApiUrl, setEvolutionApiUrl] = useState('');
-  const [evolutionApiKey, setEvolutionApiKey] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -596,8 +594,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
     setZapiInstanceId('');
     setZapiToken('');
     setZapiClientToken('');
-    setEvolutionApiUrl('');
-    setEvolutionApiKey('');
     setIsDefault(false);
   };
 
@@ -607,18 +603,12 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
         toast({ title: "Nome da instância é obrigatório", variant: "destructive" });
         return;
       }
-      if (!evolutionApiUrl.trim() || !evolutionApiKey.trim()) {
-        toast({ title: "Preencha URL e API Key da Evolution", variant: "destructive" });
-        return;
-      }
 
       setSaving(true);
       try {
-        // 1. Create instance on Evolution API server
+        // 1. Create instance on Evolution API server (uses secrets for URL/Key)
         const { data: evoData, error: evoError } = await supabase.functions.invoke('create-evolution-instance', {
           body: {
-            evolution_api_url: evolutionApiUrl.trim(),
-            evolution_api_key: evolutionApiKey.trim(),
             instance_name: instanceName.trim().replace(/\s+/g, '-'),
             phone_number: phoneNumber.replace(/\D/g, ''),
           },
@@ -628,6 +618,8 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
         if (evoData?.error) throw new Error(evoData.error);
 
         const createdName = evoData?.instanceName || instanceName.trim();
+        const evoUrl = evoData?.apiUrl || '';
+        const evoKey = evoData?.apiKey || '';
 
         // 2. Save to database
         const { data: { user } } = await supabase.auth.getUser();
@@ -645,8 +637,8 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
           zapi_client_token: 'evolution-client',
           is_default: isDefault,
           api_provider: 'evolution',
-          evolution_api_url: evolutionApiUrl.trim(),
-          evolution_api_key: evolutionApiKey.trim(),
+          evolution_api_url: evoUrl,
+          evolution_api_key: evoKey,
         });
 
         if (dbError) throw dbError;
@@ -723,14 +715,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
 
           {provider === 'evolution' && (
             <>
-              <div className="space-y-2">
-                <Label>URL da Evolution API</Label>
-                <Input placeholder="https://sua-evolution.com" value={evolutionApiUrl} onChange={(e) => setEvolutionApiUrl(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>API Key Global</Label>
-                <Input placeholder="Sua API Key" value={evolutionApiKey} onChange={(e) => setEvolutionApiKey(e.target.value)} type="password" />
-              </div>
               <div className="space-y-2">
                 <Label>Nome da Instância</Label>
                 <Input placeholder="Ex: minha-instancia" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
