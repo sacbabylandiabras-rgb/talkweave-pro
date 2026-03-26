@@ -109,42 +109,52 @@ serve(async (req) => {
       const evoHeaders = { 'Content-Type': 'application/json', 'apikey': evolutionApiKey };
       const evoInstanceName = instanceId;
 
-      console.log(`📤 Sending via Evolution API: ${evoInstanceName}`);
+      console.log(`📤 Sending via Evolution API: ${evoInstanceName} | URL: ${evoBase}`);
 
-      if (mediaUrl && mediaType) {
-        if (mediaType === 'audio') {
-          zapiResponse = await fetch(`${evoBase}/message/sendWhatsAppAudio/${evoInstanceName}`, {
-            method: 'POST', headers: evoHeaders,
-            body: JSON.stringify({ number: resolvedPhone, audio: mediaUrl }),
-          });
-          logMessage = logMessage || '🎤 Áudio';
-        } else if (mediaType === 'image') {
-          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
-            method: 'POST', headers: evoHeaders,
-            body: JSON.stringify({ number: resolvedPhone, mediatype: 'image', media: mediaUrl, caption: message || '' }),
-          });
-          logMessage = logMessage || '📷 Imagem';
-        } else if (mediaType === 'video') {
-          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
-            method: 'POST', headers: evoHeaders,
-            body: JSON.stringify({ number: resolvedPhone, mediatype: 'video', media: mediaUrl, caption: message || '' }),
-          });
-          logMessage = logMessage || '🎥 Vídeo';
+      try {
+        if (mediaUrl && mediaType) {
+          if (mediaType === 'audio') {
+            zapiResponse = await fetch(`${evoBase}/message/sendWhatsAppAudio/${evoInstanceName}`, {
+              method: 'POST', headers: evoHeaders,
+              body: JSON.stringify({ number: resolvedPhone, audio: mediaUrl }),
+            });
+            logMessage = logMessage || '🎤 Áudio';
+          } else if (mediaType === 'image') {
+            zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+              method: 'POST', headers: evoHeaders,
+              body: JSON.stringify({ number: resolvedPhone, mediatype: 'image', media: mediaUrl, caption: message || '' }),
+            });
+            logMessage = logMessage || '📷 Imagem';
+          } else if (mediaType === 'video') {
+            zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+              method: 'POST', headers: evoHeaders,
+              body: JSON.stringify({ number: resolvedPhone, mediatype: 'video', media: mediaUrl, caption: message || '' }),
+            });
+            logMessage = logMessage || '🎥 Vídeo';
+          } else {
+            zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+              method: 'POST', headers: evoHeaders,
+              body: JSON.stringify({ number: resolvedPhone, mediatype: 'document', media: mediaUrl, fileName: message || 'arquivo' }),
+            });
+            logMessage = logMessage || '📎 Arquivo';
+          }
         } else {
-          zapiResponse = await fetch(`${evoBase}/message/sendMedia/${evoInstanceName}`, {
+          const evoUrl = `${evoBase}/message/sendText/${evoInstanceName}`;
+          const evoBody = JSON.stringify({ number: resolvedPhone, text: message });
+          console.log(`📤 Evolution fetch: ${evoUrl}`);
+          zapiResponse = await fetch(evoUrl, {
             method: 'POST', headers: evoHeaders,
-            body: JSON.stringify({ number: resolvedPhone, mediatype: 'document', media: mediaUrl, fileName: message || 'arquivo' }),
+            body: evoBody,
           });
-          logMessage = logMessage || '📎 Arquivo';
         }
-      } else {
-        console.log(`📤 Evolution sendText to ${resolvedPhone}: ${message?.substring(0, 100)}...`);
-        zapiResponse = await fetch(`${evoBase}/message/sendText/${evoInstanceName}`, {
-          method: 'POST', headers: evoHeaders,
-          body: JSON.stringify({ number: resolvedPhone, text: message }),
-        });
         const respText = await zapiResponse.clone().text();
         console.log(`📥 Evolution response (${zapiResponse.status}): ${respText.substring(0, 500)}`);
+      } catch (fetchError) {
+        console.error(`❌ Evolution fetch failed: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
+        return new Response(
+          JSON.stringify({ error: 'Evolution API connection failed', message: fetchError instanceof Error ? fetchError.message : 'Network error' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     } else {
       // ========== Z-API ==========
