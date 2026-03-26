@@ -11,8 +11,8 @@ export function StatsGrid() {
     try {
       // Use individual count queries to avoid the 1000-row default limit
       const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'delivered'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered']),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered']),
         supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
         supabase.from('campaign_sends').select('id', { count: 'exact', head: true }),
       ]);
