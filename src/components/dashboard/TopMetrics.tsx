@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MetricCard } from "./MetricCard";
 import { BarChart3, FileText, Users, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,15 +7,13 @@ export function TopMetrics() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({ campaigns: 0, templates: 0, contacts: 0 });
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     try {
       const [campaignsRes, templatesRes, sendsRes] = await Promise.all([
         supabase.from('campaigns').select('*', { count: 'exact', head: true }),
         supabase.from('message_templates').select('*', { count: 'exact', head: true }).eq('active', true),
         supabase.from('campaign_sends').select('phone'),
       ]);
-
-      console.log("[TopMetrics] campaigns:", campaignsRes.count, "templates:", templatesRes.count, "sends:", sendsRes.data?.length);
 
       setMetrics({
         campaigns: campaignsRes.count || 0,
@@ -27,25 +25,30 @@ export function TopMetrics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        loadMetrics();
-      } else {
-        setLoading(false);
-      }
+      if (session) loadMetrics();
+      else setLoading(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        loadMetrics();
-      }
+      if (session) loadMetrics();
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Realtime: refresh when campaign_sends or campaigns change
+    const channel = supabase
+      .channel('top-metrics-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => loadMetrics())
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [loadMetrics]);
 
   if (loading) {
     return (
