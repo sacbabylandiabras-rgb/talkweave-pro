@@ -244,10 +244,10 @@ serve(async (req) => {
       }
     }
 
-    // Helper to get credentials for a given contact index (supports rotation)
+    // Helper to get credentials for a given contact index (supports rotation with offset)
     const getInstanceForIndex = (index: number) => {
       if (isRotateMode && rotatePool.length > 0) {
-        return rotatePool[index % rotatePool.length];
+        return rotatePool[(index + rotationOffset) % rotatePool.length];
       }
       return {
         zapiInstanceId,
