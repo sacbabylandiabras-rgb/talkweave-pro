@@ -610,7 +610,11 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
         const { data: evoData, error: evoError } = await supabase.functions.invoke('create-evolution-instance', {
           body: {
             instance_name: instanceName.trim().replace(/\s+/g, '-'),
-            phone_number: phoneNumber.replace(/\D/g, ''),
+            phone_number: (() => {
+              let num = phoneNumber.replace(/\D/g, '');
+              if (num && !num.startsWith('55')) num = '55' + num;
+              return num;
+            })(),
           },
         });
 
