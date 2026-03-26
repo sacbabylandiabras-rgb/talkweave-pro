@@ -184,7 +184,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { campaignId, contacts, instanceId: requestedInstanceId }: SendCampaignRequest = await req.json();
+    const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset }: SendCampaignRequest = await req.json();
+    const rotationOffset = initialRotationOffset || 0;
 
     if (!campaignId || !contacts || contacts.length === 0) {
       return new Response(
