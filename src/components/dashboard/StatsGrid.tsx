@@ -39,10 +39,29 @@ export function StatsGrid() {
       if (session) loadStats();
     });
 
-    // Realtime: refresh when campaign_sends change
     const channel = supabase
       .channel('stats-grid-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadStats())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        const status = (payload.new as any)?.status;
+        setStats(prev => ({
+          total: prev.total + 1,
+          sent: status === 'sent' ? prev.sent + 1 : prev.sent,
+          delivered: status === 'delivered' ? prev.delivered + 1 : prev.delivered,
+          failed: status === 'failed' ? prev.failed + 1 : prev.failed,
+        }));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        const oldStatus = (payload.old as any)?.status;
+        const newStatus = (payload.new as any)?.status;
+        if (oldStatus === newStatus) return;
+        setStats(prev => ({
+          total: prev.total,
+          sent: prev.sent + (newStatus === 'sent' ? 1 : 0) - (oldStatus === 'sent' ? 1 : 0),
+          delivered: prev.delivered + (newStatus === 'delivered' ? 1 : 0) - (oldStatus === 'delivered' ? 1 : 0),
+          failed: prev.failed + (newStatus === 'failed' ? 1 : 0) - (oldStatus === 'failed' ? 1 : 0),
+        }));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'campaign_sends' }, () => loadStats())
       .subscribe();
 
     return () => {
