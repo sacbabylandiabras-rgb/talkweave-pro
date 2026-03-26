@@ -181,6 +181,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
+        .in('status', ['sent', 'delivered'])
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
