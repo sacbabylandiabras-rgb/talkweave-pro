@@ -126,6 +126,8 @@ serve(async (req) => {
             evolutionApiKey,
             [evoInstanceName],
             '📤',
+            undefined,
+            { clientToken, timeoutMs: 8000 },
           );
         } else {
           result = await executeStrategies(
@@ -134,6 +136,8 @@ serve(async (req) => {
             evolutionApiKey,
             [evoInstanceName],
             '📤',
+            undefined,
+            { clientToken, timeoutMs: 8000 },
           );
         }
 

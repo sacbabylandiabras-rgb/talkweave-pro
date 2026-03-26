@@ -83,6 +83,7 @@ export const isEvolutionInstanceNotFound = (payload: any, rawText?: string) => {
 interface ApiAttemptConfig {
   baseUrl: string;
   apiKey: string;
+  clientToken?: string;
   instanceName: string;
 }
 
@@ -203,7 +204,7 @@ export const buildGroupsStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
  * Build endpoint strategies for sending text messages.
  */
 export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, text: string): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   return [
     {
       url: `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
@@ -212,11 +213,10 @@ export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, te
       body: JSON.stringify({ number: phone, text }),
       label: 'evo-v2-sendText',
     },
-    // Custom API fallback
     {
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-text`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, message: text }),
       label: 'custom-sendText',
     },
@@ -234,13 +234,12 @@ export const buildSendButtonStrategies = (
   title?: string,
   footer?: string,
 ): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   return [
-    // Custom API: send-button-list
     {
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-button-list`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, message, buttons, ...(title && { title }), ...(footer && { footer }) }),
       label: 'custom-sendButtons',
     },
@@ -258,10 +257,9 @@ export const buildSendMediaStrategies = (
   caption?: string,
   fileName?: string,
 ): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   const strategies: EndpointStrategy[] = [];
 
-  // Evolution v2 strategies
   if (mediaType === 'audio') {
     strategies.push({
       url: `${baseUrl}/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`,
@@ -273,7 +271,7 @@ export const buildSendMediaStrategies = (
     strategies.push({
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-audio`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, audio: mediaUrl }),
       label: 'custom-sendAudio',
     });
@@ -290,14 +288,13 @@ export const buildSendMediaStrategies = (
       label: `evo-v2-sendMedia-${mtype}`,
     });
 
-    // Custom API fallback
     const customEndpoint = mtype === 'image' ? 'send-image'
       : mtype === 'video' ? 'send-video'
       : 'send-document';
     strategies.push({
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/${customEndpoint}`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, url: mediaUrl, caption: caption || '', ...(fileName && { fileName }) }),
       label: `custom-send-${mtype}`,
     });
@@ -316,6 +313,7 @@ export const executeStrategies = async (
   instanceCandidates: string[],
   logPrefix: string,
   validateSuccess?: (data: any) => boolean,
+  options?: { clientToken?: string; timeoutMs?: number },
 ): Promise<{ data: any; rawText: string; status: number; strategy: string }> => {
   let lastPayload: any = null;
   let lastRawText = '';
@@ -326,7 +324,12 @@ export const executeStrategies = async (
 
   for (const candidateUrl of urlCandidates) {
     for (const instanceName of instanceCandidates) {
-      const strategies = buildStrategies({ baseUrl: candidateUrl, apiKey, instanceName });
+      const strategies = buildStrategies({
+        baseUrl: candidateUrl,
+        apiKey,
+        clientToken: options?.clientToken,
+        instanceName,
+      });
 
       for (const strategy of strategies) {
         console.log(`${logPrefix} Trying ${strategy.label} with instance '${instanceName}': ${strategy.url}`);
@@ -335,6 +338,7 @@ export const executeStrategies = async (
           const fetchOpts: RequestInit = {
             method: strategy.method,
             headers: strategy.headers,
+            signal: AbortSignal.timeout(options?.timeoutMs ?? 8000),
           };
           if (strategy.body) fetchOpts.body = strategy.body;
 
@@ -350,7 +354,6 @@ export const executeStrategies = async (
 
           if (response.ok) {
             const result = { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
-            // If there's a validator, only return if it passes; otherwise save as fallback
             if (validateSuccess) {
               if (validateSuccess(lastPayload)) {
                 return result;
@@ -373,8 +376,10 @@ export const executeStrategies = async (
 
           return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
         } catch (err) {
-          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${err}`);
-          lastRawText = String(err);
+          lastRawText = err instanceof Error ? err.message : String(err);
+          lastStatus = 504;
+          lastStrategy = `${strategy.label}:${instanceName}`;
+          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${lastRawText}`);
           continue;
         }
       }

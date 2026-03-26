@@ -135,33 +135,31 @@ const sendViaEvolution = async (
 ): Promise<{ ok: boolean; status: number; data: any }> => {
   const urlCandidates = buildEvolutionUrlCandidates(instance.evolutionApiUrl || '');
   const apiKey = instance.evolutionApiKey || '';
+  const clientToken = instance.zapiClientToken || instance.evolutionApiKey || '';
   const instanceName = instance.zapiInstanceId;
 
-  // If buttons are provided, use button strategy
   if (options.buttons && options.buttons.length > 0) {
     const result = await executeStrategies(
       urlCandidates,
       (cfg) => buildSendButtonStrategies(cfg, phone, options.message || '', options.buttons!, options.buttonTitle, options.buttonFooter),
-      apiKey, [instanceName], '📤🔘',
+      apiKey, [instanceName], '📤🔘', undefined, { clientToken, timeoutMs: 8000 },
     );
     return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
   }
 
-  // If media, use media strategy
   if (options.mediaUrl && options.mediaType) {
     const result = await executeStrategies(
       urlCandidates,
       (cfg) => buildSendMediaStrategies(cfg, phone, options.mediaType!, options.mediaUrl!, options.caption, options.fileName),
-      apiKey, [instanceName], '📤📎',
+      apiKey, [instanceName], '📤📎', undefined, { clientToken, timeoutMs: 8000 },
     );
     return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
   }
 
-  // Text message
   const result = await executeStrategies(
     urlCandidates,
     (cfg) => buildSendTextStrategies(cfg, phone, options.message || ''),
-    apiKey, [instanceName], '📤',
+    apiKey, [instanceName], '📤', undefined, { clientToken, timeoutMs: 8000 },
   );
   return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
 };
