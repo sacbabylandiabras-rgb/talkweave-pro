@@ -21,13 +21,29 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = evolution_api_url.replace(/\/$/, '');
-    const res = await fetch(`${baseUrl}/instance/fetchInstances`, {
-      headers: { 'apikey': evolution_api_key, 'Content-Type': 'application/json' },
-    });
+    
+    // Try multiple auth header formats for different Evolution API versions
+    const authAttempts = [
+      { 'apikey': evolution_api_key, 'Content-Type': 'application/json' },
+      { 'Authorization': `Bearer ${evolution_api_key}`, 'Content-Type': 'application/json' },
+      { 'Authorization': `${evolution_api_key}`, 'Content-Type': 'application/json' },
+      { 'Client-Token': evolution_api_key, 'Content-Type': 'application/json' },
+    ];
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      return new Response(JSON.stringify({ error: errData?.message || `Servidor Evolution retornou HTTP ${res.status}` }), {
+    let res: Response | null = null;
+    for (const headers of authAttempts) {
+      try {
+        res = await fetch(`${baseUrl}/instance/fetchInstances`, { headers });
+        if (res.ok) break;
+        // If 401/403, try next auth method
+        if (res.status === 401 || res.status === 403) continue;
+        break; // Other errors, stop trying
+      } catch { continue; }
+    }
+
+    if (!res || !res.ok) {
+      const errData = res ? await res.json().catch(() => ({})) : {};
+      return new Response(JSON.stringify({ error: errData?.message || `Servidor Evolution retornou HTTP ${res?.status || 'unknown'}. Verifique a API Key.` }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
