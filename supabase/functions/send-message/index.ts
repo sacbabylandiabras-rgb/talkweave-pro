@@ -138,10 +138,13 @@ serve(async (req) => {
           logMessage = logMessage || '📎 Arquivo';
         }
       } else {
+        console.log(`📤 Evolution sendText to ${resolvedPhone}: ${message?.substring(0, 100)}...`);
         zapiResponse = await fetch(`${evoBase}/message/sendText/${evoInstanceName}`, {
           method: 'POST', headers: evoHeaders,
           body: JSON.stringify({ number: resolvedPhone, text: message }),
         });
+        const respText = await zapiResponse.clone().text();
+        console.log(`📥 Evolution response (${zapiResponse.status}): ${respText.substring(0, 500)}`);
       }
     } else {
       // ========== Z-API ==========
