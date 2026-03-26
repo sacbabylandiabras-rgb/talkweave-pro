@@ -611,29 +611,37 @@ serve(async (req) => {
               else if (templateType === 'documento' || templateType === 'arquivo') evoMediaType = 'document';
             }
 
-            const evoResponse = await sendViaEvolution(currentInstance, contact.phone, {
+            // Extract button labels for custom API
+            let buttonLabels: string[] | undefined;
+            let buttonTitle: string | undefined;
+            let buttonFooter: string | undefined;
+            if (hasButtons) {
+              buttonLabels = campaign.template.buttons.map((btn: any) => btn.text || btn.label || btn.title || '');
+              buttonTitle = campaign.template.header || undefined;
+              buttonFooter = campaign.template.footer || undefined;
+            }
+
+            const evoResult = await sendViaEvolution(currentInstance, contact.phone, {
               message: fullMessage,
               mediaUrl: hasMedia ? campaign.template.media_url : undefined,
               mediaType: evoMediaType,
               caption: fullMessage,
               fileName: campaign.template.file_name || 'arquivo',
+              buttons: buttonLabels,
+              buttonTitle,
+              buttonFooter,
             });
 
-            let evoResult: any = {};
-            try {
-              const responseText = await evoResponse.text();
-              console.log(`📥 Evolution Response (${evoResponse.status}):`, responseText);
-              if (responseText && responseText.trim()) evoResult = JSON.parse(responseText);
-            } catch {}
+            console.log(`📥 Evolution Response (${evoResult.status}):`, JSON.stringify(evoResult.data).substring(0, 300));
 
-            if (evoResponse.ok) {
+            if (evoResult.ok) {
               campaignSend.status = 'sent';
               campaignSend.sent_at = new Date().toISOString();
-              results.push({ phone: contact.phone, success: true, messageId: evoResult?.key?.id || 'evo-sent' });
+              results.push({ phone: contact.phone, success: true, messageId: evoResult.data?.key?.id || 'evo-sent' });
               console.log(`✅ [Evolution] Sent to ${contact.phone}`);
             } else {
               campaignSend.status = 'failed';
-              campaignSend.error_message = evoResult?.message || `HTTP ${evoResponse.status}`;
+              campaignSend.error_message = evoResult.data?.message || `HTTP ${evoResult.status}`;
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
               console.error(`❌ [Evolution] Failed for ${contact.phone}:`, campaignSend.error_message);
             }
