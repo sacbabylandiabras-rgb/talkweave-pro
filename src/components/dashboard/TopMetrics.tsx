@@ -9,16 +9,31 @@ export function TopMetrics() {
 
   const loadMetrics = useCallback(async () => {
     try {
-      const [campaignsRes, templatesRes, sendsRes] = await Promise.all([
-        supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-        supabase.from('message_templates').select('*', { count: 'exact', head: true }).eq('active', true),
+      const [campaignsRes, templatesRes, contactsRes] = await Promise.all([
+        supabase.from('campaigns').select('id', { count: 'exact', head: true }),
+        supabase.from('message_templates').select('id', { count: 'exact', head: true }).eq('active', true),
         supabase.from('campaign_sends').select('phone'),
       ]);
+
+      // Paginate to get all unique phones if over 1000
+      let allPhones: string[] = contactsRes.data?.map(s => s.phone) || [];
+      if (contactsRes.data?.length === 1000) {
+        let from = 1000;
+        const batchSize = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const { data } = await supabase.from('campaign_sends').select('phone').range(from, from + batchSize - 1);
+          if (!data || data.length === 0) { hasMore = false; break; }
+          allPhones = [...allPhones, ...data.map(s => s.phone)];
+          hasMore = data.length === batchSize;
+          from += batchSize;
+        }
+      }
 
       setMetrics({
         campaigns: campaignsRes.count || 0,
         templates: templatesRes.count || 0,
-        contacts: new Set(sendsRes.data?.map(s => s.phone) || []).size,
+        contacts: new Set(allPhones).size,
       });
     } catch (error) {
       console.error('Error loading metrics:', error);
