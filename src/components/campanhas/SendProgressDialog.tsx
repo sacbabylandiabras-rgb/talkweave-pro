@@ -177,7 +177,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     };
   }, [open, campaignId, totalContacts]);
 
-  const progress = totalContacts > 0 ? ((stats.sent + stats.delivered + stats.failed) / totalContacts) * 100 : 0;
+  const effectiveTotal = Math.max(stats.total, totalContacts);
+  const progress = effectiveTotal > 0 ? ((stats.sent + stats.delivered + stats.failed) / effectiveTotal) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
