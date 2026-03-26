@@ -110,8 +110,8 @@ serve(async (req) => {
     let logMessage = message || '';
 
     if (useEvolution && evolutionApiUrl && evolutionApiKey) {
-      // ========== EVOLUTION API (with custom API fallback) ==========
-      const urlCandidates = buildEvolutionUrlCandidates(evolutionApiUrl);
+      // ========== EVOLUTION API (configured endpoint only) ==========
+      const urlCandidates = buildEvolutionUrlCandidates(evolutionApiUrl, { includeAltPort: false });
       const evoInstanceName = instanceId;
 
       console.log(`📤 Sending via Evolution API: ${evoInstanceName} | URLs: ${urlCandidates.join(', ')}`);
@@ -142,6 +142,18 @@ serve(async (req) => {
         }
 
         console.log(`📥 Evolution result (${result.status}): ${result.rawText.substring(0, 500)}`);
+
+        if (result.status === 504) {
+          return new Response(
+            JSON.stringify({
+              error: 'Evolution API timeout',
+              message: `O endpoint de envio da Evolution não respondeu em ${urlCandidates[0]}. Verifique o servidor/instância ${evoInstanceName}.`,
+              details: result.rawText,
+              strategy: result.strategy,
+            }),
+            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         // Create a synthetic Response-like object for downstream code
         zapiResponse = new Response(JSON.stringify(result.data), {

@@ -14,10 +14,15 @@
 // URL candidates (port fallback 8080 ↔ 8000)
 // ---------------------------------------------------------------------------
 
-export const buildEvolutionUrlCandidates = (rawUrl?: string | null): string[] => {
+export const buildEvolutionUrlCandidates = (
+  rawUrl?: string | null,
+  options?: { includeAltPort?: boolean },
+): string[] => {
   if (!rawUrl) return [];
 
   const normalized = rawUrl.replace(/\/$/, '');
+  if (options?.includeAltPort === false) return [normalized];
+
   const candidates = [normalized];
 
   try {
