@@ -125,8 +125,6 @@ export function VolumeChart() {
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
-
   const buildFallbackData = (): ChartData[] => {
     if (dateFrom && dateTo) {
       const start = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
