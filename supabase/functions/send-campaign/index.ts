@@ -496,7 +496,7 @@ serve(async (req) => {
               .eq('id', campaignId)
               .single();
             
-            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled') {
+            if (currentCampaign?.status === 'paused' || currentCampaign?.status === 'cancelled' || currentCampaign?.status === 'completed') {
               console.log(`🛑 Campaign ${campaignId} is ${currentCampaign?.status}. Stopping at ${i + 1}/${contacts.length}`);
               return;
             }
