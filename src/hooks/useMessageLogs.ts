@@ -341,10 +341,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
-    // Filter message_logs by instance if specified
-    const filteredLogs = filterInstanceId
-      ? messageLogs.filter((log) => log.instance_id === filterInstanceId)
-      : messageLogs;
+    // Filter message_logs by instance if specified, and exclude group conversations
+    const filteredLogs = messageLogs
+      .filter((log) => !log.phone.includes('-group') && !log.phone.includes('@g.us'))
+      .filter((log) => !filterInstanceId || log.instance_id === filterInstanceId);
 
     // From message_logs
     filteredLogs.forEach(log => {
