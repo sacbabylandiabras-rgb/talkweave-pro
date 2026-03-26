@@ -118,7 +118,7 @@ const clearInstanceQueue = async (instance: ResolvedInstance) => {
   });
 };
 
-// Evolution API send helper
+// Evolution API send helper (uses strategy-based fallback)
 const sendViaEvolution = async (
   instance: ResolvedInstance,
   phone: string,
@@ -128,34 +128,42 @@ const sendViaEvolution = async (
     mediaType?: string;
     caption?: string;
     fileName?: string;
+    buttons?: string[];
+    buttonTitle?: string;
+    buttonFooter?: string;
   }
-): Promise<Response> => {
-  const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
-  const evoHeaders = { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' };
-  const evoName = instance.zapiInstanceId;
+): Promise<{ ok: boolean; status: number; data: any }> => {
+  const urlCandidates = buildEvolutionUrlCandidates(instance.evolutionApiUrl || '');
+  const apiKey = instance.evolutionApiKey || '';
+  const instanceName = instance.zapiInstanceId;
 
+  // If buttons are provided, use button strategy
+  if (options.buttons && options.buttons.length > 0) {
+    const result = await executeStrategies(
+      urlCandidates,
+      (cfg) => buildSendButtonStrategies(cfg, phone, options.message || '', options.buttons!, options.buttonTitle, options.buttonFooter),
+      apiKey, [instanceName], '📤🔘',
+    );
+    return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
+  }
+
+  // If media, use media strategy
   if (options.mediaUrl && options.mediaType) {
-    if (options.mediaType === 'audio') {
-      return fetch(`${evoBase}/message/sendWhatsAppAudio/${evoName}`, {
-        method: 'POST', headers: evoHeaders,
-        body: JSON.stringify({ number: phone, audio: options.mediaUrl }),
-      });
-    } else {
-      const mtype = options.mediaType === 'image' ? 'image' : options.mediaType === 'video' ? 'video' : 'document';
-      const body: any = { number: phone, mediatype: mtype, media: options.mediaUrl };
-      if (options.caption) body.caption = options.caption;
-      if (mtype === 'document' && options.fileName) body.fileName = options.fileName;
-      return fetch(`${evoBase}/message/sendMedia/${evoName}`, {
-        method: 'POST', headers: evoHeaders,
-        body: JSON.stringify(body),
-      });
-    }
+    const result = await executeStrategies(
+      urlCandidates,
+      (cfg) => buildSendMediaStrategies(cfg, phone, options.mediaType!, options.mediaUrl!, options.caption, options.fileName),
+      apiKey, [instanceName], '📤📎',
+    );
+    return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
   }
 
-  return fetch(`${evoBase}/message/sendText/${evoName}`, {
-    method: 'POST', headers: evoHeaders,
-    body: JSON.stringify({ number: phone, text: options.message || '' }),
-  });
+  // Text message
+  const result = await executeStrategies(
+    urlCandidates,
+    (cfg) => buildSendTextStrategies(cfg, phone, options.message || ''),
+    apiKey, [instanceName], '📤',
+  );
+  return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
 };
 
 // Evolution API status check
