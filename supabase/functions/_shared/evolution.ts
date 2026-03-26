@@ -257,10 +257,9 @@ export const buildSendMediaStrategies = (
   caption?: string,
   fileName?: string,
 ): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   const strategies: EndpointStrategy[] = [];
 
-  // Evolution v2 strategies
   if (mediaType === 'audio') {
     strategies.push({
       url: `${baseUrl}/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`,
@@ -272,7 +271,7 @@ export const buildSendMediaStrategies = (
     strategies.push({
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-audio`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, audio: mediaUrl }),
       label: 'custom-sendAudio',
     });
@@ -289,14 +288,13 @@ export const buildSendMediaStrategies = (
       label: `evo-v2-sendMedia-${mtype}`,
     });
 
-    // Custom API fallback
     const customEndpoint = mtype === 'image' ? 'send-image'
       : mtype === 'video' ? 'send-video'
       : 'send-document';
     strategies.push({
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/${customEndpoint}`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, url: mediaUrl, caption: caption || '', ...(fileName && { fileName }) }),
       label: `custom-send-${mtype}`,
     });
