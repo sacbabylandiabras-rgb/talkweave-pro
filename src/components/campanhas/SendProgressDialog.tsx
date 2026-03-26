@@ -211,7 +211,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
                 <Send className="w-4 h-4" />
                 <span>Total</span>
               </div>
-              <div className="text-2xl font-bold">{totalContacts}</div>
+              <div className="text-2xl font-bold">{effectiveTotal}</div>
             </div>
 
             <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
