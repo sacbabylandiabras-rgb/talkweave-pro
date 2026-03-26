@@ -17,10 +17,26 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const body = await req.json().catch(() => ({}));
     const requestedInstanceId = typeof body?.instanceId === 'string' ? body.instanceId : undefined;
     const clearAllActive = body?.clearAllActive === true;
+    const internalAdminKey = req.headers.get('x-internal-admin-key');
+    const requestedUserId = typeof body?.userId === 'string' ? body.userId : undefined;
+    const isInternalAdminCall = internalAdminKey === supabaseServiceKey;
+
+    const credentials = isInternalAdminCall
+      ? {
+          userId: requestedUserId,
+          instanceId: '',
+          token: '',
+          clientToken: '',
+          instanceName: 'Internal Admin Call',
+        }
+      : await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+
+    if (isInternalAdminCall && !requestedUserId) {
+      throw new Error('userId is required for internal admin calls');
+    }
 
     let instancesToClear: Array<{ instanceId: string; token: string; clientToken: string; instanceName: string }> = [];
 
