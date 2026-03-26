@@ -457,8 +457,31 @@ const Campanhas = () => {
                       </Button>
                     )}
 
-                    {/* Botão Duplicar - para completed e cancelled */}
-                    {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
+                    {/* Botões para completed - Forçar Parada + Duplicar */}
+                    {campaign.status === 'completed' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleForceStopQueue(campaign.id)}
+                          className="text-orange-600 hover:text-orange-700"
+                        >
+                          <Pause className="w-4 h-4 mr-1" />
+                          Forçar Parada
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDuplicateCampaign(campaign)}
+                        >
+                          <Copy className="w-4 h-4 mr-1" />
+                          Duplicar
+                        </Button>
+                      </>
+                    )}
+
+                    {/* Botão Duplicar - para cancelled */}
+                    {campaign.status === 'cancelled' && (
                       <Button
                         variant="outline"
                         size="sm"
