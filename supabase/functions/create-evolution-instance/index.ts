@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
       integration: "WHATSAPP-BAILEYS",
     };
 
+    // Custom API body format
+    const customBody: any = {
+      instance_name: instance_name,
+    };
+
     if (phone_number) {
       body.number = phone_number.replace(/\D/g, '');
     }
