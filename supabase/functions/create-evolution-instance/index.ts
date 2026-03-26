@@ -7,21 +7,32 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { evolution_api_url, evolution_api_key, instance_name, phone_number } = await req.json();
+    const { instance_name, phone_number, evolution_api_url, evolution_api_key } = await req.json();
 
-    if (!evolution_api_url || !evolution_api_key || !instance_name) {
-      return new Response(JSON.stringify({ error: 'URL, API Key e nome da instância são obrigatórios' }), {
+    // Use secrets as default, allow override from body
+    const apiUrl = evolution_api_url || Deno.env.get('EVOLUTION_API_URL');
+    const apiKey = evolution_api_key || Deno.env.get('EVOLUTION_API_KEY');
+
+    if (!apiUrl || !apiKey) {
+      return new Response(JSON.stringify({ error: 'URL e API Key da Evolution não configuradas' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const urlCandidates = buildEvolutionUrlCandidates(evolution_api_url);
+    if (!instance_name) {
+      return new Response(JSON.stringify({ error: 'Nome da instância é obrigatório' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const urlCandidates = buildEvolutionUrlCandidates(apiUrl);
 
     const authHeaders = [
-      { 'apikey': evolution_api_key, 'Content-Type': 'application/json' },
-      { 'Authorization': `Bearer ${evolution_api_key}`, 'Content-Type': 'application/json' },
-      { 'Client-Token': evolution_api_key, 'Content-Type': 'application/json' },
+      { 'apikey': apiKey, 'Content-Type': 'application/json' },
+      { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      { 'Client-Token': apiKey, 'Content-Type': 'application/json' },
     ];
 
     const body: any = {
@@ -63,6 +74,8 @@ Deno.serve(async (req) => {
               instanceName: createdName,
               instanceId: createdId,
               qrCode,
+              apiUrl,
+              apiKey,
               raw: instanceData,
             }), {
               status: 200,
@@ -87,7 +100,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: lastError }), {
-      status: lastStatus >= 400 ? 200 : lastStatus,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
