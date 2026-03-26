@@ -584,21 +584,14 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
-  const [showCreate, setShowCreate] = useState(false);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length}/5)</h1>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setShowCreate(true)} disabled={instances.length >= 5}>
-            <Plus className="w-4 h-4 mr-1" /> Criar Instância
-          </Button>
-          <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
+        <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
+        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       {instances.length === 0 && !loading && (
@@ -606,12 +599,9 @@ const Dispositivos = () => {
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
-            <p className="text-muted-foreground mb-4">
-              Crie sua primeira instância para conectar ao WhatsApp.
+            <p className="text-muted-foreground">
+              As instâncias são gerenciadas pelo administrador.
             </p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Criar Instância
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -621,7 +611,6 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
-
       <CreateInstanceDialog open={showCreate} onOpenChange={setShowCreate} onCreated={refetch} />
     </div>
   );
