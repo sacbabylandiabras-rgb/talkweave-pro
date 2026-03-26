@@ -666,21 +666,27 @@ const Campanhas = () => {
             const targetContacts: Array<{ phone: string; name?: string }> = 
               campaign?.target_audience?.contacts || [];
             
-            // Map sends by phone for quick lookup
+            // Map sends by normalized phone for quick lookup
             const sendsByPhone = new Map<string, typeof statsDialogSends[0]>();
             statsDialogSends.forEach(send => {
-              const existing = sendsByPhone.get(send.phone);
-              // Keep the most recent or most successful send
-              if (!existing || 
-                  (send.status === 'sent' || send.status === 'delivered') ||
-                  (existing.status !== 'sent' && existing.status !== 'delivered' && send.sent_at && (!existing.sent_at || send.sent_at > existing.sent_at))) {
-                sendsByPhone.set(send.phone, send);
+              const phoneKey = normalizePhoneKey(send.phone) || send.phone;
+              const existing = sendsByPhone.get(phoneKey);
+              const sendSucceeded = send.status === 'sent' || send.status === 'delivered';
+              const existingSucceeded = existing?.status === 'sent' || existing?.status === 'delivered';
+
+              if (
+                !existing ||
+                (sendSucceeded && !existingSucceeded) ||
+                (!existingSucceeded && send.sent_at && (!existing.sent_at || send.sent_at > existing.sent_at))
+              ) {
+                sendsByPhone.set(phoneKey, send);
               }
             });
 
             // Build full list: all target contacts with their status
             const fullContactList = targetContacts.map((contact, index) => {
-              const send = sendsByPhone.get(contact.phone);
+              const phoneKey = normalizePhoneKey(contact.phone) || contact.phone;
+              const send = sendsByPhone.get(phoneKey);
               let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
@@ -692,8 +698,6 @@ const Campanhas = () => {
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
                   errorMessage = send.error_message || null;
-                } else {
-                  status = 'pendente';
                 }
               }
 
@@ -709,7 +713,10 @@ const Campanhas = () => {
 
             // Also add any sends that might not be in target_audience
             statsDialogSends.forEach(send => {
-              if (!targetContacts.find(c => c.phone === send.phone)) {
+              const sendKey = normalizePhoneKey(send.phone) || send.phone;
+              const existsInTarget = targetContacts.some(c => (normalizePhoneKey(c.phone) || c.phone) === sendKey);
+
+              if (!existsInTarget) {
                 let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
                 else if (send.status === 'failed') status = 'cancelado';
