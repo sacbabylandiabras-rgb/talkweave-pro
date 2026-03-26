@@ -234,13 +234,12 @@ export const buildSendButtonStrategies = (
   title?: string,
   footer?: string,
 ): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   return [
-    // Custom API: send-button-list
     {
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-button-list`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, message, buttons, ...(title && { title }), ...(footer && { footer }) }),
       label: 'custom-sendButtons',
     },
