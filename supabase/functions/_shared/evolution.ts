@@ -83,6 +83,7 @@ export const isEvolutionInstanceNotFound = (payload: any, rawText?: string) => {
 interface ApiAttemptConfig {
   baseUrl: string;
   apiKey: string;
+  clientToken?: string;
   instanceName: string;
 }
 
