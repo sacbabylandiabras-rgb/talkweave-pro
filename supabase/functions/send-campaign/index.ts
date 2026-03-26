@@ -11,6 +11,7 @@ interface SendCampaignRequest {
     variables?: Record<string, string>;
   }>;
   instanceId?: string; // Optional: specific Z-API instance to use
+  rotationOffset?: number; // Offset to preserve rotation position across re-invocations
 }
 
 interface CampaignSendRecord {
@@ -183,7 +184,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { campaignId, contacts, instanceId: requestedInstanceId }: SendCampaignRequest = await req.json();
+    const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset }: SendCampaignRequest = await req.json();
+    const rotationOffset = initialRotationOffset || 0;
 
     if (!campaignId || !contacts || contacts.length === 0) {
       return new Response(
@@ -242,10 +244,10 @@ serve(async (req) => {
       }
     }
 
-    // Helper to get credentials for a given contact index (supports rotation)
+    // Helper to get credentials for a given contact index (supports rotation with offset)
     const getInstanceForIndex = (index: number) => {
       if (isRotateMode && rotatePool.length > 0) {
-        return rotatePool[index % rotatePool.length];
+        return rotatePool[(index + rotationOffset) % rotatePool.length];
       }
       return {
         zapiInstanceId,
@@ -338,7 +340,7 @@ serve(async (req) => {
         zapiClientToken = currentInstance.zapiClientToken;
         
         if (isRotateMode) {
-          console.log(`🔄 Contact ${i+1}: using instance "${currentInstance.instanceName}" (rotation index ${i % rotatePool.length})`);
+          console.log(`🔄 Contact ${i+1}: using instance "${currentInstance.instanceName}" (rotation index ${(i + rotationOffset) % rotatePool.length})`);
         }
         
         try {
@@ -363,6 +365,7 @@ serve(async (req) => {
                   campaignId,
                   contacts: remainingContacts,
                   instanceId: requestedInstanceId,
+                  rotationOffset: (rotationOffset + i) % (rotatePool.length || 1),
                 }),
               });
               const reData = await reResponse.text();
