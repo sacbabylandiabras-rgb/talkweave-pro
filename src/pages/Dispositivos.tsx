@@ -220,9 +220,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     try {
       setPairingCode(null);
 
+      let cleanPhone = phoneNumber.replace(/\D/g, '');
+      if (cleanPhone && !cleanPhone.startsWith('55')) cleanPhone = '55' + cleanPhone;
+
       const { data, error } = await supabase.functions.invoke('get-pairing-code', {
         body: {
-          phoneNumber,
+          phoneNumber: cleanPhone,
           instanceId: instance.id,
         },
       });
