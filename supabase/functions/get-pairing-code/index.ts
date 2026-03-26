@@ -2,69 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-import {
-  buildEvolutionInstanceCandidates,
-  buildEvolutionUrlCandidates,
-  buildPairingCodeStrategies,
-  executeStrategies,
-  extractPairingCode,
-  extractQrCodeValue,
-  getEvolutionErrorMessage,
-} from "../_shared/evolution.ts";
-
-const handleEvolutionPairing = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName: string | undefined, phone: string) => {
-  const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
-  const sanitizedPhone = String(phone).replace(/\D/g, '');
-
-  console.log(`📱 Evolution pairing for candidates: ${instanceCandidates.join(', ')}, phone: ${sanitizedPhone}`);
-
-  // Validator: prefer responses that have a real pairingCode
-  const hasPairingCode = (data: any) => {
-    return !!(data?.pairingCode || data?.data?.pairingCode || data?.instance?.pairingCode);
-  };
-
-  const result = await executeStrategies(
-    evoUrls,
-    (cfg) => buildPairingCodeStrategies(cfg, sanitizedPhone),
-    evoKey,
-    instanceCandidates,
-    '📱',
-    hasPairingCode,
-  );
-
-  if (result.status >= 200 && result.status < 300) {
-    const pairingCode = extractPairingCode(result.data);
-    const qrCode = extractQrCodeValue(result.data);
-
-    if (pairingCode || qrCode) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: {
-            code: pairingCode || qrCode,
-            pairingCode,
-            qrCode,
-            phoneNumber: sanitizedPhone,
-            method: 'evolution',
-            isReal: true,
-            raw: result.data,
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-  }
-
-  return new Response(
-    JSON.stringify({
-      error: 'Failed to get pairing code',
-      message: getEvolutionErrorMessage(result.data, result.status, 'Evolution did not return a valid pairing code or QR code'),
-      details: result.data,
-    }),
-    { status: result.status >= 400 ? result.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -100,7 +37,7 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: instance, error: instError } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
         .eq('id', instanceId)
         .eq('user_id', user.id)
         .single();
@@ -112,22 +49,12 @@ serve(async (req) => {
         token: instance.zapi_token,
         clientToken: instance.zapi_client_token,
         instanceName: instance.instance_name || instance.zapi_instance_id,
-        apiProvider: (instance.api_provider || 'zapi') as 'zapi' | 'evolution',
-        evolutionApiUrl: instance.evolution_api_url || undefined,
-        evolutionApiKey: instance.evolution_api_key || undefined,
       };
     } else {
       credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     }
 
-    if (credentials.apiProvider === 'evolution') {
-      const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
-      const evoKey = credentials.evolutionApiKey;
-      if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionPairing(evoUrl, evoKey, credentials.instanceId, credentials.instanceName, phoneNumber);
-    }
-
-    // Z-API path
+    // Z-API pairing code
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/phone-code/${phoneNumber}`;
     const response = await fetch(zapiUrl, {
       method: 'GET',

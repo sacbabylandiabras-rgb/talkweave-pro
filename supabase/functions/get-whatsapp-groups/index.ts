@@ -1,69 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-import {
-  buildEvolutionUrlCandidates,
-  buildEvolutionInstanceCandidates,
-  buildGroupsStrategies,
-  executeStrategies,
-} from "../_shared/evolution.ts";
 
 interface ZapiInstance {
   zapi_instance_id: string;
   zapi_token: string;
   zapi_client_token: string;
   instance_name: string | null;
-  api_provider: string;
-  evolution_api_url: string | null;
-  evolution_api_key: string | null;
 }
-
-const fetchGroupsViaEvolution = async (instance: ZapiInstance): Promise<any[]> => {
-  const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
-  const evoKey = instance.evolution_api_key;
-  if (!evoUrl || !evoKey) return [];
-
-  const urlCandidates = buildEvolutionUrlCandidates(evoUrl);
-  const instanceCandidates = buildEvolutionInstanceCandidates(
-    instance.zapi_instance_id,
-    instance.instance_name || undefined,
-  );
-
-  const result = await executeStrategies(
-    urlCandidates,
-    (cfg) => buildGroupsStrategies(cfg),
-    evoKey,
-    instanceCandidates,
-    '👥',
-  );
-
-  if (result.status < 200 || result.status >= 300) {
-    console.error(`❌ Evolution groups error: ${result.status} ${result.rawText?.substring(0, 200)}`);
-    return [];
-  }
-
-  const data = result.data;
-  const groups = Array.isArray(data) ? data : [];
-
-  return groups.map((g: any) => ({
-    id: g.id || g.jid || g.groupJid || `group-${Math.random()}`,
-    nome: g.subject || g.name || 'Grupo sem nome',
-    descricao: g.description || g.desc || '',
-    membros: g.participants?.length || g.size || 0,
-    foto: g.profilePictureUrl || g.imgUrl || g.picture || null,
-    ultimaMensagem: null,
-    isAdmin: g.participants?.some?.((p: any) =>
-      (p.admin === 'admin' || p.admin === 'superadmin') && p.id?.includes?.(instance.zapi_instance_id)
-    ) || false,
-    participantes: g.participants || [],
-    archived: false,
-    pinned: false,
-    isCommunity: g.isCommunity || false,
-    isCommunityAnnounce: g.isCommunityAnnounce || g.linkedParent ? true : false,
-    sourceInstanceName: instance.instance_name || null,
-    sourceInstanceId: instance.zapi_instance_id,
-  }));
-};
 
 const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
   const allGroups: any[] = [];
@@ -122,7 +66,7 @@ Deno.serve(async (req) => {
 
     const { data: activeInstances } = await adminClient
       .from("zapi_instances")
-      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
+      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name")
       .eq("user_id", credentials.userId)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
@@ -137,9 +81,6 @@ Deno.serve(async (req) => {
               zapi_token: credentials.token,
               zapi_client_token: credentials.clientToken,
               instance_name: credentials.instanceName || null,
-              api_provider: credentials.apiProvider || 'zapi',
-              evolution_api_url: credentials.evolutionApiUrl || null,
-              evolution_api_key: credentials.evolutionApiKey || null,
             },
           ];
 
@@ -149,21 +90,7 @@ Deno.serve(async (req) => {
 
     for (const instance of instances) {
       try {
-        let rawGroups: any[];
-
-        if (instance.api_provider === 'evolution') {
-          rawGroups = await fetchGroupsViaEvolution(instance);
-          // Already mapped
-          for (const g of rawGroups) {
-            if (!g.isCommunity && !g.isCommunityAnnounce) {
-              if (!groupsById.has(g.id)) groupsById.set(g.id, g);
-            }
-          }
-          continue;
-        }
-
-        // Z-API path
-        rawGroups = await fetchGroupsViaZapi(instance);
+        const rawGroups = await fetchGroupsViaZapi(instance);
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;

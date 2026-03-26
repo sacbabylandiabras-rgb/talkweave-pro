@@ -2,46 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-import {
-  buildEvolutionInstanceCandidates,
-  buildEvolutionUrlCandidates,
-  buildQrCodeStrategies,
-  executeStrategies,
-  extractQrCodeValue,
-  getEvolutionErrorMessage,
-} from "../_shared/evolution.ts";
-
-const handleEvolutionQr = async (evoUrl: string, evoKey: string, evoInstanceId: string, evoInstanceName?: string) => {
-  const evoUrls = buildEvolutionUrlCandidates(evoUrl);
-  const instanceCandidates = buildEvolutionInstanceCandidates(evoInstanceId, evoInstanceName);
-
-  const result = await executeStrategies(
-    evoUrls,
-    (cfg) => buildQrCodeStrategies(cfg),
-    evoKey,
-    instanceCandidates,
-    '📸',
-  );
-
-  if (result.status < 200 || result.status >= 300) {
-    return new Response(
-      JSON.stringify({
-        error: 'Failed to get QR code',
-        message: getEvolutionErrorMessage(result.data, result.status, 'Evolution QR request failed'),
-        details: result.data,
-        rawText: result.rawText,
-      }),
-      { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const qrValue = extractQrCodeValue(result.data);
-
-  return new Response(
-    JSON.stringify({ success: true, data: { value: qrValue, provider: 'evolution', raw: result.data } }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -75,19 +35,12 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: instance, error: instError } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
         .eq('id', specificInstanceId)
         .eq('user_id', user.id)
         .single();
 
       if (instError || !instance) throw new Error('Instance not found');
-
-      if (instance.api_provider === 'evolution') {
-        const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
-        const evoKey = instance.evolution_api_key;
-        if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-        return await handleEvolutionQr(evoUrl, evoKey, instance.zapi_instance_id, instance.instance_name);
-      }
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code`;
       const zapiResponse = await fetch(zapiUrl, {
@@ -106,13 +59,6 @@ serve(async (req) => {
 
     // Default credentials path
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-
-    if (credentials.apiProvider === 'evolution') {
-      const evoUrl = credentials.evolutionApiUrl?.replace(/\/$/, '');
-      const evoKey = credentials.evolutionApiKey;
-      if (!evoUrl || !evoKey) throw new Error('Evolution API URL or Key not configured');
-      return await handleEvolutionQr(evoUrl, evoKey, credentials.instanceId, credentials.instanceName);
-    }
 
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/qr-code`;
     const zapiResponse = await fetch(zapiUrl, {
