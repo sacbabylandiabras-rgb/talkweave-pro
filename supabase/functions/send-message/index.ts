@@ -116,6 +116,31 @@ serve(async (req) => {
 
       console.log(`📤 Sending via Evolution API: ${evoInstanceName} | URLs: ${urlCandidates.join(', ')}`);
 
+      // Pre-check: verify instance is connected before sending (avoids hanging)
+      try {
+        const statusUrl = `${urlCandidates[0]}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`;
+        const statusRes = await fetch(statusUrl, {
+          headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          const state = statusData?.instance?.state || statusData?.state || '';
+          console.log(`📋 Instance ${evoInstanceName} state: ${state}`);
+          if (state === 'close' || state === 'closed' || state === 'disconnected') {
+            return new Response(
+              JSON.stringify({
+                error: 'Instância desconectada',
+                message: `A instância "${evoInstanceName}" está desconectada. Reconecte o dispositivo na página de Dispositivos antes de enviar.`,
+              }),
+              { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+      } catch (statusErr) {
+        console.log(`⚠️ Could not check instance status: ${statusErr instanceof Error ? statusErr.message : String(statusErr)}`);
+      }
+
       try {
         let result;
         if (mediaUrl && mediaType) {
