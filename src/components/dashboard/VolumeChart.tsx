@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays } from "date-fns";
@@ -48,13 +48,31 @@ export function VolumeChart() {
     if (!dateFrom || selected < dateFrom) setDateFrom(selected);
   };
 
+  const loadRawData = useCallback(async () => {
+    try {
+      const { data: sends } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
+      setAllSends(sends || []);
+    } catch (error) {
+      console.error("Error loading chart data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { loadRawData(); } else { setLoading(false); }
     };
     init();
-  }, []);
+
+    const channel = supabase
+      .channel('volume-chart-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadRawData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [loadRawData]);
 
   useEffect(() => {
     const filtered = allSends.filter((send) => {
@@ -104,18 +122,6 @@ export function VolumeChart() {
       setChartData([]);
     }
   }, [allSends, dateFrom, dateTo]);
-
-  const loadRawData = async () => {
-    try {
-      const { data: sends, error } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
-      console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
-      setAllSends(sends || []);
-    } catch (error) {
-      console.error("Error loading chart data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 

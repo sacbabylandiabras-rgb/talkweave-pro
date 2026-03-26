@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MetricCard } from "./MetricCard";
 import { MessageSquare, Send, CheckCircle2, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,9 @@ export function StatsGrid() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0, failed: 0 });
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
-      const { data: sends, error } = await supabase.from('campaign_sends').select('status');
-      console.log("[StatsGrid] sends:", sends?.length, "error:", error);
+      const { data: sends } = await supabase.from('campaign_sends').select('status');
       if (sends) {
         setStats({
           total: sends.length,
@@ -24,27 +23,29 @@ export function StatsGrid() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Listen for auth state changes to load data when session is ready
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        loadStats();
-      } else {
-        setLoading(false);
-      }
+      if (session) loadStats();
+      else setLoading(false);
     });
 
-    // Also try immediately in case session is already available
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        loadStats();
-      }
+      if (session) loadStats();
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Realtime: refresh when campaign_sends change
+    const channel = supabase
+      .channel('stats-grid-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadStats())
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [loadStats]);
 
   if (loading) {
     return (
