@@ -87,22 +87,24 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
   useEffect(() => {
     if (!open || !campaignId) {
-      setStats({ total: 0, pending: totalContacts, sent: 0, delivered: 0, failed: 0 });
+      setStats({ total: 0, pending: 0, sent: 0, delivered: 0, failed: 0 });
       setIsComplete(false);
       setIsPaused(false);
       setIsPausing(false);
       return;
     }
 
-    const computeStats = (data: Array<{ status: string | null }>) => {
-      return {
-        total: data.length,
-        pending: data.filter(s => s.status === 'pending').length,
-        sent: data.filter(s => s.status === 'sent').length,
-        delivered: data.filter(s => s.status === 'delivered').length,
-        failed: data.filter(s => s.status === 'failed').length,
-      };
+    const computeStats = (data: Array<{ status: string | null }>, campaignTotalContacts: number) => {
+      const sent = data.filter(s => s.status === 'sent').length;
+      const delivered = data.filter(s => s.status === 'delivered').length;
+      const failed = data.filter(s => s.status === 'failed').length;
+      const pending = data.filter(s => s.status === 'pending').length;
+      // Use the larger of: totalContacts prop, campaign target_audience count, or actual sends count
+      const effectiveTotal = Math.max(totalContacts, campaignTotalContacts, data.length);
+      return { total: effectiveTotal, pending, sent, delivered, failed };
     };
+
+    let cachedCampaignTotal = totalContacts;
 
     const fetchAndUpdate = async () => {
       const [
@@ -110,28 +112,31 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         { data: campaignData }
       ] = await Promise.all([
         supabase.from('campaign_sends').select('status').eq('campaign_id', campaignId),
-        supabase.from('campaigns').select('status').eq('id', campaignId).single()
+        supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single()
       ]);
 
+      // Get total from target_audience contacts if available
+      const targetContacts = (campaignData?.target_audience as any)?.contacts;
+      if (Array.isArray(targetContacts) && targetContacts.length > cachedCampaignTotal) {
+        cachedCampaignTotal = targetContacts.length;
+      }
+
       if (sends) {
-        const newStats = computeStats(sends);
+        const newStats = computeStats(sends, cachedCampaignTotal);
         setStats(newStats);
 
-        // Only mark complete if the campaign status is actually 'completed' in the DB
         if (campaignData?.status === 'completed') {
           setIsComplete(true);
         } else if (campaignData?.status === 'active') {
-          // Campaign is actively sending — ensure we don't show as complete
           setIsComplete(false);
           setIsPaused(false);
         } else if (campaignData?.status === 'paused') {
-          // Campaign is paused — never mark as complete (user may resume)
           setIsComplete(false);
         } else if (
           campaignData?.status !== 'active' &&
           campaignData?.status !== 'paused' &&
-          totalContacts > 0 && 
-          sends.length >= totalContacts && 
+          newStats.total > 0 && 
+          sends.length >= newStats.total && 
           newStats.pending === 0
         ) {
           setIsComplete(true);
@@ -148,7 +153,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     const initialDelay = setTimeout(() => {
       fetchAndUpdate();
 
-      // Realtime subscription for instant updates
       const channel = supabase
         .channel(`progress-${campaignId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
@@ -163,7 +167,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       channelRef.current = channel;
 
-      // Lightweight polling fallback every 2s
       pollingRef.current = setInterval(fetchAndUpdate, 2000);
     }, 300);
 
