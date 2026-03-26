@@ -584,8 +584,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
   const [zapiInstanceId, setZapiInstanceId] = useState('');
   const [zapiToken, setZapiToken] = useState('');
   const [zapiClientToken, setZapiClientToken] = useState('');
-  const [evolutionApiUrl, setEvolutionApiUrl] = useState('');
-  const [evolutionApiKey, setEvolutionApiKey] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -596,8 +594,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
     setZapiInstanceId('');
     setZapiToken('');
     setZapiClientToken('');
-    setEvolutionApiUrl('');
-    setEvolutionApiKey('');
     setIsDefault(false);
   };
 
