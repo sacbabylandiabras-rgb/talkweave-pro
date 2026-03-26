@@ -340,7 +340,7 @@ serve(async (req) => {
         zapiClientToken = currentInstance.zapiClientToken;
         
         if (isRotateMode) {
-          console.log(`🔄 Contact ${i+1}: using instance "${currentInstance.instanceName}" (rotation index ${i % rotatePool.length})`);
+          console.log(`🔄 Contact ${i+1}: using instance "${currentInstance.instanceName}" (rotation index ${(i + rotationOffset) % rotatePool.length})`);
         }
         
         try {
