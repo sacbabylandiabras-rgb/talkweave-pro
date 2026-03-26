@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      return new Response(JSON.stringify({ error: errData?.message || `HTTP ${res.status}` }), {
-        status: res.status,
+      return new Response(JSON.stringify({ error: errData?.message || `Servidor Evolution retornou HTTP ${res.status}` }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

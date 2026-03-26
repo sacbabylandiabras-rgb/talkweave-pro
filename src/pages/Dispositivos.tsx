@@ -612,11 +612,14 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
       const { data, error } = await supabase.functions.invoke('fetch-evolution-instances', {
         body: { evolution_api_url: evolutionApiUrl, evolution_api_key: evolutionApiKey },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = await getInvokeErrorMessage(error, 'Erro ao conectar com o servidor Evolution');
+        throw new Error(msg);
+      }
       if (data?.error) throw new Error(data.error);
       setEvoInstances(Array.isArray(data) ? data : []);
       if (Array.isArray(data) && data.length === 0) {
-        toast({ title: "Nenhuma instância encontrada", variant: "destructive" });
+        toast({ title: "Nenhuma instância encontrada", description: "Verifique a URL e API Key", variant: "destructive" });
       }
     } catch (err: any) {
       toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
