@@ -82,7 +82,22 @@ export function VolumeChart() {
 
     const channel = supabase
       .channel('volume-chart-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadRawData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        const record = payload.new as { created_at?: string; status?: string | null };
+        if (record?.created_at) {
+          setAllSends(prev => [...prev, { created_at: record.created_at!, status: record.status ?? null }]);
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        const record = payload.new as { created_at?: string; status?: string | null };
+        const oldRecord = payload.old as { created_at?: string };
+        if (record?.created_at && oldRecord?.created_at) {
+          setAllSends(prev => prev.map(s =>
+            s.created_at === oldRecord.created_at ? { created_at: record.created_at!, status: record.status ?? null } : s
+          ));
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'campaign_sends' }, () => loadRawData())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
