@@ -11,6 +11,7 @@ interface SendCampaignRequest {
     variables?: Record<string, string>;
   }>;
   instanceId?: string; // Optional: specific Z-API instance to use
+  rotationOffset?: number; // Offset to preserve rotation position across re-invocations
 }
 
 interface CampaignSendRecord {
