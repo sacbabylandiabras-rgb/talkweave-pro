@@ -29,8 +29,12 @@ export const useZapiInstances = () => {
   const fetchInstances = async () => {
     try {
       setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await fromZapiInstances()
         .select('*')
+        .eq('user_id', user.id)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
 
