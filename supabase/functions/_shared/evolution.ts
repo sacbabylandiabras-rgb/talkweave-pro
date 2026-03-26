@@ -205,7 +205,98 @@ export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, te
       body: JSON.stringify({ number: phone, text }),
       label: 'evo-v2-sendText',
     },
+    // Custom API fallback
+    {
+      url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-text`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      body: JSON.stringify({ phone, message: text }),
+      label: 'custom-sendText',
+    },
   ];
+};
+
+/**
+ * Build endpoint strategies for sending button messages.
+ */
+export const buildSendButtonStrategies = (
+  cfg: ApiAttemptConfig,
+  phone: string,
+  message: string,
+  buttons: string[],
+  title?: string,
+  footer?: string,
+): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  return [
+    // Custom API: send-button-list
+    {
+      url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-button-list`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      body: JSON.stringify({ phone, message, buttons, ...(title && { title }), ...(footer && { footer }) }),
+      label: 'custom-sendButtons',
+    },
+  ];
+};
+
+/**
+ * Build endpoint strategies for sending media (image, video, document, audio).
+ */
+export const buildSendMediaStrategies = (
+  cfg: ApiAttemptConfig,
+  phone: string,
+  mediaType: string,
+  mediaUrl: string,
+  caption?: string,
+  fileName?: string,
+): EndpointStrategy[] => {
+  const { baseUrl, apiKey, instanceName } = cfg;
+  const strategies: EndpointStrategy[] = [];
+
+  // Evolution v2 strategies
+  if (mediaType === 'audio') {
+    strategies.push({
+      url: `${baseUrl}/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      body: JSON.stringify({ number: phone, audio: mediaUrl }),
+      label: 'evo-v2-sendAudio',
+    });
+    strategies.push({
+      url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-audio`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      body: JSON.stringify({ phone, audio: mediaUrl }),
+      label: 'custom-sendAudio',
+    });
+  } else {
+    const mtype = mediaType === 'image' ? 'image' : mediaType === 'video' ? 'video' : 'document';
+    const body: any = { number: phone, mediatype: mtype, media: mediaUrl };
+    if (caption) body.caption = caption;
+    if (mtype === 'document' && fileName) body.fileName = fileName;
+    strategies.push({
+      url: `${baseUrl}/message/sendMedia/${encodeURIComponent(instanceName)}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+      body: JSON.stringify(body),
+      label: `evo-v2-sendMedia-${mtype}`,
+    });
+
+    // Custom API fallback
+    const customEndpoint = mtype === 'image' ? 'send-image'
+      : mtype === 'video' ? 'send-video'
+      : 'send-document';
+    strategies.push({
+      url: `${baseUrl}/${encodeURIComponent(instanceName)}/${customEndpoint}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      body: JSON.stringify({ phone, url: mediaUrl, caption: caption || '', ...(fileName && { fileName }) }),
+      label: `custom-send-${mtype}`,
+    });
+  }
+
+  return strategies;
 };
 
 /**
