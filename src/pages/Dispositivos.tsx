@@ -611,7 +611,7 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
-      <CreateInstanceDialog open={showCreate} onOpenChange={setShowCreate} onCreated={refetch} />
+      
     </div>
   );
 };
