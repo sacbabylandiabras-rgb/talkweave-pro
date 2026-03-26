@@ -657,18 +657,6 @@ export const useZapi = () => {
     try {
       const config = await getZAPIConfig();
 
-      if (config.apiProvider === 'evolution') {
-        const fallbackText = buildOptionListFallbackMessage(message, optionList);
-        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar lista de opções');
-
-        toast({
-          title: "Mensagem enviada!",
-          description: "Na Evolution API, a lista foi convertida para texto compatível.",
-        });
-
-        return data;
-      }
-      
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
       
       const response = await fetch(url, {

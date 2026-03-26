@@ -106,25 +106,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     if (connectedPhone) return;
     let foundPhone: string | null = null;
 
-    if (instance.api_provider === 'evolution') {
-      // Evolution API - fetch instance info
-      const evoUrl = instance.evolution_api_url?.replace(/\/$/, '');
-      const evoKey = instance.evolution_api_key;
-      if (!evoUrl || !evoKey) return;
-      try {
-        const res = await fetch(`${evoUrl}/instance/fetchInstances/${instance.zapi_instance_id}`, {
-          headers: { 'apikey': evoKey, 'Content-Type': 'application/json' }
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const info = Array.isArray(d) ? d[0] : d;
-          const num = info?.instance?.owner?.split?.('@')?.[0] || info?.ownerJid?.split?.('@')?.[0] || null;
-          if (num) foundPhone = num;
-          const pic = info?.instance?.profilePictureUrl || info?.profilePicUrl || null;
-          if (pic) setProfilePicUrl(pic);
-        }
-      } catch {}
-    } else {
+    {
       // Z-API
       const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
       const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
@@ -479,18 +461,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             onClick={async () => {
               if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
               try {
-                // Delete from Evolution API via edge function (avoids CORS)
-                if (instance.api_provider === 'evolution') {
-                  try {
-                    await supabase.functions.invoke('delete-evolution-instance', {
-                      body: {
-                        instance_name: instance.zapi_instance_id,
-                        evolution_api_url: instance.evolution_api_url,
-                        evolution_api_key: instance.evolution_api_key,
-                      },
-                    });
-                  } catch {}
-                }
                 // Delete from database
                 const { error } = await supabase.from('zapi_instances').delete().eq('id', instance.id);
                 if (error) throw error;
