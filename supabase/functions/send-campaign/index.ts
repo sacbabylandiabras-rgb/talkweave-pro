@@ -277,22 +277,22 @@ serve(async (req) => {
       throw new Error('Campaign not found');
     }
 
-    // CRITICAL: Don't process paused campaigns - User must manually resume
-    if (campaign.status === 'paused') {
-      console.log(`❌ Campaign ${campaignId} is PAUSED. Will not process. User must manually resume.`);
+    // CRITICAL: Don't process paused, completed, or cancelled campaigns
+    if (campaign.status === 'paused' || campaign.status === 'completed' || campaign.status === 'cancelled') {
+      console.log(`❌ Campaign ${campaignId} has status "${campaign.status}". Will not process.`);
       return new Response(
         JSON.stringify({
-          error: `Campaign is paused`,
-          message: `Esta campanha está pausada. Use o botão "Retomar de onde parou" para continuar.`,
-          paused: true
+          error: `Campaign is ${campaign.status}`,
+          message: `Esta campanha está ${campaign.status}. Não será processada.`,
+          stopped: true
         }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    // If campaign is cancelled/draft, update to active since user explicitly triggered send
-    if (campaign.status === 'cancelled' || campaign.status === 'draft') {
-      console.log(`🔄 Campaign ${campaignId} was ${campaign.status}. Updating to active.`);
+    // If campaign is draft, update to active since user explicitly triggered send
+    if (campaign.status === 'draft') {
+      console.log(`🔄 Campaign ${campaignId} was draft. Updating to active.`);
       await supabase
         .from('campaigns')
         .update({ status: 'active', updated_at: new Date().toISOString() })
