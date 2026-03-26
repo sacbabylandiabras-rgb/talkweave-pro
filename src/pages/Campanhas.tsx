@@ -291,18 +291,25 @@ const Campanhas = () => {
 
       <Card>
         <CardContent className="pt-4">
-          <InstanceSelector onInstanceChange={(id) => {
-            if (id === ROTATE_ALL) {
-              setInstanceSelectionMode('rotate');
-              setZapiRotateMode(instances);
-            } else {
-              const inst = instances.find(i => i.id === id);
-              if (inst) {
-                setInstanceSelectionMode('single');
-                setZapiInstanceOverride(inst);
+          <InstanceSelector
+            onInstanceChange={(id) => {
+              if (id === ROTATE_ALL) {
+                setInstanceSelectionMode('rotate');
+              } else {
+                const inst = instances.find(i => i.id === id);
+                if (inst) {
+                  setInstanceSelectionMode('single');
+                  setZapiInstanceOverride(inst);
+                }
               }
-            }
-          }} />
+            }}
+            onMultiInstanceChange={(ids) => {
+              if (ids.length > 1) {
+                const selected = instances.filter(i => ids.includes(i.id));
+                setZapiRotateMode(selected);
+              }
+            }}
+          />
         </CardContent>
       </Card>
 
