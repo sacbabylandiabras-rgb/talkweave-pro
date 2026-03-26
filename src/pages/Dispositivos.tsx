@@ -306,6 +306,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     
     if (prevConnected === false && isConnectedNow && !hasSynced) {
       setHasSynced(true);
+      // Auto-close connect dialog
+      if (showConnect) {
+        setShowConnect(false);
+        toast({ title: "✅ WhatsApp conectado!" });
+      }
       setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
