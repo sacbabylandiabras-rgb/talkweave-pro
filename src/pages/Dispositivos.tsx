@@ -13,6 +13,7 @@ import QRCodeLib from 'qrcode';
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
 const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
