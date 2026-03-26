@@ -580,6 +580,7 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
   const { toast } = useToast();
   const [provider, setProvider] = useState<'zapi' | 'evolution'>('evolution');
   const [instanceName, setInstanceName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [zapiInstanceId, setZapiInstanceId] = useState('');
   const [zapiToken, setZapiToken] = useState('');
   const [zapiClientToken, setZapiClientToken] = useState('');
@@ -587,97 +588,115 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
   const [evolutionApiKey, setEvolutionApiKey] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fetchingEvo, setFetchingEvo] = useState(false);
-  const [evoInstances, setEvoInstances] = useState<any[]>([]);
 
   const resetForm = () => {
     setProvider('evolution');
     setInstanceName('');
+    setPhoneNumber('');
     setZapiInstanceId('');
     setZapiToken('');
     setZapiClientToken('');
     setEvolutionApiUrl('');
     setEvolutionApiKey('');
     setIsDefault(false);
-    setEvoInstances([]);
-  };
-
-  const fetchEvolutionInstances = async () => {
-    if (!evolutionApiUrl || !evolutionApiKey) {
-      toast({ title: "Preencha URL e API Key", variant: "destructive" });
-      return;
-    }
-    setFetchingEvo(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-evolution-instances', {
-        body: { evolution_api_url: evolutionApiUrl, evolution_api_key: evolutionApiKey },
-      });
-      if (error) {
-        const msg = await getInvokeErrorMessage(error, 'Erro ao conectar com o servidor Evolution');
-        throw new Error(msg);
-      }
-      if (data?.error) throw new Error(data.error);
-      setEvoInstances(Array.isArray(data) ? data : []);
-      if (Array.isArray(data) && data.length === 0) {
-        toast({ title: "Nenhuma instância encontrada", description: "Verifique a URL e API Key", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
-    } finally {
-      setFetchingEvo(false);
-    }
-  };
-
-  const selectEvoInstance = (inst: any) => {
-    setZapiInstanceId(inst.instanceName || '');
-    setInstanceName(inst.instanceName || '');
   };
 
   const handleSave = async () => {
-    if (!instanceName.trim()) {
-      toast({ title: "Nome da instância é obrigatório", variant: "destructive" });
-      return;
-    }
-    if (provider === 'zapi' && (!zapiInstanceId || !zapiToken || !zapiClientToken)) {
-      toast({ title: "Preencha todos os campos Z-API", variant: "destructive" });
-      return;
-    }
-    if (provider === 'evolution' && (!zapiInstanceId || !evolutionApiUrl || !evolutionApiKey)) {
-      toast({ title: "Preencha URL, API Key e selecione a instância", variant: "destructive" });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Não autenticado');
-
-      if (isDefault) {
-        await (supabase as any).from('zapi_instances').update({ is_default: false }).eq('user_id', user.id);
+    if (provider === 'evolution') {
+      if (!instanceName.trim()) {
+        toast({ title: "Nome da instância é obrigatório", variant: "destructive" });
+        return;
+      }
+      if (!evolutionApiUrl.trim() || !evolutionApiKey.trim()) {
+        toast({ title: "Preencha URL e API Key da Evolution", variant: "destructive" });
+        return;
       }
 
-      const { error } = await (supabase as any).from('zapi_instances').insert({
-        user_id: user.id,
-        instance_name: instanceName.trim(),
-        zapi_instance_id: zapiInstanceId.trim(),
-        zapi_token: provider === 'zapi' ? zapiToken.trim() : 'evolution-token',
-        zapi_client_token: provider === 'zapi' ? zapiClientToken.trim() : 'evolution-client',
-        is_default: isDefault,
-        api_provider: provider,
-        evolution_api_url: provider === 'evolution' ? evolutionApiUrl.trim() : null,
-        evolution_api_key: provider === 'evolution' ? evolutionApiKey.trim() : null,
-      });
+      setSaving(true);
+      try {
+        // 1. Create instance on Evolution API server
+        const { data: evoData, error: evoError } = await supabase.functions.invoke('create-evolution-instance', {
+          body: {
+            evolution_api_url: evolutionApiUrl.trim(),
+            evolution_api_key: evolutionApiKey.trim(),
+            instance_name: instanceName.trim().replace(/\s+/g, '-'),
+            phone_number: phoneNumber.replace(/\D/g, ''),
+          },
+        });
 
-      if (error) throw error;
+        if (evoError) throw evoError;
+        if (evoData?.error) throw new Error(evoData.error);
 
-      toast({ title: "✅ Instância criada com sucesso!" });
-      resetForm();
-      onOpenChange(false);
-      onCreated();
-    } catch (err: any) {
-      toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
+        const createdName = evoData?.instanceName || instanceName.trim();
+
+        // 2. Save to database
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Não autenticado');
+
+        if (isDefault) {
+          await (supabase as any).from('zapi_instances').update({ is_default: false }).eq('user_id', user.id);
+        }
+
+        const { error: dbError } = await (supabase as any).from('zapi_instances').insert({
+          user_id: user.id,
+          instance_name: instanceName.trim(),
+          zapi_instance_id: createdName,
+          zapi_token: 'evolution-token',
+          zapi_client_token: 'evolution-client',
+          is_default: isDefault,
+          api_provider: 'evolution',
+          evolution_api_url: evolutionApiUrl.trim(),
+          evolution_api_key: evolutionApiKey.trim(),
+        });
+
+        if (dbError) throw dbError;
+
+        toast({ title: "✅ Instância criada com sucesso!", description: "A instância foi criada no servidor Evolution e salva." });
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      } catch (err: any) {
+        toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // Z-API flow (unchanged)
+      if (!instanceName.trim() || !zapiInstanceId || !zapiToken || !zapiClientToken) {
+        toast({ title: "Preencha todos os campos Z-API", variant: "destructive" });
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Não autenticado');
+
+        if (isDefault) {
+          await (supabase as any).from('zapi_instances').update({ is_default: false }).eq('user_id', user.id);
+        }
+
+        const { error } = await (supabase as any).from('zapi_instances').insert({
+          user_id: user.id,
+          instance_name: instanceName.trim(),
+          zapi_instance_id: zapiInstanceId.trim(),
+          zapi_token: zapiToken.trim(),
+          zapi_client_token: zapiClientToken.trim(),
+          is_default: isDefault,
+          api_provider: 'zapi',
+        });
+
+        if (error) throw error;
+
+        toast({ title: "✅ Instância criada com sucesso!" });
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      } catch (err: any) {
+        toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -693,7 +712,7 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Provedor</Label>
-            <Select value={provider} onValueChange={(v: 'zapi' | 'evolution') => { setProvider(v); setEvoInstances([]); setZapiInstanceId(''); }}>
+            <Select value={provider} onValueChange={(v: 'zapi' | 'evolution') => setProvider(v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="evolution">Evolution API</SelectItem>
@@ -712,38 +731,25 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
                 <Label>API Key Global</Label>
                 <Input placeholder="Sua API Key" value={evolutionApiKey} onChange={(e) => setEvolutionApiKey(e.target.value)} type="password" />
               </div>
-              <Button variant="outline" className="w-full" onClick={fetchEvolutionInstances} disabled={fetchingEvo}>
-                {fetchingEvo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-                Buscar Instâncias
-              </Button>
-              {evoInstances.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Selecione a Instância</Label>
-                  <div className="grid gap-2 max-h-40 overflow-y-auto">
-                    {evoInstances.map((inst, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => selectEvoInstance(inst)}
-                        className={`text-left p-2 rounded-lg border text-sm transition-colors ${
-                          zapiInstanceId === inst.instanceName
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <span className="font-medium">{inst.instanceName}</span>
-                        <Badge variant={inst.status === 'open' ? 'default' : 'secondary'} className="ml-2 text-[10px]">
-                          {inst.status}
-                        </Badge>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Nome da Instância</Label>
+                <Input placeholder="Ex: minha-instancia" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Nome usado para identificar no servidor Evolution (sem espaços)</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Número do Telefone</Label>
+                <Input placeholder="5511999999999" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Número que será conectado (com DDI + DDD)</p>
+              </div>
             </>
           )}
 
           {provider === 'zapi' && (
             <>
+              <div className="space-y-2">
+                <Label>Nome da Instância</Label>
+                <Input placeholder="Ex: WhatsApp Principal" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
+              </div>
               <div className="space-y-2">
                 <Label>Instance ID</Label>
                 <Input placeholder="ID da instância Z-API" value={zapiInstanceId} onChange={(e) => setZapiInstanceId(e.target.value)} />
@@ -759,11 +765,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
             </>
           )}
 
-          <div className="space-y-2">
-            <Label>Nome da Instância</Label>
-            <Input placeholder="Ex: WhatsApp Principal" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
-          </div>
-
           <div className="flex items-center gap-2">
             <input type="checkbox" id="is-default" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="rounded" />
             <Label htmlFor="is-default" className="text-sm cursor-pointer">Definir como instância padrão</Label>
@@ -771,7 +772,7 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
 
           <Button className="w-full" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-            Criar Instância
+            {provider === 'evolution' ? 'Criar Instância no Servidor' : 'Criar Instância'}
           </Button>
         </div>
       </DialogContent>
