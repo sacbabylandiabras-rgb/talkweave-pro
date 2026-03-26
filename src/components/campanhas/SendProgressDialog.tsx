@@ -51,7 +51,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
           ? { clearAllActive: true }
           : sendConfig?.instanceId && sendConfig.instanceId !== '__rotate_all__'
             ? { instanceId: sendConfig.instanceId }
-            : {};
+            : { clearAllActive: true };
         
         // 1. Update status to paused
         const { error } = await supabase
@@ -60,6 +60,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
           .eq('id', campaignId);
         
         if (error) throw error;
+
+        setIsPaused(true);
+        setIsPausing(false);
+        if (onPause) onPause();
         
         // 2. Clear Z-API queue(s) to stop queued messages
         try {
@@ -75,9 +79,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         } catch (queueErr) {
           console.error('Error clearing Z-API queue:', queueErr);
         }
-        
-        setIsPaused(true);
-        if (onPause) onPause();
       } catch (error) {
         console.error('Error pausing campaign:', error);
         setIsPausing(false);
