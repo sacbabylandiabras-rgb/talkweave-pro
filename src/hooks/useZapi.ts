@@ -121,7 +121,7 @@ export const useZapi = () => {
   const { toast } = useToast();
 
   const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
-    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id);
+    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING');
     const explicitError = data?.error || (data?.success === false ? data?.message : null);
 
     if (explicitError) {
@@ -130,57 +130,67 @@ export const useZapi = () => {
 
     if (!hasAck) {
       const safeDetails = typeof data === 'object' ? JSON.stringify(data) : String(data || 'sem detalhes');
-      throw new Error(`${fallbackMessage} A Z-API não confirmou entrega (sem messageId/zaapId). Detalhes: ${safeDetails}`);
+      throw new Error(`${fallbackMessage} O provedor não confirmou entrega. Detalhes: ${safeDetails}`);
     }
+  };
+
+  const invokeSendMessageEdge = async (
+    payload: { phone: string; message?: string; mediaUrl?: string; mediaType?: string },
+    fallbackMessage: string,
+  ) => {
+    const { data, error } = await supabase.functions.invoke('send-message', {
+      body: payload,
+    });
+
+    if (error) {
+      throw new Error(error.message || fallbackMessage);
+    }
+
+    if (data?.error) {
+      throw new Error(data?.message || data?.error || fallbackMessage);
+    }
+
+    return data?.data ?? data;
+  };
+
+  const buildButtonFallbackMessage = (
+    message: string,
+    buttons: Array<{id: string, type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY', label: string, phone?: string, url?: string, copyText?: string}>,
+    title?: string,
+    footer?: string
+  ) => {
+    const lines = buttons.map((btn, index) => {
+      let extra = '';
+      if (btn.type === 'CALL' && btn.phone) extra = `: ${btn.phone}`;
+      if (btn.type === 'URL' && btn.url) extra = `: ${btn.url}`;
+      if (btn.type === 'COPY' && btn.copyText) extra = `: ${btn.copyText}`;
+      return `${index + 1}. ${btn.label}${extra}`;
+    });
+
+    return [title, message, lines.length ? `\nOpções:\n${lines.join('\n')}` : '', footer].filter(Boolean).join('\n\n');
+  };
+
+  const buildOptionListFallbackMessage = (
+    message: string,
+    optionList: {
+      title: string,
+      buttonLabel: string,
+      options: Array<{id: string, title: string, description: string}>
+    }
+  ) => {
+    const lines = optionList.options.map((opt, index) => `${index + 1}. ${opt.title}${opt.description ? ` — ${opt.description}` : ''}`);
+    return [optionList.title, message, lines.length ? `\n${lines.join('\n')}` : ''].filter(Boolean).join('\n\n');
   };
 
   const sendMessage = async (phone: string, message: string) => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
-      console.log('Enviando mensagem para Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: message
-        }),
-      });
-
-      console.log('Resposta Z-API status:', response.status);
-      const data = await response.json();
-      console.log('Dados da resposta:', data);
-
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        // Mensagens específicas para erros comuns
-        if (response.status === 400 && data.error === 'Instance not found') {
-          errorMessage = '❌ Instância Z-API não encontrada! Verifique suas credenciais na página "Config Z-API" no menu lateral.';
-        } else if (response.status === 404) {
-          errorMessage = '❌ Instância não encontrada. Acesse developer.z-api.io e verifique se sua instância está ativa.';
-        } else if (response.status === 401) {
-          errorMessage = '❌ Token inválido. Verifique suas credenciais Z-API.';
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
+      const data = await invokeSendMessageEdge({ phone, message }, 'Erro ao enviar mensagem');
 
       toast({
         title: "Mensagem enviada!",
-        description: "A mensagem foi enviada com sucesso via Z-API.",
+        description: "A mensagem foi enviada com sucesso.",
       });
 
       return data;
@@ -202,6 +212,18 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
+
+      if (config.apiProvider === 'evolution') {
+        const fallbackText = [message, '', 'Botões:', ...buttons.map((btn, index) => `${index + 1}. ${btn.label}`)].join('\n');
+        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar mensagem com botões');
+
+        toast({
+          title: "Mensagem enviada!",
+          description: "Na Evolution API, os botões foram enviados em formato de texto compatível.",
+        });
+
+        return data;
+      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
       
@@ -258,6 +280,18 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
+
+      if (config.apiProvider === 'evolution') {
+        const fallbackText = buildButtonFallbackMessage(message, buttons, title, footer);
+        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar mensagem com botões de ação');
+
+        toast({
+          title: "Mensagem enviada!",
+          description: "Na Evolution API, os botões foram convertidos para texto compatível.",
+        });
+
+        return data;
+      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-actions`;
       
@@ -276,11 +310,9 @@ export const useZapi = () => {
           } else if (btn.type === "URL" && btn.url) {
             buttonData.url = btn.url;
           } else if (btn.type === "COPY" && btn.copyText) {
-            // Para botão COPY, usar a URL especial do WhatsApp
             buttonData.type = "URL";
             buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText)}`;
           }
-          // Para REPLY e OPTION, só precisamos do id, type e label
           
           return buttonData;
         })
@@ -329,30 +361,7 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-image`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          image: image,
-          caption: caption || ''
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar imagem');
-      }
-
-      ensureZapiSendConfirmed(data, '❌ Falha no envio da imagem.');
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: image, mediaType: 'image', message: caption || '' }, 'Erro ao enviar imagem');
 
       toast({
         title: "Imagem enviada!",
@@ -377,31 +386,8 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-document/${extension}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          document: document,
-          filename: filename,
-          caption: caption || ''
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar documento');
-      }
-
-      ensureZapiSendConfirmed(data, '❌ Falha no envio do documento.');
+      const fileLabel = caption?.trim() || filename || `arquivo.${extension}`;
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: document, mediaType: 'document', message: fileLabel }, 'Erro ao enviar documento');
 
       toast({
         title: "Documento enviado!",
@@ -426,30 +412,7 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-video`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          video: video,
-          caption: caption || ''
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar vídeo');
-      }
-
-      ensureZapiSendConfirmed(data, '❌ Falha no envio do vídeo.');
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: video, mediaType: 'video', message: caption || '' }, 'Erro ao enviar vídeo');
 
       toast({
         title: "Vídeo enviado!",
@@ -474,30 +437,7 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-audio`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          audio: audio,
-          caption: caption || ''
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar áudio');
-      }
-
-      ensureZapiSendConfirmed(data, '❌ Falha no envio do áudio.');
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: audio, mediaType: 'audio', message: caption || '' }, 'Erro ao enviar áudio');
 
       toast({
         title: "Áudio enviado!",
@@ -752,6 +692,18 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
+
+      if (config.apiProvider === 'evolution') {
+        const fallbackText = buildOptionListFallbackMessage(message, optionList);
+        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar lista de opções');
+
+        toast({
+          title: "Mensagem enviada!",
+          description: "Na Evolution API, a lista foi convertida para texto compatível.",
+        });
+
+        return data;
+      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
       
