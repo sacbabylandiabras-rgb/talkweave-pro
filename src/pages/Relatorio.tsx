@@ -25,11 +25,17 @@ type ReportSend = {
 
 const getSendTimestamp = (send: Pick<ReportSend, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
+const normalizePhone = (phone?: string | null) => {
+  if (!phone) return '';
+  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
 const buildLatestSendsMap = (sends: ReportSend[]) => {
   const latestMap = new Map<string, ReportSend>();
 
   sends.forEach((send) => {
-    const key = `${send.campaign_id}:${send.phone}`;
+    const phoneKey = normalizePhone(send.phone) || send.phone;
+    const key = `${send.campaign_id}:${phoneKey}`;
     const current = latestMap.get(key);
 
     if (!current || new Date(getSendTimestamp(send)).getTime() >= new Date(getSendTimestamp(current)).getTime()) {
