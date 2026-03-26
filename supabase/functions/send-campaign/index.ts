@@ -323,8 +323,8 @@ serve(async (req) => {
         .eq('id', campaignId)
         .single();
       
-      if (campaignCheck?.status === 'paused') {
-        console.log(`🛑 Campaign ${campaignId} is paused. CANNOT START. User must manually resume.`);
+      if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'completed' || campaignCheck?.status === 'cancelled') {
+        console.log(`🛑 Campaign ${campaignId} has status "${campaignCheck?.status}". Stopping.`);
         return;
       }
       
