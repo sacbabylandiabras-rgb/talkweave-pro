@@ -139,6 +139,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         newStats.pending === 0
       ) {
         setIsComplete(true);
+      }
     };
 
     // Fetch immediately — no delay
