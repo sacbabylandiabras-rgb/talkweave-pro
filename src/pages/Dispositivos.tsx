@@ -46,7 +46,7 @@ const normalizeQrImageValue = (value: unknown) => {
   return trimmed;
 };
 
-const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
+const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
