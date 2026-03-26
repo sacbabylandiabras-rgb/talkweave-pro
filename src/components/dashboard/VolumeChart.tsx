@@ -105,17 +105,16 @@ export function VolumeChart() {
     }
   }, [allSends, dateFrom, dateTo]);
 
-  const loadRawData = async () => {
+  const loadRawData = useCallback(async () => {
     try {
-      const { data: sends, error } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
-      console.log("[VolumeChart] sends loaded:", sends?.length, "error:", error);
+      const { data: sends } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
       setAllSends(sends || []);
     } catch (error) {
       console.error("Error loading chart data:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const toggle = (key: keyof typeof visible) => setVisible((v) => ({ ...v, [key]: !v[key] }));
 
