@@ -45,8 +45,8 @@ export function StatsGrid() {
         const status = (payload.new as any)?.status;
         setStats(prev => ({
           total: prev.total + 1,
-          sent: status === 'sent' ? prev.sent + 1 : prev.sent,
-          delivered: status === 'delivered' ? prev.delivered + 1 : prev.delivered,
+          sent: (status === 'sent' || status === 'delivered') ? prev.sent + 1 : prev.sent,
+          delivered: (status === 'sent' || status === 'delivered') ? prev.delivered + 1 : prev.delivered,
           failed: status === 'failed' ? prev.failed + 1 : prev.failed,
         }));
       })
