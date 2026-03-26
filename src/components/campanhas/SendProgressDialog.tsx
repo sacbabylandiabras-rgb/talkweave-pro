@@ -87,7 +87,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
   useEffect(() => {
     if (!open || !campaignId) {
-      setStats({ total: 0, pending: 0, sent: 0, delivered: 0, failed: 0 });
+      // Only reset completion/pause flags, NOT stats — preserve them for re-opening
       setIsComplete(false);
       setIsPaused(false);
       setIsPausing(false);
@@ -98,10 +98,12 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       const sent = data.filter(s => s.status === 'sent').length;
       const delivered = data.filter(s => s.status === 'delivered').length;
       const failed = data.filter(s => s.status === 'failed').length;
-      const pending = data.filter(s => s.status === 'pending').length;
-      // Use the larger of: totalContacts prop, campaign target_audience count, or actual sends count
+      const dbPending = data.filter(s => s.status === 'pending').length;
       const effectiveTotal = Math.max(totalContacts, campaignTotalContacts, data.length);
-      return { total: effectiveTotal, pending, sent, delivered, failed };
+      // Real pending = total contacts minus those already processed (sent+delivered+failed+dbPending)
+      const processed = sent + delivered + failed + dbPending;
+      const remaining = Math.max(0, effectiveTotal - processed);
+      return { total: effectiveTotal, pending: remaining + dbPending, sent, delivered, failed };
     };
 
     let cachedCampaignTotal = totalContacts;
@@ -115,7 +117,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single()
       ]);
 
-      // Get total from target_audience contacts if available
       const targetContacts = (campaignData?.target_audience as any)?.contacts;
       if (Array.isArray(targetContacts) && targetContacts.length > cachedCampaignTotal) {
         cachedCampaignTotal = targetContacts.length;
@@ -149,29 +150,26 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       }
     };
 
-    // Initial fetch
-    const initialDelay = setTimeout(() => {
-      fetchAndUpdate();
+    // Fetch immediately — no delay
+    fetchAndUpdate();
 
-      const channel = supabase
-        .channel(`progress-${campaignId}-${Date.now()}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
-          fetchAndUpdate();
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` }, (payload) => {
-          const status = (payload.new as any)?.status;
-          if (status === 'completed') setIsComplete(true);
-          if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
-        })
-        .subscribe();
+    const channel = supabase
+      .channel(`progress-${campaignId}-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
+        fetchAndUpdate();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` }, (payload) => {
+        const status = (payload.new as any)?.status;
+        if (status === 'completed') setIsComplete(true);
+        if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
+        if (status === 'active') { setIsPaused(false); setIsComplete(false); }
+      })
+      .subscribe();
 
-      channelRef.current = channel;
-
-      pollingRef.current = setInterval(fetchAndUpdate, 2000);
-    }, 300);
+    channelRef.current = channel;
+    pollingRef.current = setInterval(fetchAndUpdate, 2000);
 
     return () => {
-      clearTimeout(initialDelay);
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
     };
