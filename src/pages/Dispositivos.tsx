@@ -716,14 +716,6 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
           {provider === 'evolution' && (
             <>
               <div className="space-y-2">
-                <Label>URL da Evolution API</Label>
-                <Input placeholder="https://sua-evolution.com" value={evolutionApiUrl} onChange={(e) => setEvolutionApiUrl(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>API Key Global</Label>
-                <Input placeholder="Sua API Key" value={evolutionApiKey} onChange={(e) => setEvolutionApiKey(e.target.value)} type="password" />
-              </div>
-              <div className="space-y-2">
                 <Label>Nome da Instância</Label>
                 <Input placeholder="Ex: minha-instancia" value={instanceName} onChange={(e) => setInstanceName(e.target.value)} />
                 <p className="text-[11px] text-muted-foreground">Nome usado para identificar no servidor Evolution (sem espaços)</p>
