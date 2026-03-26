@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
 import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
@@ -46,7 +46,7 @@ const normalizeQrImageValue = (value: unknown) => {
   return trimmed;
 };
 
-const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
+const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
@@ -465,6 +465,31 @@ const DeviceCard = ({ instance }: { instance: ZapiInstance }) => {
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 text-destructive hover:bg-destructive/10"
+            onClick={async () => {
+              if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
+              try {
+                // Delete from Evolution API if applicable
+                if (instance.api_provider === 'evolution' && instance.evolution_api_url && instance.evolution_api_key) {
+                  const evoUrl = instance.evolution_api_url.replace(/\/$/, '');
+                  try {
+                    await fetch(`${evoUrl}/instance/delete/${encodeURIComponent(instance.zapi_instance_id)}`, {
+                      method: 'DELETE',
+                      headers: { 'apikey': instance.evolution_api_key, 'Content-Type': 'application/json' },
+                    });
+                  } catch {}
+                }
+                // Delete from database
+                const { error } = await supabase.from('zapi_instances').delete().eq('id', instance.id);
+                if (error) throw error;
+                toast({ title: "🗑️ Instância excluída com sucesso" });
+                onDeleted?.();
+              } catch (err: any) {
+                toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+              }
+            }}>
+            <Trash2 className="w-3 h-3 mr-1" /> Excluir
+          </Button>
           {!isConnected && (
             <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
               <Wifi className="w-3 h-3 mr-1" /> Conectar
@@ -805,7 +830,7 @@ const Dispositivos = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {instances.map((instance) => (
-          <DeviceCard key={instance.id} instance={instance} />
+          <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
 
