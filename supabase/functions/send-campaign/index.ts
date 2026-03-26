@@ -360,6 +360,17 @@ serve(async (req) => {
           // TIME GUARD: If approaching timeout, re-invoke with remaining contacts
           const elapsed = Date.now() - startTime;
           if (elapsed > MAX_EXEC_MS) {
+            const { data: timeoutCampaignCheck } = await supabase
+              .from('campaigns')
+              .select('status')
+              .eq('id', campaignId)
+              .single();
+
+            if (timeoutCampaignCheck?.status === 'paused' || timeoutCampaignCheck?.status === 'cancelled' || timeoutCampaignCheck?.status === 'completed') {
+              console.log(`🛑 Campaign ${campaignId} is ${timeoutCampaignCheck?.status} before re-invocation. Not scheduling continuation.`);
+              return;
+            }
+
             const remainingContacts = contacts.slice(i);
             console.log(`⏰ Approaching timeout at contact ${i+1}/${contacts.length} (${Math.round(elapsed/1000)}s). Re-invoking with ${remainingContacts.length} remaining contacts...`);
             
