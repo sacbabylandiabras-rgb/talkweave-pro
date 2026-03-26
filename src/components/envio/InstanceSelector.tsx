@@ -1,37 +1,63 @@
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Smartphone, RefreshCw } from "lucide-react";
+import { Smartphone, RefreshCw, Check } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
+  onMultiInstanceChange?: (instanceIds: string[]) => void;
 }
 
 const ROTATE_ALL = "__rotate_all__";
 
-const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
+const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceSelectorProps) => {
   const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
-  const [selectedValue, setSelectedValue] = useState<string>("");
-  const [userHasChosen, setUserHasChosen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [initialized, setInitialized] = useState(false);
 
-  // Set initial value from activeInstance only if user hasn't manually chosen
+  // Set initial selection from activeInstance (default)
   useEffect(() => {
-    if (!userHasChosen && activeInstance && !selectedValue) {
-      setSelectedValue(activeInstance.id);
+    if (!initialized && activeInstance && instances.length > 0) {
+      setSelectedIds(new Set([activeInstance.id]));
+      setInitialized(true);
     }
-  }, [activeInstance, userHasChosen, selectedValue]);
+  }, [activeInstance, instances, initialized]);
 
-  const handleChange = (value: string) => {
-    setSelectedValue(value);
-    setUserHasChosen(true);
-    if (value === ROTATE_ALL) {
-      onInstanceChange?.(ROTATE_ALL);
-    } else {
-      selectInstance(value);
-      onInstanceChange?.(value);
-    }
+  const toggleInstance = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        // Don't allow deselecting the last one
+        if (next.size <= 1) return prev;
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      // Notify parent
+      const ids = Array.from(next);
+      if (ids.length === instances.length || ids.length > 1) {
+        onInstanceChange?.(ROTATE_ALL);
+        onMultiInstanceChange?.(ids);
+      } else if (ids.length === 1) {
+        const inst = instances.find(i => i.id === ids[0]);
+        if (inst) {
+          selectInstance(ids[0]);
+          onInstanceChange?.(ids[0]);
+          onMultiInstanceChange?.(ids);
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const allIds = new Set(instances.map(i => i.id));
+    setSelectedIds(allIds);
+    onInstanceChange?.(ROTATE_ALL);
+    onMultiInstanceChange?.(Array.from(allIds));
   };
 
   if (loading) {
@@ -61,37 +87,61 @@ const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
     );
   }
 
+  const allSelected = selectedIds.size === instances.length;
+
   return (
     <div className="space-y-2">
       <Label className="flex items-center gap-2">
         <Smartphone className="h-4 w-4" />
         Instância de envio
+        {selectedIds.size > 1 && (
+          <span className="text-xs text-muted-foreground ml-1">
+            ({selectedIds.size} selecionadas — revezamento)
+          </span>
+        )}
       </Label>
-      <Select value={selectedValue} onValueChange={handleChange}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecione a instância" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ROTATE_ALL}>
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-3.5 w-3.5 text-primary" />
-              <span>Todas (revezamento)</span>
-              <span className="text-xs text-muted-foreground">— alterna entre {instances.length} instâncias</span>
-            </div>
-          </SelectItem>
-          <Separator className="my-1" />
-          {instances.map((inst) => (
-            <SelectItem key={inst.id} value={inst.id}>
-              <div className="flex items-center gap-2">
-                <span>{inst.instance_name}</span>
-                {inst.is_default && (
-                  <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Padrão</span>
-                )}
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={selectAll}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+            allSelected
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+          )}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Todas
+        </button>
+        {instances.map((inst) => {
+          const isSelected = selectedIds.has(inst.id);
+          return (
+            <button
+              key={inst.id}
+              type="button"
+              onClick={() => toggleInstance(inst.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+                isSelected
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              {isSelected && <Check className="h-3.5 w-3.5" />}
+              {inst.instance_name}
+              {inst.is_default && (
+                <span className={cn(
+                  "text-[10px] px-1 py-0.5 rounded",
+                  isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
+                )}>
+                  Padrão
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
