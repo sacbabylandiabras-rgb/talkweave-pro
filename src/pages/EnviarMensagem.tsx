@@ -813,20 +813,27 @@ const EnviarMensagem = () => {
 
       <Card>
         <CardContent className="pt-4">
-          <InstanceSelector onInstanceChange={(id) => {
-            if (id === ROTATE_ALL) {
-              setInstanceSelectionMode('rotate');
-              setZapiRotateMode(instances);
-              setSelectedInstanceId(null);
-            } else {
-              const inst = instances.find(i => i.id === id);
-              if (inst) {
-                setInstanceSelectionMode('single');
-                setZapiInstanceOverride(inst);
-                setSelectedInstanceId(id);
+          <InstanceSelector
+            onInstanceChange={(id) => {
+              if (id === ROTATE_ALL) {
+                setInstanceSelectionMode('rotate');
+                setSelectedInstanceId(null);
+              } else {
+                const inst = instances.find(i => i.id === id);
+                if (inst) {
+                  setInstanceSelectionMode('single');
+                  setZapiInstanceOverride(inst);
+                  setSelectedInstanceId(id);
+                }
               }
-            }
-          }} />
+            }}
+            onMultiInstanceChange={(ids) => {
+              if (ids.length > 1) {
+                const selected = instances.filter(i => ids.includes(i.id));
+                setZapiRotateMode(selected);
+              }
+            }}
+          />
         </CardContent>
       </Card>
 
