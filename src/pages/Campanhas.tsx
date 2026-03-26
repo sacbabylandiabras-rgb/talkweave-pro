@@ -69,6 +69,11 @@ const Campanhas = () => {
     statsDialogOpen ? statsDialogCampaignId : null
   );
 
+  const normalizePhoneKey = (phone?: string | null) => {
+    if (!phone) return '';
+    return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+  };
+
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
