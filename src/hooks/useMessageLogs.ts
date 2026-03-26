@@ -181,6 +181,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
+        .in('status', ['sent', 'delivered'])
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -288,13 +289,25 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     const ch2 = supabase
       .channel(`camp-sends-rt-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, (payload) => {
+        const record = payload.new as CampaignSendMessage;
+        const isVisible = record?.status === 'sent' || record?.status === 'delivered';
         if (payload.eventType === 'INSERT') {
+          if (!isVisible) return;
           setCampaignSends(prev => {
-            if (prev.some(s => s.id === (payload.new as any).id)) return prev;
-            return [...prev, payload.new as CampaignSendMessage];
+            if (prev.some(s => s.id === record.id)) return prev;
+            return [...prev, record];
           });
         } else if (payload.eventType === 'UPDATE') {
-          setCampaignSends(prev => prev.map(s => s.id === (payload.new as any).id ? payload.new as CampaignSendMessage : s));
+          if (isVisible) {
+            setCampaignSends(prev => {
+              const exists = prev.some(s => s.id === record.id);
+              if (exists) return prev.map(s => s.id === record.id ? record : s);
+              return [...prev, record];
+            });
+          } else {
+            // Remove if status changed to non-visible (e.g. failed)
+            setCampaignSends(prev => prev.filter(s => s.id !== record.id));
+          }
         }
       })
       .subscribe();
