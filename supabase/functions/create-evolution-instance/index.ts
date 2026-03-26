@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
       integration: "WHATSAPP-BAILEYS",
     };
 
+    // Custom API body format
+    const customBody: any = {
+      instance_name: instance_name,
+    };
+
     if (phone_number) {
       body.number = phone_number.replace(/\D/g, '');
     }
@@ -48,6 +53,7 @@ Deno.serve(async (req) => {
     let lastError = 'Nenhuma tentativa bem sucedida';
     let lastStatus = 500;
 
+    // Strategy 1: Standard Evolution v2 endpoints
     for (const baseUrl of urlCandidates) {
       for (const headers of authHeaders) {
         const url = `${baseUrl}/instance/create`;
@@ -96,6 +102,46 @@ Deno.serve(async (req) => {
           lastError = String(err);
           continue;
         }
+      }
+
+      // Strategy 2: Custom API endpoint (POST /instances/create with Client-Token)
+      try {
+        const customUrl = `${baseUrl}/instances/create`;
+        console.log(`🔧 Trying custom create instance at ${customUrl}`);
+        const res = await fetch(customUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+          body: JSON.stringify(customBody),
+        });
+
+        const parsed = await parseEvolutionResponse(res);
+        console.log(`🔧 Custom create response status=${res.status} body=${parsed.rawText.substring(0, 300)}`);
+
+        if (res.ok) {
+          const instanceData = parsed.data;
+          const createdName = instanceData?.instance_name || instanceData?.instanceName || instanceData?.instance?.instanceName || instance_name;
+          const createdId = instanceData?.instance_id || instanceData?.id || instanceData?.instanceId || createdName;
+
+          return new Response(JSON.stringify({
+            success: true,
+            instanceName: createdName,
+            instanceId: createdId,
+            qrCode: null,
+            apiUrl,
+            apiKey,
+            raw: instanceData,
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (res.status !== 401 && res.status !== 403) {
+          lastError = parsed.data?.message || parsed.data?.detail || parsed.data?.error || `HTTP ${res.status}`;
+          lastStatus = res.status;
+        }
+      } catch (err) {
+        console.log(`🔧 Custom create fetch error: ${err}`);
       }
     }
 

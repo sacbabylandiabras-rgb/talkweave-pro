@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
+import {
+  buildEvolutionUrlCandidates,
+  buildSendTextStrategies,
+  buildSendMediaStrategies,
+  buildSendButtonStrategies,
+  executeStrategies,
+} from "../_shared/evolution.ts";
 
 interface SendCampaignRequest {
   campaignId: string;
@@ -111,7 +118,7 @@ const clearInstanceQueue = async (instance: ResolvedInstance) => {
   });
 };
 
-// Evolution API send helper
+// Evolution API send helper (uses strategy-based fallback)
 const sendViaEvolution = async (
   instance: ResolvedInstance,
   phone: string,
@@ -121,34 +128,42 @@ const sendViaEvolution = async (
     mediaType?: string;
     caption?: string;
     fileName?: string;
+    buttons?: string[];
+    buttonTitle?: string;
+    buttonFooter?: string;
   }
-): Promise<Response> => {
-  const evoBase = (instance.evolutionApiUrl || '').replace(/\/$/, '');
-  const evoHeaders = { 'Content-Type': 'application/json', 'apikey': instance.evolutionApiKey || '' };
-  const evoName = instance.zapiInstanceId;
+): Promise<{ ok: boolean; status: number; data: any }> => {
+  const urlCandidates = buildEvolutionUrlCandidates(instance.evolutionApiUrl || '');
+  const apiKey = instance.evolutionApiKey || '';
+  const instanceName = instance.zapiInstanceId;
 
+  // If buttons are provided, use button strategy
+  if (options.buttons && options.buttons.length > 0) {
+    const result = await executeStrategies(
+      urlCandidates,
+      (cfg) => buildSendButtonStrategies(cfg, phone, options.message || '', options.buttons!, options.buttonTitle, options.buttonFooter),
+      apiKey, [instanceName], '📤🔘',
+    );
+    return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
+  }
+
+  // If media, use media strategy
   if (options.mediaUrl && options.mediaType) {
-    if (options.mediaType === 'audio') {
-      return fetch(`${evoBase}/message/sendWhatsAppAudio/${evoName}`, {
-        method: 'POST', headers: evoHeaders,
-        body: JSON.stringify({ number: phone, audio: options.mediaUrl }),
-      });
-    } else {
-      const mtype = options.mediaType === 'image' ? 'image' : options.mediaType === 'video' ? 'video' : 'document';
-      const body: any = { number: phone, mediatype: mtype, media: options.mediaUrl };
-      if (options.caption) body.caption = options.caption;
-      if (mtype === 'document' && options.fileName) body.fileName = options.fileName;
-      return fetch(`${evoBase}/message/sendMedia/${evoName}`, {
-        method: 'POST', headers: evoHeaders,
-        body: JSON.stringify(body),
-      });
-    }
+    const result = await executeStrategies(
+      urlCandidates,
+      (cfg) => buildSendMediaStrategies(cfg, phone, options.mediaType!, options.mediaUrl!, options.caption, options.fileName),
+      apiKey, [instanceName], '📤📎',
+    );
+    return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
   }
 
-  return fetch(`${evoBase}/message/sendText/${evoName}`, {
-    method: 'POST', headers: evoHeaders,
-    body: JSON.stringify({ number: phone, text: options.message || '' }),
-  });
+  // Text message
+  const result = await executeStrategies(
+    urlCandidates,
+    (cfg) => buildSendTextStrategies(cfg, phone, options.message || ''),
+    apiKey, [instanceName], '📤',
+  );
+  return { ok: result.status >= 200 && result.status < 300, status: result.status, data: result.data };
 };
 
 // Evolution API status check
@@ -596,29 +611,37 @@ serve(async (req) => {
               else if (templateType === 'documento' || templateType === 'arquivo') evoMediaType = 'document';
             }
 
-            const evoResponse = await sendViaEvolution(currentInstance, contact.phone, {
+            // Extract button labels for custom API
+            let buttonLabels: string[] | undefined;
+            let buttonTitle: string | undefined;
+            let buttonFooter: string | undefined;
+            if (hasButtons) {
+              buttonLabels = campaign.template.buttons.map((btn: any) => btn.text || btn.label || btn.title || '');
+              buttonTitle = campaign.template.header || undefined;
+              buttonFooter = campaign.template.footer || undefined;
+            }
+
+            const evoResult = await sendViaEvolution(currentInstance, contact.phone, {
               message: fullMessage,
               mediaUrl: hasMedia ? campaign.template.media_url : undefined,
               mediaType: evoMediaType,
               caption: fullMessage,
               fileName: campaign.template.file_name || 'arquivo',
+              buttons: buttonLabels,
+              buttonTitle,
+              buttonFooter,
             });
 
-            let evoResult: any = {};
-            try {
-              const responseText = await evoResponse.text();
-              console.log(`📥 Evolution Response (${evoResponse.status}):`, responseText);
-              if (responseText && responseText.trim()) evoResult = JSON.parse(responseText);
-            } catch {}
+            console.log(`📥 Evolution Response (${evoResult.status}):`, JSON.stringify(evoResult.data).substring(0, 300));
 
-            if (evoResponse.ok) {
+            if (evoResult.ok) {
               campaignSend.status = 'sent';
               campaignSend.sent_at = new Date().toISOString();
-              results.push({ phone: contact.phone, success: true, messageId: evoResult?.key?.id || 'evo-sent' });
+              results.push({ phone: contact.phone, success: true, messageId: evoResult.data?.key?.id || 'evo-sent' });
               console.log(`✅ [Evolution] Sent to ${contact.phone}`);
             } else {
               campaignSend.status = 'failed';
-              campaignSend.error_message = evoResult?.message || `HTTP ${evoResponse.status}`;
+              campaignSend.error_message = evoResult.data?.message || `HTTP ${evoResult.status}`;
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
               console.error(`❌ [Evolution] Failed for ${contact.phone}:`, campaignSend.error_message);
             }
