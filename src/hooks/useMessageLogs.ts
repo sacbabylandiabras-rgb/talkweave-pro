@@ -224,6 +224,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   }, []);
 
   const fetchAll = useCallback(async () => {
+    await fetchLidMap();
     await Promise.all([fetchMessageLogs(), fetchCampaignSends()]);
     setLoading(false);
   }, [fetchMessageLogs, fetchCampaignSends]);
