@@ -365,6 +365,7 @@ serve(async (req) => {
                   campaignId,
                   contacts: remainingContacts,
                   instanceId: requestedInstanceId,
+                  rotationOffset: (rotationOffset + i) % (rotatePool.length || 1),
                 }),
               });
               const reData = await reResponse.text();
