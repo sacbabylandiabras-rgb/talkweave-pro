@@ -9,16 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Star, StarOff, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { useAdminZapiInstances } from "@/hooks/useZapiInstances";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -37,20 +35,13 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     user?.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined
   );
 
-  // New instance form
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newApiProvider, setNewApiProvider] = useState<'zapi' | 'evolution'>('zapi');
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
-  const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
-  const [newEvolutionKey, setNewEvolutionKey] = useState('');
-  const [selectedEvoInstance, setSelectedEvoInstance] = useState('');
-  const [evolutionInstances, setEvolutionInstances] = useState<Array<{instanceName: string; status: string}>>([]);
-  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
 
-  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance, fetchUserInstances } = useAdminZapiInstances(user?.id);
+  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   useEffect(() => {
     if (user) {
@@ -61,116 +52,43 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
   const handleSave = async () => {
     if (!user) return;
-
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          subscription_status: subscriptionStatus,
-          subscription_expires_at: expiresAt?.toISOString() || null,
-        })
-        .eq("id", user.id);
-
+      const { error } = await supabase.from("profiles").update({
+        subscription_status: subscriptionStatus,
+        subscription_expires_at: expiresAt?.toISOString() || null,
+      }).eq("id", user.id);
       if (error) throw error;
-
-      toast({
-        title: "Usuário atualizado",
-        description: "As informações do usuário foram atualizadas com sucesso.",
-      });
-
+      toast({ title: "Usuário atualizado", description: "As informações do usuário foram atualizadas com sucesso." });
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
-  const fetchEvolutionInstances = async () => {
-    if (!newEvolutionUrl || !newEvolutionKey) {
-      toast({ title: "Preencha URL e API Key primeiro", variant: "destructive" });
-      return;
-    }
-    setLoadingEvoInstances(true);
-    try {
-      const { data: responseData, error } = await supabase.functions.invoke('fetch-evolution-instances', {
-        body: { evolution_api_url: newEvolutionUrl, evolution_api_key: newEvolutionKey },
-      });
-      if (error) throw new Error(error.message || 'Erro ao buscar instâncias');
-      if (responseData?.error) throw new Error(responseData.error);
-      const list = (Array.isArray(responseData) ? responseData : [])
-        .map((item: any) => ({
-          instanceName:
-            item?.instanceName ||
-            item?.instance?.instanceName ||
-            item?.name ||
-            item?.instance?.name ||
-            item?.instanceId ||
-            item?.instance?.id ||
-            item?.id ||
-            '',
-          status: item?.status || item?.instance?.status || item?.connectionStatus || 'unknown',
-        }))
-        .filter((item) => item.instanceName);
-
-      setEvolutionInstances(list);
-      if (list.length === 0) {
-        toast({ title: "Nenhuma instância encontrada no servidor", variant: "destructive" });
-      } else {
-        toast({ title: `✅ ${list.length} instância(s) encontrada(s)` });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar instâncias", description: err.message, variant: "destructive" });
-      setEvolutionInstances([]);
-    } finally {
-      setLoadingEvoInstances(false);
-    }
-  };
-
 
   const handleAddInstance = async () => {
     if (!user) return;
-
-    if (newApiProvider === 'zapi') {
-      if (!newInstanceId || !newToken || !newClientToken) {
-        toast({ title: "Preencha todos os campos da Z-API", variant: "destructive" });
-        return;
-      }
-    } else {
-      if (!newEvolutionUrl || !newEvolutionKey || !selectedEvoInstance) {
-        toast({ title: "Preencha URL Base, API Key Global e ID da Instância", variant: "destructive" });
-        return;
-      }
+    if (!newInstanceId || !newToken || !newClientToken) {
+      toast({ title: "Preencha todos os campos da Z-API", variant: "destructive" });
+      return;
     }
 
-    const evoInstanceName = newApiProvider === 'evolution' ? selectedEvoInstance : '';
-
     const success = await addInstance(user.id, {
-      instance_name: newApiProvider === 'evolution' ? evoInstanceName : (newInstanceName || 'Nova Instância'),
-      zapi_instance_id: newApiProvider === 'zapi' ? newInstanceId : evoInstanceName,
-      zapi_token: newApiProvider === 'zapi' ? newToken : 'evolution',
-      zapi_client_token: newApiProvider === 'zapi' ? newClientToken : 'evolution',
-      api_provider: newApiProvider,
-      evolution_api_url: newApiProvider === 'evolution' ? newEvolutionUrl : undefined,
-      evolution_api_key: newApiProvider === 'evolution' ? newEvolutionKey : undefined,
+      instance_name: newInstanceName || 'Nova Instância',
+      zapi_instance_id: newInstanceId,
+      zapi_token: newToken,
+      zapi_client_token: newClientToken,
     });
 
     if (success) {
       setShowAddForm(false);
-      setNewApiProvider('zapi');
       setNewInstanceName('');
       setNewInstanceId('');
       setNewToken('');
       setNewClientToken('');
-      setNewEvolutionUrl('');
-      setNewEvolutionKey('');
-      setSelectedEvoInstance('');
-      setEvolutionInstances([]);
     }
   };
 
@@ -181,21 +99,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
-          <DialogDescription>
-            Gerenciar assinatura e instâncias Z-API de {user.email}
-          </DialogDescription>
+          <DialogDescription>Gerenciar assinatura e instâncias Z-API de {user.email}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="subscription">Status da Assinatura</Label>
-            <Select 
-              value={subscriptionStatus} 
-              onValueChange={(value) => setSubscriptionStatus(value as 'active' | 'pending' | 'expired' | 'cancelled')}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={subscriptionStatus} onValueChange={(value) => setSubscriptionStatus(value as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Ativo (Pago)</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
@@ -209,162 +120,44 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             <Label>Data de Expiração</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !expiresAt && "text-muted-foreground"
-                  )}
-                >
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !expiresAt && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {expiresAt ? format(expiresAt, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={expiresAt}
-                  onSelect={setExpiresAt}
-                  locale={ptBR}
-                  initialFocus
-                />
+                <Calendar mode="single" selected={expiresAt} onSelect={setExpiresAt} locale={ptBR} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
 
-          {/* Instâncias WhatsApp */}
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/5)</h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowAddForm(!showAddForm)}
-                disabled={instances.length >= 5}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Adicionar
+              <h3 className="font-semibold">Instâncias Z-API ({instances.length}/5)</h3>
+              <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 5}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar
               </Button>
             </div>
 
-            {/* Add form */}
             {showAddForm && (
               <Card className="mb-4">
                 <CardContent className="pt-4 space-y-3">
                   <div className="space-y-2">
-                    <Label>Provedor da API</Label>
-                    <Select value={newApiProvider} onValueChange={(v) => setNewApiProvider(v as 'zapi' | 'evolution')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="zapi">Z-API</SelectItem>
-                        <SelectItem value="evolution">Evolution API</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Nome da Instância</Label>
-                    <Input
-                      value={newInstanceName}
-                      onChange={(e) => setNewInstanceName(e.target.value)}
-                      placeholder="Ex: WhatsApp Vendas"
-                    />
+                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
                   </div>
-
-                  {newApiProvider === 'zapi' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Instance ID *</Label>
-                        <Input
-                          value={newInstanceId}
-                          onChange={(e) => setNewInstanceId(e.target.value)}
-                          placeholder="Ex: 3C12345678"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token *</Label>
-                        <Input
-                          value={newToken}
-                          onChange={(e) => setNewToken(e.target.value)}
-                          placeholder="Token Z-API"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Client Token *</Label>
-                        <Input
-                          value={newClientToken}
-                          onChange={(e) => setNewClientToken(e.target.value)}
-                          placeholder="Client Token Z-API"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>URL Base *</Label>
-                        <Input
-                          value={newEvolutionUrl}
-                          onChange={(e) => setNewEvolutionUrl(e.target.value)}
-                          placeholder="http://seu-servidor:8080"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>API Key Global *</Label>
-                        <Input
-                          value={newEvolutionKey}
-                          onChange={(e) => setNewEvolutionKey(e.target.value)}
-                          placeholder="API Key global do servidor Evolution"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={fetchEvolutionInstances}
-                        disabled={loadingEvoInstances || !newEvolutionUrl || !newEvolutionKey}
-                        className="w-full"
-                      >
-                        <RefreshCw className={`w-3 h-3 mr-1 ${loadingEvoInstances ? 'animate-spin' : ''}`} />
-                        Buscar Instâncias do Servidor
-                      </Button>
-                      {evolutionInstances.length > 0 && (
-                        <div className="space-y-2">
-                          <Label>Selecionar Instância</Label>
-                          <Select value={selectedEvoInstance} onValueChange={setSelectedEvoInstance}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma instância" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {evolutionInstances.map((inst) => (
-                                <SelectItem key={inst.instanceName} value={inst.instanceName}>
-                                  <div className="flex items-center gap-2">
-                                    {inst.status === 'open' ? (
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                    ) : (
-                                      <XCircle className="w-3 h-3 text-red-500" />
-                                    )}
-                                    {inst.instanceName}
-                                    <span className="text-xs text-muted-foreground">({inst.status})</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <Label>Ou digite o ID manualmente</Label>
-                        <Input
-                          value={selectedEvoInstance}
-                          onChange={(e) => setSelectedEvoInstance(e.target.value)}
-                          placeholder="Nome/ID da instância na Evolution"
-                        />
-                      </div>
-                    </>
-                  )}
-
+                  <div className="space-y-2">
+                    <Label>Instance ID *</Label>
+                    <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="Ex: 3C12345678" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Token *</Label>
+                    <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token Z-API" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Client Token *</Label>
+                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token Z-API" />
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
                     <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
@@ -373,7 +166,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </Card>
             )}
 
-            {/* Instances list */}
             {instances.length === 0 && !showAddForm && (
               <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>
             )}
@@ -388,38 +180,18 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
                           {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
                           {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
-                          <Badge variant="outline" className="text-xs">
-                            {inst.api_provider === 'evolution' ? 'Evolution' : 'Z-API'}
-                          </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {inst.api_provider === 'evolution'
-                            ? `URL: ${inst.evolution_api_url || '-'}`
-                            : `ID: ${inst.zapi_instance_id}`
-                          }
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
                       </div>
                       <div className="flex items-center gap-1">
                         {!inst.is_default && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Definir como padrão"
-                            onClick={() => updateInstance(inst.id, user.id, { is_default: true })}
-                          >
+                          <Button size="sm" variant="ghost" title="Definir como padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                             <Star className="w-3 h-3" />
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title="Remover instância"
-                          onClick={() => {
-                            if (confirm('Remover esta instância?')) {
-                              deleteInstance(inst.id, user.id);
-                            }
-                          }}
-                        >
+                        <Button size="sm" variant="ghost" title="Remover instância" onClick={() => {
+                          if (confirm('Remover esta instância?')) deleteInstance(inst.id, user.id);
+                        }}>
                           <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                       </div>
@@ -429,15 +201,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               ))}
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Salvando..." : "Salvar"}
-          </Button>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={loading}>{loading ? "Salvando..." : "Salvar"}</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
