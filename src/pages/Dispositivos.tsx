@@ -287,9 +287,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   useEffect(() => {
     fetchDeviceStatus();
-    const statusInterval = setInterval(fetchDeviceStatus, 10000);
+    // Poll faster when connect dialog is open
+    const interval = showConnect ? 3000 : 10000;
+    const statusInterval = setInterval(fetchDeviceStatus, interval);
     return () => clearInterval(statusInterval);
-  }, [instance.id]);
+  }, [instance.id, showConnect]);
 
   // Fetch phone when connected
   useEffect(() => {
@@ -304,6 +306,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     
     if (prevConnected === false && isConnectedNow && !hasSynced) {
       setHasSynced(true);
+      // Auto-close connect dialog
+      if (showConnect) {
+        setShowConnect(false);
+        toast({ title: "✅ WhatsApp conectado!" });
+      }
       setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
