@@ -67,7 +67,7 @@ const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
         <Smartphone className="h-4 w-4" />
         Instância de envio
       </Label>
-      <Select defaultValue={activeInstance?.id || ""} onValueChange={handleChange}>
+      <Select value={selectedValue} onValueChange={handleChange}>
         <SelectTrigger>
           <SelectValue placeholder="Selecione a instância" />
         </SelectTrigger>
