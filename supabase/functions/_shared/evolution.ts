@@ -313,6 +313,7 @@ export const executeStrategies = async (
   instanceCandidates: string[],
   logPrefix: string,
   validateSuccess?: (data: any) => boolean,
+  options?: { clientToken?: string; timeoutMs?: number },
 ): Promise<{ data: any; rawText: string; status: number; strategy: string }> => {
   let lastPayload: any = null;
   let lastRawText = '';
@@ -323,7 +324,12 @@ export const executeStrategies = async (
 
   for (const candidateUrl of urlCandidates) {
     for (const instanceName of instanceCandidates) {
-      const strategies = buildStrategies({ baseUrl: candidateUrl, apiKey, instanceName });
+      const strategies = buildStrategies({
+        baseUrl: candidateUrl,
+        apiKey,
+        clientToken: options?.clientToken,
+        instanceName,
+      });
 
       for (const strategy of strategies) {
         console.log(`${logPrefix} Trying ${strategy.label} with instance '${instanceName}': ${strategy.url}`);
@@ -332,6 +338,7 @@ export const executeStrategies = async (
           const fetchOpts: RequestInit = {
             method: strategy.method,
             headers: strategy.headers,
+            signal: AbortSignal.timeout(options?.timeoutMs ?? 8000),
           };
           if (strategy.body) fetchOpts.body = strategy.body;
 
@@ -347,7 +354,6 @@ export const executeStrategies = async (
 
           if (response.ok) {
             const result = { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
-            // If there's a validator, only return if it passes; otherwise save as fallback
             if (validateSuccess) {
               if (validateSuccess(lastPayload)) {
                 return result;
@@ -370,8 +376,10 @@ export const executeStrategies = async (
 
           return { data: lastPayload, rawText: lastRawText, status: lastStatus, strategy: lastStrategy };
         } catch (err) {
-          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${err}`);
-          lastRawText = String(err);
+          lastRawText = err instanceof Error ? err.message : String(err);
+          lastStatus = 504;
+          lastStrategy = `${strategy.label}:${instanceName}`;
+          console.log(`${logPrefix} ${strategy.label} instance='${instanceName}' fetch error: ${lastRawText}`);
           continue;
         }
       }
