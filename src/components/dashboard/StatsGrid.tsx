@@ -54,10 +54,12 @@ export function StatsGrid() {
         const oldStatus = (payload.old as any)?.status;
         const newStatus = (payload.new as any)?.status;
         if (oldStatus === newStatus) return;
+        const wasSentOrDelivered = oldStatus === 'sent' || oldStatus === 'delivered';
+        const isSentOrDelivered = newStatus === 'sent' || newStatus === 'delivered';
         setStats(prev => ({
           total: prev.total,
-          sent: prev.sent + (newStatus === 'sent' ? 1 : 0) - (oldStatus === 'sent' ? 1 : 0),
-          delivered: prev.delivered + (newStatus === 'delivered' ? 1 : 0) - (oldStatus === 'delivered' ? 1 : 0),
+          sent: prev.sent + (isSentOrDelivered ? 1 : 0) - (wasSentOrDelivered ? 1 : 0),
+          delivered: prev.delivered + (isSentOrDelivered ? 1 : 0) - (wasSentOrDelivered ? 1 : 0),
           failed: prev.failed + (newStatus === 'failed' ? 1 : 0) - (oldStatus === 'failed' ? 1 : 0),
         }));
       })
