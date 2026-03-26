@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-import {
-  buildEvolutionUrlCandidates,
-  buildSendTextStrategies,
-  buildSendMediaStrategies,
-  executeStrategies,
-} from "../_shared/evolution.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,17 +28,12 @@ serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
 
-    // Determine if we're using Evolution API
-    let useEvolution = credentials.apiProvider === 'evolution';
-    let evolutionApiUrl = credentials.evolutionApiUrl;
-    let evolutionApiKey = credentials.evolutionApiKey;
-
     // If a specific instanceId was requested, look it up
     if (requestedInstanceId && requestedInstanceId !== instanceId) {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: reqInstance } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .select('zapi_instance_id, zapi_token, zapi_client_token')
         .eq('zapi_instance_id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -55,9 +44,6 @@ serve(async (req) => {
         instanceId = reqInstance.zapi_instance_id;
         token = reqInstance.zapi_token;
         clientToken = reqInstance.zapi_client_token;
-        useEvolution = reqInstance.api_provider === 'evolution';
-        evolutionApiUrl = reqInstance.evolution_api_url || undefined;
-        evolutionApiKey = reqInstance.evolution_api_key || undefined;
       }
     }
 
@@ -67,7 +53,6 @@ serve(async (req) => {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       
-      // Look up LID → clean phone mapping
       const { data: mapping } = await adminClient
         .from('message_logs')
         .select('phone, instance_id')
@@ -81,11 +66,10 @@ serve(async (req) => {
         console.log(`✅ Resolved LID: ${phone} → ${mapping.phone}`);
         resolvedPhone = mapping.phone;
         
-        // Also use the correct instance for this LID
         if (mapping.instance_id) {
           const { data: lidInstance } = await adminClient
             .from('zapi_instances')
-            .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+            .select('zapi_instance_id, zapi_token, zapi_client_token')
             .eq('zapi_instance_id', mapping.instance_id)
             .eq('user_id', credentials.userId)
             .eq('is_active', true)
@@ -96,9 +80,6 @@ serve(async (req) => {
             instanceId = lidInstance.zapi_instance_id;
             token = lidInstance.zapi_token;
             clientToken = lidInstance.zapi_client_token;
-            useEvolution = lidInstance.api_provider === 'evolution';
-            evolutionApiUrl = lidInstance.evolution_api_url || undefined;
-            evolutionApiKey = lidInstance.evolution_api_key || undefined;
           }
         }
       } else {
@@ -108,131 +89,44 @@ serve(async (req) => {
 
     let zapiResponse: Response;
     let logMessage = message || '';
+    const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
-    if (useEvolution && evolutionApiUrl && evolutionApiKey) {
-      // ========== EVOLUTION API (configured endpoint only) ==========
-      const urlCandidates = buildEvolutionUrlCandidates(evolutionApiUrl, { includeAltPort: false });
-      const evoInstanceName = instanceId;
-
-      console.log(`📤 Sending via Evolution API: ${evoInstanceName} | URLs: ${urlCandidates.join(', ')}`);
-
-      // Pre-check: verify instance is connected before sending (avoids hanging)
-      try {
-        const statusUrl = `${urlCandidates[0]}/instance/connectionState/${encodeURIComponent(evoInstanceName)}`;
-        const statusRes = await fetch(statusUrl, {
-          headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-          signal: AbortSignal.timeout(5000),
-        });
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          const state = statusData?.instance?.state || statusData?.state || '';
-          console.log(`📋 Instance ${evoInstanceName} state: ${state}`);
-          if (state === 'close' || state === 'closed' || state === 'disconnected') {
-            return new Response(
-              JSON.stringify({
-                error: 'Instância desconectada',
-                message: `A instância "${evoInstanceName}" está desconectada. Reconecte o dispositivo na página de Dispositivos antes de enviar.`,
-              }),
-              { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-        }
-      } catch (statusErr) {
-        console.log(`⚠️ Could not check instance status: ${statusErr instanceof Error ? statusErr.message : String(statusErr)}`);
-      }
-
-      try {
-        let result;
-        if (mediaUrl && mediaType) {
-          logMessage = logMessage || (mediaType === 'audio' ? '🎤 Áudio' : mediaType === 'image' ? '📷 Imagem' : mediaType === 'video' ? '🎥 Vídeo' : '📎 Arquivo');
-          result = await executeStrategies(
-            urlCandidates,
-            (cfg) => buildSendMediaStrategies(cfg, resolvedPhone, mediaType, mediaUrl, message || '', message || 'arquivo'),
-            evolutionApiKey,
-            [evoInstanceName],
-            '📤',
-            undefined,
-            { clientToken, timeoutMs: 8000 },
-          );
-        } else {
-          result = await executeStrategies(
-            urlCandidates,
-            (cfg) => buildSendTextStrategies(cfg, resolvedPhone, message),
-            evolutionApiKey,
-            [evoInstanceName],
-            '📤',
-            undefined,
-            { clientToken, timeoutMs: 8000 },
-          );
-        }
-
-        console.log(`📥 Evolution result (${result.status}): ${result.rawText.substring(0, 500)}`);
-
-        if (result.status === 504) {
-          return new Response(
-            JSON.stringify({
-              error: 'Evolution API timeout',
-              message: `O endpoint de envio da Evolution não respondeu em ${urlCandidates[0]}. Verifique o servidor/instância ${evoInstanceName}.`,
-              details: result.rawText,
-              strategy: result.strategy,
-            }),
-            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Create a synthetic Response-like object for downstream code
-        zapiResponse = new Response(JSON.stringify(result.data), {
-          status: result.status,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (fetchError) {
-        console.error(`❌ Evolution fetch failed: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
-        return new Response(
-          JSON.stringify({ error: 'Evolution API connection failed', message: fetchError instanceof Error ? fetchError.message : 'Network error' }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } else {
-      // ========== Z-API ==========
-      const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
-
-      if (mediaUrl && mediaType) {
-        if (mediaType === 'audio') {
-          zapiResponse = await fetch(`${baseUrl}/send-audio`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
-          });
-          logMessage = logMessage || '🎤 Áudio';
-        } else if (mediaType === 'image') {
-          zapiResponse = await fetch(`${baseUrl}/send-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
-          });
-          logMessage = logMessage || '📷 Imagem';
-        } else if (mediaType === 'video') {
-          zapiResponse = await fetch(`${baseUrl}/send-video`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
-          });
-          logMessage = logMessage || '🎥 Vídeo';
-        } else {
-          zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
-          });
-          logMessage = logMessage || '📎 Arquivo';
-        }
-      } else {
-        zapiResponse = await fetch(`${baseUrl}/send-text`, {
+    if (mediaUrl && mediaType) {
+      if (mediaType === 'audio') {
+        zapiResponse = await fetch(`${baseUrl}/send-audio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, message }),
+          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
         });
+        logMessage = logMessage || '🎤 Áudio';
+      } else if (mediaType === 'image') {
+        zapiResponse = await fetch(`${baseUrl}/send-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
+        });
+        logMessage = logMessage || '📷 Imagem';
+      } else if (mediaType === 'video') {
+        zapiResponse = await fetch(`${baseUrl}/send-video`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
+        });
+        logMessage = logMessage || '🎥 Vídeo';
+      } else {
+        zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+        });
+        logMessage = logMessage || '📎 Arquivo';
       }
+    } else {
+      zapiResponse = await fetch(`${baseUrl}/send-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({ phone: resolvedPhone, message }),
+      });
     }
 
     const zapiData = await zapiResponse.json()
@@ -244,7 +138,7 @@ serve(async (req) => {
       )
     }
 
-    // Log the sent message with resolved phone
+    // Log the sent message
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     let logContent = message || '';

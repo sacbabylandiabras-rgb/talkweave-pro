@@ -36,56 +36,39 @@ export const getSelectedCampaignInstanceId = (): string | undefined => {
 
 
 const getZAPIConfig = async () => {
-  // Se há modo revezamento ativo, ciclar entre instâncias
   if (_rotateInstances.length > 0) {
     const inst = _rotateInstances[_rotateIndex % _rotateInstances.length];
     _rotateIndex++;
-    console.log(`🔄 Usando instância em revezamento: ${inst.instance_name} (${inst.zapi_instance_id})`);
     return {
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
       clientToken: inst.zapi_client_token,
-      apiProvider: inst.api_provider || 'zapi',
-      evolutionApiUrl: inst.evolution_api_url || null,
-      evolutionApiKey: inst.evolution_api_key || null,
     };
   }
 
-  // Se há override de instância, usar ela
   if (_instanceOverride) {
-    console.log(`📌 Usando instância override: ${_instanceOverride.instance_name} (${_instanceOverride.zapi_instance_id})`);
     return {
       instanceId: _instanceOverride.zapi_instance_id,
       token: _instanceOverride.zapi_token,
       clientToken: _instanceOverride.zapi_client_token,
-      apiProvider: _instanceOverride.api_provider || 'zapi',
-      evolutionApiUrl: _instanceOverride.evolution_api_url || null,
-      evolutionApiKey: _instanceOverride.evolution_api_key || null,
     };
   }
 
   const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Usuário não autenticado. Faça login para continuar.');
-  }
+  if (!user) throw new Error('Usuário não autenticado. Faça login para continuar.');
 
-  // Buscar instância padrão da nova tabela
   const { data: instances, error } = await (supabase as any)
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+    .select('zapi_instance_id, zapi_token, zapi_client_token')
     .eq('user_id', user.id)
     .eq('is_default', true)
     .limit(1);
 
-  if (error) {
-    throw new Error('Erro ao buscar credenciais: ' + error.message);
-  }
+  if (error) throw new Error('Erro ao buscar credenciais: ' + error.message);
 
   const instance = instances?.[0];
 
   if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
-    // Fallback: tentar profiles (compatibilidade)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('zapi_instance_id, zapi_token, zapi_client_token')
@@ -100,9 +83,6 @@ const getZAPIConfig = async () => {
       instanceId: profile.zapi_instance_id,
       token: profile.zapi_token,
       clientToken: profile.zapi_client_token,
-      apiProvider: 'zapi',
-      evolutionApiUrl: null,
-      evolutionApiKey: null,
     };
   }
 
@@ -110,9 +90,6 @@ const getZAPIConfig = async () => {
     instanceId: instance.zapi_instance_id,
     token: instance.zapi_token,
     clientToken: instance.zapi_client_token,
-    apiProvider: instance.api_provider || 'zapi',
-    evolutionApiUrl: instance.evolution_api_url || null,
-    evolutionApiKey: instance.evolution_api_key || null,
   };
 };
 
@@ -223,18 +200,6 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
-
-      if (config.apiProvider === 'evolution') {
-        const fallbackText = [message, '', 'Botões:', ...buttons.map((btn, index) => `${index + 1}. ${btn.label}`)].join('\n');
-        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar mensagem com botões');
-
-        toast({
-          title: "Mensagem enviada!",
-          description: "Na Evolution API, os botões foram enviados em formato de texto compatível.",
-        });
-
-        return data;
-      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
       
@@ -291,18 +256,6 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
-
-      if (config.apiProvider === 'evolution') {
-        const fallbackText = buildButtonFallbackMessage(message, buttons, title, footer);
-        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar mensagem com botões de ação');
-
-        toast({
-          title: "Mensagem enviada!",
-          description: "Na Evolution API, os botões foram convertidos para texto compatível.",
-        });
-
-        return data;
-      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-actions`;
       
