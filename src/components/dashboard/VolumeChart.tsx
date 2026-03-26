@@ -48,6 +48,17 @@ export function VolumeChart() {
     if (!dateFrom || selected < dateFrom) setDateFrom(selected);
   };
 
+  const loadRawData = useCallback(async () => {
+    try {
+      const { data: sends } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
+      setAllSends(sends || []);
+    } catch (error) {
+      console.error("Error loading chart data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -55,7 +66,6 @@ export function VolumeChart() {
     };
     init();
 
-    // Realtime: refresh when campaign_sends change
     const channel = supabase
       .channel('volume-chart-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadRawData())
