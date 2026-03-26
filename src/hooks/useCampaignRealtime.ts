@@ -74,24 +74,43 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const fetchSends = useCallback(async () => {
     if (!campaignId || !sessionReady) return;
 
-    const { data, error } = await supabase
-      .from('campaign_sends')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: true }) as { data: CampaignSendRecord[] | null; error: any };
+    let allData: CampaignSendRecord[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    let hasMore = true;
 
-    if (error) {
-      console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
-      setLoading(false);
-      return;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('campaign_sends')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: true })
+        .range(from, from + batchSize - 1) as { data: CampaignSendRecord[] | null; error: any };
+
+      if (error) {
+        console.error('[useCampaignSendsRealtime] Error fetching sends:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        hasMore = false;
+        break;
+      }
+
+      allData = [...allData, ...data];
+      if (data.length < batchSize) {
+        hasMore = false;
+      } else {
+        from += batchSize;
+      }
     }
 
-    if (data) {
-      // Only update state if data actually changed
-      const dataKey = JSON.stringify(data.map(d => `${d.id}:${d.status}`));
+    if (allData) {
+      const dataKey = `${allData.length}:${allData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
-        setSends(data);
+        setSends(allData);
       }
     }
 
