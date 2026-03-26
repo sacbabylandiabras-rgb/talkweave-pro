@@ -268,7 +268,9 @@ export const useCampaigns = () => {
       return { instanceId: sendConfig.instanceId };
     }
 
-    return {};
+    // Fallback seguro para campanhas antigas ou envios sem metadata persistida:
+    // limpa todas as filas ativas para evitar disparos fantasmas na instância errada.
+    return { clearAllActive: true };
   };
 
   const sendCampaign = async (
