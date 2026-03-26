@@ -196,6 +196,26 @@ const Campanhas = () => {
     await duplicateCampaign(campaign);
   };
 
+  const handleForceStopQueue = async (campaignId: string) => {
+    try {
+      const { data: sessionData } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
+        return;
+      }
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.functions.invoke('clear-zapi-queue', {
+        headers: { Authorization: `Bearer ${token}` },
+        body: { clearAllActive: true },
+      });
+      toast({ title: "Fila limpa", description: "Filas de todas as instâncias foram limpas com sucesso." });
+    } catch (error) {
+      console.error('Error clearing queue:', error);
+      toast({ title: "Erro", description: "Erro ao limpar fila da Z-API", variant: "destructive" });
+    }
+  };
+
   const handleCancelCampaign = async () => {
     if (campaignToCancel) {
       await cancelCampaign(campaignToCancel);
