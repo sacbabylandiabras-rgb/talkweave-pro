@@ -97,6 +97,45 @@ const normalizePhoneCandidate = (value: unknown) => {
     .replace(/\D/g, '')
 }
 
+const resolveWebhookPhone = (webhook: any) => {
+  const rawPhone = String(webhook?.phone || '')
+  const participantPhone = String(webhook?.participantPhone || '')
+  const senderPhone = String(webhook?.senderPhone || '')
+  const chatPhone = String(webhook?.chatPhone || '')
+  const chatLid = String(webhook?.chatLid || '')
+  const isGroupMessage = webhook?.isGroup === true
+
+  if (isGroupMessage) {
+    if (rawPhone.includes('@g.us')) return rawPhone.replace('@g.us', '-group')
+    if (rawPhone.includes('-group')) return rawPhone
+    return rawPhone ? `${rawPhone}-group` : ''
+  }
+
+  if (senderPhone && !senderPhone.includes('@lid')) return senderPhone
+  if (participantPhone && !participantPhone.includes('@lid')) return participantPhone
+  if (chatPhone && !chatPhone.includes('@lid')) return chatPhone
+  if (rawPhone && !rawPhone.includes('@lid')) return rawPhone
+
+  return rawPhone || participantPhone || chatLid || ''
+}
+
+const mapCampaignSendStatusFromWebhook = (webhook: any): 'sent' | 'delivered' | null => {
+  const webhookType = String(webhook?.type || '')
+  const webhookStatus = String(webhook?.status || '').toUpperCase()
+
+  if (webhookType === 'DeliveryCallback') return 'delivered'
+  if (webhookType === 'MessageStatusCallback') {
+    if (webhookStatus === 'SENT') return 'sent'
+    if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
+  }
+  if (webhookType === 'ReceivedCallback' && webhook?.fromMe === true) {
+    if (webhookStatus === 'SENT') return 'sent'
+    if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
+  }
+
+  return null
+}
+
 const isAdminParticipant = (participant: any) => {
   const adminRole = String(participant?.admin || participant?.role || '').toLowerCase()
   return Boolean(
