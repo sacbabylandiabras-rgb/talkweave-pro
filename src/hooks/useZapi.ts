@@ -135,11 +135,22 @@ export const useZapi = () => {
   };
 
   const invokeSendMessageEdge = async (
-    payload: { phone: string; message?: string; mediaUrl?: string; mediaType?: string },
+    payload: { phone: string; message?: string; mediaUrl?: string; mediaType?: string; instanceId?: string },
     fallbackMessage: string,
   ) => {
+    // If no instanceId in payload, try to get from current config
+    let body = { ...payload };
+    if (!body.instanceId) {
+      try {
+        const config = await getZAPIConfig();
+        body.instanceId = config.instanceId;
+      } catch (e) {
+        // Let edge function use default
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke('send-message', {
-      body: payload,
+      body,
     });
 
     if (error) {

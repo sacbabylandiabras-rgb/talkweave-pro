@@ -16,7 +16,7 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
-    const { phone, message, mediaUrl, mediaType } = await req.json()
+    const { phone, message, mediaUrl, mediaType, instanceId: requestedInstanceId } = await req.json()
 
     if (!phone || (!message && !mediaUrl)) {
       return new Response(
@@ -32,6 +32,28 @@ serve(async (req) => {
     let useEvolution = credentials.apiProvider === 'evolution';
     let evolutionApiUrl = credentials.evolutionApiUrl;
     let evolutionApiKey = credentials.evolutionApiKey;
+
+    // If a specific instanceId was requested, look it up
+    if (requestedInstanceId && requestedInstanceId !== instanceId) {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: reqInstance } = await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .eq('zapi_instance_id', requestedInstanceId)
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (reqInstance) {
+        console.log(`📌 Using requested instance: ${requestedInstanceId}`);
+        instanceId = reqInstance.zapi_instance_id;
+        token = reqInstance.zapi_token;
+        clientToken = reqInstance.zapi_client_token;
+        useEvolution = reqInstance.api_provider === 'evolution';
+        evolutionApiUrl = reqInstance.evolution_api_url || undefined;
+        evolutionApiKey = reqInstance.evolution_api_key || undefined;
+      }
+    }
 
     // If phone is @lid format, resolve to clean phone using LID mapping
     let resolvedPhone = phone;
