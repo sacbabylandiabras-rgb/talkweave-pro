@@ -1,8 +1,75 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { corsHeaders } from "../_shared/cors.ts";
+import {
+  buildEvolutionUrlCandidates,
+  executeStrategies,
+  getEvolutionErrorMessage,
+} from "../_shared/evolution.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+const buildFetchInstancesStrategies = (baseUrl: string, apiKey: string) => [
+  {
+    url: `${baseUrl}/instance/fetchInstances`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', apikey: apiKey },
+    label: 'evo-v2-fetchInstances',
+  },
+  {
+    url: `${baseUrl}/instance/fetchInstances`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+    label: 'client-token-fetchInstances',
+  },
+  {
+    url: `${baseUrl}/instance/fetchInstances`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    label: 'bearer-fetchInstances',
+  },
+  {
+    url: `${baseUrl}/instance/fetchInstances`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', Authorization: apiKey },
+    label: 'raw-auth-fetchInstances',
+  },
+  {
+    url: `${baseUrl}/instances`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+    label: 'custom-list-instances',
+  },
+];
+
+const normalizeInstances = (payload: any) => {
+  const rawList =
+    (Array.isArray(payload) && payload) ||
+    (Array.isArray(payload?.instances) && payload.instances) ||
+    (Array.isArray(payload?.data) && payload.data) ||
+    (Array.isArray(payload?.response) && payload.response) ||
+    (payload && typeof payload === 'object' && (
+      payload.instanceName ||
+      payload.instance?.instanceName ||
+      payload.name ||
+      payload.id ||
+      payload.instance?.id
+    ) ? [payload] : []);
+
+  return rawList.map((item: any) => ({
+    raw: item,
+    instanceName:
+      item?.instance?.instanceName ||
+      item?.instanceName ||
+      item?.instance?.name ||
+      item?.name ||
+      item?.instance?.id ||
+      item?.instanceId ||
+      item?.id ||
+      '',
+    status:
+      item?.instance?.status ||
+      item?.status ||
+      item?.connectionStatus ||
+      item?.instance?.state ||
+      'unknown',
+  }));
 };
 
 Deno.serve(async (req) => {
@@ -20,59 +87,37 @@ Deno.serve(async (req) => {
       });
     }
 
-    const baseUrl = evolution_api_url.replace(/\/$/, '');
-    
-    // Try multiple auth header formats for different Evolution API versions
-    const authAttempts = [
-      { 'apikey': evolution_api_key, 'Content-Type': 'application/json' },
-      { 'Authorization': `Bearer ${evolution_api_key}`, 'Content-Type': 'application/json' },
-      { 'Authorization': `${evolution_api_key}`, 'Content-Type': 'application/json' },
-      { 'Client-Token': evolution_api_key, 'Content-Type': 'application/json' },
-    ];
+    const urlCandidates = buildEvolutionUrlCandidates(evolution_api_url);
+    const result = await executeStrategies(
+      urlCandidates,
+      (cfg) => buildFetchInstancesStrategies(cfg.baseUrl, cfg.apiKey),
+      evolution_api_key,
+      ['list'],
+      '📲',
+    );
 
-    let res: Response | null = null;
-    for (const headers of authAttempts) {
-      try {
-        res = await fetch(`${baseUrl}/instance/fetchInstances`, { headers });
-        if (res.ok) break;
-        // If 401/403, try next auth method
-        if (res.status === 401 || res.status === 403) continue;
-        break; // Other errors, stop trying
-      } catch { continue; }
-    }
-
-    if (!res || !res.ok) {
-      const errData = res ? await res.json().catch(() => ({})) : {};
-      return new Response(JSON.stringify({ error: errData?.message || `Servidor Evolution retornou HTTP ${res?.status || 'unknown'}. Verifique a API Key.` }), {
+    if (result.status < 200 || result.status >= 300) {
+      return new Response(JSON.stringify({
+        error: getEvolutionErrorMessage(
+          result.data,
+          result.status,
+          `Servidor Evolution retornou HTTP ${result.status}`,
+        ),
+        strategy: result.strategy,
+      }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const data = await res.json();
-    const normalized = (Array.isArray(data) ? data : []).map((item: any) => ({
-      raw: item,
-      instanceName:
-        item?.instance?.instanceName ||
-        item?.instanceName ||
-        item?.instance?.name ||
-        item?.name ||
-        item?.instance?.id ||
-        item?.instanceId ||
-        item?.id ||
-        '',
-      status:
-        item?.instance?.status ||
-        item?.status ||
-        item?.connectionStatus ||
-        'unknown',
-    }));
+    const normalized = normalizeInstances(result.data);
 
     return new Response(JSON.stringify(normalized), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Erro interno' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
