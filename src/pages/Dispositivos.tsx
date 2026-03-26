@@ -287,9 +287,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   useEffect(() => {
     fetchDeviceStatus();
-    const statusInterval = setInterval(fetchDeviceStatus, 10000);
+    // Poll faster when connect dialog is open
+    const interval = showConnect ? 3000 : 10000;
+    const statusInterval = setInterval(fetchDeviceStatus, interval);
     return () => clearInterval(statusInterval);
-  }, [instance.id]);
+  }, [instance.id, showConnect]);
 
   // Fetch phone when connected
   useEffect(() => {
