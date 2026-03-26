@@ -112,7 +112,7 @@ const Relatorio = () => {
     totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: latestAllSends.length + globalNotProcessed,
-    totalContacts: new Set(latestAllSends.map(s => s.phone)).size,
+    totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
     deliveryRate: (latestAllSends.length + globalNotProcessed) > 0
       ? (countSuccessfulStatuses(latestAllSends) / (latestAllSends.length + globalNotProcessed)) * 100
       : 0,
