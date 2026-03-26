@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +74,59 @@ const Campanhas = () => {
     if (!phone) return '';
     return phone.replace(/@lid$/i, '').replace(/\D/g, '');
   };
+
+  const [lidMap, setLidMap] = useState<Map<string, string>>(new Map());
+
+  const resolvePhoneKey = (phone?: string | null) => {
+    if (!phone) return '';
+    const mappedPhone = phone.includes('@lid') ? lidMap.get(phone) : null;
+    return normalizePhoneKey(mappedPhone || phone) || phone;
+  };
+
+  const resolveDisplayPhone = (phone?: string | null) => {
+    if (!phone) return '';
+    return phone.includes('@lid') ? lidMap.get(phone) || phone : phone;
+  };
+
+  useEffect(() => {
+    if (!statsDialogOpen) {
+      setLidMap(new Map());
+      return;
+    }
+
+    let active = true;
+
+    const fetchLidMap = async () => {
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select('phone, message_received')
+        .eq('keyword_matched', '__lid_map__');
+
+      if (error) {
+        console.error('Error loading LID map for campaign stats:', error);
+        return;
+      }
+
+      if (!active) return;
+
+      const nextMap = new Map<string, string>();
+      data?.forEach((row) => {
+        if (row.message_received && row.phone) {
+          nextMap.set(row.message_received, row.phone);
+        }
+      });
+
+      setLidMap(nextMap);
+    };
+
+    fetchLidMap();
+    const interval = setInterval(fetchLidMap, 2000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [statsDialogOpen]);
 
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
@@ -665,19 +719,28 @@ const Campanhas = () => {
             const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
             const targetContacts: Array<{ phone: string; name?: string }> = 
               campaign?.target_audience?.contacts || [];
+            const getSendPriority = (status?: string | null) => {
+              if (status === 'delivered') return 3;
+              if (status === 'sent') return 2;
+              if (status === 'failed') return 1;
+              return 0;
+            };
+
+            const getSendTimestamp = (send: typeof statsDialogSends[number]) =>
+              send.delivered_at || send.sent_at || send.created_at || '';
             
             // Map sends by normalized phone for quick lookup
             const sendsByPhone = new Map<string, typeof statsDialogSends[0]>();
             statsDialogSends.forEach(send => {
-              const phoneKey = normalizePhoneKey(send.phone) || send.phone;
+              const phoneKey = resolvePhoneKey(send.phone);
               const existing = sendsByPhone.get(phoneKey);
-              const sendSucceeded = send.status === 'sent' || send.status === 'delivered';
-              const existingSucceeded = existing?.status === 'sent' || existing?.status === 'delivered';
+              const sendPriority = getSendPriority(send.status);
+              const existingPriority = getSendPriority(existing?.status);
 
               if (
                 !existing ||
-                (sendSucceeded && !existingSucceeded) ||
-                (!existingSucceeded && send.sent_at && (!existing.sent_at || send.sent_at > existing.sent_at))
+                sendPriority > existingPriority ||
+                (sendPriority === existingPriority && getSendTimestamp(send) > getSendTimestamp(existing))
               ) {
                 sendsByPhone.set(phoneKey, send);
               }
@@ -685,7 +748,7 @@ const Campanhas = () => {
 
             // Build full list: all target contacts with their status
             const fullContactList = targetContacts.map((contact, index) => {
-              const phoneKey = normalizePhoneKey(contact.phone) || contact.phone;
+              const phoneKey = resolvePhoneKey(contact.phone);
               const send = sendsByPhone.get(phoneKey);
               let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
               let sentAt: string | null = null;
@@ -703,7 +766,7 @@ const Campanhas = () => {
 
               return {
                 id: send?.id || `target-${index}`,
-                phone: contact.phone,
+                phone: resolveDisplayPhone(contact.phone) || resolveDisplayPhone(send?.phone),
                 name: send?.contact_name || contact.name || '',
                 status,
                 sentAt,
@@ -713,8 +776,8 @@ const Campanhas = () => {
 
             // Also add any sends that might not be in target_audience
             statsDialogSends.forEach(send => {
-              const sendKey = normalizePhoneKey(send.phone) || send.phone;
-              const existsInTarget = targetContacts.some(c => (normalizePhoneKey(c.phone) || c.phone) === sendKey);
+              const sendKey = resolvePhoneKey(send.phone);
+              const existsInTarget = targetContacts.some(c => resolvePhoneKey(c.phone) === sendKey);
 
               if (!existsInTarget) {
                 let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
@@ -722,7 +785,7 @@ const Campanhas = () => {
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
-                  phone: send.phone,
+                  phone: resolveDisplayPhone(send.phone),
                   name: send.contact_name || '',
                   status,
                   sentAt: send.sent_at || null,
