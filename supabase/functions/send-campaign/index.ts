@@ -1087,6 +1087,20 @@ serve(async (req) => {
           .eq('id', campaignId);
         
         console.log(`📊 Campaign ${campaignId} marked as completed`);
+
+        // Clear Z-API queue(s) to stop any buffered messages from being delivered
+        try {
+          if (isRotateMode && rotatePool.length > 0) {
+            await Promise.all(rotatePool.map((instance) => clearInstanceQueue(instance)));
+            console.log(`🧹 Cleared ${rotatePool.length} Z-API queue(s) after completion`);
+          } else {
+            const finalInstance = getInstanceForIndex(0);
+            await clearInstanceQueue(finalInstance);
+            console.log(`🧹 Cleared Z-API queue after completion`);
+          }
+        } catch (queueErr) {
+          console.error('Error clearing Z-API queue on completion:', queueErr);
+        }
       } else {
         console.log(`⚠️ Campaign ${campaignId} not marked as completed (status: ${finalCampaign?.status})`);
       }
