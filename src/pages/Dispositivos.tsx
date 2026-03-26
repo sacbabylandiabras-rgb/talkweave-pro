@@ -322,7 +322,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }, 3000);
     }
     
-    if (deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
+    if (prevConnected === true && deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
       cancelActiveCampaigns();
     }
     if (deviceStatus?.connected === false) {
