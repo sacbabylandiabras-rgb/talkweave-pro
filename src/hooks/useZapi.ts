@@ -200,18 +200,6 @@ export const useZapi = () => {
     
     try {
       const config = await getZAPIConfig();
-
-      if (config.apiProvider === 'evolution') {
-        const fallbackText = [message, '', 'Botões:', ...buttons.map((btn, index) => `${index + 1}. ${btn.label}`)].join('\n');
-        const data = await invokeSendMessageEdge({ phone, message: fallbackText }, 'Erro ao enviar mensagem com botões');
-
-        toast({
-          title: "Mensagem enviada!",
-          description: "Na Evolution API, os botões foram enviados em formato de texto compatível.",
-        });
-
-        return data;
-      }
       
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
       
