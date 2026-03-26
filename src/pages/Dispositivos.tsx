@@ -382,9 +382,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </div>
             <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">
               ID: {instance.zapi_instance_id}
-              {instance.api_provider === 'evolution' && (
-                <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">Evolution</Badge>
-              )}
             </p>
             {connectedPhone && (
               <div className="flex items-center gap-1 mt-1">
