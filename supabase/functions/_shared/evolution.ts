@@ -204,7 +204,7 @@ export const buildGroupsStrategies = (cfg: ApiAttemptConfig): EndpointStrategy[]
  * Build endpoint strategies for sending text messages.
  */
 export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, text: string): EndpointStrategy[] => {
-  const { baseUrl, apiKey, instanceName } = cfg;
+  const { baseUrl, apiKey, clientToken, instanceName } = cfg;
   return [
     {
       url: `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
@@ -213,11 +213,10 @@ export const buildSendTextStrategies = (cfg: ApiAttemptConfig, phone: string, te
       body: JSON.stringify({ number: phone, text }),
       label: 'evo-v2-sendText',
     },
-    // Custom API fallback
     {
       url: `${baseUrl}/${encodeURIComponent(instanceName)}/send-text`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': apiKey },
+      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken || apiKey },
       body: JSON.stringify({ phone, message: text }),
       label: 'custom-sendText',
     },
