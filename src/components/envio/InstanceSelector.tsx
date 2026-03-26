@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Smartphone, RefreshCw } from "lucide-react";
@@ -12,8 +13,19 @@ const ROTATE_ALL = "__rotate_all__";
 
 const InstanceSelector = ({ onInstanceChange }: InstanceSelectorProps) => {
   const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
+  const [selectedValue, setSelectedValue] = useState<string>("");
+  const [userHasChosen, setUserHasChosen] = useState(false);
+
+  // Set initial value from activeInstance only if user hasn't manually chosen
+  useEffect(() => {
+    if (!userHasChosen && activeInstance && !selectedValue) {
+      setSelectedValue(activeInstance.id);
+    }
+  }, [activeInstance, userHasChosen, selectedValue]);
 
   const handleChange = (value: string) => {
+    setSelectedValue(value);
+    setUserHasChosen(true);
     if (value === ROTATE_ALL) {
       onInstanceChange?.(ROTATE_ALL);
     } else {
