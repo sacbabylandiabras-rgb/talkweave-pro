@@ -52,11 +52,17 @@ export function TopMetrics() {
       if (session) loadMetrics();
     });
 
-    // Realtime: refresh when campaign_sends or campaigns change
     const channel = supabase
       .channel('top-metrics-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, () => loadMetrics())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => loadMetrics())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, () => {
+        setMetrics(prev => ({ ...prev, contacts: prev.contacts + 1 }));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaigns' }, () => {
+        setMetrics(prev => ({ ...prev, campaigns: prev.campaigns + 1 }));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'campaigns' }, () => {
+        setMetrics(prev => ({ ...prev, campaigns: Math.max(0, prev.campaigns - 1) }));
+      })
       .subscribe();
 
     return () => {
