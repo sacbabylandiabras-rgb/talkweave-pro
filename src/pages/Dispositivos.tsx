@@ -479,18 +479,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             onClick={async () => {
               if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
               try {
-                // Delete from Evolution API via edge function (avoids CORS)
-                if (instance.api_provider === 'evolution') {
-                  try {
-                    await supabase.functions.invoke('delete-evolution-instance', {
-                      body: {
-                        instance_name: instance.zapi_instance_id,
-                        evolution_api_url: instance.evolution_api_url,
-                        evolution_api_key: instance.evolution_api_key,
-                      },
-                    });
-                  } catch {}
-                }
                 // Delete from database
                 const { error } = await supabase.from('zapi_instances').delete().eq('id', instance.id);
                 if (error) throw error;
