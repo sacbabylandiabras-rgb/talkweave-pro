@@ -610,7 +610,11 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
         const { data: evoData, error: evoError } = await supabase.functions.invoke('create-evolution-instance', {
           body: {
             instance_name: instanceName.trim().replace(/\s+/g, '-'),
-            phone_number: phoneNumber.replace(/\D/g, ''),
+            phone_number: (() => {
+              let num = phoneNumber.replace(/\D/g, '');
+              if (num && !num.startsWith('55')) num = '55' + num;
+              return num;
+            })(),
           },
         });
 
@@ -722,8 +726,8 @@ const CreateInstanceDialog = ({ open, onOpenChange, onCreated }: { open: boolean
               </div>
               <div className="space-y-2">
                 <Label>Número do Telefone</Label>
-                <Input placeholder="5511999999999" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-                <p className="text-[11px] text-muted-foreground">Número que será conectado (com DDI + DDD)</p>
+                <Input placeholder="11964216015" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">DDD + número (o 55 é adicionado automaticamente)</p>
               </div>
             </>
           )}
