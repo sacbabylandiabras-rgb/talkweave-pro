@@ -25,11 +25,17 @@ type ReportSend = {
 
 const getSendTimestamp = (send: Pick<ReportSend, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
+const normalizePhone = (phone?: string | null) => {
+  if (!phone) return '';
+  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
 const buildLatestSendsMap = (sends: ReportSend[]) => {
   const latestMap = new Map<string, ReportSend>();
 
   sends.forEach((send) => {
-    const key = `${send.campaign_id}:${send.phone}`;
+    const phoneKey = normalizePhone(send.phone) || send.phone;
+    const key = `${send.campaign_id}:${phoneKey}`;
     const current = latestMap.get(key);
 
     if (!current || new Date(getSendTimestamp(send)).getTime() >= new Date(getSendTimestamp(current)).getTime()) {
@@ -106,7 +112,7 @@ const Relatorio = () => {
     totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: latestAllSends.length + globalNotProcessed,
-    totalContacts: new Set(latestAllSends.map(s => s.phone)).size,
+    totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
     deliveryRate: (latestAllSends.length + globalNotProcessed) > 0
       ? (countSuccessfulStatuses(latestAllSends) / (latestAllSends.length + globalNotProcessed)) * 100
       : 0,
