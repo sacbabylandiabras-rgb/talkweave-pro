@@ -50,8 +50,22 @@ export function VolumeChart() {
 
   const loadRawData = useCallback(async () => {
     try {
-      const { data: sends } = await supabase.from("campaign_sends").select("created_at, status").order("created_at", { ascending: true });
-      setAllSends(sends || []);
+      let allData: RawSend[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("campaign_sends")
+          .select("created_at, status")
+          .order("created_at", { ascending: true })
+          .range(from, from + batchSize - 1);
+        if (error || !data || data.length === 0) { hasMore = false; break; }
+        allData = [...allData, ...data];
+        hasMore = data.length === batchSize;
+        from += batchSize;
+      }
+      setAllSends(allData);
     } catch (error) {
       console.error("Error loading chart data:", error);
     } finally {
