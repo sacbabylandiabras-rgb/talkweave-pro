@@ -33,7 +33,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   const [isPaused, setIsPaused] = useState(false);
   const [isPausing, setIsPausing] = useState(false);
   const channelRef = useRef<any>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePause = async () => {
     if (campaignId && !isPausing) {
@@ -160,11 +159,9 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       .subscribe();
 
     channelRef.current = channel;
-    pollingRef.current = setInterval(fetchAndUpdate, 2000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
-      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
     };
   }, [open, campaignId, totalContacts]);
 

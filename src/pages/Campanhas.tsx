@@ -97,20 +97,41 @@ const Campanhas = () => {
     let active = true;
 
     const fetchLidMap = async () => {
-      const { data, error } = await supabase
-        .from('message_logs')
-        .select('phone, message_received')
-        .eq('keyword_matched', '__lid_map__');
+      let allRows: Array<{ phone: string; message_received: string | null }> = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Error loading LID map for campaign stats:', error);
-        return;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('message_logs')
+          .select('phone, message_received')
+          .eq('keyword_matched', '__lid_map__')
+          .order('created_at', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (error) {
+          console.error('Error loading LID map for campaign stats:', error);
+          return;
+        }
+
+        if (!data) {
+          hasMore = false;
+          break;
+        }
+
+        allRows = [...allRows, ...data];
+        if (data.length < batchSize) {
+          hasMore = false;
+        } else {
+          from += batchSize;
+        }
       }
 
       if (!active) return;
 
       const nextMap = new Map<string, string>();
-      data?.forEach((row) => {
+      allRows.forEach((row) => {
         if (row.message_received && row.phone) {
           nextMap.set(row.message_received, row.phone);
         }
@@ -120,11 +141,28 @@ const Campanhas = () => {
     };
 
     fetchLidMap();
-    const interval = setInterval(fetchLidMap, 2000);
+
+    const channel = supabase
+      .channel(`lid-map-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_logs', filter: 'keyword_matched=eq.__lid_map__' },
+        (payload) => {
+          const row = payload.new as { phone?: string | null; message_received?: string | null };
+          if (!row?.message_received || !row?.phone) return;
+
+          setLidMap((prev) => {
+            const next = new Map(prev);
+            next.set(row.message_received!, row.phone!);
+            return next;
+          });
+        }
+      )
+      .subscribe();
 
     return () => {
       active = false;
-      clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, [statsDialogOpen]);
 

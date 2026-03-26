@@ -67,9 +67,12 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const [sends, setSends] = useState<CampaignSendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
   const sessionReady = useAuthSessionReady();
+
+  const sortSends = (items: CampaignSendRecord[]) => (
+    [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  );
 
   const fetchSends = useCallback(async () => {
     if (!campaignId || !sessionReady) return;
@@ -107,10 +110,11 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     }
 
     if (allData) {
-      const dataKey = `${allData.length}:${allData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
+      const sortedData = sortSends(allData);
+      const dataKey = `${sortedData.length}:${sortedData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
-        setSends(allData);
+        setSends(sortedData);
       }
     }
 
@@ -133,7 +137,6 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     setLoading(true);
     fetchSends();
 
-    // Realtime subscription
     const channel = supabase
       .channel(`sends-${campaignId}-${Date.now()}`)
       .on(
@@ -143,10 +146,10 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
           if (payload.eventType === 'INSERT') {
             setSends(prev => {
               if (prev.some(s => s.id === (payload.new as CampaignSendRecord).id)) return prev;
-              return [...prev, payload.new as CampaignSendRecord];
+              return sortSends([...prev, payload.new as CampaignSendRecord]);
             });
           } else if (payload.eventType === 'UPDATE') {
-            setSends(prev => prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s));
+            setSends(prev => sortSends(prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s)));
           } else if (payload.eventType === 'DELETE') {
             setSends(prev => prev.filter(s => s.id !== (payload.old as any).id));
           }
@@ -156,17 +159,10 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 
     channelRef.current = channel;
 
-    // Lightweight polling fallback (1s for faster updates)
-    pollingRef.current = setInterval(fetchSends, 1000);
-
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-      }
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
       }
     };
   }, [campaignId, fetchSends, sessionReady]);
@@ -190,7 +186,6 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
   const filterKey = statusFilter?.join(',') || 'all';
   const sessionReady = useAuthSessionReady();
@@ -266,17 +261,10 @@ export const useCampaignsRealtime = (statusFilter?: string[]) => {
 
     channelRef.current = channel;
 
-    // Polling fallback every 2s
-    pollingRef.current = setInterval(fetchCampaigns, 2000);
-
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-      }
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
       }
     };
   }, [fetchCampaigns, filterKey, sessionReady]);
@@ -291,9 +279,12 @@ export const useAllCampaignSendsRealtime = () => {
   const [sends, setSends] = useState<CampaignSendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>('');
   const sessionReady = useAuthSessionReady();
+
+  const sortSends = (items: CampaignSendRecord[]) => (
+    [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  );
 
   const fetchSends = useCallback(async () => {
     if (!sessionReady) return;
@@ -331,10 +322,11 @@ export const useAllCampaignSendsRealtime = () => {
     }
 
     // Always update state - use a hash that includes count + statuses
-    const dataKey = `${allData.length}:${allData.map(d => `${d.id}:${d.status}`).join(',')}`;
+    const sortedData = sortSends(allData);
+    const dataKey = `${sortedData.length}:${sortedData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
     if (dataKey !== lastDataRef.current) {
       lastDataRef.current = dataKey;
-      setSends(allData);
+      setSends(sortedData);
     }
 
     setLoading(false);
@@ -358,10 +350,10 @@ export const useAllCampaignSendsRealtime = () => {
           if (payload.eventType === 'INSERT') {
             setSends(prev => {
               if (prev.some(s => s.id === (payload.new as CampaignSendRecord).id)) return prev;
-              return [...prev, payload.new as CampaignSendRecord];
+              return sortSends([...prev, payload.new as CampaignSendRecord]);
             });
           } else if (payload.eventType === 'UPDATE') {
-            setSends(prev => prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s));
+            setSends(prev => sortSends(prev.map(s => s.id === (payload.new as CampaignSendRecord).id ? payload.new as CampaignSendRecord : s)));
           } else if (payload.eventType === 'DELETE') {
             setSends(prev => prev.filter(s => s.id !== (payload.old as any).id));
           }
@@ -371,16 +363,10 @@ export const useAllCampaignSendsRealtime = () => {
 
     channelRef.current = channel;
 
-    pollingRef.current = setInterval(fetchSends, 2000);
-
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-      }
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
       }
     };
   }, [fetchSends, sessionReady]);
