@@ -94,59 +94,51 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       return;
     }
 
-    const computeStats = (data: Array<{ status: string | null }>, campaignTotalContacts: number) => {
-      const sent = data.filter(s => s.status === 'sent').length;
-      const delivered = data.filter(s => s.status === 'delivered').length;
-      const failed = data.filter(s => s.status === 'failed').length;
-      const dbPending = data.filter(s => s.status === 'pending').length;
-      const effectiveTotal = Math.max(totalContacts, campaignTotalContacts, data.length);
-      // Real pending = total contacts minus those already processed (sent+delivered+failed+dbPending)
-      const processed = sent + delivered + failed + dbPending;
-      const remaining = Math.max(0, effectiveTotal - processed);
-      return { total: effectiveTotal, pending: remaining + dbPending, sent, delivered, failed };
-    };
-
-    let cachedCampaignTotal = totalContacts;
-
     const fetchAndUpdate = async () => {
       const [
-        { data: sends },
+        sentRes, deliveredRes, failedRes, pendingRes, totalRes,
         { data: campaignData }
       ] = await Promise.all([
-        supabase.from('campaign_sends').select('status').eq('campaign_id', campaignId),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'sent'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'delivered'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'failed'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'pending'),
+        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
         supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single()
       ]);
 
+      const sent = sentRes.count ?? 0;
+      const delivered = deliveredRes.count ?? 0;
+      const failed = failedRes.count ?? 0;
+      const dbPending = pendingRes.count ?? 0;
+      const dbTotal = totalRes.count ?? 0;
+
       const targetContacts = (campaignData?.target_audience as any)?.contacts;
-      if (Array.isArray(targetContacts) && targetContacts.length > cachedCampaignTotal) {
-        cachedCampaignTotal = targetContacts.length;
-      }
+      const campaignTotalContacts = Array.isArray(targetContacts) ? targetContacts.length : 0;
+      const effectiveTotal = Math.max(totalContacts, campaignTotalContacts, dbTotal);
+      const processed = sent + delivered + failed + dbPending;
+      const remaining = Math.max(0, effectiveTotal - processed);
 
-      if (sends) {
-        const newStats = computeStats(sends, cachedCampaignTotal);
-        setStats(newStats);
+      const newStats = { total: effectiveTotal, pending: remaining + dbPending, sent, delivered, failed };
+      setStats(newStats);
 
-        if (campaignData?.status === 'completed') {
-          setIsComplete(true);
-        } else if (campaignData?.status === 'active') {
-          setIsComplete(false);
-          setIsPaused(false);
-        } else if (campaignData?.status === 'paused') {
-          setIsComplete(false);
-        } else if (
-          campaignData?.status !== 'active' &&
-          campaignData?.status !== 'paused' &&
-          newStats.total > 0 && 
-          sends.length >= newStats.total && 
-          newStats.pending === 0
-        ) {
-          setIsComplete(true);
-        }
-      }
-
-      if (campaignData?.status === 'paused') {
+      if (campaignData?.status === 'completed') {
+        setIsComplete(true);
+      } else if (campaignData?.status === 'active') {
+        setIsComplete(false);
+        setIsPaused(false);
+      } else if (campaignData?.status === 'paused') {
+        setIsComplete(false);
         setIsPaused(true);
         setIsPausing(false);
+      } else if (
+        campaignData?.status !== 'active' &&
+        campaignData?.status !== 'paused' &&
+        effectiveTotal > 0 && 
+        dbTotal >= effectiveTotal && 
+        newStats.pending === 0
+      ) {
+        setIsComplete(true);
       }
     };
 
