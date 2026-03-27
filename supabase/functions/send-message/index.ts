@@ -14,10 +14,7 @@ const hasExplicitZapiError = (payload: any) => {
 
 const isZapiSendConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
-  const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
-  const result = String(payload?.result || '').toUpperCase();
-  const hasPositiveStatus = ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result);
-  return Boolean(ackId || hasPositiveStatus);
+  return Boolean(ackId);
 };
 
 serve(async (req) => {
