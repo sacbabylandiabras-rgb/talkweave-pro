@@ -150,7 +150,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         "flex items-center gap-2.5 px-4 py-4 border-b border-border",
         collapsed && "justify-center px-2"
       )}>
-        {activeWorkspace === "meta" ? (
+        {activeWorkspace === "gateway" ? (
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-4.5 h-4.5 text-emerald-500" />
+          </div>
+        ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
           </div>
