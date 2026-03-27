@@ -612,12 +612,12 @@ const EnviarMensagem = () => {
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
-          sendStatus = 'sent';
-          enviados++;
+          sendStatus = 'pending';
+          processados++;
           
           toast({
-            title: `Enviado para ${contato.nome}`,
-            description: `Progresso: ${i + 1}/${contatosProcessados.length}`,
+            title: `Solicitação enviada para ${contato.nome}`,
+            description: `Progresso: ${i + 1}/${contatosProcessados.length} • aguardando confirmação da instância`,
           });
 
           // Delay entre mensagens (exceto na última)
