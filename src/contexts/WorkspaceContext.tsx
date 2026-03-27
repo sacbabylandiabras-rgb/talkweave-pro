@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type WorkspaceType = "zapi" | "meta";
+export type WorkspaceType = "zapi" | "meta" | "gateway";
 
 interface WorkspaceContextType {
   activeWorkspace: WorkspaceType;
