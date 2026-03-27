@@ -172,8 +172,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       }
       return m;
     });
-    // Filter out messages that still have unresolved @lid phones
-    allData = allData.filter(m => !m.phone.includes('@lid'));
+    // Keep messages with unresolved @lid - show them with the LID identifier
     const dataKey = JSON.stringify(allData.map(d => d.id));
     if (dataKey !== lastLogsRef.current) {
       lastLogsRef.current = dataKey;
