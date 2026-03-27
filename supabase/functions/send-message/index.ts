@@ -18,6 +18,8 @@ serve(async (req) => {
 
     const { phone, message, mediaUrl, mediaType, instanceId: requestedInstanceId } = await req.json()
 
+    console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}`);
+
     if (!phone || (!message && !mediaUrl)) {
       return new Response(
         JSON.stringify({ error: 'Phone and message or mediaUrl are required' }),
