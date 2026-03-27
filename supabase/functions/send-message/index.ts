@@ -143,26 +143,18 @@ serve(async (req) => {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      const replyBtns = buttonActions
-        .filter((b: any) => b.type === 'REPLY' || b.type === 'OPTION')
-        .slice(0, 3);
-      const fallbackParts: string[] = [];
+      // Z-API /send-button-actions: supports CALL, URL, REPLY types
+      // Note: cannot mix all 3 types. CALL+URL ok, REPLY must be sent alone.
+      const hasReply = buttonActions.some((b: any) => b.type === 'REPLY');
+      const hasCallOrUrl = buttonActions.some((b: any) => b.type === 'CALL' || b.type === 'URL');
 
-      for (const b of buttonActions) {
-        if (b.type === 'URL' && b.url) fallbackParts.push(`🔗 ${b.label}: ${b.url}`);
-        if (b.type === 'CALL') {
-          const phoneNumber = b.phone ?? b.phoneNumber;
-          if (phoneNumber) fallbackParts.push(`📞 ${b.label}: ${phoneNumber}`);
-        }
-      }
+      const interactiveMessage = message || 'Selecione uma opção:';
 
-      const baseMessage = [title, message].filter(Boolean).join('\n\n').trim();
-      const fallbackMessage = fallbackParts.length > 0
-        ? [baseMessage, fallbackParts.join('\n'), footer].filter(Boolean).join('\n\n').trim()
-        : [baseMessage, footer].filter(Boolean).join('\n\n').trim();
-      const interactiveMessage = fallbackMessage || 'Selecione uma opção:';
-
-      if (replyBtns.length > 0) {
+      if (hasReply && hasCallOrUrl) {
+        // Cannot mix REPLY with CALL/URL — send REPLY buttons via /send-button-list
+        // and CALL/URL via /send-button-actions separately
+        const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3);
+        
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
@@ -175,16 +167,58 @@ serve(async (req) => {
                 label: b.label,
               })),
             },
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+          }),
+        });
+      } else if (hasReply && !hasCallOrUrl) {
+        // Only REPLY buttons → use /send-button-actions with type REPLY
+        const formattedActions = buttonActions
+          .filter((b: any) => b.type === 'REPLY')
+          .slice(0, 3)
+          .map((b: any, index: number) => ({
+            id: b.id || String(index + 1),
+            type: 'REPLY',
+            label: b.label,
+          }));
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: interactiveMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: formattedActions,
           }),
         });
       } else {
-        zapiResponse = await fetch(`${baseUrl}/send-text`, {
+        // CALL and/or URL buttons only → use /send-button-actions
+        const formattedActions = buttonActions.map((b: any, index: number) => {
+          const action: any = {
+            id: b.id || String(index + 1),
+            type: b.type,
+            label: b.label,
+          };
+          if (b.type === 'URL' && b.url) action.url = b.url;
+          if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
+          return action;
+        });
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, message: interactiveMessage }),
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: interactiveMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: formattedActions,
+          }),
         });
       }
-      logMessage = fallbackMessage || logMessage || '🔘 Botões de ação';
+      logMessage = logMessage || '🔘 Botões de ação';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
