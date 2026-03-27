@@ -33,7 +33,11 @@ import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
-
+import GatewayDashboard from "./pages/GatewayDashboard";
+import GatewayIntegracoesList from "./pages/GatewayIntegracoesList";
+import GatewayCheckout from "./pages/GatewayCheckout";
+import GatewayWebhooks from "./pages/GatewayWebhooks";
+import GatewayLogs from "./pages/GatewayLogs";
 const queryClient = new QueryClient();
 
 const App = () => (
