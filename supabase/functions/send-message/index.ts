@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
+import { assertZapiDeviceConnected } from "../_shared/zapi-device.ts";
 
 const getZapiAckId = (payload: any) => {
   return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
@@ -78,6 +79,27 @@ serve(async (req) => {
         token = reqInstance.zapi_token;
         clientToken = reqInstance.zapi_client_token;
       }
+    }
+
+    const deviceStatus = await assertZapiDeviceConnected(instanceId, token, clientToken);
+    if (deviceStatus.explicitlyDisconnected && !deviceStatus.connected) {
+      return new Response(
+        JSON.stringify({
+          error: 'Instância WhatsApp desconectada',
+          details: deviceStatus.payload,
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!deviceStatus.ok) {
+      return new Response(
+        JSON.stringify({
+          error: deviceStatus.message || 'Falha ao verificar status da instância',
+          details: deviceStatus.payload,
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     let resolvedPhone = phone;
