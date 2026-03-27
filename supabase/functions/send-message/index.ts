@@ -3,6 +3,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const getZapiAckId = (payload: any) => {
+  return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
+};
+
+const hasExplicitZapiError = (payload: any) => {
+  return payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
+};
+
+const isZapiSendConfirmed = (payload: any) => {
+  const ackId = getZapiAckId(payload);
+  const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
+  const result = String(payload?.result || '').toUpperCase();
+  const hasPositiveStatus = ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result);
+  return Boolean(ackId || hasPositiveStatus);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -46,7 +62,6 @@ serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
 
-    // If a specific instanceId was requested, look it up
     if (requestedInstanceId && requestedInstanceId !== instanceId) {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: reqInstance } = await adminClient
@@ -65,7 +80,6 @@ serve(async (req) => {
       }
     }
 
-    // If phone is @lid format, resolve to clean phone using LID mapping
     let resolvedPhone = phone;
     if (phone.includes('@lid')) {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
@@ -114,15 +128,10 @@ serve(async (req) => {
       const fallbackParts: string[] = [];
 
       for (const b of buttonActions) {
-        if (b.type === 'URL' && b.url) {
-          fallbackParts.push(`🔗 ${b.label}: ${b.url}`);
-        }
-
+        if (b.type === 'URL' && b.url) fallbackParts.push(`🔗 ${b.label}: ${b.url}`);
         if (b.type === 'CALL') {
           const phoneNumber = b.phone ?? b.phoneNumber;
-          if (phoneNumber) {
-            fallbackParts.push(`📞 ${b.label}: ${phoneNumber}`);
-          }
+          if (phoneNumber) fallbackParts.push(`📞 ${b.label}: ${phoneNumber}`);
         }
       }
 
@@ -147,10 +156,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-text`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: fallbackMessage || 'Nenhum botão compatível foi enviado.',
-          }),
+          body: JSON.stringify({ phone: resolvedPhone, message: fallbackMessage || 'Nenhum botão compatível foi enviado.' }),
         });
       }
       logMessage = fallbackMessage || logMessage || '🔘 Botões de ação';
@@ -158,22 +164,14 @@ serve(async (req) => {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || '',
-          buttonList,
-        }),
+        body: JSON.stringify({ phone: resolvedPhone, message: message || '', buttonList }),
       });
       logMessage = logMessage || '🔘 Lista de botões';
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || '',
-          optionList,
-        }),
+        body: JSON.stringify({ phone: resolvedPhone, message: message || '', optionList }),
       });
       logMessage = logMessage || '📋 Lista de opções';
     } else if (mediaUrl && mediaType) {
@@ -215,19 +213,23 @@ serve(async (req) => {
     }
 
     const zapiData = await zapiResponse.json()
-    console.log(`📬 Z-API response for ${resolvedPhone} (instance ${instanceId}): status=${zapiResponse.status}, zapiId=${zapiData?.zapiMessageId || zapiData?.messageId || 'none'}, body=${JSON.stringify(zapiData).substring(0, 300)}`);
+    const explicitError = hasExplicitZapiError(zapiData);
+    const confirmed = isZapiSendConfirmed(zapiData);
+    console.log(`📬 Z-API response for ${resolvedPhone} (instance ${instanceId}): status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiData) || 'none'}, body=${JSON.stringify(zapiData).substring(0, 300)}`);
 
-    if (!zapiResponse.ok) {
+    if (!zapiResponse.ok || explicitError || !confirmed) {
       return new Response(
-        JSON.stringify({ error: 'Failed to send message', details: zapiData }),
-        { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: explicitError || 'Z-API did not confirm message acceptance',
+          details: zapiData,
+        }),
+        { status: zapiResponse.ok ? 502 : zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Log the sent message
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    let logContent = message || '';
+    let logContent = logMessage;
     if (mediaUrl && mediaType) {
       const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
       logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;

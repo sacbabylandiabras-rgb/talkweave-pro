@@ -37,6 +37,15 @@ interface ResolvedInstance {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getZapiAckId = (payload: any) => payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
+const getZapiExplicitError = (payload: any) => payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
+const isZapiConfirmed = (payload: any) => {
+  const ackId = getZapiAckId(payload);
+  const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
+  const result = String(payload?.result || '').toUpperCase();
+  return Boolean(ackId || ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result));
+};
+
 const BATCH_SIZE = 10; // Process 10 contacts per invocation max
 
 const readDeviceConnectivity = (deviceStatus: any) => {
@@ -417,14 +426,18 @@ serve(async (req) => {
             if (responseText && responseText.trim()) zapiResult = JSON.parse(responseText);
           } catch {}
 
-          if (zapiResponse.ok) {
+          const explicitError = getZapiExplicitError(zapiResult);
+          const confirmed = isZapiConfirmed(zapiResult);
+          console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
+
+          if (zapiResponse.ok && !explicitError && confirmed) {
             campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
-            results.push({ phone: contact.phone, success: true, messageId: zapiResult.messageId });
+            results.push({ phone: contact.phone, success: true, messageId: getZapiAckId(zapiResult) });
             console.log(`✅ Sent to ${contact.phone}`);
           } else {
             campaignSend.status = 'failed';
-            campaignSend.error_message = zapiResult.error || `HTTP ${zapiResponse.status}`;
+            campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
           }

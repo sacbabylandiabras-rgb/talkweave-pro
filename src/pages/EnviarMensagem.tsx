@@ -539,19 +539,27 @@ const EnviarMensagem = () => {
         let errorMessage = null;
         
         try {
-          // Buscar dados do modelo selecionado
           const modeloData = modeloSelecionado 
             ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
             : null;
 
-          // Personalizar mensagem
           let mensagemPersonalizada = mensagem
             .replace(/\{nome\}/g, contato.nome)
             .replace(/\{numero\}/g, contato.telefone);
 
-          // Verificar se há mídia anexada
           const temMidia = !!arquivoMidia;
           const temBotoes = modeloData?.buttons && modeloData.buttons.length > 0;
+          const currentInstance = instanceSelectionMode === 'rotate'
+            ? instances[i % instances.length]
+            : selectedInstanceId
+              ? instances.find(inst => inst.id === selectedInstanceId) || null
+              : activeInstance || null;
+
+          if (instanceSelectionMode === 'rotate' && currentInstance) {
+            setZapiRotateMode(instances);
+          } else {
+            setZapiInstanceOverride(currentInstance);
+          }
 
           if (temMidia) {
             const base64File = await convertToBase64(arquivoMidia);
@@ -576,13 +584,11 @@ const EnviarMensagem = () => {
             }
           }
           
-          // Enviar botões se houver
           if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada,
               modeloData.buttons.map((btn: any) => {
-                // Normalizar o formato do botão para o esperado pela API
                 const buttonType = (btn.type || 'REPLY').toUpperCase();
                 const buttonData: any = {
                   id: btn.id || btn.text || Math.random().toString(),
@@ -590,7 +596,6 @@ const EnviarMensagem = () => {
                   label: btn.text || btn.label || 'Botão'
                 };
                 
-                // Mapear propriedades específicas de cada tipo de botão
                 if (buttonType === "CALL" && (btn.phone || btn.value)) {
                   buttonData.phone = btn.phone || btn.value;
                 } else if (buttonType === "URL" && (btn.url || btn.value)) {
@@ -605,20 +610,18 @@ const EnviarMensagem = () => {
               modeloData.footer || undefined
             );
           } else if (!temMidia && !temBotoes) {
-            // Se não tem botões nem mídia, enviar mensagem simples
-            if (instanceSelectionMode === 'rotate') {
-              const rotInst = instances[i % instances.length];
-              console.log(`🔄 [${i+1}/${contatosProcessados.length}] Enviando via "${rotInst?.instance_name}" para ${contato.telefone}`);
+            if (instanceSelectionMode === 'rotate' && currentInstance) {
+              console.log(`🔄 [${i+1}/${contatosProcessados.length}] Enviando via "${currentInstance.instance_name}" para ${contato.telefone}`);
             }
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
-          sendStatus = 'pending';
+          sendStatus = 'sent';
           processados++;
           
           toast({
-            title: `Solicitação enviada para ${contato.nome}`,
-            description: `Progresso: ${i + 1}/${contatosProcessados.length} • aguardando confirmação da instância`,
+            title: `Mensagem enviada para ${contato.nome}`,
+            description: `Progresso: ${i + 1}/${contatosProcessados.length} • instância confirmou a solicitação`,
           });
 
           // Delay entre mensagens (exceto na última)
@@ -673,7 +676,7 @@ const EnviarMensagem = () => {
 
         toast({
           title: "Envio em massa concluído!",
-          description: `📨 ${processados} solicitações processadas • ❌ ${erros} erros • acompanhe a confirmação no histórico/campanhas`,
+          description: `✅ ${processados} envios confirmados • ❌ ${erros} erros`,
           variant: processados > 0 ? "default" : "destructive"
         });
       }
