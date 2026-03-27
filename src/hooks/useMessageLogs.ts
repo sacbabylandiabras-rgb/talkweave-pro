@@ -532,7 +532,6 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const latestInboundLog = sortedConversationLogs.find((log) => {
           return Boolean(log.message_received) && Boolean(log.instance_id) && isRealInboundKeyword(log.keyword_matched);
         });
-        const latestAnyInstanceLog = sortedConversationLogs.find((log) => Boolean(log.instance_id));
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
@@ -547,7 +546,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           lastTimestamp: last.timestamp,
           unreadCount: 0,
           messages: sorted,
-          preferredInstanceId: latestInboundLog?.instance_id || latestAnyInstanceLog?.instance_id || null,
+          preferredInstanceId: latestInboundLog?.instance_id || null,
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
