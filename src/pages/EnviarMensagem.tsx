@@ -555,9 +555,8 @@ const EnviarMensagem = () => {
               ? instances.find(inst => inst.id === selectedInstanceId) || null
               : activeInstance || null;
 
-          if (instanceSelectionMode === 'rotate' && currentInstance) {
-            setZapiRotateMode(instances);
-          } else {
+          // Set the specific instance for this contact directly
+          if (currentInstance) {
             setZapiInstanceOverride(currentInstance);
           }
 
