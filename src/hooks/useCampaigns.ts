@@ -528,8 +528,11 @@ export const useCampaigns = () => {
       const token = sessionData?.session?.access_token;
 
       if (!token) {
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
         throw new Error('Usuário não autenticado');
       }
+
+      console.log(`📤 Invoking send-campaign for resume of campaign ${id}`);
 
       // Send to remaining contacts
       const { data, error } = await supabase.functions.invoke('send-campaign', {
@@ -543,7 +546,28 @@ export const useCampaigns = () => {
 
       if (error) {
         console.error('❌ Erro ao invocar edge function:', error);
-        throw error;
+        let errorMessage = 'Erro ao retomar campanha';
+        try {
+          if (error instanceof Object && 'context' in error) {
+            const ctx = (error as any).context;
+            if (ctx?.body) {
+              const bodyText = await new Response(ctx.body).text();
+              const parsed = JSON.parse(bodyText);
+              errorMessage = parsed?.error || parsed?.message || errorMessage;
+            }
+          }
+        } catch {}
+        // Rollback to paused
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
+        throw new Error(errorMessage);
+      }
+
+      if (data && typeof data === 'object' && data.error) {
+        console.error('❌ Edge Function returned error:', data.error);
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
+        throw new Error(data.error);
       }
 
       console.log('✅ Edge function invocada com sucesso:', data);
@@ -552,7 +576,7 @@ export const useCampaigns = () => {
       console.error('Error resuming campaign:', error);
       toast({
         title: "Erro",
-        description: "Erro ao retomar campanha",
+        description: error instanceof Error ? error.message : "Erro ao retomar campanha",
         variant: "destructive",
       });
       throw error;
