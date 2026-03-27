@@ -881,7 +881,7 @@ const MensagensRecebidas = () => {
             tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl,
           }}
-          preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId || activeInstance?.zapi_instance_id}
+          preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId}
           open={profileOpen}
           onOpenChange={setProfileOpen}
         />
