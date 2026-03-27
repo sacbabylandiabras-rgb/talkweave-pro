@@ -150,7 +150,7 @@ const EnviarMensagem = () => {
     e.preventDefault();
     
     try {
-      const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
+      const validatedData = buttonMessageSchema.parse({ phone: numero, message: mensagem });
       setErrors({});
       
       const validButtons = botoesAcao.filter(btn => {
