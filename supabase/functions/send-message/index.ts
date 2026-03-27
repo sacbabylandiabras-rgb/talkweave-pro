@@ -110,17 +110,35 @@ serve(async (req) => {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || '',
-          buttonActions,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-        }),
-      });
+      // Convert button actions to reply buttons + text links
+      const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3)
+      const urlCallParts: string[] = []
+      for (const b of buttonActions) {
+        if (b.type === 'URL' && b.url) urlCallParts.push(`🔗 ${b.label}: ${b.url}`)
+        if (b.type === 'CALL' && b.phoneNumber) urlCallParts.push(`📞 ${b.label}: ${b.phoneNumber}`)
+      }
+      const suffix = urlCallParts.length > 0 ? '\n\n' + urlCallParts.join('\n') : ''
+      const fullMsg = (message || '') + suffix
+
+      if (replyBtns.length > 0) {
+        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: fullMsg,
+            buttonList: { buttons: replyBtns.map((b: any) => ({ label: b.label })) },
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+          }),
+        });
+      } else {
+        zapiResponse = await fetch(`${baseUrl}/send-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({ phone: resolvedPhone, message: fullMsg }),
+        });
+      }
       logMessage = logMessage || '🔘 Botões de ação';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
