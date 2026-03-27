@@ -200,6 +200,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const getDefaultInstanceId = async (): Promise<string> => {
     if (!contact) return '';
 
+    const isRealInboundKeyword = (keyword?: string | null) => {
+      const value = (keyword || '').trim();
+      return !value.startsWith('__');
+    };
+
     // 1) Respect explicit preferred instance from messages screen filter (instância selecionada pelo usuário)
     if (preferredInstanceId) {
       return preferredInstanceId;
@@ -218,7 +223,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
 
     const lastContactMessage = (inboundCandidates || []).find((row: any) => {
       const keyword = row?.keyword_matched || '';
-      return keyword !== '__processing__' && keyword !== '__lid_map__';
+      return isRealInboundKeyword(keyword);
     });
 
     if (lastContactMessage?.instance_id) {
