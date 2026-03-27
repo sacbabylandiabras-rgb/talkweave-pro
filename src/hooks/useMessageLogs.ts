@@ -394,10 +394,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
-    // Filter message_logs by instance if specified
-    const filteredLogs = filterInstanceId
-      ? messageLogs.filter((log) => log.instance_id === filterInstanceId)
-      : messageLogs;
+    // Always use ALL message_logs to build conversations — never hide conversations
+    // The instance filter is informational only (used for sending context)
+    const filteredLogs = messageLogs;
 
     // From message_logs
     filteredLogs.forEach(log => {
@@ -457,13 +456,8 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       }
     });
 
-    // From campaign_sends (filter by instance_name if filtering is active)
-    const filteredCampaignSends = filterInstanceId
-      ? campaignSends.filter((send) => {
-          if (!send.instance_name) return false;
-          return send.instance_name === filterInstanceName || send.instance_name === filterInstanceId;
-        })
-      : campaignSends;
+    // Always include all campaign sends — don't hide conversations by instance
+    const filteredCampaignSends = campaignSends;
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
