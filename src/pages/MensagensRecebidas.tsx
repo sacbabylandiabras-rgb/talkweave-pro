@@ -94,13 +94,20 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
 };
 
 // Parse media tag from message content like "[media:video:https://...]"
-const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string } => {
+const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string; transcription: string | null } => {
   const mediaRegex = /^\[media:(image|video|audio|document):(.+?)\]\n?/;
   const match = content.match(mediaRegex);
   if (match) {
-    return { mediaType: match[1], mediaUrl: match[2], text: content.replace(mediaRegex, '').trim() };
+    const remaining = content.replace(mediaRegex, '').trim();
+    // Check for transcription marker 🎙️
+    const transcriptionRegex = /^🎙️\s*(.+)/;
+    const transcriptionMatch = remaining.match(transcriptionRegex);
+    if (transcriptionMatch) {
+      return { mediaType: match[1], mediaUrl: match[2], text: '', transcription: transcriptionMatch[1].trim() };
+    }
+    return { mediaType: match[1], mediaUrl: match[2], text: remaining, transcription: null };
   }
-  return { mediaType: null, mediaUrl: null, text: content };
+  return { mediaType: null, mediaUrl: null, text: content, transcription: null };
 };
 
 // Resolve [modelo:UUID] references to template name
@@ -126,7 +133,7 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 // Render message content with visual buttons and media
 const MessageContent = ({ content, isSent, templates }: { content: string; isSent: boolean; templates?: MessageTemplate[] }) => {
   const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
-  const { mediaType, mediaUrl, text: textAfterMedia } = parseMediaFromContent(resolvedContent);
+  const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
@@ -138,6 +145,14 @@ const MessageContent = ({ content, isSent, templates }: { content: string; isSen
       )}
       {mediaType === 'audio' && mediaUrl && (
         <audio src={mediaUrl} className="w-full mb-1" controls preload="metadata" />
+      )}
+      {mediaType === 'audio' && transcription && (
+        <div className={cn(
+          "text-xs italic mt-1 px-2 py-1.5 rounded-md",
+          isSent ? "bg-primary-foreground/10 text-primary-foreground/80" : "bg-muted text-muted-foreground"
+        )}>
+          <span className="not-italic">🎙️</span> {transcription}
+        </div>
       )}
       {mediaType === 'document' && mediaUrl && (
         <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className={cn("flex items-center gap-2 text-xs underline mb-1", isSent ? "text-primary-foreground/90" : "text-primary")}>

@@ -1151,17 +1151,31 @@ serve(async (req) => {
     }
 
     const messageRaw = extractMessageText(webhook)
-    const messageText = messageRaw.toLowerCase()
-    const normalizedMessage = normalizeForMatch(messageRaw)
+    const audioUrl = extractAudioUrl(webhook)
+    let messageText = messageRaw.toLowerCase()
+    let normalizedMessage = normalizeForMatch(messageRaw)
+    let audioTranscription = ''
 
-    if (!messageRaw) {
+    if (!messageRaw && !audioUrl) {
       console.log('Evento sem texto detectado, ignorando. Chaves:', Object.keys(webhook || {}))
-      // Log full payload for button-response debugging
       const webhookType = webhook?.type || ''
       if (webhookType) {
         console.log('Webhook type:', webhookType, '| Full payload:', JSON.stringify(webhook).substring(0, 500))
       }
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
+    }
+
+    // If audio message with no text, try to transcribe
+    if (!messageRaw && audioUrl) {
+      console.log('🎤 Audio message detected, attempting transcription...')
+      audioTranscription = await transcribeAudio(audioUrl)
+      if (audioTranscription && audioTranscription !== '[áudio não reconhecido]') {
+        messageText = audioTranscription.toLowerCase()
+        normalizedMessage = normalizeForMatch(audioTranscription)
+        console.log('✅ Audio transcribed successfully, using as message text for matching')
+      } else {
+        console.log('⚠️ Audio could not be transcribed, logging as audio-only')
+      }
     }
 
     // Extract phone — handle groups vs private chats differently
@@ -1367,12 +1381,19 @@ serve(async (req) => {
         ? new Date(numericTimestamp < 1_000_000_000_000 ? numericTimestamp * 1000 : numericTimestamp).toISOString()
         : new Date().toISOString()
 
+      // Build outgoing content with audio tag if applicable
+      let outgoingContent = messageRaw
+      if (audioUrl) {
+        const audioTag = `[media:audio:${audioUrl}]`
+        outgoingContent = audioTag + (messageRaw ? `\n${messageRaw}` : '')
+      }
+
       const { error: outgoingLogError } = await supabase
         .from('message_logs')
         .insert({
           phone,
           message_received: null,
-          response_sent: messageRaw,
+          response_sent: outgoingContent,
           keyword_matched: '__manual_send__',
           timestamp: outgoingTimestamp,
           user_id: userId,
@@ -1398,12 +1419,23 @@ serve(async (req) => {
       return new Response('system_disabled', { status: 200, headers: corsHeaders })
     }
 
+    // Build the raw message content for storage (include audio tag + transcription)
+    let storedMessage = messageRaw
+    if (audioUrl) {
+      const audioTag = `[media:audio:${audioUrl}]`
+      if (audioTranscription && audioTranscription !== '[áudio não reconhecido]') {
+        storedMessage = `${audioTag}\n🎙️ ${audioTranscription}`
+      } else {
+        storedMessage = audioTag + (messageRaw ? `\n${messageRaw}` : '')
+      }
+    }
+
     // Dedupe idempotente: cria um lock por usuário+telefone+mensagem em janela de 15s
     const lockResult = await acquireMessageProcessingLock(supabase, {
       userId,
       phone,
-      normalizedMessage,
-      rawMessage: messageRaw,
+      normalizedMessage: normalizedMessage || normalizeForMatch(storedMessage),
+      rawMessage: storedMessage,
       instanceId,
     })
 
@@ -2133,6 +2165,105 @@ function extractFlowKeywords(flow: any): string[] {
   }
 
   return Array.from(keywords)
+}
+
+function extractAudioUrl(webhook: any): string {
+  const candidates = [
+    webhook?.audio?.audioUrl,
+    webhook?.audio?.url,
+    webhook?.audioMessage?.url,
+    webhook?.message?.audioMessage?.url,
+    webhook?.data?.audio?.audioUrl,
+    webhook?.data?.audio?.url,
+    webhook?.data?.audioMessage?.url,
+    webhook?.data?.message?.audioMessage?.url,
+    webhook?.waitingMessage?.audio?.audioUrl,
+    webhook?.waitingMessage?.audioMessage?.url,
+  ]
+
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim().startsWith('http')) return value.trim()
+  }
+
+  return ''
+}
+
+async function transcribeAudio(audioUrl: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+  if (!LOVABLE_API_KEY) {
+    console.log('⚠️ LOVABLE_API_KEY not set, skipping audio transcription')
+    return ''
+  }
+
+  try {
+    // Download audio as base64
+    const audioResponse = await fetch(audioUrl)
+    if (!audioResponse.ok) {
+      console.error('❌ Failed to download audio:', audioResponse.status)
+      return ''
+    }
+
+    const audioBuffer = await audioResponse.arrayBuffer()
+    const uint8Array = new Uint8Array(audioBuffer)
+    let binary = ''
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i])
+    }
+    const base64Audio = btoa(binary)
+
+    // Detect mime type from URL or default to audio/ogg
+    let mimeType = 'audio/ogg'
+    if (audioUrl.includes('.mp3') || audioUrl.includes('audio/mpeg')) mimeType = 'audio/mpeg'
+    else if (audioUrl.includes('.wav')) mimeType = 'audio/wav'
+    else if (audioUrl.includes('.m4a') || audioUrl.includes('.mp4')) mimeType = 'audio/mp4'
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um transcritor de áudio. Transcreva o áudio fielmente, palavra por palavra. Retorne APENAS a transcrição, sem comentários, sem aspas, sem prefixos como "Transcrição:". Se não conseguir entender o áudio, retorne "[áudio não reconhecido]".',
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_audio',
+                input_audio: {
+                  data: base64Audio,
+                  format: mimeType === 'audio/wav' ? 'wav' : 'mp3',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Transcreva este áudio.',
+              },
+            ],
+          },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('❌ AI transcription failed:', response.status, await response.text())
+      return ''
+    }
+
+    const data = await response.json()
+    const transcription = data.choices?.[0]?.message?.content?.trim() || ''
+    console.log(`🎙️ Transcription result (${transcription.length} chars):`, transcription.substring(0, 200))
+    return transcription
+  } catch (error) {
+    console.error('❌ Audio transcription error:', error)
+    return ''
+  }
 }
 
 function extractMessageText(webhook: any): string {
