@@ -1060,12 +1060,13 @@ serve(async (req) => {
 
       const { data: instanceData } = await supabase
         .from('zapi_instances')
-        .select('user_id')
+        .select('user_id, instance_name')
         .eq('zapi_instance_id', instanceId)
         .eq('is_active', true)
         .maybeSingle()
 
       const userId = instanceData?.user_id
+      const instanceName = instanceData?.instance_name
       if (!userId) {
         console.log(`⚠️ Status callback sem user encontrado para instance ${instanceId}`)
         return new Response('status_callback_user_not_found', { status: 200, headers: corsHeaders })
@@ -1090,11 +1091,17 @@ serve(async (req) => {
       const nowIso = new Date().toISOString()
       const candidatePhones = Array.from(new Set([phone, resolvedPhone].filter(Boolean)))
 
-      const { data: campaignSendRows, error: campaignSendLookupError } = await supabase
+      let campaignSendQuery = supabase
         .from('campaign_sends')
-        .select('id, status, phone, sent_at, delivered_at')
+        .select('id, status, phone, sent_at, delivered_at, instance_name')
         .eq('user_id', userId)
         .in('phone', candidatePhones)
+
+      if (instanceName) {
+        campaignSendQuery = campaignSendQuery.eq('instance_name', instanceName)
+      }
+
+      const { data: campaignSendRows, error: campaignSendLookupError } = await campaignSendQuery
         .order('created_at', { ascending: false })
         .limit(5)
 

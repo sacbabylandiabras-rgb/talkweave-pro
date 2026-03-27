@@ -425,7 +425,7 @@ const EnviarMensagem = () => {
       const { data: { session } } = await supabase.auth.getSession();
       const currentUserId = session?.user?.id;
 
-      let enviados = 0;
+      let processados = 0;
       let erros = 0;
       const campaignSends: any[] = [];
 
@@ -444,7 +444,7 @@ const EnviarMensagem = () => {
           
           toast({
             title: "Envio pausado",
-            description: `Pausado pelo usuário. ${enviados} mensagens enviadas. Retome pela página de Campanhas.`,
+            description: `Pausado pelo usuário. ${processados} solicitações processadas. Retome pela página de Campanhas.`,
           });
           break;
         }
@@ -494,7 +494,7 @@ const EnviarMensagem = () => {
                 } catch {}
                 toast({
                   title: "Todas as instâncias desconectadas!",
-                  description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+                  description: `Envio pausado. ${processados} solicitações processadas. Reconecte e retome pela página de Campanhas.`,
                   variant: "destructive"
                 });
                 setEnviandoEmMassa(false);
@@ -522,7 +522,7 @@ const EnviarMensagem = () => {
                 } catch {}
                 toast({
                   title: "Dispositivo desconectado!",
-                  description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+                  description: `Envio pausado. ${processados} solicitações processadas. Reconecte e retome pela página de Campanhas.`,
                   variant: "destructive"
                 });
                 setEnviandoEmMassa(false);
@@ -613,12 +613,12 @@ const EnviarMensagem = () => {
             await sendMessage(contato.telefone, mensagemPersonalizada);
           }
           
-          sendStatus = 'sent';
-          enviados++;
+          sendStatus = 'pending';
+          processados++;
           
           toast({
-            title: `Enviado para ${contato.nome}`,
-            description: `Progresso: ${i + 1}/${contatosProcessados.length}`,
+            title: `Solicitação enviada para ${contato.nome}`,
+            description: `Progresso: ${i + 1}/${contatosProcessados.length} • aguardando confirmação da instância`,
           });
 
           // Delay entre mensagens (exceto na última)
@@ -673,8 +673,8 @@ const EnviarMensagem = () => {
 
         toast({
           title: "Envio em massa concluído!",
-          description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
-          variant: enviados > 0 ? "default" : "destructive"
+          description: `📨 ${processados} solicitações processadas • ❌ ${erros} erros • acompanhe a confirmação no histórico/campanhas`,
+          variant: processados > 0 ? "default" : "destructive"
         });
       }
 
