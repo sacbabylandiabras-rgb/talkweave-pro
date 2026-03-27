@@ -509,9 +509,12 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const sendMessage = useCallback(async (phone: string, message: string, mediaUrl?: string, mediaType?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated');
+
     const body: any = { phone, message };
     if (mediaUrl) body.mediaUrl = mediaUrl;
     if (mediaType) body.mediaType = mediaType;
+    if (filterInstanceId) body.instanceId = filterInstanceId;
+
     const { data, error } = await supabase.functions.invoke('send-message', { body });
     if (error) throw error;
 
@@ -531,7 +534,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       timestamp: new Date().toISOString(),
       created_at: new Date().toISOString(),
       user_id: session.user.id,
-      instance_id: null,
+      instance_id: filterInstanceId || null,
     };
     setMessageLogs(prev => [...prev, optimisticLog]);
 
@@ -539,7 +542,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     setTimeout(() => fetchAll(), 1000);
 
     return data;
-  }, [fetchAll]);
+  }, [fetchAll, filterInstanceId]);
 
   return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage };
 };
