@@ -584,27 +584,57 @@ serve(async (req) => {
 
                 const canSendInteractiveButtons = formattedButtons.length > 0 && !(tpl.media_url && (tpl.type === 'video' || tpl.type === 'vídeo' || tpl.type === 'audio' || tpl.type === 'áudio'))
 
+                // Build reply buttons and URL/CALL text suffix
+                const replyBtns = formattedButtons.filter((b: any) => b.type === 'REPLY').slice(0, 3)
+                const urlCallParts: string[] = []
+                for (const b of formattedButtons) {
+                  if (b.type === 'URL' && b.url) urlCallParts.push(`🔗 ${b.label}: ${b.url}`)
+                  if (b.type === 'CALL' && b.phone) urlCallParts.push(`📞 ${b.label}: ${b.phone}`)
+                }
+                const urlCallSuffix = urlCallParts.length > 0 ? '\n\n' + urlCallParts.join('\n') : ''
+
                 if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image') && canSendInteractiveButtons) {
-                  const buttonResponse = await fetch(`${baseUrl}/send-button-actions`, {
+                  // Send image first, then buttons
+                  await fetch(`${baseUrl}/send-image`, {
                     method: 'POST', headers,
-                    body: JSON.stringify({
-                      phone: joinedPhone,
-                      message: tplMessage,
-                      image: tpl.media_url,
-                      buttonActions: formattedButtons,
-                    }),
+                    body: JSON.stringify({ phone: joinedPhone, image: tpl.media_url, caption: '' }),
                   })
-                  console.log('📤 Welcome template image+buttons status:', buttonResponse.status, await buttonResponse.text())
+                  await new Promise(resolve => setTimeout(resolve, 1000))
+                  if (replyBtns.length > 0) {
+                    const buttonResponse = await fetch(`${baseUrl}/send-button-list`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({
+                        phone: joinedPhone,
+                        message: tplMessage + urlCallSuffix,
+                        buttonList: { buttons: replyBtns.map((b: any) => ({ label: b.label })) },
+                      }),
+                    })
+                    console.log('📤 Welcome template image+buttons status:', buttonResponse.status, await buttonResponse.text())
+                  } else {
+                    const buttonResponse = await fetch(`${baseUrl}/send-text`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({ phone: joinedPhone, message: tplMessage + urlCallSuffix }),
+                    })
+                    console.log('📤 Welcome template image+text-buttons status:', buttonResponse.status, await buttonResponse.text())
+                  }
                 } else if (!tpl.media_url && canSendInteractiveButtons) {
-                  const buttonResponse = await fetch(`${baseUrl}/send-button-actions`, {
-                    method: 'POST', headers,
-                    body: JSON.stringify({
-                      phone: joinedPhone,
-                      message: tplMessage,
-                      buttonActions: formattedButtons,
-                    }),
-                  })
-                  console.log('📤 Welcome template text+buttons status:', buttonResponse.status, await buttonResponse.text())
+                  if (replyBtns.length > 0) {
+                    const buttonResponse = await fetch(`${baseUrl}/send-button-list`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({
+                        phone: joinedPhone,
+                        message: tplMessage + urlCallSuffix,
+                        buttonList: { buttons: replyBtns.map((b: any) => ({ label: b.label })) },
+                      }),
+                    })
+                    console.log('📤 Welcome template text+buttons status:', buttonResponse.status, await buttonResponse.text())
+                  } else {
+                    const buttonResponse = await fetch(`${baseUrl}/send-text`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({ phone: joinedPhone, message: tplMessage + urlCallSuffix }),
+                    })
+                    console.log('📤 Welcome template text-only-buttons status:', buttonResponse.status, await buttonResponse.text())
+                  }
                 } else if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
                   const sendResponse = await fetch(`${baseUrl}/send-image`, {
                     method: 'POST', headers,
