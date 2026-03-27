@@ -298,8 +298,12 @@ export const useCampaigns = () => {
       const token = sessionData?.session?.access_token;
 
       if (!token) {
+        // Rollback status
+        await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaignId);
         throw new Error('Usuário não autenticado');
       }
+
+      console.log(`📤 Invoking send-campaign Edge Function for campaign ${campaignId} with ${contacts.length} contacts`);
 
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         headers: { Authorization: `Bearer ${token}` },
@@ -310,7 +314,36 @@ export const useCampaigns = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Edge Function send-campaign error:', error);
+        // Try to extract detailed error message
+        let errorMessage = 'Erro ao enviar campanha';
+        try {
+          if (error instanceof Object && 'context' in error) {
+            const ctx = (error as any).context;
+            if (ctx?.body) {
+              const bodyText = await new Response(ctx.body).text();
+              const parsed = JSON.parse(bodyText);
+              errorMessage = parsed?.error || parsed?.message || errorMessage;
+            }
+          }
+        } catch {}
+        console.error('❌ Detailed error:', errorMessage);
+        // Rollback status to draft so user can try again
+        await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaignId);
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'draft' } : c));
+        throw new Error(errorMessage);
+      }
+
+      // Check if the response indicates an error
+      if (data && typeof data === 'object' && data.error) {
+        console.error('❌ Edge Function returned error in response:', data.error);
+        await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaignId);
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'draft' } : c));
+        throw new Error(data.error);
+      }
+
+      console.log('✅ send-campaign invoked successfully:', data);
 
       toast({
         title: "Sucesso",
@@ -322,7 +355,7 @@ export const useCampaigns = () => {
       console.error('Error sending campaign:', error);
       toast({
         title: "Erro",
-        description: "Erro ao enviar campanha",
+        description: error instanceof Error ? error.message : "Erro ao enviar campanha",
         variant: "destructive",
       });
       throw error;
@@ -495,8 +528,11 @@ export const useCampaigns = () => {
       const token = sessionData?.session?.access_token;
 
       if (!token) {
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
         throw new Error('Usuário não autenticado');
       }
+
+      console.log(`📤 Invoking send-campaign for resume of campaign ${id}`);
 
       // Send to remaining contacts
       const { data, error } = await supabase.functions.invoke('send-campaign', {
@@ -510,7 +546,28 @@ export const useCampaigns = () => {
 
       if (error) {
         console.error('❌ Erro ao invocar edge function:', error);
-        throw error;
+        let errorMessage = 'Erro ao retomar campanha';
+        try {
+          if (error instanceof Object && 'context' in error) {
+            const ctx = (error as any).context;
+            if (ctx?.body) {
+              const bodyText = await new Response(ctx.body).text();
+              const parsed = JSON.parse(bodyText);
+              errorMessage = parsed?.error || parsed?.message || errorMessage;
+            }
+          }
+        } catch {}
+        // Rollback to paused
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
+        throw new Error(errorMessage);
+      }
+
+      if (data && typeof data === 'object' && data.error) {
+        console.error('❌ Edge Function returned error:', data.error);
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
+        throw new Error(data.error);
       }
 
       console.log('✅ Edge function invocada com sucesso:', data);
@@ -519,7 +576,7 @@ export const useCampaigns = () => {
       console.error('Error resuming campaign:', error);
       toast({
         title: "Erro",
-        description: "Erro ao retomar campanha",
+        description: error instanceof Error ? error.message : "Erro ao retomar campanha",
         variant: "destructive",
       });
       throw error;
