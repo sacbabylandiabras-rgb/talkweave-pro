@@ -737,7 +737,7 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { instances } = useZapiInstances();
+  const { instances, activeInstance } = useZapiInstances();
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Map UI instance id to zapi_instance_id for filtering
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
@@ -877,7 +877,7 @@ const MensagensRecebidas = () => {
             tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl,
           }}
-          preferredInstanceId={filterZapiInstanceId}
+          preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId || activeInstance?.zapi_instance_id}
           open={profileOpen}
           onOpenChange={setProfileOpen}
         />
