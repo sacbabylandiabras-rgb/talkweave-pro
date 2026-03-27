@@ -111,17 +111,48 @@ export const useZapi = () => {
     }
   };
 
+  const getInvokeErrorMessage = async (error: any, fallbackMessage: string) => {
+    const response = error?.context;
+
+    if (response instanceof Response) {
+      try {
+        const errorData = await response.clone().json();
+        const detailedMessage =
+          errorData?.message ||
+          errorData?.error ||
+          errorData?.details?.message ||
+          errorData?.details?.error;
+
+        if (detailedMessage) {
+          return String(detailedMessage);
+        }
+
+        return JSON.stringify(errorData);
+      } catch {
+        try {
+          const errorText = await response.clone().text();
+          if (errorText) return errorText;
+        } catch {
+          // ignore body parse issues
+        }
+      }
+
+      return `${fallbackMessage} (status ${response.status})`;
+    }
+
+    return error?.message || fallbackMessage;
+  };
+
   const invokeSendMessageEdge = async (
     payload: { phone: string; message?: string; mediaUrl?: string; mediaType?: string; instanceId?: string },
     fallbackMessage: string,
   ) => {
-    // If no instanceId in payload, try to get from current config
     let body = { ...payload };
     if (!body.instanceId) {
       try {
         const config = await getZAPIConfig();
         body.instanceId = config.instanceId;
-      } catch (e) {
+      } catch {
         // Let edge function use default
       }
     }
@@ -131,7 +162,7 @@ export const useZapi = () => {
     });
 
     if (error) {
-      throw new Error(error.message || fallbackMessage);
+      throw new Error(await getInvokeErrorMessage(error, fallbackMessage));
     }
 
     if (data?.error) {
