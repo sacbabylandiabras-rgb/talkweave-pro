@@ -17,6 +17,31 @@ const isZapiSendConfirmed = (payload: any) => {
   return Boolean(ackId);
 };
 
+const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
+  const data = await response.json().catch(() => ({}));
+  const explicitError = hasExplicitZapiError(data);
+  const confirmed = isZapiSendConfirmed(data);
+
+  console.log(
+    `📬 Z-API response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
+  );
+
+  if (!response.ok || explicitError || !confirmed) {
+    throw new Response(
+      JSON.stringify({
+        error: explicitError || `Z-API did not confirm message acceptance (${label})`,
+        details: data,
+      }),
+      {
+        status: response.ok ? 502 : response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  return data;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -139,22 +164,53 @@ serve(async (req) => {
     }
 
     let zapiResponse: Response;
+    let zapiData: any = null;
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      // Z-API /send-button-actions: supports CALL, URL, REPLY types
-      // Note: cannot mix all 3 types. CALL+URL ok, REPLY must be sent alone.
       const hasReply = buttonActions.some((b: any) => b.type === 'REPLY');
       const hasCallOrUrl = buttonActions.some((b: any) => b.type === 'CALL' || b.type === 'URL');
-
       const interactiveMessage = message || 'Selecione uma opção:';
 
       if (hasReply && hasCallOrUrl) {
-        // Cannot mix REPLY with CALL/URL — send REPLY buttons via /send-button-list
-        // and CALL/URL via /send-button-actions separately
-        const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3);
-        
+        const actionButtons = buttonActions
+          .filter((b: any) => b.type === 'CALL' || b.type === 'URL')
+          .map((b: any, index: number) => {
+            const action: any = {
+              id: b.id || `action-${index + 1}`,
+              type: b.type,
+              label: b.label,
+            };
+            if (b.type === 'URL' && b.url) action.url = b.url;
+            if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
+            return action;
+          });
+
+        const replyButtons = buttonActions
+          .filter((b: any) => b.type === 'REPLY')
+          .slice(0, 3)
+          .map((b: any, index: number) => ({
+            id: b.id || `reply-${index + 1}`,
+            label: b.label,
+          }));
+
+        if (actionButtons.length > 0) {
+          const actionResponse = await fetch(`${baseUrl}/send-button-actions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({
+              phone: resolvedPhone,
+              message: interactiveMessage,
+              ...(title ? { title } : {}),
+              ...(footer ? { footer } : {}),
+              buttonActions: actionButtons,
+            }),
+          });
+
+          await parseZapiResponse(actionResponse, resolvedPhone, instanceId, 'button-actions');
+        }
+
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
@@ -162,50 +218,34 @@ serve(async (req) => {
             phone: resolvedPhone,
             message: interactiveMessage,
             buttonList: {
-              buttons: replyBtns.map((b: any, index: number) => ({
+              buttons: replyButtons,
+            },
+          }),
+        });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
+      } else if (hasReply && !hasCallOrUrl) {
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: interactiveMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: buttonActions
+              .filter((b: any) => b.type === 'REPLY')
+              .slice(0, 3)
+              .map((b: any, index: number) => ({
                 id: b.id || String(index + 1),
+                type: 'REPLY',
                 label: b.label,
               })),
-            },
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
           }),
         });
-      } else if (hasReply && !hasCallOrUrl) {
-        // Only REPLY buttons → use /send-button-actions with type REPLY
-        const formattedActions = buttonActions
-          .filter((b: any) => b.type === 'REPLY')
-          .slice(0, 3)
-          .map((b: any, index: number) => ({
-            id: b.id || String(index + 1),
-            type: 'REPLY',
-            label: b.label,
-          }));
 
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: interactiveMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: formattedActions,
-          }),
-        });
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
       } else {
-        // CALL and/or URL buttons only → use /send-button-actions
-        const formattedActions = buttonActions.map((b: any, index: number) => {
-          const action: any = {
-            id: b.id || String(index + 1),
-            type: b.type,
-            label: b.label,
-          };
-          if (b.type === 'URL' && b.url) action.url = b.url;
-          if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
-          return action;
-        });
-
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
@@ -214,10 +254,22 @@ serve(async (req) => {
             message: interactiveMessage,
             ...(title ? { title } : {}),
             ...(footer ? { footer } : {}),
-            buttonActions: formattedActions,
+            buttonActions: buttonActions.map((b: any, index: number) => {
+              const action: any = {
+                id: b.id || String(index + 1),
+                type: b.type,
+                label: b.label,
+              };
+              if (b.type === 'URL' && b.url) action.url = b.url;
+              if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
+              return action;
+            }),
           }),
         });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
       }
+
       logMessage = logMessage || '🔘 Botões de ação';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
@@ -235,6 +287,7 @@ serve(async (req) => {
         }),
       });
       logMessage = logMessage || '🔘 Lista de botões';
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
@@ -246,6 +299,7 @@ serve(async (req) => {
         }),
       });
       logMessage = logMessage || '📋 Lista de opções';
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
     } else if (mediaUrl && mediaType) {
       if (mediaType === 'audio') {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
@@ -254,6 +308,7 @@ serve(async (req) => {
           body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
         });
         logMessage = logMessage || '🎤 Áudio';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'audio');
       } else if (mediaType === 'image') {
         zapiResponse = await fetch(`${baseUrl}/send-image`, {
           method: 'POST',
@@ -261,6 +316,7 @@ serve(async (req) => {
           body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
         });
         logMessage = logMessage || '📷 Imagem';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'image');
       } else if (mediaType === 'video') {
         zapiResponse = await fetch(`${baseUrl}/send-video`, {
           method: 'POST',
@@ -268,6 +324,7 @@ serve(async (req) => {
           body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
         });
         logMessage = logMessage || '🎥 Vídeo';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
       } else {
         zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
           method: 'POST',
@@ -275,6 +332,7 @@ serve(async (req) => {
           body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
         });
         logMessage = logMessage || '📎 Arquivo';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'document');
       }
     } else {
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
@@ -282,21 +340,7 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
         body: JSON.stringify({ phone: resolvedPhone, message }),
       });
-    }
-
-    const zapiData = await zapiResponse.json().catch(() => ({}))
-    const explicitError = hasExplicitZapiError(zapiData);
-    const confirmed = isZapiSendConfirmed(zapiData);
-    console.log(`📬 Z-API response for ${resolvedPhone} (instance ${instanceId}): status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiData) || 'none'}, body=${JSON.stringify(zapiData).substring(0, 300)}`);
-
-    if (!zapiResponse.ok || explicitError || !confirmed) {
-      return new Response(
-        JSON.stringify({
-          error: explicitError || 'Z-API did not confirm message acceptance',
-          details: zapiData,
-        }),
-        { status: zapiResponse.ok ? 502 : zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'text');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -323,6 +367,10 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
