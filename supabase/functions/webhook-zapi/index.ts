@@ -1412,12 +1412,23 @@ serve(async (req) => {
       return new Response('system_disabled', { status: 200, headers: corsHeaders })
     }
 
+    // Build the raw message content for storage (include audio tag + transcription)
+    let storedMessage = messageRaw
+    if (audioUrl) {
+      const audioTag = `[media:audio:${audioUrl}]`
+      if (audioTranscription && audioTranscription !== '[áudio não reconhecido]') {
+        storedMessage = `${audioTag}\n🎙️ ${audioTranscription}`
+      } else {
+        storedMessage = audioTag + (messageRaw ? `\n${messageRaw}` : '')
+      }
+    }
+
     // Dedupe idempotente: cria um lock por usuário+telefone+mensagem em janela de 15s
     const lockResult = await acquireMessageProcessingLock(supabase, {
       userId,
       phone,
-      normalizedMessage,
-      rawMessage: messageRaw,
+      normalizedMessage: normalizedMessage || normalizeForMatch(storedMessage),
+      rawMessage: storedMessage,
       instanceId,
     })
 
