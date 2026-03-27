@@ -96,9 +96,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { activeWorkspace, workspaceLabel } = useWorkspace();
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
-  const bottomItems = activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
-  const brandLabel = activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
+  const menuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
+  const bottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
+  const brandLabel = activeWorkspace === "gateway" ? "Gateway" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
