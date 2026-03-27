@@ -571,29 +571,49 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     if (filterInstanceId) body.instanceId = filterInstanceId;
 
     const { data, error } = await supabase.functions.invoke('send-message', { body });
-    if (error) throw error;
 
-    // Optimistically add message to local state for instant UI update
-    const optimisticId = `optimistic-${Date.now()}`;
-    let logContent = message || '';
-    if (mediaUrl && mediaType) {
-      const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
-      logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
+    if (error) {
+      const response = (error as any)?.context;
+
+      if (response?.json && typeof response.json === 'function') {
+        try {
+          const errorData = await response.json();
+          throw new Error(
+            errorData?.message ||
+            errorData?.error ||
+            errorData?.details?.message ||
+            errorData?.details?.error ||
+            'Falha ao enviar mensagem'
+          );
+        } catch {
+          // fall through
+        }
+      }
+
+      if (response instanceof Response) {
+        try {
+          const errorData = await response.clone().json();
+          throw new Error(
+            errorData?.message ||
+            errorData?.error ||
+            errorData?.details?.message ||
+            errorData?.details?.error ||
+            `Falha ao enviar mensagem (status ${response.status})`
+          );
+        } catch {
+          try {
+            const errorText = await response.clone().text();
+            throw new Error(errorText || `Falha ao enviar mensagem (status ${response.status})`);
+          } catch {
+            throw new Error(`Falha ao enviar mensagem (status ${response.status})`);
+          }
+        }
+      }
+
+      throw error;
     }
-    const optimisticLog: MessageLog = {
-      id: optimisticId,
-      phone,
-      message_received: null,
-      response_sent: logContent,
-      keyword_matched: '__manual_send__',
-      timestamp: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      user_id: session.user.id,
-      instance_id: filterInstanceId || null,
-    };
-    setMessageLogs(prev => [...prev, optimisticLog]);
 
-    // Refetch to get the real record from DB
+    // Aguarda o registro real vindo do backend/realtime para evitar falso sucesso visual.
     setTimeout(() => fetchAll(), 1000);
 
     return data;
