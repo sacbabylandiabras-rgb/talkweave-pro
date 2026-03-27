@@ -48,6 +48,7 @@ export interface Conversation {
   lastTimestamp: string;
   unreadCount: number;
   messages: UnifiedMessage[];
+  preferredInstanceId?: string | null;
 }
 
 const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'sent' || send.status === 'delivered';
@@ -472,10 +473,17 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
     // Group by phone
     const grouped = new Map<string, UnifiedMessage[]>();
+    const groupedLogs = new Map<string, MessageLog[]>();
     allMessages.forEach(msg => {
       const existing = grouped.get(msg.phone) || [];
       existing.push(msg);
       grouped.set(msg.phone, existing);
+    });
+
+    filteredLogs.forEach(log => {
+      const existing = groupedLogs.get(log.phone) || [];
+      existing.push(log);
+      groupedLogs.set(log.phone, existing);
     });
 
     // Filter out any group conversations — they belong in the Groups page, not here
@@ -491,6 +499,14 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           return a.id.localeCompare(b.id);
         });
         const last = sorted[sorted.length - 1];
+        const conversationLogs = groupedLogs.get(phone) || [];
+        const sortedConversationLogs = [...conversationLogs].sort((a, b) => {
+          const timeDiff = toMillis(b.timestamp || b.created_at) - toMillis(a.timestamp || a.created_at);
+          if (timeDiff !== 0) return timeDiff;
+          return b.id.localeCompare(a.id);
+        });
+        const latestInboundLog = sortedConversationLogs.find((log) => Boolean(log.message_received) && Boolean(log.instance_id));
+        const latestAnyInstanceLog = sortedConversationLogs.find((log) => Boolean(log.instance_id));
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
@@ -505,6 +521,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           lastTimestamp: last.timestamp,
           unreadCount: 0,
           messages: sorted,
+          preferredInstanceId: latestInboundLog?.instance_id || latestAnyInstanceLog?.instance_id || null,
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));

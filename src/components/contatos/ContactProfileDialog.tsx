@@ -147,12 +147,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (resolvedLog?.phone) {
           targetPhone = resolvedLog.phone;
         } else {
-          const digitsOnly = targetPhone.replace(/\D/g, '');
-          if (digitsOnly.length >= 10) {
-            targetPhone = digitsOnly;
-          } else {
-            throw new Error('Esse contato está salvo com identificador @lid e ainda não foi resolvido para número real.');
-          }
+          throw new Error('Esse contato está salvo com identificador @lid e ainda não foi resolvido para número real.');
         }
       }
 
@@ -186,15 +181,21 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       return preferredInstanceId;
     }
 
-    // 2) Try to reuse last instance used with this contact
-    const { data: lastContactMessage } = await (supabase as any)
+    // 2) Try to reuse the last inbound instance used by this contact
+    // Ignore outgoing automation logs so a failed manual attempt doesn't poison the routing.
+    const { data: inboundCandidates } = await (supabase as any)
       .from('message_logs')
-      .select('instance_id')
+      .select('instance_id, keyword_matched, message_received, created_at')
       .eq('phone', contact.phone)
       .not('instance_id', 'is', null)
+      .not('message_received', 'is', null)
       .order('timestamp', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(20);
+
+    const lastContactMessage = (inboundCandidates || []).find((row: any) => {
+      const keyword = row?.keyword_matched || '';
+      return keyword !== '__processing__' && keyword !== '__lid_map__';
+    });
 
     if (lastContactMessage?.instance_id) {
       return lastContactMessage.instance_id;
