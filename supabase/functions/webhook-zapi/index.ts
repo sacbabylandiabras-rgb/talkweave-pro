@@ -1284,8 +1284,9 @@ serve(async (req) => {
     }
 
     // Manual flow trigger safeguard:
-    // Always use the instance of the latest inbound message from this contact.
-    if (isManualFlowTrigger && userId && phone) {
+    // Respect the explicitly requested instance from the UI.
+    // Only auto-adjust when the trigger did not provide an instanceId.
+    if (isManualFlowTrigger && userId && phone && !webhook?.instanceId) {
       const { data: inboundCandidates } = await supabase
         .from('message_logs')
         .select('instance_id, created_at, keyword_matched, message_received')

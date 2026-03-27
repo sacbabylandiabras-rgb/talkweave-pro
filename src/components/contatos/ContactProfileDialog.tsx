@@ -141,6 +141,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
           instanceId,
           timestamp: Math.floor(Date.now() / 1000),
           __manual_flow_trigger__: true,
+          __respect_selected_instance__: true,
         }
       });
       if (error) throw error;
