@@ -143,7 +143,9 @@ serve(async (req) => {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3);
+      const replyBtns = buttonActions
+        .filter((b: any) => b.type === 'REPLY' || b.type === 'OPTION')
+        .slice(0, 3);
       const fallbackParts: string[] = [];
 
       for (const b of buttonActions) {
@@ -158,6 +160,7 @@ serve(async (req) => {
       const fallbackMessage = fallbackParts.length > 0
         ? [baseMessage, fallbackParts.join('\n'), footer].filter(Boolean).join('\n\n').trim()
         : [baseMessage, footer].filter(Boolean).join('\n\n').trim();
+      const interactiveMessage = fallbackMessage || 'Selecione uma opção:';
 
       if (replyBtns.length > 0) {
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
@@ -165,17 +168,20 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({
             phone: resolvedPhone,
-            message: fallbackMessage || 'Selecione uma opção:',
-            buttonList: { buttons: replyBtns.map((b: any) => ({ label: b.label })) },
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
+            message: interactiveMessage,
+            buttonList: {
+              buttons: replyBtns.map((b: any, index: number) => ({
+                id: b.id || String(index + 1),
+                label: b.label,
+              })),
+            },
           }),
         });
       } else {
         zapiResponse = await fetch(`${baseUrl}/send-text`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, message: fallbackMessage || 'Nenhum botão compatível foi enviado.' }),
+          body: JSON.stringify({ phone: resolvedPhone, message: interactiveMessage }),
         });
       }
       logMessage = fallbackMessage || logMessage || '🔘 Botões de ação';
@@ -183,14 +189,27 @@ serve(async (req) => {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message: message || '', buttonList }),
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || 'Selecione uma opção:',
+          buttonList: {
+            buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
+              id: button.id || String(index + 1),
+              label: button.label,
+            })),
+          },
+        }),
       });
       logMessage = logMessage || '🔘 Lista de botões';
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message: message || '', optionList }),
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || optionList.title || 'Selecione uma opção:',
+          optionList,
+        }),
       });
       logMessage = logMessage || '📋 Lista de opções';
     } else if (mediaUrl && mediaType) {
@@ -231,7 +250,7 @@ serve(async (req) => {
       });
     }
 
-    const zapiData = await zapiResponse.json()
+    const zapiData = await zapiResponse.json().catch(() => ({}))
     const explicitError = hasExplicitZapiError(zapiData);
     const confirmed = isZapiSendConfirmed(zapiData);
     console.log(`📬 Z-API response for ${resolvedPhone} (instance ${instanceId}): status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiData) || 'none'}, body=${JSON.stringify(zapiData).substring(0, 300)}`);
