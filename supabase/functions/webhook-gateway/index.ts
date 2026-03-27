@@ -163,27 +163,17 @@ serve(async (req) => {
       let zapiRes: Response
 
       if (hasButton) {
-        // Send with URL button via send-button-actions
+        // Include button link in the message text (send-button-actions deprecated)
+        const messageWithLink = `${message}\n\n🔗 ${buttonLabel}: ${finalLink}`
         zapiRes = await fetch(
-          `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}/send-button-actions`,
+          `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}/send-text`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Client-Token': zapiCreds.zapi_client_token,
             },
-            body: JSON.stringify({
-              phone,
-              message,
-              buttonActions: [
-                {
-                  id: '1',
-                  type: 'URL',
-                  url: finalLink,
-                  label: buttonLabel,
-                },
-              ],
-            }),
+            body: JSON.stringify({ phone, message: messageWithLink }),
           }
         )
       } else {
