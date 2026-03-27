@@ -159,12 +159,21 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       hasMore = data.length === batchSize;
       from += batchSize;
     }
-    // Filter out processing locks, LID mapping entries, and unresolved @lid phones
+    // Filter out processing locks and LID mapping entries
     allData = allData.filter(m => 
       m.keyword_matched !== '__processing__' && 
-      m.keyword_matched !== '__lid_map__' &&
-      !m.phone.includes('@lid')
+      m.keyword_matched !== '__lid_map__'
     );
+    // Resolve @lid phones to real numbers using LID map
+    allData = allData.map(m => {
+      if (m.phone.includes('@lid')) {
+        const resolved = lidMapRef.current.get(m.phone);
+        if (resolved) return { ...m, phone: resolved };
+      }
+      return m;
+    });
+    // Filter out messages that still have unresolved @lid phones
+    allData = allData.filter(m => !m.phone.includes('@lid'));
     const dataKey = JSON.stringify(allData.map(d => d.id));
     if (dataKey !== lastLogsRef.current) {
       lastLogsRef.current = dataKey;
