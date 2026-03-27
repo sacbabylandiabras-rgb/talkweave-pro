@@ -305,7 +305,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const newMsg = payload.new as MessageLog;
-          if (newMsg.keyword_matched === '__processing__') return;
+          if (newMsg.keyword_matched === '__processing__' || newMsg.keyword_matched === '__lid_map__') return;
           setMessageLogs(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
