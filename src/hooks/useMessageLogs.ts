@@ -56,6 +56,12 @@ const isRealInboundKeyword = (keyword?: string | null) => {
   return !value.startsWith('__');
 };
 
+const isConversationBoundInstanceLog = (log: Pick<MessageLog, 'instance_id' | 'message_received' | 'keyword_matched'>) => {
+  if (!log.instance_id) return false;
+  if (log.keyword_matched === '__manual_send__') return true;
+  return Boolean(log.message_received) && isRealInboundKeyword(log.keyword_matched);
+};
+
 const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'sent' || send.status === 'delivered';
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
@@ -529,9 +535,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           if (timeDiff !== 0) return timeDiff;
           return b.id.localeCompare(a.id);
         });
-        const latestInboundLog = sortedConversationLogs.find((log) => {
-          return Boolean(log.message_received) && Boolean(log.instance_id) && isRealInboundKeyword(log.keyword_matched);
-        });
+        const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
