@@ -672,8 +672,8 @@ const EnviarMensagem = () => {
 
         toast({
           title: "Envio em massa concluído!",
-          description: `✅ ${enviados} enviadas • ❌ ${erros} erros`,
-          variant: enviados > 0 ? "default" : "destructive"
+          description: `📨 ${processados} solicitações processadas • ❌ ${erros} erros • acompanhe a confirmação no histórico/campanhas`,
+          variant: processados > 0 ? "default" : "destructive"
         });
       }
 
