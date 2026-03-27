@@ -1381,12 +1381,19 @@ serve(async (req) => {
         ? new Date(numericTimestamp < 1_000_000_000_000 ? numericTimestamp * 1000 : numericTimestamp).toISOString()
         : new Date().toISOString()
 
+      // Build outgoing content with audio tag if applicable
+      let outgoingContent = messageRaw
+      if (audioUrl) {
+        const audioTag = `[media:audio:${audioUrl}]`
+        outgoingContent = audioTag + (messageRaw ? `\n${messageRaw}` : '')
+      }
+
       const { error: outgoingLogError } = await supabase
         .from('message_logs')
         .insert({
           phone,
           message_received: null,
-          response_sent: messageRaw,
+          response_sent: outgoingContent,
           keyword_matched: '__manual_send__',
           timestamp: outgoingTimestamp,
           user_id: userId,
