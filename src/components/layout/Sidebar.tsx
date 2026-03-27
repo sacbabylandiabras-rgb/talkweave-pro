@@ -65,6 +65,15 @@ const metaMenuItems = [
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
 ];
 
+const gatewayMenuItems = [
+  { id: "painel-gateway", label: "Painel", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
+  { id: "integracoes", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integracoes" },
+  { id: "checkout", label: "Checkout", icon: CreditCard, path: "/gateway-checkout/checkout" },
+  { id: "webhooks", label: "Webhooks", icon: Webhook, path: "/gateway-checkout/webhooks" },
+  { id: "logs-gateway", label: "Logs", icon: Activity, path: "/gateway-checkout/logs" },
+  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+];
+
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
@@ -75,6 +84,11 @@ const metaBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
   { id: "configuracao-meta", label: "Configuração", icon: Globe, path: "/meta/configuracao", adminOnly: false },
+];
+
+const gatewayBottomItems = [
+  { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
+  { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
 ];
 
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
