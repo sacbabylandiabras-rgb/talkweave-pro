@@ -210,28 +210,46 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       return preferredInstanceId;
     }
 
-    // 2) Try to reuse the last inbound instance used by this contact
-    // Ignore outgoing automation logs so a failed manual attempt doesn't poison the routing.
-    const { data: inboundCandidates } = await (supabase as any)
+    // 2) Try to reuse the last instance used by this contact
+    // Accept real inbound messages AND manual sends as valid instance indicators
+    const { data: instanceCandidates } = await (supabase as any)
       .from('message_logs')
       .select('instance_id, keyword_matched, message_received, created_at')
       .eq('phone', contact.phone)
       .not('instance_id', 'is', null)
-      .not('message_received', 'is', null)
       .order('timestamp', { ascending: false })
-      .limit(20);
+      .limit(30);
 
-    const lastContactMessage = (inboundCandidates || []).find((row: any) => {
-      const keyword = row?.keyword_matched || '';
-      return isRealInboundKeyword(keyword);
+    // Priority 1: real inbound message (keyword not starting with __)
+    const realInbound = (instanceCandidates || []).find((row: any) => {
+      if (!row.instance_id) return false;
+      if (!row.message_received) return false;
+      return isRealInboundKeyword(row.keyword_matched);
     });
 
-    if (lastContactMessage?.instance_id) {
-      return lastContactMessage.instance_id;
+    if (realInbound?.instance_id) {
+      return realInbound.instance_id;
     }
 
-    // 3) Se houver múltiplas instâncias ativas e nenhuma foi identificada para a conversa,
-    // não chute a instância padrão — isso faz o fluxo sair no número errado.
+    // Priority 2: manual send (user explicitly sent from a specific instance)
+    const manualSend = (instanceCandidates || []).find((row: any) => {
+      return row.instance_id && row.keyword_matched === '__manual_send__';
+    });
+
+    if (manualSend?.instance_id) {
+      return manualSend.instance_id;
+    }
+
+    // Priority 3: any log with a valid instance_id (flow sends, etc.)
+    const anyInstanceLog = (instanceCandidates || []).find((row: any) => {
+      return row.instance_id && row.keyword_matched !== '__processing__' && row.keyword_matched !== '__lid_map__';
+    });
+
+    if (anyInstanceLog?.instance_id) {
+      return anyInstanceLog.instance_id;
+    }
+
+    // 3) Fallback: if only one active instance, use it; otherwise error
     const { data: activeInstances } = await (supabase as any)
       .from('zapi_instances')
       .select('zapi_instance_id')
