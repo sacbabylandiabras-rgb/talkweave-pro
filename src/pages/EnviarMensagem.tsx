@@ -425,7 +425,7 @@ const EnviarMensagem = () => {
       const { data: { session } } = await supabase.auth.getSession();
       const currentUserId = session?.user?.id;
 
-      let enviados = 0;
+      let processados = 0;
       let erros = 0;
       const campaignSends: any[] = [];
 
