@@ -119,6 +119,11 @@ const toMillis = (value: string | null | undefined): number => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
+const isLikelyTechnicalIdentifier = (phone: string): boolean => {
+  const clean = phone.replace(/\D/g, '');
+  return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
+};
+
 export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
@@ -165,11 +170,24 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       m.keyword_matched !== '__processing__' && 
       m.keyword_matched !== '__lid_map__'
     );
+    const lidEvidence = new Set<string>();
+    allData.forEach((row) => {
+      if (row.phone.includes('@lid')) lidEvidence.add(row.phone);
+      if (row.message_received?.includes('@lid')) lidEvidence.add(row.message_received);
+    });
     // Resolve @lid phones to real numbers using LID map
     allData = allData.map(m => {
-      if (m.phone.includes('@lid')) {
-        const resolved = lidMapRef.current.get(m.phone);
+      let normalizedPhone = m.phone;
+      if (isLikelyTechnicalIdentifier(normalizedPhone)) {
+        const suspectLid = `${normalizedPhone.replace(/\D/g, '')}@lid`;
+        if (lidEvidence.has(suspectLid)) {
+          normalizedPhone = suspectLid;
+        }
+      }
+      if (normalizedPhone.includes('@lid')) {
+        const resolved = lidMapRef.current.get(normalizedPhone);
         if (resolved) return { ...m, phone: resolved };
+        if (normalizedPhone !== m.phone) return { ...m, phone: normalizedPhone };
       }
       return m;
     });
@@ -274,7 +292,8 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     const toFetch = phones.filter(p => 
       !fetchedPhotosRef.current.has(p) && 
       !savedContacts.get(p)?.profile_picture_url &&
-      !p.includes('@')
+      !p.includes('@') &&
+      !isLikelyTechnicalIdentifier(p)
     ).slice(0, 5); // Limit to 5 at a time to avoid rate limits
 
     for (const phone of toFetch) {
