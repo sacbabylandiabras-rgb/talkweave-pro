@@ -445,6 +445,7 @@ const EnviarMensagem = () => {
           toast({
             title: "Envio pausado",
             description: `Pausado pelo usuário. ${processados} solicitações processadas. Retome pela página de Campanhas.`,
+          });
           break;
         }
 
