@@ -17,18 +17,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 
+const phoneSchema = z.string()
+  .min(10, "Número deve ter pelo menos 10 dígitos")
+  .refine((val) => {
+    const normalPhone = /^\d{10,15}$/.test(val);
+    const lidPhone = /^\d+@lid$/.test(val);
+    return normalPhone || lidPhone;
+  }, "Número inválido. Use 10-15 dígitos ou formato 123456789@lid");
+
 const messageSchema = z.object({
-  phone: z.string()
-    .min(10, "Número deve ter pelo menos 10 dígitos")
-    .refine((val) => {
-      // Aceita números normais (10-15 dígitos) ou números com @lid
-      const normalPhone = /^\d{10,15}$/.test(val);
-      const lidPhone = /^\d+@lid$/.test(val);
-      return normalPhone || lidPhone;
-    }, "Número inválido. Use 10-15 dígitos ou formato 123456789@lid"),
+  phone: phoneSchema,
   message: z.string()
     .min(1, "Mensagem não pode estar vazia")
     .max(4096, "Mensagem deve ter no máximo 4096 caracteres")
+});
+
+const buttonMessageSchema = z.object({
+  phone: phoneSchema,
+  message: z.string().max(4096, "Mensagem deve ter no máximo 4096 caracteres")
 });
 
 const EnviarMensagem = () => {
