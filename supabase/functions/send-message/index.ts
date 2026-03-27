@@ -215,6 +215,7 @@ serve(async (req) => {
     }
 
     const zapiData = await zapiResponse.json()
+    console.log(`📬 Z-API response for ${resolvedPhone} (instance ${instanceId}): status=${zapiResponse.status}, zapiId=${zapiData?.zapiMessageId || zapiData?.messageId || 'none'}, body=${JSON.stringify(zapiData).substring(0, 300)}`);
 
     if (!zapiResponse.ok) {
       return new Response(
