@@ -1758,6 +1758,44 @@ async function sendNodeContent(
 
   if (targetNode.type !== 'blocoConteudo') return false
 
+  const getZapiAckId = (payload: any) => {
+    return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null
+  }
+
+  const hasExplicitZapiError = (payload: any) => {
+    return payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null
+  }
+
+  const isZapiSendConfirmed = (payload: any) => {
+    const ackId = getZapiAckId(payload)
+    const status = String(payload?.status || payload?.message?.status || '').toUpperCase()
+    const result = String(payload?.result || '').toUpperCase()
+    const hasPositiveStatus = ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result)
+    return Boolean(ackId || hasPositiveStatus)
+  }
+
+  const parseZapiResponse = async (res: Response, context: string) => {
+    const raw = await res.text()
+    let payload: any = null
+
+    try {
+      payload = raw ? JSON.parse(raw) : null
+    } catch {
+      payload = { raw }
+    }
+
+    const explicitError = hasExplicitZapiError(payload)
+    const confirmed = isZapiSendConfirmed(payload)
+
+    console.log(`${context}: status=${res.status} confirmed=${confirmed} ack=${getZapiAckId(payload) || 'none'} body=${raw.substring(0, 300)}`)
+
+    if (!res.ok || explicitError || !confirmed) {
+      throw new Error(explicitError || `Z-API não confirmou o envio do bloco (${context})`)
+    }
+
+    return payload
+  }
+
   const contentType = targetNode.data.contentType || 'text'
   const content = targetNode.data.content || ''
   const mediaUrl = targetNode.data.mediaUrl || ''
@@ -1777,11 +1815,10 @@ async function sendNodeContent(
     'Client-Token': zapiConfig.zapi_client_token,
   }
 
-  // Separate reply buttons from URL/CALL buttons
   function buildReplyButtons(btns: typeof allSendButtons) {
     return btns
       .filter(b => b.type === 'reply' || b.type === 'flow')
-      .slice(0, 3) // WhatsApp limit: max 3 buttons
+      .slice(0, 3)
       .map(btn => ({ label: (btn.text || '').trim() || 'Botão' }))
   }
 
@@ -1808,7 +1845,8 @@ async function sendNodeContent(
         const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
         const mediaBody: any = { phone }
         mediaBody[contentType] = mediaUrl
-        await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+        const mediaRes = await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+        await parseZapiResponse(mediaRes, `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`)
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
 
@@ -1818,7 +1856,6 @@ async function sendNodeContent(
 
       let res: Response
       if (replyButtons.length > 0) {
-        // Use native WhatsApp reply buttons (send-button-list)
         res = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
           headers,
@@ -1829,15 +1866,13 @@ async function sendNodeContent(
           }),
         })
       } else {
-        // Only URL/CALL buttons — send as plain text with links
         res = await fetch(`${baseUrl}/send-text`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ phone, message: fullMessage }),
         })
       }
-      const result = await res.text()
-      console.log(`Bloco ${targetNode.id} (${contentType}+buttons): ${res.status}`, result)
+      await parseZapiResponse(res, `Bloco ${targetNode.id} (${contentType}+buttons)`)
       await new Promise(resolve => setTimeout(resolve, 1500))
     } else {
       let endpoint = ''
@@ -1876,27 +1911,25 @@ async function sendNodeContent(
 
       if (endpoint) {
         const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
-        const result = await res.text()
-        console.log(`Bloco ${targetNode.id} (${contentType}): ${res.status}`, result)
+        await parseZapiResponse(res, `Bloco ${targetNode.id} (${contentType})`)
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
     }
-    // Log the sent message to message_logs for chat history
+
     if (supabase && userId) {
       try {
         const buttonLabels = allSendButtons.map(b => b.text).filter(Boolean).join(' | ')
         let logContent = content || ''
-        
-        // Add media tag for proper rendering in chat
+
         if (mediaUrl && contentType && contentType !== 'text') {
           const mediaTag = `[media:${contentType}:${mediaUrl}]`
           logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag
         }
-        
+
         if (buttonLabels) {
           logContent = logContent ? `${logContent}\n\n[Botões: ${buttonLabels}]` : `[Botões: ${buttonLabels}]`
         }
-        
+
         if (logContent) {
           await supabase.from('message_logs').insert({
             phone,
@@ -1914,19 +1947,19 @@ async function sendNodeContent(
     }
   } catch (e) {
     console.error(`Erro ao enviar bloco ${targetNode.id}:`, e)
+    throw e
   }
 
-  // Return whether this node has button branching (should stop auto-flow)
   const hasButtonEdges = buttons.some((btn, idx) => {
     return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
   })
-  
+
   if (hasButtonEdges) {
     console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
-    return true // signals: stop processing
+    return true
   }
 
-  return false // signals: continue processing children
+  return false
 }
 
 async function processFlowNode(
