@@ -35,6 +35,11 @@ const formatPhone = (phone: string) => {
   return phone;
 };
 
+const isLikelyTechnicalIdentifier = (phone: string) => {
+  const clean = phone.replace(/\D/g, '');
+  return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
+};
+
 const WhatsAppDefaultAvatar = () => (
   <svg viewBox="0 0 212 212" className="w-full h-full text-white">
     <path fill="currentColor" d="M106.251 0.5C164.653 0.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 0.5 164.654 0.5 106.25S47.846 0.5 106.251 0.5Z" />
@@ -133,11 +138,29 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       }
 
       let targetPhone = contact.phone;
+      let lidToResolve: string | null = null;
+
       if (targetPhone.includes('@lid')) {
+        lidToResolve = targetPhone;
+      } else if (isLikelyTechnicalIdentifier(targetPhone)) {
+        const suspectLid = `${targetPhone.replace(/\D/g, '')}@lid`;
+        const { data: lidEvidence } = await (supabase as any)
+          .from('message_logs')
+          .select('id')
+          .or(`phone.eq.${suspectLid},message_received.eq.${suspectLid}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (lidEvidence) {
+          lidToResolve = suspectLid;
+        }
+      }
+
+      if (lidToResolve) {
         const { data: resolvedLog } = await (supabase as any)
           .from('message_logs')
           .select('phone')
-          .eq('message_received', targetPhone)
+          .eq('message_received', lidToResolve)
           .eq('keyword_matched', '__lid_map__')
           .not('phone', 'like', '%@lid%')
           .order('created_at', { ascending: false })
@@ -147,7 +170,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (resolvedLog?.phone) {
           targetPhone = resolvedLog.phone;
         } else {
-          throw new Error('Esse contato está salvo com identificador @lid e ainda não foi resolvido para número real.');
+          throw new Error('Esse lead está com identificador técnico da Z-API e ainda não foi resolvido para número real.');
         }
       }
 

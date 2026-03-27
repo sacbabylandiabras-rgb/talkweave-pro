@@ -97,6 +97,12 @@ const normalizePhoneCandidate = (value: unknown) => {
     .replace(/\D/g, '')
 }
 
+const isLikelyTechnicalIdentifier = (value: unknown) => {
+  const raw = String(value || '').trim()
+  const digits = normalizePhoneCandidate(raw)
+  return !raw.includes('@') && /^\d{14,16}$/.test(digits) && !digits.startsWith('55')
+}
+
 const resolveWebhookPhone = (webhook: any) => {
   const rawPhone = String(webhook?.phone || '')
   const participantPhone = String(webhook?.participantPhone || '')
@@ -114,6 +120,7 @@ const resolveWebhookPhone = (webhook: any) => {
   if (senderPhone && !senderPhone.includes('@lid')) return senderPhone
   if (participantPhone && !participantPhone.includes('@lid')) return participantPhone
   if (chatPhone && !chatPhone.includes('@lid')) return chatPhone
+  if (chatLid && chatLid.includes('@lid') && isLikelyTechnicalIdentifier(rawPhone)) return chatLid
   if (rawPhone && !rawPhone.includes('@lid')) return rawPhone
 
   return rawPhone || participantPhone || chatLid || ''
@@ -1223,6 +1230,9 @@ serve(async (req) => {
         phone = participantPhone
       } else if (chatPhone && !chatPhone.includes('@lid')) {
         phone = chatPhone
+      } else if (chatLid && chatLid.includes('@lid') && isLikelyTechnicalIdentifier(rawPhone)) {
+        phone = chatLid
+        console.log('⚠️ Raw phone parece ID técnico; usando chatLid para tentar resolução real:', chatLid)
       } else if (rawPhone && !rawPhone.includes('@lid')) {
         phone = rawPhone
       } else {
