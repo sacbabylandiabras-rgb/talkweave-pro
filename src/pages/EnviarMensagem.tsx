@@ -494,7 +494,7 @@ const EnviarMensagem = () => {
                 } catch {}
                 toast({
                   title: "Todas as instâncias desconectadas!",
-                  description: `Envio pausado. ${enviados} mensagens enviadas. Reconecte e retome pela página de Campanhas.`,
+                  description: `Envio pausado. ${processados} solicitações processadas. Reconecte e retome pela página de Campanhas.`,
                   variant: "destructive"
                 });
                 setEnviandoEmMassa(false);
