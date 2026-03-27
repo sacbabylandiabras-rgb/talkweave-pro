@@ -58,7 +58,12 @@ const isRealInboundKeyword = (keyword?: string | null) => {
 
 const isConversationBoundInstanceLog = (log: Pick<MessageLog, 'instance_id' | 'message_received' | 'keyword_matched'>) => {
   if (!log.instance_id) return false;
+  // Accept manual sends
   if (log.keyword_matched === '__manual_send__') return true;
+  // Accept flow sends (they carry the correct instance)
+  if (log.keyword_matched?.startsWith('__flow_send__')) return true;
+  if (log.keyword_matched?.startsWith('__manual_flow_trigger__')) return true;
+  // Accept real inbound messages
   return Boolean(log.message_received) && isRealInboundKeyword(log.keyword_matched);
 };
 
