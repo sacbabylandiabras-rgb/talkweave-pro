@@ -478,9 +478,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       grouped.set(msg.phone, existing);
     });
 
+    // Filter out any group conversations — they belong in the Groups page, not here
+    const isGroupPhone = (p: string) => p.includes('-group') || p.includes('@g.us') || /^12036\d{13,}$/.test(p);
+
     return Array.from(grouped.entries())
-      // Filter out group conversations — they belong in the Groups page
-      .filter(([phone]) => !phone.includes('-group') && !phone.includes('@g.us'))
+      .filter(([phone]) => !isGroupPhone(phone))
       .map(([phone, msgs]) => {
         const sorted = msgs.sort((a, b) => {
           const timeDiff = toMillis(a.timestamp) - toMillis(b.timestamp);
