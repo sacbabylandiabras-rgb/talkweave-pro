@@ -19,7 +19,11 @@ import {
   Link2,
   FileCheck,
   CloudUpload,
-  Globe
+  Globe,
+  ShoppingCart,
+  CreditCard,
+  PlugZap,
+  Activity
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
