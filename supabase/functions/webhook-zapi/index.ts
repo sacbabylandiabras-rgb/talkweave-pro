@@ -128,9 +128,18 @@ const mapCampaignSendStatusFromWebhook = (webhook: any): 'sent' | 'delivered' | 
     if (webhookStatus === 'SENT') return 'sent'
     if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
   }
+  // Only treat fromMe ReceivedCallbacks as campaign status updates if they DON'T have text content
+  // (i.e. they are pure status callbacks, not actual outgoing messages with text)
   if (webhookType === 'ReceivedCallback' && webhook?.fromMe === true) {
-    if (webhookStatus === 'SENT') return 'sent'
-    if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
+    const hasTextContent = Boolean(
+      webhook?.text?.message || webhook?.text || webhook?.body ||
+      webhook?.message?.text || webhook?.message?.conversation ||
+      webhook?.message?.extendedTextMessage?.text
+    )
+    if (!hasTextContent) {
+      if (webhookStatus === 'SENT') return 'sent'
+      if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
+    }
   }
 
   return null
