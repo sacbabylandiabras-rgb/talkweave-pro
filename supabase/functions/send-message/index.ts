@@ -16,13 +16,29 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
-    const { phone, message, mediaUrl, mediaType, instanceId: requestedInstanceId } = await req.json()
+    const {
+      phone,
+      message,
+      mediaUrl,
+      mediaType,
+      instanceId: requestedInstanceId,
+      title,
+      footer,
+      buttonActions,
+      buttonList,
+      optionList,
+    } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}`);
 
-    if (!phone || (!message && !mediaUrl)) {
+    const hasInteractivePayload =
+      (Array.isArray(buttonActions) && buttonActions.length > 0) ||
+      (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) ||
+      (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0);
+
+    if (!phone || (!message && !mediaUrl && !hasInteractivePayload)) {
       return new Response(
-        JSON.stringify({ error: 'Phone and message or mediaUrl are required' }),
+        JSON.stringify({ error: 'Phone and message, mediaUrl, or interactive payload are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -93,7 +109,42 @@ serve(async (req) => {
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
-    if (mediaUrl && mediaType) {
+    if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || '',
+          buttonActions,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+        }),
+      });
+      logMessage = logMessage || '🔘 Botões de ação';
+    } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
+      zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || '',
+          buttonList,
+        }),
+      });
+      logMessage = logMessage || '🔘 Lista de botões';
+    } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
+      zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || '',
+          optionList,
+        }),
+      });
+      logMessage = logMessage || '📋 Lista de opções';
+    } else if (mediaUrl && mediaType) {
       if (mediaType === 'audio') {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
           method: 'POST',

@@ -144,7 +144,28 @@ export const useZapi = () => {
   };
 
   const invokeSendMessageEdge = async (
-    payload: { phone: string; message?: string; mediaUrl?: string; mediaType?: string; instanceId?: string },
+    payload: {
+      phone: string;
+      message?: string;
+      mediaUrl?: string;
+      mediaType?: string;
+      instanceId?: string;
+      title?: string;
+      footer?: string;
+      buttonList?: { buttons: Array<{ id: string; label: string }> };
+      optionList?: {
+        title: string;
+        buttonLabel: string;
+        options: Array<{ id: string; title: string; description: string }>;
+      };
+      buttonActions?: Array<{
+        id: string;
+        type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY';
+        label: string;
+        phone?: string;
+        url?: string;
+      }>;
+    },
     fallbackMessage: string,
   ) => {
     let body = { ...payload };
@@ -230,30 +251,13 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-list`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+      const data = await invokeSendMessageEdge({
+        phone,
+        message,
+        buttonList: {
+          buttons,
         },
-        body: JSON.stringify({
-          phone: phone,
-          message: message,
-          buttonList: {
-            buttons: buttons
-          }
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar mensagem com botões');
-      }
+      }, 'Erro ao enviar mensagem com botões');
 
       ensureZapiSendConfirmed(data, '❌ Falha no envio com botões.');
 
@@ -286,50 +290,36 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-button-actions`;
-      
-      const payload: any = {
-        phone: phone,
-        message: message,
+      const data = await invokeSendMessageEdge({
+        phone,
+        message,
+        title,
+        footer,
         buttonActions: buttons.map(btn => {
-          const buttonData: any = {
+          const buttonData: {
+            id: string;
+            type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY';
+            label: string;
+            phone?: string;
+            url?: string;
+          } = {
             id: btn.id,
             type: btn.type,
-            label: btn.label
+            label: btn.label,
           };
-          
-          if (btn.type === "CALL" && btn.phone) {
+
+          if (btn.type === 'CALL' && btn.phone) {
             buttonData.phone = btn.phone;
-          } else if (btn.type === "URL" && btn.url) {
+          } else if (btn.type === 'URL' && btn.url) {
             buttonData.url = btn.url;
-          } else if (btn.type === "COPY" && btn.copyText) {
-            buttonData.type = "URL";
+          } else if (btn.type === 'COPY' && btn.copyText) {
+            buttonData.type = 'URL';
             buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText)}`;
           }
-          
+
           return buttonData;
-        })
-      };
-
-      if (title) payload.title = title;
-      if (footer) payload.footer = footer;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar mensagem com botões de ação');
-      }
+        }),
+      }, 'Erro ao enviar mensagem com botões de ação');
 
       ensureZapiSendConfirmed(data, '❌ Falha no envio com botões de ação.');
 
@@ -686,28 +676,11 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-option-list`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: message,
-          optionList: optionList
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar lista de opções');
-      }
+      const data = await invokeSendMessageEdge({
+        phone,
+        message,
+        optionList,
+      }, 'Erro ao enviar lista de opções');
 
       ensureZapiSendConfirmed(data, '❌ Falha no envio da lista de opções.');
 
