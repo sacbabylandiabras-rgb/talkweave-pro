@@ -179,6 +179,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
           phone: targetPhone,
           message: { text: flow.keyword || flow.name, fromMe: false },
           fromMe: false,
+          flowId: flow.id,
           instanceId,
           timestamp: Math.floor(Date.now() / 1000),
           __manual_flow_trigger__: true,

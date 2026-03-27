@@ -1506,6 +1506,41 @@ serve(async (req) => {
       .eq('active', true)
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
+      if (isManualFlowTrigger && webhook?.flowId) {
+        const directFlow = flowAutomations.find((flow: any) => flow.id === webhook.flowId)
+
+        if (directFlow) {
+          console.log('Fluxo manual encontrado por ID:', directFlow.id, directFlow.name)
+
+          const nodes: FlowNode[] = directFlow.nodes || []
+          const edges: FlowEdge[] = directFlow.edges || []
+          const initialNode = nodes.find(n => n.type === 'blocoInicial')
+
+          if (initialNode) {
+            await processFlowNode(
+              initialNode.id,
+              nodes,
+              edges,
+              phone,
+              zapiConfig,
+              supabase,
+              new Set<string>(),
+              userId,
+              directFlow.name
+            )
+
+            await finalizeMessageLog(supabase, lockId, {
+              keywordMatched: `__manual_flow_trigger__:${directFlow.id}`,
+              responseSent: `[Fluxo: ${directFlow.name}]`,
+            })
+
+            return new Response('manual_flow_sent', { status: 200, headers: corsHeaders })
+          }
+        }
+
+        console.log('⚠️ Fluxo manual não encontrado por ID, tentando fallback por palavra-chave')
+      }
+
       // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
       const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, messageRaw)
       if (buttonMatch) {
