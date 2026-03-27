@@ -110,15 +110,26 @@ serve(async (req) => {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      // Convert button actions to reply buttons + text links
-      const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3)
-      const urlCallParts: string[] = []
+      const replyBtns = buttonActions.filter((b: any) => b.type === 'REPLY').slice(0, 3);
+      const fallbackParts: string[] = [];
+
       for (const b of buttonActions) {
-        if (b.type === 'URL' && b.url) urlCallParts.push(`🔗 ${b.label}: ${b.url}`)
-        if (b.type === 'CALL' && b.phoneNumber) urlCallParts.push(`📞 ${b.label}: ${b.phoneNumber}`)
+        if (b.type === 'URL' && b.url) {
+          fallbackParts.push(`🔗 ${b.label}: ${b.url}`);
+        }
+
+        if (b.type === 'CALL') {
+          const phoneNumber = b.phone ?? b.phoneNumber;
+          if (phoneNumber) {
+            fallbackParts.push(`📞 ${b.label}: ${phoneNumber}`);
+          }
+        }
       }
-      const suffix = urlCallParts.length > 0 ? '\n\n' + urlCallParts.join('\n') : ''
-      const fullMsg = (message || '') + suffix
+
+      const baseMessage = [title, message].filter(Boolean).join('\n\n').trim();
+      const fallbackMessage = fallbackParts.length > 0
+        ? [baseMessage, fallbackParts.join('\n'), footer].filter(Boolean).join('\n\n').trim()
+        : [baseMessage, footer].filter(Boolean).join('\n\n').trim();
 
       if (replyBtns.length > 0) {
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
@@ -126,7 +137,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({
             phone: resolvedPhone,
-            message: fullMsg,
+            message: fallbackMessage || 'Selecione uma opção:',
             buttonList: { buttons: replyBtns.map((b: any) => ({ label: b.label })) },
             ...(title ? { title } : {}),
             ...(footer ? { footer } : {}),
@@ -136,10 +147,13 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-text`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, message: fullMsg }),
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: fallbackMessage || 'Nenhum botão compatível foi enviado.',
+          }),
         });
       }
-      logMessage = logMessage || '🔘 Botões de ação';
+      logMessage = fallbackMessage || logMessage || '🔘 Botões de ação';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
