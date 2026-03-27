@@ -132,10 +132,33 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         throw new Error('Nenhuma instância ativa encontrada para disparar o fluxo');
       }
 
-      // Trigger flow execution server-side by simulating webhook with the keyword
+      let targetPhone = contact.phone;
+      if (targetPhone.includes('@lid')) {
+        const { data: resolvedLog } = await (supabase as any)
+          .from('message_logs')
+          .select('phone')
+          .eq('message_received', targetPhone)
+          .eq('keyword_matched', '__lid_map__')
+          .not('phone', 'like', '%@lid%')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (resolvedLog?.phone) {
+          targetPhone = resolvedLog.phone;
+        } else {
+          const digitsOnly = targetPhone.replace(/\D/g, '');
+          if (digitsOnly.length >= 10) {
+            targetPhone = digitsOnly;
+          } else {
+            throw new Error('Esse contato está salvo com identificador @lid e ainda não foi resolvido para número real.');
+          }
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('webhook-zapi', {
         body: {
-          phone: contact.phone,
+          phone: targetPhone,
           message: { text: flow.keyword || flow.name, fromMe: false },
           fromMe: false,
           instanceId,
@@ -145,11 +168,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         }
       });
       if (error) throw error;
-      toast({ title: "Fluxo disparado!", description: `Fluxo "${flow.name}" executado para ${contact.name || contact.phone}` });
+      toast({ title: "Fluxo disparado!", description: `Fluxo "${flow.name}" executado para ${contact.name || targetPhone}` });
       setSelectedFlow("");
     } catch (e) {
       console.error('handleSendFlow error:', e);
-      toast({ title: "Erro ao disparar fluxo", variant: "destructive" });
+      toast({ title: "Erro ao disparar fluxo", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
     } finally {
       setSendingFlow(false);
     }
