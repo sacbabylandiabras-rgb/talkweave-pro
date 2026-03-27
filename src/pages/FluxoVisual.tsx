@@ -1054,6 +1054,9 @@ export default function FluxoVisual() {
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             fitView
+            minZoom={0.1}
+            maxZoom={4}
+            defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
             deleteKeyCode={["Backspace", "Delete"]}
             className="bg-background rounded-lg border"
             defaultEdgeOptions={{
