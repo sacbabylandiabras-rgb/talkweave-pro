@@ -296,12 +296,13 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string) => Promise<void>;
   onOpenProfile: () => void;
+  onTriggerFlow: (phone: string) => void;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -516,6 +517,9 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
+            <Bot className="w-4 h-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver perfil" onClick={onOpenProfile}>
             <User className="w-4 h-4" />
           </Button>
@@ -858,7 +862,7 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
             await sendMessage(phone, message, mediaUrl, mediaType);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
