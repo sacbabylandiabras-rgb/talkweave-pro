@@ -312,7 +312,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           });
         } else if (payload.eventType === 'UPDATE') {
           const updated = payload.new as MessageLog;
-          if (updated.keyword_matched === '__processing__') return;
+          if (updated.keyword_matched === '__processing__' || updated.keyword_matched === '__lid_map__') return;
           setMessageLogs(prev => prev.map(m => m.id === updated.id ? updated : m));
         } else if (payload.eventType === 'DELETE') {
           setMessageLogs(prev => prev.filter(m => m.id !== (payload.old as any).id));
