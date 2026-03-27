@@ -114,6 +114,25 @@ export const useZapi = () => {
   const getInvokeErrorMessage = async (error: any, fallbackMessage: string) => {
     const response = error?.context;
 
+    if (response?.json && typeof response.json === 'function') {
+      try {
+        const errorData = await response.json();
+        const detailedMessage =
+          errorData?.message ||
+          errorData?.error ||
+          errorData?.details?.message ||
+          errorData?.details?.error;
+
+        if (detailedMessage) {
+          return String(detailedMessage);
+        }
+
+        return JSON.stringify(errorData);
+      } catch {
+        // fallback below
+      }
+    }
+
     if (response instanceof Response) {
       try {
         const errorData = await response.clone().json();
@@ -227,6 +246,8 @@ export const useZapi = () => {
     
     try {
       const data = await invokeSendMessageEdge({ phone, message }, 'Erro ao enviar mensagem');
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
 
       toast({
         title: "Mensagem enviada!",
