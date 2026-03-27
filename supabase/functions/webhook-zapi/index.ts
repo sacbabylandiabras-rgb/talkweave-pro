@@ -1151,17 +1151,31 @@ serve(async (req) => {
     }
 
     const messageRaw = extractMessageText(webhook)
-    const messageText = messageRaw.toLowerCase()
-    const normalizedMessage = normalizeForMatch(messageRaw)
+    const audioUrl = extractAudioUrl(webhook)
+    let messageText = messageRaw.toLowerCase()
+    let normalizedMessage = normalizeForMatch(messageRaw)
+    let audioTranscription = ''
 
-    if (!messageRaw) {
+    if (!messageRaw && !audioUrl) {
       console.log('Evento sem texto detectado, ignorando. Chaves:', Object.keys(webhook || {}))
-      // Log full payload for button-response debugging
       const webhookType = webhook?.type || ''
       if (webhookType) {
         console.log('Webhook type:', webhookType, '| Full payload:', JSON.stringify(webhook).substring(0, 500))
       }
       return new Response('ignored_no_text', { status: 200, headers: corsHeaders })
+    }
+
+    // If audio message with no text, try to transcribe
+    if (!messageRaw && audioUrl) {
+      console.log('🎤 Audio message detected, attempting transcription...')
+      audioTranscription = await transcribeAudio(audioUrl)
+      if (audioTranscription && audioTranscription !== '[áudio não reconhecido]') {
+        messageText = audioTranscription.toLowerCase()
+        normalizedMessage = normalizeForMatch(audioTranscription)
+        console.log('✅ Audio transcribed successfully, using as message text for matching')
+      } else {
+        console.log('⚠️ Audio could not be transcribed, logging as audio-only')
+      }
     }
 
     // Extract phone — handle groups vs private chats differently
