@@ -200,18 +200,23 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const getDefaultInstanceId = async (): Promise<string> => {
     if (!contact) return '';
 
-    const isRealInboundKeyword = (keyword?: string | null) => {
-      const value = (keyword || '').trim();
-      return !value.startsWith('__');
-    };
-
-    // 1) Respect explicit preferred instance from messages screen filter (instância selecionada pelo usuário)
+    // 1) Respect explicit preferred instance from messages screen filter
     if (preferredInstanceId) {
       return preferredInstanceId;
     }
 
+    // Fetch the user's VALID active instances first to cross-check
+    const { data: activeInstances } = await (supabase as any)
+      .from('zapi_instances')
+      .select('zapi_instance_id')
+      .eq('is_active', true)
+      .limit(50);
+
+    const validInstanceIds = new Set(
+      (activeInstances || []).map((i: any) => i.zapi_instance_id)
+    );
+
     // 2) Try to reuse the last instance used by this contact
-    // Accept real inbound messages AND manual sends as valid instance indicators
     const { data: instanceCandidates } = await (supabase as any)
       .from('message_logs')
       .select('instance_id, keyword_matched, message_received, created_at')
@@ -220,43 +225,34 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       .order('timestamp', { ascending: false })
       .limit(30);
 
-    // Priority 1: real inbound message (keyword not starting with __)
+    const isRealInboundKeyword = (keyword?: string | null) => {
+      const value = (keyword || '').trim();
+      return !value.startsWith('__');
+    };
+
+    // Priority 1: real inbound from a VALID instance
     const realInbound = (instanceCandidates || []).find((row: any) => {
-      if (!row.instance_id) return false;
-      if (!row.message_received) return false;
-      return isRealInboundKeyword(row.keyword_matched);
+      return row.instance_id && validInstanceIds.has(row.instance_id) &&
+        row.message_received && isRealInboundKeyword(row.keyword_matched);
     });
+    if (realInbound?.instance_id) return realInbound.instance_id;
 
-    if (realInbound?.instance_id) {
-      return realInbound.instance_id;
-    }
-
-    // Priority 2: manual send (user explicitly sent from a specific instance)
+    // Priority 2: manual send from a VALID instance
     const manualSend = (instanceCandidates || []).find((row: any) => {
-      return row.instance_id && row.keyword_matched === '__manual_send__';
+      return row.instance_id && validInstanceIds.has(row.instance_id) &&
+        row.keyword_matched === '__manual_send__';
     });
+    if (manualSend?.instance_id) return manualSend.instance_id;
 
-    if (manualSend?.instance_id) {
-      return manualSend.instance_id;
-    }
-
-    // Priority 3: any log with a valid instance_id (flow sends, etc.)
-    const anyInstanceLog = (instanceCandidates || []).find((row: any) => {
-      return row.instance_id && row.keyword_matched !== '__processing__' && row.keyword_matched !== '__lid_map__';
+    // Priority 3: any log from a VALID instance
+    const anyValid = (instanceCandidates || []).find((row: any) => {
+      return row.instance_id && validInstanceIds.has(row.instance_id) &&
+        row.keyword_matched !== '__processing__' && row.keyword_matched !== '__lid_map__';
     });
+    if (anyValid?.instance_id) return anyValid.instance_id;
 
-    if (anyInstanceLog?.instance_id) {
-      return anyInstanceLog.instance_id;
-    }
-
-    // 3) Fallback: if only one active instance, use it; otherwise error
-    const { data: activeInstances } = await (supabase as any)
-      .from('zapi_instances')
-      .select('zapi_instance_id')
-      .eq('is_active', true)
-      .limit(10);
-
-    if ((activeInstances || []).length > 1) {
+    // 3) Fallback: single active instance or error
+    if (validInstanceIds.size > 1) {
       throw new Error('Selecione a instância correta no topo da tela antes de disparar o fluxo.');
     }
 
