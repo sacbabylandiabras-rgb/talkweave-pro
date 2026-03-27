@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, ChevronDown, Zap, Globe } from "lucide-react";
+import { Check, ChevronDown, Zap, Globe, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
@@ -23,6 +23,14 @@ const workspaces = [
     icon: Globe,
     color: "text-[#0668E1]",
     bg: "bg-[#0668E1]/10",
+  },
+  {
+    id: "gateway" as WorkspaceType,
+    label: "Gateway e Checkout",
+    description: "Integrações e pagamentos",
+    icon: ShoppingCart,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
   },
 ];
 
@@ -56,10 +64,8 @@ export function WorkspaceSelector() {
   const handleSelect = (ws: WorkspaceType) => {
     if (ws === "meta") {
       if (isMetaConnected) {
-        // Already connected, switch immediately
         setActiveWorkspace("meta");
       } else {
-        // Not connected, show dialog and wait for connection
         setPendingMetaSwitch(true);
         setFbDialogOpen(true);
       }

@@ -19,7 +19,11 @@ import {
   Link2,
   FileCheck,
   CloudUpload,
-  Globe
+  Globe,
+  ShoppingCart,
+  CreditCard,
+  PlugZap,
+  Activity
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -61,6 +65,15 @@ const metaMenuItems = [
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
 ];
 
+const gatewayMenuItems = [
+  { id: "painel-gateway", label: "Painel", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
+  { id: "integracoes", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integracoes" },
+  { id: "checkout", label: "Checkout", icon: CreditCard, path: "/gateway-checkout/checkout" },
+  { id: "webhooks", label: "Webhooks", icon: Webhook, path: "/gateway-checkout/webhooks" },
+  { id: "logs-gateway", label: "Logs", icon: Activity, path: "/gateway-checkout/logs" },
+  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+];
+
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
@@ -73,14 +86,19 @@ const metaBottomItems = [
   { id: "configuracao-meta", label: "Configuração", icon: Globe, path: "/meta/configuracao", adminOnly: false },
 ];
 
+const gatewayBottomItems = [
+  { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
+  { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
+];
+
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
   const { activeWorkspace, workspaceLabel } = useWorkspace();
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
-  const bottomItems = activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
-  const brandLabel = activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
+  const menuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
+  const bottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
+  const brandLabel = activeWorkspace === "gateway" ? "Gateway" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
@@ -132,7 +150,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         "flex items-center gap-2.5 px-4 py-4 border-b border-border",
         collapsed && "justify-center px-2"
       )}>
-        {activeWorkspace === "meta" ? (
+        {activeWorkspace === "gateway" ? (
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-4.5 h-4.5 text-emerald-500" />
+          </div>
+        ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
           </div>

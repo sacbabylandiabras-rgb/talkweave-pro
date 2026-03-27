@@ -33,7 +33,11 @@ import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
-
+import GatewayDashboard from "./pages/GatewayDashboard";
+import GatewayIntegracoesList from "./pages/GatewayIntegracoesList";
+import GatewayCheckout from "./pages/GatewayCheckout";
+import GatewayWebhooks from "./pages/GatewayWebhooks";
+import GatewayLogs from "./pages/GatewayLogs";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -74,6 +78,13 @@ const App = () => (
                 <Route path="/meta/templates" element={<TemplatesAprovados />} />
                 <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+
+                {/* Gateway e Checkout routes */}
+                <Route path="/gateway-checkout/dashboard" element={<GatewayDashboard />} />
+                <Route path="/gateway-checkout/integracoes" element={<GatewayIntegracoesList />} />
+                <Route path="/gateway-checkout/checkout" element={<GatewayCheckout />} />
+                <Route path="/gateway-checkout/webhooks" element={<GatewayWebhooks />} />
+                <Route path="/gateway-checkout/logs" element={<GatewayLogs />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
