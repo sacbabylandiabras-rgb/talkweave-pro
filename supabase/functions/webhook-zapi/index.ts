@@ -119,9 +119,55 @@ const resolveWebhookPhone = (webhook: any) => {
   return rawPhone || participantPhone || chatLid || ''
 }
 
+const parseBooleanLike = (value: unknown): boolean | null => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1') return true
+    if (normalized === 'false' || normalized === '0') return false
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true
+    if (value === 0) return false
+  }
+  return null
+}
+
+const resolveFromMe = (webhook: any): boolean => {
+  const candidates = [
+    webhook?.message?.fromMe,
+    webhook?.fromMe,
+    webhook?.data?.fromMe,
+    webhook?.data?.message?.fromMe,
+    webhook?.waitingMessage?.fromMe,
+    webhook?.message?.key?.fromMe,
+    webhook?.data?.message?.key?.fromMe,
+    webhook?.key?.fromMe,
+    webhook?.isFromMe,
+    webhook?.data?.isFromMe,
+  ]
+
+  for (const candidate of candidates) {
+    const parsed = parseBooleanLike(candidate)
+    if (parsed !== null) return parsed
+  }
+
+  const connectedPhone = normalizePhoneCandidate(webhook?.connectedPhone)
+  const senderPhone = normalizePhoneCandidate(webhook?.senderPhone)
+  const participantPhone = normalizePhoneCandidate(webhook?.participantPhone)
+
+  if (connectedPhone) {
+    if (senderPhone && senderPhone === connectedPhone) return true
+    if (participantPhone && participantPhone === connectedPhone) return true
+  }
+
+  return false
+}
+
 const mapCampaignSendStatusFromWebhook = (webhook: any): 'sent' | 'delivered' | null => {
   const webhookType = String(webhook?.type || '')
   const webhookStatus = String(webhook?.status || '').toUpperCase()
+  const fromMe = resolveFromMe(webhook)
 
   if (webhookType === 'DeliveryCallback') return 'delivered'
   if (webhookType === 'MessageStatusCallback') {
@@ -130,7 +176,7 @@ const mapCampaignSendStatusFromWebhook = (webhook: any): 'sent' | 'delivered' | 
   }
   // Only treat fromMe ReceivedCallbacks as campaign status updates if they DON'T have text content
   // (i.e. they are pure status callbacks, not actual outgoing messages with text)
-  if (webhookType === 'ReceivedCallback' && webhook?.fromMe === true) {
+  if (webhookType === 'ReceivedCallback' && fromMe) {
     const hasTextContent = Boolean(
       webhook?.text?.message || webhook?.text || webhook?.body ||
       webhook?.message?.text || webhook?.message?.conversation ||
@@ -969,7 +1015,7 @@ serve(async (req) => {
     }
 
     // Detect outgoing messages sent by this same WhatsApp instance
-    const fromMe = webhook?.message?.fromMe ?? webhook?.fromMe ?? false
+    const fromMe = resolveFromMe(webhook)
 
     const campaignSendStatus = mapCampaignSendStatusFromWebhook(webhook)
 
