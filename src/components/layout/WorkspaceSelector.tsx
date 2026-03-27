@@ -64,10 +64,8 @@ export function WorkspaceSelector() {
   const handleSelect = (ws: WorkspaceType) => {
     if (ws === "meta") {
       if (isMetaConnected) {
-        // Already connected, switch immediately
         setActiveWorkspace("meta");
       } else {
-        // Not connected, show dialog and wait for connection
         setPendingMetaSwitch(true);
         setFbDialogOpen(true);
       }
