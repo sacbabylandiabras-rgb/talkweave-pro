@@ -230,24 +230,19 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       return lastContactMessage.instance_id;
     }
 
-    // 3) Fallback to default configured instance
-    const { data } = await (supabase as any)
-      .from('zapi_instances')
-      .select('zapi_instance_id')
-      .eq('is_default', true)
-      .maybeSingle();
-
-    if (data?.zapi_instance_id) return data.zapi_instance_id;
-
-    // 4) Last fallback: first active instance
-    const { data: fallback } = await (supabase as any)
+    // 3) Se houver múltiplas instâncias ativas e nenhuma foi identificada para a conversa,
+    // não chute a instância padrão — isso faz o fluxo sair no número errado.
+    const { data: activeInstances } = await (supabase as any)
       .from('zapi_instances')
       .select('zapi_instance_id')
       .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
-    return fallback?.zapi_instance_id || '';
+    if ((activeInstances || []).length > 1) {
+      throw new Error('Selecione a instância correta no topo da tela antes de disparar o fluxo.');
+    }
+
+    return activeInstances?.[0]?.zapi_instance_id || '';
   };
 
   if (!contact) return null;
