@@ -187,43 +187,28 @@ serve(async (req) => {
             return action;
           });
 
-        const replyButtons = buttonActions
+        const replyLabels = buttonActions
           .filter((b: any) => b.type === 'REPLY')
           .slice(0, 3)
-          .map((b: any, index: number) => ({
-            id: b.id || `reply-${index + 1}`,
-            label: b.label,
-          }));
+          .map((b: any, index: number) => `${index + 1}. ${b.label}`);
 
-        if (actionButtons.length > 0) {
-          const actionResponse = await fetch(`${baseUrl}/send-button-actions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({
-              phone: resolvedPhone,
-              message: interactiveMessage,
-              ...(title ? { title } : {}),
-              ...(footer ? { footer } : {}),
-              buttonActions: actionButtons,
-            }),
-          });
+        const mixedMessage = replyLabels.length > 0
+          ? [interactiveMessage, 'Responda com:', ...replyLabels].join('\n')
+          : interactiveMessage;
 
-          await parseZapiResponse(actionResponse, resolvedPhone, instanceId, 'button-actions');
-        }
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({
             phone: resolvedPhone,
-            message: interactiveMessage,
-            buttonList: {
-              buttons: replyButtons,
-            },
+            message: mixedMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: actionButtons,
           }),
         });
 
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-mixed');
       } else if (hasReply && !hasCallOrUrl) {
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
