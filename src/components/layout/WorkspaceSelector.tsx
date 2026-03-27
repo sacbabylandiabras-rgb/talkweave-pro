@@ -24,6 +24,14 @@ const workspaces = [
     color: "text-[#0668E1]",
     bg: "bg-[#0668E1]/10",
   },
+  {
+    id: "gateway" as WorkspaceType,
+    label: "Gateway e Checkout",
+    description: "Integrações e pagamentos",
+    icon: ShoppingCart,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
 ];
 
 export function WorkspaceSelector() {
