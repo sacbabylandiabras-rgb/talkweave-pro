@@ -2285,6 +2285,18 @@ async function finalizeMessageLog(
     .eq('id', lockId)
 }
 
+async function makeMessageVisibleInInbox(supabase: any, lockId: string) {
+  await supabase
+    .from('message_logs')
+    .update({
+      keyword_matched: null,
+      response_sent: null,
+      timestamp: new Date().toISOString(),
+    })
+    .eq('id', lockId)
+    .eq('keyword_matched', '__processing__')
+}
+
 async function releaseMessageProcessingLock(supabase: any, lockId: string) {
   // Instead of deleting, finalize the log so the received message appears in chat
   await supabase
