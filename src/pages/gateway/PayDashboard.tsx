@@ -74,8 +74,8 @@ export default function PayDashboard() {
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
   const metrics = [
-    { label: "Webhooks Recebidos", value: String(webhookCount), icon: Activity, change: "total" },
-    { label: "Integrações Ativas", value: String(integrationCount), icon: CheckCircle, change: "total" },
+    { label: "Vendas Aprovadas Hoje", value: String(approvedToday), icon: Activity, change: "hoje" },
+    { label: "Vendas Últimos 30 dias", value: formatCurrency(sales30d), icon: DollarSign, change: "últimos 30 dias" },
     { label: "Taxa de Aprovação", value: transactions.length > 0 ? `${approvalRate}%` : "—", icon: TrendingUp, change: "" },
     { label: "Ticket Médio", value: approvedTx.length > 0 ? formatCurrency(Math.round(avgTicket)) : "—", icon: CreditCard, change: "" },
   ];
