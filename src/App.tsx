@@ -56,6 +56,7 @@ import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
+import GatewayKycGate from "./components/gateway/GatewayKycGate";
 const queryClient = new QueryClient();
 
 const App = () => (
