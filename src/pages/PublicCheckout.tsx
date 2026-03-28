@@ -47,12 +47,6 @@ export default function PublicCheckout() {
 
     const fetchCheckout = async () => {
       try {
-        const { data, error: fnError } = await supabase.functions.invoke("get-checkout", {
-          body: undefined,
-          headers: { "Content-Type": "application/json" },
-        });
-
-        // Use fetch directly since we need query params
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
