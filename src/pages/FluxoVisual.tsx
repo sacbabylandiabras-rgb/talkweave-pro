@@ -769,25 +769,30 @@ export default function FluxoVisual() {
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
 
+        const sendWithInstance = async (payload: Record<string, any>) => {
+          const body = instanceId ? { ...payload, instanceId } : payload;
+          await supabase.functions.invoke('send-message', { body });
+        };
+
         if (allSendButtons.length > 0) {
           if (contentType === "image" && mediaUrl) {
-            await sendImage(contact, mediaUrl);
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "video" && mediaUrl) {
-            await sendVideo(contact, mediaUrl);
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "audio" && mediaUrl) {
-            await sendAudio(contact, mediaUrl);
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "document" && mediaUrl) {
-            await sendDocument(contact, mediaUrl, "document", "pdf");
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
-          await sendButtonActions(
-            contact,
-            content || "Escolha uma opção:",
-            allSendButtons.map((btn: any, idx: number) => {
+          await sendWithInstance({
+            phone: contact,
+            message: content || "Escolha uma opção:",
+            buttonActions: allSendButtons.map((btn: any, idx: number) => {
               const type = (btn?.type || "reply").toString().toLowerCase();
               const value = (btn?.value || "").toString().trim();
               const label = (btn?.text || `Botão ${idx + 1}`).toString();
@@ -803,28 +808,28 @@ export default function FluxoVisual() {
 
               return { id: String(idx + 1), type: "REPLY" as const, label };
             })
-          );
+          });
         } else {
           switch (contentType) {
             case "text":
               if (!content) continue;
-              await sendMessage(contact, content);
+              await sendWithInstance({ phone: contact, message: content });
               break;
             case "image":
               if (!mediaUrl) continue;
-              await sendImage(contact, mediaUrl, content);
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' });
               break;
             case "video":
               if (!mediaUrl) continue;
-              await sendVideo(contact, mediaUrl, content);
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '' });
               break;
             case "audio":
               if (!mediaUrl) continue;
-              await sendAudio(contact, mediaUrl, content);
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' });
               break;
             case "document":
               if (!mediaUrl) continue;
-              await sendDocument(contact, mediaUrl, "document", "pdf", content);
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' });
               break;
           }
         }
