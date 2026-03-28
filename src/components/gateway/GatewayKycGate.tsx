@@ -11,7 +11,19 @@ interface GatewayKycGateProps {
 
 export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   const { kyc, loading } = useGatewayKyc();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  useEffect(() => {
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setRoleLoading(false); return; }
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      setIsAdmin(!!data);
+      setRoleLoading(false);
+    };
+    check();
+  }, []);
 
   if (loading || roleLoading) {
     return (
