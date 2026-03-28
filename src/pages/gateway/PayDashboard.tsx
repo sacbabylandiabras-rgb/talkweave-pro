@@ -51,7 +51,7 @@ export default function PayDashboard() {
       setSales30d(sales30);
 
       // Build chart from transactions (last 30 days)
-      const allTx = (txRes.data || []) as unknown as Transaction[];
+      const chartTx = (txRes.data || []) as unknown as Transaction[];
       const last30 = Array.from({ length: 30 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (29 - i));
