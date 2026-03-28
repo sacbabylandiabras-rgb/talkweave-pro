@@ -34,7 +34,7 @@ export function useGatewayKyc() {
         .maybeSingle();
 
       if (error) throw error;
-      setKyc(data as KycData | null);
+      setKyc(data as unknown as KycData | null);
     } catch (error: any) {
       console.error("Error fetching KYC:", error.message);
     } finally {
