@@ -217,7 +217,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       setSelectedFlow("");
     } catch (e) {
       console.error('handleSendFlow error:', e);
-      toast({ title: "Erro ao disparar fluxo", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      const message = await getInvokeErrorMessage(e, 'Erro ao disparar fluxo');
+      toast({ title: "Erro ao disparar fluxo", description: message, variant: "destructive" });
     } finally {
       setSendingFlow(false);
     }
