@@ -28,13 +28,13 @@ export function useGatewayKyc() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) throw error;
-      setKyc(data as unknown as KycData | null);
+      setKyc(data as KycData | null);
     } catch (error: any) {
       console.error("Error fetching KYC:", error.message);
     } finally {
@@ -86,13 +86,13 @@ export function useGatewayKyc() {
 
       if (kyc) {
         const { error } = await supabase
-          .from("gateway_kyc" as any)
+          .from("gateway_kyc")
           .update(kycPayload)
           .eq("id", kyc.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("gateway_kyc" as any)
+          .from("gateway_kyc")
           .insert(kycPayload);
         if (error) throw error;
       }
@@ -116,7 +116,7 @@ export function useAdminKycQueue() {
   const fetchQueue = async () => {
     try {
       const { data, error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .select("*")
         .order("submitted_at", { ascending: true });
 
@@ -149,7 +149,7 @@ export function useAdminKycQueue() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .update({
           status: "approved",
           reviewed_by: user?.id,
@@ -168,7 +168,7 @@ export function useAdminKycQueue() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .update({
           status: "rejected",
           reject_reason: reason,
