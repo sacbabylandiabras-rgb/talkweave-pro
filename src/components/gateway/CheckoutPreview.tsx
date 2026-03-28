@@ -79,6 +79,16 @@ export default function CheckoutPreview({ config }: Props) {
     >
       <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
 
+        {/* Logo */}
+        {config.logoUrl && (
+          <div className="flex items-center justify-between py-2">
+            <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
+            <span className="text-xs font-medium flex items-center gap-1" style={{ color: primary }}>
+              <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
+            </span>
+          </div>
+        )}
+
         {/* Step Indicators */}
         <div className="flex items-center justify-center gap-8 py-4">
           <button
