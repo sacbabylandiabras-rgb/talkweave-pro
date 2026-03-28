@@ -33,6 +33,7 @@ interface CheckoutConfig {
   showOrderBump: boolean;
   orderBumpText: string;
   orderBumpPrice: number;
+  productImage?: string;
 }
 
 interface Props {
