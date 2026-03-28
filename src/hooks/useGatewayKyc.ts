@@ -168,7 +168,7 @@ export function useAdminKycQueue() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .update({
           status: "rejected",
           reject_reason: reason,
