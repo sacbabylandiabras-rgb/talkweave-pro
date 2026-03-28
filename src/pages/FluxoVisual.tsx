@@ -775,6 +775,20 @@ export default function FluxoVisual() {
           await supabase.functions.invoke('send-message', { body });
         };
 
+        const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          if (!supabaseUrl) return rawUrl;
+          const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
+          const params = new URLSearchParams({
+            url: finalUrl,
+            flow: nomeFluxo,
+            btn: btnText,
+            uid: '', // will be resolved server-side if needed
+            ph: phone,
+          });
+          return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+        };
+
         if (allSendButtons.length > 0) {
           if (contentType === "image" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
@@ -799,7 +813,7 @@ export default function FluxoVisual() {
               const label = (btn?.text || `Botão ${idx + 1}`).toString();
 
               if (type === "url") {
-                const url = value.match(/^https?:\/\//i) ? value : `https://${value}`;
+                const url = wrapUrlWithTracking(value, label, contact);
                 return { id: String(idx + 1), type: "URL" as const, label, url };
               }
 
