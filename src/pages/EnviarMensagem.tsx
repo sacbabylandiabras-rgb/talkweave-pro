@@ -427,15 +427,11 @@ const EnviarMensagem = () => {
 
       let processados = 0;
       let erros = 0;
-      const campaignSends: any[] = [];
+      
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado
         if (cancelarEnvioRef.current) {
-          // Salvar os envios já processados antes de parar
-          if (campaignSends.length > 0) {
-            await supabase.from('campaign_sends').insert(campaignSends);
-          }
           // Marcar campanha como pausada para poder retomar depois
           await supabase
             .from('campaigns')
@@ -464,10 +460,6 @@ const EnviarMensagem = () => {
                 }
               }
               if (allDisconnected) {
-                if (campaignSends.length > 0) {
-                  await supabase.from('campaign_sends').insert(campaignSends);
-                  campaignSends.length = 0;
-                }
                 const existingAudience = campanha.target_audience && typeof campanha.target_audience === 'object'
                   ? campanha.target_audience
                   : {};
@@ -505,10 +497,6 @@ const EnviarMensagem = () => {
               const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
               const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
               if (statusData?.data?.connected === false) {
-                if (campaignSends.length > 0) {
-                  await supabase.from('campaign_sends').insert(campaignSends);
-                  campaignSends.length = 0;
-                }
                 await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
                 try {
                   const { data: sessionData } = await supabase.auth.getSession();
@@ -646,24 +634,25 @@ const EnviarMensagem = () => {
           instanceNameUsed = usedInst?.instance_name;
         }
 
-        // Registrar o envio na campanha
-        campaignSends.push({
-          campaign_id: campanha.id,
-          phone: contato.telefone,
-          contact_name: contato.nome,
-          message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
-          status: sendStatus,
-          sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
-          error_message: errorMessage,
-          user_id: currentUserId,
-          instance_name: instanceNameUsed,
-        });
+        // Registrar o envio na campanha IMEDIATAMENTE para atualizar o progresso em tempo real
+        try {
+          await supabase.from('campaign_sends').insert({
+            campaign_id: campanha.id,
+            phone: contato.telefone,
+            contact_name: contato.nome,
+            message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
+            status: sendStatus,
+            sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+            error_message: errorMessage,
+            user_id: currentUserId,
+            instance_name: instanceNameUsed,
+          });
+        } catch (dbErr) {
+          console.error('Erro ao registrar envio:', dbErr);
+        }
       }
       
-      // Salvar registros de envio (apenas se não foi cancelado, pois já salvou acima)
-      if (!cancelarEnvioRef.current && campaignSends.length > 0) {
-        await supabase.from('campaign_sends').insert(campaignSends);
-      }
+      // Atualizar status da campanha (apenas se não foi cancelado)
       
       // Atualizar status da campanha (apenas se não foi cancelado)
       if (!cancelarEnvioRef.current) {
