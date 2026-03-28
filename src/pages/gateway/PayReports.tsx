@@ -36,7 +36,7 @@ export default function PayReports() {
         supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }),
         supabase.from("gateway_checkouts" as any).select("*").order("created_at", { ascending: false }),
       ]);
-      setTransactions((txRes.data || []) as Transaction[]);
+      setTransactions((txRes.data || []) as unknown as Transaction[]);
       setCheckouts((ckRes.data || []) as any[]);
       setLoading(false);
     };
