@@ -22,7 +22,8 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "meta",
     name: "Meta Pixel",
-    icon: "📘",
+    icon: Facebook,
+    iconColor: "text-blue-500",
     fields: [
       { key: "pixel_id", label: "Pixel ID", placeholder: "123456789" },
       { key: "api_token", label: "Conversions API Token", placeholder: "EAAGx...", secret: true },
