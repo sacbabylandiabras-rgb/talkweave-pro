@@ -102,6 +102,7 @@ const App = () => (
                 <Route path="/gateway-checkout/products" element={<PayProducts />} />
                 <Route path="/gateway-checkout/checkouts" element={<PayCheckouts />} />
                 <Route path="/gateway-checkout/checkouts/new" element={<CheckoutBuilder />} />
+                <Route path="/gateway-checkout/checkouts/edit/:id" element={<CheckoutBuilder />} />
                 <Route path="/gateway-checkout/reports" element={<PayReports />} />
                 <Route path="/gateway-checkout/pixels" element={<PayPixels />} />
                 <Route path="/gateway-checkout/integrations" element={<PayIntegrations />} />
