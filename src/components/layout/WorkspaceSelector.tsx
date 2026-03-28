@@ -55,8 +55,9 @@ export function WorkspaceSelector() {
     if (pendingMetaSwitch && isMetaConnected) {
       setActiveWorkspace("meta");
       setPendingMetaSwitch(false);
+      navigate(workspaceDefaultRoutes.meta);
     }
-  }, [isMetaConnected, pendingMetaSwitch, setActiveWorkspace]);
+  }, [isMetaConnected, pendingMetaSwitch, setActiveWorkspace, navigate]);
 
   // If user disconnects Meta while on Meta workspace, switch back to zapi
   useEffect(() => {
