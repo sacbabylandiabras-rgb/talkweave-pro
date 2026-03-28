@@ -66,12 +66,14 @@ const metaMenuItems = [
 ];
 
 const gatewayMenuItems = [
-  { id: "painel-gateway", label: "Painel", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
-  { id: "integracoes", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integracoes" },
-  { id: "checkout", label: "Checkout", icon: CreditCard, path: "/gateway-checkout/checkout" },
-  { id: "webhooks", label: "Webhooks", icon: Webhook, path: "/gateway-checkout/webhooks" },
-  { id: "logs-gateway", label: "Logs", icon: Activity, path: "/gateway-checkout/logs" },
-  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
+  { id: "painel-gateway", label: "Dashboard", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
+  { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
+  { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
+  { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
+  { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
+  { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
+  { id: "pay-docs", label: "Documentação", icon: FileText, path: "/gateway-checkout/docs" },
+  { id: "pay-settings", label: "Configurações", icon: Settings, path: "/gateway-checkout/settings" },
 ];
 
 const zapiBottomItems = [
