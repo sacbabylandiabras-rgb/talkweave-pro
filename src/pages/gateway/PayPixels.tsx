@@ -39,7 +39,7 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "tiktok",
     name: "TikTok Pixel",
-    icon: Music,
+    icon: TikTokIcon,
     iconColor: "text-pink-500",
     fields: [
       { key: "pixel_id", label: "Pixel ID", placeholder: "C1234567890" },
