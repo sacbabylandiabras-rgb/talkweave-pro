@@ -11,7 +11,7 @@ interface GatewayKycGateProps {
 
 export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   const { kyc, loading } = useGatewayKyc();
-  const { role, loading: roleLoading } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return (
