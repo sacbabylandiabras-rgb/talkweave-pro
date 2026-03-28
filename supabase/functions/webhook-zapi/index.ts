@@ -1564,6 +1564,8 @@ serve(async (req) => {
     processingLockId = lockResult.lockId
     const lockId = lockResult.lockId
 
+    await makeMessageVisibleInInbox(supabase, lockId)
+
     // Forward to gateway integrations
     const { data: gateways } = await supabase
       .from('gateway_integrations')
@@ -2283,6 +2285,18 @@ async function finalizeMessageLog(
       timestamp: new Date().toISOString(),
     })
     .eq('id', lockId)
+}
+
+async function makeMessageVisibleInInbox(supabase: any, lockId: string) {
+  await supabase
+    .from('message_logs')
+    .update({
+      keyword_matched: null,
+      response_sent: null,
+      timestamp: new Date().toISOString(),
+    })
+    .eq('id', lockId)
+    .eq('keyword_matched', '__processing__')
 }
 
 async function releaseMessageProcessingLock(supabase: any, lockId: string) {
