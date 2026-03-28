@@ -646,18 +646,22 @@ const EnviarMensagem = () => {
           instanceNameUsed = usedInst?.instance_name;
         }
 
-        // Registrar o envio na campanha
-        campaignSends.push({
-          campaign_id: campanha.id,
-          phone: contato.telefone,
-          contact_name: contato.nome,
-          message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
-          status: sendStatus,
-          sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
-          error_message: errorMessage,
-          user_id: currentUserId,
-          instance_name: instanceNameUsed,
-        });
+        // Registrar o envio na campanha IMEDIATAMENTE para atualizar o progresso em tempo real
+        try {
+          await supabase.from('campaign_sends').insert({
+            campaign_id: campanha.id,
+            phone: contato.telefone,
+            contact_name: contato.nome,
+            message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
+            status: sendStatus,
+            sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+            error_message: errorMessage,
+            user_id: currentUserId,
+            instance_name: instanceNameUsed,
+          });
+        } catch (dbErr) {
+          console.error('Erro ao registrar envio:', dbErr);
+        }
       }
       
       // Salvar registros de envio (apenas se não foi cancelado, pois já salvou acima)
