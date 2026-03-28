@@ -285,6 +285,56 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_checkouts: {
+        Row: {
+          config: Json
+          conversions: number
+          created_at: string
+          id: string
+          name: string
+          product_id: string | null
+          slug: string | null
+          status: boolean
+          updated_at: string
+          user_id: string
+          visits: number
+        }
+        Insert: {
+          config?: Json
+          conversions?: number
+          created_at?: string
+          id?: string
+          name: string
+          product_id?: string | null
+          slug?: string | null
+          status?: boolean
+          updated_at?: string
+          user_id: string
+          visits?: number
+        }
+        Update: {
+          config?: Json
+          conversions?: number
+          created_at?: string
+          id?: string
+          name?: string
+          product_id?: string | null
+          slug?: string | null
+          status?: boolean
+          updated_at?: string
+          user_id?: string
+          visits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_checkouts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_funnels: {
         Row: {
           active: boolean
@@ -377,6 +427,120 @@ export type Database = {
           webhook_url?: string
         }
         Relationships: []
+      }
+      gateway_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          sku: string | null
+          status: boolean
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          sku?: string | null
+          status?: boolean
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          sku?: string | null
+          status?: boolean
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gateway_transactions: {
+        Row: {
+          amount: number
+          checkout_id: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          external_id: string | null
+          fee: number
+          id: string
+          metadata: Json | null
+          net: number
+          payment_method: string
+          product_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          checkout_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          external_id?: string | null
+          fee?: number
+          id?: string
+          metadata?: Json | null
+          net?: number
+          payment_method?: string
+          product_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          checkout_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          external_id?: string | null
+          fee?: number
+          id?: string
+          metadata?: Json | null
+          net?: number
+          payment_method?: string
+          product_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_transactions_checkout_id_fkey"
+            columns: ["checkout_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_checkouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_transactions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gateway_webhook_logs: {
         Row: {
