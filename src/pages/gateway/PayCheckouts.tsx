@@ -24,11 +24,7 @@ interface Checkout {
 export default function PayCheckouts() {
   const navigate = useNavigate();
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", format: "one_step", product_id: "", slug: "" });
 
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
