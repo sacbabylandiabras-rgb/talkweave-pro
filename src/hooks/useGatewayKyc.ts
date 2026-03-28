@@ -116,7 +116,7 @@ export function useAdminKycQueue() {
   const fetchQueue = async () => {
     try {
       const { data, error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .select("*")
         .order("submitted_at", { ascending: true });
 
