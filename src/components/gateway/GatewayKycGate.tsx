@@ -1,8 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useGatewayKyc } from "@/hooks/useGatewayKyc";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GatewayKycGateProps {
