@@ -26,7 +26,9 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
     });
 
     if (!response.ok) {
-      console.error(`❌ Z-API error for ${instance.instance_name}: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`❌ Z-API error for ${instance.instance_name}: ${response.status} - ${errorText}`);
+      console.error(`❌ URL used: ${zapiUrl}`);
       break;
     }
 
