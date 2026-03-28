@@ -312,6 +312,7 @@ export default function CheckoutPreview({ config }: Props) {
 
             {/* CTA Button */}
             <button
+              onClick={() => setStep("payment")}
               className="w-full py-4 text-white font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
               style={{ background: primary, borderRadius }}
             >
