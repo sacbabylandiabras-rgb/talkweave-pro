@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,31 @@ const formatPhone = (phone: string) => {
 const isLikelyTechnicalIdentifier = (phone: string) => {
   const clean = phone.replace(/\D/g, '');
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
+};
+
+const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const response = error.context;
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        const data = await response.clone().json();
+        return data?.message || data?.error || JSON.stringify(data);
+      }
+
+      const text = await response.clone().text();
+      if (text === 'user_not_found') return 'A instância vinculada a esta conversa não existe mais ou está inativa.';
+      if (text === 'missing_instance_id') return 'Nenhuma instância foi identificada para este contato.';
+      if (text === 'incomplete_credentials') return 'A instância selecionada está sem credenciais completas da Z-API.';
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (error instanceof Error) return error.message;
+  return fallback;
 };
 
 const WhatsAppDefaultAvatar = () => (
