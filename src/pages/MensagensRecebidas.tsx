@@ -281,7 +281,7 @@ const ConversationList = ({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {conv.lastMessage.length > 60 ? conv.lastMessage.slice(0, 60) + '...' : conv.lastMessage}
+                {(conv.lastMessage || '').length > 60 ? (conv.lastMessage || '').slice(0, 60) + '...' : (conv.lastMessage || '')}
               </p>
             </div>
             {!readPhones.has(conv.phone) && (
@@ -878,7 +878,7 @@ const MensagensRecebidas = () => {
             lastMessageDate: selectedConversation.lastTimestamp,
             status: 'ativo',
             messageCount: selectedConversation.messages.length,
-            tags: [],
+            tags: [] as string[],
             profilePictureUrl: selectedConversation.profilePictureUrl,
           }}
           preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId}
