@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, Zap, Globe, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -6,6 +7,12 @@ import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { cn } from "@/lib/utils";
+
+const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
+  zapi: "/dashboard",
+  meta: "/meta/dashboard",
+  gateway: "/gateway-checkout/dashboard",
+};
 
 const workspaces = [
   {
@@ -37,26 +44,27 @@ const workspaces = [
 export function WorkspaceSelector() {
   const { activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { data: metaCreds } = useMetaCredentials();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [pendingMetaSwitch, setPendingMetaSwitch] = useState(false);
 
   const isMetaConnected = metaCreds?.connected === true;
 
-  // When Meta credentials become connected and we have a pending switch, do the switch
   useEffect(() => {
     if (pendingMetaSwitch && isMetaConnected) {
       setActiveWorkspace("meta");
       setPendingMetaSwitch(false);
+      navigate(workspaceDefaultRoutes.meta);
     }
-  }, [isMetaConnected, pendingMetaSwitch, setActiveWorkspace]);
+  }, [isMetaConnected, pendingMetaSwitch, setActiveWorkspace, navigate]);
 
-  // If user disconnects Meta while on Meta workspace, switch back to zapi
   useEffect(() => {
     if (activeWorkspace === "meta" && metaCreds !== undefined && !isMetaConnected) {
       setActiveWorkspace("zapi");
+      navigate(workspaceDefaultRoutes.zapi);
     }
-  }, [isMetaConnected, activeWorkspace, metaCreds, setActiveWorkspace]);
+  }, [isMetaConnected, activeWorkspace, metaCreds, setActiveWorkspace, navigate]);
 
   const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
   const CurrentIcon = current.icon;
@@ -65,12 +73,14 @@ export function WorkspaceSelector() {
     if (ws === "meta") {
       if (isMetaConnected) {
         setActiveWorkspace("meta");
+        navigate(workspaceDefaultRoutes.meta);
       } else {
         setPendingMetaSwitch(true);
         setFbDialogOpen(true);
       }
     } else {
       setActiveWorkspace(ws);
+      navigate(workspaceDefaultRoutes[ws]);
     }
     setOpen(false);
   };
