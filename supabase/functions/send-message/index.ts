@@ -185,91 +185,30 @@ serve(async (req) => {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      const hasReply = buttonActions.some((b: any) => b.type === 'REPLY');
-      const hasCallOrUrl = buttonActions.some((b: any) => b.type === 'CALL' || b.type === 'URL');
       const interactiveMessage = message || 'Selecione uma opção:';
 
-      if (hasReply && hasCallOrUrl) {
-        const actionButtons = buttonActions
-          .filter((b: any) => b.type === 'CALL' || b.type === 'URL')
-          .map((b: any, index: number) => {
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          buttonActions: buttonActions.map((b: any, index: number) => {
             const action: any = {
-              id: b.id || `action-${index + 1}`,
+              id: b.id || String(index + 1),
               type: b.type,
               label: b.label,
             };
             if (b.type === 'URL' && b.url) action.url = b.url;
             if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
             return action;
-          });
-
-        const replyLabels = buttonActions
-          .filter((b: any) => b.type === 'REPLY')
-          .slice(0, 3)
-          .map((b: any, index: number) => `${index + 1}. ${b.label}`);
-
-        const mixedMessage = replyLabels.length > 0
-          ? [interactiveMessage, 'Responda com:', ...replyLabels].join('\n')
-          : interactiveMessage;
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: mixedMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: actionButtons,
           }),
-        });
+        }),
+      });
 
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-mixed');
-      } else if (hasReply && !hasCallOrUrl) {
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: interactiveMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: buttonActions
-              .filter((b: any) => b.type === 'REPLY')
-              .slice(0, 3)
-              .map((b: any, index: number) => ({
-                id: b.id || String(index + 1),
-                type: 'REPLY',
-                label: b.label,
-              })),
-          }),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-      } else {
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: interactiveMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: buttonActions.map((b: any, index: number) => {
-              const action: any = {
-                id: b.id || String(index + 1),
-                type: b.type,
-                label: b.label,
-              };
-              if (b.type === 'URL' && b.url) action.url = b.url;
-              if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
-              return action;
-            }),
-          }),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-      }
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
 
       logMessage = logMessage || '🔘 Botões de ação';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
