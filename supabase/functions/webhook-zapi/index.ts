@@ -1078,12 +1078,15 @@ serve(async (req) => {
         return new Response('status_callback_missing_data', { status: 200, headers: corsHeaders })
       }
 
-      const { data: instanceData } = await supabase
+      const normalizedCbInstanceId = normalizeInstanceIdentifier(instanceId)
+      const { data: cbInstances } = await supabase
         .from('zapi_instances')
-        .select('user_id, instance_name')
-        .eq('zapi_instance_id', instanceId)
+        .select('user_id, instance_name, zapi_instance_id')
         .eq('is_active', true)
-        .maybeSingle()
+
+      const instanceData = (cbInstances || []).find((item: any) =>
+        normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId
+      )
 
       const userId = instanceData?.user_id
       const instanceName = instanceData?.instance_name
