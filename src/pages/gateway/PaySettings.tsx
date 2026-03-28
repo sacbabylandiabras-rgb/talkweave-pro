@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2 } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function PaySettings() {
   const [showSecret, setShowSecret] = useState(false);
@@ -19,6 +30,11 @@ export default function PaySettings() {
     email: "",
     whatsapp: "",
   });
+
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<{ public_key: string; secret_key: string } | null>(null);
+  const [keysLoading, setKeysLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -36,7 +52,39 @@ export default function PaySettings() {
       setLoading(false);
     };
     fetchProfile();
+    fetchApiKeys();
   }, []);
+
+  const fetchApiKeys = async () => {
+    setKeysLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-api-keys", {
+        body: { action: "get" },
+      });
+      if (error) throw error;
+      if (data) setApiKeys(data);
+    } catch (err: any) {
+      console.error("Erro ao buscar API keys:", err);
+    }
+    setKeysLoading(false);
+  };
+
+  const handleRegenerateKeys = async () => {
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-api-keys", {
+        body: { action: "regenerate" },
+      });
+      if (error) throw error;
+      if (data) {
+        setApiKeys(data);
+        toast.success("Chaves regeneradas com sucesso!");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao regenerar chaves: " + err.message);
+    }
+    setRegenerating(false);
+  };
 
   const handleSave = async () => {
     if (!profile) return;
@@ -53,9 +101,13 @@ export default function PaySettings() {
     }
   };
 
-  const userId = profile?.id || "";
-  const publicKey = userId ? `pk_live_zlp_${userId.slice(0, 12)}` : "—";
-  const secretKey = userId ? `sk_live_zlp_${userId.slice(0, 12)}` : "—";
+  const copyToClipboard = (value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success("Copiado!");
+  };
+
+  const publicKey = apiKeys?.public_key || "—";
+  const secretKey = apiKeys?.secret_key || "—";
 
   if (loading) {
     return (
@@ -121,23 +173,62 @@ export default function PaySettings() {
           <Card className="border-[#2A2A2A]">
             <CardHeader><CardTitle className="text-sm">Chaves de API</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Chave Pública (Publishable Key)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input value={publicKey} readOnly className="font-mono text-xs" />
-                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(publicKey); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
+              {keysLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
-              </div>
-              <div>
-                <Label>Chave Secreta (Secret Key)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input type={showSecret ? "text" : "password"} value={secretKey} readOnly className="font-mono text-xs" />
-                  <Button variant="outline" size="icon" onClick={() => setShowSecret(!showSecret)}>{showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</Button>
-                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(secretKey); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
-                </div>
-                <p className="text-[10px] text-red-400 mt-1">⚠️ Nunca exponha esta chave em código frontend</p>
-              </div>
-              <Button variant="outline" className="rounded-full text-xs"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerar Chaves</Button>
+              ) : (
+                <>
+                  <div>
+                    <Label>Chave Pública (Publishable Key)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input value={publicKey} readOnly className="font-mono text-xs" />
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(publicKey)} disabled={!apiKeys}>
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Chave Secreta (Secret Key)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input type={showSecret ? "text" : "password"} value={secretKey} readOnly className="font-mono text-xs" />
+                      <Button variant="outline" size="icon" onClick={() => setShowSecret(!showSecret)}>
+                        {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(secretKey)} disabled={!apiKeys}>
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-red-400 mt-1">⚠️ Nunca exponha esta chave em código frontend</p>
+                  </div>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="rounded-full text-xs" disabled={regenerating}>
+                        {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+                        Regenerar Chaves
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                          Regenerar chaves de API?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          As chaves atuais serão invalidadas imediatamente. Qualquer integração usando as chaves antigas deixará de funcionar. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRegenerateKeys} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Regenerar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
