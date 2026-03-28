@@ -684,7 +684,7 @@ export default function FluxoVisual() {
     setShowContactsDialog(true);
   };
 
-  const handleConfirmSend = async (selectedContacts: string[]) => {
+  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[]) => {
     toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
     try {
@@ -694,9 +694,16 @@ export default function FluxoVisual() {
         return;
       }
 
+      // Round-robin counter for instance rotation
+      let sendCounter = 0;
+
       for (const contact of selectedContacts) {
         const visitedNodes = new Set<string>();
-        await processFlow(initialNode.id, contact, visitedNodes);
+        const currentInstanceId = instanceIds && instanceIds.length > 0
+          ? instanceIds[sendCounter % instanceIds.length]
+          : undefined;
+        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId);
+        sendCounter++;
       }
 
       toast.success("Fluxo enviado com sucesso!", {
