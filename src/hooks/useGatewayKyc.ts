@@ -92,7 +92,7 @@ export function useGatewayKyc() {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("gateway_kyc" as any)
+          .from("gateway_kyc")
           .insert(kycPayload);
         if (error) throw error;
       }
