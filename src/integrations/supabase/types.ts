@@ -473,6 +473,45 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_pixels: {
+        Row: {
+          active: boolean
+          api_token: string
+          created_at: string
+          events: Json
+          extra_config: Json
+          id: string
+          pixel_id: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          api_token?: string
+          created_at?: string
+          events?: Json
+          extra_config?: Json
+          id?: string
+          pixel_id?: string
+          platform: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          api_token?: string
+          created_at?: string
+          events?: Json
+          extra_config?: Json
+          id?: string
+          pixel_id?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_products: {
         Row: {
           category: string | null
