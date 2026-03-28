@@ -2,7 +2,8 @@ import { ReactNode } from "react";
 import { useGatewayKyc } from "@/hooks/useGatewayKyc";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GatewayKycGateProps {
   children: ReactNode;
