@@ -1252,25 +1252,39 @@ serve(async (req) => {
     }
 
     let instanceId = webhook?.instanceId || webhook?.instance_id
+    const normalizedInstanceId = normalizeInstanceIdentifier(instanceId)
     const isManualFlowTrigger = webhook?.__manual_flow_trigger__ === true
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
+    console.log('🔎 Instance recebido no webhook:', {
+      raw: instanceId,
+      normalized: normalizedInstanceId,
+      availableKeys: Object.keys(webhook || {}).filter((key) => key.toLowerCase().includes('instance')),
+    })
 
-    if (!instanceId) {
+    if (!normalizedInstanceId) {
       console.error('No instanceId in webhook data')
       return new Response('missing_instance_id', { status: 400, headers: corsHeaders })
     }
+
+    instanceId = normalizedInstanceId
 
     // Find user and credentials by instanceId (prefer dedicated zapi_instances table)
     let userId: string | null = null
     let zapiConfig: { zapi_instance_id: string; zapi_token: string; zapi_client_token: string } | null = null
 
-    const { data: instanceData } = await supabase
+    const { data: instancesData, error: instancesError } = await supabase
       .from('zapi_instances')
       .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
-      .eq('zapi_instance_id', instanceId)
       .eq('is_active', true)
-      .maybeSingle()
+
+    if (instancesError) {
+      console.error('Erro ao buscar instâncias ativas:', instancesError)
+    }
+
+    const instanceData = (instancesData || []).find((item: any) => {
+      return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
+    })
 
     if (instanceData) {
       userId = instanceData.user_id
@@ -1280,17 +1294,6 @@ serve(async (req) => {
         zapi_client_token: instanceData.zapi_client_token,
       }
     } else {
-      // Legacy fallback: profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token')
-        .eq('zapi_instance_id', instanceId)
-        .single()
-
-      if (profileError || !profile) {
-        console.error('User profile not found for instanceId:', instanceId)
-        return new Response('user_not_found', { status: 404, headers: corsHeaders })
-      }
 
       userId = profile.id
       zapiConfig = {
