@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.meta-oauth-callback]
 verify_jwt = false
+
+[functions.track-flow-click]
+verify_jwt = false
