@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Clock, CheckCircle, XCircle, FileSearch, Camera, CreditCard, User, Eye, ZoomIn, ThumbsUp, ThumbsDown, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAdminKycQueue, KycData } from "@/hooks/useGatewayKyc";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -28,6 +29,42 @@ export default function AdminKYC() {
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  // Generate signed URLs when a KYC record is selected
+  useEffect(() => {
+    if (!selectedKyc) {
+      setSignedUrls({});
+      return;
+    }
+
+    const urls = [selectedKyc.selfie_url, selectedKyc.doc_front_url, selectedKyc.doc_back_url].filter(Boolean) as string[];
+    if (urls.length === 0) return;
+
+    const generateSignedUrls = async () => {
+      const newSignedUrls: Record<string, string> = {};
+      for (const url of urls) {
+        // Extract file path from the stored URL (format: .../kyc-documents/userId/file.ext)
+        const match = url.match(/kyc-documents\/(.+)$/);
+        if (match) {
+          const filePath = decodeURIComponent(match[1]);
+          const { data } = await supabase.storage
+            .from("kyc-documents")
+            .createSignedUrl(filePath, 3600);
+          if (data?.signedUrl) {
+            newSignedUrls[url] = data.signedUrl;
+          }
+        }
+      }
+      setSignedUrls(newSignedUrls);
+    };
+    generateSignedUrls();
+  }, [selectedKyc]);
+
+  const getSignedUrl = useCallback((originalUrl: string | null | undefined) => {
+    if (!originalUrl) return null;
+    return signedUrls[originalUrl] || null;
+  }, [signedUrls]);
 
   const submittedQueue = queue.filter(k => k.status === "submitted");
   const approvedToday = queue.filter(k => k.status === "approved" && k.reviewed_at && new Date(k.reviewed_at).toDateString() === new Date().toDateString());
@@ -181,44 +218,52 @@ export default function AdminKYC() {
                 { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url },
                 { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url },
                 { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url },
-              ].map((doc) => (
-                <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[4/3] bg-muted/30 flex items-center justify-center">
-                      {doc.url ? (
-                        <>
-                          <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
-                          <button
-                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-                            onClick={() => setZoomImage(doc.url!)}
-                          >
-                            <ZoomIn className="w-3.5 h-3.5 text-white" />
-                          </button>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <doc.icon className="w-8 h-8 opacity-30" />
-                          <span className="text-xs">Não enviado</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <span className="text-xs font-medium">{doc.label}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              ].map((doc) => {
+                const signed = getSignedUrl(doc.url);
+                return (
+                  <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-[4/3] bg-muted/30 flex items-center justify-center">
+                        {signed ? (
+                          <>
+                            <img src={signed} alt={doc.label} className="w-full h-full object-cover" />
+                            <button
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+                              onClick={() => setZoomImage(signed)}
+                            >
+                              <ZoomIn className="w-3.5 h-3.5 text-white" />
+                            </button>
+                          </>
+                        ) : doc.url ? (
+                          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            <span className="text-xs">Carregando...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <doc.icon className="w-8 h-8 opacity-30" />
+                            <span className="text-xs">Não enviado</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <span className="text-xs font-medium">{doc.label}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Ações de aprovação/rejeição */}
             {selectedKyc?.status === "submitted" && (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-red-400">Motivo da Reprovação (opcional)</label>
+                  <label className="text-sm font-medium text-red-400">Motivo da Reprovação (obrigatório para reprovar)</label>
                   <Textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Descreva o motivo se for reprovar..."
+                    placeholder="Descreva o motivo da reprovação..."
                     className="border-[#2A2A2A] min-h-[80px]"
                   />
                 </div>
