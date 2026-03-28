@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ interface Product {
   status: boolean;
   sku: string | null;
   category: string | null;
+  image_url?: string | null;
 }
 
 export default function PayProducts() {
@@ -38,6 +39,10 @@ export default function PayProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", type: "digital", price: "", sku: "", category: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("gateway_products" as any).select("*").order("created_at", { ascending: false });
@@ -47,12 +52,50 @@ export default function PayProducts() {
 
   useEffect(() => { fetchProducts(); }, []);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem deve ter no máximo 5MB");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async (userId: string): Promise<string | null> => {
+    if (!imageFile) return null;
+    const ext = imageFile.name.split(".").pop();
+    const fileName = `${userId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(fileName, imageFile, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+    if (error) {
+      console.error("Upload error:", error);
+      toast.error("Erro ao enviar imagem");
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
   const handleCreate = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login primeiro"); return; }
     setSaving(true);
+
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      setUploading(true);
+      imageUrl = await uploadImage(user.id);
+      setUploading(false);
+    }
+
     const priceInCents = Math.round(parseFloat(form.price.replace(",", ".")) * 100) || 0;
-    const { error } = await supabase.from("gateway_products" as any).insert({
+    const insertData: any = {
       user_id: user.id,
       name: form.name,
       description: form.description || null,
@@ -60,13 +103,22 @@ export default function PayProducts() {
       price: priceInCents,
       sku: form.sku || null,
       category: form.category || null,
-    } as any);
+    };
+    if (imageUrl) insertData.image_url = imageUrl;
+
+    const { error } = await supabase.from("gateway_products" as any).insert(insertData as any);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
     toast.success("Produto criado!");
     setDialogOpen(false);
-    setForm({ name: "", description: "", type: "digital", price: "", sku: "", category: "" });
+    resetForm();
     fetchProducts();
+  };
+
+  const resetForm = () => {
+    setForm({ name: "", description: "", type: "digital", price: "", sku: "", category: "" });
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const toggleStatus = async (id: string, current: boolean) => {
@@ -94,7 +146,7 @@ export default function PayProducts() {
           <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus produtos e serviços ({products.length})</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6">
               <Plus className="w-4 h-4 mr-2" /> Novo Produto
@@ -105,6 +157,38 @@ export default function PayProducts() {
               <DialogTitle>Criar Produto</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Image Upload */}
+              <div>
+                <Label>Foto do produto</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {imagePreview ? (
+                  <div className="relative mt-2 w-full h-40 rounded-lg overflow-hidden border border-[#2A2A2A] bg-muted">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-[#2A2A2A] hover:border-[#FF4D2E]/50 flex flex-col items-center justify-center gap-2 transition-colors bg-muted/30"
+                  >
+                    <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Clique para adicionar uma foto</span>
+                    <span className="text-[10px] text-muted-foreground/60">PNG, JPG até 5MB</span>
+                  </button>
+                )}
+              </div>
+
               <div><Label>Nome</Label><Input placeholder="Nome do produto" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
               <div><Label>Descrição</Label><Textarea placeholder="Descrição" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-4">
@@ -126,8 +210,8 @@ export default function PayProducts() {
                 <div><Label>Categoria</Label><Input placeholder="Categoria" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} /></div>
               </div>
               <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleCreate} disabled={saving || !form.name}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Salvar Produto
+                {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {uploading ? "Enviando foto..." : "Salvar Produto"}
               </Button>
             </div>
           </DialogContent>
@@ -152,17 +236,24 @@ export default function PayProducts() {
             const tc = typeConfig[p.type] || typeConfig.digital;
             const IconComp = tc.icon;
             return (
-              <Card key={p.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors">
-                <CardContent className="p-5 space-y-4">
+              <Card key={p.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors overflow-hidden">
+                {/* Product Image */}
+                {p.image_url ? (
+                  <div className="w-full h-36 bg-muted overflow-hidden">
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full h-24 bg-muted/50 flex items-center justify-center">
+                    <IconComp className="w-8 h-8 text-muted-foreground/30" />
+                  </div>
+                )}
+                <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                      <IconComp className="w-6 h-6 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{p.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description || "Sem descrição"}</p>
                     </div>
                     <Switch checked={p.status} onCheckedChange={() => toggleStatus(p.id, p.status)} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{p.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description || "Sem descrição"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
