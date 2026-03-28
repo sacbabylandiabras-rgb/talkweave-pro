@@ -715,7 +715,7 @@ export default function FluxoVisual() {
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string) => {
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
