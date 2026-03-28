@@ -786,7 +786,7 @@ export default function FluxoVisual() {
             url: finalUrl,
             flow: nomeFluxo,
             btn: btnText,
-            uid: '', // will be resolved server-side if needed
+            uid: userId || '',
             ph: phone,
           });
           return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
