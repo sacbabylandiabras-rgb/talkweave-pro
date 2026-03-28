@@ -58,6 +58,8 @@ const formatOptions = [
 
 export default function CheckoutBuilder() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id?: string }>();
+  const isEditing = !!editId;
   const [config, setConfig] = useState(defaultConfig);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -66,13 +68,29 @@ export default function CheckoutBuilder() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const init = async () => {
       const { data } = await supabase.from("gateway_products" as any).select("*").order("name");
       setProducts((data || []) as any[]);
+
+      if (editId) {
+        const { data: checkout } = await supabase
+          .from("gateway_checkouts" as any)
+          .select("*")
+          .eq("id", editId)
+          .maybeSingle();
+        if (checkout) {
+          const ck = checkout as any;
+          setCheckoutName(ck.name || "");
+          setSelectedProductId(ck.product_id || "");
+          if (ck.config) {
+            setConfig(prev => ({ ...prev, ...ck.config }));
+          }
+        }
+      }
       setLoading(false);
     };
-    fetchProducts();
-  }, []);
+    init();
+  }, [editId]);
 
   const updateConfig = (key: string, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -93,16 +111,30 @@ export default function CheckoutBuilder() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("gateway_checkouts" as any).insert({
-      user_id: user.id,
-      name: checkoutName,
-      product_id: selectedProductId || null,
-      slug: checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-      config: config as any,
-    } as any);
-    setSaving(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
-    toast.success("Checkout criado com sucesso!");
+
+    if (isEditing) {
+      const { error } = await supabase.from("gateway_checkouts" as any)
+        .update({
+          name: checkoutName,
+          product_id: selectedProductId || null,
+          config: config as any,
+        } as any)
+        .eq("id", editId);
+      setSaving(false);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Checkout atualizado com sucesso!");
+    } else {
+      const { error } = await supabase.from("gateway_checkouts" as any).insert({
+        user_id: user.id,
+        name: checkoutName,
+        product_id: selectedProductId || null,
+        slug: checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        config: config as any,
+      } as any);
+      setSaving(false);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Checkout criado com sucesso!");
+    }
     navigate("/gateway-checkout/checkouts");
   };
 
