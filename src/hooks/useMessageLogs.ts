@@ -494,8 +494,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       }
     });
 
-    // Always include all campaign sends — don't hide conversations by instance
-    const filteredCampaignSends = campaignSends;
+    // Filter campaign sends by instance when a filter is active
+    const filteredCampaignSends = filterInstanceName
+      ? campaignSends.filter(s => s.instance_name === filterInstanceName)
+      : campaignSends;
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
