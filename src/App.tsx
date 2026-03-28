@@ -55,6 +55,7 @@ import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
+import PublicCheckout from "./pages/PublicCheckout";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -123,6 +124,7 @@ const App = () => (
                 <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
+              <Route path="/pay/:slug" element={<PublicCheckout />} />
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
               <Route path="/termos-servico" element={<TermosServico />} />
               <Route path="*" element={<NotFound />} />
