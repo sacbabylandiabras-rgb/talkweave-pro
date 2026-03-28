@@ -124,6 +124,7 @@ const App = () => (
                 <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
+              <Route path="/pay/:slug" element={<PublicCheckout />} />
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
               <Route path="/termos-servico" element={<TermosServico />} />
               <Route path="*" element={<NotFound />} />
