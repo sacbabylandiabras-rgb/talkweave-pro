@@ -75,6 +75,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
+  const statusErrorShownRef = React.useRef(false);
+
   const fetchDeviceStatus = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('get-device-status', {
@@ -90,14 +92,21 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       setDeviceStatus(data?.data ?? null);
+      statusErrorShownRef.current = false;
     } catch (error) {
-      const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
       console.error('Erro ao buscar status:', error);
-      toast({
-        title: 'Erro ao buscar status',
-        description: message,
-        variant: 'destructive',
-      });
+      // Set offline status gracefully instead of blocking
+      setDeviceStatus({ connected: false, session: false, smartphoneConnected: false });
+      // Only show toast once per error streak
+      if (!statusErrorShownRef.current) {
+        statusErrorShownRef.current = true;
+        const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
+        toast({
+          title: 'Erro ao buscar status',
+          description: message,
+          variant: 'destructive',
+        });
+      }
     }
   };
 
