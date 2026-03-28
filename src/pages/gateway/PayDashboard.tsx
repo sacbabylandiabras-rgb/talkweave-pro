@@ -4,46 +4,76 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { mockTransactions, mockChartData, formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
+import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
+
+interface Transaction {
+  id: string;
+  customer_name: string | null;
+  gross_amount: number;
+  fee: number;
+  net_amount: number;
+  method: string;
+  status: string;
+  created_at: string;
+}
 
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [webhookCount, setWebhookCount] = useState(0);
   const [integrationCount, setIntegrationCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const [profileRes, webhookRes, intRes] = await Promise.all([
+      const [profileRes, txRes, webhookRes, intRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
+        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(10),
         supabase.from("gateway_webhook_logs").select("id", { count: "exact", head: true }),
         supabase.from("gateway_integrations").select("id", { count: "exact", head: true }),
       ]);
 
       setProfile(profileRes.data);
+      setTransactions((txRes.data || []) as Transaction[]);
       setWebhookCount(webhookRes.count || 0);
       setIntegrationCount(intRes.count || 0);
+
+      // Build chart from transactions (last 30 days)
+      const allTx = (txRes.data || []) as Transaction[];
+      const last30 = Array.from({ length: 30 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (29 - i));
+        const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const dayTxs = allTx.filter(tx => {
+          const txDate = new Date(tx.created_at);
+          return txDate.toDateString() === d.toDateString();
+        });
+        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.gross_amount || 0), 0) / 100 };
+      });
+      setChartData(last30);
       setLoading(false);
     };
     fetchData();
   }, []);
 
+  const approvedTx = transactions.filter(t => t.status === "approved");
+  const totalVolume = approvedTx.reduce((a, t) => a + t.gross_amount, 0);
+  const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
+  const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
+
   const metrics = [
     { label: "Webhooks Recebidos", value: String(webhookCount), icon: Activity, change: "total" },
     { label: "Integrações Ativas", value: String(integrationCount), icon: CheckCircle, change: "total" },
-    { label: "Taxa de Aprovação", value: "94,2%", icon: TrendingUp, change: "+2,1%" },
-    { label: "Ticket Médio", value: "R$ 190,21", icon: CreditCard, change: "-3,4%" },
+    { label: "Taxa de Aprovação", value: transactions.length > 0 ? `${approvalRate}%` : "—", icon: TrendingUp, change: "" },
+    { label: "Ticket Médio", value: approvedTx.length > 0 ? formatCurrency(Math.round(avgTicket)) : "—", icon: CreditCard, change: "" },
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
@@ -64,7 +94,7 @@ export default function PayDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">{m.value}</p>
-              <p className={`text-xs mt-1 ${m.change.startsWith('+') ? 'text-emerald-400' : m.change.startsWith('-') ? 'text-red-400' : 'text-muted-foreground'}`}>{m.change}</p>
+              {m.change && <p className="text-xs mt-1 text-muted-foreground">{m.change}</p>}
             </CardContent>
           </Card>
         ))}
@@ -76,7 +106,7 @@ export default function PayDashboard() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={mockChartData}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15} />
@@ -98,33 +128,39 @@ export default function PayDashboard() {
           <CardTitle className="text-sm font-medium">Transações Recentes</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-[#2A2A2A]">
-                <TableHead className="text-muted-foreground">ID</TableHead>
-                <TableHead className="text-muted-foreground">Cliente</TableHead>
-                <TableHead className="text-muted-foreground">Valor</TableHead>
-                <TableHead className="text-muted-foreground">Método</TableHead>
-                <TableHead className="text-muted-foreground">Status</TableHead>
-                <TableHead className="text-muted-foreground">Data</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockTransactions.slice(0, 8).map((tx) => {
-                const badge = getStatusBadge(tx.status);
-                return (
-                  <TableRow key={tx.id} className="border-[#2A2A2A]">
-                    <TableCell className="font-mono text-xs">{tx.id}</TableCell>
-                    <TableCell>{tx.customer}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(tx.grossAmount)}</TableCell>
-                    <TableCell>{getMethodLabel(tx.method)}</TableCell>
-                    <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{tx.date}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          {transactions.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-muted-foreground">Nenhuma transação registrada ainda.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[#2A2A2A]">
+                  <TableHead className="text-muted-foreground">ID</TableHead>
+                  <TableHead className="text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="text-muted-foreground">Valor</TableHead>
+                  <TableHead className="text-muted-foreground">Método</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Data</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((tx) => {
+                  const badge = getStatusBadge(tx.status);
+                  return (
+                    <TableRow key={tx.id} className="border-[#2A2A2A]">
+                      <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
+                      <TableCell>{tx.customer_name || "—"}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(tx.gross_amount)}</TableCell>
+                      <TableCell>{getMethodLabel(tx.method)}</TableCell>
+                      <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
