@@ -99,15 +99,15 @@ const App = () => (
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
 
                 {/* Gateway e Checkout routes — Lojista */}
-                <Route path="/gateway-checkout/dashboard" element={<PayDashboard />} />
-                <Route path="/gateway-checkout/products" element={<PayProducts />} />
-                <Route path="/gateway-checkout/checkouts" element={<PayCheckouts />} />
-                <Route path="/gateway-checkout/checkouts/new" element={<CheckoutBuilder />} />
-                <Route path="/gateway-checkout/checkouts/edit/:id" element={<CheckoutBuilder />} />
-                <Route path="/gateway-checkout/reports" element={<PayReports />} />
-                <Route path="/gateway-checkout/pixels" element={<PayPixels />} />
-                <Route path="/gateway-checkout/integrations" element={<PayIntegrations />} />
-                <Route path="/gateway-checkout/settings" element={<PaySettings />} />
+                <Route path="/gateway-checkout/dashboard" element={<GatewayKycGate><PayDashboard /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/products" element={<GatewayKycGate><PayProducts /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts" element={<GatewayKycGate><PayCheckouts /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts/new" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts/edit/:id" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/reports" element={<GatewayKycGate><PayReports /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/pixels" element={<GatewayKycGate><PayPixels /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/docs" element={<PayDocs />} />
                 {/* Gateway — Admin */}
                 <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
