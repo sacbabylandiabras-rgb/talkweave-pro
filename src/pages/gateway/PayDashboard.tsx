@@ -1,22 +1,58 @@
-import { TrendingUp, CreditCard, CheckCircle, DollarSign } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, CreditCard, CheckCircle, DollarSign, Loader2, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 import { mockTransactions, mockChartData, formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 
-const metrics = [
-  { label: "Volume Hoje", value: "R$ 8.940,00", icon: DollarSign, change: "+12,3%" },
-  { label: "Transações Aprovadas", value: "47", icon: CheckCircle, change: "+8,5%" },
-  { label: "Taxa de Aprovação", value: "94,2%", icon: TrendingUp, change: "+2,1%" },
-  { label: "Ticket Médio", value: "R$ 190,21", icon: CreditCard, change: "-3,4%" },
-];
-
 export default function PayDashboard() {
+  const [profile, setProfile] = useState<any>(null);
+  const [webhookCount, setWebhookCount] = useState(0);
+  const [integrationCount, setIntegrationCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
+      const [profileRes, webhookRes, intRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        supabase.from("gateway_webhook_logs").select("id", { count: "exact", head: true }),
+        supabase.from("gateway_integrations").select("id", { count: "exact", head: true }),
+      ]);
+
+      setProfile(profileRes.data);
+      setWebhookCount(webhookRes.count || 0);
+      setIntegrationCount(intRes.count || 0);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  const metrics = [
+    { label: "Webhooks Recebidos", value: String(webhookCount), icon: Activity, change: "total" },
+    { label: "Integrações Ativas", value: String(integrationCount), icon: CheckCircle, change: "total" },
+    { label: "Taxa de Aprovação", value: "94,2%", icon: TrendingUp, change: "+2,1%" },
+    { label: "Ticket Médio", value: "R$ 190,21", icon: CreditCard, change: "-3,4%" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral das suas vendas e transações</p>
+        <p className="text-sm text-muted-foreground">
+          Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -28,7 +64,7 @@ export default function PayDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">{m.value}</p>
-              <p className={`text-xs mt-1 ${m.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>{m.change} vs ontem</p>
+              <p className={`text-xs mt-1 ${m.change.startsWith('+') ? 'text-emerald-400' : m.change.startsWith('-') ? 'text-red-400' : 'text-muted-foreground'}`}>{m.change}</p>
             </CardContent>
           </Card>
         ))}
