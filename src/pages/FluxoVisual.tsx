@@ -706,7 +706,7 @@ export default function FluxoVisual() {
         const currentInstanceId = instanceIds && instanceIds.length > 0
           ? instanceIds[sendCounter % instanceIds.length]
           : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId);
+        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId);
         sendCounter++;
       }
 
