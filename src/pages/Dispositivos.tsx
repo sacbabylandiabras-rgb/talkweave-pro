@@ -454,21 +454,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 text-destructive hover:bg-destructive/10"
-            onClick={async () => {
-              if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
-              try {
-                // Delete from database
-                const { error } = await supabase.from('zapi_instances').delete().eq('id', instance.id);
-                if (error) throw error;
-                toast({ title: "🗑️ Instância excluída com sucesso" });
-                onDeleted?.();
-              } catch (err: any) {
-                toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
-              }
-            }}>
-            <Trash2 className="w-3 h-3 mr-1" /> Excluir
-          </Button>
+          
           {!isConnected && (
             <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
               <Wifi className="w-3 h-3 mr-1" /> Conectar
