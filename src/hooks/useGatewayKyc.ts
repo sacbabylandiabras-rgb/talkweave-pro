@@ -123,13 +123,14 @@ export function useAdminKycQueue() {
       if (error) throw error;
 
       // Fetch profile info for each user
-      const userIds = (data as KycData[])?.map(k => k.user_id) || [];
+      const kycData = data as unknown as KycData[];
+      const userIds = kycData?.map(k => k.user_id) || [];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, email, full_name")
         .in("id", userIds);
 
-      const enriched = (data as KycData[])?.map(k => {
+      const enriched = kycData?.map(k => {
         const profile = profiles?.find(p => p.id === k.user_id);
         return { ...k, email: profile?.email || "", full_name: profile?.full_name || "" };
       }) || [];
