@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Eye, EyeOff, Facebook, Music, BarChart3, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,8 @@ const EVENTS = ["Purchase", "InitiateCheckout", "AddPaymentInfo", "Lead"];
 interface PlatformDef {
   key: string;
   name: string;
-  icon: string;
+  icon: LucideIcon;
+  iconColor: string;
   fields: { key: string; label: string; placeholder: string; isExtra?: boolean; secret?: boolean }[];
 }
 
@@ -21,7 +22,8 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "meta",
     name: "Meta Pixel",
-    icon: "📘",
+    icon: Facebook,
+    iconColor: "text-blue-500",
     fields: [
       { key: "pixel_id", label: "Pixel ID", placeholder: "123456789" },
       { key: "api_token", label: "Conversions API Token", placeholder: "EAAGx...", secret: true },
@@ -31,7 +33,8 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "tiktok",
     name: "TikTok Pixel",
-    icon: "🎵",
+    icon: Music,
+    iconColor: "text-pink-500",
     fields: [
       { key: "pixel_id", label: "Pixel ID", placeholder: "C1234567890" },
       { key: "api_token", label: "Access Token", placeholder: "token...", secret: true },
@@ -40,7 +43,8 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "google",
     name: "Google Ads / GA4",
-    icon: "📊",
+    icon: BarChart3,
+    iconColor: "text-amber-500",
     fields: [
       { key: "pixel_id", label: "Tag ID", placeholder: "AW-123456789" },
       { key: "conversion_label", label: "Conversion Label", placeholder: "abc123", isExtra: true },
@@ -143,7 +147,7 @@ function PixelCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <span>{platform.icon}</span> {platform.name}
+            <platform.icon className={`w-4 h-4 ${platform.iconColor}`} /> {platform.name}
           </CardTitle>
           <div className="flex items-center gap-2">
             {existingPixel && (
