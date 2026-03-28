@@ -10,7 +10,7 @@ interface DocUpload {
   preview: string;
 }
 
-export default function GatewayKycSubmission() {
+export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
   const { kyc, loading, submitKyc } = useGatewayKyc();
   const [selfie, setSelfie] = useState<DocUpload>({ file: null, preview: "" });
   const [docFront, setDocFront] = useState<DocUpload>({ file: null, preview: "" });
