@@ -2045,8 +2045,8 @@ async function sendNodeContent(
               label: (btn.text || '').trim() || 'Botão',
             }
             if (btn.type === 'url' && btn.value) {
-              const rawUrl = btn.value.trim()
-              action.url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+              const label = (btn.text || '').trim() || 'Link'
+              action.url = wrapUrlWithTracking(btn.value.trim(), label)
             }
             if (btn.type === 'call' && btn.value) {
               action.phone = btn.value.trim()
