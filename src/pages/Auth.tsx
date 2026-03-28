@@ -256,51 +256,57 @@ const Auth = () => {
               </TabsContent>
 
               <TabsContent value="signup">
-                <div className="space-y-6 py-4">
-                  <div className="text-center space-y-3">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <span className="text-3xl">🔒</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">Cadastro via Pagamento</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Para acessar o ZapLynx, é necessário assinar um dos nossos planos. 
-                      Sua conta será criada automaticamente após a confirmação do pagamento.
-                    </p>
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
                   </div>
-                  <div className="space-y-3">
-                    {[
-                      { name: "Plano Start", price: "R$397/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NN" },
-                      { name: "Plano Pro", price: "R$497/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NP", popular: true },
-                      { name: "Plano Scale", price: "R$897/mês", link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NO" },
-                    ].map((plan, i) => (
-                      <a
-                        key={i}
-                        href={plan.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex items-center justify-between p-4 rounded-xl border transition-all hover:-translate-y-0.5 ${
-                          plan.popular 
-                            ? "border-primary bg-primary/5 shadow-sm" 
-                            : "border-border bg-card hover:border-primary/50"
-                        }`}
-                      >
-                        <div>
-                          <p className="text-foreground font-semibold text-sm">{plan.name}</p>
-                          <p className="text-muted-foreground text-xs">{plan.price}</p>
-                        </div>
-                        {plan.popular && (
-                          <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">
-                            POPULAR
-                          </span>
-                        )}
-                        <span className="text-primary text-sm font-bold">Assinar →</span>
-                      </a>
-                    ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-whatsapp">WhatsApp</Label>
+                    <Input
+                      id="signup-whatsapp"
+                      type="text"
+                      placeholder="+5511999999999"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Senha</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Criando conta...
+                      </>
+                    ) : (
+                      "Criar Conta Grátis"
+                    )}
+                  </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Após o pagamento, você receberá um email para definir sua senha e acessar a plataforma.
+                    Após criar sua conta, confirme seu email para acessar a plataforma.
                   </p>
-                </div>
+                </form>
               </TabsContent>
             </Tabs>
           </CardContent>

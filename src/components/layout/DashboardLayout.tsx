@@ -20,14 +20,14 @@ export function DashboardLayout() {
         return;
       }
 
-      // Check if subscription is active
+      // Check if account is active
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_active, subscription_status")
+        .select("is_active")
         .eq("id", session.user.id)
         .single();
 
-      if (profile && (!profile.is_active || profile.subscription_status === "canceled" || profile.subscription_status === "refunded" || profile.subscription_status === "chargeback")) {
+      if (profile && !profile.is_active) {
         await supabase.auth.signOut();
         navigate("/auth");
         setLoading(false);
