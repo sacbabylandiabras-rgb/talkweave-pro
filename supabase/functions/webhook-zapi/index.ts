@@ -1282,6 +1282,22 @@ serve(async (req) => {
     let userId: string | null = null
     let zapiConfig: { zapi_instance_id: string; zapi_token: string; zapi_client_token: string } | null = null
 
+    // Extract authenticated user ID from Authorization header (for manual triggers from the frontend)
+    let authenticatedUserId: string | null = null
+    const authHeader = req.headers.get('authorization') || ''
+    if (authHeader.startsWith('Bearer ') && isManualFlowTrigger) {
+      try {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user: authUser } } = await supabase.auth.getUser(token)
+        if (authUser?.id) {
+          authenticatedUserId = authUser.id
+          console.log('🔑 Authenticated user for manual flow:', authenticatedUserId)
+        }
+      } catch (authError) {
+        console.log('⚠️ Could not extract authenticated user from token')
+      }
+    }
+
     const { data: instancesData, error: instancesError } = await supabase
       .from('zapi_instances')
       .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
@@ -1291,9 +1307,18 @@ serve(async (req) => {
       console.error('Erro ao buscar instâncias ativas:', instancesError)
     }
 
-    const instanceData = (instancesData || []).find((item: any) => {
+    // When multiple users share the same zapi_instance_id, prefer the authenticated user's instance
+    const matchingInstances = (instancesData || []).filter((item: any) => {
       return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
     })
+
+    let instanceData: any = null
+    if (matchingInstances.length > 1 && authenticatedUserId) {
+      instanceData = matchingInstances.find((item: any) => item.user_id === authenticatedUserId) || matchingInstances[0]
+      console.log(`🔀 Multiple instances found for ${normalizedInstanceId}, resolved to user: ${instanceData.user_id}`)
+    } else {
+      instanceData = matchingInstances[0] || null
+    }
 
     const hasExplicitRequestedInstance = Boolean(webhook?.instanceId || webhook?.instance_id)
 
