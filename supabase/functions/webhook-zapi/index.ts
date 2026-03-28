@@ -1295,6 +1295,8 @@ serve(async (req) => {
       return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
     })
 
+    const hasExplicitRequestedInstance = Boolean(webhook?.instanceId || webhook?.instance_id)
+
     if (instanceData) {
       userId = instanceData.user_id
       zapiConfig = {
@@ -1302,8 +1304,13 @@ serve(async (req) => {
         zapi_token: instanceData.zapi_token,
         zapi_client_token: instanceData.zapi_client_token,
       }
+    } else if (isManualFlowTrigger && hasExplicitRequestedInstance) {
+      console.error('Manual flow requested invalid or inactive instance:', {
+        requested: webhook?.instanceId || webhook?.instance_id,
+        normalized: normalizedInstanceId,
+      })
+      return new Response('selected_instance_not_found', { status: 400, headers: corsHeaders })
     } else {
-
       userId = profile.id
       zapiConfig = {
         zapi_instance_id: profile.zapi_instance_id,
@@ -1315,7 +1322,7 @@ serve(async (req) => {
     // Manual flow trigger safeguard:
     // Respect the explicitly requested instance from the UI.
     // Only auto-adjust when the trigger did not provide an instanceId.
-    if (isManualFlowTrigger && userId && phone && !webhook?.instanceId) {
+    if (isManualFlowTrigger && userId && phone && !hasExplicitRequestedInstance) {
       const { data: inboundCandidates } = await supabase
         .from('message_logs')
         .select('instance_id, created_at, keyword_matched, message_received')
@@ -1355,6 +1362,34 @@ serve(async (req) => {
     if (!userId || !zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token) {
       console.error('User has incomplete Z-API credentials')
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
+    }
+
+    if (isManualFlowTrigger && zapiConfig?.zapi_instance_id && zapiConfig?.zapi_token && zapiConfig?.zapi_client_token) {
+      try {
+        const statusResponse = await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/status`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Token': zapiConfig.zapi_client_token,
+          },
+        })
+        const statusPayload = await statusResponse.json().catch(() => ({}))
+        const status = String(statusPayload?.status || '').toLowerCase()
+        const connectedFlag = statusPayload?.connected
+        const connected = connectedFlag === true || (typeof connectedFlag === 'string' && connectedFlag.toLowerCase() === 'true') || status === 'connected'
+        const explicitlyDisconnected = connectedFlag === false || status === 'disconnected' || status === 'close' || status === 'closed'
+
+        if (!statusResponse.ok || (explicitlyDisconnected && !connected)) {
+          console.error('Manual flow blocked: selected instance disconnected', {
+            instanceId: zapiConfig.zapi_instance_id,
+            status: statusPayload,
+          })
+          return new Response('selected_instance_disconnected', { status: 503, headers: corsHeaders })
+        }
+      } catch (deviceError) {
+        console.error('Failed to validate selected instance connectivity before manual flow send:', deviceError)
+        return new Response('selected_instance_status_error', { status: 502, headers: corsHeaders })
+      }
     }
 
     // === LID ↔ PHONE MAPPING ===
