@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, ArrowLeft } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 
 interface CheckoutConfig {
@@ -43,35 +40,26 @@ interface Props {
 }
 
 export default function CheckoutPreview({ config }: Props) {
-  const [timerSeconds, setTimerSeconds] = useState(config.timerMinutes * 60);
-  const [selectedMethod, setSelectedMethod] = useState(config.pix ? "pix" : config.creditCard ? "credit" : "boleto");
+  const [step, setStep] = useState<"identification" | "payment">("identification");
+  const [purchaseCount, setPurchaseCount] = useState(60);
+  const [quantity, setQuantity] = useState(1);
 
-  useEffect(() => {
-    setTimerSeconds(config.timerMinutes * 60);
-  }, [config.timerMinutes]);
-
+  // Simulate purchase counter
   useEffect(() => {
     if (!config.showTimer) return;
     const interval = setInterval(() => {
-      setTimerSeconds(prev => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+      setPurchaseCount(prev => {
+        const delta = Math.random() > 0.5 ? 1 : -1;
+        return Math.max(50, Math.min(99, prev + delta));
+      });
+    }, 3000);
     return () => clearInterval(interval);
   }, [config.showTimer]);
 
-  const mins = Math.floor(timerSeconds / 60);
-  const secs = timerSeconds % 60;
-
-  const isDark = config.theme === "dark";
-  const bg = config.theme === "custom" ? config.bgColor : isDark ? "#0D0D0D" : "#FFFFFF";
-  const text = config.theme === "custom" ? config.textColor : isDark ? "#FFFFFF" : "#1A1A1A";
-  const subtxt = isDark ? "#A0A0A0" : "#666666";
-  const cardBg = isDark ? "#141414" : "#F9F9F9";
-  const borderColor = isDark ? "#2A2A2A" : "#E5E5E5";
   const primary = config.primaryColor;
-  const borderRadius = config.borderStyle === "pill" ? "50px" : config.borderStyle === "square" ? "0px" : "8px";
-  const inputRadius = config.borderStyle === "pill" ? "25px" : config.borderStyle === "square" ? "0px" : "8px";
-
-  const pixPrice = config.pixDiscount > 0 ? Math.round(config.price * (1 - config.pixDiscount / 100)) : config.price;
+  const unitPrice = config.price;
+  const subtotal = unitPrice * quantity;
+  const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
 
   const fontFamily = config.font === "plus_jakarta" ? "'Plus Jakarta Sans', sans-serif"
     : config.font === "roboto" ? "'Roboto', sans-serif"
@@ -79,226 +67,380 @@ export default function CheckoutPreview({ config }: Props) {
     : config.font === "poppins" ? "'Poppins', sans-serif"
     : "'Inter', sans-serif";
 
+  const borderRadius = config.borderStyle === "pill" ? "50px" : config.borderStyle === "square" ? "0px" : "8px";
+  const inputRadius = config.borderStyle === "pill" ? "25px" : config.borderStyle === "square" ? "0px" : "6px";
+
   return (
     <div
       className="h-full overflow-auto"
-      style={{ background: bg, color: text, fontFamily, minHeight: "100%" }}
+      style={{ background: "#EFF1F5", fontFamily, minHeight: "100%" }}
     >
-      <div className="max-w-md mx-auto p-6 space-y-5">
-        {/* Timer */}
+      <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
+
+        {/* Step Indicators */}
+        <div className="flex items-center justify-center gap-8 py-4">
+          <button
+            onClick={() => setStep("identification")}
+            className="flex flex-col items-center gap-1.5 transition-all"
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{
+                background: step === "identification" ? `${primary}15` : "#E5E7EB",
+                border: step === "identification" ? `2px solid ${primary}` : "2px solid transparent",
+              }}
+            >
+              <User className="w-5 h-5" style={{ color: step === "identification" ? primary : "#9CA3AF" }} />
+            </div>
+            <span
+              className="text-xs font-semibold"
+              style={{ color: step === "identification" ? primary : "#9CA3AF" }}
+            >
+              Identificação
+            </span>
+          </button>
+          <div className="w-12 h-[2px] bg-gray-300 rounded" />
+          <button
+            onClick={() => setStep("payment")}
+            className="flex flex-col items-center gap-1.5 transition-all"
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{
+                background: step === "payment" ? `${primary}15` : "#E5E7EB",
+                border: step === "payment" ? `2px solid ${primary}` : "2px solid transparent",
+              }}
+            >
+              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? primary : "#9CA3AF" }} />
+            </div>
+            <span
+              className="text-xs font-semibold"
+              style={{ color: step === "payment" ? primary : "#9CA3AF" }}
+            >
+              Pagamento
+            </span>
+          </button>
+        </div>
+
+        {/* Order Summary Card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-800">Resumo do pedido</h3>
+            <button className="text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Product Row */}
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <ShoppingCart className="w-6 h-6 text-gray-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 truncate">
+                {config.offerName || config.productName || "Seu Produto"}
+              </p>
+              <p className="text-xs text-gray-500">{formatCurrency(unitPrice)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+              >
+                <Minus className="w-3 h-3 text-gray-600" />
+              </button>
+              <span className="text-sm font-medium text-gray-800 w-6 text-center">{quantity}</span>
+              <button
+                onClick={() => setQuantity(q => q + 1)}
+                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+              >
+                <Plus className="w-3 h-3 text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Coupon */}
+          <div className="flex gap-2">
+            <input
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white text-gray-700 placeholder:text-gray-400"
+              placeholder="Cupom de desconto"
+            />
+            <button
+              className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
+            >
+              Aplicar
+            </button>
+          </div>
+
+          {/* Totals */}
+          <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="text-gray-700 font-medium">{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Frete</span>
+              <span className="text-green-500 font-medium">Grátis</span>
+            </div>
+            <div className="flex justify-between text-base font-bold pt-1 border-t border-gray-100">
+              <span className="text-gray-800">Total</span>
+              <span className="text-gray-800">{formatCurrency(subtotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Urgency Banner */}
         {config.showTimer && (
           <div
-            className="flex items-center justify-center gap-2 py-2.5 px-4 text-white text-sm font-bold"
-            style={{ background: primary, borderRadius }}
+            className="rounded-xl py-4 px-5 text-center text-white space-y-0.5"
+            style={{ background: primary }}
           >
-            <Clock className="w-4 h-4" />
-            <span>Oferta expira em {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</span>
+            <p className="text-sm font-bold">Atenção</p>
+            <p className="text-xs opacity-90">Não perca essa oportunidade!</p>
+            <p className="text-3xl font-extrabold">{purchaseCount} Compras</p>
           </div>
         )}
 
-        {/* Product Header */}
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold" style={{ color: text }}>{config.offerName || config.productName || "Seu Produto"}</h2>
-          {config.originalPrice > config.price && (
-            <div className="flex items-center justify-center gap-3">
-              <span className="line-through text-sm" style={{ color: subtxt }}>
-                {formatCurrency(config.originalPrice)}
-              </span>
-              <Badge style={{ background: `${primary}20`, color: primary, border: "none" }} className="text-xs font-bold">
-                {Math.round((1 - config.price / config.originalPrice) * 100)}% OFF
-              </Badge>
-            </div>
-          )}
-          <p className="text-2xl font-extrabold" style={{ color: primary }}>
-            {formatCurrency(config.price)}
-          </p>
-          {config.maxInstallments > 1 && (
-            <p className="text-xs" style={{ color: subtxt }}>
-              ou {config.maxInstallments}x de {formatCurrency(Math.round(config.price / config.maxInstallments))}
-            </p>
-          )}
-        </div>
-
-        {/* Payment Methods Tabs */}
-        <div className="flex gap-2">
-          {config.creditCard && (
-            <button
-              onClick={() => setSelectedMethod("credit")}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-all"
-              style={{
-                borderRadius: inputRadius,
-                border: `2px solid ${selectedMethod === "credit" ? primary : borderColor}`,
-                background: selectedMethod === "credit" ? `${primary}10` : "transparent",
-                color: selectedMethod === "credit" ? primary : subtxt,
-              }}
-            >
-              <CreditCard className="w-3.5 h-3.5" /> Cartão
-            </button>
-          )}
-          {config.pix && (
-            <button
-              onClick={() => setSelectedMethod("pix")}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-all"
-              style={{
-                borderRadius: inputRadius,
-                border: `2px solid ${selectedMethod === "pix" ? primary : borderColor}`,
-                background: selectedMethod === "pix" ? `${primary}10` : "transparent",
-                color: selectedMethod === "pix" ? primary : subtxt,
-              }}
-            >
-              <QrCode className="w-3.5 h-3.5" /> PIX
-              {config.pixDiscount > 0 && <Badge className="text-[9px] px-1 py-0 ml-1" style={{ background: "#22C55E", color: "white", border: "none" }}>-{config.pixDiscount}%</Badge>}
-            </button>
-          )}
-          {config.boleto && (
-            <button
-              onClick={() => setSelectedMethod("boleto")}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-all"
-              style={{
-                borderRadius: inputRadius,
-                border: `2px solid ${selectedMethod === "boleto" ? primary : borderColor}`,
-                background: selectedMethod === "boleto" ? `${primary}10` : "transparent",
-                color: selectedMethod === "boleto" ? primary : subtxt,
-              }}
-            >
-              <FileText className="w-3.5 h-3.5" /> Boleto
-            </button>
-          )}
-        </div>
-
-        {/* Form Fields */}
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Nome completo</label>
-            <input
-              className="w-full px-3 py-2.5 text-sm outline-none"
-              style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }}
-              placeholder="Seu nome completo"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>E-mail</label>
-            <input
-              className="w-full px-3 py-2.5 text-sm outline-none"
-              style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }}
-              placeholder="seu@email.com"
-            />
-          </div>
-          {config.showCpf && (
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>CPF/CNPJ</label>
-              <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="000.000.000-00" />
-            </div>
-          )}
-          {config.showPhone && (
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Telefone</label>
-              <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="(11) 99999-9999" />
-            </div>
-          )}
-          {config.showBirthdate && (
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Data de Nascimento</label>
-              <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="DD/MM/AAAA" />
-            </div>
-          )}
-          {config.showAddress && (
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>CEP</label>
-              <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="00000-000" />
-            </div>
-          )}
-
-          {/* Credit Card Fields */}
-          {selectedMethod === "credit" && (
-            <>
+        {step === "identification" && (
+          <>
+            {/* Personal Data Section */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
               <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Número do cartão</label>
-                <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="0000 0000 0000 0000" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Validade</label>
-                  <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="MM/AA" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>CVV</label>
-                  <input className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }} placeholder="123" />
-                </div>
-              </div>
-              {config.maxInstallments > 1 && (
-                <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: subtxt }}>Parcelas</label>
-                  <select className="w-full px-3 py-2.5 text-sm outline-none" style={{ borderRadius: inputRadius, border: `1px solid ${borderColor}`, background: cardBg, color: text }}>
-                    {Array.from({ length: config.maxInstallments }, (_, i) => i + 1).map(n => (
-                      <option key={n} value={n}>{n}x de {formatCurrency(Math.round(config.price / n))} {n === 1 ? "(à vista)" : ""}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* PIX Info */}
-          {selectedMethod === "pix" && (
-            <div className="text-center p-4 space-y-2" style={{ borderRadius, border: `1px solid ${borderColor}`, background: cardBg }}>
-              <QrCode className="w-16 h-16 mx-auto" style={{ color: subtxt }} />
-              <p className="text-sm font-medium" style={{ color: text }}>QR Code PIX</p>
-              {config.pixDiscount > 0 && (
-                <p className="text-xs font-bold" style={{ color: "#22C55E" }}>
-                  Pague {formatCurrency(pixPrice)} com {config.pixDiscount}% de desconto!
+                <h3 className="text-sm font-bold text-gray-800">Dados pessoais</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, notificação de pedidos e carrinho de compras.
                 </p>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
 
-        {/* Order Bump */}
-        {config.showOrderBump && (
-          <div
-            className="p-3 space-y-1"
-            style={{ borderRadius, border: `2px dashed ${primary}`, background: `${primary}08` }}
-          >
-            <div className="flex items-center gap-2">
-              <input type="checkbox" className="w-4 h-4 accent-orange-500" />
-              <div className="flex items-center gap-1.5">
-                <Gift className="w-4 h-4" style={{ color: primary }} />
-                <span className="text-xs font-bold" style={{ color: primary }}>OFERTA ESPECIAL!</span>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Nome completo</label>
+                  <input
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                    style={{ borderRadius: inputRadius }}
+                    placeholder="Ex.: Maria da Silva"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">E-mail</label>
+                  <input
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                    style={{ borderRadius: inputRadius }}
+                    placeholder="Ex.: maria@email.com"
+                  />
+                </div>
+
+                {config.showCpf && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">CPF ou CNPJ</label>
+                    <input
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                      style={{ borderRadius: inputRadius }}
+                      placeholder="CPF ou CNPJ"
+                    />
+                  </div>
+                )}
+
+                {config.showPhone && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">Celular / WhatsApp</label>
+                    <div className="flex gap-2">
+                      <div
+                        className="flex items-center px-3 py-2.5 border border-gray-200 bg-gray-50 text-sm text-gray-600 font-medium"
+                        style={{ borderRadius: inputRadius }}
+                      >
+                        +55
+                      </div>
+                      <input
+                        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                        style={{ borderRadius: inputRadius }}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {config.showBirthdate && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">Data de Nascimento</label>
+                    <input
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                      style={{ borderRadius: inputRadius }}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+                )}
+
+                {config.showAddress && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">CEP</label>
+                    <input
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
+                      style={{ borderRadius: inputRadius }}
+                      placeholder="00000-000"
+                    />
+                  </div>
+                )}
               </div>
             </div>
-            <p className="text-xs" style={{ color: subtxt }}>{config.orderBumpText || "Adicione este produto por apenas"} <strong style={{ color: primary }}>{formatCurrency(config.orderBumpPrice)}</strong></p>
-          </div>
+
+            {/* Order Bump */}
+            {config.showOrderBump && (
+              <div
+                className="bg-white rounded-xl border-2 p-4 space-y-2"
+                style={{ borderColor: primary, borderStyle: "dashed" }}
+              >
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: primary }} />
+                  <div className="flex items-center gap-1.5">
+                    <Gift className="w-4 h-4" style={{ color: primary }} />
+                    <span className="text-xs font-bold" style={{ color: primary }}>OFERTA ESPECIAL!</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {config.orderBumpText || "Adicione este produto por apenas"}{" "}
+                  <strong style={{ color: primary }}>{formatCurrency(config.orderBumpPrice)}</strong>
+                </p>
+              </div>
+            )}
+
+            {/* CTA Button */}
+            <button
+              className="w-full py-4 text-white font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+              style={{ background: primary, borderRadius }}
+            >
+              <Lock className="w-4 h-4" />
+              {config.buttonText || "Pagar Agora"}
+            </button>
+          </>
         )}
 
-        {/* CTA Button */}
-        <button
-          className="w-full py-3.5 text-white font-bold text-base transition-transform hover:scale-[1.03]"
-          style={{ background: primary, borderRadius }}
-        >
-          <Lock className="w-4 h-4 inline mr-2" />
-          {config.buttonText || "Comprar Agora"}
-        </button>
+        {step === "payment" && (
+          <>
+            {/* Payment Method Selection */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-gray-800">Forma de pagamento</h3>
+
+              <div className="space-y-2">
+                {config.pix && (
+                  <div
+                    className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer"
+                    style={{ borderColor: primary, background: `${primary}08` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <QrCode className="w-5 h-5" style={{ color: primary }} />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">PIX</p>
+                        <p className="text-xs text-gray-500">Pagamento instantâneo</p>
+                      </div>
+                    </div>
+                    <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primary }}>
+                      <div className="w-3 h-3 rounded-full" style={{ background: primary }} />
+                    </div>
+                  </div>
+                )}
+
+                {config.creditCard && (
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Cartão de Crédito</p>
+                        {config.maxInstallments > 1 && (
+                          <p className="text-xs text-gray-400">até {config.maxInstallments}x</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                  </div>
+                )}
+
+                {config.boleto && (
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Boleto</p>
+                        <p className="text-xs text-gray-400">Pode precisar colar manualmente</p>
+                      </div>
+                    </div>
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* PIX Payment Details */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-gray-800">Pagamento via PIX</h3>
+              <p className="text-sm text-gray-600">
+                Valor à vista: <strong className="text-gray-800">{formatCurrency(pixPrice)}</strong>
+              </p>
+
+              {/* PIX Benefits */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Aprovação instantânea</p>
+                    <p className="text-xs text-gray-500">Liberação imediata</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Sem custos extras</p>
+                    <p className="text-xs text-gray-500">Transferência gratuita</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">100% Seguro</p>
+                    <p className="text-xs text-gray-500">Desenvolvido pelo Banco Central</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Generate QR Code Button */}
+              <button
+                className="w-full py-3.5 text-white font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]"
+                style={{ background: primary, borderRadius }}
+              >
+                <QrCode className="w-4 h-4" />
+                Gerar QR Code PIX
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Guarantee */}
         {config.showGuarantee && (
-          <div className="flex items-center justify-center gap-2 text-xs" style={{ color: subtxt }}>
-            <ShieldCheck className="w-4 h-4" style={{ color: "#22C55E" }} />
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 py-2">
+            <ShieldCheck className="w-4 h-4 text-green-500" />
             <span>Garantia de {config.guaranteeDays} dias — Satisfação ou dinheiro de volta</span>
           </div>
         )}
 
         {/* Security Badges */}
         {config.showSecurityBadges && (
-          <div className="flex items-center justify-center gap-4 pt-2">
-            {["Visa", "Master", "PIX", "🔒 SSL"].map(badge => (
-              <span key={badge} className="text-[10px] font-medium px-2 py-1" style={{ color: subtxt, border: `1px solid ${borderColor}`, borderRadius: "4px" }}>
+          <div className="flex items-center justify-center gap-3 pt-1">
+            {["🔒 SSL", "Visa", "Master", "PIX"].map(badge => (
+              <span key={badge} className="text-[10px] font-medium px-2 py-1 text-gray-400 border border-gray-200 rounded">
                 {badge}
               </span>
             ))}
           </div>
         )}
 
-        <p className="text-center text-[10px]" style={{ color: subtxt }}>
+        <p className="text-center text-[10px] text-gray-400 pb-4">
           Pagamento processado com segurança por ZapLynxPay
         </p>
       </div>
