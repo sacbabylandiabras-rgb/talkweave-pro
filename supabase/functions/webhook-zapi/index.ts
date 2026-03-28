@@ -389,13 +389,16 @@ serve(async (req) => {
       const eventInstanceId = webhook?.instanceId || webhook?.instance_id || ''
 
       if (groupPhone && eventInstanceId) {
-        // Find user by instanceId
-        const { data: instData } = await supabase
+        // Find user by instanceId (normalized matching)
+        const normalizedEventId = normalizeInstanceIdentifier(eventInstanceId)
+        const { data: allActiveInstances } = await supabase
           .from('zapi_instances')
           .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
-          .eq('zapi_instance_id', eventInstanceId)
           .eq('is_active', true)
-          .maybeSingle()
+
+        const instData = (allActiveInstances || []).find((item: any) =>
+          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedEventId
+        )
 
         if (instData) {
           // Normalize group ID
