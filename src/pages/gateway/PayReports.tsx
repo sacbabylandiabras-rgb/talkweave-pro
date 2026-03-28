@@ -203,14 +203,17 @@ export default function PayReports() {
                   </TableHeader>
                   <TableBody>
                     {checkouts.map((ck: any) => {
-                      const conversion = ck.visits > 0 ? ((ck.approved / ck.visits) * 100).toFixed(1) : "0.0";
+                      const visits = ck.visits ?? 0;
+                      const initiated = ck.initiated ?? 0;
+                      const approved = ck.approved ?? 0;
+                      const conversion = visits > 0 ? ((approved / visits) * 100).toFixed(1) : "0.0";
                       return (
                         <TableRow key={ck.id} className="border-[#2A2A2A]">
                           <TableCell className="font-medium">{ck.name}</TableCell>
-                          <TableCell>{ck.format}</TableCell>
-                          <TableCell>{ck.visits.toLocaleString('pt-BR')}</TableCell>
-                          <TableCell>{ck.initiated.toLocaleString('pt-BR')}</TableCell>
-                          <TableCell>{ck.approved.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell>{ck.format ?? "—"}</TableCell>
+                          <TableCell>{visits.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell>{initiated.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell>{approved.toLocaleString('pt-BR')}</TableCell>
                           <TableCell><span className={`font-bold ${parseFloat(conversion) > 40 ? 'text-emerald-400' : 'text-amber-400'}`}>{conversion}%</span></TableCell>
                         </TableRow>
                       );
