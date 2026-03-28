@@ -689,6 +689,9 @@ export default function FluxoVisual() {
     toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id || '';
+
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
         toast.error("Bloco inicial não encontrado!");
@@ -703,7 +706,7 @@ export default function FluxoVisual() {
         const currentInstanceId = instanceIds && instanceIds.length > 0
           ? instanceIds[sendCounter % instanceIds.length]
           : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId);
+        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId);
         sendCounter++;
       }
 
@@ -716,7 +719,7 @@ export default function FluxoVisual() {
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string) => {
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
@@ -775,6 +778,20 @@ export default function FluxoVisual() {
           await supabase.functions.invoke('send-message', { body });
         };
 
+        const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          if (!supabaseUrl) return rawUrl;
+          const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
+          const params = new URLSearchParams({
+            url: finalUrl,
+            flow: nomeFluxo,
+            btn: btnText,
+            uid: userId || '',
+            ph: phone,
+          });
+          return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+        };
+
         if (allSendButtons.length > 0) {
           if (contentType === "image" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
@@ -799,7 +816,7 @@ export default function FluxoVisual() {
               const label = (btn?.text || `Botão ${idx + 1}`).toString();
 
               if (type === "url") {
-                const url = value.match(/^https?:\/\//i) ? value : `https://${value}`;
+                const url = wrapUrlWithTracking(value, label, contact);
                 return { id: String(idx + 1), type: "URL" as const, label, url };
               }
 
@@ -845,7 +862,7 @@ export default function FluxoVisual() {
         }
       }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId);
     }
   };
 

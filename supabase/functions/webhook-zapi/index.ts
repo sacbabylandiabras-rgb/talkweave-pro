@@ -1969,6 +1969,21 @@ async function sendNodeContent(
     'Client-Token': zapiConfig.zapi_client_token,
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+
+  function wrapUrlWithTracking(rawUrl: string, btnText: string): string {
+    if (!supabaseUrl || !flowName || !userId) return rawUrl
+    const finalUrl = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+    const params = new URLSearchParams({
+      url: finalUrl,
+      flow: flowName,
+      btn: btnText,
+      uid: userId,
+      ph: phone,
+    })
+    return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`
+  }
+
   function buildReplyButtons(btns: typeof allSendButtons) {
     return btns
       .filter(b => b.type === 'reply' || b.type === 'flow')
@@ -1981,8 +1996,7 @@ async function sendNodeContent(
     for (const btn of btns) {
       const label = (btn.text || '').trim()
       if (btn.type === 'url' && btn.value) {
-        const rawUrl = btn.value.trim()
-        const url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+        const url = wrapUrlWithTracking(btn.value.trim(), label || 'Link')
         parts.push(`🔗 ${label}: ${url}`)
       } else if (btn.type === 'call' && btn.value) {
         parts.push(`📞 ${label}: ${btn.value.trim()}`)
@@ -2031,8 +2045,8 @@ async function sendNodeContent(
               label: (btn.text || '').trim() || 'Botão',
             }
             if (btn.type === 'url' && btn.value) {
-              const rawUrl = btn.value.trim()
-              action.url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+              const label = (btn.text || '').trim() || 'Link'
+              action.url = wrapUrlWithTracking(btn.value.trim(), label)
             }
             if (btn.type === 'call' && btn.value) {
               action.phone = btn.value.trim()
