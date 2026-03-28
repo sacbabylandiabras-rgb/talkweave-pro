@@ -13,7 +13,8 @@ const EVENTS = ["Purchase", "InitiateCheckout", "AddPaymentInfo", "Lead"];
 interface PlatformDef {
   key: string;
   name: string;
-  icon: string;
+  icon: LucideIcon;
+  iconColor: string;
   fields: { key: string; label: string; placeholder: string; isExtra?: boolean; secret?: boolean }[];
 }
 
