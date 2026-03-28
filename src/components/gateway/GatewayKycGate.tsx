@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { useGatewayKyc } from "@/hooks/useGatewayKyc";
+import { useUserRole } from "@/hooks/useUserRole";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,8 +11,9 @@ interface GatewayKycGateProps {
 
 export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   const { kyc, loading } = useGatewayKyc();
+  const { role, loading: roleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
