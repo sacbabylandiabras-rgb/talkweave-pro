@@ -1,8 +1,7 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { useGatewayKyc } from "@/hooks/useGatewayKyc";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface GatewayKycGateProps {
@@ -11,21 +10,8 @@ interface GatewayKycGateProps {
 
 export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   const { kyc, loading } = useGatewayKyc();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [roleLoading, setRoleLoading] = useState(true);
 
-  useEffect(() => {
-    const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setRoleLoading(false); return; }
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      setIsAdmin(!!data);
-      setRoleLoading(false);
-    };
-    check();
-  }, []);
-
-  if (loading || roleLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
@@ -33,25 +19,26 @@ export default function GatewayKycGate({ children }: GatewayKycGateProps) {
     );
   }
 
-  // Admins bypass KYC
-  if (isAdmin) {
-    return <>{children}</>;
-  }
-
   // If KYC is approved, show the actual content
   if (kyc?.status === "approved") {
     return <>{children}</>;
   }
 
-  // Show children behind the dialog + KYC modal on top
+  // Show children behind + KYC modal on top
   return (
     <>
       {children}
       <Dialog open={true} onOpenChange={() => {}}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-xl">Verificação de Identidade (KYC)</DialogTitle>
-            <p className="text-sm text-muted-foreground">Para utilizar o gateway de pagamentos, precisamos verificar sua identidade</p>
+            <p className="text-sm text-muted-foreground">
+              Para utilizar o gateway de pagamentos, precisamos verificar sua identidade
+            </p>
           </DialogHeader>
           <GatewayKycSubmission inDialog />
         </DialogContent>
