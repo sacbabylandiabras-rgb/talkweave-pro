@@ -1320,6 +1320,33 @@ serve(async (req) => {
       instanceData = matchingInstances[0] || null
     }
 
+    // When multiple users share the same instance and it's NOT a manual trigger,
+    // try to find which user has recent conversation with this phone number
+    if (matchingInstances.length > 1 && !authenticatedUserId && phone) {
+      const candidateUserIds = matchingInstances.map((item: any) => item.user_id)
+      const { data: recentLogs } = await supabase
+        .from('message_logs')
+        .select('user_id')
+        .in('user_id', candidateUserIds)
+        .eq('phone', phone)
+        .not('keyword_matched', 'eq', '__lid_map__')
+        .not('keyword_matched', 'eq', '__processing__')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (recentLogs && recentLogs.length > 0) {
+        const bestUserId = recentLogs[0].user_id
+        const bestInstance = matchingInstances.find((item: any) => item.user_id === bestUserId)
+        if (bestInstance) {
+          instanceData = bestInstance
+          console.log(`🔀 Multiple instances for ${normalizedInstanceId}, resolved via recent conversation to user: ${bestUserId}`)
+        }
+      } else {
+        // No conversation history — log the message for ALL users so nobody misses it
+        console.log(`🔀 Multiple instances for ${normalizedInstanceId}, no conversation history for ${phone} — will process for all ${matchingInstances.length} users`)
+      }
+    }
+
     const hasExplicitRequestedInstance = Boolean(webhook?.instanceId || webhook?.instance_id)
 
     if (instanceData) {
