@@ -72,7 +72,7 @@ const gatewayMenuItems = [
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
   { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
-  { id: "pay-docs", label: "Documentação", icon: FileText, path: "/gateway-checkout/docs" },
+  
   { id: "pay-settings", label: "Configurações", icon: Settings, path: "/gateway-checkout/settings" },
 ];
 
@@ -91,6 +91,7 @@ const metaBottomItems = [
 const gatewayBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
+  { id: "pay-docs", label: "Documentação", icon: FileText, path: "/gateway-checkout/docs", adminOnly: false },
 ];
 
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
