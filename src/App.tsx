@@ -55,6 +55,7 @@ import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
+import PublicCheckout from "./pages/PublicCheckout";
 const queryClient = new QueryClient();
 
 const App = () => (
