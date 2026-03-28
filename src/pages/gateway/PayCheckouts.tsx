@@ -26,6 +26,7 @@ interface Checkout {
 }
 
 export default function PayCheckouts() {
+  const navigate = useNavigate();
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
