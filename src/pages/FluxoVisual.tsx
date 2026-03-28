@@ -689,6 +689,9 @@ export default function FluxoVisual() {
     toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id || '';
+
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
         toast.error("Bloco inicial não encontrado!");
