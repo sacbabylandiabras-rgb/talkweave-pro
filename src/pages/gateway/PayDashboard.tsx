@@ -20,8 +20,8 @@ interface Transaction {
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [webhookCount, setWebhookCount] = useState(0);
-  const [integrationCount, setIntegrationCount] = useState(0);
+  const [approvedToday, setApprovedToday] = useState(0);
+  const [sales30d, setSales30d] = useState(0);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
