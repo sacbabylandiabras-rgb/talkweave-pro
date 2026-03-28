@@ -75,7 +75,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  const statusErrorShownRef = React.useRef(false);
+  const statusErrorShownRef = useRef(false);
 
   const fetchDeviceStatus = async () => {
     try {
