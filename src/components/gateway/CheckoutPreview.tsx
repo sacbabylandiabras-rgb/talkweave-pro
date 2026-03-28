@@ -33,6 +33,7 @@ interface CheckoutConfig {
   showOrderBump: boolean;
   orderBumpText: string;
   orderBumpPrice: number;
+  productImage?: string;
 }
 
 interface Props {
@@ -133,8 +134,12 @@ export default function CheckoutPreview({ config }: Props) {
 
           {/* Product Row */}
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <ShoppingCart className="w-6 h-6 text-gray-400" />
+            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {config.productImage ? (
+                <img src={config.productImage} alt={config.productName} className="w-full h-full object-cover" />
+              ) : (
+                <ShoppingCart className="w-6 h-6 text-gray-400" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 truncate">

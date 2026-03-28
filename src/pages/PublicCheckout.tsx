@@ -34,6 +34,7 @@ const defaultConfig = {
   showOrderBump: false,
   orderBumpText: "",
   orderBumpPrice: 0,
+  productImage: "",
 };
 
 export default function PublicCheckout() {
@@ -77,6 +78,7 @@ export default function PublicCheckout() {
           productName: savedConfig.productName || product?.name || checkout.name || "",
           offerName: savedConfig.offerName || product?.name || checkout.name || "",
           price: savedConfig.price || (product?.price ? product.price : 0),
+          productImage: savedConfig.productImage || product?.image_url || "",
         });
       } catch (e) {
         setError("Erro ao carregar checkout");
