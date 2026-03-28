@@ -45,6 +45,7 @@ const defaultConfig = {
   showOrderBump: false,
   orderBumpText: "Adicione o pack de bônus exclusivo",
   orderBumpPrice: 2900,
+  productImage: "",
 };
 
 const formatOptions = [
