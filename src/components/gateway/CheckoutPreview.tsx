@@ -417,6 +417,8 @@ export default function CheckoutPreview({ config }: Props) {
 
               {/* Generate QR Code Button */}
               <button
+                type="button"
+                onClick={() => window.alert("Integração PIX ainda não conectada neste checkout.")}
                 className="w-full py-3.5 text-white font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]"
                 style={{ background: primary, borderRadius }}
               >
