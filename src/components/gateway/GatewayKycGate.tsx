@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { useGatewayKyc } from "@/hooks/useGatewayKyc";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface GatewayKycGateProps {
   children: ReactNode;
@@ -9,13 +10,19 @@ interface GatewayKycGateProps {
 
 export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   const { kyc, loading } = useGatewayKyc();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
       </div>
     );
+  }
+
+  // Admins bypass KYC
+  if (isAdmin) {
+    return <>{children}</>;
   }
 
   // If KYC is approved, show the actual content
