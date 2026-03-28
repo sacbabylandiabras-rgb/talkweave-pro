@@ -216,11 +216,11 @@ export default function AdminKYC() {
             {selectedKyc?.status === "submitted" && (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-red-400">Motivo da Reprovação (opcional)</label>
+                  <label className="text-sm font-medium text-red-400">Motivo da Reprovação (obrigatório para reprovar)</label>
                   <Textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Descreva o motivo se for reprovar..."
+                    placeholder="Descreva o motivo da reprovação..."
                     className="border-[#2A2A2A] min-h-[80px]"
                   />
                 </div>
