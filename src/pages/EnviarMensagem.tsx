@@ -460,10 +460,6 @@ const EnviarMensagem = () => {
                 }
               }
               if (allDisconnected) {
-                if (campaignSends.length > 0) {
-                  await supabase.from('campaign_sends').insert(campaignSends);
-                  campaignSends.length = 0;
-                }
                 const existingAudience = campanha.target_audience && typeof campanha.target_audience === 'object'
                   ? campanha.target_audience
                   : {};
