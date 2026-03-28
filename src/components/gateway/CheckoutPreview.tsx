@@ -34,6 +34,7 @@ interface CheckoutConfig {
   orderBumpText: string;
   orderBumpPrice: number;
   productImage?: string;
+  logoUrl?: string;
 }
 
 interface Props {
