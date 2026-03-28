@@ -54,6 +54,7 @@ import ManagerDashboard from "./pages/gateway/ManagerDashboard";
 import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
+import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 const queryClient = new QueryClient();
 
 const App = () => (
