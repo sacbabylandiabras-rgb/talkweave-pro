@@ -30,17 +30,25 @@ export default function PayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const [profileRes, txRes, webhookRes, intRes] = await Promise.all([
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [profileRes, txRes, todayRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(10),
-        supabase.from("gateway_webhook_logs").select("id", { count: "exact", head: true }),
-        supabase.from("gateway_integrations").select("id", { count: "exact", head: true }),
+        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(100),
+        supabase.from("gateway_transactions" as any).select("id", { count: "exact", head: true }).eq("status", "approved").gte("created_at", today.toISOString()),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
-      setWebhookCount(webhookRes.count || 0);
-      setIntegrationCount(intRes.count || 0);
+      setApprovedToday(todayRes.count || 0);
+
+      // Sales last 30 days
+      const d30 = new Date();
+      d30.setDate(d30.getDate() - 30);
+      const allTx = (txRes.data || []) as unknown as Transaction[];
+      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.gross_amount, 0);
+      setSales30d(sales30);
 
       // Build chart from transactions (last 30 days)
       const allTx = (txRes.data || []) as unknown as Transaction[];
