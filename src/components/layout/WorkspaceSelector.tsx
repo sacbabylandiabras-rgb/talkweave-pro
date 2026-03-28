@@ -11,7 +11,7 @@ const workspaces = [
   {
     id: "zapi" as WorkspaceType,
     label: "ZapLynx",
-    description: "API não oficial (Z-API)",
+    description: "Mensagens e Automações",
     icon: Zap,
     color: "text-primary",
     bg: "bg-primary/10",
