@@ -862,7 +862,7 @@ export default function FluxoVisual() {
         }
       }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId);
     }
   };
 
