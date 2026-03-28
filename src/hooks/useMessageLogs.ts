@@ -430,9 +430,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
-    // Always use ALL message_logs to build conversations — never hide conversations
-    // The instance filter is informational only (used for sending context)
-    const filteredLogs = messageLogs;
+    // When an instance filter is active, show only conversations that have activity on that instance
+    // When no filter (all), show all conversations
+    const filteredLogs = filterInstanceId
+      ? messageLogs.filter(m => m.instance_id === filterInstanceId)
+      : messageLogs;
 
     // From message_logs
     filteredLogs.forEach(log => {
