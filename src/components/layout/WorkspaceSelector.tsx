@@ -68,16 +68,20 @@ export function WorkspaceSelector() {
   const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
   const CurrentIcon = current.icon;
 
+  const navigate = useNavigate();
+
   const handleSelect = (ws: WorkspaceType) => {
     if (ws === "meta") {
       if (isMetaConnected) {
         setActiveWorkspace("meta");
+        navigate(workspaceDefaultRoutes.meta);
       } else {
         setPendingMetaSwitch(true);
         setFbDialogOpen(true);
       }
     } else {
       setActiveWorkspace(ws);
+      navigate(workspaceDefaultRoutes[ws]);
     }
     setOpen(false);
   };
