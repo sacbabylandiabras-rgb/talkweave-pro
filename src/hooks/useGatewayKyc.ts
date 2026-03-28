@@ -86,7 +86,7 @@ export function useGatewayKyc() {
 
       if (kyc) {
         const { error } = await supabase
-          .from("gateway_kyc" as any)
+          .from("gateway_kyc")
           .update(kycPayload)
           .eq("id", kyc.id);
         if (error) throw error;
