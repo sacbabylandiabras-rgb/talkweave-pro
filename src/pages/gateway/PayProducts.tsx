@@ -32,16 +32,28 @@ interface Product {
   image_url?: string | null;
 }
 
+interface FormState {
+  name: string;
+  description: string;
+  type: string;
+  price: string;
+  sku: string;
+  category: string;
+}
+
+const emptyForm: FormState = { name: "", description: "", type: "digital", price: "", sku: "", category: "" };
+
 export default function PayProducts() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", type: "digital", price: "", sku: "", category: "" });
+  const [form, setForm] = useState<FormState>(emptyForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = async () => {
@@ -82,43 +94,93 @@ export default function PayProducts() {
     return urlData.publicUrl;
   };
 
-  const handleCreate = async () => {
+  const openEditDialog = (product: Product) => {
+    setEditingProduct(product);
+    setForm({
+      name: product.name,
+      description: product.description || "",
+      type: product.type,
+      price: (product.price / 100).toFixed(2).replace(".", ","),
+      sku: product.sku || "",
+      category: product.category || "",
+    });
+    setImagePreview(product.image_url || null);
+    setImageFile(null);
+    setDialogOpen(true);
+  };
+
+  const openCreateDialog = () => {
+    setEditingProduct(null);
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login primeiro"); return; }
     setSaving(true);
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | null | undefined = undefined;
     if (imageFile) {
       setUploading(true);
       imageUrl = await uploadImage(user.id);
       setUploading(false);
+      if (imageUrl === null && imageFile) {
+        setSaving(false);
+        return;
+      }
+    } else if (imagePreview === null && editingProduct?.image_url) {
+      // User removed the image
+      imageUrl = null;
     }
 
     const priceInCents = Math.round(parseFloat(form.price.replace(",", ".")) * 100) || 0;
-    const insertData: any = {
-      user_id: user.id,
-      name: form.name,
-      description: form.description || null,
-      type: form.type,
-      price: priceInCents,
-      sku: form.sku || null,
-      category: form.category || null,
-    };
-    if (imageUrl) insertData.image_url = imageUrl;
 
-    const { error } = await supabase.from("gateway_products" as any).insert(insertData as any);
-    setSaving(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
-    toast.success("Produto criado!");
+    if (editingProduct) {
+      // UPDATE
+      const updateData: any = {
+        name: form.name,
+        description: form.description || null,
+        type: form.type,
+        price: priceInCents,
+        sku: form.sku || null,
+        category: form.category || null,
+      };
+      if (imageUrl !== undefined) updateData.image_url = imageUrl;
+
+      const { error } = await supabase.from("gateway_products" as any).update(updateData as any).eq("id", editingProduct.id);
+      setSaving(false);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Produto atualizado!");
+    } else {
+      // INSERT
+      const insertData: any = {
+        user_id: user.id,
+        name: form.name,
+        description: form.description || null,
+        type: form.type,
+        price: priceInCents,
+        sku: form.sku || null,
+        category: form.category || null,
+      };
+      if (imageUrl) insertData.image_url = imageUrl;
+
+      const { error } = await supabase.from("gateway_products" as any).insert(insertData as any);
+      setSaving(false);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success("Produto criado!");
+    }
+
     setDialogOpen(false);
     resetForm();
     fetchProducts();
   };
 
   const resetForm = () => {
-    setForm({ name: "", description: "", type: "digital", price: "", sku: "", category: "" });
+    setForm(emptyForm);
     setImageFile(null);
     setImagePreview(null);
+    setEditingProduct(null);
   };
 
   const toggleStatus = async (id: string, current: boolean) => {
@@ -146,77 +208,87 @@ export default function PayProducts() {
           <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus produtos e serviços ({products.length})</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6">
-              <Plus className="w-4 h-4 mr-2" /> Novo Produto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg border-[#2A2A2A]">
-            <DialogHeader>
-              <DialogTitle>Criar Produto</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Image Upload */}
-              <div>
-                <Label>Foto do produto</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                {imagePreview ? (
-                  <div className="relative mt-2 w-full h-40 rounded-lg overflow-hidden border border-[#2A2A2A] bg-muted">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={openCreateDialog}>
+          <Plus className="w-4 h-4 mr-2" /> Novo Produto
+        </Button>
+      </div>
+
+      {/* Product Dialog (Create & Edit) */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-lg border-[#2A2A2A]">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Editar Produto" : "Criar Produto"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Image Upload */}
+            <div>
+              <Label>Foto do produto</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative mt-2 w-full h-40 rounded-lg overflow-hidden border border-[#2A2A2A] bg-muted">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                      title="Trocar foto"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-white" />
+                    </button>
                     <button
                       onClick={() => { setImageFile(null); setImagePreview(null); }}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                      className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                      title="Remover foto"
                     >
                       <X className="w-4 h-4 text-white" />
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-[#2A2A2A] hover:border-[#FF4D2E]/50 flex flex-col items-center justify-center gap-2 transition-colors bg-muted/30"
-                  >
-                    <ImagePlus className="w-8 h-8 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Clique para adicionar uma foto</span>
-                    <span className="text-[10px] text-muted-foreground/60">PNG, JPG até 5MB</span>
-                  </button>
-                )}
-              </div>
-
-              <div><Label>Nome</Label><Input placeholder="Nome do produto" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-              <div><Label>Descrição</Label><Textarea placeholder="Descrição" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Tipo</Label>
-                  <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="digital">Digital</SelectItem>
-                      <SelectItem value="physical">Físico</SelectItem>
-                      <SelectItem value="subscription">Assinatura</SelectItem>
-                      <SelectItem value="service">Serviço</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
-                <div><Label>Preço (R$)</Label><Input placeholder="0,00" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>SKU</Label><Input placeholder="SKU-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></div>
-                <div><Label>Categoria</Label><Input placeholder="Categoria" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} /></div>
-              </div>
-              <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleCreate} disabled={saving || !form.name}>
-                {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {uploading ? "Enviando foto..." : "Salvar Produto"}
-              </Button>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-[#2A2A2A] hover:border-[#FF4D2E]/50 flex flex-col items-center justify-center gap-2 transition-colors bg-muted/30"
+                >
+                  <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Clique para adicionar uma foto</span>
+                  <span className="text-[10px] text-muted-foreground/60">PNG, JPG até 5MB</span>
+                </button>
+              )}
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+
+            <div><Label>Nome</Label><Input placeholder="Nome do produto" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
+            <div><Label>Descrição</Label><Textarea placeholder="Descrição" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Tipo</Label>
+                <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="digital">Digital</SelectItem>
+                    <SelectItem value="physical">Físico</SelectItem>
+                    <SelectItem value="subscription">Assinatura</SelectItem>
+                    <SelectItem value="service">Serviço</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Preço (R$)</Label><Input placeholder="0,00" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>SKU</Label><Input placeholder="SKU-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></div>
+              <div><Label>Categoria</Label><Input placeholder="Categoria" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} /></div>
+            </div>
+            <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleSave} disabled={saving || !form.name}>
+              {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {uploading ? "Enviando foto..." : editingProduct ? "Atualizar Produto" : "Salvar Produto"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -237,7 +309,6 @@ export default function PayProducts() {
             const IconComp = tc.icon;
             return (
               <Card key={p.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors overflow-hidden">
-                {/* Product Image */}
                 {p.image_url ? (
                   <div className="w-full h-36 bg-muted overflow-hidden">
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
@@ -260,8 +331,12 @@ export default function PayProducts() {
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs"><Edit className="w-3 h-3 mr-1" /> Editar</Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => deleteProduct(p.id)}><Trash2 className="w-3 h-3" /></Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditDialog(p)}>
+                      <Edit className="w-3 h-3 mr-1" /> Editar
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => deleteProduct(p.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
