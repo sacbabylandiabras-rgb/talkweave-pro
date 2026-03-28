@@ -182,17 +182,18 @@ export default function AdminKYC() {
                 { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url },
                 { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url },
                 { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url },
-              ].map((doc) => (
+              ].map((doc) => {
+                const signedUrl = getSignedUrl(doc.url);
+                return (
                 <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
                   <CardContent className="p-0">
                     <div className="relative aspect-[4/3] bg-muted/30 flex items-center justify-center">
-                      {doc.url ? (
+                      {signedUrl ? (
                         <>
-                          <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
+                          <img src={signedUrl} alt={doc.label} className="w-full h-full object-cover" />
                           <button
                             className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-                            onClick={() => setZoomImage(doc.url!)}
-                          >
+                            onClick={() => setZoomImage(signedUrl)}
                             <ZoomIn className="w-3.5 h-3.5 text-white" />
                           </button>
                         </>
