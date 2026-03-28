@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,31 @@ const formatPhone = (phone: string) => {
 const isLikelyTechnicalIdentifier = (phone: string) => {
   const clean = phone.replace(/\D/g, '');
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
+};
+
+const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const response = error.context;
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        const data = await response.clone().json();
+        return data?.message || data?.error || JSON.stringify(data);
+      }
+
+      const text = await response.clone().text();
+      if (text === 'user_not_found') return 'A instância vinculada a esta conversa não existe mais ou está inativa.';
+      if (text === 'missing_instance_id') return 'Nenhuma instância foi identificada para este contato.';
+      if (text === 'incomplete_credentials') return 'A instância selecionada está sem credenciais completas da Z-API.';
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (error instanceof Error) return error.message;
+  return fallback;
 };
 
 const WhatsAppDefaultAvatar = () => (
@@ -191,7 +217,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       setSelectedFlow("");
     } catch (e) {
       console.error('handleSendFlow error:', e);
-      toast({ title: "Erro ao disparar fluxo", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      const message = await getInvokeErrorMessage(e, 'Erro ao disparar fluxo');
+      toast({ title: "Erro ao disparar fluxo", description: message, variant: "destructive" });
     } finally {
       setSendingFlow(false);
     }
@@ -200,9 +227,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const getDefaultInstanceId = async (): Promise<string> => {
     if (!contact) return '';
 
-    // 1) Respect explicit preferred instance from messages screen filter
+    // 1) Respect explicit preferred instance only if it is a valid zapi_instance_id
     if (preferredInstanceId) {
-      return preferredInstanceId;
+      const { data: preferredInstance } = await (supabase as any)
+        .from('zapi_instances')
+        .select('zapi_instance_id')
+        .eq('zapi_instance_id', preferredInstanceId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (preferredInstance?.zapi_instance_id) {
+        return preferredInstance.zapi_instance_id;
+      }
     }
 
     // Fetch the user's VALID active instances first to cross-check
