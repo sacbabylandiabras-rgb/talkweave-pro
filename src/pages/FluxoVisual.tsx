@@ -844,7 +844,7 @@ export default function FluxoVisual() {
         }
       }
 
-      await processFlow(targetNode.id, contact, visitedNodes);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId);
     }
   };
 
