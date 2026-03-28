@@ -39,12 +39,7 @@ export const mockCompanies = [
 ];
 
 export const mockAcquirers = [
-  { id: "acq_1", name: "Cielo", status: "production", env: "Produção", volumeMonth: 456000, approvalRate: 94.2, logo: "🟢" },
-  { id: "acq_2", name: "Stone", status: "production", env: "Produção", volumeMonth: 312000, approvalRate: 92.8, logo: "🟢" },
-  { id: "acq_3", name: "Rede", status: "sandbox", env: "Sandbox", volumeMonth: 0, approvalRate: 0, logo: "🟡" },
-  { id: "acq_4", name: "GetNet", status: "inactive", env: "Inativa", volumeMonth: 0, approvalRate: 0, logo: "⚪" },
-  { id: "acq_5", name: "PagSeguro", status: "inactive", env: "Inativa", volumeMonth: 0, approvalRate: 0, logo: "⚪" },
-  { id: "acq_6", name: "SafraPay", status: "inactive", env: "Inativa", volumeMonth: 0, approvalRate: 0, logo: "⚪" },
+  { id: "acq_1", name: "Woovi (OpenPix)", status: "production", env: "Produção", volumeMonth: 0, approvalRate: 100, logo: "🟢" },
 ];
 
 export const mockManagerClients = [
