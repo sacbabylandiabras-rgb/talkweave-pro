@@ -94,9 +94,9 @@ export default function CheckoutBuilder() {
     const { error } = await supabase.from("gateway_checkouts" as any).insert({
       user_id: user.id,
       name: checkoutName,
-      format: config.format,
       product_id: selectedProductId || null,
       slug: checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      config: config as any,
     } as any);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
