@@ -2281,8 +2281,103 @@ async function stableUuidFromText(value: string): Promise<string> {
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`
 }
 
-function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
+function extractButtonReplyCandidates(webhook: any): string[] {
+  const values = new Set<string>()
+
+  const push = (value: unknown) => {
+    if (typeof value !== 'string') return
+    const trimmed = value.trim()
+    if (trimmed) values.add(trimmed)
+  }
+
+  const candidateValues = [
+    webhook?.buttonReply?.title,
+    webhook?.buttonReply?.text,
+    webhook?.buttonReply?.label,
+    webhook?.buttonReply?.selectedDisplayText,
+    webhook?.buttonReply?.selectedRowId,
+    webhook?.buttonReply?.id,
+    webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedButtonId,
+    webhook?.buttonsResponseMessage?.selectedButtonText,
+    webhook?.buttonsResponseMessage?.message,
+    webhook?.buttonsResponseMessage?.text,
+    webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description,
+    webhook?.title,
+    webhook?.selectedButtonId,
+    webhook?.response?.title,
+    webhook?.response?.text,
+    webhook?.response?.selectedDisplayText,
+    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.message?.templateButtonReplyMessage?.selectedId,
+    webhook?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.templateButtonReplyMessage?.selectedId,
+    webhook?.waitingMessage?.buttonReply?.title,
+    webhook?.waitingMessage?.buttonReply?.text,
+    webhook?.waitingMessage?.buttonReply?.label,
+    webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
+    webhook?.data?.buttonReply?.title,
+    webhook?.data?.buttonReply?.text,
+    webhook?.data?.buttonReply?.label,
+    webhook?.data?.buttonReply?.selectedDisplayText,
+  ]
+
+  candidateValues.forEach(push)
+
+  const paramsJsonCandidates = [
+    webhook?.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson,
+    webhook?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson,
+  ]
+
+  for (const paramsJson of paramsJsonCandidates) {
+    if (typeof paramsJson !== 'string' || !paramsJson.trim()) continue
+
+    push(paramsJson)
+
+    try {
+      const parsed = JSON.parse(paramsJson)
+      if (parsed && typeof parsed === 'object') {
+        ;[
+          parsed.id,
+          parsed.selectedId,
+          parsed.selectedButtonId,
+          parsed.selectedDisplayText,
+          parsed.selectedButtonText,
+          parsed.title,
+          parsed.text,
+          parsed.value,
+        ].forEach(push)
+      }
+    } catch {
+      // ignore malformed nativeFlow params
+    }
+  }
+
+  return Array.from(values)
+}
+
+function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage: string, webhook?: any): { flow: any, targetNodeId: string, buttonText: string, flowName: string } | null {
   const normalizedRaw = normalizeForMatch(rawMessage)
+  const replyCandidates = Array.from(new Set([
+    rawMessage,
+    normalizedMessage,
+    ...extractButtonReplyCandidates(webhook),
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)))
+
+  const normalizedCandidates = new Set(
+    replyCandidates
+      .map((value) => normalizeForMatch(value))
+      .filter(Boolean)
+  )
+
+  console.log('🎛️ Button reply candidates:', replyCandidates)
 
   for (const flow of flows) {
     const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
@@ -2301,7 +2396,24 @@ function findButtonEdgeMatch(flows: any[], normalizedMessage: string, rawMessage
         const normalizedBtn = normalizeForMatch(btnText)
         if (!normalizedBtn) continue
 
-        if (normalizedRaw === normalizedBtn || normalizedMessage === normalizedBtn) {
+        const buttonIndexValues = [
+          String(idx + 1),
+          `button-${idx}`,
+          `button_${idx}`,
+          `btn-${idx + 1}`,
+          `btn_${idx + 1}`,
+        ]
+        const normalizedIndexValues = buttonIndexValues
+          .map((value) => normalizeForMatch(value))
+          .filter(Boolean)
+
+        const didMatch =
+          normalizedRaw === normalizedBtn ||
+          normalizedMessage === normalizedBtn ||
+          normalizedCandidates.has(normalizedBtn) ||
+          normalizedIndexValues.some((value) => normalizedCandidates.has(value))
+
+        if (didMatch) {
           // First try: specific button edge
           const handleId = `button-${idx}`
           const buttonEdge = edges.find((e: any) => e.source === node.id && e.sourceHandle === handleId)
