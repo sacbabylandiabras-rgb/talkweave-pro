@@ -430,9 +430,8 @@ const EnviarMensagem = () => {
       
 
       for (let i = 0; i < contatosProcessados.length; i++) {
-        // Verificar se o envio foi cancelado
+        // Verificar se o envio foi cancelado localmente
         if (cancelarEnvioRef.current) {
-          // Marcar campanha como pausada para poder retomar depois
           await supabase
             .from('campaigns')
             .update({ status: 'paused' })
@@ -443,6 +442,23 @@ const EnviarMensagem = () => {
             description: `Pausado pelo usuário. ${processados} solicitações processadas. Retome pela página de Campanhas.`,
           });
           break;
+        }
+
+        // Verificar status no banco a cada 3 contatos (captura pausa externa via dialog/campanhas)
+        if (i % 3 === 0 && i > 0) {
+          const { data: campaignCheck } = await supabase
+            .from('campaigns')
+            .select('status')
+            .eq('id', campanha.id)
+            .single();
+          
+          if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+            toast({
+              title: "Envio pausado",
+              description: `Campanha ${campaignCheck.status === 'cancelled' ? 'cancelada' : 'pausada'}. ${processados} solicitações processadas.`,
+            });
+            break;
+          }
         }
 
         // Verificar se o dispositivo está conectado antes de cada envio (a cada 3 contatos)
