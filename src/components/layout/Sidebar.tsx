@@ -91,6 +91,7 @@ const metaBottomItems = [
 const gatewayBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
+  { id: "pay-docs", label: "Documentação", icon: FileText, path: "/gateway-checkout/docs", adminOnly: false },
 ];
 
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
