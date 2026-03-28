@@ -273,6 +273,12 @@ export function SelectContactsDialog({
           </TabsContent>
         </Tabs>
 
+        <div className="border-t pt-4">
+          <InstanceSelector
+            onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
+          />
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
