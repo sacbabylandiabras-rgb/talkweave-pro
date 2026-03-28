@@ -34,6 +34,7 @@ const defaultConfig = {
   showOrderBump: false,
   orderBumpText: "",
   orderBumpPrice: 0,
+  productImage: "",
 };
 
 export default function PublicCheckout() {

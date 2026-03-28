@@ -84,6 +84,7 @@ export default function CheckoutBuilder() {
     if (prod) {
       updateConfig("productName", prod.name);
       updateConfig("price", prod.price);
+      updateConfig("productImage", prod.image_url || "");
     }
   };
 
