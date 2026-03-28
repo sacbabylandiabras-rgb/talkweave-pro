@@ -38,7 +38,7 @@ export default function PayDashboard() {
       ]);
 
       setProfile(profileRes.data);
-      setTransactions((txRes.data || []) as Transaction[]);
+      setTransactions((txRes.data || []) as unknown as Transaction[]);
       setWebhookCount(webhookRes.count || 0);
       setIntegrationCount(intRes.count || 0);
 
