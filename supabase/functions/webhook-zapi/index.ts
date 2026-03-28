@@ -1931,11 +1931,43 @@ async function sendNodeContent(
           }),
         })
       } else {
-        res = await fetch(`${baseUrl}/send-text`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ phone, message: fullMessage }),
-        })
+        // URL/Call buttons only — use send-button-actions
+        const actionButtons = allSendButtons
+          .filter(b => b.type === 'url' || b.type === 'call')
+          .slice(0, 3)
+          .map((btn, idx) => {
+            const action: any = {
+              id: String(idx + 1),
+              type: btn.type === 'url' ? 'URL' : 'CALL',
+              label: (btn.text || '').trim() || 'Botão',
+            }
+            if (btn.type === 'url' && btn.value) {
+              const rawUrl = btn.value.trim()
+              action.url = rawUrl.match(/^https?:\/\//) ? rawUrl : `https://${rawUrl}`
+            }
+            if (btn.type === 'call' && btn.value) {
+              action.phone = btn.value.trim()
+            }
+            return action
+          })
+
+        if (actionButtons.length > 0) {
+          res = await fetch(`${baseUrl}/send-button-actions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              phone,
+              message: content || 'Selecione uma opção:',
+              buttonActions: actionButtons,
+            }),
+          })
+        } else {
+          res = await fetch(`${baseUrl}/send-text`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ phone, message: fullMessage }),
+          })
+        }
       }
       await parseZapiResponse(res, `Bloco ${targetNode.id} (${contentType}+buttons)`)
       await new Promise(resolve => setTimeout(resolve, 1500))
