@@ -87,16 +87,32 @@ serve(async (req) => {
 
     if (requestedInstanceId && requestedInstanceId !== instanceId) {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      const { data: reqInstance } = await adminClient
+      
+      // Try matching by zapi_instance_id first, then by table id (UUID)
+      let reqInstance = null;
+      const { data: byZapiId } = await adminClient
         .from('zapi_instances')
         .select('zapi_instance_id, zapi_token, zapi_client_token')
         .eq('zapi_instance_id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .maybeSingle();
+      
+      reqInstance = byZapiId;
+      
+      if (!reqInstance) {
+        const { data: byTableId } = await adminClient
+          .from('zapi_instances')
+          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .eq('id', requestedInstanceId)
+          .eq('user_id', credentials.userId)
+          .eq('is_active', true)
+          .maybeSingle();
+        reqInstance = byTableId;
+      }
 
       if (reqInstance) {
-        console.log(`📌 Using requested instance: ${requestedInstanceId}`);
+        console.log(`📌 Using requested instance: ${reqInstance.zapi_instance_id} (requested: ${requestedInstanceId})`);
         instanceId = reqInstance.zapi_instance_id;
         token = reqInstance.zapi_token;
         clientToken = reqInstance.zapi_client_token;
