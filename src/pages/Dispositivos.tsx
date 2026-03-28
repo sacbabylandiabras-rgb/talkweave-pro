@@ -611,7 +611,53 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
-      
+
+      {/* Planos */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg">📋 Planos e Assinaturas</CardTitle>
+          <CardDescription>Escolha o plano ideal para suas necessidades</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { name: "Plano Start", price: "R$397/mês", features: ["1 instância", "Envios ilimitados", "Suporte básico"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NN" },
+              { name: "Plano Pro", price: "R$497/mês", features: ["3 instâncias", "Campanhas avançadas", "Suporte prioritário"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NP", popular: true },
+              { name: "Plano Scale", price: "R$897/mês", features: ["10 instâncias", "API completa", "Suporte VIP"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NO" },
+            ].map((plan, i) => (
+              <a
+                key={i}
+                href={plan.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col p-5 rounded-xl border transition-all hover:-translate-y-1 hover:shadow-lg ${
+                  plan.popular
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-card hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-bold text-foreground">{plan.name}</p>
+                  {plan.popular && (
+                    <Badge className="text-[10px] bg-primary text-primary-foreground">POPULAR</Badge>
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-primary mb-3">{plan.price}</p>
+                <ul className="text-xs text-muted-foreground space-y-1.5 mb-4 flex-1">
+                  {plan.features.map((f, j) => (
+                    <li key={j} className="flex items-center gap-1.5">
+                      <span className="text-primary">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button variant={plan.popular ? "default" : "outline"} size="sm" className="w-full">
+                  Assinar →
+                </Button>
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
