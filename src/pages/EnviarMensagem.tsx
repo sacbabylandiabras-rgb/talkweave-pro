@@ -444,15 +444,32 @@ const EnviarMensagem = () => {
           break;
         }
 
-        // Verificar status no banco a cada 3 contatos (captura pausa externa via dialog/campanhas)
-        if (i % 3 === 0 && i > 0) {
+        // Verificar status no banco ANTES de cada contato (captura pausa externa via dialog/campanhas)
+        {
           const { data: campaignCheck } = await supabase
             .from('campaigns')
             .select('status')
             .eq('id', campanha.id)
             .single();
-          
+
           if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              const token = sessionData?.session?.access_token;
+              if (token) {
+                await supabase.functions.invoke('clear-zapi-queue', {
+                  headers: { Authorization: `Bearer ${token}` },
+                  body: instanceSelectionMode === 'rotate'
+                    ? { clearAllActive: true }
+                    : selectedInstanceId
+                      ? { instanceId: selectedInstanceId }
+                      : { clearAllActive: true },
+                });
+              }
+            } catch (queueErr) {
+              console.error('Erro ao limpar fila ao interromper envio:', queueErr);
+            }
+
             toast({
               title: "Envio pausado",
               description: `Campanha ${campaignCheck.status === 'cancelled' ? 'cancelada' : 'pausada'}. ${processados} solicitações processadas.`,
