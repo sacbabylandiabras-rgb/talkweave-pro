@@ -652,10 +652,7 @@ const EnviarMensagem = () => {
         }
       }
       
-      // Salvar registros de envio (apenas se não foi cancelado, pois já salvou acima)
-      if (!cancelarEnvioRef.current && campaignSends.length > 0) {
-        await supabase.from('campaign_sends').insert(campaignSends);
-      }
+      // Atualizar status da campanha (apenas se não foi cancelado)
       
       // Atualizar status da campanha (apenas se não foi cancelado)
       if (!cancelarEnvioRef.current) {
