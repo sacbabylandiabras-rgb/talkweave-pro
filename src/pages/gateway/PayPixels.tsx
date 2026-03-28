@@ -43,7 +43,8 @@ const PLATFORMS: PlatformDef[] = [
   {
     key: "google",
     name: "Google Ads / GA4",
-    icon: "📊",
+    icon: BarChart3,
+    iconColor: "text-amber-500",
     fields: [
       { key: "pixel_id", label: "Tag ID", placeholder: "AW-123456789" },
       { key: "conversion_label", label: "Conversion Label", placeholder: "abc123", isExtra: true },
