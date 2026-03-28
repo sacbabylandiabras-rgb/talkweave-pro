@@ -1564,6 +1564,8 @@ serve(async (req) => {
     processingLockId = lockResult.lockId
     const lockId = lockResult.lockId
 
+    await makeMessageVisibleInInbox(supabase, lockId)
+
     // Forward to gateway integrations
     const { data: gateways } = await supabase
       .from('gateway_integrations')
