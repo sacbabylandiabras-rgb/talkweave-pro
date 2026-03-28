@@ -432,10 +432,6 @@ const EnviarMensagem = () => {
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado
         if (cancelarEnvioRef.current) {
-          // Salvar os envios já processados antes de parar
-          if (campaignSends.length > 0) {
-            await supabase.from('campaign_sends').insert(campaignSends);
-          }
           // Marcar campanha como pausada para poder retomar depois
           await supabase
             .from('campaigns')
