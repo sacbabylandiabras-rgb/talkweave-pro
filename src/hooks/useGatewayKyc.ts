@@ -28,7 +28,7 @@ export function useGatewayKyc() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("gateway_kyc" as any)
+        .from("gateway_kyc")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
