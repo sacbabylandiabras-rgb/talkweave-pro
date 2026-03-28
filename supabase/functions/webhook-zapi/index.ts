@@ -2448,13 +2448,16 @@ function extractMessageText(webhook: any): string {
   const objectCandidates = [
     webhook?.buttonReply,
     webhook?.message,
+    webhook?.buttonsResponseMessage,
+    webhook?.buttonResponseMessage,
     webhook?.waitingMessage,
     webhook?.data?.buttonReply,
     webhook?.data?.message,
     webhook?.data?.waitingMessage,
+    webhook?.data?.buttonsResponseMessage,
   ]
 
-  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description', 'label', 'selectedDisplayText', 'selectedRowId', 'id']
+  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description', 'label', 'selectedDisplayText', 'selectedButtonId', 'selectedButtonText', 'selectedRowId', 'id']
   for (const candidate of objectCandidates) {
     if (!candidate || typeof candidate !== 'object') continue
     for (const key of fallbackKeys) {
