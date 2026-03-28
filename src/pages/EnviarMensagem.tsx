@@ -427,7 +427,7 @@ const EnviarMensagem = () => {
 
       let processados = 0;
       let erros = 0;
-      const campaignSends: any[] = [];
+      
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado
