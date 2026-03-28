@@ -34,6 +34,7 @@ export function SelectContactsDialog({
   const [manualPhone, setManualPhone] = useState("");
   const [manualPhones, setManualPhones] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("contacts");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
