@@ -54,6 +54,7 @@ import ManagerDashboard from "./pages/gateway/ManagerDashboard";
 import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
+import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="/gateway-checkout/dashboard" element={<PayDashboard />} />
                 <Route path="/gateway-checkout/products" element={<PayProducts />} />
                 <Route path="/gateway-checkout/checkouts" element={<PayCheckouts />} />
+                <Route path="/gateway-checkout/checkouts/new" element={<CheckoutBuilder />} />
                 <Route path="/gateway-checkout/reports" element={<PayReports />} />
                 <Route path="/gateway-checkout/pixels" element={<PayPixels />} />
                 <Route path="/gateway-checkout/integrations" element={<PayIntegrations />} />

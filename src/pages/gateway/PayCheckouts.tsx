@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Eye, Trash2, Edit, Loader2 } from "lucide-react";
+import { Plus, Copy, Trash2, Edit, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,12 +22,9 @@ interface Checkout {
 }
 
 export default function PayCheckouts() {
+  const navigate = useNavigate();
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", format: "one_step", product_id: "", slug: "" });
 
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
@@ -43,30 +37,10 @@ export default function PayCheckouts() {
       product_name: prods.find((p: any) => p.id === ck.product_id)?.name || "—",
     }));
     setCheckouts(cks);
-    setProducts(prods);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
-
-  const handleCreate = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setSaving(true);
-    const { error } = await supabase.from("gateway_checkouts" as any).insert({
-      user_id: user.id,
-      name: form.name,
-      format: form.format,
-      product_id: form.product_id || null,
-      slug: form.slug || null,
-    } as any);
-    setSaving(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
-    toast.success("Checkout criado!");
-    setDialogOpen(false);
-    setForm({ name: "", format: "one_step", product_id: "", slug: "" });
-    fetchData();
-  };
 
   const toggleStatus = async (id: string, current: boolean) => {
     await supabase.from("gateway_checkouts" as any).update({ status: !current } as any).eq("id", id);
@@ -94,44 +68,9 @@ export default function PayCheckouts() {
           <h1 className="text-2xl font-bold text-foreground">Checkouts</h1>
           <p className="text-sm text-muted-foreground">Crie e gerencie seus checkouts de pagamento</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6">
-              <Plus className="w-4 h-4 mr-2" /> Novo Checkout
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg border-[#2A2A2A]">
-            <DialogHeader><DialogTitle>Criar Checkout</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Nome</Label><Input placeholder="Nome do checkout" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-              <div><Label>Slug (URL)</Label><Input placeholder="meu-checkout" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Formato</Label>
-                  <Select value={form.format} onValueChange={v => setForm(p => ({ ...p, format: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="one_step">One Step</SelectItem>
-                      <SelectItem value="multi_step">Multi Step</SelectItem>
-                      <SelectItem value="full_page">Página Completa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Produto</Label>
-                  <Select value={form.product_id} onValueChange={v => setForm(p => ({ ...p, product_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleCreate} disabled={saving || !form.name}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Criar Checkout
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
+          <Plus className="w-4 h-4 mr-2" /> Novo Checkout
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -176,7 +115,7 @@ export default function PayCheckouts() {
                     <TableRow key={ck.id} className="border-[#2A2A2A]">
                       <TableCell className="font-medium">{ck.name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{ck.product_name}</TableCell>
-                      <TableCell className="text-sm">{ck.format === "one_step" ? "One Step" : ck.format === "multi_step" ? "Multi Step" : "Página Completa"}</TableCell>
+                      <TableCell className="text-sm">{ck.format === "one_step" ? "One Step" : ck.format === "multi_step" ? "Multi Step" : ck.format === "full_page" ? "Página Completa" : ck.format === "modal" ? "Modal" : ck.format === "inline" ? "Inline" : ck.format}</TableCell>
                       <TableCell>
                         <span className={`font-semibold ${parseFloat(conversion) > 40 ? 'text-emerald-400' : 'text-amber-400'}`}>{conversion}%</span>
                       </TableCell>
