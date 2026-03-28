@@ -28,6 +28,11 @@ export default function GatewayKycGate({ children }: GatewayKycGateProps) {
     );
   }
 
+  // Admins bypass KYC
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
   // If KYC is approved, show the actual content
   if (kyc?.status === "approved") {
     return <>{children}</>;
