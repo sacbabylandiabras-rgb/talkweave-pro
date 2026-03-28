@@ -1,17 +1,147 @@
 import { useState, useEffect } from "react";
-import { Link2, CheckCircle, XCircle, Settings, ShoppingBag, Loader2, Plus, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link2, CheckCircle, XCircle, ShoppingBag, Loader2, Trash2, Save, Eye, EyeOff, BarChart3 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+function UtmifySection() {
+  const [token, setToken] = useState("");
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [existingId, setExistingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("gateway_integrations")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("name", "UTMify")
+        .maybeSingle();
+      if (data) {
+        setToken(data.auth_token || "");
+        setActive(data.active);
+        setExistingId(data.id);
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const handleSave = async () => {
+    if (!token.trim()) {
+      toast.error("Informe o token da UTMify");
+      return;
+    }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
+
+    const payload = {
+      user_id: user.id,
+      name: "UTMify",
+      webhook_url: "https://api.utmify.com.br/api/v1/transactions",
+      method: "POST",
+      auth_type: "bearer",
+      auth_token: token,
+      active,
+    };
+
+    if (existingId) {
+      const { error } = await supabase.from("gateway_integrations").update(payload).eq("id", existingId);
+      if (error) { toast.error("Erro ao salvar"); setSaving(false); return; }
+    } else {
+      const { data, error } = await supabase.from("gateway_integrations").insert(payload).select("id").single();
+      if (error) { toast.error("Erro ao salvar"); setSaving(false); return; }
+      setExistingId(data.id);
+    }
+    toast.success("UTMify configurada com sucesso!");
+    setSaving(false);
+  };
+
+  if (loading) return null;
+
+  return (
+    <Card className="border-[#2A2A2A]">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-emerald-400" />
+            UTMify
+            {existingId && (
+              <Badge className={active ? "bg-emerald-500/10 text-emerald-400 border-0 text-[10px]" : "bg-muted text-muted-foreground border-0 text-[10px]"}>
+                {active ? "Ativo" : "Inativo"}
+              </Badge>
+            )}
+          </CardTitle>
+          <Switch checked={active} onCheckedChange={setActive} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Envia automaticamente os dados de cada venda aprovada para a UTMify
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label className="text-xs">API Token</Label>
+          <div className="relative mt-1">
+            <Input
+              type={showToken ? "text" : "password"}
+              placeholder="Seu token da UTMify"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowToken(!showToken)}
+            >
+              {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Encontre em: UTMify → Configurações → Integrações → API Token
+          </p>
+        </div>
+
+        <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground text-xs">Dados enviados por transação:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            <li>Nome, e-mail e telefone do comprador</li>
+            <li>Valor, status e método de pagamento</li>
+            <li>Produto e checkout de origem</li>
+            <li>Parâmetros UTM capturados no checkout</li>
+          </ul>
+        </div>
+
+        <Button
+          className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
+          disabled={saving}
+          onClick={handleSave}
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          Salvar Configuração
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function PayIntegrations() {
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchIntegrations = async () => {
-    const { data, error } = await supabase.from("gateway_integrations").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("gateway_integrations").select("*").neq("name", "UTMify").order("created_at", { ascending: false });
     if (!error && data) setIntegrations(data);
     setLoading(false);
   };
@@ -42,22 +172,19 @@ export default function PayIntegrations() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Integrações</h1>
-          <p className="text-sm text-muted-foreground">Suas integrações do gateway ({integrations.length} cadastradas)</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Integrações</h1>
+        <p className="text-sm text-muted-foreground">Configure integrações externas do gateway</p>
       </div>
 
-      {integrations.length === 0 ? (
-        <Card className="border-[#2A2A2A]">
-          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-            <ShoppingBag className="w-10 h-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Nenhuma integração cadastrada ainda.</p>
-            <p className="text-xs text-muted-foreground">Vá em Gateway → Integrações para criar uma.</p>
-          </CardContent>
-        </Card>
-      ) : (
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rastreamento</h2>
+        <UtmifySection />
+      </div>
+
+      <div>
+        <Separator className="bg-[#2A2A2A] mb-4" />
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Webhooks Customizados</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {integrations.map(int => (
             <Card key={int.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors">
@@ -94,7 +221,7 @@ export default function PayIntegrations() {
             </Card>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
