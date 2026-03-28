@@ -33,11 +33,27 @@ import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
-import GatewayDashboard from "./pages/GatewayDashboard";
-import GatewayIntegracoesList from "./pages/GatewayIntegracoesList";
-import GatewayCheckout from "./pages/GatewayCheckout";
-import GatewayWebhooks from "./pages/GatewayWebhooks";
-import GatewayLogs from "./pages/GatewayLogs";
+import PayDashboard from "./pages/gateway/PayDashboard";
+import PayProducts from "./pages/gateway/PayProducts";
+import PayCheckouts from "./pages/gateway/PayCheckouts";
+import PayReports from "./pages/gateway/PayReports";
+import PayPixels from "./pages/gateway/PayPixels";
+import PayIntegrations from "./pages/gateway/PayIntegrations";
+import PaySettings from "./pages/gateway/PaySettings";
+import PayDocs from "./pages/gateway/PayDocs";
+import AdminPayDashboard from "./pages/gateway/AdminDashboard";
+import AdminCompanies from "./pages/gateway/AdminCompanies";
+import AdminAcquirers from "./pages/gateway/AdminAcquirers";
+import AdminFees from "./pages/gateway/AdminFees";
+import AdminPayUsers from "./pages/gateway/AdminUsers";
+import AdminKYC from "./pages/gateway/AdminKYC";
+import AdminPayReports from "./pages/gateway/AdminReports";
+import AdminTransactions from "./pages/gateway/AdminTransactions";
+import AdminManagers from "./pages/gateway/AdminManagers";
+import ManagerDashboard from "./pages/gateway/ManagerDashboard";
+import ManagerClients from "./pages/gateway/ManagerClients";
+import ManagerCommissions from "./pages/gateway/ManagerCommissions";
+import ManagerReferral from "./pages/gateway/ManagerReferral";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -79,12 +95,30 @@ const App = () => (
                 <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
 
-                {/* Gateway e Checkout routes */}
-                <Route path="/gateway-checkout/dashboard" element={<GatewayDashboard />} />
-                <Route path="/gateway-checkout/integracoes" element={<GatewayIntegracoesList />} />
-                <Route path="/gateway-checkout/checkout" element={<GatewayCheckout />} />
-                <Route path="/gateway-checkout/webhooks" element={<GatewayWebhooks />} />
-                <Route path="/gateway-checkout/logs" element={<GatewayLogs />} />
+                {/* Gateway e Checkout routes — Lojista */}
+                <Route path="/gateway-checkout/dashboard" element={<PayDashboard />} />
+                <Route path="/gateway-checkout/products" element={<PayProducts />} />
+                <Route path="/gateway-checkout/checkouts" element={<PayCheckouts />} />
+                <Route path="/gateway-checkout/reports" element={<PayReports />} />
+                <Route path="/gateway-checkout/pixels" element={<PayPixels />} />
+                <Route path="/gateway-checkout/integrations" element={<PayIntegrations />} />
+                <Route path="/gateway-checkout/settings" element={<PaySettings />} />
+                <Route path="/gateway-checkout/docs" element={<PayDocs />} />
+                {/* Gateway — Admin */}
+                <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
+                <Route path="/gateway-checkout/admin/companies" element={<AdminCompanies />} />
+                <Route path="/gateway-checkout/admin/acquirers" element={<AdminAcquirers />} />
+                <Route path="/gateway-checkout/admin/fees" element={<AdminFees />} />
+                <Route path="/gateway-checkout/admin/users" element={<AdminPayUsers />} />
+                <Route path="/gateway-checkout/admin/kyc" element={<AdminKYC />} />
+                <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
+                <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
+                <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
+                {/* Gateway — Manager */}
+                <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
+                <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
+                <Route path="/gateway-checkout/manager/commissions" element={<ManagerCommissions />} />
+                <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
