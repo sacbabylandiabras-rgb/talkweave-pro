@@ -72,13 +72,15 @@ export default function PublicCheckout() {
         const product = result.product;
         const savedConfig = checkout.config || {};
 
+        const productName = product?.name || checkout.name || "";
         setConfig({
           ...defaultConfig,
           ...savedConfig,
-          productName: savedConfig.productName || product?.name || checkout.name || "",
-          offerName: savedConfig.offerName || product?.name || checkout.name || "",
+          productName: savedConfig.productName || productName,
+          offerName: savedConfig.offerName || productName,
           price: savedConfig.price || (product?.price ? product.price : 0),
           productImage: savedConfig.productImage || product?.image_url || "",
+          logoUrl: savedConfig.logoUrl || "",
         });
       } catch (e) {
         setError("Erro ao carregar checkout");
