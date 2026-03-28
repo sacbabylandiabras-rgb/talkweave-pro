@@ -147,7 +147,7 @@ function PixelCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <span>{platform.icon}</span> {platform.name}
+            <platform.icon className={`w-4 h-4 ${platform.iconColor}`} /> {platform.name}
           </CardTitle>
           <div className="flex items-center gap-2">
             {existingPixel && (
