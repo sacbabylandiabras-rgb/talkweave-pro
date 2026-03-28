@@ -1033,12 +1033,15 @@ serve(async (req) => {
       const leftName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
 
       if (groupPhone && leaveInstanceId && leftPhone && !leftPhone.includes('@lid') && leftPhone.length >= 8) {
-        const { data: instData } = await supabase
+        const normalizedLeaveId = normalizeInstanceIdentifier(leaveInstanceId)
+        const { data: leaveInstances } = await supabase
           .from('zapi_instances')
           .select('user_id, zapi_instance_id')
-          .eq('zapi_instance_id', leaveInstanceId)
           .eq('is_active', true)
-          .maybeSingle()
+
+        const instData = (leaveInstances || []).find((item: any) =>
+          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedLeaveId
+        )
 
         if (instData) {
           let normalizedGroupId = groupPhone
