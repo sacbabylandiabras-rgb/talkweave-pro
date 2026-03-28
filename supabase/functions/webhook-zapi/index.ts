@@ -97,6 +97,13 @@ const normalizePhoneCandidate = (value: unknown) => {
     .replace(/\D/g, '')
 }
 
+const normalizeInstanceIdentifier = (value: unknown) => {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toUpperCase()
+}
+
 const isLikelyTechnicalIdentifier = (value: unknown) => {
   const raw = String(value || '').trim()
   const digits = normalizePhoneCandidate(raw)
