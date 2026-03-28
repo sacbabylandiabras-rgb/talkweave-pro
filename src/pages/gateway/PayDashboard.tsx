@@ -20,8 +20,8 @@ interface Transaction {
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [webhookCount, setWebhookCount] = useState(0);
-  const [integrationCount, setIntegrationCount] = useState(0);
+  const [approvedToday, setApprovedToday] = useState(0);
+  const [sales30d, setSales30d] = useState(0);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
@@ -30,25 +30,33 @@ export default function PayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const [profileRes, txRes, webhookRes, intRes] = await Promise.all([
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [profileRes, txRes, todayRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(10),
-        supabase.from("gateway_webhook_logs").select("id", { count: "exact", head: true }),
-        supabase.from("gateway_integrations").select("id", { count: "exact", head: true }),
+        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(100),
+        supabase.from("gateway_transactions" as any).select("id", { count: "exact", head: true }).eq("status", "approved").gte("created_at", today.toISOString()),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
-      setWebhookCount(webhookRes.count || 0);
-      setIntegrationCount(intRes.count || 0);
+      setApprovedToday(todayRes.count || 0);
+
+      // Sales last 30 days
+      const d30 = new Date();
+      d30.setDate(d30.getDate() - 30);
+      const allTx = (txRes.data || []) as unknown as Transaction[];
+      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.gross_amount, 0);
+      setSales30d(sales30);
 
       // Build chart from transactions (last 30 days)
-      const allTx = (txRes.data || []) as unknown as Transaction[];
+      const chartTx = (txRes.data || []) as unknown as Transaction[];
       const last30 = Array.from({ length: 30 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (29 - i));
         const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = allTx.filter(tx => {
+        const dayTxs = chartTx.filter(tx => {
           const txDate = new Date(tx.created_at);
           return txDate.toDateString() === d.toDateString();
         });
@@ -66,8 +74,8 @@ export default function PayDashboard() {
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
   const metrics = [
-    { label: "Webhooks Recebidos", value: String(webhookCount), icon: Activity, change: "total" },
-    { label: "Integrações Ativas", value: String(integrationCount), icon: CheckCircle, change: "total" },
+    { label: "Vendas Aprovadas Hoje", value: String(approvedToday), icon: Activity, change: "hoje" },
+    { label: "Vendas Últimos 30 dias", value: formatCurrency(sales30d), icon: DollarSign, change: "últimos 30 dias" },
     { label: "Taxa de Aprovação", value: transactions.length > 0 ? `${approvalRate}%` : "—", icon: TrendingUp, change: "" },
     { label: "Ticket Médio", value: approvedTx.length > 0 ? formatCurrency(Math.round(avgTicket)) : "—", icon: CreditCard, change: "" },
   ];
