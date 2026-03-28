@@ -98,39 +98,6 @@ export default function PayCheckouts() {
         <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
               <Plus className="w-4 h-4 mr-2" /> Novo Checkout
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg border-[#2A2A2A]">
-            <DialogHeader><DialogTitle>Criar Checkout</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Nome</Label><Input placeholder="Nome do checkout" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-              <div><Label>Slug (URL)</Label><Input placeholder="meu-checkout" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Formato</Label>
-                  <Select value={form.format} onValueChange={v => setForm(p => ({ ...p, format: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="one_step">One Step</SelectItem>
-                      <SelectItem value="multi_step">Multi Step</SelectItem>
-                      <SelectItem value="full_page">Página Completa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Produto</Label>
-                  <Select value={form.product_id} onValueChange={v => setForm(p => ({ ...p, product_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleCreate} disabled={saving || !form.name}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Criar Checkout
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
