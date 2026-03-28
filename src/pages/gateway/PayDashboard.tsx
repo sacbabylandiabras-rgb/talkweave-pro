@@ -56,7 +56,7 @@ export default function PayDashboard() {
         const d = new Date();
         d.setDate(d.getDate() - (29 - i));
         const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = allTx.filter(tx => {
+        const dayTxs = chartTx.filter(tx => {
           const txDate = new Date(tx.created_at);
           return txDate.toDateString() === d.toDateString();
         });
