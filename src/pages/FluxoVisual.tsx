@@ -160,11 +160,12 @@ export default function FluxoVisual() {
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
     try {
-      // Get all button clicks related to this flow
+      // Get all button clicks related to this specific flow
       const { data: buttonClicks, error: btnErr } = await supabase
         .from('message_logs')
         .select('keyword_matched, message_received')
-        .like('keyword_matched', '[Botão:%');
+        .like('keyword_matched', '[Botão:%')
+        .eq('response_sent', `[Fluxo: ${flowName}]`);
 
       if (btnErr || !buttonClicks) return;
 
