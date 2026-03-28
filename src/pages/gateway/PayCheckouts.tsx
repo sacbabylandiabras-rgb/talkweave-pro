@@ -95,9 +95,7 @@ export default function PayCheckouts() {
           <h1 className="text-2xl font-bold text-foreground">Checkouts</h1>
           <p className="text-sm text-muted-foreground">Crie e gerencie seus checkouts de pagamento</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6">
+        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
               <Plus className="w-4 h-4 mr-2" /> Novo Checkout
             </Button>
           </DialogTrigger>
