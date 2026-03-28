@@ -93,7 +93,7 @@ export function SelectContactsDialog({
   const handleConfirm = () => {
     const allPhones = [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-    onConfirm(allPhones);
+    onConfirm(allPhones, selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined);
     onOpenChange(false);
   };
 
