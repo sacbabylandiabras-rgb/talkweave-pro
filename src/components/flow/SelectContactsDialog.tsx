@@ -15,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { Search, Users, Loader2, Plus, X, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import InstanceSelector from "@/components/envio/InstanceSelector";
 
 interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selectedContacts: string[]) => void;
+  onConfirm: (selectedContacts: string[], instanceIds?: string[]) => void;
 }
 
 export function SelectContactsDialog({ 
@@ -33,6 +34,7 @@ export function SelectContactsDialog({
   const [manualPhone, setManualPhone] = useState("");
   const [manualPhones, setManualPhones] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("contacts");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -91,7 +93,7 @@ export function SelectContactsDialog({
   const handleConfirm = () => {
     const allPhones = [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-    onConfirm(allPhones);
+    onConfirm(allPhones, selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined);
     onOpenChange(false);
   };
 
@@ -270,6 +272,12 @@ export function SelectContactsDialog({
             </ScrollArea>
           </TabsContent>
         </Tabs>
+
+        <div className="border-t pt-4">
+          <InstanceSelector
+            onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
+          />
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
