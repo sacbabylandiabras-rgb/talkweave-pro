@@ -1,69 +1,81 @@
 import { useState } from "react";
-import { Clock, CheckCircle, XCircle, FileSearch, Camera, CreditCard, User, Eye, X, ZoomIn, Download, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Clock, CheckCircle, XCircle, FileSearch, Camera, CreditCard, User, Eye, ZoomIn, ThumbsUp, ThumbsDown, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { mockCompanies, getStatusBadge } from "./mock-data";
-
-const kycQueue = mockCompanies.filter(c => c.status === "kyc_pending");
-
-interface KycDocument {
-  type: "selfie" | "doc_front" | "doc_back";
-  label: string;
-  icon: typeof Camera;
-  status: "pending" | "approved" | "rejected" | "missing";
-  imageUrl?: string;
-}
-
-const mockDocuments: KycDocument[] = [
-  { type: "selfie", label: "Selfie com Documento", icon: Camera, status: "pending", imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop" },
-  { type: "doc_front", label: "Documento (Frente)", icon: CreditCard, status: "pending", imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop" },
-  { type: "doc_back", label: "Documento (Verso)", icon: CreditCard, status: "missing" },
-];
+import { useAdminKycQueue, KycData } from "@/hooks/useGatewayKyc";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const getDocStatusBadge = (status: string) => {
   switch (status) {
     case "approved": return <Badge className="bg-emerald-500/10 text-emerald-400 border-0 text-[10px]">Aprovado</Badge>;
     case "rejected": return <Badge className="bg-red-500/10 text-red-400 border-0 text-[10px]">Reprovado</Badge>;
-    case "pending": return <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[10px]">Pendente</Badge>;
-    case "missing": return <Badge className="bg-muted text-muted-foreground border-0 text-[10px]">Não enviado</Badge>;
+    case "submitted": return <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[10px]">Pendente</Badge>;
+    case "pending": return <Badge className="bg-muted text-muted-foreground border-0 text-[10px]">Não enviado</Badge>;
     default: return null;
   }
 };
 
+type EnrichedKyc = KycData & { email?: string; full_name?: string };
+
 export default function AdminKYC() {
-  const [selectedCompany, setSelectedCompany] = useState<typeof mockCompanies[0] | null>(null);
+  const { queue, loading, approveKyc, rejectKyc, refetch } = useAdminKycQueue();
+  const [selectedKyc, setSelectedKyc] = useState<EnrichedKyc | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [documents, setDocuments] = useState<KycDocument[]>(mockDocuments);
+  const [processing, setProcessing] = useState(false);
 
-  const handleApproveDoc = (type: string) => {
-    setDocuments(prev => prev.map(d => d.type === type ? { ...d, status: "approved" as const } : d));
+  const submittedQueue = queue.filter(k => k.status === "submitted");
+  const approvedToday = queue.filter(k => k.status === "approved" && k.reviewed_at && new Date(k.reviewed_at).toDateString() === new Date().toDateString());
+  const rejectedToday = queue.filter(k => k.status === "rejected" && k.reviewed_at && new Date(k.reviewed_at).toDateString() === new Date().toDateString());
+
+  const handleApprove = async () => {
+    if (!selectedKyc) return;
+    setProcessing(true);
+    await approveKyc(selectedKyc.id);
+    setSelectedKyc(null);
+    setProcessing(false);
   };
 
-  const handleRejectDoc = (type: string) => {
-    setDocuments(prev => prev.map(d => d.type === type ? { ...d, status: "rejected" as const } : d));
+  const handleReject = async () => {
+    if (!selectedKyc || !rejectReason.trim()) return;
+    setProcessing(true);
+    await rejectKyc(selectedKyc.id, rejectReason);
+    setSelectedKyc(null);
+    setRejectReason("");
+    setProcessing(false);
   };
 
-  const allApproved = documents.every(d => d.status === "approved");
-  const hasRejected = documents.some(d => d.status === "rejected");
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Central de KYC</h1>
-        <p className="text-sm text-muted-foreground">Análise e aprovação de documentos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Central de KYC</h1>
+          <p className="text-sm text-muted-foreground">Análise e aprovação de documentos</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={refetch} className="border-[#2A2A2A]">
+          <RefreshCw className="w-4 h-4 mr-2" /> Atualizar
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Aguardando Análise", value: "8", icon: Clock, color: "text-amber-400" },
-          { label: "Aprovados Hoje", value: "2", icon: CheckCircle, color: "text-emerald-400" },
-          { label: "Reprovados Hoje", value: "1", icon: XCircle, color: "text-red-400" },
-          { label: "Tempo Médio", value: "4h 23m", icon: FileSearch, color: "text-blue-400" },
+          { label: "Aguardando Análise", value: submittedQueue.length.toString(), icon: Clock, color: "text-amber-400" },
+          { label: "Aprovados Hoje", value: approvedToday.length.toString(), icon: CheckCircle, color: "text-emerald-400" },
+          { label: "Reprovados Hoje", value: rejectedToday.length.toString(), icon: XCircle, color: "text-red-400" },
+          { label: "Total Registros", value: queue.length.toString(), icon: FileSearch, color: "text-blue-400" },
         ].map(c => (
           <Card key={c.label} className="border-[#2A2A2A]">
             <CardContent className="pt-4 pb-3 px-4">
@@ -83,83 +95,102 @@ export default function AdminKYC() {
           <Table>
             <TableHeader>
               <TableRow className="border-[#2A2A2A]">
-                <TableHead>Empresa</TableHead>
-                <TableHead>CNPJ</TableHead>
+                <TableHead>Usuário</TableHead>
                 <TableHead>Data Envio</TableHead>
                 <TableHead>Documentos</TableHead>
-                <TableHead>Prioridade</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {kycQueue.map(c => (
-                <TableRow key={c.id} className="border-[#2A2A2A]">
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{c.cnpj}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{c.createdAt}</TableCell>
+              {queue.map(k => (
+                <TableRow key={k.id} className="border-[#2A2A2A]">
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Camera className="w-3 h-3 text-amber-400" />
-                      <CreditCard className="w-3 h-3 text-emerald-400" />
-                      <CreditCard className="w-3 h-3 text-muted-foreground/40" />
-                      <span className="text-amber-400 text-xs ml-1">2/3</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm">{k.full_name || "Sem nome"}</span>
+                      <span className="text-xs text-muted-foreground">{k.email}</span>
                     </div>
                   </TableCell>
-                  <TableCell><span className="px-2 py-0.5 rounded-full text-[10px] text-amber-400 bg-amber-400/10">Normal</span></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {k.submitted_at ? format(new Date(k.submitted_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}
+                  </TableCell>
                   <TableCell>
-                    <Button 
-                      size="sm" 
-                      className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs h-7"
-                      onClick={() => { setSelectedCompany(c); setDocuments(mockDocuments); setRejectReason(""); }}
-                    >
-                      <Eye className="w-3 h-3 mr-1" /> Analisar
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Camera className={`w-3 h-3 ${k.selfie_url ? "text-emerald-400" : "text-muted-foreground/40"}`} />
+                      <CreditCard className={`w-3 h-3 ${k.doc_front_url ? "text-emerald-400" : "text-muted-foreground/40"}`} />
+                      <CreditCard className={`w-3 h-3 ${k.doc_back_url ? "text-emerald-400" : "text-muted-foreground/40"}`} />
+                      <span className="text-xs ml-1">
+                        {[k.selfie_url, k.doc_front_url, k.doc_back_url].filter(Boolean).length}/3
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{getDocStatusBadge(k.status)}</TableCell>
+                  <TableCell>
+                    {k.status === "submitted" ? (
+                      <Button
+                        size="sm"
+                        className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs h-7"
+                        onClick={() => { setSelectedKyc(k); setRejectReason(""); }}
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> Analisar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7"
+                        onClick={() => { setSelectedKyc(k); setRejectReason(""); }}
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> Ver
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {kycQueue.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-12">Nenhuma empresa na fila</TableCell></TableRow>
+              {queue.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-12">Nenhum registro de KYC</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Dialog de Análise KYC */}
-      <Dialog open={!!selectedCompany} onOpenChange={(open) => !open && setSelectedCompany(null)}>
+      {/* Dialog de Análise */}
+      <Dialog open={!!selectedKyc} onOpenChange={(open) => !open && setSelectedKyc(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
-              Análise KYC — {selectedCompany?.name}
+              Análise KYC — {selectedKyc?.full_name || selectedKyc?.email}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Info do solicitante */}
             <Card className="border-[#2A2A2A]">
               <CardContent className="pt-4 pb-3">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-muted-foreground">CNPJ:</span> <span className="font-mono">{selectedCompany?.cnpj}</span></div>
-                  <div><span className="text-muted-foreground">Data Envio:</span> {selectedCompany?.createdAt}</div>
+                  <div><span className="text-muted-foreground">E-mail:</span> {selectedKyc?.email}</div>
+                  <div><span className="text-muted-foreground">Data Envio:</span> {selectedKyc?.submitted_at ? format(new Date(selectedKyc.submitted_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}</div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Documentos */}
             <h3 className="font-semibold text-sm">Documentos Enviados</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {documents.map((doc) => (
-                <Card key={doc.type} className="border-[#2A2A2A] overflow-hidden">
+              {[
+                { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url },
+                { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url },
+                { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url },
+              ].map((doc) => (
+                <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
                   <CardContent className="p-0">
-                    {/* Imagem ou placeholder */}
                     <div className="relative aspect-[4/3] bg-muted/30 flex items-center justify-center">
-                      {doc.imageUrl ? (
+                      {doc.url ? (
                         <>
-                          <img src={doc.imageUrl} alt={doc.label} className="w-full h-full object-cover" />
-                          <button 
+                          <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
+                          <button
                             className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-                            onClick={() => setZoomImage(doc.imageUrl!)}
+                            onClick={() => setZoomImage(doc.url!)}
                           >
                             <ZoomIn className="w-3.5 h-3.5 text-white" />
                           </button>
@@ -171,72 +202,61 @@ export default function AdminKYC() {
                         </div>
                       )}
                     </div>
-                    
-                    {/* Info e ações */}
-                    <div className="p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium">{doc.label}</span>
-                        {getDocStatusBadge(doc.status)}
-                      </div>
-                      
-                      {doc.imageUrl && doc.status === "pending" && (
-                        <div className="flex gap-1.5">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="flex-1 h-7 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                            onClick={() => handleApproveDoc(doc.type)}
-                          >
-                            <ThumbsUp className="w-3 h-3 mr-1" /> Aprovar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="flex-1 h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
-                            onClick={() => handleRejectDoc(doc.type)}
-                          >
-                            <ThumbsDown className="w-3 h-3 mr-1" /> Reprovar
-                          </Button>
-                        </div>
-                      )}
+                    <div className="p-3">
+                      <span className="text-xs font-medium">{doc.label}</span>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            {/* Motivo rejeição */}
-            {hasRejected && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-red-400">Motivo da Reprovação</label>
-                <Textarea 
-                  value={rejectReason} 
-                  onChange={(e) => setRejectReason(e.target.value)} 
-                  placeholder="Descreva o motivo da reprovação dos documentos..."
-                  className="border-[#2A2A2A] min-h-[80px]"
-                />
-              </div>
+            {/* Ações de aprovação/rejeição */}
+            {selectedKyc?.status === "submitted" && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-red-400">Motivo da Reprovação (opcional)</label>
+                  <Textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Descreva o motivo se for reprovar..."
+                    className="border-[#2A2A2A] min-h-[80px]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A2A]">
+                  <Button variant="outline" onClick={() => setSelectedKyc(null)}>Fechar</Button>
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    disabled={!rejectReason.trim() || processing}
+                    onClick={handleReject}
+                  >
+                    <ThumbsDown className="w-4 h-4 mr-1" /> Reprovar
+                  </Button>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={processing}
+                    onClick={handleApprove}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-1" /> Aprovar
+                  </Button>
+                </div>
+              </>
             )}
 
-            {/* Ações finais */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A2A]">
-              <Button variant="outline" onClick={() => setSelectedCompany(null)}>Fechar</Button>
-              {allApproved && (
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <CheckCircle className="w-4 h-4 mr-1" /> Aprovar KYC
-                </Button>
-              )}
-              {hasRejected && (
-                <Button className="bg-red-600 hover:bg-red-700 text-white" disabled={!rejectReason.trim()}>
-                  <XCircle className="w-4 h-4 mr-1" /> Reprovar KYC
-                </Button>
-              )}
-            </div>
+            {selectedKyc?.status !== "submitted" && (
+              <div className="flex justify-between items-center pt-2 border-t border-[#2A2A2A]">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  {getDocStatusBadge(selectedKyc?.status || "")}
+                </div>
+                <Button variant="outline" onClick={() => setSelectedKyc(null)}>Fechar</Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Zoom da imagem */}
+      {/* Zoom */}
       <Dialog open={!!zoomImage} onOpenChange={(open) => !open && setZoomImage(null)}>
         <DialogContent className="max-w-2xl p-1">
           {zoomImage && <img src={zoomImage} alt="Documento ampliado" className="w-full rounded-lg" />}
