@@ -389,13 +389,16 @@ serve(async (req) => {
       const eventInstanceId = webhook?.instanceId || webhook?.instance_id || ''
 
       if (groupPhone && eventInstanceId) {
-        // Find user by instanceId
-        const { data: instData } = await supabase
+        // Find user by instanceId (normalized matching)
+        const normalizedEventId = normalizeInstanceIdentifier(eventInstanceId)
+        const { data: allActiveInstances } = await supabase
           .from('zapi_instances')
           .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
-          .eq('zapi_instance_id', eventInstanceId)
           .eq('is_active', true)
-          .maybeSingle()
+
+        const instData = (allActiveInstances || []).find((item: any) =>
+          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedEventId
+        )
 
         if (instData) {
           // Normalize group ID
@@ -1030,12 +1033,15 @@ serve(async (req) => {
       const leftName = webhook?.participantName || webhook?.senderName || webhook?.groupParticipant?.name || ''
 
       if (groupPhone && leaveInstanceId && leftPhone && !leftPhone.includes('@lid') && leftPhone.length >= 8) {
-        const { data: instData } = await supabase
+        const normalizedLeaveId = normalizeInstanceIdentifier(leaveInstanceId)
+        const { data: leaveInstances } = await supabase
           .from('zapi_instances')
           .select('user_id, zapi_instance_id')
-          .eq('zapi_instance_id', leaveInstanceId)
           .eq('is_active', true)
-          .maybeSingle()
+
+        const instData = (leaveInstances || []).find((item: any) =>
+          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedLeaveId
+        )
 
         if (instData) {
           let normalizedGroupId = groupPhone
@@ -1072,12 +1078,15 @@ serve(async (req) => {
         return new Response('status_callback_missing_data', { status: 200, headers: corsHeaders })
       }
 
-      const { data: instanceData } = await supabase
+      const normalizedCbInstanceId = normalizeInstanceIdentifier(instanceId)
+      const { data: cbInstances } = await supabase
         .from('zapi_instances')
-        .select('user_id, instance_name')
-        .eq('zapi_instance_id', instanceId)
+        .select('user_id, instance_name, zapi_instance_id')
         .eq('is_active', true)
-        .maybeSingle()
+
+      const instanceData = (cbInstances || []).find((item: any) =>
+        normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId
+      )
 
       const userId = instanceData?.user_id
       const instanceName = instanceData?.instance_name
@@ -2374,7 +2383,12 @@ function extractMessageText(webhook: any): string {
     webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
     webhook?.message?.buttonResponseMessage?.selectedDisplayText,
     webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedButtonId,
+    webhook?.buttonsResponseMessage?.selectedButtonText,
+    webhook?.buttonsResponseMessage?.message,
+    webhook?.buttonsResponseMessage?.text,
     webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonResponseMessage?.selectedButtonId,
     webhook?.listResponseMessage?.title,
     webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
     webhook?.interactiveResponse?.title,
@@ -2437,13 +2451,16 @@ function extractMessageText(webhook: any): string {
   const objectCandidates = [
     webhook?.buttonReply,
     webhook?.message,
+    webhook?.buttonsResponseMessage,
+    webhook?.buttonResponseMessage,
     webhook?.waitingMessage,
     webhook?.data?.buttonReply,
     webhook?.data?.message,
     webhook?.data?.waitingMessage,
+    webhook?.data?.buttonsResponseMessage,
   ]
 
-  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description', 'label', 'selectedDisplayText', 'selectedRowId', 'id']
+  const fallbackKeys = ['text', 'message', 'body', 'caption', 'conversation', 'title', 'description', 'label', 'selectedDisplayText', 'selectedButtonId', 'selectedButtonText', 'selectedRowId', 'id']
   for (const candidate of objectCandidates) {
     if (!candidate || typeof candidate !== 'object') continue
     for (const key of fallbackKeys) {
