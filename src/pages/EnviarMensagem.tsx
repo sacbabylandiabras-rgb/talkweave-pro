@@ -497,10 +497,6 @@ const EnviarMensagem = () => {
               const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
               const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
               if (statusData?.data?.connected === false) {
-                if (campaignSends.length > 0) {
-                  await supabase.from('campaign_sends').insert(campaignSends);
-                  campaignSends.length = 0;
-                }
                 await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
                 try {
                   const { data: sessionData } = await supabase.auth.getSession();
