@@ -15,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { Search, Users, Loader2, Plus, X, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import InstanceSelector from "@/components/envio/InstanceSelector";
 
 interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selectedContacts: string[]) => void;
+  onConfirm: (selectedContacts: string[], instanceIds?: string[]) => void;
 }
 
 export function SelectContactsDialog({ 
