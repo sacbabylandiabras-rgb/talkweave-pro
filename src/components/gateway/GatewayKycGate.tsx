@@ -3,6 +3,7 @@ import { useGatewayKyc } from "@/hooks/useGatewayKyc";
 import GatewayKycSubmission from "@/pages/gateway/GatewayKycSubmission";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface GatewayKycGateProps {
   children: ReactNode;
@@ -42,6 +43,19 @@ export default function GatewayKycGate({ children }: GatewayKycGateProps) {
     return <>{children}</>;
   }
 
-  // Otherwise show the KYC submission/status page
-  return <GatewayKycSubmission />;
+  // Show children behind the dialog + KYC modal on top
+  return (
+    <>
+      {children}
+      <Dialog open={true} onOpenChange={() => {}}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">Verificação de Identidade (KYC)</DialogTitle>
+            <p className="text-sm text-muted-foreground">Para utilizar o gateway de pagamentos, precisamos verificar sua identidade</p>
+          </DialogHeader>
+          <GatewayKycSubmission inDialog />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

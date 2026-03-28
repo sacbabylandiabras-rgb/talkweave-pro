@@ -10,7 +10,7 @@ interface DocUpload {
   preview: string;
 }
 
-export default function GatewayKycSubmission() {
+export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
   const { kyc, loading, submitKyc } = useGatewayKyc();
   const [selfie, setSelfie] = useState<DocUpload>({ file: null, preview: "" });
   const [docFront, setDocFront] = useState<DocUpload>({ file: null, preview: "" });
@@ -85,11 +85,13 @@ export default function GatewayKycSubmission() {
   const isRejected = kyc?.status === "rejected";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Verificação de Identidade (KYC)</h1>
-        <p className="text-sm text-muted-foreground">Para utilizar o gateway de pagamentos, precisamos verificar sua identidade</p>
-      </div>
+    <div className={inDialog ? "space-y-4" : "max-w-2xl mx-auto space-y-6"}>
+      {!inDialog && (
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Verificação de Identidade (KYC)</h1>
+          <p className="text-sm text-muted-foreground">Para utilizar o gateway de pagamentos, precisamos verificar sua identidade</p>
+        </div>
+      )}
 
       {isRejected && (
         <Card className="border-red-500/30 bg-red-500/5">
