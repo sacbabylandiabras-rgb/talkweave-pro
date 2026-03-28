@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,63 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PaySettings() {
   const [showSecret, setShowSecret] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: "",
+    email: "",
+    whatsapp: "",
+  });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      if (data) {
+        setProfile(data);
+        setFormData({
+          full_name: data.full_name || "",
+          email: data.email || "",
+          whatsapp: data.whatsapp || "",
+        });
+      }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    if (!profile) return;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: formData.full_name,
+      whatsapp: formData.whatsapp,
+    }).eq("id", profile.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      toast.success("Dados salvos com sucesso!");
+    }
+  };
+
+  const userId = profile?.id || "";
+  const publicKey = userId ? `pk_live_zlp_${userId.slice(0, 12)}` : "—";
+  const secretKey = userId ? `sk_live_zlp_${userId.slice(0, 12)}` : "—";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -20,7 +74,7 @@ export default function PaySettings() {
 
       <Tabs defaultValue="empresa">
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Empresa</TabsTrigger>
+          <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
           <TabsTrigger value="api"><Key className="w-3.5 h-3.5 mr-1.5" />API Keys</TabsTrigger>
           <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
           <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
@@ -29,15 +83,36 @@ export default function PaySettings() {
 
         <TabsContent value="empresa" className="mt-4 space-y-4">
           <Card className="border-[#2A2A2A]">
-            <CardHeader><CardTitle className="text-sm">Dados da Empresa</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">Dados da Conta</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>Razão Social</Label><Input defaultValue="TechStore Ltda" /></div>
-                <div><Label>CNPJ</Label><Input defaultValue="12.345.678/0001-99" disabled /></div>
-                <div><Label>Nome Fantasia</Label><Input defaultValue="TechStore" /></div>
-                <div><Label>Segmento</Label><Input defaultValue="E-commerce" /></div>
+                <div>
+                  <Label>Nome Completo</Label>
+                  <Input value={formData.full_name} onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input value={formData.email} disabled className="opacity-60" />
+                </div>
+                <div>
+                  <Label>WhatsApp</Label>
+                  <Input value={formData.whatsapp} onChange={e => setFormData(p => ({ ...p, whatsapp: e.target.value }))} placeholder="5511999999999" />
+                </div>
+                <div>
+                  <Label>Status da Assinatura</Label>
+                  <Input value={profile?.subscription_status === "active" ? "Ativa" : profile?.subscription_status || "Pendente"} disabled className="opacity-60" />
+                </div>
               </div>
-              <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full">Salvar</Button>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>Conta criada em: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("pt-BR") : "—"}</span>
+                {profile?.subscription_expires_at && (
+                  <span>• Expira em: {new Date(profile.subscription_expires_at).toLocaleDateString("pt-BR")}</span>
+                )}
+              </div>
+              <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Salvar
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -49,16 +124,16 @@ export default function PaySettings() {
               <div>
                 <Label>Chave Pública (Publishable Key)</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input value="pk_live_zaplynxpay_a1b2c3d4e5f6" readOnly className="font-mono text-xs" />
-                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText("pk_live_zaplynxpay_a1b2c3d4e5f6"); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
+                  <Input value={publicKey} readOnly className="font-mono text-xs" />
+                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(publicKey); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
                 </div>
               </div>
               <div>
                 <Label>Chave Secreta (Secret Key)</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input type={showSecret ? "text" : "password"} value="sk_live_zaplynxpay_x9y8z7w6v5u4" readOnly className="font-mono text-xs" />
+                  <Input type={showSecret ? "text" : "password"} value={secretKey} readOnly className="font-mono text-xs" />
                   <Button variant="outline" size="icon" onClick={() => setShowSecret(!showSecret)}>{showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</Button>
-                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText("sk_live_zaplynxpay_x9y8z7w6v5u4"); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
+                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(secretKey); toast.success("Copiado!"); }}><Copy className="w-4 h-4" /></Button>
                 </div>
                 <p className="text-[10px] text-red-400 mt-1">⚠️ Nunca exponha esta chave em código frontend</p>
               </div>

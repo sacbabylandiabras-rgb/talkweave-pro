@@ -1,20 +1,11 @@
-import { Building2, Users, TrendingUp, AlertTriangle, CreditCard, Shield, BarChart3, Activity } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, Users, TrendingUp, AlertTriangle, CreditCard, Shield, BarChart3, Activity, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 import { mockCompanies, mockChartData, getStatusBadge } from "./mock-data";
-
-const adminMetrics = [
-  { label: "Empresas Ativas", value: "47", icon: Building2, color: "text-emerald-400" },
-  { label: "Em Análise KYC", value: "8", icon: Shield, color: "text-blue-400" },
-  { label: "Volume Hoje", value: "R$ 234.500", icon: TrendingUp, color: "text-[#FF4D2E]" },
-  { label: "Volume Mês", value: "R$ 4.8M", icon: BarChart3, color: "text-purple-400" },
-  { label: "Taxa Aprovação", value: "93,4%", icon: Activity, color: "text-emerald-400" },
-  { label: "Chargebacks Mês", value: "12", icon: AlertTriangle, color: "text-red-400" },
-  { label: "Receita ZapLynxPay", value: "R$ 96.400", icon: CreditCard, color: "text-amber-400" },
-  { label: "Novos Cadastros", value: "3", icon: Users, color: "text-blue-400" },
-];
 
 const acquirerData = [
   { name: "Cielo", volume: 456000 },
@@ -24,6 +15,37 @@ const acquirerData = [
 ];
 
 export default function AdminDashboard() {
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+      setTotalUsers(count || 0);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  const adminMetrics = [
+    { label: "Usuários Cadastrados", value: String(totalUsers), icon: Users, color: "text-emerald-400" },
+    { label: "Em Análise KYC", value: "8", icon: Shield, color: "text-blue-400" },
+    { label: "Volume Hoje", value: "R$ 234.500", icon: TrendingUp, color: "text-[#FF4D2E]" },
+    { label: "Volume Mês", value: "R$ 4.8M", icon: BarChart3, color: "text-purple-400" },
+    { label: "Taxa Aprovação", value: "93,4%", icon: Activity, color: "text-emerald-400" },
+    { label: "Chargebacks Mês", value: "12", icon: AlertTriangle, color: "text-red-400" },
+    { label: "Receita ZapLynxPay", value: "R$ 96.400", icon: CreditCard, color: "text-amber-400" },
+    { label: "Empresas Ativas", value: String(mockCompanies.filter(c => c.status === "active").length), icon: Building2, color: "text-blue-400" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">

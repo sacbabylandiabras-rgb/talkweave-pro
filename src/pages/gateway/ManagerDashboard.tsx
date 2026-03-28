@@ -1,7 +1,9 @@
-import { Briefcase, TrendingUp, DollarSign, Clock, CheckCircle, UserPlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Briefcase, TrendingUp, DollarSign, Clock, CheckCircle, UserPlus, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 import { mockManagerClients, mockChartData, formatCurrencyReais, getStatusBadge } from "./mock-data";
 
 const managerMetrics = [
@@ -16,11 +18,35 @@ const managerMetrics = [
 const topClients = mockManagerClients.sort((a, b) => b.volumeMonth - a.volumeMonth).slice(0, 5).map(c => ({ name: c.company.split(' ')[0], volume: c.volumeMonth }));
 
 export default function ManagerDashboard() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      setProfile(data);
+      setLoading(false);
+    };
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const userName = profile?.full_name || profile?.email || "Gerente";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Meu Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Bem-vindo, Carlos Mendes</p>
+        <p className="text-sm text-muted-foreground">Bem-vindo, {userName}</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -102,7 +128,7 @@ export default function ManagerDashboard() {
           <div>
             <p className="text-xs text-muted-foreground">Próximo Pagamento</p>
             <p className="text-lg font-bold text-foreground mt-1">05/04/2025 — R$ 6.949,00</p>
-            <p className="text-xs text-muted-foreground">PIX: gerente@zaplynxpay.com</p>
+            <p className="text-xs text-muted-foreground">PIX: {profile?.email || "—"}</p>
           </div>
           <span className="px-3 py-1 bg-[#FF4D2E]/10 text-[#FF4D2E] rounded-full text-xs font-medium cursor-pointer hover:bg-[#FF4D2E]/20 transition-colors">Ver Extrato</span>
         </CardContent>
