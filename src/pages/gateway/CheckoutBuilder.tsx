@@ -267,6 +267,45 @@ export default function CheckoutBuilder() {
                 <div className="flex items-center gap-2"><Palette className="w-4 h-4 text-[#FF4D2E]" /> Aparência & Tema</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
+                {/* Logo */}
+                <div>
+                  <Label className="text-xs">Logo do Checkout</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {config.logoUrl ? (
+                      <div className="relative">
+                        <img src={config.logoUrl} alt="Logo" className="h-10 object-contain rounded border border-gray-200" />
+                        <button
+                          onClick={() => updateConfig("logoUrl", "")}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
+                        >×</button>
+                      </div>
+                    ) : null}
+                    <label className="flex items-center gap-1.5 px-3 py-2 text-xs border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <Upload className="w-3.5 h-3.5" />
+                      {config.logoUrl ? "Trocar" : "Enviar logo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) { toast.error("Máximo 2MB"); return; }
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) return;
+                          const fileName = `${user.id}/logo-${Date.now()}.${file.name.split('.').pop()}`;
+                          const { error } = await supabase.storage.from("product-images").upload(fileName, file, { upsert: true });
+                          if (error) { toast.error("Erro ao enviar: " + error.message); return; }
+                          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+                          updateConfig("logoUrl", urlData.publicUrl);
+                          toast.success("Logo enviada!");
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Aparecerá no topo do checkout. Máx 2MB.</p>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[10px]">Cor primária</Label>
