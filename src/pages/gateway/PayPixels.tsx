@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, Loader2, Eye, EyeOff, Facebook, Music, BarChart3, type LucideIcon } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Eye, EyeOff, Facebook, BarChart3, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
