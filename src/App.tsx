@@ -40,6 +40,7 @@ import PayReports from "./pages/gateway/PayReports";
 import PayPixels from "./pages/gateway/PayPixels";
 import PayIntegrations from "./pages/gateway/PayIntegrations";
 import PaySettings from "./pages/gateway/PaySettings";
+import PayWithdrawals from "./pages/gateway/PayWithdrawals";
 import PayDocs from "./pages/gateway/PayDocs";
 import AdminPayDashboard from "./pages/gateway/AdminDashboard";
 import AdminCompanies from "./pages/gateway/AdminCompanies";
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="/gateway-checkout/pixels" element={<GatewayKycGate><PayPixels /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/withdrawals" element={<GatewayKycGate><PayWithdrawals /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/docs" element={<PayDocs />} />
                 {/* Gateway — Admin */}
                 <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
