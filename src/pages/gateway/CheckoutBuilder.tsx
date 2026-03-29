@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,10 +81,17 @@ export default function CheckoutBuilder() {
   const [loading, setLoading] = useState(true);
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+  const [previewPaneWidth, setPreviewPaneWidth] = useState(0);
+  const previewPaneRef = useRef<HTMLDivElement | null>(null);
 
   const activeTemplateName = activeTemplateId
     ? TEMPLATE_NAMES[activeTemplateId] || activeTemplateId
     : config.templateName;
+
+  const previewViewportWidth = previewMode === "mobile" ? 390 : 1180;
+  const previewScale = previewPaneWidth
+    ? Math.min(1, (previewPaneWidth - (previewMode === "mobile" ? 24 : 40)) / previewViewportWidth)
+    : 1;
 
   const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
     setConfig(prev => ({ ...prev, ...settings, templateId, templateName }));
@@ -119,6 +126,22 @@ export default function CheckoutBuilder() {
     };
     init();
   }, [editId]);
+
+  useEffect(() => {
+    const element = previewPaneRef.current;
+    if (!element) return;
+
+    const updateWidth = () => setPreviewPaneWidth(element.clientWidth);
+    updateWidth();
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setPreviewPaneWidth(entry.contentRect.width);
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const updateConfig = (key: string, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -593,8 +616,19 @@ export default function CheckoutBuilder() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-0 flex justify-center overflow-auto" style={{ height: "calc(100vh - 280px)", background: previewMode === "mobile" ? "#E5E7EB" : undefined }}>
-              <div style={{ width: previewMode === "mobile" ? "375px" : "100%", transition: "width 0.3s ease", height: "100%" }}>
+            <CardContent
+              ref={previewPaneRef}
+              className="flex items-start justify-center overflow-auto p-4"
+              style={{ height: "calc(100vh - 280px)", background: "hsl(var(--muted))" }}
+            >
+              <div
+                style={{
+                  width: `${previewViewportWidth}px`,
+                  minWidth: `${previewViewportWidth}px`,
+                  zoom: previewScale,
+                  transition: "width 0.3s ease, zoom 0.3s ease",
+                }}
+              >
                 <CheckoutPreview config={config} templateName={activeTemplateName} />
               </div>
             </CardContent>
