@@ -24,6 +24,7 @@ interface Transaction {
   product_id: string | null;
   checkout_id: string | null;
   external_id: string | null;
+  metadata: any;
 }
 
 export default function PayReports() {
