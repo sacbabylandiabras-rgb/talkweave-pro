@@ -456,47 +456,97 @@ export default function CheckoutPreview({ config }: Props) {
                 Valor à vista: <strong className="text-gray-800">{formatCurrency(pixPrice)}</strong>
               </p>
 
-              {/* PIX Benefits */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-green-500" />
+              {pixData ? (
+                <div className="space-y-4">
+                  {/* QR Code */}
+                  <div className="flex justify-center">
+                    <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-48 h-48 rounded-lg" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Aprovação instantânea</p>
-                    <p className="text-xs text-gray-500">Liberação imediata</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                    <Check className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Sem custos extras</p>
-                    <p className="text-xs text-gray-500">Transferência gratuita</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">100% Seguro</p>
-                    <p className="text-xs text-gray-500">Desenvolvido pelo Banco Central</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Generate QR Code Button */}
-              <button
-                type="button"
-                onClick={() => window.alert("Integração PIX ainda não conectada neste checkout.")}
-                className="w-full py-3.5 text-white font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]"
-                style={{ background: primary, borderRadius }}
-              >
-                <QrCode className="w-4 h-4" />
-                Gerar QR Code PIX
-              </button>
+                  {/* Copia e Cola */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-700 text-center">Ou copie o código PIX:</p>
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        value={pixData.brCode}
+                        className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600 truncate"
+                      />
+                      <button
+                        onClick={handleCopyPix}
+                        className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+                        style={{ background: copied ? '#10B981' : primary, color: 'white', borderRadius }}
+                      >
+                        <Copy className="w-3 h-3" />
+                        {copied ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                      <Smartphone className="w-4 h-4" />
+                      Abra o app do seu banco e escaneie o QR Code
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* PIX Benefits */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Aprovação instantânea</p>
+                        <p className="text-xs text-gray-500">Liberação imediata</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Sem custos extras</p>
+                        <p className="text-xs text-gray-500">Transferência gratuita</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                        <ShieldCheck className="w-4 h-4 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">100% Seguro</p>
+                        <p className="text-xs text-gray-500">Desenvolvido pelo Banco Central</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {pixError && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
+                      <AlertTriangle className="w-4 h-4" />
+                      {pixError}
+                    </div>
+                  )}
+
+                  {/* Generate QR Code Button */}
+                  <button
+                    type="button"
+                    onClick={handleGeneratePix}
+                    disabled={pixLoading}
+                    className="w-full py-3.5 text-white font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ background: primary, borderRadius }}
+                  >
+                    {pixLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <QrCode className="w-4 h-4" />
+                    )}
+                    {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}
