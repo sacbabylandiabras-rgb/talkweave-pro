@@ -122,6 +122,7 @@ const App = () => (
                 <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
                 <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
                 <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
+                <Route path="/gateway-checkout/admin/withdrawals" element={<AdminWithdrawals />} />
                 {/* Gateway — Manager */}
                 <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
                 <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
