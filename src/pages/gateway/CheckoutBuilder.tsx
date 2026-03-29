@@ -249,7 +249,8 @@ export default function CheckoutBuilder() {
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><Layout className="w-4 h-4 text-[#FF4D2E]" /> Formato</div>
               </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <CheckoutTemplateGallery onApply={applyTemplate} activeTemplateId={activeTemplateId} />
                 <div className="grid grid-cols-1 gap-2">
                   {formatOptions.map(opt => (
                     <button
