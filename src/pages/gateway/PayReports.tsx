@@ -61,7 +61,7 @@ export default function PayReports() {
     d.setDate(d.getDate() - (29 - i));
     const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     const dayTxs = approved.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-    return { date: key, volume: dayTxs.reduce((a, t) => a + t.net_amount, 0) / 100 };
+    return { date: key, volume: dayTxs.reduce((a, t) => a + t.net, 0) / 100 };
   });
 
   const summaryCards = [
