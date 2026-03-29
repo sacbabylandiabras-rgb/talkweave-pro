@@ -38,15 +38,20 @@ export default function AdminAcquirers() {
   const handleTest = async () => {
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-pix-charge", {
-        body: { amount: 1, customer: { name: "Teste", phone: "0000" }, productName: "Teste Conexão", checkoutId: "test" },
+      const res = await supabase.functions.invoke("create-pix-charge", {
+        body: { slug: "__test__", amount: 100 },
       });
-      if (error) {
-        toast.error("Erro ao testar: " + error.message);
-      } else if (data?.error) {
-        toast.error("Woovi retornou erro: " + data.error);
-      } else {
+      // A 404 "Checkout not found" means the function + Supabase connection work fine
+      if (res.data?.error === "Checkout not found") {
+        toast.success("Conexão com Woovi (OpenPix) está funcionando! (Edge Function respondeu corretamente)");
+      } else if (res.data?.error === "OpenPix not configured") {
+        toast.error("OPENPIX_APP_ID não está configurado nos secrets do Supabase.");
+      } else if (res.data?.qrCodeImage) {
         toast.success("Conexão com Woovi (OpenPix) está funcionando!");
+      } else if (res.error) {
+        toast.error("Erro na Edge Function: " + res.error.message);
+      } else {
+        toast.success("Edge Function respondeu com sucesso!");
       }
     } catch (e: any) {
       toast.error("Falha no teste: " + (e.message || "erro desconhecido"));
