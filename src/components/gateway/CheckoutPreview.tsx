@@ -59,11 +59,6 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
 
-  // Render template-specific layout (after all hooks)
-  if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} />;
-  }
-
   // Countdown timer
   useEffect(() => {
     if (!config.showTimer) return;
@@ -81,6 +76,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     }, 1000);
     return () => clearInterval(interval);
   }, [config.showTimer]);
+
+  // Render template-specific layout (after all hooks)
+  if (config.templateId === "minimalista") {
+    return <MinimalistaLayout config={config} />;
+  }
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
