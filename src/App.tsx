@@ -111,6 +111,7 @@ const App = () => (
                 <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/withdrawals" element={<GatewayKycGate><PayWithdrawals /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/fees" element={<GatewayKycGate><AdminFees /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/docs" element={<PayDocs />} />
                 {/* Gateway — Admin */}
                 <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />

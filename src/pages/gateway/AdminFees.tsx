@@ -1,78 +1,102 @@
-import { Save } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
+import { QrCode, CreditCard, Landmark, Receipt } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-const defaultFees = [
-  { method: "Cartão Crédito 1x", percent: "2,49", fixed: "0,00", term: "D+30" },
-  { method: "Cartão Crédito 2x–6x", percent: "2,99", fixed: "0,00", term: "D+30" },
-  { method: "Cartão Crédito 7x–12x", percent: "3,49", fixed: "0,00", term: "D+30" },
-  { method: "Cartão Débito", percent: "1,99", fixed: "0,00", term: "D+1" },
-  { method: "PIX", percent: "0,99", fixed: "0,50", term: "D+1" },
-  { method: "Boleto", percent: "0,00", fixed: "3,50", term: "D+3" },
+const fees = [
+  {
+    method: "PIX",
+    icon: QrCode,
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-500",
+    percent: "6,99",
+    fixed: "R$ 1,99 por transação",
+    reserve: "0,00",
+    available: true,
+    note: null,
+  },
+  {
+    method: "Cartão de Crédito",
+    icon: CreditCard,
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-500",
+    percent: "4,99",
+    fixed: null,
+    reserve: "25,00",
+    available: true,
+    note: "Taxas por parcela",
+  },
+  {
+    method: "Cartão de Débito",
+    icon: CreditCard,
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-500",
+    percent: "3,49",
+    fixed: null,
+    reserve: "25,00",
+    available: true,
+    note: null,
+  },
+  {
+    method: "Boleto",
+    icon: Landmark,
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-500",
+    percent: "3,99",
+    fixed: "R$ 2,00 por transação",
+    reserve: "10,00",
+    available: true,
+    note: "Sem custos para emissão de boletos, pague apenas o que vender!",
+  },
 ];
 
 export default function AdminFees() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Taxas & Tarifas</h1>
-        <p className="text-sm text-muted-foreground">Configure as taxas padrão da plataforma</p>
+        <h1 className="text-2xl font-bold text-foreground">Taxas</h1>
+        <p className="text-sm text-muted-foreground">Veja detalhadamente as taxas da plataforma</p>
       </div>
 
-      <Card className="border-[#2A2A2A]">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm">Taxas Padrão</CardTitle>
-          <Button size="sm" className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs" onClick={() => toast.success("Taxas salvas!")}><Save className="w-3.5 h-3.5 mr-1" /> Salvar</Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-[#2A2A2A]">
-                <TableHead>Método</TableHead><TableHead>Taxa (%)</TableHead><TableHead>Taxa Fixa (R$)</TableHead><TableHead>Prazo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {defaultFees.map(f => (
-                <TableRow key={f.method} className="border-[#2A2A2A]">
-                  <TableCell className="font-medium">{f.method}</TableCell>
-                  <TableCell><Input defaultValue={f.percent} className="w-20 h-8 text-center text-xs" /></TableCell>
-                  <TableCell><Input defaultValue={f.fixed} className="w-20 h-8 text-center text-xs" /></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{f.term}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {fees.map((fee) => {
+          const Icon = fee.icon;
+          return (
+            <Card key={fee.method} className="border-[#2A2A2A]">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg ${fee.iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-5 h-5 ${fee.iconColor}`} />
+                    </div>
+                    <span className="font-semibold text-foreground">{fee.method}</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={fee.available ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}
+                  >
+                    {fee.available ? "Disponível" : "Indisponível"}
+                  </Badge>
+                </div>
 
-      <Card className="border-[#2A2A2A]">
-        <CardHeader><CardTitle className="text-sm">Antecipação de Recebíveis</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Habilitar antecipação</span>
-            <Switch />
-          </div>
-          <div className="grid grid-cols-2 gap-4 max-w-sm">
-            <div><p className="text-xs text-muted-foreground">Taxa ao dia (%)</p><Input defaultValue="0,05" className="h-8 text-xs mt-1" /></div>
-            <div><p className="text-xs text-muted-foreground">Taxa mensal (%)</p><Input defaultValue="1,50" className="h-8 text-xs mt-1" /></div>
-          </div>
-        </CardContent>
-      </Card>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-foreground">{fee.percent} %</span>
+                  {fee.fixed && (
+                    <span className="text-sm text-muted-foreground">+ {fee.fixed}</span>
+                  )}
+                </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {["Básico", "Pro", "Enterprise"].map((plan, i) => (
-          <Card key={plan} className="border-[#2A2A2A]">
-            <CardHeader><CardTitle className="text-sm">{plan}</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              <div><p className="text-xs text-muted-foreground">Taxa mensal</p><Input defaultValue={["R$ 49,90", "R$ 149,90", "R$ 499,90"][i]} className="h-8 text-xs mt-1" /></div>
-              <div><p className="text-xs text-muted-foreground">Desconto sobre taxas (%)</p><Input defaultValue={["0", "10", "25"][i]} className="h-8 text-xs mt-1" /></div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-md px-3 py-1.5">
+                  <span className="text-xs text-muted-foreground">Reserva de Financeira: </span>
+                  <span className="text-xs font-medium text-emerald-400">{fee.reserve}%</span>
+                </div>
+
+                {fee.note && (
+                  <p className="text-xs text-muted-foreground">• {fee.note}</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

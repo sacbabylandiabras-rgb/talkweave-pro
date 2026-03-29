@@ -24,7 +24,8 @@ import {
   CreditCard,
   PlugZap,
   Activity,
-  Wallet
+  Wallet,
+  Receipt
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ const gatewayMenuItems = [
   { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
+  { id: "pay-fees", label: "Taxas", icon: Receipt, path: "/gateway-checkout/fees" },
   { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
   { id: "pay-withdrawals", label: "Saques", icon: Wallet, path: "/gateway-checkout/withdrawals" },
