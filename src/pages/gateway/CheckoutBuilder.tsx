@@ -593,8 +593,8 @@ export default function CheckoutBuilder() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-0 flex justify-center" style={{ minHeight: "calc(100vh - 280px)", background: previewMode === "mobile" ? "#E5E7EB" : undefined }}>
-              <div style={{ width: previewMode === "mobile" ? "375px" : "100%", transition: "width 0.3s ease" }}>
+            <CardContent className="p-0 flex justify-center overflow-auto" style={{ height: "calc(100vh - 280px)", background: previewMode === "mobile" ? "#E5E7EB" : undefined }}>
+              <div style={{ width: previewMode === "mobile" ? "375px" : "100%", transition: "width 0.3s ease", height: "100%" }}>
                 <CheckoutPreview config={config} templateName={activeTemplateName} />
               </div>
             </CardContent>
