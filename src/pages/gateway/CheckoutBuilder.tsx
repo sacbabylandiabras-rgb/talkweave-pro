@@ -201,12 +201,12 @@ export default function CheckoutBuilder() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Preço de venda (centavos)</Label>
-                    <Input type="number" value={config.price} onChange={e => updateConfig("price", parseInt(e.target.value) || 0)} className="mt-1" />
+                    <Label className="text-xs">Preço de venda (R$)</Label>
+                    <Input type="number" step="0.01" value={(config.price / 100).toFixed(2)} onChange={e => updateConfig("price", Math.round(parseFloat(e.target.value || "0") * 100))} className="mt-1" />
                   </div>
                   <div>
-                    <Label className="text-xs">Preço "de" riscado</Label>
-                    <Input type="number" value={config.originalPrice} onChange={e => updateConfig("originalPrice", parseInt(e.target.value) || 0)} className="mt-1" />
+                    <Label className="text-xs">Preço "de" riscado (R$)</Label>
+                    <Input type="number" step="0.01" value={(config.originalPrice / 100).toFixed(2)} onChange={e => updateConfig("originalPrice", Math.round(parseFloat(e.target.value || "0") * 100))} className="mt-1" />
                   </div>
                 </div>
                 <div>
