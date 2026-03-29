@@ -69,7 +69,7 @@ export default function PayDashboard() {
   }, []);
 
   const approvedTx = transactions.filter(t => t.status === "approved");
-  const totalVolume = approvedTx.reduce((a, t) => a + t.gross_amount, 0);
+  const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
   const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
