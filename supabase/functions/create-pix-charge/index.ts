@@ -108,7 +108,13 @@ serve(async (req) => {
     })
 
     // Increment conversions
-    await supabase.rpc('increment_checkout_conversions' as any, { checkout_id: checkout.id }).catch(() => {})
+    try {
+      await supabase
+        .from('gateway_checkouts')
+        .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
+        .eq('id', checkout.id)
+    } catch {}
+
 
     return new Response(JSON.stringify({
       qrCodeImage,
