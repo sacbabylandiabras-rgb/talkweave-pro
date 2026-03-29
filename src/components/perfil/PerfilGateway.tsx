@@ -145,6 +145,30 @@ const PerfilGateway = () => {
               <Label>E-mail</Label>
               <Input value={userEmail} disabled className="opacity-60" />
             </div>
+            <div className="space-y-2">
+              <Label>Tipo de Documento</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cpf">CPF (Pessoa Física)</SelectItem>
+                  <SelectItem value="cnpj">CNPJ (Pessoa Jurídica)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{documentType === "cnpj" ? "CNPJ" : "CPF"}</Label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={document}
+                  onChange={(e) => setDocument(e.target.value)}
+                  placeholder={documentType === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
+                  className="pl-10"
+                />
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Descrição do Negócio</Label>
