@@ -2,15 +2,14 @@ import { useEffect, useState } from "react";
 import {
   ChevronDown,
   CreditCard,
-  FileText,
   Lock,
   Package,
   Plus,
-  QrCode,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from "./PaymentIcons";
 
 interface Props {
   config: Record<string, any>;
