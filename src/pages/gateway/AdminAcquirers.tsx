@@ -38,25 +38,41 @@ export default function AdminAcquirers() {
   const handleTest = async () => {
     setTesting(true);
     try {
-      const res = await supabase.functions.invoke("create-pix-charge", {
-        body: { slug: "__test__", amount: 100 },
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pix-charge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ slug: "__test__", amount: 100 }),
       });
-      // A 404 "Checkout not found" means the function + Supabase connection work fine
-      if (res.data?.error === "Checkout not found") {
-        toast.success("Conexão com Woovi (OpenPix) está funcionando! (Edge Function respondeu corretamente)");
-      } else if (res.data?.error === "OpenPix not configured") {
-        toast.error("OPENPIX_APP_ID não está configurado nos secrets do Supabase.");
-      } else if (res.data?.qrCodeImage) {
+
+      const rawBody = await response.text();
+      let data: any = null;
+
+      try {
+        data = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        data = { error: rawBody };
+      }
+
+      if (response.status === 404 && data?.error === "Checkout not found") {
+        toast.success("Conexão com a Edge Function e Woovi está respondendo corretamente.");
+      } else if (response.ok && data?.qrCodeImage) {
         toast.success("Conexão com Woovi (OpenPix) está funcionando!");
-      } else if (res.error) {
-        toast.error("Erro na Edge Function: " + res.error.message);
+      } else if (data?.error === "OpenPix not configured") {
+        toast.error("OPENPIX_APP_ID não está configurado nos secrets do Supabase.");
       } else {
-        toast.success("Edge Function respondeu com sucesso!");
+        toast.error(`Erro ao testar: ${data?.error || `status ${response.status}`}`);
       }
     } catch (e: any) {
       toast.error("Falha no teste: " + (e.message || "erro desconhecido"));
+    } finally {
+      setTesting(false);
     }
-    setTesting(false);
   };
 
   if (loading) {
