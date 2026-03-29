@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2 } from "lucide-react";
+import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-templates/PaymentIcons";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
@@ -392,7 +393,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                 {config.pix && (
                   <div className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer" style={{ borderColor: primary, background: `${primary}10` }}>
                     <div className="flex items-center gap-3">
-                      <QrCode className="w-5 h-5" style={{ color: primary }} />
+                      <PixIcon size={20} />
                       <div>
                         <p className="text-sm font-semibold" style={{ color: textColor }}>PIX</p>
                         <p className="text-xs" style={{ color: subtleText }}>Pagamento instantâneo</p>
@@ -409,20 +410,18 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                       <CreditCard className="w-5 h-5" style={{ color: subtleText }} />
                       <div>
                         <p className="text-sm font-medium" style={{ color: textColor }}>Cartão de Crédito</p>
+                        <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
                         {config.maxInstallments > 1 && <p className="text-xs" style={{ color: subtleText }}>até {config.maxInstallments}x</p>}
+                        <CardBrandsRow size={24} />
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      {["Visa", "MC", "Elo"].map(b => (
-                        <span key={b} className="text-[10px] px-1.5 py-0.5 rounded border" style={{ borderColor: cardBorder, color: subtleText }}>{b}</span>
-                      ))}
-                    </div>
+                    <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: cardBorder }} />
                   </div>
                 )}
                 {config.boleto && (
                   <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5" style={{ color: subtleText }} />
+                      <div style={{ color: subtleText }}><BoletoIcon size={20} /></div>
                       <div>
                         <p className="text-sm font-medium" style={{ color: textColor }}>Boleto</p>
                         <p className="text-xs" style={{ color: subtleText }}>Vencimento em 3 dias</p>
@@ -501,19 +500,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
         )}
 
         {/* Security Badges */}
-        {config.showSecurityBadges && (
-          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
-            {["🔒 SSL", "Visa", "Master", "Elo", "PIX"].map(badge => (
-              <span key={badge} className="text-[10px] font-medium px-2 py-1 border rounded" style={{ color: subtleText, borderColor: cardBorder }}>
-                {badge}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <p className="text-center text-[10px] pb-4" style={{ color: subtleText }}>
-          Pagamento processado com segurança por ZapLynxPay
-        </p>
+        <PaymentFooter />
       </div>
     </div>
   );
