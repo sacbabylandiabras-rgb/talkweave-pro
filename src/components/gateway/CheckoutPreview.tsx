@@ -5,6 +5,7 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
 import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
+import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 
 interface CheckoutConfig {
   productName: string;
