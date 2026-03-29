@@ -24,7 +24,8 @@ import {
   CreditCard,
   PlugZap,
   Activity,
-  Wallet
+  Wallet,
+  Receipt
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
