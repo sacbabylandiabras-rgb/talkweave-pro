@@ -255,7 +255,7 @@ const CHECKOUT_TEMPLATES: CheckoutTemplate[] = [
 ];
 
 interface Props {
-  onApply: (settings: Record<string, any>, templateName: string) => void;
+  onApply: (settings: Record<string, any>, templateName: string, templateId: string) => void;
   activeTemplateId?: string;
 }
 
