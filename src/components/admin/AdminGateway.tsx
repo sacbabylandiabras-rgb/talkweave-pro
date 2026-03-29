@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const AdminGateway = () => {
+  const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, refetch } = useAdminUsers();
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
