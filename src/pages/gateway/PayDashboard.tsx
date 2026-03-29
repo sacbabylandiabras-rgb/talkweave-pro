@@ -159,8 +159,8 @@ export default function PayDashboard() {
                     <TableRow key={tx.id} className="border-[#2A2A2A]">
                       <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                       <TableCell>{tx.customer_name || "—"}</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(tx.gross_amount)}</TableCell>
-                      <TableCell>{getMethodLabel(tx.method)}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(tx.amount)}</TableCell>
+                      <TableCell>{getMethodLabel(tx.payment_method)}</TableCell>
                       <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
                       <TableCell className="text-muted-foreground text-xs">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                     </TableRow>

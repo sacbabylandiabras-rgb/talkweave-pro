@@ -170,10 +170,10 @@ export default function PayReports() {
                           <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{tx.customer_name || "—"}</TableCell>
-                          <TableCell>{formatCurrency(tx.gross_amount)}</TableCell>
+                          <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
-                          <TableCell className="font-medium">{formatCurrency(tx.net_amount)}</TableCell>
-                          <TableCell className="text-sm">{getMethodLabel(tx.method)}</TableCell>
+                          <TableCell className="font-medium">{formatCurrency(tx.net)}</TableCell>
+                          <TableCell className="text-sm">{getMethodLabel(tx.payment_method)}</TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-xs ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
                         </TableRow>
                       );
