@@ -77,11 +77,6 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     return () => clearInterval(interval);
   }, [config.showTimer]);
 
-  // Render template-specific layout (after all hooks)
-  if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} />;
-  }
-
   const handleGeneratePix = async () => {
     setPixLoading(true);
     setPixError(null);
@@ -141,6 +136,10 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const inputRadius = config.borderStyle === "pill" ? "25px" : config.borderStyle === "square" ? "0px" : "6px";
 
   const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
+
+  if (config.templateId === "minimalista") {
+    return <MinimalistaLayout config={config} />;
+  }
 
   return (
     <div
