@@ -48,8 +48,8 @@ export default function TikTokLayout({ config }: Props) {
       )}
 
       {/* Main content */}
-      <div className="max-w-5xl mx-auto px-4 py-5">
-        <div className="flex flex-col md:flex-row gap-5">
+      <div className="mx-auto px-3 py-5" style={{ maxWidth: "900px" }}>
+        <div className="flex flex-col md:flex-row gap-4">
 
           {/* LEFT column */}
           <div className="flex-1 space-y-4">
@@ -97,7 +97,7 @@ export default function TikTokLayout({ config }: Props) {
           </div>
 
           {/* RIGHT column */}
-          <div className="w-full md:w-80 space-y-4">
+          <div className="w-full md:w-64 flex-shrink-0 space-y-4">
 
             {/* Resumo do Pedido */}
             <div className="space-y-3">
