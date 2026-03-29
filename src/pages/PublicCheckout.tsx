@@ -35,6 +35,26 @@ const defaultConfig = {
   orderBumpText: "",
   orderBumpPrice: 0,
   productImage: "",
+  templateId: "",
+  templateName: "",
+};
+
+const resolveTemplateId = (savedConfig: Record<string, any>) => {
+  if (savedConfig.templateId) return savedConfig.templateId;
+
+  const normalizedName = String(savedConfig.templateName || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (normalizedName.includes("tiktok") || normalizedName.includes("toklynx")) return "tiktok";
+  if (normalizedName.includes("alto impacto")) return "alto-impacto";
+  if (normalizedName.includes("minimalista")) return "minimalista";
+  if (normalizedName.includes("streamline")) return "streamline";
+  if (normalizedName.includes("lynxfy")) return "lynxfy";
+  if (normalizedName.includes("confianca")) return "confianca";
+
+  return "";
 };
 
 export default function PublicCheckout() {
@@ -71,11 +91,13 @@ export default function PublicCheckout() {
         const checkout = result.checkout;
         const product = result.product;
         const savedConfig = checkout.config || {};
+        const resolvedTemplateId = resolveTemplateId(savedConfig);
 
         const productName = product?.name || checkout.name || "";
         setConfig({
           ...defaultConfig,
           ...savedConfig,
+          templateId: resolvedTemplateId,
           productName: savedConfig.productName || productName,
           offerName: savedConfig.offerName || productName,
           price: savedConfig.price || (product?.price ? product.price : 0),
