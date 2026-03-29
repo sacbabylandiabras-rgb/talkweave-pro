@@ -15,8 +15,7 @@ interface Checkout {
   status: boolean;
   slug: string | null;
   visits: number;
-  initiated: number;
-  approved: number;
+  conversions: number;
   product_id: string | null;
   product_name?: string;
 }
