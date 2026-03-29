@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
-import { Loader2, Users, DollarSign, ShoppingCart, TrendingUp, RefreshCw, Eye, Shield, ShieldOff, UserCheck, UserX, Pencil, Trash2, Building2, CreditCard, BarChart3 } from "lucide-react";
+import { Loader2, Users, DollarSign, ShoppingCart, TrendingUp, RefreshCw, Eye, Shield, ShieldOff, UserCheck, UserX, Pencil, Trash2, Building2, CreditCard, BarChart3, Wallet } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
