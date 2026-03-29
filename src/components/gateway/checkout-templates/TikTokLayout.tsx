@@ -4,7 +4,6 @@ import {
   CreditCard,
   FileText,
   Lock,
-  MapPin,
   Package,
   Plus,
   QrCode,
@@ -42,6 +41,7 @@ export default function TikTokLayout({ config }: Props) {
   const unitPrice = config.price || 7191;
   const productName = config.offerName || config.productName || "Produto";
   const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
+  const progressColors = ["#22C55E", "#10B981", "#06B6D4", "#3B82F6", "#A855F7", "#EC4899", "#F97316", "#F43F5E"];
 
   const shellStyle = {
     background: "#FFFFFF",
