@@ -47,7 +47,7 @@ export default function PayDashboard() {
       const d30 = new Date();
       d30.setDate(d30.getDate() - 30);
       const allTx = (txRes.data || []) as unknown as Transaction[];
-      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.gross_amount, 0);
+      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.amount, 0);
       setSales30d(sales30);
 
       // Build chart from transactions (last 30 days)
