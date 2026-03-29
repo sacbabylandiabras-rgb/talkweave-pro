@@ -280,7 +280,25 @@ export default function PayProducts() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>SKU</Label><Input placeholder="SKU-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></div>
-              <div><Label>Categoria</Label><Input placeholder="Categoria" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} /></div>
+              <div><Label>Categoria</Label>
+                <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="infoproduto">Infoproduto</SelectItem>
+                    <SelectItem value="software">Software / SaaS</SelectItem>
+                    <SelectItem value="consultoria">Consultoria</SelectItem>
+                    <SelectItem value="curso">Curso Online</SelectItem>
+                    <SelectItem value="ebook">E-book</SelectItem>
+                    <SelectItem value="mentoria">Mentoria</SelectItem>
+                    <SelectItem value="template">Template / Modelo</SelectItem>
+                    <SelectItem value="ferramenta">Ferramenta</SelectItem>
+                    <SelectItem value="servico">Serviço</SelectItem>
+                    <SelectItem value="fisico">Produto Físico</SelectItem>
+                    <SelectItem value="assinatura">Assinatura</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleSave} disabled={saving || !form.name}>
               {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
