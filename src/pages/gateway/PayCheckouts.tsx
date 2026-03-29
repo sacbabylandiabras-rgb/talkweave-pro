@@ -110,7 +110,7 @@ export default function PayCheckouts() {
               </TableHeader>
               <TableBody>
                 {checkouts.map(ck => {
-                  const conversion = ck.visits > 0 ? ((ck.approved / ck.visits) * 100).toFixed(1) : "0.0";
+                  const conversion = ck.visits > 0 ? (((ck.conversions || 0) / ck.visits) * 100).toFixed(1) : "0.0";
                   return (
                     <TableRow key={ck.id} className="border-[#2A2A2A]">
                       <TableCell className="font-medium">{ck.name}</TableCell>
