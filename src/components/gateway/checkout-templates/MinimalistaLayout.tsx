@@ -230,18 +230,25 @@ export default function MinimalistaLayout({ config }: Props) {
                       <div className="w-5 h-5 rounded-full border-2 border-gray-900 flex items-center justify-center">
                         <div className="w-3 h-3 rounded-full bg-gray-900" />
                       </div>
+                      <PixIcon size={18} />
                       <span className="text-sm font-medium">PIX — Aprovação instantânea</span>
                     </div>
                   )}
                   {config.creditCard && (
                     <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                       <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-                      <span className="text-sm text-gray-600">Cartão de Crédito</span>
+                      <CreditCard className="w-4 h-4 text-gray-400" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600">Cartão de Crédito</span>
+                        <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
+                        <CardBrandsRow size={24} />
+                      </div>
                     </div>
                   )}
                   {config.boleto && (
                     <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                       <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                      <div className="text-gray-400"><BoletoIcon size={18} /></div>
                       <span className="text-sm text-gray-600">Boleto</span>
                     </div>
                   )}
