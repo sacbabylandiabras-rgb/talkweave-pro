@@ -160,7 +160,24 @@ export default function CheckoutBuilder() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Construtor de Checkout</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">Construtor de Checkout</h1>
+              {activeTemplateId && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#FFF5F3", color: "#FF4D2E", border: "1px solid #FFD5CC" }}>
+                  Modelo: {(() => {
+                    const names: Record<string, string> = {
+                      minimalista: "Minimalista",
+                      "alto-impacto": "Alto Impacto",
+                      tiktok: "TikTok / TokLynx",
+                      streamline: "Streamline",
+                      lynxfy: "LynxFy",
+                      confianca: "Confiança (Verde)",
+                    };
+                    return names[activeTemplateId] || activeTemplateId;
+                  })()}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">Configure e visualize em tempo real</p>
           </div>
         </div>
