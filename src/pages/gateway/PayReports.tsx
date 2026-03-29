@@ -45,7 +45,7 @@ export default function PayReports() {
   const declined = transactions.filter(t => t.status === "declined");
   const pending = transactions.filter(t => t.status === "pending");
   const refunded = transactions.filter(t => t.status === "refunded");
-  const totalRevenue = approved.reduce((a, t) => a + t.net_amount, 0);
+  const totalRevenue = approved.reduce((a, t) => a + t.net, 0);
   const avgTicket = approved.length > 0 ? Math.round(totalRevenue / approved.length) : 0;
 
   const methodGroups = transactions.reduce((acc, tx) => {
