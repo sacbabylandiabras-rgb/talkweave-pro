@@ -7,6 +7,7 @@ import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpac
 import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
 import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
+import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
 
 interface CheckoutConfig {
   productName: string;
@@ -156,6 +157,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   }
   if (config.templateId === "lynxfy") {
     return <LynxFyLayout config={config} />;
+  }
+  if (config.templateId === "confianca") {
+    return <ConfiancaLayout config={config} />;
   }
 
   return (
