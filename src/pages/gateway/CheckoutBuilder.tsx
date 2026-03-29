@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
+import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
 
 const defaultConfig = {
   productName: "",
@@ -67,6 +68,13 @@ export default function CheckoutBuilder() {
   const [checkoutName, setCheckoutName] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
+
+  const applyTemplate = (settings: Record<string, any>, templateName: string) => {
+    setConfig(prev => ({ ...prev, ...settings }));
+    setActiveTemplateId(settings.id || templateName.toLowerCase().replace(/\s+/g, "-"));
+    toast.success(`✅ Modelo "${templateName}" aplicado! Personalize como quiser.`);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -241,7 +249,8 @@ export default function CheckoutBuilder() {
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><Layout className="w-4 h-4 text-[#FF4D2E]" /> Formato</div>
               </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <CheckoutTemplateGallery onApply={applyTemplate} activeTemplateId={activeTemplateId} />
                 <div className="grid grid-cols-1 gap-2">
                   {formatOptions.map(opt => (
                     <button
