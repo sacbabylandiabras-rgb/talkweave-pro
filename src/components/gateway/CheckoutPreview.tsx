@@ -158,6 +158,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   if (config.templateId === "lynxfy") {
     return <LynxFyLayout config={config} />;
   }
+  if (config.templateId === "confianca") {
+    return <ConfiancaLayout config={config} />;
+  }
 
   return (
     <div
