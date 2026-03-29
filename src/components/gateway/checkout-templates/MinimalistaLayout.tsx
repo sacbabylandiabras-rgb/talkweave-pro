@@ -84,7 +84,7 @@ export default function MinimalistaLayout({ config }: Props) {
 
       {/* Desktop: 2 columns / Mobile: 1 column */}
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col md:flex-row gap-6">
           {/* LEFT: Steps + Form */}
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
@@ -259,7 +259,7 @@ export default function MinimalistaLayout({ config }: Props) {
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div className="w-full lg:w-72 space-y-4">
+          <div className="w-full md:w-72 space-y-4">
             {/* Summary */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex items-center justify-between">
