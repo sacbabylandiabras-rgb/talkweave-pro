@@ -60,7 +60,7 @@ export default function PayDashboard() {
           const txDate = new Date(tx.created_at);
           return txDate.toDateString() === d.toDateString();
         });
-        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.gross_amount || 0), 0) / 100 };
+        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.amount || 0), 0) / 100 };
       });
       setChartData(last30);
       setLoading(false);
