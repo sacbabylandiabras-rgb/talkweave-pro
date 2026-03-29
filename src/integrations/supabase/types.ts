@@ -662,6 +662,48 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_withdrawals: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          pix_key: string
+          pix_key_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          pix_key?: string
+          pix_key_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          pix_key?: string
+          pix_key_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_welcome_config: {
         Row: {
           active: boolean
@@ -855,6 +897,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          document: string | null
+          document_type: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -870,6 +914,8 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          document?: string | null
+          document_type?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -885,6 +931,8 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          document?: string | null
+          document_type?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
