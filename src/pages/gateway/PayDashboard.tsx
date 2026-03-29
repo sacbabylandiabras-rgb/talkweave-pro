@@ -9,10 +9,10 @@ import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 interface Transaction {
   id: string;
   customer_name: string | null;
-  gross_amount: number;
+  amount: number;
   fee: number;
-  net_amount: number;
-  method: string;
+  net: number;
+  payment_method: string;
   status: string;
   created_at: string;
 }
@@ -47,7 +47,7 @@ export default function PayDashboard() {
       const d30 = new Date();
       d30.setDate(d30.getDate() - 30);
       const allTx = (txRes.data || []) as unknown as Transaction[];
-      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.gross_amount, 0);
+      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.amount, 0);
       setSales30d(sales30);
 
       // Build chart from transactions (last 30 days)
@@ -60,7 +60,7 @@ export default function PayDashboard() {
           const txDate = new Date(tx.created_at);
           return txDate.toDateString() === d.toDateString();
         });
-        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.gross_amount || 0), 0) / 100 };
+        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.amount || 0), 0) / 100 };
       });
       setChartData(last30);
       setLoading(false);
@@ -69,7 +69,7 @@ export default function PayDashboard() {
   }, []);
 
   const approvedTx = transactions.filter(t => t.status === "approved");
-  const totalVolume = approvedTx.reduce((a, t) => a + t.gross_amount, 0);
+  const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
   const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
@@ -159,8 +159,8 @@ export default function PayDashboard() {
                     <TableRow key={tx.id} className="border-[#2A2A2A]">
                       <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                       <TableCell>{tx.customer_name || "—"}</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(tx.gross_amount)}</TableCell>
-                      <TableCell>{getMethodLabel(tx.method)}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(tx.amount)}</TableCell>
+                      <TableCell>{getMethodLabel(tx.payment_method)}</TableCell>
                       <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
                       <TableCell className="text-muted-foreground text-xs">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                     </TableRow>

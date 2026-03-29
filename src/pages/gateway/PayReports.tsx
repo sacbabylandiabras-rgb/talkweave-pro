@@ -14,13 +14,11 @@ interface Transaction {
   id: string;
   customer_name: string | null;
   customer_email: string | null;
-  gross_amount: number;
+  amount: number;
   fee: number;
-  net_amount: number;
-  method: string;
+  net: number;
+  payment_method: string;
   status: string;
-  installments: number;
-  acquirer: string | null;
   created_at: string;
   product_id: string | null;
 }
@@ -47,12 +45,12 @@ export default function PayReports() {
   const declined = transactions.filter(t => t.status === "declined");
   const pending = transactions.filter(t => t.status === "pending");
   const refunded = transactions.filter(t => t.status === "refunded");
-  const totalRevenue = approved.reduce((a, t) => a + t.net_amount, 0);
+  const totalRevenue = approved.reduce((a, t) => a + t.net, 0);
   const avgTicket = approved.length > 0 ? Math.round(totalRevenue / approved.length) : 0;
 
   const methodGroups = transactions.reduce((acc, tx) => {
-    const label = getMethodLabel(tx.method);
-    acc[label] = (acc[label] || 0) + tx.gross_amount;
+    const label = getMethodLabel(tx.payment_method);
+    acc[label] = (acc[label] || 0) + tx.amount;
     return acc;
   }, {} as Record<string, number>);
   const methodData = Object.entries(methodGroups).map(([name, value]) => ({ name, value: value / 100 }));
@@ -63,7 +61,7 @@ export default function PayReports() {
     d.setDate(d.getDate() - (29 - i));
     const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     const dayTxs = approved.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-    return { date: key, volume: dayTxs.reduce((a, t) => a + t.net_amount, 0) / 100 };
+    return { date: key, volume: dayTxs.reduce((a, t) => a + t.net, 0) / 100 };
   });
 
   const summaryCards = [
@@ -172,10 +170,10 @@ export default function PayReports() {
                           <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{tx.customer_name || "—"}</TableCell>
-                          <TableCell>{formatCurrency(tx.gross_amount)}</TableCell>
+                          <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
-                          <TableCell className="font-medium">{formatCurrency(tx.net_amount)}</TableCell>
-                          <TableCell className="text-sm">{getMethodLabel(tx.method)}</TableCell>
+                          <TableCell className="font-medium">{formatCurrency(tx.net)}</TableCell>
+                          <TableCell className="text-sm">{getMethodLabel(tx.payment_method)}</TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-xs ${badge.color} ${badge.bg}`}>{badge.label}</span></TableCell>
                         </TableRow>
                       );
