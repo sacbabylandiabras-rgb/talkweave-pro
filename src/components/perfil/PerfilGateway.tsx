@@ -24,6 +24,8 @@ const PerfilGateway = () => {
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessWebsite, setBusinessWebsite] = useState("");
   const [businessDescription, setBusinessDescription] = useState("");
+  const [documentType, setDocumentType] = useState("cpf");
+  const [document, setDocument] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
