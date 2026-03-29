@@ -90,14 +90,20 @@ serve(async (req) => {
     const brCode = charge.brCode || charge.pixKey || openpixData.brCode
     const expiresAt = charge.expiresDate || charge.expiresAt
 
+    // Calculate platform fees: PIX = 6.99% + R$ 1.99 (199 centavos)
+    const feePercent = 6.99
+    const feeFixed = 199 // R$ 1.99 in centavos
+    const feeCents = Math.round((amountCents * feePercent) / 100) + feeFixed
+    const netCents = amountCents - feeCents
+
     // Record transaction
     await supabase.from('gateway_transactions').insert({
       user_id: checkout.user_id,
       checkout_id: checkout.id,
       product_id: checkout.product_id,
       amount: amountCents,
-      fee: 0,
-      net: amountCents,
+      fee: feeCents,
+      net: netCents,
       payment_method: 'pix',
       status: 'pending',
       external_id: correlationID,
