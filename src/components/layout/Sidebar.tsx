@@ -23,7 +23,8 @@ import {
   ShoppingCart,
   CreditCard,
   PlugZap,
-  Activity
+  Activity,
+  Wallet
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
