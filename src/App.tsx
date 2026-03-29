@@ -51,6 +51,7 @@ import AdminKYC from "./pages/gateway/AdminKYC";
 import AdminPayReports from "./pages/gateway/AdminReports";
 import AdminTransactions from "./pages/gateway/AdminTransactions";
 import AdminManagers from "./pages/gateway/AdminManagers";
+import AdminWithdrawals from "./pages/gateway/AdminWithdrawals";
 import ManagerDashboard from "./pages/gateway/ManagerDashboard";
 import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
