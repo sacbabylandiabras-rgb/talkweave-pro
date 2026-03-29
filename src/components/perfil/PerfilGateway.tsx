@@ -35,11 +35,13 @@ const PerfilGateway = () => {
         setUserId(user.id);
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, whatsapp")
+          .select("full_name, whatsapp, document, document_type")
           .eq("id", user.id)
           .single();
         setUserName(profile?.full_name || user.user_metadata?.full_name || "");
         setBusinessPhone(profile?.whatsapp || "");
+        setDocument((profile as any)?.document || "");
+        setDocumentType((profile as any)?.document_type || "cpf");
       }
     };
     fetchUser();
