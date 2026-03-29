@@ -70,9 +70,9 @@ export default function CheckoutBuilder() {
   const [loading, setLoading] = useState(true);
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
 
-  const applyTemplate = (settings: Record<string, any>, templateName: string) => {
+  const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
     setConfig(prev => ({ ...prev, ...settings }));
-    setActiveTemplateId(settings.id || templateName.toLowerCase().replace(/\s+/g, "-"));
+    setActiveTemplateId(templateId);
     toast.success(`✅ Modelo "${templateName}" aplicado! Personalize como quiser.`);
   };
 
@@ -160,7 +160,24 @@ export default function CheckoutBuilder() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Construtor de Checkout</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">Construtor de Checkout</h1>
+              {activeTemplateId && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#FFF5F3", color: "#FF4D2E", border: "1px solid #FFD5CC" }}>
+                  Modelo: {(() => {
+                    const names: Record<string, string> = {
+                      minimalista: "Minimalista",
+                      "alto-impacto": "Alto Impacto",
+                      tiktok: "TikTok / TokLynx",
+                      streamline: "Streamline",
+                      lynxfy: "LynxFy",
+                      confianca: "Confiança (Verde)",
+                    };
+                    return names[activeTemplateId] || activeTemplateId;
+                  })()}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">Configure e visualize em tempo real</p>
           </div>
         </div>
@@ -540,9 +557,19 @@ export default function CheckoutBuilder() {
                   pay.zaplynx.com/c/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
                 </span>
               </div>
-              <span className="text-[10px] text-muted-foreground">
-                {formatOptions.find(f => f.value === config.format)?.label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">
+                  {formatOptions.find(f => f.value === config.format)?.label}
+                </span>
+                {activeTemplateId && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: "#FF4D2E", color: "#fff" }}>
+                    {(() => {
+                      const names: Record<string, string> = { minimalista: "Minimalista", "alto-impacto": "Alto Impacto", tiktok: "TikTok", streamline: "Streamline", lynxfy: "LynxFy", confianca: "Confiança" };
+                      return names[activeTemplateId] || activeTemplateId;
+                    })()}
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-0" style={{ minHeight: "calc(100vh - 280px)" }}>
               <CheckoutPreview config={config} />

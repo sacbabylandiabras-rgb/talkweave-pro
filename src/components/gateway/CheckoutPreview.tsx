@@ -43,18 +43,35 @@ interface Props {
 
 export default function CheckoutPreview({ config }: Props) {
   const [step, setStep] = useState<"identification" | "payment">("identification");
-  const [purchaseCount, setPurchaseCount] = useState(60);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
 
-  // Form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+
+  // Countdown timer
+  useEffect(() => {
+    if (!config.showTimer) return;
+    setCountdown({ m: config.timerMinutes || 15, s: 0 });
+  }, [config.timerMinutes, config.showTimer]);
+
+  useEffect(() => {
+    if (!config.showTimer) return;
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev.m === 0 && prev.s === 0) return prev;
+        if (prev.s === 0) return { m: prev.m - 1, s: 59 };
+        return { ...prev, s: prev.s - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [config.showTimer]);
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
@@ -63,26 +80,17 @@ export default function CheckoutPreview({ config }: Props) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const slug = window.location.pathname.split('/pay/')[1];
-      
       const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
         method: 'POST',
-        headers: {
-          'apikey': anonKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          slug,
-          amount: pixPrice,
-          customerName: formName || undefined,
-          customerEmail: formEmail || undefined,
-          customerPhone: formPhone || undefined,
-          customerCpf: formCpf || undefined,
+          slug, amount: pixPrice,
+          customerName: formName || undefined, customerEmail: formEmail || undefined,
+          customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
         }),
       });
-      
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
-      
       setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode });
     } catch (e: any) {
       setPixError(e.message || 'Erro ao gerar PIX');
@@ -99,19 +107,17 @@ export default function CheckoutPreview({ config }: Props) {
     }
   };
 
-  // Simulate purchase counter
-  useEffect(() => {
-    if (!config.showTimer) return;
-    const interval = setInterval(() => {
-      setPurchaseCount(prev => {
-        const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(50, Math.min(99, prev + delta));
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [config.showTimer]);
-
   const primary = config.primaryColor;
+  const bgColor = config.bgColor || "#EFF1F5";
+  const textColor = config.textColor || "#1F2937";
+  const isDark = config.theme === "dark";
+  const cardBg = isDark ? "#1A1A1A" : "#FFFFFF";
+  const cardBorder = isDark ? "#333" : "#E5E7EB";
+  const labelColor = isDark ? "#D1D5DB" : "#374151";
+  const subtleText = isDark ? "#9CA3AF" : "#6B7280";
+  const inputBg = isDark ? "#0D0D0D" : "#FFFFFF";
+  const inputBorder = isDark ? "#444" : "#D1D5DB";
+
   const unitPrice = config.price;
   const subtotal = unitPrice * quantity;
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
@@ -125,105 +131,100 @@ export default function CheckoutPreview({ config }: Props) {
   const borderRadius = config.borderStyle === "pill" ? "50px" : config.borderStyle === "square" ? "0px" : "8px";
   const inputRadius = config.borderStyle === "pill" ? "25px" : config.borderStyle === "square" ? "0px" : "6px";
 
+  const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
+
   return (
     <div
       className="h-full overflow-auto"
-      style={{ background: "#EFF1F5", fontFamily, minHeight: "100%" }}
+      style={{ background: bgColor, fontFamily, minHeight: "100%", color: textColor }}
     >
+      {/* Countdown Banner */}
+      {config.showTimer && (
+        <div
+          className="w-full text-center py-3 text-sm font-medium"
+          style={{ background: primary, color: "#FFFFFF" }}
+        >
+          Oferta termina em: <span className="font-bold ml-1">{timerStr}</span>
+        </div>
+      )}
+
+      {/* Logo Header */}
+      {config.logoUrl && (
+        <div className="flex items-center justify-between py-3 px-4" style={{ background: cardBg, borderBottom: `1px solid ${cardBorder}` }}>
+          <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
+          <span className="text-xs font-medium flex items-center gap-1" style={{ color: "#16A34A" }}>
+            <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
+          </span>
+        </div>
+      )}
+
       <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
 
-        {/* Logo */}
-        {config.logoUrl && (
-          <div className="flex items-center justify-between py-2">
-            <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
-            <span className="text-xs font-medium flex items-center gap-1" style={{ color: primary }}>
-              <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
-            </span>
-          </div>
-        )}
-
         {/* Step Indicators */}
-        <div className="flex items-center justify-center gap-8 py-4">
-          <button
-            onClick={() => setStep("identification")}
-            className="flex flex-col items-center gap-1.5 transition-all"
-          >
+        <div className="flex items-center justify-center gap-8 py-2">
+          <button onClick={() => setStep("identification")} className="flex flex-col items-center gap-1.5 transition-all">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
-                background: step === "identification" ? `${primary}15` : "#E5E7EB",
+                background: step === "identification" ? `${primary}20` : isDark ? "#333" : "#E5E7EB",
                 border: step === "identification" ? `2px solid ${primary}` : "2px solid transparent",
               }}
             >
-              <User className="w-5 h-5" style={{ color: step === "identification" ? primary : "#9CA3AF" }} />
+              <User className="w-5 h-5" style={{ color: step === "identification" ? primary : subtleText }} />
             </div>
-            <span
-              className="text-xs font-semibold"
-              style={{ color: step === "identification" ? primary : "#9CA3AF" }}
-            >
+            <span className="text-xs font-semibold" style={{ color: step === "identification" ? primary : subtleText }}>
               Identificação
             </span>
           </button>
-          <div className="w-12 h-[2px] bg-gray-300 rounded" />
-          <button
-            onClick={() => setStep("payment")}
-            className="flex flex-col items-center gap-1.5 transition-all"
-          >
+          <div className="w-12 h-[2px] rounded" style={{ background: isDark ? "#444" : "#D1D5DB" }} />
+          <button onClick={() => setStep("payment")} className="flex flex-col items-center gap-1.5 transition-all">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
-                background: step === "payment" ? `${primary}15` : "#E5E7EB",
+                background: step === "payment" ? `${primary}20` : isDark ? "#333" : "#E5E7EB",
                 border: step === "payment" ? `2px solid ${primary}` : "2px solid transparent",
               }}
             >
-              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? primary : "#9CA3AF" }} />
+              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? primary : subtleText }} />
             </div>
-            <span
-              className="text-xs font-semibold"
-              style={{ color: step === "payment" ? primary : "#9CA3AF" }}
-            >
+            <span className="text-xs font-semibold" style={{ color: step === "payment" ? primary : subtleText }}>
               Pagamento
             </span>
           </button>
         </div>
 
         {/* Order Summary Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        <div className="rounded-xl border p-4 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-800">Resumo do pedido</h3>
-            <button className="text-gray-400 hover:text-gray-600">
-              <X className="w-4 h-4" />
-            </button>
+            <h3 className="text-sm font-bold" style={{ color: textColor }}>Resumo do pedido</h3>
+            <span className="text-xs" style={{ color: "#16A34A" }}>● Dados seguros</span>
           </div>
 
           {/* Product Row */}
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: isDark ? "#222" : "#F3F4F6" }}>
               {config.productImage ? (
                 <img src={config.productImage} alt={config.productName} className="w-full h-full object-cover" />
               ) : (
-                <ShoppingCart className="w-6 h-6 text-gray-400" />
+                <ShoppingCart className="w-6 h-6" style={{ color: subtleText }} />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {config.offerName || config.productName || "Seu Produto"}
+              <p className="text-sm font-medium truncate" style={{ color: textColor }}>
+                {config.offerName || config.productName || "Produto Exemplo"}
               </p>
-              <p className="text-xs text-gray-500">{formatCurrency(unitPrice)}</p>
+              {config.originalPrice > config.price && (
+                <p className="text-xs line-through" style={{ color: subtleText }}>{formatCurrency(config.originalPrice)}</p>
+              )}
+              <p className="text-sm font-bold" style={{ color: primary }}>{formatCurrency(unitPrice)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-              >
-                <Minus className="w-3 h-3 text-gray-600" />
+              <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ borderColor: inputBorder, background: cardBg }}>
+                <Minus className="w-3 h-3" style={{ color: subtleText }} />
               </button>
-              <span className="text-sm font-medium text-gray-800 w-6 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity(q => q + 1)}
-                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-              >
-                <Plus className="w-3 h-3 text-gray-600" />
+              <span className="text-sm font-medium w-6 text-center" style={{ color: textColor }}>{quantity}</span>
+              <button onClick={() => setQuantity(q => q + 1)} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ borderColor: inputBorder, background: cardBg }}>
+                <Plus className="w-3 h-3" style={{ color: subtleText }} />
               </button>
             </div>
           </div>
@@ -231,132 +232,98 @@ export default function CheckoutPreview({ config }: Props) {
           {/* Coupon */}
           <div className="flex gap-2">
             <input
-              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white text-gray-700 placeholder:text-gray-400"
+              className="flex-1 px-3 py-2 text-sm border outline-none placeholder:opacity-50"
+              style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
               placeholder="Cupom de desconto"
             />
-            <button
-              className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
-            >
+            <button className="px-4 py-2 text-sm font-medium border" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: cardBg, color: textColor }}>
               Aplicar
             </button>
           </div>
 
           {/* Totals */}
-          <div className="space-y-2 pt-2 border-t border-gray-100">
+          <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${cardBorder}` }}>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
-              <span className="text-gray-700 font-medium">{formatCurrency(subtotal)}</span>
+              <span style={{ color: subtleText }}>Subtotal</span>
+              <span style={{ color: textColor }} className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Frete</span>
-              <span className="text-green-500 font-medium">Grátis</span>
+              <span style={{ color: subtleText }}>Frete</span>
+              <span style={{ color: "#16A34A" }} className="font-medium">Grátis</span>
             </div>
-            <div className="flex justify-between text-base font-bold pt-1 border-t border-gray-100">
-              <span className="text-gray-800">Total</span>
-              <span className="text-gray-800">{formatCurrency(subtotal)}</span>
+            <div className="flex justify-between text-base font-bold pt-1" style={{ borderTop: `1px solid ${cardBorder}` }}>
+              <span style={{ color: textColor }}>Total</span>
+              <span style={{ color: primary }}>{formatCurrency(subtotal)}</span>
             </div>
           </div>
         </div>
 
-        {/* Urgency Banner */}
-        {config.showTimer && (
-          <div
-            className="rounded-xl py-4 px-5 text-center text-white space-y-0.5"
-            style={{ background: primary }}
-          >
-            <p className="text-sm font-bold">Atenção</p>
-            <p className="text-xs opacity-90">Não perca essa oportunidade!</p>
-            <p className="text-3xl font-extrabold">{purchaseCount} Compras</p>
-          </div>
-        )}
-
         {step === "identification" && (
           <>
-            {/* Personal Data Section */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            {/* Personal Data */}
+            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
               <div>
-                <h3 className="text-sm font-bold text-gray-800">Dados pessoais</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, notificação de pedidos e carrinho de compras.
+                <h3 className="text-sm font-bold" style={{ color: textColor }}>Dados pessoais</h3>
+                <p className="text-xs mt-0.5" style={{ color: subtleText }}>
+                  Informe seus dados para concluir sua compra com segurança.
                 </p>
               </div>
-
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700 block mb-1">Nome completo</label>
+                  <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Nome completo</label>
                   <input
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                    style={{ borderRadius: inputRadius }}
-                    placeholder="Ex.: Maria da Silva"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border outline-none"
+                    style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                    placeholder="Digite seu nome completo"
+                    value={formName} onChange={(e) => setFormName(e.target.value)}
                   />
                 </div>
-
                 <div>
-                  <label className="text-xs font-medium text-gray-700 block mb-1">E-mail</label>
+                  <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>E-mail</label>
                   <input
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                    style={{ borderRadius: inputRadius }}
-                    placeholder="Ex.: maria@email.com"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border outline-none"
+                    style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                    placeholder="seu@email.com"
+                    value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
                   />
                 </div>
-
                 {config.showCpf && (
                   <div>
-                    <label className="text-xs font-medium text-gray-700 block mb-1">CPF ou CNPJ</label>
+                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>CPF ou CNPJ</label>
                     <input
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                      style={{ borderRadius: inputRadius }}
-                      placeholder="CPF ou CNPJ"
-                      value={formCpf}
-                      onChange={(e) => setFormCpf(e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm border outline-none"
+                      style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                      placeholder="000.000.000-00"
+                      value={formCpf} onChange={(e) => setFormCpf(e.target.value)}
                     />
                   </div>
                 )}
-
                 {config.showPhone && (
                   <div>
-                    <label className="text-xs font-medium text-gray-700 block mb-1">Celular / WhatsApp</label>
+                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Celular (WhatsApp)</label>
                     <div className="flex gap-2">
-                      <div
-                        className="flex items-center px-3 py-2.5 border border-gray-200 bg-gray-50 text-sm text-gray-600 font-medium"
-                        style={{ borderRadius: inputRadius }}
-                      >
-                        +55
+                      <div className="flex items-center px-3 py-2.5 border text-sm font-medium" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: isDark ? "#222" : "#F9FAFB", color: subtleText }}>
+                        🇧🇷 +55
                       </div>
                       <input
-                        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                        style={{ borderRadius: inputRadius }}
+                        className="flex-1 px-3 py-2.5 text-sm border outline-none"
+                        style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
                         placeholder="(00) 00000-0000"
-                        value={formPhone}
-                        onChange={(e) => setFormPhone(e.target.value)}
+                        value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
                       />
                     </div>
                   </div>
                 )}
-
                 {config.showBirthdate && (
                   <div>
-                    <label className="text-xs font-medium text-gray-700 block mb-1">Data de Nascimento</label>
-                    <input
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                      style={{ borderRadius: inputRadius }}
-                      placeholder="DD/MM/AAAA"
-                    />
+                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Data de Nascimento</label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }} placeholder="DD/MM/AAAA" />
                   </div>
                 )}
-
                 {config.showAddress && (
                   <div>
-                    <label className="text-xs font-medium text-gray-700 block mb-1">CEP</label>
-                    <input
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
-                      style={{ borderRadius: inputRadius }}
-                      placeholder="00000-000"
-                    />
+                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>CEP</label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }} placeholder="00000-000" />
                   </div>
                 )}
               </div>
@@ -364,10 +331,7 @@ export default function CheckoutPreview({ config }: Props) {
 
             {/* Order Bump */}
             {config.showOrderBump && (
-              <div
-                className="bg-white rounded-xl border-2 p-4 space-y-2"
-                style={{ borderColor: primary, borderStyle: "dashed" }}
-              >
+              <div className="rounded-xl border-2 p-4 space-y-2" style={{ borderColor: primary, borderStyle: "dashed", background: cardBg }}>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: primary }} />
                   <div className="flex items-center gap-1.5">
@@ -375,18 +339,18 @@ export default function CheckoutPreview({ config }: Props) {
                     <span className="text-xs font-bold" style={{ color: primary }}>OFERTA ESPECIAL!</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs" style={{ color: subtleText }}>
                   {config.orderBumpText || "Adicione este produto por apenas"}{" "}
                   <strong style={{ color: primary }}>{formatCurrency(config.orderBumpPrice)}</strong>
                 </p>
               </div>
             )}
 
-            {/* CTA Button */}
+            {/* CTA */}
             <button
               onClick={() => setStep("payment")}
-              className="w-full py-4 text-white font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
-              style={{ background: primary, borderRadius }}
+              className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+              style={{ background: primary, color: "#FFFFFF", borderRadius }}
             >
               <Lock className="w-4 h-4" />
               {config.buttonText || "Pagar Agora"}
@@ -396,21 +360,17 @@ export default function CheckoutPreview({ config }: Props) {
 
         {step === "payment" && (
           <>
-            {/* Payment Method Selection */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-sm font-bold text-gray-800">Forma de pagamento</h3>
-
+            {/* Payment Methods */}
+            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
+              <h3 className="text-sm font-bold" style={{ color: textColor }}>Forma de pagamento</h3>
               <div className="space-y-2">
                 {config.pix && (
-                  <div
-                    className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer"
-                    style={{ borderColor: primary, background: `${primary}08` }}
-                  >
+                  <div className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer" style={{ borderColor: primary, background: `${primary}10` }}>
                     <div className="flex items-center gap-3">
                       <QrCode className="w-5 h-5" style={{ color: primary }} />
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">PIX</p>
-                        <p className="text-xs text-gray-500">Pagamento instantâneo</p>
+                        <p className="text-sm font-semibold" style={{ color: textColor }}>PIX</p>
+                        <p className="text-xs" style={{ color: subtleText }}>Pagamento instantâneo</p>
                       </div>
                     </div>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primary }}>
@@ -418,131 +378,87 @@ export default function CheckoutPreview({ config }: Props) {
                     </div>
                   </div>
                 )}
-
                 {config.creditCard && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300">
+                  <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-gray-400" />
+                      <CreditCard className="w-5 h-5" style={{ color: subtleText }} />
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Cartão de Crédito</p>
-                        {config.maxInstallments > 1 && (
-                          <p className="text-xs text-gray-400">até {config.maxInstallments}x</p>
-                        )}
+                        <p className="text-sm font-medium" style={{ color: textColor }}>Cartão de Crédito</p>
+                        {config.maxInstallments > 1 && <p className="text-xs" style={{ color: subtleText }}>até {config.maxInstallments}x</p>}
                       </div>
                     </div>
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                    <div className="flex gap-1">
+                      {["Visa", "MC", "Elo"].map(b => (
+                        <span key={b} className="text-[10px] px-1.5 py-0.5 rounded border" style={{ borderColor: cardBorder, color: subtleText }}>{b}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
-
                 {config.boleto && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300">
+                  <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-gray-400" />
+                      <FileText className="w-5 h-5" style={{ color: subtleText }} />
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Boleto</p>
-                        <p className="text-xs text-gray-400">Pode precisar colar manualmente</p>
+                        <p className="text-sm font-medium" style={{ color: textColor }}>Boleto</p>
+                        <p className="text-xs" style={{ color: subtleText }}>Vencimento em 3 dias</p>
                       </div>
                     </div>
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                    <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: cardBorder }} />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* PIX Payment Details */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-sm font-bold text-gray-800">Pagamento via PIX</h3>
-              <p className="text-sm text-gray-600">
-                Valor à vista: <strong className="text-gray-800">{formatCurrency(pixPrice)}</strong>
+            {/* PIX Details */}
+            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
+              <h3 className="text-sm font-bold" style={{ color: textColor }}>Pagamento via PIX</h3>
+              <p className="text-sm" style={{ color: subtleText }}>
+                Valor à vista: <strong style={{ color: textColor }}>{formatCurrency(pixPrice)}</strong>
               </p>
 
               {pixData ? (
                 <div className="space-y-4">
-                  {/* QR Code */}
                   <div className="flex justify-center">
                     <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-48 h-48 rounded-lg" />
                   </div>
-
-                  {/* Copia e Cola */}
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-700 text-center">Ou copie o código PIX:</p>
+                    <p className="text-xs font-medium text-center" style={{ color: labelColor }}>Ou copie o código PIX:</p>
                     <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={pixData.brCode}
-                        className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600 truncate"
-                      />
-                      <button
-                        onClick={handleCopyPix}
-                        className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
-                        style={{ background: copied ? '#10B981' : primary, color: 'white', borderRadius }}
-                      >
-                        <Copy className="w-3 h-3" />
-                        {copied ? 'Copiado!' : 'Copiar'}
+                      <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: inputBorder, background: isDark ? "#111" : "#F9FAFB", color: subtleText }} />
+                      <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : primary, color: 'white', borderRadius }}>
+                        <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
                       </button>
-                    </div>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                      <Smartphone className="w-4 h-4" />
-                      Abra o app do seu banco e escaneie o QR Code
                     </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  {/* PIX Benefits */}
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-green-500" />
+                    {[
+                      { icon: <Zap className="w-4 h-4 text-green-500" />, bg: isDark ? "#0a2a0a" : "#F0FDF4", title: "Aprovação instantânea", sub: "Liberação imediata" },
+                      { icon: <Check className="w-4 h-4 text-blue-500" />, bg: isDark ? "#0a0a2a" : "#EFF6FF", title: "Sem custos extras", sub: "Transferência gratuita" },
+                      { icon: <ShieldCheck className="w-4 h-4 text-purple-500" />, bg: isDark ? "#1a0a2a" : "#F5F3FF", title: "100% Seguro", sub: "Desenvolvido pelo Banco Central" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: item.bg }}>{item.icon}</div>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: textColor }}>{item.title}</p>
+                          <p className="text-xs" style={{ color: subtleText }}>{item.sub}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Aprovação instantânea</p>
-                        <p className="text-xs text-gray-500">Liberação imediata</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Sem custos extras</p>
-                        <p className="text-xs text-gray-500">Transferência gratuita</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                        <ShieldCheck className="w-4 h-4 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">100% Seguro</p>
-                        <p className="text-xs text-gray-500">Desenvolvido pelo Banco Central</p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
                   {pixError && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
-                      <AlertTriangle className="w-4 h-4" />
-                      {pixError}
+                      <AlertTriangle className="w-4 h-4" /> {pixError}
                     </div>
                   )}
-
-                  {/* Generate QR Code Button */}
                   <button
-                    type="button"
-                    onClick={handleGeneratePix}
-                    disabled={pixLoading}
-                    className="w-full py-3.5 text-white font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: primary, borderRadius }}
+                    type="button" onClick={handleGeneratePix} disabled={pixLoading}
+                    className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+                    style={{ background: primary, color: "#FFFFFF", borderRadius }}
                   >
-                    {pixLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <QrCode className="w-4 h-4" />
-                    )}
+                    {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
                     {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
                   </button>
                 </>
@@ -553,7 +469,7 @@ export default function CheckoutPreview({ config }: Props) {
 
         {/* Guarantee */}
         {config.showGuarantee && (
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 py-2">
+          <div className="flex items-center justify-center gap-2 text-xs py-2" style={{ color: subtleText }}>
             <ShieldCheck className="w-4 h-4 text-green-500" />
             <span>Garantia de {config.guaranteeDays} dias — Satisfação ou dinheiro de volta</span>
           </div>
@@ -561,16 +477,16 @@ export default function CheckoutPreview({ config }: Props) {
 
         {/* Security Badges */}
         {config.showSecurityBadges && (
-          <div className="flex items-center justify-center gap-3 pt-1">
-            {["🔒 SSL", "Visa", "Master", "PIX"].map(badge => (
-              <span key={badge} className="text-[10px] font-medium px-2 py-1 text-gray-400 border border-gray-200 rounded">
+          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+            {["🔒 SSL", "Visa", "Master", "Elo", "PIX"].map(badge => (
+              <span key={badge} className="text-[10px] font-medium px-2 py-1 border rounded" style={{ color: subtleText, borderColor: cardBorder }}>
                 {badge}
               </span>
             ))}
           </div>
         )}
 
-        <p className="text-center text-[10px] text-gray-400 pb-4">
+        <p className="text-center text-[10px] pb-4" style={{ color: subtleText }}>
           Pagamento processado com segurança por ZapLynxPay
         </p>
       </div>
