@@ -190,7 +190,20 @@ export default function PayReports() {
                             {!tx.customer_phone && !tx.customer_email && "—"}
                           </TableCell>
                           <TableCell className="text-xs">{checkout?.name || "—"}</TableCell>
-                          <TableCell className="font-mono text-[10px] text-muted-foreground max-w-[150px] truncate" title={tx.external_id || ""}>{tx.external_id || "—"}</TableCell>
+                          <TableCell className="font-mono text-[10px] text-muted-foreground max-w-[200px]">
+                            {(tx as any).metadata?.brCode ? (
+                              <button
+                                className="text-left truncate max-w-[200px] hover:text-foreground transition-colors"
+                                title="Clique para copiar o código PIX completo"
+                                onClick={() => {
+                                  navigator.clipboard.writeText((tx as any).metadata.brCode);
+                                  import('sonner').then(m => m.toast.success('Código PIX copiado!'));
+                                }}
+                              >
+                                {(tx as any).metadata.brCode.slice(0, 30)}…
+                              </button>
+                            ) : tx.external_id || "—"}
+                          </TableCell>
                           <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
                           <TableCell className="font-medium">{formatCurrency(tx.net)}</TableCell>

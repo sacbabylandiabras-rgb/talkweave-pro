@@ -104,7 +104,7 @@ serve(async (req) => {
       customer_name: customerName || null,
       customer_email: customerEmail || null,
       customer_phone: customerPhone || null,
-      metadata: { openpix_charge_id: charge.id || correlationID },
+      metadata: { openpix_charge_id: charge.id || correlationID, brCode: brCode || null },
     })
 
     // Increment conversions
