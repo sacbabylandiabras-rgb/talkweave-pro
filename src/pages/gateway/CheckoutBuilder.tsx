@@ -70,9 +70,9 @@ export default function CheckoutBuilder() {
   const [loading, setLoading] = useState(true);
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
 
-  const applyTemplate = (settings: Record<string, any>, templateName: string) => {
+  const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
     setConfig(prev => ({ ...prev, ...settings }));
-    setActiveTemplateId(settings.id || templateName.toLowerCase().replace(/\s+/g, "-"));
+    setActiveTemplateId(templateId);
     toast.success(`✅ Modelo "${templateName}" aplicado! Personalize como quiser.`);
   };
 

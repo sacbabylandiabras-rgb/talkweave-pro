@@ -320,7 +320,7 @@ export default function CheckoutTemplateGallery({ onApply, activeTemplateId }: P
                   className="w-full text-xs font-semibold"
                   style={{ background: "#FF4D2E", color: "#fff" }}
                   onClick={() => {
-                    onApply(template.settings, template.name);
+                    onApply(template.settings, template.name, template.id);
                     setOpen(false);
                   }}
                 >
