@@ -14,13 +14,11 @@ interface Transaction {
   id: string;
   customer_name: string | null;
   customer_email: string | null;
-  gross_amount: number;
+  amount: number;
   fee: number;
-  net_amount: number;
-  method: string;
+  net: number;
+  payment_method: string;
   status: string;
-  installments: number;
-  acquirer: string | null;
   created_at: string;
   product_id: string | null;
 }

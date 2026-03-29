@@ -9,10 +9,10 @@ import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 interface Transaction {
   id: string;
   customer_name: string | null;
-  gross_amount: number;
+  amount: number;
   fee: number;
-  net_amount: number;
-  method: string;
+  net: number;
+  payment_method: string;
   status: string;
   created_at: string;
 }
