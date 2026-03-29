@@ -7,6 +7,7 @@ import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpac
 import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
 import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
+import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
 
 interface CheckoutConfig {
   productName: string;
