@@ -151,7 +151,7 @@ export default function AltoImpactoLayout({ config }: Props) {
                     <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primary }}>
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: primary }} />
                     </div>
-                    <QrCode className="w-4 h-4 text-gray-600" />
+                    <PixIcon size={18} />
                     <span className="text-sm font-medium">Pix</span>
                   </div>
                 )}
@@ -159,20 +159,18 @@ export default function AltoImpactoLayout({ config }: Props) {
                   <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                     <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
                     <CreditCard className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Cartão de Crédito</span>
-                    <div className="ml-auto flex gap-1">
-                      {["Visa", "MC", "Elo"].map(b => (
-                        <span key={b} className="text-[9px] px-1 py-0.5 rounded border border-gray-200 text-gray-400">{b}</span>
-                      ))}
+                    <div className="flex-1">
+                      <span className="text-sm text-gray-600">Cartão de Crédito</span>
+                      <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
+                      <CardBrandsRow size={24} />
                     </div>
                   </div>
                 )}
                 {config.boleto && (
                   <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                     <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                    <FileText className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Boleto Bancário</span>
-                    <span className="ml-auto text-[10px] text-gray-400">Vencimento em 3 dias</span>
+                    <div className="text-gray-400"><BoletoIcon size={18} /></div>
+                    <span className="text-sm text-gray-600">Boleto</span>
                   </div>
                 )}
               </div>
