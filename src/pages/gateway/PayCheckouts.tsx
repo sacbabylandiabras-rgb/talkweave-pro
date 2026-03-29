@@ -15,8 +15,7 @@ interface Checkout {
   status: boolean;
   slug: string | null;
   visits: number;
-  initiated: number;
-  approved: number;
+  conversions: number;
   product_id: string | null;
   product_name?: string;
 }
@@ -53,9 +52,9 @@ export default function PayCheckouts() {
     fetchData();
   };
 
-  const totalVisits = checkouts.reduce((a, c) => a + c.visits, 0);
-  const totalApproved = checkouts.reduce((a, c) => a + c.approved, 0);
-  const avgConversion = totalVisits > 0 ? ((totalApproved / totalVisits) * 100).toFixed(1) : "0";
+  const totalVisits = checkouts.reduce((a, c) => a + (c.visits || 0), 0);
+  const totalConversions = checkouts.reduce((a, c) => a + (c.conversions || 0), 0);
+  const avgConversion = totalVisits > 0 ? ((totalConversions / totalVisits) * 100).toFixed(1) : "0";
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -110,7 +109,7 @@ export default function PayCheckouts() {
               </TableHeader>
               <TableBody>
                 {checkouts.map(ck => {
-                  const conversion = ck.visits > 0 ? ((ck.approved / ck.visits) * 100).toFixed(1) : "0.0";
+                  const conversion = ck.visits > 0 ? (((ck.conversions || 0) / ck.visits) * 100).toFixed(1) : "0.0";
                   return (
                     <TableRow key={ck.id} className="border-[#2A2A2A]">
                       <TableCell className="font-medium">{ck.name}</TableCell>
