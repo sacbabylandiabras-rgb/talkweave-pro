@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Lock, ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
 
 interface Props {
   config: Record<string, any>;
@@ -18,20 +19,16 @@ export default function ConfiancaLayout({ config }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const primary = config.primaryColor || "#7AC800";
-  const bgColor = config.bgColor || "#C8E832";
+  const s = getCheckoutStyles(config);
+  const bannerBg = config.bgColor || "#C8E832";
   const unitPrice = config.price || 9900;
   const subtotal = unitPrice * quantity;
 
-  const inputClass = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md outline-none bg-white text-gray-800 placeholder:text-gray-400 focus:border-gray-400 transition-colors";
-  const labelClass = "text-xs font-medium text-gray-600 block mb-1.5";
-
   return (
-    <div className="h-full overflow-auto" style={{ fontFamily: "'Inter', sans-serif", color: "#1A1A1A" }}>
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
-        <span className="text-sm font-bold text-gray-900">
+    <div className="h-full overflow-auto" style={{ fontFamily: s.fontFamily, color: s.textColor }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 border-b" style={{ background: s.cardBg, borderColor: s.cardBorder }}>
+        <span className="text-sm font-bold" style={{ color: s.cardTitle }}>
           {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-7 object-contain" /> : "Minha Loja"}
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#16A34A" }}>
@@ -40,165 +37,114 @@ export default function ConfiancaLayout({ config }: Props) {
         </span>
       </div>
 
-      {/* ── Banner area (lime green) ── */}
-      <div className="w-full py-8 px-6 flex items-center justify-center" style={{ background: bgColor }}>
+      {/* Banner */}
+      <div className="w-full py-8 px-6 flex items-center justify-center" style={{ background: bannerBg }}>
         {config.productImage ? (
-          <img src={config.productImage} alt="" className="max-h-40 object-contain rounded-xl" />
+          <img src={config.productImage} alt="" className="max-h-40 object-contain" style={{ borderRadius: s.cardRadius }} />
         ) : (
           <div className="text-center">
             <p className="text-lg font-bold" style={{ color: "#1A1A1A" }}>Revele sua <em className="font-extrabold not-italic">beleza interior</em></p>
             <p className="text-lg font-bold" style={{ color: "#1A1A1A" }}>e exterior.</p>
             <div className="mt-3 inline-flex items-center gap-2 bg-white/80 rounded-full px-4 py-1.5">
-              <ShieldCheck className="w-4 h-4" style={{ color: primary }} />
+              <ShieldCheck className="w-4 h-4" style={{ color: s.primary }} />
               <span className="text-xs font-semibold">Compra segura.</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Step indicators ── */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Step indicators */}
+      <div style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
         <div className="flex items-center justify-center gap-10 py-3 mx-auto" style={{ maxWidth: "700px" }}>
           {[
             { icon: User, label: "Identificação", active: true },
             { icon: Truck, label: "Endereço", active: false },
             { icon: CreditCard, label: "Pagamento", active: false },
-          ].map((s, i) => (
+          ].map((st, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: s.active ? `${primary}20` : "#F3F4F6", border: s.active ? `2px solid ${primary}` : "2px solid transparent" }}
-              >
-                <s.icon className="w-4 h-4" style={{ color: s.active ? primary : "#9CA3AF" }} />
+              <div className="w-8 h-8 flex items-center justify-center" style={{
+                borderRadius: s.stepRadius,
+                background: st.active ? `${s.stepBg}20` : (s.isDark ? "#333" : "#F3F4F6"),
+                border: st.active ? `2px solid ${s.stepBg}` : "2px solid transparent",
+              }}>
+                <st.icon className="w-4 h-4" style={{ color: st.active ? s.stepBg : s.cardLabel }} />
               </div>
-              <span className="text-[10px] font-semibold" style={{ color: s.active ? primary : "#9CA3AF" }}>{s.label}</span>
+              <span className="text-[10px] font-semibold" style={{ color: st.active ? s.stepBg : s.cardLabel }}>{st.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Main content ── */}
-      <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: "#FAFAFA" }}>
+      {/* Main content */}
+      <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: s.bgColor }}>
         <div className="flex flex-col lg:flex-row gap-5">
-
-          {/* ═══ LEFT: Form ═══ */}
           <div className="flex-1 space-y-4">
-
             {/* Dados pessoais */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <div className="border p-5 space-y-3" style={cardStyle(s)}>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Dados pessoais</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">
+                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
+                <p className="text-[11px] mt-0.5" style={{ color: s.cardDesc }}>
                   Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, verificação de pedidos e carrinho de compras.
                 </p>
               </div>
-              <div>
-                <label className={labelClass}>Nome completo</label>
-                <input className={inputClass} placeholder="Ex.: Maria da Silva" />
-              </div>
-              <div>
-                <label className={labelClass}>E-mail</label>
-                <input className={inputClass} placeholder="Ex.: maria@email.com" />
-              </div>
-              {config.showCpf && (
-                <div>
-                  <label className={labelClass}>CPF</label>
-                  <input className={inputClass} placeholder="000.000.000-00" />
-                </div>
-              )}
+              <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: Maria da Silva" /></div>
+              <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: maria@email.com" /></div>
+              {config.showCpf && <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>CPF</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" /></div>}
               {config.showPhone && (
                 <div>
-                  <label className={labelClass}>Celular / WhatsApp</label>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Celular / WhatsApp</label>
                   <div className="flex gap-2">
-                    <span className="flex items-center px-2.5 py-2 border border-gray-200 rounded-md text-xs text-gray-500 bg-gray-50">+55</span>
-                    <input className={`${inputClass} flex-1`} placeholder="(00) 00000-0000" />
+                    <span className="flex items-center px-2.5 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>+55</span>
+                    <input className="flex-1 px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" />
                   </div>
                 </div>
               )}
-
-              <button
-                className="w-full py-3 font-bold text-sm rounded-lg transition-transform hover:scale-[1.01]"
-                style={{ background: primary, color: "#FFFFFF" }}
-              >
-                Ir para Entrega
-              </button>
+              <button className="w-full py-3 font-bold text-sm transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>Ir para Entrega</button>
             </div>
 
             {/* FAQ */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-2">
-              <h3 className="text-sm font-bold text-gray-900 mb-2" style={{ color: primary }}>Perguntas Frequentes</h3>
+            <div className="border p-5 space-y-2" style={cardStyle(s)}>
+              <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
               {FAQ_ITEMS.map((item, i) => (
-                <div key={i} className="border-b border-gray-100 last:border-0">
-                  <button
-                    className="w-full flex items-center justify-between py-3 text-left"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  >
-                    <span className="text-xs font-medium text-gray-700">{item.q}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
+                <div key={i} style={{ borderBottom: `1px solid ${s.cardBorder}` }} className="last:border-0">
+                  <button className="w-full flex items-center justify-between py-3 text-left" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                    <span className="text-xs font-medium" style={{ color: s.cardText }}>{item.q}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
                   </button>
-                  {openFaq === i && (
-                    <p className="text-xs text-gray-500 pb-3 leading-relaxed">{item.a}</p>
-                  )}
+                  {openFaq === i && <p className="text-xs pb-3 leading-relaxed" style={{ color: s.cardDesc }}>{item.a}</p>}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ═══ RIGHT: Sidebar ═══ */}
+          {/* RIGHT: Sidebar */}
           <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
-
-            {/* Resumo do pedido */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Resumo do pedido</h3>
-
-              {/* Product */}
+            <div className="border p-4 space-y-3" style={cardStyle(s)}>
+              <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo do pedido</h3>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {config.productImage ? (
-                    <img src={config.productImage} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-5 h-5 text-gray-400" />
-                  )}
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                  {config.productImage ? <img src={config.productImage} alt="" className="w-full h-full object-cover" /> : <Package className="w-5 h-5" style={{ color: s.cardLabel }} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 truncate">{config.offerName || config.productName || "Produto Exemplo"}</p>
-                  <p className="text-xs font-bold" style={{ color: primary }}>{formatCurrency(unitPrice)}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: s.cardTitle }}>{config.offerName || config.productName || "Produto Exemplo"}</p>
+                  <p className="text-xs font-bold" style={{ color: s.primary }}>{formatCurrency(unitPrice)}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center">
-                    <Minus className="w-3 h-3 text-gray-400" />
-                  </button>
-                  <span className="text-xs font-medium text-gray-700 w-4 text-center">{quantity}</span>
-                  <button onClick={() => setQuantity(q => q + 1)} className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center">
-                    <Plus className="w-3 h-3 text-gray-400" />
-                  </button>
-                  <button className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-500">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-5 h-5 rounded border flex items-center justify-center" style={{ borderColor: s.cardBorder }}><Minus className="w-3 h-3" style={{ color: s.cardLabel }} /></button>
+                  <span className="text-xs font-medium w-4 text-center" style={{ color: s.cardText }}>{quantity}</span>
+                  <button onClick={() => setQuantity(q => q + 1)} className="w-5 h-5 rounded border flex items-center justify-center" style={{ borderColor: s.cardBorder }}><Plus className="w-3 h-3" style={{ color: s.cardLabel }} /></button>
+                  <button className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
                 </div>
               </div>
-
-              {/* Coupon */}
               <div className="flex gap-2">
-                <input className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-md outline-none placeholder:text-gray-400" placeholder="Cupom de desconto" />
-                <button className="px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50">
-                  Aplicar
-                </button>
+                <input className="flex-1 px-2.5 py-1.5 text-xs border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cupom de desconto" />
+                <button className="px-3 py-1.5 text-xs font-semibold border" style={{ borderRadius: s.buttonRadius, borderColor: s.cardBorder, color: s.cardText, background: s.cardBg }}>Aplicar</button>
               </div>
-
-              {/* Totals */}
-              <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span className="text-gray-800 font-medium">{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Frete</span>
-                  <span className="font-medium" style={{ color: "#16A34A" }}>Grátis</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-gray-100">
-                  <span className="text-gray-900">Total</span>
-                  <span style={{ color: primary }}>{formatCurrency(subtotal)}</span>
+              <div className="space-y-1.5 pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Subtotal</span><span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(subtotal)}</span></div>
+                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: "#16A34A" }}>Grátis</span></div>
+                <div className="flex justify-between text-sm font-bold pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                  <span style={{ color: s.cardTitle }}>Total</span><span style={{ color: s.primary }}>{formatCurrency(subtotal)}</span>
                 </div>
               </div>
             </div>
@@ -208,59 +154,37 @@ export default function ConfiancaLayout({ config }: Props) {
               { name: "Mariana Lopes", text: "Atendimento excelente e tudo chegou perfeito. Recomendo!" },
               { name: "Ana Paula", text: "Produto de ótima qualidade e entrega super rápida. Amei!" },
             ].map((t, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+              <div key={i} className="border p-4" style={cardStyle(s)}>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User className="w-3 h-3 text-gray-500" />
-                  </div>
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: s.isDark ? "#333" : "#E5E7EB" }}><User className="w-3 h-3" style={{ color: s.cardLabel }} /></div>
+                  <div className="flex items-center gap-0.5">{[1, 2, 3, 4, 5].map(st => <Star key={st} className="w-3 h-3 fill-yellow-400 text-yellow-400" />)}</div>
                 </div>
-                <p className="text-xs font-bold text-gray-900">{t.name}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{t.text}</p>
+                <p className="text-xs font-bold" style={{ color: s.cardTitle }}>{t.name}</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: s.cardDesc }}>{t.text}</p>
               </div>
             ))}
 
-            {/* Shipping & Security info */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            {/* Shipping & Security */}
+            <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                  <Truck className="w-3.5 h-3.5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold" style={{ color: primary }}>Frete Grátis</p>
-                  <p className="text-[10px] text-gray-500">Para todo o Brasil em compras acima de R$ 199</p>
-                </div>
+                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0"><Truck className="w-3.5 h-3.5 text-blue-500" /></div>
+                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Frete Grátis</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Para todo o Brasil em compras acima de R$ 199</p></div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
-                  <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold" style={{ color: primary }}>Compra Segura</p>
-                  <p className="text-[10px] text-gray-500">Seus dados protegidos e pagamento seguro</p>
-                </div>
+                <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0"><ShieldCheck className="w-3.5 h-3.5 text-green-500" /></div>
+                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Compra Segura</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Seus dados protegidos e pagamento seguro</p></div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-3.5 h-3.5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold" style={{ color: primary }}>Entrega Rápida</p>
-                  <p className="text-[10px] text-gray-500">Enviamos em até 24 horas após a confirmação</p>
-                </div>
+                <div className="w-7 h-7 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0"><Zap className="w-3.5 h-3.5 text-yellow-500" /></div>
+                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Entrega Rápida</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Enviamos em até 24 horas após a confirmação</p></div>
               </div>
             </div>
 
-            {/* Guarantee */}
             {config.showGuarantee && (
-              <div className="rounded-xl border-2 border-dashed p-4 text-center" style={{ borderColor: primary, background: `${primary}10` }}>
-                <ShieldCheck className="w-6 h-6 mx-auto mb-1" style={{ color: primary }} />
-                <p className="text-xs font-bold" style={{ color: primary }}>Garantia de {config.guaranteeDays || 30} dias</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Satisfação garantida ou seu dinheiro de volta</p>
+              <div className="border-2 border-dashed p-4 text-center" style={{ borderRadius: s.cardRadius, borderColor: s.primary, background: `${s.primary}10` }}>
+                <ShieldCheck className="w-6 h-6 mx-auto mb-1" style={{ color: s.primary }} />
+                <p className="text-xs font-bold" style={{ color: s.primary }}>Garantia de {config.guaranteeDays || 30} dias</p>
+                <p className="text-[10px] mt-0.5" style={{ color: s.cardDesc }}>Satisfação garantida ou seu dinheiro de volta</p>
               </div>
             )}
           </div>
