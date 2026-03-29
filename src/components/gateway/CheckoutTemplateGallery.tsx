@@ -310,7 +310,7 @@ export default function CheckoutTemplateGallery({ onApply, activeTemplateId }: P
                 <div className="flex items-start gap-3 mb-3">
                   {template.icon}
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground">{template.name}</p>
+                    <p className="font-semibold text-sm" style={{ color: "#000000" }}>{template.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                       {template.description}
                     </p>
