@@ -49,8 +49,8 @@ export default function PayReports() {
   const avgTicket = approved.length > 0 ? Math.round(totalRevenue / approved.length) : 0;
 
   const methodGroups = transactions.reduce((acc, tx) => {
-    const label = getMethodLabel(tx.method);
-    acc[label] = (acc[label] || 0) + tx.gross_amount;
+    const label = getMethodLabel(tx.payment_method);
+    acc[label] = (acc[label] || 0) + tx.amount;
     return acc;
   }, {} as Record<string, number>);
   const methodData = Object.entries(methodGroups).map(([name, value]) => ({ name, value: value / 100 }));
