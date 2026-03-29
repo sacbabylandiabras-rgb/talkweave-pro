@@ -45,6 +45,59 @@ export default function CheckoutPreview({ config }: Props) {
   const [step, setStep] = useState<"identification" | "payment">("identification");
   const [purchaseCount, setPurchaseCount] = useState(60);
   const [quantity, setQuantity] = useState(1);
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
+  const [pixError, setPixError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Form state
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+
+  const handleGeneratePix = async () => {
+    setPixLoading(true);
+    setPixError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const slug = window.location.pathname.split('/pay/')[1];
+      
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
+        method: 'POST',
+        headers: {
+          'apikey': anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          slug,
+          amount: pixPrice,
+          customerName: formName || undefined,
+          customerEmail: formEmail || undefined,
+          customerPhone: formPhone || undefined,
+          customerCpf: formCpf || undefined,
+        }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
+      
+      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode });
+    } catch (e: any) {
+      setPixError(e.message || 'Erro ao gerar PIX');
+    } finally {
+      setPixLoading(false);
+    }
+  };
+
+  const handleCopyPix = () => {
+    if (pixData?.brCode) {
+      navigator.clipboard.writeText(pixData.brCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Simulate purchase counter
   useEffect(() => {
