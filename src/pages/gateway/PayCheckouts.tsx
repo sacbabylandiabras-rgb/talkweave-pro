@@ -53,9 +53,9 @@ export default function PayCheckouts() {
     fetchData();
   };
 
-  const totalVisits = checkouts.reduce((a, c) => a + c.visits, 0);
-  const totalApproved = checkouts.reduce((a, c) => a + c.approved, 0);
-  const avgConversion = totalVisits > 0 ? ((totalApproved / totalVisits) * 100).toFixed(1) : "0";
+  const totalVisits = checkouts.reduce((a, c) => a + (c.visits || 0), 0);
+  const totalConversions = checkouts.reduce((a, c) => a + (c.conversions || 0), 0);
+  const avgConversion = totalVisits > 0 ? ((totalConversions / totalVisits) * 100).toFixed(1) : "0";
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
