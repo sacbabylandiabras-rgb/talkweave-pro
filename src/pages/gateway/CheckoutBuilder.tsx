@@ -853,10 +853,7 @@ export default function CheckoutBuilder() {
             >
               <div
                 style={{
-                  width: `${previewViewportWidth}px`,
-                  minWidth: `${previewViewportWidth}px`,
-                  zoom: previewScale,
-                  transition: "width 0.3s ease, zoom 0.3s ease",
+                  width: "100%",
                 }}
               >
                 <CheckoutPreview config={config} templateName={activeTemplateName} />
