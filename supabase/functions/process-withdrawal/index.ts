@@ -1,0 +1,198 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    // Validate auth
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Verify admin
+    const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    })
+    const { data: userData, error: userError } = await anonClient.auth.getUser()
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminId = userData.user.id
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', adminId)
+      .eq('role', 'admin')
+      .single()
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { withdrawalId, action, adminNotes } = await req.json()
+
+    if (!withdrawalId || !action || !['approved', 'rejected'].includes(action)) {
+      return new Response(JSON.stringify({ error: 'Invalid request: withdrawalId and action (approved/rejected) required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Get withdrawal
+    const { data: withdrawal, error: wErr } = await supabase
+      .from('gateway_withdrawals')
+      .select('*')
+      .eq('id', withdrawalId)
+      .single()
+
+    if (wErr || !withdrawal) {
+      return new Response(JSON.stringify({ error: 'Withdrawal not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (withdrawal.status !== 'pending' && withdrawal.status !== 'processing') {
+      return new Response(JSON.stringify({ error: 'Withdrawal already processed' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // If rejected, just update status
+    if (action === 'rejected') {
+      if (!adminNotes?.trim()) {
+        return new Response(JSON.stringify({ error: 'Rejection reason is required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      await supabase
+        .from('gateway_withdrawals')
+        .update({
+          status: 'rejected',
+          admin_notes: adminNotes.trim(),
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', withdrawalId)
+
+      return new Response(JSON.stringify({ success: true, status: 'rejected' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // APPROVED: execute PIX transfer via OpenPix
+    const openpixAppId = Deno.env.get('OPENPIX_APP_ID')
+    if (!openpixAppId) {
+      return new Response(JSON.stringify({ error: 'OpenPix not configured. Cannot process automatic payout.' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Mark as processing
+    await supabase
+      .from('gateway_withdrawals')
+      .update({ status: 'processing' })
+      .eq('id', withdrawalId)
+
+    // Map pix_key_type to OpenPix key type
+    const pixKeyTypeMap: Record<string, string> = {
+      'cpf': 'CPF',
+      'cnpj': 'CNPJ',
+      'email': 'EMAIL',
+      'telefone': 'PHONE',
+      'phone': 'PHONE',
+      'aleatoria': 'RANDOM',
+      'random': 'RANDOM',
+      'evp': 'RANDOM',
+    }
+
+    const keyType = pixKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'CPF'
+    const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
+
+    console.log(`Processing withdrawal ${withdrawal.id}: ${withdrawal.amount} cents to ${withdrawal.pix_key} (${keyType})`)
+
+    // Create payment request on OpenPix
+    const paymentRes = await fetch('https://api.openpix.com.br/api/v1/payment', {
+      method: 'POST',
+      headers: {
+        'Authorization': openpixAppId,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        value: withdrawal.amount,
+        destinationAlias: withdrawal.pix_key,
+        destinationAliasType: keyType,
+        correlationID,
+        comment: `Saque ZapLynxPay #${withdrawal.id.slice(0, 8)}`,
+      }),
+    })
+
+    const paymentData = await paymentRes.json()
+    console.log('OpenPix payment response:', JSON.stringify(paymentData))
+
+    if (!paymentRes.ok) {
+      console.error('OpenPix payment error:', paymentData)
+
+      // Revert to pending
+      await supabase
+        .from('gateway_withdrawals')
+        .update({
+          status: 'pending',
+          admin_notes: `Erro OpenPix: ${paymentData?.message || paymentData?.error || JSON.stringify(paymentData)}`,
+        })
+        .eq('id', withdrawalId)
+
+      return new Response(JSON.stringify({
+        error: 'Falha ao processar transferência PIX',
+        details: paymentData?.message || paymentData?.error || 'Unknown OpenPix error',
+      }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Success - update withdrawal
+    await supabase
+      .from('gateway_withdrawals')
+      .update({
+        status: 'approved',
+        admin_notes: adminNotes?.trim() || `PIX enviado automaticamente. Correlation: ${correlationID}`,
+        reviewed_by: adminId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', withdrawalId)
+
+    return new Response(JSON.stringify({
+      success: true,
+      status: 'approved',
+      correlationID,
+      message: 'Transferência PIX processada com sucesso',
+    }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+
+  } catch (error) {
+    console.error('Process withdrawal error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})
