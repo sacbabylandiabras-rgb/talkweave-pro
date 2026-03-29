@@ -48,6 +48,8 @@ const defaultConfig = {
   orderBumpPrice: 2900,
   productImage: "",
   logoUrl: "",
+  templateId: "",
+  templateName: "",
 };
 
 const formatOptions = [
@@ -57,6 +59,15 @@ const formatOptions = [
   { value: "one_step", label: "One Step", desc: "Tudo em uma tela" },
   { value: "multi_step", label: "Multi Step", desc: "Dados → Entrega → Pagamento → Confirmação" },
 ];
+
+const TEMPLATE_NAMES: Record<string, string> = {
+  minimalista: "Minimalista",
+  "alto-impacto": "Alto Impacto / Conversão",
+  tiktok: "Estilo TikTok / TokLynx",
+  streamline: "Streamline (3 Etapas)",
+  lynxfy: "LynxFy (2 Colunas)",
+  confianca: "Confiança (Verde)",
+};
 
 export default function CheckoutBuilder() {
   const navigate = useNavigate();
@@ -70,8 +81,12 @@ export default function CheckoutBuilder() {
   const [loading, setLoading] = useState(true);
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
 
+  const activeTemplateName = activeTemplateId
+    ? TEMPLATE_NAMES[activeTemplateId] || activeTemplateId
+    : config.templateName;
+
   const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
-    setConfig(prev => ({ ...prev, ...settings }));
+    setConfig(prev => ({ ...prev, ...settings, templateId, templateName }));
     setActiveTemplateId(templateId);
     toast.success(`✅ Modelo "${templateName}" aplicado! Personalize como quiser.`);
   };
@@ -93,6 +108,9 @@ export default function CheckoutBuilder() {
           setSelectedProductId(ck.product_id || "");
           if (ck.config) {
             setConfig(prev => ({ ...prev, ...ck.config }));
+            if (ck.config.templateId) {
+              setActiveTemplateId(ck.config.templateId);
+            }
           }
         }
       }
@@ -162,19 +180,9 @@ export default function CheckoutBuilder() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-foreground">Construtor de Checkout</h1>
-              {activeTemplateId && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#FFF5F3", color: "#FF4D2E", border: "1px solid #FFD5CC" }}>
-                  Modelo: {(() => {
-                    const names: Record<string, string> = {
-                      minimalista: "Minimalista",
-                      "alto-impacto": "Alto Impacto",
-                      tiktok: "TikTok / TokLynx",
-                      streamline: "Streamline",
-                      lynxfy: "LynxFy",
-                      confianca: "Confiança (Verde)",
-                    };
-                    return names[activeTemplateId] || activeTemplateId;
-                  })()}
+              {activeTemplateName && (
+                <span className="rounded-full border border-border bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+                  Modelo: {activeTemplateName}
                 </span>
               )}
             </div>
@@ -561,18 +569,15 @@ export default function CheckoutBuilder() {
                 <span className="text-[10px] text-muted-foreground">
                   {formatOptions.find(f => f.value === config.format)?.label}
                 </span>
-                {activeTemplateId && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: "#FF4D2E", color: "#fff" }}>
-                    {(() => {
-                      const names: Record<string, string> = { minimalista: "Minimalista", "alto-impacto": "Alto Impacto", tiktok: "TikTok", streamline: "Streamline", lynxfy: "LynxFy", confianca: "Confiança" };
-                      return names[activeTemplateId] || activeTemplateId;
-                    })()}
+                {activeTemplateName && (
+                  <span className="rounded border border-border bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                    {activeTemplateName}
                   </span>
                 )}
               </div>
             </CardHeader>
             <CardContent className="p-0" style={{ minHeight: "calc(100vh - 280px)" }}>
-              <CheckoutPreview config={config} />
+              <CheckoutPreview config={config} templateName={activeTemplateName} />
             </CardContent>
           </Card>
         </div>

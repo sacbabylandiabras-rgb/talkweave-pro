@@ -35,13 +35,16 @@ interface CheckoutConfig {
   orderBumpPrice: number;
   productImage?: string;
   logoUrl?: string;
+  templateId?: string;
+  templateName?: string;
 }
 
 interface Props {
   config: CheckoutConfig;
+  templateName?: string;
 }
 
-export default function CheckoutPreview({ config }: Props) {
+export default function CheckoutPreview({ config, templateName }: Props) {
   const [step, setStep] = useState<"identification" | "payment">("identification");
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
@@ -159,6 +162,15 @@ export default function CheckoutPreview({ config }: Props) {
       )}
 
       <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
+
+        {templateName && (
+          <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Modelo aplicado
+            </p>
+            <p className="mt-1 text-sm font-bold text-foreground">{templateName}</p>
+          </div>
+        )}
 
         {/* Step Indicators */}
         <div className="flex items-center justify-center gap-8 py-2">
