@@ -557,9 +557,19 @@ export default function CheckoutBuilder() {
                   pay.zaplynx.com/c/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
                 </span>
               </div>
-              <span className="text-[10px] text-muted-foreground">
-                {formatOptions.find(f => f.value === config.format)?.label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">
+                  {formatOptions.find(f => f.value === config.format)?.label}
+                </span>
+                {activeTemplateId && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: "#FF4D2E", color: "#fff" }}>
+                    {(() => {
+                      const names: Record<string, string> = { minimalista: "Minimalista", "alto-impacto": "Alto Impacto", tiktok: "TikTok", streamline: "Streamline", lynxfy: "LynxFy", confianca: "Confiança" };
+                      return names[activeTemplateId] || activeTemplateId;
+                    })()}
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-0" style={{ minHeight: "calc(100vh - 280px)" }}>
               <CheckoutPreview config={config} />
