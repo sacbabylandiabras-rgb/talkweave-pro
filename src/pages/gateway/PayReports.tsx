@@ -14,6 +14,7 @@ interface Transaction {
   id: string;
   customer_name: string | null;
   customer_email: string | null;
+  customer_phone: string | null;
   amount: number;
   fee: number;
   net: number;
@@ -21,6 +22,8 @@ interface Transaction {
   status: string;
   created_at: string;
   product_id: string | null;
+  checkout_id: string | null;
+  external_id: string | null;
 }
 
 export default function PayReports() {
