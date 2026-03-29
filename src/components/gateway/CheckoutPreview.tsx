@@ -299,6 +299,8 @@ export default function CheckoutPreview({ config }: Props) {
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 outline-none bg-white text-gray-700 placeholder:text-gray-400"
                     style={{ borderRadius: inputRadius }}
                     placeholder="Ex.: maria@email.com"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
                   />
                 </div>
 
