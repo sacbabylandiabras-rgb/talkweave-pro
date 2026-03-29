@@ -100,7 +100,7 @@ export default function AdminAcquirers() {
                 variant="outline"
                 size="sm"
                 className="flex-1 text-xs rounded-full"
-                onClick={() => window.open("https://app.openpix.com.br", "_blank")}
+                onClick={() => window.open("https://app.woovi.com", "_blank")}
               >
                 <Settings className="w-3 h-3 mr-1" /> Configurar
               </Button>
