@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle } from "lucide-react";
+import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 
 interface CheckoutConfig {
