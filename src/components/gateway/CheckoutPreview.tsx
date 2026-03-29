@@ -5,6 +5,7 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
 import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
+import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 
 interface CheckoutConfig {
   productName: string;
@@ -148,6 +149,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   }
   if (config.templateId === "tiktok") {
     return <TikTokLayout config={config} />;
+  }
+  if (config.templateId === "streamline") {
+    return <StreamlineLayout config={config} />;
   }
 
   return (
