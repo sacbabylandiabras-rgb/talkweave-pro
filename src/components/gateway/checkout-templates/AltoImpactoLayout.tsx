@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Lock, ShieldCheck, CreditCard, QrCode, FileText, Package, ShoppingBag } from "lucide-react";
+import { Lock, ShieldCheck, CreditCard, Package, ShoppingBag } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
 
 interface Props {
   config: Record<string, any>;
