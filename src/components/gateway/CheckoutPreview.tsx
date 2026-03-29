@@ -154,6 +154,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   if (config.templateId === "streamline") {
     return <StreamlineLayout config={config} />;
   }
+  if (config.templateId === "lynxfy") {
+    return <LynxFyLayout config={config} />;
+  }
 
   return (
     <div
