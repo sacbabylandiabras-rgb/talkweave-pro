@@ -323,9 +323,7 @@ export default function MinimalistaLayout({ config }: Props) {
       </div>
 
       {/* Footer */}
-      <p className="text-center text-[10px] text-gray-400 py-4">
-        Formas de Pagamento
-      </p>
+      <PaymentFooter />
     </div>
   );
 }

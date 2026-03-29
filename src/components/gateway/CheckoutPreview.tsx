@@ -500,19 +500,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
         )}
 
         {/* Security Badges */}
-        {config.showSecurityBadges && (
-          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
-            {["🔒 SSL", "Visa", "Master", "Elo", "PIX"].map(badge => (
-              <span key={badge} className="text-[10px] font-medium px-2 py-1 border rounded" style={{ color: subtleText, borderColor: cardBorder }}>
-                {badge}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <p className="text-center text-[10px] pb-4" style={{ color: subtleText }}>
-          Pagamento processado com segurança por ZapLynxPay
-        </p>
+        <PaymentFooter />
       </div>
     </div>
   );

@@ -241,59 +241,52 @@ export default function TikTokLayout({ config }: Props) {
             <div style={shellStyle} className="p-4">
               <h3 className="mb-3 text-[11px] font-semibold text-[#111827]">Forma de pagamento</h3>
 
-              {config.pix && (
-                <PaymentOption
-                  active={selectedPayment === "pix"}
-                  icon={<QrCode className="h-4 w-4" />}
-                  title="Pix"
-                  subtitle="Pague em até 24 horas e obtenha confirmação instantânea."
-                  onClick={() => setSelectedPayment("pix")}
-                />
-              )}
+            {config.pix && (
+              <PaymentOption
+                active={selectedPayment === "pix"}
+                icon={<PixIcon size={18} />}
+                title="Pix"
+                subtitle="Pague em até 24 horas e obtenha confirmação instantânea."
+                onClick={() => setSelectedPayment("pix")}
+              />
+            )}
 
-              {config.creditCard && (
-                <div className="mt-2">
-                  <PaymentOption
-                    active={selectedPayment === "credit"}
-                    icon={<CreditCard className="h-4 w-4" />}
-                    title="Cartão de crédito"
-                    subtitle="Pague em até 12 parcelas"
-                    onClick={() => setSelectedPayment("credit")}
-                  >
-                    {selectedPayment === "credit" && (
-                      <div className="mt-3 space-y-2 border-t border-[#EEF2F7] pt-3">
-                        <div className="flex gap-1">
-                          {[
-                            { label: "Visa", color: "#F97316" },
-                            { label: "MC", color: "#3B82F6" },
-                            { label: "Amex", color: "#60A5FA" },
-                          ].map((brand) => (
-                            <span key={brand.label} className="rounded px-1.5 py-0.5 text-[8px] font-semibold text-white" style={{ background: brand.color }}>
-                              {brand.label}
-                            </span>
-                          ))}
-                        </div>
-                        <input className={inputClass} placeholder="Número do cartão *" />
-                        <input className={inputClass} placeholder="Nome no cartão *" />
-                        <div className="grid grid-cols-3 gap-2">
-                          <input className={inputClass} placeholder="Mês" />
-                          <input className={inputClass} placeholder="Ano" />
-                          <input className={inputClass} placeholder="CVV *" />
-                        </div>
-                        <div className="flex items-center justify-between rounded-lg border border-[#E5EAF3] px-3 py-2 text-[10px] text-[#475467]">
-                          <span>1x de {formatCurrency(unitPrice)} (à vista)</span>
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </div>
+            {config.creditCard && (
+              <div className="mt-2">
+                <PaymentOption
+                  active={selectedPayment === "credit"}
+                  icon={<CreditCard className="h-4 w-4" />}
+                  title="Cartão de crédito"
+                  subtitle="Pague em até 12 parcelas"
+                  onClick={() => setSelectedPayment("credit")}
+                >
+                  <div className="mt-2">
+                    <p className="text-[10px] font-medium text-[#EF4444] mb-1">Sem juros</p>
+                    <CardBrandsRow size={26} />
+                  </div>
+                  {selectedPayment === "credit" && (
+                    <div className="mt-3 space-y-2 border-t border-[#EEF2F7] pt-3">
+                      <input className={inputClass} placeholder="Número do cartão *" />
+                      <input className={inputClass} placeholder="Nome no cartão *" />
+                      <div className="grid grid-cols-3 gap-2">
+                        <input className={inputClass} placeholder="Mês" />
+                        <input className={inputClass} placeholder="Ano" />
+                        <input className={inputClass} placeholder="CVV *" />
                       </div>
-                    )}
-                  </PaymentOption>
-                </div>
-              )}
+                      <div className="flex items-center justify-between rounded-lg border border-[#E5EAF3] px-3 py-2 text-[10px] text-[#475467]">
+                        <span>1x de {formatCurrency(unitPrice)} (à vista)</span>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                  )}
+                </PaymentOption>
+              </div>
+            )}
 
               <div className="mt-2">
                 <PaymentOption
                   active={false}
-                  icon={<div className="h-4 w-4 rounded-full bg-[#111827]" />}
+                  icon={<ApplePayIcon size={20} />}
                   title="Apple Pay"
                   onClick={() => undefined}
                 />
@@ -303,7 +296,7 @@ export default function TikTokLayout({ config }: Props) {
                 <div className="mt-2">
                   <PaymentOption
                     active={selectedPayment === "boleto"}
-                    icon={<FileText className="h-4 w-4" />}
+                    icon={<div className="text-[#667085]"><BoletoIcon size={18} /></div>}
                     title="Boleto"
                     subtitle="Pagamento via boleto bancário"
                     onClick={() => setSelectedPayment("boleto")}
@@ -316,6 +309,8 @@ export default function TikTokLayout({ config }: Props) {
                 Finalizar pedido • {formatCurrency(unitPrice)}
               </button>
             </div>
+
+            <PaymentFooter />
           </div>
         </div>
 

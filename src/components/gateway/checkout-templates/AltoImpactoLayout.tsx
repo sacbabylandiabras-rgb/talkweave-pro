@@ -255,7 +255,7 @@ export default function AltoImpactoLayout({ config }: Props) {
         </div>
       </div>
 
-      <p className="text-center text-[10px] text-gray-400 py-4">Formas de Pagamento</p>
+      <PaymentFooter />
     </div>
   );
 }
