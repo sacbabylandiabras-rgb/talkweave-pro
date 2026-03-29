@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Phone, Globe, Shield, Key, Copy, CheckCircle } from "lucide-react";
+import { Building2, Mail, Phone, Globe, Shield, Key, Copy, CheckCircle, FileText } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,6 +24,8 @@ const PerfilGateway = () => {
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessWebsite, setBusinessWebsite] = useState("");
   const [businessDescription, setBusinessDescription] = useState("");
+  const [documentType, setDocumentType] = useState("cpf");
+  const [document, setDocument] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -37,6 +40,15 @@ const PerfilGateway = () => {
           .single();
         setUserName(profile?.full_name || user.user_metadata?.full_name || "");
         setBusinessPhone(profile?.whatsapp || "");
+        // Fetch document fields separately (new columns)
+        const { data: docData } = await supabase
+          .from("profiles" as any)
+          .select("document, document_type")
+          .eq("id", user.id)
+          .single();
+        const doc = docData as any;
+        setDocument(doc?.document || "");
+        setDocumentType(doc?.document_type || "cpf");
       }
     };
     fetchUser();
@@ -48,7 +60,9 @@ const PerfilGateway = () => {
       const { error } = await supabase.from("profiles").update({
         full_name: userName,
         whatsapp: businessPhone,
-      }).eq("id", userId);
+        document: document,
+        document_type: documentType,
+      } as any).eq("id", userId);
       if (error) throw error;
       toast({ title: "Perfil atualizado", description: "Suas informações foram salvas com sucesso." });
     } catch (error: any) {
@@ -130,6 +144,30 @@ const PerfilGateway = () => {
             <div className="space-y-2">
               <Label>E-mail</Label>
               <Input value={userEmail} disabled className="opacity-60" />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Documento</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cpf">CPF (Pessoa Física)</SelectItem>
+                  <SelectItem value="cnpj">CNPJ (Pessoa Jurídica)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{documentType === "cnpj" ? "CNPJ" : "CPF"}</Label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={document}
+                  onChange={(e) => setDocument(e.target.value)}
+                  placeholder={documentType === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-2">
