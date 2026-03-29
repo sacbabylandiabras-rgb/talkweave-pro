@@ -55,7 +55,7 @@ export default function AltoImpactoLayout({ config }: Props) {
       )}
 
       {/* Main: 2 columns desktop, 1 column mobile */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
         <div className="flex flex-col md:flex-row gap-5">
 
           {/* LEFT: All form sections (one step) */}
@@ -187,7 +187,7 @@ export default function AltoImpactoLayout({ config }: Props) {
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div className="w-full md:w-72 space-y-4">
+          <div className="w-full md:w-60 flex-shrink-0 space-y-4">
             {/* Product */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center gap-3">
