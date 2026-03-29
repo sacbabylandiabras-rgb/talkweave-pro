@@ -364,7 +364,7 @@ export default function TikTokLayout({ config }: Props) {
             {config.pix && (
               <PaymentOption
                 active={selectedPayment === "pix"}
-                icon={<QrCode className="h-4 w-4" />}
+                icon={<PixIcon size={18} />}
                 title="Pix"
                 subtitle="Pague em até 24 horas e obtenha confirmação instantânea."
                 onClick={() => setSelectedPayment("pix")}
@@ -380,19 +380,12 @@ export default function TikTokLayout({ config }: Props) {
                   subtitle="Pague em até 12 parcelas"
                   onClick={() => setSelectedPayment("credit")}
                 >
+                  <div className="mt-2">
+                    <p className="text-[10px] font-medium text-[#EF4444] mb-1">Sem juros</p>
+                    <CardBrandsRow size={26} />
+                  </div>
                   {selectedPayment === "credit" && (
                     <div className="mt-3 space-y-2 border-t border-[#EEF2F7] pt-3">
-                      <div className="flex gap-1">
-                        {[
-                          { label: "Visa", color: "#F97316" },
-                          { label: "MC", color: "#3B82F6" },
-                          { label: "Amex", color: "#60A5FA" },
-                        ].map((brand) => (
-                          <span key={brand.label} className="rounded px-1.5 py-0.5 text-[8px] font-semibold text-white" style={{ background: brand.color }}>
-                            {brand.label}
-                          </span>
-                        ))}
-                      </div>
                       <input className={inputClass} placeholder="Nome no cartão" />
                       <input className={inputClass} placeholder="CPF / CNPJ" />
                       <input className={inputClass} placeholder="Número do cartão" />
@@ -414,7 +407,7 @@ export default function TikTokLayout({ config }: Props) {
             <div className="mt-2">
               <PaymentOption
                 active={false}
-                icon={<div className="h-4 w-4 rounded-full bg-[#111827]" />}
+                icon={<ApplePayIcon size={20} />}
                 title="Apple Pay"
                 onClick={() => undefined}
               />
@@ -424,13 +417,15 @@ export default function TikTokLayout({ config }: Props) {
               <div className="mt-2">
                 <PaymentOption
                   active={selectedPayment === "boleto"}
-                  icon={<FileText className="h-4 w-4" />}
+                  icon={<div className="text-[#667085]"><BoletoIcon size={18} /></div>}
                   title="Boleto"
                   onClick={() => setSelectedPayment("boleto")}
                 />
               </div>
             )}
           </div>
+
+          <PaymentFooter />
         </div>
       </div>
     </div>
