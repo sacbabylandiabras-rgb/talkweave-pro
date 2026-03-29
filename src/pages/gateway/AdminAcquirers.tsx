@@ -38,16 +38,18 @@ export default function AdminAcquirers() {
   const handleTest = async () => {
     setTesting(true);
     try {
-      const res = await fetch("https://api.openpix.com.br/api/v1/status", {
-        headers: { "Content-Type": "application/json" },
+      const { data, error } = await supabase.functions.invoke("create-pix-charge", {
+        body: { amount: 1, customer: { name: "Teste", phone: "0000" }, productName: "Teste Conexão", checkoutId: "test" },
       });
-      if (res.ok) {
-        toast.success("Conexão com Woovi (OpenPix) está funcionando!");
+      if (error) {
+        toast.error("Erro ao testar: " + error.message);
+      } else if (data?.error) {
+        toast.error("Woovi retornou erro: " + data.error);
       } else {
-        toast.error("Woovi retornou erro: " + res.status);
+        toast.success("Conexão com Woovi (OpenPix) está funcionando!");
       }
-    } catch {
-      toast.error("Não foi possível conectar à API da Woovi");
+    } catch (e: any) {
+      toast.error("Falha no teste: " + (e.message || "erro desconhecido"));
     }
     setTesting(false);
   };
@@ -98,7 +100,7 @@ export default function AdminAcquirers() {
                 variant="outline"
                 size="sm"
                 className="flex-1 text-xs rounded-full"
-                onClick={() => window.open("https://app.openpix.com.br", "_blank")}
+                onClick={() => window.open("https://app.woovi.com", "_blank")}
               >
                 <Settings className="w-3 h-3 mr-1" /> Configurar
               </Button>
