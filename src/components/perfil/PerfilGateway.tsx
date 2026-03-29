@@ -53,7 +53,9 @@ const PerfilGateway = () => {
       const { error } = await supabase.from("profiles").update({
         full_name: userName,
         whatsapp: businessPhone,
-      }).eq("id", userId);
+        document: document,
+        document_type: documentType,
+      } as any).eq("id", userId);
       if (error) throw error;
       toast({ title: "Perfil atualizado", description: "Suas informações foram salvas com sucesso." });
     } catch (error: any) {
