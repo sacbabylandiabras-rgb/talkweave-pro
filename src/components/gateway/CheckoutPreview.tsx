@@ -46,11 +46,6 @@ interface Props {
 }
 
 export default function CheckoutPreview({ config, templateName }: Props) {
-  // Render template-specific layout
-  if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} />;
-  }
-
   const [step, setStep] = useState<"identification" | "payment">("identification");
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
@@ -63,6 +58,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+
+  // Render template-specific layout (after all hooks)
+  if (config.templateId === "minimalista") {
+    return <MinimalistaLayout config={config} />;
+  }
 
   // Countdown timer
   useEffect(() => {
