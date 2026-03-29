@@ -37,7 +37,7 @@ const defaultConfig = {
   pix: true,
   boleto: false,
   maxInstallments: 12,
-  pixDiscount: 10,
+  pixDiscount: 0,
   showCpf: true,
   showPhone: true,
   showAddress: false,
