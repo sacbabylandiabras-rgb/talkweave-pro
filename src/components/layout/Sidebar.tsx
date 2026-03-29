@@ -72,7 +72,7 @@ const gatewayMenuItems = [
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
   { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
-  
+  { id: "pay-withdrawals", label: "Saques", icon: Wallet, path: "/gateway-checkout/withdrawals" },
   { id: "pay-settings", label: "Configurações", icon: Settings, path: "/gateway-checkout/settings" },
 ];
 
