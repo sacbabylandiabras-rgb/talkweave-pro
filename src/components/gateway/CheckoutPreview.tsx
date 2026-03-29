@@ -3,6 +3,7 @@ import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, Cre
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
+import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
 
 interface CheckoutConfig {
   productName: string;
@@ -143,6 +144,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   }
   if (config.templateId === "alto-impacto") {
     return <AltoImpactoLayout config={config} />;
+  }
+  if (config.templateId === "tiktok") {
+    return <TikTokLayout config={config} />;
   }
 
   return (
