@@ -461,8 +461,8 @@ export default function CheckoutBuilder() {
                       <Input value={config.orderBumpText} onChange={e => updateConfig("orderBumpText", e.target.value)} className="mt-1" />
                     </div>
                     <div>
-                      <Label className="text-xs">Preço (centavos)</Label>
-                      <Input type="number" value={config.orderBumpPrice} onChange={e => updateConfig("orderBumpPrice", parseInt(e.target.value) || 0)} className="mt-1" />
+                      <Label className="text-xs">Preço (R$)</Label>
+                      <Input type="number" step="0.01" value={(config.orderBumpPrice / 100).toFixed(2)} onChange={e => updateConfig("orderBumpPrice", Math.round(parseFloat(e.target.value || "0") * 100))} className="mt-1" />
                     </div>
                   </>
                 )}
