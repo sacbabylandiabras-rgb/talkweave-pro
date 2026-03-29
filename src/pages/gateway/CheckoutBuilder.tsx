@@ -48,6 +48,8 @@ const defaultConfig = {
   orderBumpPrice: 2900,
   productImage: "",
   logoUrl: "",
+  templateId: "",
+  templateName: "",
 };
 
 const formatOptions = [
