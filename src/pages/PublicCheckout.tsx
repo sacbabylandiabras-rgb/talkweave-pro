@@ -3,7 +3,45 @@ import { useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 
-const defaultConfig = {
+interface CheckoutConfig {
+  productName: string;
+  offerName: string;
+  price: number;
+  originalPrice: number;
+  buttonText: string;
+  guaranteeDays: number;
+  showGuarantee: boolean;
+  showTimer: boolean;
+  timerMinutes: number;
+  format: string;
+  primaryColor: string;
+  bgColor: string;
+  textColor: string;
+  font: string;
+  theme: "light" | "dark" | "custom";
+  borderStyle: string;
+  showSecurityBadges: boolean;
+  creditCard: boolean;
+  debitCard: boolean;
+  pix: boolean;
+  boleto: boolean;
+  maxInstallments: number;
+  pixDiscount: number;
+  showCpf: boolean;
+  showPhone: boolean;
+  showAddress: boolean;
+  showBirthdate: boolean;
+  showOrderBump: boolean;
+  orderBumpText: string;
+  orderBumpPrice: number;
+  productImage: string;
+  logoUrl: string;
+  templateId: string;
+  templateName: string;
+  [key: string]: any;
+}
+
+const defaultConfig: CheckoutConfig = {
   productName: "",
   offerName: "",
   price: 0,
@@ -18,7 +56,7 @@ const defaultConfig = {
   bgColor: "#EFF1F5",
   textColor: "#1F2937",
   font: "inter",
-  theme: "light" as const,
+  theme: "light",
   borderStyle: "rounded",
   showSecurityBadges: true,
   creditCard: true,
@@ -35,6 +73,7 @@ const defaultConfig = {
   orderBumpText: "",
   orderBumpPrice: 0,
   productImage: "",
+  logoUrl: "",
   templateId: "",
   templateName: "",
 };
@@ -59,7 +98,7 @@ const resolveTemplateId = (savedConfig: Record<string, any>) => {
 
 export default function PublicCheckout() {
   const { slug } = useParams<{ slug: string }>();
-  const [config, setConfig] = useState<typeof defaultConfig | null>(null);
+  const [config, setConfig] = useState<CheckoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,11 +129,11 @@ export default function PublicCheckout() {
         const result = await res.json();
         const checkout = result.checkout;
         const product = result.product;
-        const savedConfig = checkout.config || {};
+        const savedConfig = (checkout.config || {}) as Record<string, any>;
         const resolvedTemplateId = resolveTemplateId(savedConfig);
 
         const productName = product?.name || checkout.name || "";
-        setConfig({
+        const mergedConfig: CheckoutConfig = {
           ...defaultConfig,
           ...savedConfig,
           templateId: resolvedTemplateId,
@@ -103,7 +142,8 @@ export default function PublicCheckout() {
           price: savedConfig.price || (product?.price ? product.price : 0),
           productImage: savedConfig.productImage || product?.image_url || "",
           logoUrl: savedConfig.logoUrl || "",
-        });
+        };
+        setConfig(mergedConfig);
       } catch (e) {
         setError("Erro ao carregar checkout");
       } finally {
@@ -135,7 +175,7 @@ export default function PublicCheckout() {
 
   return (
     <div className="min-h-screen" style={{ background: config.bgColor || "#EFF1F5" }}>
-      <CheckoutPreview config={config} />
+      <CheckoutPreview config={config as any} />
     </div>
   );
 }
