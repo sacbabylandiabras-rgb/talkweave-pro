@@ -114,6 +114,24 @@ const AdminGateway = () => {
         </Card>
       </div>
 
+      {/* Atalho Saques */}
+      <Card className="border-[#2A2A2A] cursor-pointer hover:border-amber-500/30 transition-colors" onClick={() => navigate("/gateway-checkout/admin/withdrawals")}>
+        <CardContent className="pt-4 pb-3 px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Gerenciar Saques</p>
+              <p className="text-xs text-muted-foreground">Aprovar ou rejeitar solicitações de saque</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10">
+            Abrir
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Tabela de Lojistas */}
       <Card className="border-[#2A2A2A]">
         <CardHeader>
