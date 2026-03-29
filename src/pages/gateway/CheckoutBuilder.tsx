@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,7 @@ export default function CheckoutBuilder() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
 
   const activeTemplateName = activeTemplateId
     ? TEMPLATE_NAMES[activeTemplateId] || activeTemplateId
@@ -195,6 +196,22 @@ export default function CheckoutBuilder() {
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
             {isEditing ? "Atualizar Checkout" : "Salvar Checkout"}
           </Button>
+          <div className="flex border border-border rounded-full overflow-hidden">
+            <button
+              onClick={() => setPreviewMode("desktop")}
+              className="px-2.5 py-1.5 transition-colors"
+              style={{ background: previewMode === "desktop" ? "#FF4D2E" : "transparent", color: previewMode === "desktop" ? "#fff" : undefined }}
+            >
+              <Monitor className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setPreviewMode("mobile")}
+              className="px-2.5 py-1.5 transition-colors"
+              style={{ background: previewMode === "mobile" ? "#FF4D2E" : "transparent", color: previewMode === "mobile" ? "#fff" : undefined }}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -576,8 +593,10 @@ export default function CheckoutBuilder() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-0" style={{ minHeight: "calc(100vh - 280px)" }}>
-              <CheckoutPreview config={config} templateName={activeTemplateName} />
+            <CardContent className="p-0 flex justify-center" style={{ minHeight: "calc(100vh - 280px)", background: previewMode === "mobile" ? "#E5E7EB" : undefined }}>
+              <div style={{ width: previewMode === "mobile" ? "375px" : "100%", transition: "width 0.3s ease" }}>
+                <CheckoutPreview config={config} templateName={activeTemplateName} />
+              </div>
             </CardContent>
           </Card>
         </div>
