@@ -14,6 +14,7 @@ interface Transaction {
   id: string;
   customer_name: string | null;
   customer_email: string | null;
+  customer_phone: string | null;
   amount: number;
   fee: number;
   net: number;
@@ -21,6 +22,8 @@ interface Transaction {
   status: string;
   created_at: string;
   product_id: string | null;
+  checkout_id: string | null;
+  external_id: string | null;
 }
 
 export default function PayReports() {
@@ -159,17 +162,35 @@ export default function PayReports() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-[#2A2A2A]">
-                      <TableHead>ID</TableHead><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Bruto</TableHead><TableHead>Taxa</TableHead><TableHead>Líquido</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Checkout</TableHead>
+                      <TableHead>Código PIX</TableHead>
+                      <TableHead>Bruto</TableHead>
+                      <TableHead>Taxa</TableHead>
+                      <TableHead>Líquido</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactions.map(tx => {
                       const badge = getStatusBadge(tx.status);
+                      const checkout = checkouts.find((ck: any) => ck.id === tx.checkout_id);
                       return (
                         <TableRow key={tx.id} className="border-[#2A2A2A]">
                           <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{tx.customer_name || "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {tx.customer_phone && <div>{tx.customer_phone}</div>}
+                            {tx.customer_email && <div>{tx.customer_email}</div>}
+                            {!tx.customer_phone && !tx.customer_email && "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{checkout?.name || "—"}</TableCell>
+                          <TableCell className="font-mono text-[10px] text-muted-foreground max-w-[150px] truncate" title={tx.external_id || ""}>{tx.external_id || "—"}</TableCell>
                           <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
                           <TableCell className="font-medium">{formatCurrency(tx.net)}</TableCell>
