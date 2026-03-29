@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 
 interface CheckoutConfig {
   productName: string;
@@ -45,6 +46,11 @@ interface Props {
 }
 
 export default function CheckoutPreview({ config, templateName }: Props) {
+  // Render template-specific layout
+  if (config.templateId === "minimalista") {
+    return <MinimalistaLayout config={config} />;
+  }
+
   const [step, setStep] = useState<"identification" | "payment">("identification");
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
