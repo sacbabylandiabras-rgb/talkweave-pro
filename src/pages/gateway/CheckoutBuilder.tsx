@@ -352,10 +352,10 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* BLOCO C: Aparência */}
+            {/* BLOCO C: Esquema de Cores */}
             <AccordionItem value="aparencia" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Palette className="w-4 h-4 text-[#FF4D2E]" /> Aparência & Tema</div>
+                <div className="flex items-center gap-2"><Palette className="w-4 h-4 text-[#FF4D2E]" /> Esquema de Cores</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 {/* Logo */}
@@ -397,43 +397,147 @@ export default function CheckoutBuilder() {
                   <p className="text-[10px] text-muted-foreground mt-1">Aparecerá no topo do checkout. Máx 2MB.</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-[10px]">Cor primária</Label>
-                    <div className="flex items-center gap-1 mt-1">
-                      <input type="color" value={config.primaryColor} onChange={e => updateConfig("primaryColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                      <Input value={config.primaryColor} onChange={e => updateConfig("primaryColor", e.target.value)} className="text-[10px] font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-[10px]">Fundo</Label>
-                    <div className="flex items-center gap-1 mt-1">
-                      <input type="color" value={config.bgColor} onChange={e => updateConfig("bgColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                      <Input value={config.bgColor} onChange={e => updateConfig("bgColor", e.target.value)} className="text-[10px] font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-[10px]">Texto</Label>
-                    <div className="flex items-center gap-1 mt-1">
-                      <input type="color" value={config.textColor} onChange={e => updateConfig("textColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                      <Input value={config.textColor} onChange={e => updateConfig("textColor", e.target.value)} className="text-[10px] font-mono" />
-                    </div>
+                <p className="text-[10px] text-muted-foreground">Defina as cores que serão usadas nos elementos do checkout</p>
+
+                {/* Cor Principal */}
+                <div>
+                  <Label className="text-xs font-medium">Cor Principal</Label>
+                  <p className="text-[10px] text-muted-foreground">Cor usada como acento nos elementos de destaque</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.primaryColor} onChange={e => updateConfig("primaryColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <Input value={config.primaryColor} onChange={e => updateConfig("primaryColor", e.target.value)} className="text-[10px] font-mono" />
                   </div>
                 </div>
+
+                {/* Cor dos Botões */}
                 <div>
-                  <Label className="text-xs">Fonte</Label>
-                  <Select value={config.font} onValueChange={v => updateConfig("font", v)}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="inter">Inter</SelectItem>
-                      <SelectItem value="plus_jakarta">Plus Jakarta Sans</SelectItem>
-                      <SelectItem value="roboto">Roboto</SelectItem>
-                      <SelectItem value="montserrat">Montserrat</SelectItem>
-                      <SelectItem value="poppins">Poppins</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs font-medium">Cor dos Botões</Label>
+                  <p className="text-[10px] text-muted-foreground">Cor dos botões de ação, como pagar, próximo</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.buttonColor} onChange={e => updateConfig("buttonColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <Input value={config.buttonColor} onChange={e => updateConfig("buttonColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
                 </div>
+
+                {/* Cor de Fundo */}
                 <div>
+                  <Label className="text-xs font-medium">Cor de Fundo</Label>
+                  <p className="text-[10px] text-muted-foreground">Cor de fundo da página</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.bgColor} onChange={e => updateConfig("bgColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <Input value={config.bgColor} onChange={e => updateConfig("bgColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor do Texto */}
+                <div>
+                  <Label className="text-xs font-medium">Cor do Texto</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.textColor} onChange={e => updateConfig("textColor", e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <Input value={config.textColor} onChange={e => updateConfig("textColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <p className="text-xs font-semibold mb-2">Cards e Inputs</p>
+                </div>
+
+                {/* Cor de Fundo dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor de Fundo dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardBgColor} onChange={e => updateConfig("cardBgColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardBgColor} onChange={e => updateConfig("cardBgColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor de labels dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor de labels dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardLabelColor} onChange={e => updateConfig("cardLabelColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardLabelColor} onChange={e => updateConfig("cardLabelColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor de texto dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor de texto dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardTextColor} onChange={e => updateConfig("cardTextColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardTextColor} onChange={e => updateConfig("cardTextColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor das bordas dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor das bordas dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardBorderColor} onChange={e => updateConfig("cardBorderColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardBorderColor} onChange={e => updateConfig("cardBorderColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor das bordas dos inputs */}
+                <div>
+                  <Label className="text-[10px]">Cor das bordas dos inputs</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.inputBorderColor} onChange={e => updateConfig("inputBorderColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.inputBorderColor} onChange={e => updateConfig("inputBorderColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor do titulo dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor do título dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardTitleColor} onChange={e => updateConfig("cardTitleColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardTitleColor} onChange={e => updateConfig("cardTitleColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor da descrição dos cards */}
+                <div>
+                  <Label className="text-[10px]">Cor da descrição dos cards</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.cardDescColor} onChange={e => updateConfig("cardDescColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.cardDescColor} onChange={e => updateConfig("cardDescColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor de Fundo dos inputs */}
+                <div>
+                  <Label className="text-[10px]">Cor de Fundo dos inputs</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.inputBgColor} onChange={e => updateConfig("inputBgColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.inputBgColor} onChange={e => updateConfig("inputBgColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <p className="text-xs font-semibold mb-2">Etapas</p>
+                </div>
+
+                {/* Cor de Fundo dos steps */}
+                <div>
+                  <Label className="text-[10px]">Cor de Fundo dos steps</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.stepBgColor} onChange={e => updateConfig("stepBgColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.stepBgColor} onChange={e => updateConfig("stepBgColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Cor de texto dos steps */}
+                <div>
+                  <Label className="text-[10px]">Cor de texto dos steps</Label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input type="color" value={config.stepTextColor} onChange={e => updateConfig("stepTextColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                    <Input value={config.stepTextColor} onChange={e => updateConfig("stepTextColor", e.target.value)} className="text-[10px] font-mono" />
+                  </div>
+                </div>
+
+                {/* Tema */}
+                <div className="border-t border-border pt-3">
                   <Label className="text-xs">Tema</Label>
                   <div className="flex gap-2 mt-1">
                     {(["dark", "light", "custom"] as const).map(t => (
@@ -452,25 +556,7 @@ export default function CheckoutBuilder() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Bordas</Label>
-                  <div className="flex gap-2 mt-1">
-                    {["rounded", "square", "pill"].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => updateConfig("borderStyle", s)}
-                        className="flex-1 py-2 text-xs rounded-lg border transition-all"
-                        style={{
-                          borderColor: config.borderStyle === s ? "#FF4D2E" : "#2A2A2A",
-                          background: config.borderStyle === s ? "rgba(255,77,46,0.08)" : "transparent",
-                          color: config.borderStyle === s ? "#FF4D2E" : undefined,
-                        }}
-                      >
-                        {s === "rounded" ? "Arredondado" : s === "square" ? "Quadrado" : "Pill"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">Selos de segurança</Label>
                   <Switch checked={config.showSecurityBadges} onCheckedChange={v => updateConfig("showSecurityBadges", v)} />
@@ -478,7 +564,134 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* BLOCO D: Pagamento */}
+            {/* BLOCO C2: Tipografia */}
+            <AccordionItem value="tipografia" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><span className="text-[#FF4D2E] text-base font-serif">T</span> Tipografia</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Configure o estilo tipográfico</p>
+                <div>
+                  <Label className="text-xs">Fonte Principal</Label>
+                  <p className="text-[10px] text-muted-foreground">Fonte utilizada em todo o conteúdo textual</p>
+                  <Select value={config.font} onValueChange={v => updateConfig("font", v)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inter">Inter</SelectItem>
+                      <SelectItem value="plus_jakarta">Plus Jakarta Sans</SelectItem>
+                      <SelectItem value="roboto">Roboto</SelectItem>
+                      <SelectItem value="montserrat">Montserrat</SelectItem>
+                      <SelectItem value="poppins">Poppins</SelectItem>
+                      <SelectItem value="dm_sans">DM Sans</SelectItem>
+                      <SelectItem value="nunito">Nunito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* BLOCO C3: Arredondamento */}
+            <AccordionItem value="arredondamento" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><span className="text-[#FF4D2E] text-sm font-bold">⊡</span> Arredondamento</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Ajuste o arredondamento dos elementos</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px]">Cards</Label>
+                    <p className="text-[9px] text-muted-foreground">Bordas dos cards e containers</p>
+                    <Select value={config.cardBorderRadius} onValueChange={v => updateConfig("cardBorderRadius", v)}>
+                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem Borda</SelectItem>
+                        <SelectItem value="sm">Pequeno</SelectItem>
+                        <SelectItem value="md">Médio</SelectItem>
+                        <SelectItem value="lg">Grande</SelectItem>
+                        <SelectItem value="xl">Extra Grande</SelectItem>
+                        <SelectItem value="2xl">2x Extra Grande</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Botões</Label>
+                    <p className="text-[9px] text-muted-foreground">Bordas dos botões</p>
+                    <Select value={config.buttonBorderRadius} onValueChange={v => updateConfig("buttonBorderRadius", v)}>
+                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem Borda</SelectItem>
+                        <SelectItem value="sm">Pequeno</SelectItem>
+                        <SelectItem value="md">Médio</SelectItem>
+                        <SelectItem value="lg">Grande</SelectItem>
+                        <SelectItem value="xl">Extra Grande</SelectItem>
+                        <SelectItem value="full">100% Arredondado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Campos</Label>
+                    <p className="text-[9px] text-muted-foreground">Bordas dos campos de entrada</p>
+                    <Select value={config.fieldBorderRadius} onValueChange={v => updateConfig("fieldBorderRadius", v)}>
+                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem Borda</SelectItem>
+                        <SelectItem value="sm">Pequeno</SelectItem>
+                        <SelectItem value="md">Médio</SelectItem>
+                        <SelectItem value="lg">Grande</SelectItem>
+                        <SelectItem value="xl">Extra Grande</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Etapas</Label>
+                    <p className="text-[9px] text-muted-foreground">Bordas dos indicadores de etapa</p>
+                    <Select value={config.stepBorderRadius} onValueChange={v => updateConfig("stepBorderRadius", v)}>
+                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem Borda</SelectItem>
+                        <SelectItem value="sm">Pequeno</SelectItem>
+                        <SelectItem value="rounded">Arredondado</SelectItem>
+                        <SelectItem value="full">Circular</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* BLOCO C4: TokVex Mobile */}
+            <AccordionItem value="tokvex-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokVex Mobile</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-4">
+                <p className="text-[10px] text-muted-foreground">Configure o comportamento das seções no mobile</p>
+                <div>
+                  <Label className="text-xs">Estado Inicial das Seções</Label>
+                  <p className="text-[10px] text-muted-foreground">Como as seções devem aparecer ao carregar o checkout no mobile</p>
+                  <Select value={config.mobileInitialState} onValueChange={v => updateConfig("mobileInitialState", v)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="collapsed">Fechadas (Colapsadas)</SelectItem>
+                      <SelectItem value="expanded">Abertas (Expandidas)</SelectItem>
+                      <SelectItem value="first_open">Apenas a primeira aberta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs">Informações Antes do Carrinho</Label>
+                    <p className="text-[10px] text-muted-foreground">No TokVex mobile, exibir seção de informações antes do resumo do pedido</p>
+                  </div>
+                  <Switch checked={config.mobileInfoBeforeCart} onCheckedChange={v => updateConfig("mobileInfoBeforeCart", v)} />
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">
+                    ℹ️ Esta configuração afeta apenas o TokVex Mobile, controlando se as seções de informações, endereço e CPF aparecem abertas ou fechadas inicialmente.
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="pagamento" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#FF4D2E]" /> Métodos de Pagamento</div>
