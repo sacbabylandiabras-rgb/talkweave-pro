@@ -40,6 +40,7 @@ import PayReports from "./pages/gateway/PayReports";
 import PayPixels from "./pages/gateway/PayPixels";
 import PayIntegrations from "./pages/gateway/PayIntegrations";
 import PaySettings from "./pages/gateway/PaySettings";
+import PayWithdrawals from "./pages/gateway/PayWithdrawals";
 import PayDocs from "./pages/gateway/PayDocs";
 import AdminPayDashboard from "./pages/gateway/AdminDashboard";
 import AdminCompanies from "./pages/gateway/AdminCompanies";
