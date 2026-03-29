@@ -51,6 +51,7 @@ import AdminKYC from "./pages/gateway/AdminKYC";
 import AdminPayReports from "./pages/gateway/AdminReports";
 import AdminTransactions from "./pages/gateway/AdminTransactions";
 import AdminManagers from "./pages/gateway/AdminManagers";
+import AdminWithdrawals from "./pages/gateway/AdminWithdrawals";
 import ManagerDashboard from "./pages/gateway/ManagerDashboard";
 import ManagerClients from "./pages/gateway/ManagerClients";
 import ManagerCommissions from "./pages/gateway/ManagerCommissions";
@@ -121,6 +122,7 @@ const App = () => (
                 <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
                 <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
                 <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
+                <Route path="/gateway-checkout/admin/withdrawals" element={<AdminWithdrawals />} />
                 {/* Gateway — Manager */}
                 <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
                 <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
