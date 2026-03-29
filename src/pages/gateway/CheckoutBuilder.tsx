@@ -853,7 +853,9 @@ export default function CheckoutBuilder() {
             >
               <div
                 style={{
-                  width: "100%",
+                  width: previewMode === "mobile" ? 390 : "100%",
+                  maxWidth: "100%",
+                  margin: previewMode === "mobile" ? "0 auto" : undefined,
                 }}
               >
                 <CheckoutPreview config={config} templateName={activeTemplateName} />
