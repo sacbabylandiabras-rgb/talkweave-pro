@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
+import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
 
 const defaultConfig = {
   productName: "",
