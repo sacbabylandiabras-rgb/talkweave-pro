@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ShieldCheck, Lock, Package, CreditCard, Truck, ShoppingBag } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
 
 interface MinimalistaConfig {
   productName: string;
