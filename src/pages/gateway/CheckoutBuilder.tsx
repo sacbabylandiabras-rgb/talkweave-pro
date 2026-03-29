@@ -68,6 +68,13 @@ export default function CheckoutBuilder() {
   const [checkoutName, setCheckoutName] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>();
+
+  const applyTemplate = (settings: Record<string, any>, templateName: string) => {
+    setConfig(prev => ({ ...prev, ...settings }));
+    setActiveTemplateId(settings.id || templateName.toLowerCase().replace(/\s+/g, "-"));
+    toast.success(`✅ Modelo "${templateName}" aplicado! Personalize como quiser.`);
+  };
 
   useEffect(() => {
     const init = async () => {
