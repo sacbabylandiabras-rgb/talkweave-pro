@@ -90,26 +90,35 @@ export default function AdminWithdrawals() {
     }
 
     setSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
 
-    const { error } = await supabase
-      .from("gateway_withdrawals" as any)
-      .update({
-        status: reviewDialog.action,
-        admin_notes: adminNotes.trim() || null,
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString(),
-      } as any)
-      .eq("id", reviewDialog.withdrawal.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: {
+          withdrawalId: reviewDialog.withdrawal.id,
+          action: reviewDialog.action,
+          adminNotes: adminNotes.trim() || null,
+        },
+      });
 
-    if (error) {
-      toast.error("Erro ao atualizar saque");
-    } else {
-      toast.success(reviewDialog.action === "approved" ? "Saque aprovado!" : "Saque rejeitado");
-      setReviewDialog({ open: false, withdrawal: null, action: "approved" });
-      setAdminNotes("");
-      fetchData();
+      if (error) {
+        const msg = typeof data === "object" && data?.error ? data.error : "Erro ao processar saque";
+        toast.error(msg);
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(
+          reviewDialog.action === "approved"
+            ? "Saque aprovado e PIX enviado automaticamente!"
+            : "Saque rejeitado"
+        );
+        setReviewDialog({ open: false, withdrawal: null, action: "approved" });
+        setAdminNotes("");
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro inesperado ao processar saque");
     }
+
     setSubmitting(false);
   };
 
