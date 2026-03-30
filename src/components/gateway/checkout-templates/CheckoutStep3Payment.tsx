@@ -19,6 +19,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showAllBanks, setShowAllBanks] = useState(false);
 
   // Receipt upload state
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -325,27 +326,52 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       {/* Banks */}
       <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
         <h4 className="text-sm font-bold" style={{ color: s.cardTitle }}>pague com seu banco</h4>
+        <p className="text-xs" style={{ color: s.cardDesc }}>Clique no seu banco para abrir o app e pagar:</p>
         <div className="space-y-2">
           {[
-            { name: "Nubank", desc: "Pedir para resolver manualmente" },
-            { name: "BANCO INTER", desc: "Pedir para resolver manualmente" },
-            { name: "Bradesco", desc: "Pedir para resolver manualmente" },
-            { name: "ITAU", desc: "Pedir para resolver manualmente" },
-            { name: "banco do brasil", desc: "Pedir para resolver manualmente" },
-          ].map((bank, i) => (
-            <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity" style={{ borderColor: s.cardBorder, background: s.cardBg }}>
+            { name: "Nubank", desc: "Abrir app Nubank", deepLink: "nubank://", fallback: "https://nubank.com.br" },
+            { name: "BANCO INTER", desc: "Abrir app Inter", deepLink: "bancointer://", fallback: "https://inter.co" },
+            { name: "Bradesco", desc: "Abrir app Bradesco", deepLink: "bradesco://", fallback: "https://banco.bradesco" },
+            { name: "ITAÚ", desc: "Abrir app Itaú", deepLink: "itau://", fallback: "https://www.itau.com.br" },
+            { name: "Banco do Brasil", desc: "Abrir app BB", deepLink: "bb://", fallback: "https://www.bb.com.br" },
+            { name: "Caixa", desc: "Abrir app Caixa", deepLink: "caixa://", fallback: "https://www.caixa.gov.br" },
+            { name: "Santander", desc: "Abrir app Santander", deepLink: "santander://", fallback: "https://www.santander.com.br" },
+            { name: "PicPay", desc: "Abrir app PicPay", deepLink: "picpay://", fallback: "https://picpay.com" },
+            { name: "Mercado Pago", desc: "Abrir app Mercado Pago", deepLink: "mercadopago://", fallback: "https://www.mercadopago.com.br" },
+          ].slice(0, showAllBanks ? 9 : 5).map((bank, i) => (
+            <div
+              key={i}
+              onClick={() => {
+                if (pixData?.brCode) {
+                  navigator.clipboard.writeText(pixData.brCode);
+                }
+                const w = window.open(bank.deepLink, '_blank');
+                setTimeout(() => {
+                  try {
+                    if (!w || w.closed) {
+                      window.location.href = bank.deepLink;
+                    }
+                  } catch {
+                    window.location.href = bank.fallback;
+                  }
+                }, 500);
+              }}
+              className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ borderColor: s.cardBorder, background: s.cardBg }}
+            >
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
                 <CreditCard className="w-4 h-4" style={{ color: s.cardDesc }} />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>{bank.name}</p>
                 <p className="text-[10px]" style={{ color: s.cardDesc }}>{bank.desc}</p>
               </div>
+              <Smartphone className="w-4 h-4" style={{ color: s.primary }} />
             </div>
           ))}
         </div>
-        <button className="w-full text-center text-xs py-2 border rounded-lg" style={{ borderColor: s.cardBorder, color: s.cardDesc, background: s.cardBg }}>
-          ▼ Ver todos os bancos
+        <button onClick={() => setShowAllBanks(!showAllBanks)} className="w-full text-center text-xs py-2 border rounded-lg" style={{ borderColor: s.cardBorder, color: s.cardDesc, background: s.cardBg }}>
+          {showAllBanks ? '▲ Ver menos' : '▼ Ver todos os bancos'}
         </button>
       </div>
 
