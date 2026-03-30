@@ -106,8 +106,8 @@ export default function PayWithdrawals() {
       toast.error("O valor mínimo para saque é de R$ 50,00");
       return;
     }
-    if (amountCents + WITHDRAWAL_FEE_CENTS > balance) {
-      toast.error("Saldo insuficiente (valor + taxa de R$ 10,00)");
+    if (amountCents > balance) {
+      toast.error("Saldo insuficiente");
       return;
     }
     if (!pixKey.trim()) {
@@ -121,7 +121,7 @@ export default function PayWithdrawals() {
 
     const { error } = await supabase.from("gateway_withdrawals" as any).insert({
       user_id: user.id,
-      amount: amountCents + WITHDRAWAL_FEE_CENTS,
+      amount: amountCents,
       pix_key_type: pixKeyType,
       pix_key: pixKey.trim(),
     } as any);
@@ -268,7 +268,7 @@ export default function PayWithdrawals() {
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-1">
               <p className="text-xs text-amber-400 font-medium">⚠️ Informações sobre saques</p>
               <p className="text-xs text-muted-foreground">• Valor mínimo: <strong>R$ 50,00</strong></p>
-              <p className="text-xs text-muted-foreground">• Taxa por saque: <strong>R$ 10,00</strong></p>
+              <p className="text-xs text-muted-foreground">• Taxa por saque: <strong>R$ 10,00</strong> (descontada automaticamente do valor)</p>
             </div>
             <div className="space-y-2">
               <Label>Valor do saque (R$)</Label>
