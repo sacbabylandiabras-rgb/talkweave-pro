@@ -344,32 +344,22 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       {/* Banks */}
       <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
         <h4 className="text-sm font-bold" style={{ color: s.cardTitle }}>pague com seu banco</h4>
-        <p className="text-xs" style={{ color: s.cardDesc }}>Clique no seu banco para abrir o app e pagar:</p>
+        <p className="text-xs" style={{ color: s.cardDesc }}>Copie o código acima e cole no app do seu banco:</p>
         <div className="space-y-2">
           {[
-            { name: "Nubank", desc: "Abrir app Nubank", intentUrl: "intent://pay#Intent;package=com.nu.production;scheme=nubank;end", fallback: "https://play.google.com/store/apps/details?id=com.nu.production", logo: nubankLogo },
-            { name: "Banco Inter", desc: "Abrir app Inter", intentUrl: "intent://#Intent;package=br.com.intermedium;scheme=bancointer;end", fallback: "https://play.google.com/store/apps/details?id=br.com.intermedium", logo: interLogo },
-            { name: "Bradesco", desc: "Abrir app Bradesco", intentUrl: "intent://#Intent;package=com.bradesco;scheme=bradesco;end", fallback: "https://play.google.com/store/apps/details?id=com.bradesco", logo: bradescoLogo },
-            { name: "Itaú", desc: "Abrir app Itaú", intentUrl: "intent://#Intent;package=com.itau;scheme=itau;end", fallback: "https://play.google.com/store/apps/details?id=com.itau", logo: itauLogo },
-            { name: "Banco do Brasil", desc: "Abrir app BB", intentUrl: "intent://#Intent;package=br.com.bb.android;scheme=bb;end", fallback: "https://play.google.com/store/apps/details?id=br.com.bb.android", logo: bbLogo },
-            { name: "Caixa", desc: "Abrir app Caixa", intentUrl: "intent://#Intent;package=br.com.gabba.Caixa;scheme=caixa;end", fallback: "https://play.google.com/store/apps/details?id=br.com.gabba.Caixa", logo: caixaLogo },
-            { name: "Santander", desc: "Abrir app Santander", intentUrl: "intent://#Intent;package=com.santander.app;scheme=santander;end", fallback: "https://play.google.com/store/apps/details?id=com.santander.app", logo: santanderLogo },
-            { name: "PicPay", desc: "Abrir app PicPay", intentUrl: "intent://#Intent;package=com.picpay;scheme=picpay;end", fallback: "https://play.google.com/store/apps/details?id=com.picpay", logo: picpayLogo },
-            { name: "Mercado Pago", desc: "Abrir app Mercado Pago", intentUrl: "intent://#Intent;package=com.mercadopago.wallet;scheme=mercadopago;end", fallback: "https://play.google.com/store/apps/details?id=com.mercadopago.wallet", logo: mercadopagoLogo },
+            { name: "Nubank", logo: nubankLogo },
+            { name: "Banco Inter", logo: interLogo },
+            { name: "Bradesco", logo: bradescoLogo },
+            { name: "Itaú", logo: itauLogo },
+            { name: "Banco do Brasil", logo: bbLogo },
+            { name: "Caixa", logo: caixaLogo },
+            { name: "Santander", logo: santanderLogo },
+            { name: "PicPay", logo: picpayLogo },
+            { name: "Mercado Pago", logo: mercadopagoLogo },
           ].slice(0, showAllBanks ? 9 : 5).map((bank, i) => (
             <div
               key={i}
-              onClick={() => {
-                if (pixData?.brCode) {
-                  navigator.clipboard.writeText(pixData.brCode);
-                }
-                // Try intent URL first (Android), fallback to Play Store
-                window.location.href = bank.intentUrl;
-                setTimeout(() => {
-                  window.open(bank.fallback, '_blank');
-                }, 1500);
-              }}
-              className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 p-2.5 rounded-lg border"
               style={{ borderColor: s.cardBorder, background: s.cardBg }}
             >
               <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: "#FFFFFF" }}>
@@ -377,9 +367,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
               </div>
               <div className="flex-1">
                 <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>{bank.name}</p>
-                <p className="text-[10px]" style={{ color: s.cardDesc }}>{bank.desc}</p>
               </div>
-              <Smartphone className="w-4 h-4" style={{ color: s.primary }} />
             </div>
           ))}
         </div>
