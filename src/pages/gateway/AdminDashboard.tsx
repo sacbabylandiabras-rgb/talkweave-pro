@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Users, TrendingUp, AlertTriangle, CreditCard, Shield, BarChart3, Activity, Loader2 } from "lucide-react";
+import { Building2, Users, TrendingUp, AlertTriangle, CreditCard, Shield, BarChart3, Activity, Loader2, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,34 +7,57 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { supabase } from "@/integrations/supabase/client";
 import { mockCompanies, mockChartData, getStatusBadge } from "./mock-data";
 
-const acquirerData = [
-  { name: "Cielo", volume: 456000 },
-  { name: "Stone", volume: 312000 },
-  { name: "Rede", volume: 89000 },
-  { name: "GetNet", volume: 45000 },
-];
+const formatCurrency = (cents: number) => {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+};
 
 export default function AdminDashboard() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [revenueData, setRevenueData] = useState({
+    volumeToday: 0,
+    volumeMonth: 0,
+    revenueMonth: 0,
+    approvalRate: 0,
+    pendingKyc: 0,
+    totalTransactions: 0,
+    approvedTransactions: 0,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
-      const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-      setTotalUsers(count || 0);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-stats");
+        if (error) throw error;
+        if (data) {
+          setTotalUsers(data.totalUsers || 0);
+          setRevenueData({
+            volumeToday: data.volumeToday || 0,
+            volumeMonth: data.volumeMonth || 0,
+            revenueMonth: data.revenueMonth || 0,
+            approvalRate: data.approvalRate || 0,
+            pendingKyc: data.pendingKyc || 0,
+            totalTransactions: data.totalTransactions || 0,
+            approvedTransactions: data.approvedTransactions || 0,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching admin stats:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
 
   const adminMetrics = [
     { label: "Usuários Cadastrados", value: String(totalUsers), icon: Users, color: "text-emerald-400" },
-    { label: "Em Análise KYC", value: "8", icon: Shield, color: "text-blue-400" },
-    { label: "Volume Hoje", value: "R$ 234.500", icon: TrendingUp, color: "text-[#FF4D2E]" },
-    { label: "Volume Mês", value: "R$ 4.8M", icon: BarChart3, color: "text-purple-400" },
-    { label: "Taxa Aprovação", value: "93,4%", icon: Activity, color: "text-emerald-400" },
-    { label: "Chargebacks Mês", value: "12", icon: AlertTriangle, color: "text-red-400" },
-    { label: "Receita ZapLynxPay", value: "R$ 96.400", icon: CreditCard, color: "text-amber-400" },
+    { label: "Em Análise KYC", value: String(revenueData.pendingKyc), icon: Shield, color: "text-blue-400" },
+    { label: "Volume Hoje", value: formatCurrency(revenueData.volumeToday), icon: TrendingUp, color: "text-[#FF4D2E]" },
+    { label: "Volume Mês", value: formatCurrency(revenueData.volumeMonth), icon: BarChart3, color: "text-purple-400" },
+    { label: "Taxa Aprovação", value: revenueData.approvalRate > 0 ? `${revenueData.approvalRate.toFixed(1)}%` : "0%", icon: Activity, color: "text-emerald-400" },
+    { label: "Transações Aprovadas", value: String(revenueData.approvedTransactions), icon: DollarSign, color: "text-emerald-400" },
+    { label: "Receita ZapLynxPay", value: formatCurrency(revenueData.revenueMonth), icon: CreditCard, color: "text-amber-400" },
     { label: "Empresas Ativas", value: String(mockCompanies.filter(c => c.status === "active").length), icon: Building2, color: "text-blue-400" },
   ];
 
@@ -84,17 +107,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         <Card className="border-[#2A2A2A]">
-          <CardHeader><CardTitle className="text-sm">Volume por Adquirente</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={acquirerData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-                <XAxis dataKey="name" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Bar dataKey="volume" fill="#FF4D2E" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardHeader><CardTitle className="text-sm">Resumo de Transações</CardTitle></CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+            <DollarSign className="w-10 h-10 text-[#FF4D2E]/40" />
+            <p className="text-2xl font-bold">{revenueData.totalTransactions} transações</p>
+            <p className="text-sm text-muted-foreground">{revenueData.approvedTransactions} aprovadas · Receita: {formatCurrency(revenueData.revenueMonth)}</p>
           </CardContent>
         </Card>
       </div>
