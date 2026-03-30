@@ -115,7 +115,7 @@ const AdminGateway = () => {
           <CardContent className="pt-4 pb-3 px-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Receita da Plataforma</p>
-              <p className="text-lg font-bold text-[#FF4D2E]">R$ 0,00</p>
+              <p className="text-lg font-bold text-[#FF4D2E]">R$ {(platformRevenue / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
             <DollarSign className="w-8 h-8 text-muted-foreground/20" />
           </CardContent>
