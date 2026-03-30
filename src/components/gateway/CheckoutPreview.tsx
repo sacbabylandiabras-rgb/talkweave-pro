@@ -90,6 +90,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Receipt upload state
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
