@@ -27,38 +27,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-        const [profilesRes, allTxRes, todayTxRes, monthTxRes, kycRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("gateway_transactions").select("amount, fee, status"),
-          supabase.from("gateway_transactions").select("amount, status").gte("created_at", startOfDay),
-          supabase.from("gateway_transactions").select("amount, fee, status").gte("created_at", startOfMonth),
-          supabase.from("gateway_kyc").select("id", { count: "exact", head: true }).eq("status", "submitted"),
-        ]);
-
-        setTotalUsers(profilesRes.count || 0);
-
-        const monthTx = monthTxRes.data || [];
-        const todayTx = todayTxRes.data || [];
-        const allTx = allTxRes.data || [];
-
-        const approved = allTx.filter(t => t.status === "approved");
-        const monthApproved = monthTx.filter(t => t.status === "approved");
-
-        setRevenueData({
-          volumeToday: todayTx.filter(t => t.status === "approved").reduce((s, t) => s + t.amount, 0),
-          volumeMonth: monthApproved.reduce((s, t) => s + t.amount, 0),
-          revenueMonth: monthApproved.reduce((s, t) => s + t.fee, 0),
-          approvalRate: allTx.length > 0 ? (approved.length / allTx.length) * 100 : 0,
-          pendingKyc: kycRes.count || 0,
-          totalTransactions: allTx.length,
-          approvedTransactions: approved.length,
-        });
+        const { data, error } = await supabase.functions.invoke("admin-stats");
+        if (error) throw error;
+        if (data) {
+          setTotalUsers(data.totalUsers || 0);
+          setRevenueData({
+            volumeToday: data.volumeToday || 0,
+            volumeMonth: data.volumeMonth || 0,
+            revenueMonth: data.revenueMonth || 0,
+            approvalRate: data.approvalRate || 0,
+            pendingKyc: data.pendingKyc || 0,
+            totalTransactions: data.totalTransactions || 0,
+            approvedTransactions: data.approvedTransactions || 0,
+          });
+        }
       } catch (error) {
-        console.error("Error fetching admin data:", error);
+        console.error("Error fetching admin stats:", error);
       } finally {
         setLoading(false);
       }
