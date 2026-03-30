@@ -169,6 +169,7 @@ export default function PayReports() {
                       <TableHead>Contato</TableHead>
                       <TableHead>Checkout</TableHead>
                       <TableHead>Código PIX</TableHead>
+                      <TableHead>Comprovante</TableHead>
                       <TableHead>Bruto</TableHead>
                       <TableHead>Taxa</TableHead>
                       <TableHead>Líquido</TableHead>
