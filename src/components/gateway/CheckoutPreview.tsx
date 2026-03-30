@@ -8,6 +8,7 @@ import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
 import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
 import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
+import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
 
 interface CheckoutConfig {
   productName: string;
@@ -26,6 +27,21 @@ interface CheckoutConfig {
   font: string;
   theme: "light" | "dark" | "custom";
   borderStyle: string;
+  buttonColor?: string;
+  cardBgColor?: string;
+  cardLabelColor?: string;
+  cardTextColor?: string;
+  cardBorderColor?: string;
+  inputBorderColor?: string;
+  inputBgColor?: string;
+  cardTitleColor?: string;
+  cardDescColor?: string;
+  stepBgColor?: string;
+  stepTextColor?: string;
+  cardBorderRadius?: string;
+  buttonBorderRadius?: string;
+  fieldBorderRadius?: string;
+  stepBorderRadius?: string;
   showSecurityBadges: boolean;
   creditCard: boolean;
   debitCard: boolean;
@@ -117,29 +133,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     }
   };
 
-  const primary = config.primaryColor;
-  const bgColor = config.bgColor || "#EFF1F5";
-  const textColor = config.textColor || "#1F2937";
-  const isDark = config.theme === "dark";
-  const cardBg = isDark ? "#1A1A1A" : "#FFFFFF";
-  const cardBorder = isDark ? "#333" : "#E5E7EB";
-  const labelColor = isDark ? "#D1D5DB" : "#374151";
-  const subtleText = isDark ? "#9CA3AF" : "#6B7280";
-  const inputBg = isDark ? "#0D0D0D" : "#FFFFFF";
-  const inputBorder = isDark ? "#444" : "#D1D5DB";
+  const s = getCheckoutStyles(config);
 
   const unitPrice = config.price;
   const subtotal = unitPrice * quantity;
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
-
-  const fontFamily = config.font === "plus_jakarta" ? "'Plus Jakarta Sans', sans-serif"
-    : config.font === "roboto" ? "'Roboto', sans-serif"
-    : config.font === "montserrat" ? "'Montserrat', sans-serif"
-    : config.font === "poppins" ? "'Poppins', sans-serif"
-    : "'Inter', sans-serif";
-
-  const borderRadius = config.borderStyle === "pill" ? "50px" : config.borderStyle === "square" ? "0px" : "8px";
-  const inputRadius = config.borderStyle === "pill" ? "25px" : config.borderStyle === "square" ? "0px" : "6px";
 
   const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
 
@@ -165,13 +163,13 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   return (
     <div
       className="h-full overflow-auto"
-      style={{ background: bgColor, fontFamily, minHeight: "100%", color: textColor }}
+      style={{ background: s.bgColor, fontFamily: s.fontFamily, minHeight: "100%", color: s.textColor }}
     >
       {/* Countdown Banner */}
       {config.showTimer && (
         <div
           className="w-full text-center py-3 text-sm font-medium"
-          style={{ background: primary, color: "#FFFFFF" }}
+          style={{ background: s.primary, color: "#FFFFFF" }}
         >
           Oferta termina em: <span className="font-bold ml-1">{timerStr}</span>
         </div>
@@ -179,7 +177,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
 
       {/* Logo Header */}
       {config.logoUrl && (
-        <div className="flex items-center justify-between py-3 px-4" style={{ background: cardBg, borderBottom: `1px solid ${cardBorder}` }}>
+        <div className="flex items-center justify-between py-3 px-4" style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
           <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
           <span className="text-xs font-medium flex items-center gap-1" style={{ color: "#16A34A" }}>
             <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
@@ -204,65 +202,67 @@ export default function CheckoutPreview({ config, templateName }: Props) {
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
-                background: step === "identification" ? `${primary}20` : isDark ? "#333" : "#E5E7EB",
-                border: step === "identification" ? `2px solid ${primary}` : "2px solid transparent",
+                background: step === "identification" ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
+                border: step === "identification" ? `2px solid ${s.primary}` : "2px solid transparent",
+                borderRadius: s.stepRadius,
               }}
             >
-              <User className="w-5 h-5" style={{ color: step === "identification" ? primary : subtleText }} />
+              <User className="w-5 h-5" style={{ color: step === "identification" ? s.primary : s.cardDesc }} />
             </div>
-            <span className="text-xs font-semibold" style={{ color: step === "identification" ? primary : subtleText }}>
+            <span className="text-xs font-semibold" style={{ color: step === "identification" ? s.primary : s.cardDesc }}>
               Identificação
             </span>
           </button>
-          <div className="w-12 h-[2px] rounded" style={{ background: isDark ? "#444" : "#D1D5DB" }} />
+          <div className="w-12 h-[2px] rounded" style={{ background: s.cardBorder }} />
           <button onClick={() => setStep("payment")} className="flex flex-col items-center gap-1.5 transition-all">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
-                background: step === "payment" ? `${primary}20` : isDark ? "#333" : "#E5E7EB",
-                border: step === "payment" ? `2px solid ${primary}` : "2px solid transparent",
+                background: step === "payment" ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
+                border: step === "payment" ? `2px solid ${s.primary}` : "2px solid transparent",
+                borderRadius: s.stepRadius,
               }}
             >
-              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? primary : subtleText }} />
+              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? s.primary : s.cardDesc }} />
             </div>
-            <span className="text-xs font-semibold" style={{ color: step === "payment" ? primary : subtleText }}>
+            <span className="text-xs font-semibold" style={{ color: step === "payment" ? s.primary : s.cardDesc }}>
               Pagamento
             </span>
           </button>
         </div>
 
         {/* Order Summary Card */}
-        <div className="rounded-xl border p-4 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
+        <div className="rounded-xl border p-4 space-y-4" style={cardStyle(s)}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold" style={{ color: textColor }}>Resumo do pedido</h3>
+            <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Resumo do pedido</h3>
             <span className="text-xs" style={{ color: "#16A34A" }}>● Dados seguros</span>
           </div>
 
           {/* Product Row */}
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: isDark ? "#222" : "#F3F4F6" }}>
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6", borderRadius: s.cardRadius }}>
               {config.productImage ? (
                 <img src={config.productImage} alt={config.productName} className="w-full h-full object-cover" />
               ) : (
-                <ShoppingCart className="w-6 h-6" style={{ color: subtleText }} />
+                <ShoppingCart className="w-6 h-6" style={{ color: s.cardDesc }} />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: textColor }}>
+              <p className="text-sm font-medium truncate" style={{ color: s.cardTitle }}>
                 {config.offerName || config.productName || "Produto Exemplo"}
               </p>
               {config.originalPrice > config.price && (
-                <p className="text-xs line-through" style={{ color: subtleText }}>{formatCurrency(config.originalPrice)}</p>
+                <p className="text-xs line-through" style={{ color: s.cardDesc }}>{formatCurrency(config.originalPrice)}</p>
               )}
-              <p className="text-sm font-bold" style={{ color: primary }}>{formatCurrency(unitPrice)}</p>
+              <p className="text-sm font-bold" style={{ color: s.primary }}>{formatCurrency(unitPrice)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ borderColor: inputBorder, background: cardBg }}>
-                <Minus className="w-3 h-3" style={{ color: subtleText }} />
+              <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
+                <Minus className="w-3 h-3" style={{ color: s.cardDesc }} />
               </button>
-              <span className="text-sm font-medium w-6 text-center" style={{ color: textColor }}>{quantity}</span>
-              <button onClick={() => setQuantity(q => q + 1)} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ borderColor: inputBorder, background: cardBg }}>
-                <Plus className="w-3 h-3" style={{ color: subtleText }} />
+              <span className="text-sm font-medium w-6 text-center" style={{ color: s.cardTitle }}>{quantity}</span>
+              <button onClick={() => setQuantity(q => q + 1)} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
+                <Plus className="w-3 h-3" style={{ color: s.cardDesc }} />
               </button>
             </div>
           </div>
@@ -271,27 +271,27 @@ export default function CheckoutPreview({ config, templateName }: Props) {
           <div className="flex gap-2">
             <input
               className="flex-1 px-3 py-2 text-sm border outline-none placeholder:opacity-50"
-              style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+              style={inputStyle(s)}
               placeholder="Cupom de desconto"
             />
-            <button className="px-4 py-2 text-sm font-medium border" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: cardBg, color: textColor }}>
+            <button className="px-4 py-2 text-sm font-medium border" style={{ ...inputStyle(s), color: s.cardText }}>
               Aplicar
             </button>
           </div>
 
           {/* Totals */}
-          <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${cardBorder}` }}>
+          <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
             <div className="flex justify-between text-sm">
-              <span style={{ color: subtleText }}>Subtotal</span>
-              <span style={{ color: textColor }} className="font-medium">{formatCurrency(subtotal)}</span>
+              <span style={{ color: s.cardDesc }}>Subtotal</span>
+              <span style={{ color: s.cardTitle }} className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span style={{ color: subtleText }}>Frete</span>
+              <span style={{ color: s.cardDesc }}>Frete</span>
               <span style={{ color: "#16A34A" }} className="font-medium">Grátis</span>
             </div>
-            <div className="flex justify-between text-base font-bold pt-1" style={{ borderTop: `1px solid ${cardBorder}` }}>
-              <span style={{ color: textColor }}>Total</span>
-              <span style={{ color: primary }}>{formatCurrency(subtotal)}</span>
+            <div className="flex justify-between text-base font-bold pt-1" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+              <span style={{ color: s.cardTitle }}>Total</span>
+              <span style={{ color: s.primary }}>{formatCurrency(subtotal)}</span>
             </div>
           </div>
         </div>
@@ -299,38 +299,38 @@ export default function CheckoutPreview({ config, templateName }: Props) {
         {step === "identification" && (
           <>
             {/* Personal Data */}
-            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
+            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
-                <h3 className="text-sm font-bold" style={{ color: textColor }}>Dados pessoais</h3>
-                <p className="text-xs mt-0.5" style={{ color: subtleText }}>
+                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
+                <p className="text-xs mt-0.5" style={{ color: s.cardDesc }}>
                   Informe seus dados para concluir sua compra com segurança.
                 </p>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Nome completo</label>
+                  <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
                   <input
                     className="w-full px-3 py-2.5 text-sm border outline-none"
-                    style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                    style={inputStyle(s)}
                     placeholder="Digite seu nome completo"
                     value={formName} onChange={(e) => setFormName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>E-mail</label>
+                  <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
                   <input
                     className="w-full px-3 py-2.5 text-sm border outline-none"
-                    style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                    style={inputStyle(s)}
                     placeholder="seu@email.com"
                     value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
                   />
                 </div>
                 {config.showCpf && (
                   <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>CPF ou CNPJ</label>
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label>
                     <input
                       className="w-full px-3 py-2.5 text-sm border outline-none"
-                      style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                      style={inputStyle(s)}
                       placeholder="000.000.000-00"
                       value={formCpf} onChange={(e) => setFormCpf(e.target.value)}
                     />
@@ -338,14 +338,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                 )}
                 {config.showPhone && (
                   <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Celular (WhatsApp)</label>
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
                     <div className="flex gap-2">
-                      <div className="flex items-center px-3 py-2.5 border text-sm font-medium" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: isDark ? "#222" : "#F9FAFB", color: subtleText }}>
+                      <div className="flex items-center px-3 py-2.5 border text-sm font-medium" style={{ ...inputStyle(s), background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>
                         🇧🇷 +55
                       </div>
                       <input
                         className="flex-1 px-3 py-2.5 text-sm border outline-none"
-                        style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }}
+                        style={inputStyle(s)}
                         placeholder="(00) 00000-0000"
                         value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
                       />
@@ -354,14 +354,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                 )}
                 {config.showBirthdate && (
                   <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>Data de Nascimento</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }} placeholder="DD/MM/AAAA" />
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Data de Nascimento</label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="DD/MM/AAAA" />
                   </div>
                 )}
                 {config.showAddress && (
                   <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: labelColor }}>CEP</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ borderRadius: inputRadius, borderColor: inputBorder, background: inputBg, color: textColor }} placeholder="00000-000" />
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="00000-000" />
                   </div>
                 )}
               </div>
@@ -369,17 +369,17 @@ export default function CheckoutPreview({ config, templateName }: Props) {
 
             {/* Order Bump */}
             {config.showOrderBump && (
-              <div className="rounded-xl border-2 p-4 space-y-2" style={{ borderColor: primary, borderStyle: "dashed", background: cardBg }}>
+              <div className="rounded-xl border-2 p-4 space-y-2" style={{ ...cardStyle(s), borderColor: s.primary, borderStyle: "dashed" }}>
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: primary }} />
+                  <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: s.primary }} />
                   <div className="flex items-center gap-1.5">
-                    <Gift className="w-4 h-4" style={{ color: primary }} />
-                    <span className="text-xs font-bold" style={{ color: primary }}>OFERTA ESPECIAL!</span>
+                    <Gift className="w-4 h-4" style={{ color: s.primary }} />
+                    <span className="text-xs font-bold" style={{ color: s.primary }}>OFERTA ESPECIAL!</span>
                   </div>
                 </div>
-                <p className="text-xs" style={{ color: subtleText }}>
+                <p className="text-xs" style={{ color: s.cardDesc }}>
                   {config.orderBumpText || "Adicione este produto por apenas"}{" "}
-                  <strong style={{ color: primary }}>{formatCurrency(config.orderBumpPrice)}</strong>
+                  <strong style={{ color: s.primary }}>{formatCurrency(config.orderBumpPrice)}</strong>
                 </p>
               </div>
             )}
@@ -399,16 +399,16 @@ export default function CheckoutPreview({ config, templateName }: Props) {
         {step === "payment" && (
           <>
             {/* Payment Methods */}
-            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
-              <h3 className="text-sm font-bold" style={{ color: textColor }}>Forma de pagamento</h3>
+            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+              <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Forma de pagamento</h3>
               <div className="space-y-2">
                 {config.pix && (
                   <div className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer" style={{ borderColor: primary, background: `${primary}10` }}>
                     <div className="flex items-center gap-3">
                       <PixIcon size={20} />
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: textColor }}>PIX</p>
-                        <p className="text-xs" style={{ color: subtleText }}>Pagamento instantâneo</p>
+                        <p className="text-sm font-semibold" style={{ color: s.cardTitle }}>PIX</p>
+                        <p className="text-xs" style={{ color: s.cardDesc }}>Pagamento instantâneo</p>
                       </div>
                     </div>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primary }}>
@@ -419,11 +419,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                 {config.creditCard && (
                   <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5" style={{ color: subtleText }} />
+                      <CreditCard className="w-5 h-5" style={{ color: s.cardDesc }} />
                       <div>
-                        <p className="text-sm font-medium" style={{ color: textColor }}>Cartão de Crédito</p>
+                        <p className="text-sm font-medium" style={{ color: s.cardTitle }}>Cartão de Crédito</p>
                         <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
-                        {config.maxInstallments > 1 && <p className="text-xs" style={{ color: subtleText }}>até {config.maxInstallments}x</p>}
+                        {config.maxInstallments > 1 && <p className="text-xs" style={{ color: s.cardDesc }}>até {config.maxInstallments}x</p>}
                         <CardBrandsRow size={24} />
                       </div>
                     </div>
@@ -433,10 +433,10 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                 {config.boleto && (
                   <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
                     <div className="flex items-center gap-3">
-                      <div style={{ color: subtleText }}><BoletoIcon size={20} /></div>
+                      <div style={{ color: s.cardDesc }}><BoletoIcon size={20} /></div>
                       <div>
-                        <p className="text-sm font-medium" style={{ color: textColor }}>Boleto</p>
-                        <p className="text-xs" style={{ color: subtleText }}>Vencimento em 3 dias</p>
+                        <p className="text-sm font-medium" style={{ color: s.cardTitle }}>Boleto</p>
+                        <p className="text-xs" style={{ color: s.cardDesc }}>Vencimento em 3 dias</p>
                       </div>
                     </div>
                     <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: cardBorder }} />
@@ -446,10 +446,10 @@ export default function CheckoutPreview({ config, templateName }: Props) {
             </div>
 
             {/* PIX Details */}
-            <div className="rounded-xl border p-5 space-y-4" style={{ background: cardBg, borderColor: cardBorder }}>
-              <h3 className="text-sm font-bold" style={{ color: textColor }}>Pagamento via PIX</h3>
-              <p className="text-sm" style={{ color: subtleText }}>
-                Valor à vista: <strong style={{ color: textColor }}>{formatCurrency(pixPrice)}</strong>
+            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+              <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Pagamento via PIX</h3>
+              <p className="text-sm" style={{ color: s.cardDesc }}>
+                Valor à vista: <strong style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</strong>
               </p>
 
               {pixData ? (
@@ -458,7 +458,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                     <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-48 h-48 rounded-lg" />
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-center" style={{ color: labelColor }}>Ou copie o código PIX:</p>
+                    <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>Ou copie o código PIX:</p>
                     <div className="flex gap-2">
                       <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: inputBorder, background: isDark ? "#111" : "#F9FAFB", color: subtleText }} />
                       <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : primary, color: 'white', borderRadius }}>
@@ -478,8 +478,8 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                       <div key={i} className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: item.bg }}>{item.icon}</div>
                         <div>
-                          <p className="text-sm font-medium" style={{ color: textColor }}>{item.title}</p>
-                          <p className="text-xs" style={{ color: subtleText }}>{item.sub}</p>
+                          <p className="text-sm font-medium" style={{ color: s.cardTitle }}>{item.title}</p>
+                          <p className="text-xs" style={{ color: s.cardDesc }}>{item.sub}</p>
                         </div>
                       </div>
                     ))}
@@ -505,7 +505,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
 
         {/* Guarantee */}
         {config.showGuarantee && (
-          <div className="flex items-center justify-center gap-2 text-xs py-2" style={{ color: subtleText }}>
+          <div className="flex items-center justify-center gap-2 text-xs py-2" style={{ color: s.cardDesc }}>
             <ShieldCheck className="w-4 h-4 text-green-500" />
             <span>Garantia de {config.guaranteeDays} dias — Satisfação ou dinheiro de volta</span>
           </div>
