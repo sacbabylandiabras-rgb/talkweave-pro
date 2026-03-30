@@ -171,7 +171,8 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
   }
 
   const externalId = `zlp_${checkout.id}_${Date.now()}`
-  const productName = (checkout.config as any)?.productName || checkout.name || 'Produto'
+  const rawName = (checkout.config as any)?.productName || checkout.name || 'Produto'
+  const productName = rawName.length >= 3 ? rawName : 'Produto Digital'
 
   const hubRes = await fetch('https://app.hubpague.io/api/payments', {
     method: 'POST',
