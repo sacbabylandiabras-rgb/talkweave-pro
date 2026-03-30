@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, Copy, CreditCard, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { cardStyle, buttonStyle, getCheckoutStyles } from "./checkout-style-helpers";
