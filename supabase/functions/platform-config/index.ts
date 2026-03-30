@@ -6,20 +6,60 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-async function ensureTable(supabase: any) {
-  // Try to read from table; if it doesn't exist, create it via REST
-  const { error } = await supabase
-    .from('gateway_platform_config')
-    .select('key')
-    .limit(1)
-  
-  if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
-    // Table doesn't exist - we can't create tables via supabase-js
-    // Return false to signal the table needs to be created
+// Use the DB URL to execute raw SQL for table creation
+async function ensureTable() {
+  const dbUrl = Deno.env.get('SUPABASE_DB_URL')
+  if (!dbUrl) {
+    console.log('SUPABASE_DB_URL not set, cannot create table')
     return false
   }
-  return true
+
+  // Dynamic import of postgres
+  try {
+    const mod = await import("https://deno.land/x/postgres@v0.17.0/mod.ts")
+    const client = new mod.Client(dbUrl)
+    await client.connect()
+    
+    await client.queryArray(`
+      CREATE TABLE IF NOT EXISTS public.gateway_platform_config (
+        key text PRIMARY KEY,
+        value text NOT NULL DEFAULT '',
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `)
+    
+    await client.queryArray(`
+      ALTER TABLE public.gateway_platform_config ENABLE ROW LEVEL SECURITY
+    `)
+    
+    // Create policies (ignore if they already exist)
+    const policies = [
+      `CREATE POLICY "Anyone can read platform config" ON public.gateway_platform_config FOR SELECT TO public USING (true)`,
+      `CREATE POLICY "Admins can update platform config" ON public.gateway_platform_config FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin'))`,
+      `CREATE POLICY "Admins can insert platform config" ON public.gateway_platform_config FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'))`,
+    ]
+    
+    for (const p of policies) {
+      try { await client.queryArray(p) } catch { /* policy may already exist */ }
+    }
+
+    // Insert default
+    await client.queryArray(`
+      INSERT INTO public.gateway_platform_config (key, value)
+      VALUES ('active_acquirer', 'openpix')
+      ON CONFLICT (key) DO NOTHING
+    `)
+
+    await client.end()
+    console.log('Table gateway_platform_config ensured')
+    return true
+  } catch (err) {
+    console.error('Error ensuring table:', err)
+    return false
+  }
 }
+
+let tableReady = false
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -31,20 +71,18 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
-    const tableExists = await ensureTable(supabase)
-    
-    if (!tableExists) {
-      // Table doesn't exist yet - create it using the Supabase Management API 
-      // or return instruction to create it
-      return new Response(JSON.stringify({ 
-        error: 'Table gateway_platform_config does not exist. Please run the migration.',
-        active_acquirer: 'openpix' // Default fallback
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // Ensure table exists on first call
+    if (!tableReady) {
+      tableReady = await ensureTable()
     }
 
     if (req.method === 'GET') {
+      if (!tableReady) {
+        return new Response(JSON.stringify({ active_acquirer: 'openpix' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const { data } = await supabase
         .from('gateway_platform_config')
         .select('value')
@@ -57,7 +95,6 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      // Verify admin
       const authHeader = req.headers.get('Authorization')
       if (!authHeader?.startsWith('Bearer ')) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -91,9 +128,13 @@ serve(async (req) => {
       const { acquirer } = await req.json()
 
       if (!acquirer || !['openpix', 'hubpague'].includes(acquirer)) {
-        return new Response(JSON.stringify({ error: 'Invalid acquirer. Use: openpix or hubpague' }), {
+        return new Response(JSON.stringify({ error: 'Invalid acquirer' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
+      }
+
+      if (!tableReady) {
+        tableReady = await ensureTable()
       }
 
       const { error: upsertErr } = await supabase
@@ -101,7 +142,6 @@ serve(async (req) => {
         .upsert({ key: 'active_acquirer', value: acquirer, updated_at: new Date().toISOString() }, { onConflict: 'key' })
 
       if (upsertErr) {
-        console.error('Upsert error:', upsertErr)
         return new Response(JSON.stringify({ error: 'Failed to update', details: upsertErr.message }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
