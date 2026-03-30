@@ -203,12 +203,10 @@ export default function TikTokLayout({ config }: Props) {
           {AddressForm}
         </div>
       )}
-      {config.showCpf && (
-        <div style={shellStyle} className="p-4">
-          <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>CPF / CNPJ</h3>
+      <div style={shellStyle} className="p-4">
+          <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>CPF / CNPJ <span style={{ color: '#EF4444' }}>*</span></h3>
           {CpfForm}
         </div>
-      )}
       <div style={shellStyle} className="p-4">
         <h3 className="mb-1 flex items-center gap-2 text-[11px] font-semibold" style={{ color: s.cardTitle }}>
           <User className="h-3.5 w-3.5" style={{ color: s.cardLabel }} /> Informações de Contato
