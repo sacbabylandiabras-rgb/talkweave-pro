@@ -68,12 +68,12 @@ export default function AdminDashboard() {
 
   const adminMetrics = [
     { label: "Usuários Cadastrados", value: String(totalUsers), icon: Users, color: "text-emerald-400" },
-    { label: "Em Análise KYC", value: "8", icon: Shield, color: "text-blue-400" },
-    { label: "Volume Hoje", value: "R$ 234.500", icon: TrendingUp, color: "text-[#FF4D2E]" },
-    { label: "Volume Mês", value: "R$ 4.8M", icon: BarChart3, color: "text-purple-400" },
-    { label: "Taxa Aprovação", value: "93,4%", icon: Activity, color: "text-emerald-400" },
-    { label: "Chargebacks Mês", value: "12", icon: AlertTriangle, color: "text-red-400" },
-    { label: "Receita ZapLynxPay", value: "R$ 96.400", icon: CreditCard, color: "text-amber-400" },
+    { label: "Em Análise KYC", value: String(revenueData.pendingKyc), icon: Shield, color: "text-blue-400" },
+    { label: "Volume Hoje", value: formatCurrency(revenueData.volumeToday), icon: TrendingUp, color: "text-[#FF4D2E]" },
+    { label: "Volume Mês", value: formatCurrency(revenueData.volumeMonth), icon: BarChart3, color: "text-purple-400" },
+    { label: "Taxa Aprovação", value: revenueData.approvalRate > 0 ? `${revenueData.approvalRate.toFixed(1)}%` : "0%", icon: Activity, color: "text-emerald-400" },
+    { label: "Transações Aprovadas", value: String(revenueData.approvedTransactions), icon: DollarSign, color: "text-emerald-400" },
+    { label: "Receita ZapLynxPay", value: formatCurrency(revenueData.revenueMonth), icon: CreditCard, color: "text-amber-400" },
     { label: "Empresas Ativas", value: String(mockCompanies.filter(c => c.status === "active").length), icon: Building2, color: "text-blue-400" },
   ];
 
