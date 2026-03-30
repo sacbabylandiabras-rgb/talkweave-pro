@@ -166,19 +166,26 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
 
       {/* QR Code */}
       <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
-        {pixData ? (
+        {(pixData || isPreview) ? (
           <div className="space-y-4">
             <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
               <Smartphone className="w-4 h-4 inline mr-1" />
               aponte a câmera do seu celular
             </p>
             <div className="flex justify-center">
-              <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
+              {isPreview && !pixData ? (
+                <div className="w-52 h-52 rounded-lg flex items-center justify-center relative" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                  <QrCode className="w-28 h-28" style={{ color: s.cardDesc, opacity: 0.3 }} />
+                  <span className="absolute text-[10px] font-bold px-2 py-1 rounded" style={{ background: s.primary, color: '#fff' }}>PREVIEW</span>
+                </div>
+              ) : (
+                <img src={pixData!.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
+              )}
             </div>
             <div className="space-y-2">
               <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
               <div className="flex gap-2">
-                <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
+                <input readOnly value={pixData?.brCode || "00020126580014br.gov.bcb.pix0136preview-mode-demo-code"} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
                 <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
                   <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
                 </button>
