@@ -512,6 +512,24 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_platform_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       gateway_products: {
         Row: {
           category: string | null
