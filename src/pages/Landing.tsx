@@ -240,7 +240,75 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Agente de IA */}
+      {/* Meta API Oficial */}
+      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
+              Conecte à API Oficial do WhatsApp (Meta)
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Integre seu WhatsApp Business diretamente com a API Oficial da Meta. 
+              Gerencie templates aprovados, dispare mensagens oficiais com alta taxa de entrega 
+              e mantenha seu perfil Business sempre profissional.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Conexão via OAuth com extração automática de credenciais",
+                "Gerenciamento de templates aprovados pela Meta",
+                "Disparos oficiais com alta taxa de entrega",
+                "Edição do perfil Business (foto, descrição, horário)",
+                "Workspace dedicado para a API Oficial",
+                "Compatível com WhatsApp Business API v21.0",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate("/auth?signup=true")}
+              className="landing-btn"
+            >
+              Conectar Meta API
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Phone className="w-7 h-7 text-primary" />
+                <h4 className="text-foreground font-bold text-lg">Meta WhatsApp API</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <p className="text-foreground text-sm font-medium">Conta Conectada</p>
+                  </div>
+                  <span className="text-primary text-xs font-bold">Ativa</span>
+                </div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <p className="text-foreground text-sm font-medium">Templates Aprovados</p>
+                  <span className="text-primary text-xs font-bold">12</span>
+                </div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <p className="text-foreground text-sm font-medium">Mensagens Hoje</p>
+                  <span className="text-primary text-xs font-bold">1.847</span>
+                </div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <p className="text-foreground text-sm font-medium">Taxa de Entrega</p>
+                  <span className="text-primary text-xs font-bold">99.2%</span>
+                </div>
+              </div>
+              <div className="text-center pt-2">
+                <span className="text-muted-foreground text-xs">WhatsApp Business API v21.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="w-[90%] max-w-[1200px] mx-auto py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
