@@ -168,9 +168,12 @@ export default function CheckoutBuilder() {
     setSelectedProductId(productId);
     const prod = products.find((p: any) => p.id === productId);
     if (prod) {
-      updateConfig("productName", prod.name);
-      updateConfig("price", prod.price);
-      updateConfig("productImage", prod.image_url || "");
+      setConfig(prev => ({
+        ...prev,
+        productName: prod.name,
+        price: prod.price,
+        productImage: prod.image_url || ""
+      }));
     }
   };
 
