@@ -90,6 +90,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Receipt upload state
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -368,12 +369,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
                   <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
                 </div>
-                {config.showCpf && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={(e) => setFormCpf(e.target.value)} />
+                <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ ...inputStyle(s), ...(formErrors.cpf ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={(e) => { setFormCpf(e.target.value); setFormErrors(prev => ({ ...prev, cpf: '' })); }} />
+                    {formErrors.cpf && <p className="text-xs mt-1" style={{ color: '#EF4444' }}>{formErrors.cpf}</p>}
                   </div>
-                )}
                 {config.showPhone && (
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
@@ -417,7 +417,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
             )}
 
             <button
-              onClick={() => setStep(2)}
+              onClick={() => {
+                const errors: Record<string, string> = {};
+                if (!formName.trim()) errors.name = 'Campo obrigatório';
+                if (!formEmail.trim()) errors.email = 'Campo obrigatório';
+                if (!formCpf.trim()) errors.cpf = 'CPF/CNPJ é obrigatório';
+                setFormErrors(errors);
+                if (Object.keys(errors).length === 0) setStep(2);
+              }}
               className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
               style={buttonStyle(s)}
             >
@@ -446,12 +453,10 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                   <span className="text-xs font-medium" style={{ color: s.cardLabel }}>E-mail</span>
                   <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formEmail || "—"}</span>
                 </div>
-                {config.showCpf && (
-                  <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
                     <span className="text-xs font-medium" style={{ color: s.cardLabel }}>CPF / CNPJ</span>
                     <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formCpf || "—"}</span>
                   </div>
-                )}
                 {config.showPhone && (
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
                     <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Celular</span>

@@ -110,12 +110,10 @@ export default function MinimalistaLayout({ config }: Props) {
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
                     <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} />
                   </div>
-                  {config.showCpf && (
-                    <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label>
+                  <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label>
                       <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
                     </div>
-                  )}
                   {config.showPhone && (
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>

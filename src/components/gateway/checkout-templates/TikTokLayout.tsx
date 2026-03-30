@@ -203,12 +203,10 @@ export default function TikTokLayout({ config }: Props) {
           {AddressForm}
         </div>
       )}
-      {config.showCpf && (
-        <div style={shellStyle} className="p-4">
-          <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>CPF / CNPJ</h3>
+      <div style={shellStyle} className="p-4">
+          <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>CPF / CNPJ <span style={{ color: '#EF4444' }}>*</span></h3>
           {CpfForm}
         </div>
-      )}
       <div style={shellStyle} className="p-4">
         <h3 className="mb-1 flex items-center gap-2 text-[11px] font-semibold" style={{ color: s.cardTitle }}>
           <User className="h-3.5 w-3.5" style={{ color: s.cardLabel }} /> Informações de Contato
@@ -244,11 +242,9 @@ export default function TikTokLayout({ config }: Props) {
           {AddressForm}
         </MobileSection>
       )}
-      {config.showCpf && (
-        <MobileSection open={mobileSections.cpf} title="CPF / CNPJ" onToggle={() => setMobileSections(prev => ({ ...prev, cpf: !prev.cpf }))}>
+      <MobileSection open={mobileSections.cpf} title="CPF / CNPJ *" onToggle={() => setMobileSections(prev => ({ ...prev, cpf: !prev.cpf }))}>
           {CpfForm}
         </MobileSection>
-      )}
       <button onClick={() => setStep(2)} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
         <Lock className="h-3.5 w-3.5" /> Próximo
       </button>
