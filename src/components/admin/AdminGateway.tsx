@@ -33,8 +33,8 @@ const AdminGateway = () => {
         const { data, error } = await supabase.functions.invoke("admin-stats");
         if (!error && data) {
           setTransactionCount(data.totalTransactions || 0);
-          setTotalVolume(data.volumeMonth || 0);
-          setPlatformRevenue(data.revenueMonth || 0);
+          setTotalVolume(data.volumeTotal || 0);
+          setPlatformRevenue(data.revenueTotal || 0);
         }
       } catch (e) {
         console.error("Error fetching admin stats:", e);
