@@ -9,6 +9,15 @@ import StreamlineLayout from "@/components/gateway/checkout-templates/Streamline
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
 import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
+import nubankLogo from "@/assets/banks/nubank.png";
+import interLogo from "@/assets/banks/inter.png";
+import bradescoLogo from "@/assets/banks/bradesco.png";
+import itauLogo from "@/assets/banks/itau.png";
+import bbLogo from "@/assets/banks/bb.png";
+import caixaLogo from "@/assets/banks/caixa.png";
+import santanderLogo from "@/assets/banks/santander.png";
+import picpayLogo from "@/assets/banks/picpay.png";
+import mercadopagoLogo from "@/assets/banks/mercadopago.png";
 
 interface CheckoutConfig {
   productName: string;
