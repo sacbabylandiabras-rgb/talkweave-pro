@@ -6,6 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
+async function ensureTable(supabase: any) {
+  // Try to read from table; if it doesn't exist, create it via REST
+  const { error } = await supabase
+    .from('gateway_platform_config')
+    .select('key')
+    .limit(1)
+  
+  if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+    // Table doesn't exist - we can't create tables via supabase-js
+    // Return false to signal the table needs to be created
+    return false
+  }
+  return true
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -16,20 +31,27 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
-    // Ensure the table exists
-    await supabase.rpc('exec_sql', { sql: '' }).catch(() => {})
+    const tableExists = await ensureTable(supabase)
     
+    if (!tableExists) {
+      // Table doesn't exist yet - create it using the Supabase Management API 
+      // or return instruction to create it
+      return new Response(JSON.stringify({ 
+        error: 'Table gateway_platform_config does not exist. Please run the migration.',
+        active_acquirer: 'openpix' // Default fallback
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     if (req.method === 'GET') {
-      // Read active acquirer from gateway_platform_config
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('gateway_platform_config')
         .select('value')
         .eq('key', 'active_acquirer')
         .single()
 
-      const activeAcquirer = data?.value || 'openpix'
-
-      return new Response(JSON.stringify({ active_acquirer: activeAcquirer }), {
+      return new Response(JSON.stringify({ active_acquirer: data?.value || 'openpix' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -74,14 +96,13 @@ serve(async (req) => {
         })
       }
 
-      // Upsert active acquirer
       const { error: upsertErr } = await supabase
         .from('gateway_platform_config')
         .upsert({ key: 'active_acquirer', value: acquirer, updated_at: new Date().toISOString() }, { onConflict: 'key' })
 
       if (upsertErr) {
         console.error('Upsert error:', upsertErr)
-        return new Response(JSON.stringify({ error: 'Failed to update acquirer', details: upsertErr.message }), {
+        return new Response(JSON.stringify({ error: 'Failed to update', details: upsertErr.message }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
