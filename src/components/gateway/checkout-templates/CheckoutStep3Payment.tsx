@@ -338,15 +338,15 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         <p className="text-xs" style={{ color: s.cardDesc }}>Clique no seu banco para abrir o app e pagar:</p>
         <div className="space-y-2">
           {[
-            { name: "Nubank", desc: "Abrir app Nubank", deepLink: "nubank://", fallback: "https://nubank.com.br" },
-            { name: "BANCO INTER", desc: "Abrir app Inter", deepLink: "bancointer://", fallback: "https://inter.co" },
-            { name: "Bradesco", desc: "Abrir app Bradesco", deepLink: "bradesco://", fallback: "https://banco.bradesco" },
-            { name: "ITAÚ", desc: "Abrir app Itaú", deepLink: "itau://", fallback: "https://www.itau.com.br" },
-            { name: "Banco do Brasil", desc: "Abrir app BB", deepLink: "bb://", fallback: "https://www.bb.com.br" },
-            { name: "Caixa", desc: "Abrir app Caixa", deepLink: "caixa://", fallback: "https://www.caixa.gov.br" },
-            { name: "Santander", desc: "Abrir app Santander", deepLink: "santander://", fallback: "https://www.santander.com.br" },
-            { name: "PicPay", desc: "Abrir app PicPay", deepLink: "picpay://", fallback: "https://picpay.com" },
-            { name: "Mercado Pago", desc: "Abrir app Mercado Pago", deepLink: "mercadopago://", fallback: "https://www.mercadopago.com.br" },
+            { name: "Nubank", desc: "Abrir app Nubank", deepLink: "nubank://", fallback: "https://nubank.com.br", logo: nubankLogo },
+            { name: "Banco Inter", desc: "Abrir app Inter", deepLink: "bancointer://", fallback: "https://inter.co", logo: interLogo },
+            { name: "Bradesco", desc: "Abrir app Bradesco", deepLink: "bradesco://", fallback: "https://banco.bradesco", logo: bradescoLogo },
+            { name: "Itaú", desc: "Abrir app Itaú", deepLink: "itau://", fallback: "https://www.itau.com.br", logo: itauLogo },
+            { name: "Banco do Brasil", desc: "Abrir app BB", deepLink: "bb://", fallback: "https://www.bb.com.br", logo: bbLogo },
+            { name: "Caixa", desc: "Abrir app Caixa", deepLink: "caixa://", fallback: "https://www.caixa.gov.br", logo: caixaLogo },
+            { name: "Santander", desc: "Abrir app Santander", deepLink: "santander://", fallback: "https://www.santander.com.br", logo: santanderLogo },
+            { name: "PicPay", desc: "Abrir app PicPay", deepLink: "picpay://", fallback: "https://picpay.com", logo: picpayLogo },
+            { name: "Mercado Pago", desc: "Abrir app Mercado Pago", deepLink: "mercadopago://", fallback: "https://www.mercadopago.com.br", logo: mercadopagoLogo },
           ].slice(0, showAllBanks ? 9 : 5).map((bank, i) => (
             <div
               key={i}
@@ -368,8 +368,8 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
               className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
               style={{ borderColor: s.cardBorder, background: s.cardBg }}
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
-                <CreditCard className="w-4 h-4" style={{ color: s.cardDesc }} />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                <img src={bank.logo} alt={bank.name} className="w-6 h-6 object-contain" loading="lazy" />
               </div>
               <div className="flex-1">
                 <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>{bank.name}</p>
