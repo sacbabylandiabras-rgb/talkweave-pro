@@ -101,8 +101,8 @@ export default function CheckoutBuilder() {
   const [previewPaneWidth, setPreviewPaneWidth] = useState(0);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
 
-  const activeTemplateName = activeTemplateId
-    ? TEMPLATE_NAMES[activeTemplateId] || activeTemplateId
+  const activeTemplateName = config.templateId
+    ? TEMPLATE_NAMES[config.templateId] || config.templateName
     : config.templateName;
 
   const previewViewportWidth = previewMode === "mobile" ? 390 : 1180;
