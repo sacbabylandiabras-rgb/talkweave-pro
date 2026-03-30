@@ -84,6 +84,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
+  const [showAllBanks, setShowAllBanks] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
