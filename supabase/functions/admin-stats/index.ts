@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
     const allTx = allTxRes.data || [];
     const todayTx = todayTxRes.data || [];
     const monthTx = monthTxRes.data || [];
-    const approved = allTx.filter((t: any) => t.status === "approved");
-    const monthApproved = monthTx.filter((t: any) => t.status === "approved");
-    const todayApproved = todayTx.filter((t: any) => t.status === "approved");
+    const isApproved = (t: any) => t.status === "approved" || t.status === "paid";
+    const approved = allTx.filter(isApproved);
+    const monthApproved = monthTx.filter(isApproved);
+    const todayApproved = todayTx.filter(isApproved);
 
     const stats = {
       totalUsers: usersRes.count || 0,
@@ -67,6 +68,8 @@ Deno.serve(async (req) => {
       volumeToday: todayApproved.reduce((s: number, t: any) => s + t.amount, 0),
       volumeMonth: monthApproved.reduce((s: number, t: any) => s + t.amount, 0),
       revenueMonth: monthApproved.reduce((s: number, t: any) => s + t.fee, 0),
+      revenueTotal: approved.reduce((s: number, t: any) => s + t.fee, 0),
+      volumeTotal: approved.reduce((s: number, t: any) => s + t.amount, 0),
       approvalRate: allTx.length > 0 ? (approved.length / allTx.length) * 100 : 0,
       totalTransactions: allTx.length,
       approvedTransactions: approved.length,
