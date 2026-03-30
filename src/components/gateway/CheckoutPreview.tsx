@@ -147,6 +147,36 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) { setReceiptError('Formato não suportado.'); return; }
+    if (file.size > 7 * 1024 * 1024) { setReceiptError('Arquivo muito grande. Máximo 7MB.'); return; }
+    setReceiptFile(file);
+    setReceiptError(null);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setReceiptPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else { setReceiptPreview(null); }
+  };
+
+  const handleUploadReceipt = async () => {
+    if (!receiptFile || !pixData?.correlationID) return;
+    setReceiptUploading(true);
+    setReceiptError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const fd = new FormData();
+      fd.append('file', receiptFile);
+      fd.append('correlationID', pixData.correlationID);
+      const res = await fetch(`${supabaseUrl}/functions/v1/upload-receipt`, { method: 'POST', headers: { 'apikey': anonKey }, body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao enviar');
+      setReceiptUploaded(true);
+    } catch (e: any) { setReceiptError(e.message); } finally { setReceiptUploading(false); }
+  };
+
   const s = getCheckoutStyles(config);
 
   const unitPrice = config.price;
