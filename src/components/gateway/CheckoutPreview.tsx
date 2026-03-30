@@ -71,7 +71,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
