@@ -678,25 +678,24 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               <p className="text-xs" style={{ color: s.cardDesc }}>Clique no seu banco para abrir o app e pagar:</p>
               <div className="space-y-2">
                 {[
-                  { name: "Nubank", desc: "Abrir app Nubank", deepLink: "nubank://", fallback: "https://nubank.com.br", logo: nubankLogo },
-                  { name: "Banco Inter", desc: "Abrir app Inter", deepLink: "bancointer://", fallback: "https://inter.co", logo: interLogo },
-                  { name: "Bradesco", desc: "Abrir app Bradesco", deepLink: "bradesco://", fallback: "https://banco.bradesco", logo: bradescoLogo },
-                  { name: "Itaú", desc: "Abrir app Itaú", deepLink: "itau://", fallback: "https://www.itau.com.br", logo: itauLogo },
-                  { name: "Banco do Brasil", desc: "Abrir app BB", deepLink: "bb://", fallback: "https://www.bb.com.br", logo: bbLogo },
-                  { name: "Caixa", desc: "Abrir app Caixa", deepLink: "caixa://", fallback: "https://www.caixa.gov.br", logo: caixaLogo },
-                  { name: "Santander", desc: "Abrir app Santander", deepLink: "santander://", fallback: "https://www.santander.com.br", logo: santanderLogo },
-                  { name: "PicPay", desc: "Abrir app PicPay", deepLink: "picpay://", fallback: "https://picpay.com", logo: picpayLogo },
-                  { name: "Mercado Pago", desc: "Abrir app Mercado Pago", deepLink: "mercadopago://", fallback: "https://www.mercadopago.com.br", logo: mercadopagoLogo },
+                  { name: "Nubank", desc: "Abrir app Nubank", intentUrl: "intent://pay#Intent;package=com.nu.production;scheme=nubank;end", fallback: "https://play.google.com/store/apps/details?id=com.nu.production", logo: nubankLogo },
+                  { name: "Banco Inter", desc: "Abrir app Inter", intentUrl: "intent://#Intent;package=br.com.intermedium;scheme=bancointer;end", fallback: "https://play.google.com/store/apps/details?id=br.com.intermedium", logo: interLogo },
+                  { name: "Bradesco", desc: "Abrir app Bradesco", intentUrl: "intent://#Intent;package=com.bradesco;scheme=bradesco;end", fallback: "https://play.google.com/store/apps/details?id=com.bradesco", logo: bradescoLogo },
+                  { name: "Itaú", desc: "Abrir app Itaú", intentUrl: "intent://#Intent;package=com.itau;scheme=itau;end", fallback: "https://play.google.com/store/apps/details?id=com.itau", logo: itauLogo },
+                  { name: "Banco do Brasil", desc: "Abrir app BB", intentUrl: "intent://#Intent;package=br.com.bb.android;scheme=bb;end", fallback: "https://play.google.com/store/apps/details?id=br.com.bb.android", logo: bbLogo },
+                  { name: "Caixa", desc: "Abrir app Caixa", intentUrl: "intent://#Intent;package=br.com.gabba.Caixa;scheme=caixa;end", fallback: "https://play.google.com/store/apps/details?id=br.com.gabba.Caixa", logo: caixaLogo },
+                  { name: "Santander", desc: "Abrir app Santander", intentUrl: "intent://#Intent;package=com.santander.app;scheme=santander;end", fallback: "https://play.google.com/store/apps/details?id=com.santander.app", logo: santanderLogo },
+                  { name: "PicPay", desc: "Abrir app PicPay", intentUrl: "intent://#Intent;package=com.picpay;scheme=picpay;end", fallback: "https://play.google.com/store/apps/details?id=com.picpay", logo: picpayLogo },
+                  { name: "Mercado Pago", desc: "Abrir app Mercado Pago", intentUrl: "intent://#Intent;package=com.mercadopago.wallet;scheme=mercadopago;end", fallback: "https://play.google.com/store/apps/details?id=com.mercadopago.wallet", logo: mercadopagoLogo },
                 ].slice(0, showAllBanks ? 9 : 5).map((bank, i) => (
                   <div
                     key={i}
                     onClick={() => {
                       if (pixData?.brCode) navigator.clipboard.writeText(pixData.brCode);
-                      const w = window.open(bank.deepLink, '_blank');
+                      window.location.href = bank.intentUrl;
                       setTimeout(() => {
-                        try { if (!w || w.closed) window.location.href = bank.deepLink; }
-                        catch { window.location.href = bank.fallback; }
-                      }, 500);
+                        window.open(bank.fallback, '_blank');
+                      }, 1500);
                     }}
                     className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ borderColor: s.cardBorder, background: s.cardBg }}
