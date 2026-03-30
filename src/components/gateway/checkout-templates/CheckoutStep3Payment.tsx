@@ -20,6 +20,7 @@ interface Props {
   formPhone?: string;
   formCpf?: string;
   timerStr?: string;
+  isPreview?: boolean;
 }
 
 export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr }: Props) {
