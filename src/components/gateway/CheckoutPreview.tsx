@@ -98,6 +98,13 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     return () => clearInterval(interval);
   }, [config.showTimer]);
 
+  // Auto-generate PIX when entering step 3
+  useEffect(() => {
+    if (step === 3 && !pixData && !pixLoading && !pixError) {
+      handleGeneratePix();
+    }
+  }, [step]);
+
   const handleGeneratePix = async () => {
     setPixLoading(true);
     setPixError(null);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, Copy, CreditCard, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { cardStyle, buttonStyle, getCheckoutStyles } from "./checkout-style-helpers";
@@ -19,6 +19,13 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Auto-generate PIX when step 3 mounts
+  useEffect(() => {
+    if (!pixData && !pixLoading && !pixError) {
+      handleGeneratePix();
+    }
+  }, []);
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
