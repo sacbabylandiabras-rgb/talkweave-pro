@@ -19,6 +19,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showAllBanks, setShowAllBanks] = useState(false);
 
   // Receipt upload state
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
