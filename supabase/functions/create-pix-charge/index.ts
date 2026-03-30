@@ -187,11 +187,8 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
       customer: {
         name: customerName || 'Cliente',
         email: customerEmail || 'cliente@email.com',
-        phone: customerPhone || '(00) 00000-0000',
-        document: {
-          type: 'CPF',
-          value: customerCpf || '000.000.000-00',
-        },
+        phone: customerPhone || '00000000000',
+        ...(customerCpf ? { document: { type: 'CPF', value: customerCpf } } : {}),
       },
       products: [{
         name: productName,
