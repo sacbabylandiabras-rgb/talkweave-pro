@@ -265,10 +265,15 @@ export default function PayWithdrawals() {
               <p className="text-sm text-muted-foreground">Saldo disponível</p>
               <p className="text-xl font-bold text-emerald-500">{formatCurrency(balance)}</p>
             </div>
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-1">
+              <p className="text-xs text-amber-400 font-medium">⚠️ Informações sobre saques</p>
+              <p className="text-xs text-muted-foreground">• Valor mínimo: <strong>R$ 50,00</strong></p>
+              <p className="text-xs text-muted-foreground">• Taxa por saque: <strong>R$ 10,00</strong></p>
+            </div>
             <div className="space-y-2">
               <Label>Valor do saque (R$)</Label>
               <Input
-                placeholder="0,00"
+                placeholder="Mínimo R$ 50,00"
                 value={withdrawAmount}
                 onChange={e => setWithdrawAmount(e.target.value)}
               />
