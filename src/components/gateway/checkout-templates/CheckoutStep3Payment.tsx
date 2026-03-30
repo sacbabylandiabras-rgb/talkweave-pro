@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertTriangle, Copy, CreditCard, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image } from "lucide-react";
+import { AlertTriangle, Copy, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image } from "lucide-react";
+import nubankLogo from "@/assets/banks/nubank.png";
+import interLogo from "@/assets/banks/inter.png";
+import bradescoLogo from "@/assets/banks/bradesco.png";
+import itauLogo from "@/assets/banks/itau.png";
+import bbLogo from "@/assets/banks/bb.png";
+import caixaLogo from "@/assets/banks/caixa.png";
+import santanderLogo from "@/assets/banks/santander.png";
+import picpayLogo from "@/assets/banks/picpay.png";
+import mercadopagoLogo from "@/assets/banks/mercadopago.png";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { cardStyle, buttonStyle, getCheckoutStyles } from "./checkout-style-helpers";
 
