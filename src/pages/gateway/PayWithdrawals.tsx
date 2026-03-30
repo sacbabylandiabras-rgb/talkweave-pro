@@ -121,7 +121,7 @@ export default function PayWithdrawals() {
 
     const { error } = await supabase.from("gateway_withdrawals" as any).insert({
       user_id: user.id,
-      amount: amountCents + WITHDRAWAL_FEE_CENTS,
+      amount: amountCents,
       pix_key_type: pixKeyType,
       pix_key: pixKey.trim(),
     } as any);
