@@ -206,6 +206,23 @@ export default function PayReports() {
                               </button>
                             ) : tx.external_id || "—"}
                           </TableCell>
+                          <TableCell>
+                            {(tx as any).metadata?.receipt_url ? (
+                              <a
+                                href={(tx as any).metadata.receipt_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80"
+                                style={{ background: '#22C55E20', color: '#22C55E' }}
+                              >
+                                <FileText className="w-3 h-3" />
+                                Ver
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
                           <TableCell className="font-medium">{formatCurrency(tx.net)}</TableCell>
