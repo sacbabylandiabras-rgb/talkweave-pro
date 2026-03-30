@@ -690,7 +690,7 @@ export default function CheckoutBuilder() {
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground">
-                    ℹ️ Esta configuração afeta apenas o TokVex Mobile, controlando se as seções de informações, endereço e CPF aparecem abertas ou fechadas inicialmente.
+                    ℹ️ Esta configuração afeta apenas o TokLynx Mobile, controlando se as seções de informações, endereço e CPF aparecem abertas ou fechadas inicialmente.
                   </p>
                 </div>
               </AccordionContent>
