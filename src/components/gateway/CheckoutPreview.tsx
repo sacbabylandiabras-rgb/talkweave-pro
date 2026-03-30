@@ -116,9 +116,11 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     return () => clearInterval(interval);
   }, [config.showTimer]);
 
-  // Auto-generate PIX when entering step 3
+  const isPublicCheckout = window.location.pathname.includes('/pay/');
+
+  // Auto-generate PIX when entering step 3 (only on public checkout)
   useEffect(() => {
-    if (step === 3 && !pixData && !pixLoading && !pixError) {
+    if (isPublicCheckout && step === 3 && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
   }, [step]);
