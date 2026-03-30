@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone, Globe, Copy, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -776,6 +776,76 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
+            {/* BLOCO G: Domínio Personalizado */}
+            <AccordionItem value="dominio" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#FF4D2E]" /> Domínio Personalizado</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <div>
+                  <Label className="text-xs">Domínio do Checkout</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={localStorage.getItem("checkout_custom_domain") || ""}
+                      onChange={e => {
+                        const val = e.target.value.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+                        if (val) {
+                          localStorage.setItem("checkout_custom_domain", val);
+                        } else {
+                          localStorage.removeItem("checkout_custom_domain");
+                        }
+                        // Force re-render
+                        updateConfig("_domainTrigger", Date.now());
+                      }}
+                      placeholder="pay.seusite.com"
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full text-xs shrink-0"
+                      onClick={() => {
+                        const d = localStorage.getItem("checkout_custom_domain");
+                        if (d) toast.success(`Domínio "${d}" salvo!`);
+                        else toast.info("Nenhum domínio configurado");
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Insira sem http://. Ex: pay.meudominio.com
+                  </p>
+                </div>
+
+                {localStorage.getItem("checkout_custom_domain") && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <p className="text-[10px] text-muted-foreground">
+                      Links usarão: <strong className="text-foreground">{localStorage.getItem("checkout_custom_domain")}</strong>
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/20">
+                  <p className="text-[10px] font-medium text-foreground">📋 Configuração DNS:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground">Registro <strong>A</strong> →</span>
+                    <code className="text-[10px] font-mono bg-background border border-[#2A2A2A] rounded px-1.5 py-0.5">185.158.133.1</code>
+                    <button onClick={() => { navigator.clipboard.writeText("185.158.133.1"); toast.success("IP copiado!"); }} className="text-muted-foreground hover:text-foreground">
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-1.5 mt-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-muted-foreground">
+                      Adicione o domínio em Publish → Domains no Lovable e republique o projeto.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* BLOCO H: Código de Integração */}
             <AccordionItem value="codigo" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
@@ -791,17 +861,17 @@ export default function CheckoutBuilder() {
                   <TabsContent value="link" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        https://pay.zaplynx.com/c/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "meu-checkout"}
+                        https://{localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "meu-checkout"}
                       </code>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => { navigator.clipboard.writeText(`https://pay.zaplynx.com/c/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}`); toast.success("Copiado!"); }}>
+                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; navigator.clipboard.writeText(`https://${domain}/pay/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}`); toast.success("Copiado!"); }}>
                       Copiar Link
                     </Button>
                   </TabsContent>
                   <TabsContent value="embed" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        {`<iframe src="https://pay.zaplynx.com/c/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}" width="100%" height="700" frameborder="0"></iframe>`}
+                        {`<iframe src="https://${localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}" width="100%" height="700" frameborder="0"></iframe>`}
                       </code>
                     </div>
                     <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => toast.success("Copiado!")}>
@@ -811,7 +881,7 @@ export default function CheckoutBuilder() {
                   <TabsContent value="js" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        {`<script src="https://pay.zaplynx.com/js/checkout.js" data-checkout="${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}"></script>`}
+                        {`<script src="https://${localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/js/checkout.js" data-checkout="${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}"></script>`}
                       </code>
                     </div>
                     <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => toast.success("Copiado!")}>
@@ -835,7 +905,7 @@ export default function CheckoutBuilder() {
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
                 <span className="text-[10px] text-muted-foreground font-mono ml-2">
-                  pay.zaplynx.com/c/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
+                  {localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
