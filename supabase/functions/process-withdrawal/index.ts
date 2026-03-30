@@ -140,7 +140,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        value: withdrawal.amount,
+        value: payoutAmount,
         destinationAlias: withdrawal.pix_key,
         destinationAliasType: keyType,
         correlationID,
