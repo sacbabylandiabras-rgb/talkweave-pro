@@ -662,10 +662,10 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* BLOCO C4: TokVex Mobile */}
-            <AccordionItem value="tokvex-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+            {/* BLOCO C4: TokLynx Mobile */}
+            <AccordionItem value="toklynx-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokVex Mobile</div>
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokLynx Mobile</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-4">
                 <p className="text-[10px] text-muted-foreground">Configure o comportamento das seções no mobile</p>
@@ -684,13 +684,13 @@ export default function CheckoutBuilder() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-xs">Informações Antes do Carrinho</Label>
-                    <p className="text-[10px] text-muted-foreground">No TokVex mobile, exibir seção de informações antes do resumo do pedido</p>
+                    <p className="text-[10px] text-muted-foreground">No TokLynx mobile, exibir seção de informações antes do resumo do pedido</p>
                   </div>
                   <Switch checked={config.mobileInfoBeforeCart} onCheckedChange={v => updateConfig("mobileInfoBeforeCart", v)} />
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground">
-                    ℹ️ Esta configuração afeta apenas o TokVex Mobile, controlando se as seções de informações, endereço e CPF aparecem abertas ou fechadas inicialmente.
+                    ℹ️ Esta configuração afeta apenas o TokLynx Mobile, controlando se as seções de informações, endereço e CPF aparecem abertas ou fechadas inicialmente.
                   </p>
                 </div>
               </AccordionContent>
