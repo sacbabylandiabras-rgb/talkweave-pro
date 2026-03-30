@@ -81,6 +81,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
 
+  // Receipt upload state
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!config.showTimer) return;
     setCountdown({ m: config.timerMinutes || 15, s: 0 });
