@@ -19,7 +19,7 @@ export default function CheckoutStep2Review({ config, formName, formEmail, formC
   const rows = [
     { label: "Nome", value: formName },
     { label: "E-mail", value: formEmail },
-    ...(config.showCpf ? [{ label: "CPF / CNPJ", value: formCpf }] : []),
+    { label: "CPF / CNPJ", value: formCpf },
     ...(config.showPhone ? [{ label: "Celular", value: formPhone }] : []),
   ];
 

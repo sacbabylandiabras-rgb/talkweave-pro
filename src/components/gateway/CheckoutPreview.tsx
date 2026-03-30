@@ -453,12 +453,10 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                   <span className="text-xs font-medium" style={{ color: s.cardLabel }}>E-mail</span>
                   <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formEmail || "—"}</span>
                 </div>
-                {config.showCpf && (
-                  <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
                     <span className="text-xs font-medium" style={{ color: s.cardLabel }}>CPF / CNPJ</span>
                     <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formCpf || "—"}</span>
                   </div>
-                )}
                 {config.showPhone && (
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
                     <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Celular</span>
