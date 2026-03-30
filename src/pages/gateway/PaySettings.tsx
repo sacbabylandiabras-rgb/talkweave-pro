@@ -115,6 +115,26 @@ export default function PaySettings() {
     toast.success("Copiado!");
   };
 
+  const handleSaveDomain = () => {
+    const domain = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    if (!domain) {
+      localStorage.removeItem("checkout_custom_domain");
+      setDomainStatus("none");
+      setCustomDomain("");
+      toast.success("Domínio removido");
+      return;
+    }
+    setDomainSaving(true);
+    localStorage.setItem("checkout_custom_domain", domain);
+    setCustomDomain(domain);
+    setDomainStatus("pending");
+    setTimeout(() => {
+      setDomainSaving(false);
+      setDomainStatus("active");
+      toast.success("Domínio salvo! Configure o DNS conforme as instruções.");
+    }, 1000);
+  };
+
   const publicKey = apiKeys?.public_key || "—";
   const secretKey = apiKeys?.secret_key || "—";
 
