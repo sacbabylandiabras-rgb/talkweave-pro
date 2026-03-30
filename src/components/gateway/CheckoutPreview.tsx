@@ -131,7 +131,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode });
+      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
     } catch (e: any) {
       setPixError(e.message || 'Erro ao gerar PIX');
     } finally {
