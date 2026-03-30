@@ -856,12 +856,19 @@ export default function CheckoutBuilder() {
             >
               <div
                 style={{
-                  width: previewMode === "mobile" ? 390 : "100%",
-                  maxWidth: "100%",
-                  margin: previewMode === "mobile" ? "0 auto" : undefined,
+                  width: previewViewportWidth,
+                  maxWidth: "none",
+                  transformOrigin: "top center",
+                  transform: `scale(${previewScale})`,
+                  margin: "0 auto",
+                  flexShrink: 0,
                 }}
               >
-                <CheckoutPreview config={config} templateName={activeTemplateName} />
+                <CheckoutPreview 
+                  key={`${config.templateId}-${config.format}`}
+                  config={config} 
+                  templateName={activeTemplateName} 
+                />
               </div>
             </CardContent>
           </Card>
