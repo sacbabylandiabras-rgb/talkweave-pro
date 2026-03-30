@@ -662,10 +662,10 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* BLOCO C4: TokVex Mobile */}
-            <AccordionItem value="tokvex-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+            {/* BLOCO C4: TokLynx Mobile */}
+            <AccordionItem value="toklynx-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokVex Mobile</div>
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokLynx Mobile</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-4">
                 <p className="text-[10px] text-muted-foreground">Configure o comportamento das seções no mobile</p>
