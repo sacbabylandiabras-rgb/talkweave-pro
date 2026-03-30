@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
-import { Lock, CreditCard, Package, Minus, Plus } from "lucide-react";
+import { Lock, CreditCard, Package, Minus, Plus, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
-import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
-import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
+import { PaymentFooter } from "./PaymentIcons";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import CheckoutStep2Review from "./CheckoutStep2Review";
+import CheckoutStep3Payment from "./CheckoutStep3Payment";
 
 interface Props {
   config: Record<string, any>;
 }
 
 export default function LynxFyLayout({ config }: Props) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 10, s: 0 });
   const [quantity, setQuantity] = useState(1);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+  const [formPhone, setFormPhone] = useState("");
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -38,6 +45,13 @@ export default function LynxFyLayout({ config }: Props) {
   const subtotal = unitPrice * quantity;
   const total = subtotal + frete;
   const timerStr = `${String(countdown.h).padStart(2, "0")}h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
+  const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
+
+  const stepLabels = [
+    { num: 1, label: "Identificação" },
+    { num: 2, label: "Conferência" },
+    { num: 3, label: "Pagamento" },
+  ];
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
@@ -48,76 +62,80 @@ export default function LynxFyLayout({ config }: Props) {
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px" }}>
+        {/* Step indicators */}
+        <div className="flex items-center justify-center gap-3 mb-5">
+          {stepLabels.map((sl, i) => (
+            <div key={sl.num} className="flex items-center gap-3">
+              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium"
+                style={{
+                  borderRadius: s.stepRadius,
+                  background: step === sl.num ? `${s.stepBg}15` : "transparent",
+                  color: step === sl.num ? s.stepBg : s.cardLabel,
+                  border: step === sl.num ? `1.5px solid ${s.stepBg}` : "1.5px solid transparent",
+                }}>
+                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === sl.num)}>
+                  {step > sl.num ? <Check className="w-3 h-3" /> : sl.num}
+                </div>
+                <span className="hidden sm:inline">{sl.label}</span>
+              </button>
+              {i < stepLabels.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="flex-1 space-y-4">
-            {/* Informações de contato */}
-            <div className="border p-5 space-y-3" style={cardStyle(s)}>
-              <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Informações de contato</h3>
-              <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" /></div>
-              <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                {config.showPhone && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular</label>
-                    <div className="flex gap-1.5">
-                      <span className="flex items-center px-2 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>🇧🇷 +55</span>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" />
+            {/* Step 1 */}
+            {step === 1 && (
+              <>
+                <div className="border p-5 space-y-3" style={cardStyle(s)}>
+                  <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Informações de contato</h3>
+                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
+                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {config.showPhone && (
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular</label>
+                        <div className="flex gap-1.5">
+                          <span className="flex items-center px-2 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>🇧🇷 +55</span>
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+                        </div>
+                      </div>
+                    )}
+                    {config.showCpf && (
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF/CNPJ</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>
+                    )}
+                  </div>
+                </div>
+
+                {config.showAddress && (
+                  <div className="border p-5 space-y-3" style={cardStyle(s)}>
+                    <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Endereço de entrega</h3>
+                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" /></div>
+                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, avenida..." /></div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" /></div>
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" /></div>
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" /></div>
                     </div>
                   </div>
                 )}
-                {config.showCpf && (
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF/CNPJ</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" /></div>
-                )}
-              </div>
-            </div>
 
-            {/* Endereço */}
-            {config.showAddress && (
-              <div className="border p-5 space-y-3" style={cardStyle(s)}>
-                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Endereço de entrega</h3>
-                <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" /></div>
-                <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, avenida..." /></div>
-                <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Bairro</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Seu bairro" /></div>
-                <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Apto, bloco (opcional)" /></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" /></div>
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" /></div>
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" /></div>
-                </div>
-              </div>
+                <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
+                  <Lock className="w-3.5 h-3.5" /> PRÓXIMO
+                </button>
+              </>
             )}
 
-            {/* Pagamento */}
-            <div className="border p-5 space-y-3" style={cardStyle(s)}>
-              <div>
-                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Pagamento</h3>
-                <p className="text-xs mt-0.5" style={{ color: s.cardDesc }}>Todos os dados são seguros e criptografados</p>
-              </div>
-              <div className="space-y-2">
-                {config.pix && (
-                  <div className="flex items-center gap-3 p-3 border-2 cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.primary, background: `${s.primary}08` }}>
-                    <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: s.primary }}><div className="w-2.5 h-2.5 rounded-full" style={{ background: s.primary }} /></div>
-                    <PixIcon size={18} /><span className="text-sm font-medium" style={{ color: s.cardText }}>Pix</span>
-                  </div>
-                )}
-                {config.creditCard && (
-                  <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                    <div className="w-4 h-4 rounded-full border-2" style={{ borderColor: s.cardBorder }} />
-                    <CreditCard className="w-4 h-4" style={{ color: s.cardLabel }} />
-                    <div className="flex-1"><span className="text-sm" style={{ color: s.cardText }}>Cartão de Crédito</span><p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p><CardBrandsRow size={24} /></div>
-                  </div>
-                )}
-                {config.boleto && (
-                  <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                    <div className="w-4 h-4 rounded-full border-2" style={{ borderColor: s.cardBorder }} /><div style={{ color: s.cardLabel }}><BoletoIcon size={18} /></div>
-                    <div><span className="text-sm" style={{ color: s.cardText }}>Boleto Bancário</span><p className="text-[10px]" style={{ color: s.cardDesc }}>Vencimento em 3 dias</p></div>
-                  </div>
-                )}
-              </div>
-              <button className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
-                <Lock className="w-3.5 h-3.5" />{config.buttonText || "🔒 Finalizar Pedido"}
-              </button>
-            </div>
+            {/* Step 2 */}
+            {step === 2 && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && (
+              <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
+            )}
           </div>
 
           {/* RIGHT: Summary sidebar */}
