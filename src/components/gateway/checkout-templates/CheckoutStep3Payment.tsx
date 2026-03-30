@@ -372,7 +372,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
               className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
               style={{ borderColor: s.cardBorder, background: s.cardBg }}
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: "#FFFFFF" }}>
                 <img src={bank.logo} alt={bank.name} className="w-6 h-6 object-contain" loading="lazy" />
               </div>
               <div className="flex-1">
