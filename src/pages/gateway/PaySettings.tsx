@@ -36,7 +36,9 @@ export default function PaySettings() {
   const [apiKeys, setApiKeys] = useState<{ public_key: string; secret_key: string } | null>(null);
   const [keysLoading, setKeysLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
-
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainSaving, setDomainSaving] = useState(false);
+  const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active">("none");
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
