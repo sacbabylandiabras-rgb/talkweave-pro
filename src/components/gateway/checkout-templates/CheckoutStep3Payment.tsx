@@ -20,6 +20,13 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Auto-generate PIX when step 3 mounts
+  useEffect(() => {
+    if (!pixData && !pixLoading && !pixError) {
+      handleGeneratePix();
+    }
+  }, []);
+
   const handleGeneratePix = async () => {
     setPixLoading(true);
     setPixError(null);
