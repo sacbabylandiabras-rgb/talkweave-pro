@@ -126,9 +126,11 @@ serve(async (req) => {
     }
 
     const keyType = pixKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'CPF'
+    const WITHDRAWAL_FEE_CENTS = 1000 // R$ 10,00
+    const payoutAmount = withdrawal.amount - WITHDRAWAL_FEE_CENTS
     const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
 
-    console.log(`Processing withdrawal ${withdrawal.id}: ${withdrawal.amount} cents to ${withdrawal.pix_key} (${keyType})`)
+    console.log(`Processing withdrawal ${withdrawal.id}: ${withdrawal.amount} cents (fee: ${WITHDRAWAL_FEE_CENTS}, payout: ${payoutAmount}) to ${withdrawal.pix_key} (${keyType})`)
 
     // Create payment request on OpenPix
     const paymentRes = await fetch('https://api.openpix.com.br/api/v1/payment', {
