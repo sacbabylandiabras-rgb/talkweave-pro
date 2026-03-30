@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2, Upload } from "lucide-react";
 import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-templates/PaymentIcons";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
@@ -71,7 +71,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
@@ -80,6 +80,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+
+  // Receipt upload state
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -123,7 +131,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode });
+      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
     } catch (e: any) {
       setPixError(e.message || 'Erro ao gerar PIX');
     } finally {
@@ -137,6 +145,36 @@ export default function CheckoutPreview({ config, templateName }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) { setReceiptError('Formato não suportado.'); return; }
+    if (file.size > 7 * 1024 * 1024) { setReceiptError('Arquivo muito grande. Máximo 7MB.'); return; }
+    setReceiptFile(file);
+    setReceiptError(null);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setReceiptPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else { setReceiptPreview(null); }
+  };
+
+  const handleUploadReceipt = async () => {
+    if (!receiptFile || !pixData?.correlationID) return;
+    setReceiptUploading(true);
+    setReceiptError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const fd = new FormData();
+      fd.append('file', receiptFile);
+      fd.append('correlationID', pixData.correlationID);
+      const res = await fetch(`${supabaseUrl}/functions/v1/upload-receipt`, { method: 'POST', headers: { 'apikey': anonKey }, body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao enviar');
+      setReceiptUploaded(true);
+    } catch (e: any) { setReceiptError(e.message); } finally { setReceiptUploading(false); }
   };
 
   const s = getCheckoutStyles(config);
@@ -539,7 +577,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               </div>
             </div>
 
-            {/* Upload receipt */}
+            {/* Upload receipt - FUNCTIONAL */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
               <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: s.primary }}>
                 <FileText className="w-4 h-4" /> enviar comprovante
@@ -547,17 +585,81 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               <p className="text-xs" style={{ color: s.cardDesc }}>
                 (opcional) Se necessário, envie o comprovante para agilizar a confirmação do seu pagamento.
               </p>
-              <div className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer" style={{ borderColor: s.primary, background: `${s.primary}08` }}>
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}15` }}>
-                  <FileText className="w-6 h-6" style={{ color: s.primary }} />
+
+              {receiptUploaded ? (
+                <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: s.isDark ? "#0a2010" : "#F0FDF4", border: "1px solid #22C55E" }}>
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium" style={{ color: "#16A34A" }}>Comprovante enviado com sucesso!</p>
+                    <p className="text-xs" style={{ color: s.cardDesc }}>{receiptFile?.name}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-center" style={{ color: s.cardDesc }}>
-                  Arraste o comprovante aqui ou clique para selecionar
-                </p>
-                <p className="text-[10px]" style={{ color: s.cardDesc }}>
-                  Formatos: JPG, PNG, WebP, PDF (Até 7MB)
-                </p>
-              </div>
+              ) : receiptFile ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-xl border" style={{ borderColor: s.cardBorder, background: s.isDark ? "#111" : "#F9FAFB" }}>
+                    {receiptPreview ? (
+                      <img src={receiptPreview} alt="Comprovante" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${s.primary}15` }}>
+                        <FileText className="w-6 h-6" style={{ color: s.primary }} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: s.cardTitle }}>{receiptFile.name}</p>
+                      <p className="text-[10px]" style={{ color: s.cardDesc }}>{(receiptFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <button onClick={() => { setReceiptFile(null); setReceiptPreview(null); setReceiptUploaded(false); setReceiptError(null); }} className="p-1.5 rounded-full hover:opacity-70" style={{ color: s.cardDesc }}>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {receiptError && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: s.isDark ? "#2a1010" : "#FEF2F2", color: "#DC2626" }}>
+                      <AlertTriangle className="w-4 h-4" /> {receiptError}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleUploadReceipt}
+                    disabled={receiptUploading || !pixData?.correlationID}
+                    className="w-full py-3 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+                    style={buttonStyle(s)}
+                  >
+                    {receiptUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {receiptUploading ? 'Enviando...' : 'Enviar Comprovante'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  />
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
+                    className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-opacity hover:opacity-80"
+                    style={{ borderColor: s.primary, background: `${s.primary}08` }}
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}15` }}>
+                      <FileText className="w-6 h-6" style={{ color: s.primary }} />
+                    </div>
+                    <p className="text-xs text-center" style={{ color: s.cardDesc }}>
+                      Arraste o comprovante aqui ou clique para selecionar
+                    </p>
+                    <p className="text-[10px]" style={{ color: s.cardDesc }}>
+                      Formatos: JPG, PNG, WebP, PDF (Até 7MB)
+                    </p>
+                  </div>
+                  {receiptError && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: s.isDark ? "#2a1010" : "#FEF2F2", color: "#DC2626" }}>
+                      <AlertTriangle className="w-4 h-4" /> {receiptError}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Banks */}

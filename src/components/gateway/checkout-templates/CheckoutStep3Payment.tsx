@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { AlertTriangle, Copy, CreditCard, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { AlertTriangle, Copy, CreditCard, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { cardStyle, buttonStyle, getCheckoutStyles } from "./checkout-style-helpers";
 
@@ -16,9 +16,17 @@ interface Props {
 export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr }: Props) {
   const s = getCheckoutStyles(config);
   const [pixLoading, setPixLoading] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Receipt upload state
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-generate PIX when step 3 mounts
   useEffect(() => {
@@ -45,7 +53,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode });
+      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
     } catch (e: any) {
       setPixError(e.message || 'Erro ao gerar PIX');
     } finally {
@@ -59,6 +67,65 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setReceiptError('Formato não suportado. Use JPG, PNG, WebP ou PDF.');
+      return;
+    }
+    if (file.size > 7 * 1024 * 1024) {
+      setReceiptError('Arquivo muito grande. Máximo 7MB.');
+      return;
+    }
+    setReceiptFile(file);
+    setReceiptError(null);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setReceiptPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptPreview(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleUploadReceipt = async () => {
+    if (!receiptFile || !pixData?.correlationID) return;
+    setReceiptUploading(true);
+    setReceiptError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const formData = new FormData();
+      formData.append('file', receiptFile);
+      formData.append('correlationID', pixData.correlationID);
+      const res = await fetch(`${supabaseUrl}/functions/v1/upload-receipt`, {
+        method: 'POST',
+        headers: { 'apikey': anonKey },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao enviar comprovante');
+      setReceiptUploaded(true);
+    } catch (e: any) {
+      setReceiptError(e.message || 'Erro ao enviar comprovante');
+    } finally {
+      setReceiptUploading(false);
+    }
+  };
+
+  const removeReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptUploaded(false);
+    setReceiptError(null);
   };
 
   return (
@@ -114,22 +181,27 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
             </p>
             <div className="flex justify-center">
               <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
-                <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                {pixLoading ? (
+                  <Loader2 className="w-12 h-12 animate-spin" style={{ color: s.primary }} />
+                ) : (
+                  <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                )}
               </div>
             </div>
             {pixError && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
+              <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: s.isDark ? "#2a1010" : "#FEF2F2", color: "#DC2626" }}>
                 <AlertTriangle className="w-4 h-4" /> {pixError}
               </div>
             )}
-            <button
-              type="button" onClick={handleGeneratePix} disabled={pixLoading}
-              className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
-              style={buttonStyle(s)}
-            >
-              {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-              {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
-            </button>
+            {!pixLoading && pixError && (
+              <button
+                type="button" onClick={handleGeneratePix}
+                className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]"
+                style={buttonStyle(s)}
+              >
+                <QrCode className="w-4 h-4" /> Tentar novamente
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -163,7 +235,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         </div>
       </div>
 
-      {/* Upload receipt */}
+      {/* Upload receipt - FUNCTIONAL */}
       <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
         <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: s.primary }}>
           <FileText className="w-4 h-4" /> enviar comprovante
@@ -171,17 +243,83 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         <p className="text-xs" style={{ color: s.cardDesc }}>
           (opcional) Se necessário, envie o comprovante para agilizar a confirmação do seu pagamento.
         </p>
-        <div className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer" style={{ borderColor: s.primary, background: `${s.primary}08` }}>
-          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}15` }}>
-            <FileText className="w-6 h-6" style={{ color: s.primary }} />
+
+        {receiptUploaded ? (
+          <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: s.isDark ? "#0a2010" : "#F0FDF4", border: "1px solid #22C55E" }}>
+            <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: "#16A34A" }}>Comprovante enviado com sucesso!</p>
+              <p className="text-xs" style={{ color: s.cardDesc }}>{receiptFile?.name}</p>
+            </div>
           </div>
-          <p className="text-xs text-center" style={{ color: s.cardDesc }}>
-            Arraste o comprovante aqui ou clique para selecionar
-          </p>
-          <p className="text-[10px]" style={{ color: s.cardDesc }}>
-            Formatos: JPG, PNG, WebP, PDF (Até 7MB)
-          </p>
-        </div>
+        ) : receiptFile ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-xl border" style={{ borderColor: s.cardBorder, background: s.isDark ? "#111" : "#F9FAFB" }}>
+              {receiptPreview ? (
+                <img src={receiptPreview} alt="Comprovante" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${s.primary}15` }}>
+                  <FileText className="w-6 h-6" style={{ color: s.primary }} />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate" style={{ color: s.cardTitle }}>{receiptFile.name}</p>
+                <p className="text-[10px]" style={{ color: s.cardDesc }}>{(receiptFile.size / 1024).toFixed(0)} KB</p>
+              </div>
+              <button onClick={removeReceipt} className="p-1.5 rounded-full hover:opacity-70" style={{ color: s.cardDesc }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {receiptError && (
+              <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: s.isDark ? "#2a1010" : "#FEF2F2", color: "#DC2626" }}>
+                <AlertTriangle className="w-4 h-4" /> {receiptError}
+              </div>
+            )}
+
+            <button
+              onClick={handleUploadReceipt}
+              disabled={receiptUploading || !pixData?.correlationID}
+              className="w-full py-3 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+              style={buttonStyle(s)}
+            >
+              {receiptUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {receiptUploading ? 'Enviando...' : 'Enviar Comprovante'}
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+            />
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-opacity hover:opacity-80"
+              style={{ borderColor: s.primary, background: `${s.primary}08` }}
+            >
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}15` }}>
+                <FileText className="w-6 h-6" style={{ color: s.primary }} />
+              </div>
+              <p className="text-xs text-center" style={{ color: s.cardDesc }}>
+                Arraste o comprovante aqui ou clique para selecionar
+              </p>
+              <p className="text-[10px]" style={{ color: s.cardDesc }}>
+                Formatos: JPG, PNG, WebP, PDF (Até 7MB)
+              </p>
+            </div>
+            {receiptError && (
+              <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: s.isDark ? "#2a1010" : "#FEF2F2", color: "#DC2626" }}>
+                <AlertTriangle className="w-4 h-4" /> {receiptError}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Banks */}

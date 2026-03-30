@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2 } from "lucide-react";
+import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -169,6 +169,7 @@ export default function PayReports() {
                       <TableHead>Contato</TableHead>
                       <TableHead>Checkout</TableHead>
                       <TableHead>Código PIX</TableHead>
+                      <TableHead>Comprovante</TableHead>
                       <TableHead>Bruto</TableHead>
                       <TableHead>Taxa</TableHead>
                       <TableHead>Líquido</TableHead>
@@ -204,6 +205,23 @@ export default function PayReports() {
                                 {(tx as any).metadata.brCode.slice(0, 30)}…
                               </button>
                             ) : tx.external_id || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {(tx as any).metadata?.receipt_url ? (
+                              <a
+                                href={(tx as any).metadata.receipt_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80"
+                                style={{ background: '#22C55E20', color: '#22C55E' }}
+                              >
+                                <FileText className="w-3 h-3" />
+                                Ver
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>
