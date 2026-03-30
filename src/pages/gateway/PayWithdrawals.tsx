@@ -93,14 +93,21 @@ export default function PayWithdrawals() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const MINIMUM_WITHDRAWAL_CENTS = 5000; // R$ 50,00
+  const WITHDRAWAL_FEE_CENTS = 1000; // R$ 10,00
+
   const handleSubmit = async () => {
     const amountCents = Math.round(parseFloat(withdrawAmount.replace(",", ".")) * 100);
     if (!amountCents || amountCents <= 0) {
       toast.error("Informe um valor válido");
       return;
     }
-    if (amountCents > balance) {
-      toast.error("Saldo insuficiente");
+    if (amountCents < MINIMUM_WITHDRAWAL_CENTS) {
+      toast.error("O valor mínimo para saque é de R$ 50,00");
+      return;
+    }
+    if (amountCents + WITHDRAWAL_FEE_CENTS > balance) {
+      toast.error("Saldo insuficiente (valor + taxa de R$ 10,00)");
       return;
     }
     if (!pixKey.trim()) {
@@ -114,7 +121,7 @@ export default function PayWithdrawals() {
 
     const { error } = await supabase.from("gateway_withdrawals" as any).insert({
       user_id: user.id,
-      amount: amountCents,
+      amount: amountCents + WITHDRAWAL_FEE_CENTS,
       pix_key_type: pixKeyType,
       pix_key: pixKey.trim(),
     } as any);
@@ -258,10 +265,15 @@ export default function PayWithdrawals() {
               <p className="text-sm text-muted-foreground">Saldo disponível</p>
               <p className="text-xl font-bold text-emerald-500">{formatCurrency(balance)}</p>
             </div>
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-1">
+              <p className="text-xs text-amber-400 font-medium">⚠️ Informações sobre saques</p>
+              <p className="text-xs text-muted-foreground">• Valor mínimo: <strong>R$ 50,00</strong></p>
+              <p className="text-xs text-muted-foreground">• Taxa por saque: <strong>R$ 10,00</strong></p>
+            </div>
             <div className="space-y-2">
               <Label>Valor do saque (R$)</Label>
               <Input
-                placeholder="0,00"
+                placeholder="Mínimo R$ 50,00"
                 value={withdrawAmount}
                 onChange={e => setWithdrawAmount(e.target.value)}
               />
