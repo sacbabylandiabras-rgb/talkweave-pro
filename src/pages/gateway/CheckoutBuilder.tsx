@@ -684,7 +684,7 @@ export default function CheckoutBuilder() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-xs">Informações Antes do Carrinho</Label>
-                    <p className="text-[10px] text-muted-foreground">No TokVex mobile, exibir seção de informações antes do resumo do pedido</p>
+                    <p className="text-[10px] text-muted-foreground">No TokLynx mobile, exibir seção de informações antes do resumo do pedido</p>
                   </div>
                   <Switch checked={config.mobileInfoBeforeCart} onCheckedChange={v => updateConfig("mobileInfoBeforeCart", v)} />
                 </div>
