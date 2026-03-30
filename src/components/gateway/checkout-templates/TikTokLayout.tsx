@@ -1,23 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   CreditCard,
   Lock,
   Package,
-  Plus,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from "./PaymentIcons";
+import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "./checkout-style-helpers";
 
 interface Props {
   config: Record<string, any>;
 }
 
+function getInitialSections(initialState: string) {
+  return {
+    info: initialState === "expanded" || initialState === "first_open",
+    address: initialState === "expanded",
+    cpf: initialState === "expanded",
+  };
+}
+
 export default function TikTokLayout({ config }: Props) {
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [selectedPayment, setSelectedPayment] = useState<"pix" | "credit" | "boleto">("credit");
+  const [mobileSections, setMobileSections] = useState(() => getInitialSections(config.mobileInitialState || "collapsed"));
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -36,58 +45,76 @@ export default function TikTokLayout({ config }: Props) {
     return () => clearInterval(interval);
   }, [config.showTimer]);
 
-  const primary = config.primaryColor || "#F41F5E";
+  useEffect(() => {
+    setMobileSections(getInitialSections(config.mobileInitialState || "collapsed"));
+  }, [config.mobileInitialState]);
+
+  const s = getCheckoutStyles(config);
   const unitPrice = config.price || 7191;
   const productName = config.offerName || config.productName || "Produto";
   const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
-  const progressColors = ["#22C55E", "#10B981", "#06B6D4", "#3B82F6", "#A855F7", "#EC4899", "#F97316", "#F43F5E"];
+  const safeGreen = "#16A34A";
+  const softSurface = s.isDark ? "#141414" : "#F8FAFC";
+  const progressColors = [
+    s.primary,
+    `${s.primary}E6`,
+    `${s.primary}CC`,
+    `${s.primary}B3`,
+    `${s.primary}99`,
+    `${s.primary}80`,
+    `${s.primary}66`,
+    `${s.primary}4D`,
+  ];
 
   const shellStyle = {
-    background: "#FFFFFF",
-    border: "1px solid #E9EDF5",
-    borderRadius: "12px",
+    ...cardStyle(s),
+    border: `1px solid ${s.cardBorder}`,
   } as const;
 
-  const inputClass = "w-full rounded-lg border border-[#E5EAF3] bg-white px-3 py-2.5 text-[11px] text-[#111827] outline-none placeholder:text-[#9CA3AF]";
+  const compactInputStyle = {
+    ...inputStyle(s),
+    fontSize: "11px",
+    padding: "10px 12px",
+  } as const;
 
   const SummaryContent = ({ compact = false }: { compact?: boolean }) => (
     <div style={shellStyle} className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[#EEF2F7] px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
         <div>
-          <p className="text-xs font-semibold text-[#101828]">Resumo do Pedido</p>
+          <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>Resumo do Pedido</p>
           {!compact && (
-            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-[#6B7280]">
-              <ShieldCheck className="h-3 w-3 text-[#22C55E]" />
+            <p className="mt-0.5 flex items-center gap-1 text-[10px]" style={{ color: s.cardDesc }}>
+              <ShieldCheck className="h-3 w-3" style={{ color: safeGreen }} />
               Seus dados estão seguros e criptografados.
             </p>
           )}
         </div>
-        {compact && <span className="text-[11px] font-bold text-[#101828]">{formatCurrency(unitPrice)}</span>}
+        {compact && <span className="text-[11px] font-bold" style={{ color: s.cardTitle }}>{formatCurrency(unitPrice)}</span>}
       </div>
 
       <div className="space-y-3 px-4 py-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-[#EEF2F7] bg-[#F8FAFC]">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden border" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder, background: softSurface }}>
             {config.productImage ? (
               <img src={config.productImage} alt={productName} className="h-full w-full object-cover" />
             ) : (
-              <Package className="h-4 w-4 text-[#98A2B3]" />
+              <Package className="h-4 w-4" style={{ color: s.cardLabel }} />
             )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-medium text-[#111827]">{productName}</p>
+            <p className="truncate text-[11px] font-medium" style={{ color: s.cardText }}>{productName}</p>
             {config.originalPrice > config.price && (
-              <p className="text-[10px] text-[#98A2B3] line-through">{formatCurrency(config.originalPrice)}</p>
+              <p className="text-[10px] line-through" style={{ color: s.cardDesc }}>{formatCurrency(config.originalPrice)}</p>
             )}
-            <p className="text-xs font-bold" style={{ color: primary }}>{formatCurrency(unitPrice)}</p>
+            <p className="text-xs font-bold" style={{ color: s.primary }}>{formatCurrency(unitPrice)}</p>
           </div>
 
           {!compact && (
             <div className="flex items-center gap-2">
-              <button className="flex h-6 w-6 items-center justify-center rounded-full border border-[#D0D5DD] text-xs text-[#667085]">−</button>
-              <span className="text-xs font-semibold text-[#111827]">1</span>
-              <button className="flex h-6 w-6 items-center justify-center rounded-full border border-[#D0D5DD] text-xs text-[#667085]">+</button>
+              <button className="flex h-6 w-6 items-center justify-center border text-xs" style={{ borderRadius: s.stepRadius, borderColor: s.cardBorder, color: s.cardLabel }}>−</button>
+              <span className="text-xs font-semibold" style={{ color: s.cardText }}>1</span>
+              <button className="flex h-6 w-6 items-center justify-center border text-xs" style={{ borderRadius: s.stepRadius, borderColor: s.cardBorder, color: s.cardLabel }}>+</button>
             </div>
           )}
         </div>
@@ -95,22 +122,24 @@ export default function TikTokLayout({ config }: Props) {
         {!compact && (
           <>
             <div className="flex gap-2">
-              <input className="flex-1 rounded-md border border-[#D9E0EA] px-3 py-2 text-[10px] outline-none placeholder:text-[#98A2B3]" placeholder="Adicionar cupom de desconto" />
-              <button className="rounded-md border border-[#D9E0EA] px-3 py-2 text-[10px] font-semibold text-[#667085]">Aplicar</button>
+              <input className="flex-1 border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Adicionar cupom de desconto" />
+              <button className="border px-3 py-2 text-[10px] font-semibold" style={{ ...inputStyle(s), color: s.cardText }}>
+                Aplicar
+              </button>
             </div>
 
-            <div className="space-y-2 border-t border-[#EEF2F7] pt-3">
-              <div className="flex items-center justify-between text-[10px] text-[#667085]">
+            <div className="space-y-2 pt-3" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+              <div className="flex items-center justify-between text-[10px]" style={{ color: s.cardDesc }}>
                 <span>Subtotal</span>
                 <span>{formatCurrency(unitPrice)}</span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-[#667085]">
+              <div className="flex items-center justify-between text-[10px]" style={{ color: s.cardDesc }}>
                 <span>Frete</span>
-                <span className="text-[#22C55E]">Grátis</span>
+                <span style={{ color: safeGreen }}>Grátis</span>
               </div>
-              <div className="flex items-center justify-between pt-1 text-sm font-bold text-[#111827]">
-                <span>Total</span>
-                <span style={{ color: primary }}>{formatCurrency(unitPrice)}</span>
+              <div className="flex items-center justify-between pt-1 text-sm font-bold">
+                <span style={{ color: s.cardTitle }}>Total</span>
+                <span style={{ color: s.primary }}>{formatCurrency(unitPrice)}</span>
               </div>
             </div>
           </>
@@ -128,47 +157,102 @@ export default function TikTokLayout({ config }: Props) {
     children,
   }: {
     active: boolean;
-    icon: React.ReactNode;
+    icon: ReactNode;
     title: string;
     subtitle?: string;
     onClick: () => void;
-    children?: React.ReactNode;
+    children?: ReactNode;
   }) => (
-    <div className="rounded-xl border border-[#E7ECF3] bg-white p-3">
+    <div
+      className="border p-3"
+      style={{
+        ...cardStyle(s),
+        borderColor: active ? s.primary : s.cardBorder,
+        background: active ? `${s.primary}10` : s.cardBg,
+      }}
+    >
       <button onClick={onClick} className="flex w-full items-start justify-between gap-3 text-left">
         <div className="flex items-start gap-2.5">
-          <div className="mt-0.5 text-[#667085]">{icon}</div>
+          <div className="mt-0.5" style={{ color: active ? s.primary : s.cardLabel }}>{icon}</div>
           <div>
-            <p className="text-[11px] font-medium text-[#111827]">{title}</p>
-            {subtitle && <p className="mt-0.5 text-[9px] text-[#98A2B3]">{subtitle}</p>}
+            <p className="text-[11px] font-medium" style={{ color: s.cardText }}>{title}</p>
+            {subtitle && <p className="mt-0.5 text-[9px]" style={{ color: s.cardDesc }}>{subtitle}</p>}
           </div>
         </div>
-        <div className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border" style={{ borderColor: active ? primary : "#D0D5DD" }}>
-          {active && <div className="h-2 w-2 rounded-full" style={{ background: primary }} />}
+        <div className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border" style={{ borderColor: active ? s.primary : s.cardBorder }}>
+          {active && <div className="h-2 w-2 rounded-full" style={{ background: s.primary }} />}
         </div>
       </button>
       {children}
     </div>
   );
 
+  const MobileSection = ({
+    open,
+    title,
+    onToggle,
+    children,
+  }: {
+    open: boolean;
+    title: string;
+    onToggle: () => void;
+    children: ReactNode;
+  }) => (
+    <div className="border" style={shellStyle}>
+      <button onClick={onToggle} className="flex w-full items-center justify-between px-4 py-3 text-left">
+        <span className="text-[11px] font-semibold" style={{ color: s.cardTitle }}>{title}</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+
+  const ContactForm = (
+    <div className="space-y-3">
+      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Nome completo *" />
+      <div className="grid grid-cols-2 gap-2">
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="E-mail *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Telefone *" />
+      </div>
+    </div>
+  );
+
+  const AddressForm = (
+    <div className="space-y-3">
+      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="00000-000" />
+      <div className="grid grid-cols-2 gap-2">
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Rua *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Número *" />
+      </div>
+      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Complemento" />
+      <div className="grid grid-cols-3 gap-2">
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Bairro *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Cidade *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="ESTADO/UF *" />
+      </div>
+    </div>
+  );
+
+  const CpfForm = <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="000.000.000-00" />;
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto w-full bg-[#FFFFFF]">
+    <div className="min-h-screen" style={{ background: s.bgColor, color: s.textColor, fontFamily: s.fontFamily }}>
+      <div className="mx-auto w-full" style={{ background: s.cardBg }}>
         {config.showTimer && (
-          <div className="bg-[#F41F5E] px-4 py-3 text-center text-xs font-bold text-white">
+          <div className="px-4 py-3 text-center text-xs font-bold text-white" style={{ background: s.primary }}>
             Oferta termina em: <span className="ml-1">{timerStr}</span>
           </div>
         )}
 
-        <div className="flex items-center justify-between border-b border-[#EEF2F7] bg-[#FFFFFF] px-4 py-4">
+        <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: s.cardBorder, background: s.cardBg }}>
           <div>
             {config.logoUrl ? (
               <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
             ) : (
-              <span className="text-base font-semibold text-[#111827]">Minha Loja</span>
+              <span className="text-base font-semibold" style={{ color: s.cardTitle }}>Minha Loja</span>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-medium text-[#16A34A]">
+          <div className="flex items-center gap-1 text-[11px] font-medium" style={{ color: safeGreen }}>
             <ShieldCheck className="h-3.5 w-3.5" />
             Pagamento 100% seguro
           </div>
@@ -178,17 +262,17 @@ export default function TikTokLayout({ config }: Props) {
       <div className="mx-auto max-w-[980px] px-3 py-6 md:px-4">
         <div className="mb-5 hidden items-center justify-center gap-5 md:flex">
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2" style={{ borderColor: primary, color: primary }}>
+            <div className="flex h-10 w-10 items-center justify-center border-2" style={{ borderColor: s.stepBg, color: s.stepBg, borderRadius: s.stepRadius }}>
               <User className="h-4 w-4" />
             </div>
-            <span className="text-xs font-semibold" style={{ color: primary }}>Identificação</span>
+            <span className="text-xs font-semibold" style={{ color: s.stepBg }}>Identificação</span>
           </div>
-          <div className="h-px w-12 bg-[#D0D5DD]" />
+          <div className="h-px w-12" style={{ background: s.cardBorder }} />
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D0D5DD] text-[#98A2B3]">
+            <div className="flex h-10 w-10 items-center justify-center border-2" style={{ borderColor: s.cardBorder, color: s.cardLabel, borderRadius: s.stepRadius }}>
               <CreditCard className="h-4 w-4" />
             </div>
-            <span className="text-xs font-semibold text-[#98A2B3]">Pagamento</span>
+            <span className="text-xs font-semibold" style={{ color: s.cardLabel }}>Pagamento</span>
           </div>
         </div>
 
@@ -196,42 +280,24 @@ export default function TikTokLayout({ config }: Props) {
           <div className="space-y-4">
             {config.showAddress && (
               <div style={shellStyle} className="p-4">
-                <h3 className="mb-3 text-[11px] font-semibold text-[#111827]">Endereço de Entrega</h3>
-                <div className="space-y-3">
-                  <input className={inputClass} placeholder="00000-000" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input className={inputClass} placeholder="Rua *" />
-                    <input className={inputClass} placeholder="Número *" />
-                  </div>
-                  <input className={inputClass} placeholder="Complemento" />
-                  <div className="grid grid-cols-3 gap-2">
-                    <input className={inputClass} placeholder="Bairro *" />
-                    <input className={inputClass} placeholder="Cidade *" />
-                    <input className={inputClass} placeholder="ESTADO/UF *" />
-                  </div>
-                </div>
+                <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>Endereço de Entrega</h3>
+                {AddressForm}
               </div>
             )}
 
             {config.showCpf && (
               <div style={shellStyle} className="p-4">
-                <h3 className="mb-3 text-[11px] font-semibold text-[#111827]">CPF / CNPJ</h3>
-                <input className={inputClass} placeholder="000.000.000-00" />
+                <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>CPF / CNPJ</h3>
+                {CpfForm}
               </div>
             )}
 
             <div style={shellStyle} className="p-4">
-              <h3 className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#111827]">
-                <User className="h-3.5 w-3.5 text-[#667085]" />
+              <h3 className="mb-1 flex items-center gap-2 text-[11px] font-semibold" style={{ color: s.cardTitle }}>
+                <User className="h-3.5 w-3.5" style={{ color: s.cardLabel }} />
                 Informações de Contato
               </h3>
-              <div className="space-y-3">
-                <input className={inputClass} placeholder="Nome completo *" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input className={inputClass} placeholder="E-mail *" />
-                  <input className={inputClass} placeholder="Telefone *" />
-                </div>
-              </div>
+              {ContactForm}
             </div>
           </div>
 
@@ -239,64 +305,59 @@ export default function TikTokLayout({ config }: Props) {
             <SummaryContent />
 
             <div style={shellStyle} className="p-4">
-              <h3 className="mb-3 text-[11px] font-semibold text-[#111827]">Forma de pagamento</h3>
+              <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>Forma de pagamento</h3>
 
-            {config.pix && (
-              <PaymentOption
-                active={selectedPayment === "pix"}
-                icon={<PixIcon size={18} />}
-                title="Pix"
-                subtitle="Pague em até 24 horas e obtenha confirmação instantânea."
-                onClick={() => setSelectedPayment("pix")}
-              />
-            )}
-
-            {config.creditCard && (
-              <div className="mt-2">
+              {config.pix && (
                 <PaymentOption
-                  active={selectedPayment === "credit"}
-                  icon={<CreditCard className="h-4 w-4" />}
-                  title="Cartão de crédito"
-                  subtitle="Pague em até 12 parcelas"
-                  onClick={() => setSelectedPayment("credit")}
-                >
-                  <div className="mt-2">
-                    <p className="text-[10px] font-medium text-[#EF4444] mb-1">Sem juros</p>
-                    <CardBrandsRow size={26} />
-                  </div>
-                  {selectedPayment === "credit" && (
-                    <div className="mt-3 space-y-2 border-t border-[#EEF2F7] pt-3">
-                      <input className={inputClass} placeholder="Número do cartão *" />
-                      <input className={inputClass} placeholder="Nome no cartão *" />
-                      <div className="grid grid-cols-3 gap-2">
-                        <input className={inputClass} placeholder="Mês" />
-                        <input className={inputClass} placeholder="Ano" />
-                        <input className={inputClass} placeholder="CVV *" />
-                      </div>
-                      <div className="flex items-center justify-between rounded-lg border border-[#E5EAF3] px-3 py-2 text-[10px] text-[#475467]">
-                        <span>1x de {formatCurrency(unitPrice)} (à vista)</span>
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </div>
-                    </div>
-                  )}
-                </PaymentOption>
-              </div>
-            )}
-
-              <div className="mt-2">
-                <PaymentOption
-                  active={false}
-                  icon={<ApplePayIcon size={20} />}
-                  title="Apple Pay"
-                  onClick={() => undefined}
+                  active={selectedPayment === "pix"}
+                  icon={<PixIcon size={18} />}
+                  title="Pix"
+                  subtitle="Pague em até 24 horas e obtenha confirmação instantânea."
+                  onClick={() => setSelectedPayment("pix")}
                 />
+              )}
+
+              {config.creditCard && (
+                <div className="mt-2">
+                  <PaymentOption
+                    active={selectedPayment === "credit"}
+                    icon={<CreditCard className="h-4 w-4" />}
+                    title="Cartão de crédito"
+                    subtitle={`Pague em até ${config.maxInstallments || 12} parcelas`}
+                    onClick={() => setSelectedPayment("credit")}
+                  >
+                    <div className="mt-2">
+                      <p className="mb-1 text-[10px] font-medium" style={{ color: s.primary }}>Sem juros</p>
+                      <CardBrandsRow size={26} />
+                    </div>
+                    {selectedPayment === "credit" && (
+                      <div className="mt-3 space-y-2 pt-3" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Número do cartão *" />
+                        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Nome no cartão *" />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Mês" />
+                          <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Ano" />
+                          <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="CVV *" />
+                        </div>
+                        <div className="flex items-center justify-between border px-3 py-2 text-[10px]" style={{ ...inputStyle(s), color: s.cardText }}>
+                          <span>1x de {formatCurrency(unitPrice)} (à vista)</span>
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                    )}
+                  </PaymentOption>
+                </div>
+              )}
+
+              <div className="mt-2">
+                <PaymentOption active={false} icon={<ApplePayIcon size={20} />} title="Apple Pay" onClick={() => undefined} />
               </div>
 
               {config.boleto && (
                 <div className="mt-2">
                   <PaymentOption
                     active={selectedPayment === "boleto"}
-                    icon={<div className="text-[#667085]"><BoletoIcon size={18} /></div>}
+                    icon={<div style={{ color: s.cardLabel }}><BoletoIcon size={18} /></div>}
                     title="Boleto"
                     subtitle="Pagamento via boleto bancário"
                     onClick={() => setSelectedPayment("boleto")}
@@ -304,7 +365,7 @@ export default function TikTokLayout({ config }: Props) {
                 </div>
               )}
 
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-xs font-bold text-white" style={{ background: primary }}>
+              <button className="mt-3 flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
                 <Lock className="h-3.5 w-3.5" />
                 Finalizar pedido • {formatCurrency(unitPrice)}
               </button>
@@ -315,46 +376,42 @@ export default function TikTokLayout({ config }: Props) {
         </div>
 
         <div className="mx-auto max-w-[360px] space-y-3 md:hidden">
-          {config.showTimer && <div className="h-px w-full bg-transparent" />}
-
-          {config.showAddress && (
-            <button style={shellStyle} className="flex w-full items-center justify-center gap-2 px-4 py-3 text-[11px] font-medium text-[#667085]">
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar endereço de entrega
-            </button>
-          )}
-
-          {config.showCpf && (
-            <button style={shellStyle} className="flex w-full items-center justify-center gap-2 px-4 py-3 text-[11px] font-medium text-[#667085]">
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar CPF
-            </button>
-          )}
-
           <div className="flex gap-0.5 px-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-1 flex-1 rounded-full" style={{ background: progressColors[i] }} />
+              <div key={i} className="h-1 flex-1 rounded-full" style={{ background: progressColors[i] || s.cardBorder }} />
             ))}
           </div>
 
-          <SummaryContent compact />
+          {config.mobileInfoBeforeCart ? (
+            <>
+              <MobileSection open={mobileSections.info} title="Informações de Contato" onToggle={() => setMobileSections((prev) => ({ ...prev, info: !prev.info }))}>
+                {ContactForm}
+              </MobileSection>
+              <SummaryContent compact />
+            </>
+          ) : (
+            <>
+              <SummaryContent compact />
+              <MobileSection open={mobileSections.info} title="Informações de Contato" onToggle={() => setMobileSections((prev) => ({ ...prev, info: !prev.info }))}>
+                {ContactForm}
+              </MobileSection>
+            </>
+          )}
+
+          {config.showAddress && (
+            <MobileSection open={mobileSections.address} title="Endereço de Entrega" onToggle={() => setMobileSections((prev) => ({ ...prev, address: !prev.address }))}>
+              {AddressForm}
+            </MobileSection>
+          )}
+
+          {config.showCpf && (
+            <MobileSection open={mobileSections.cpf} title="CPF / CNPJ" onToggle={() => setMobileSections((prev) => ({ ...prev, cpf: !prev.cpf }))}>
+              {CpfForm}
+            </MobileSection>
+          )}
 
           <div style={shellStyle} className="p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-[11px] font-semibold text-[#111827]">
-              <User className="h-3.5 w-3.5 text-[#667085]" />
-              Informações de Contato
-            </h3>
-            <div className="space-y-3">
-              <input className={inputClass} placeholder="Nome completo *" />
-              <div className="grid grid-cols-2 gap-2">
-                <input className={inputClass} placeholder="E-mail *" />
-                <input className={inputClass} placeholder="Telefone *" />
-              </div>
-            </div>
-          </div>
-
-          <div style={shellStyle} className="p-4">
-            <h3 className="mb-3 text-[11px] font-semibold text-[#111827]">Forma de pagamento</h3>
+            <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>Forma de pagamento</h3>
 
             {config.pix && (
               <PaymentOption
@@ -372,24 +429,24 @@ export default function TikTokLayout({ config }: Props) {
                   active={selectedPayment === "credit"}
                   icon={<CreditCard className="h-4 w-4" />}
                   title="Cartão de crédito"
-                  subtitle="Pague em até 12 parcelas"
+                  subtitle={`Pague em até ${config.maxInstallments || 12} parcelas`}
                   onClick={() => setSelectedPayment("credit")}
                 >
                   <div className="mt-2">
-                    <p className="text-[10px] font-medium text-[#EF4444] mb-1">Sem juros</p>
+                    <p className="mb-1 text-[10px] font-medium" style={{ color: s.primary }}>Sem juros</p>
                     <CardBrandsRow size={26} />
                   </div>
                   {selectedPayment === "credit" && (
-                    <div className="mt-3 space-y-2 border-t border-[#EEF2F7] pt-3">
-                      <input className={inputClass} placeholder="Nome no cartão" />
-                      <input className={inputClass} placeholder="CPF / CNPJ" />
-                      <input className={inputClass} placeholder="Número do cartão" />
+                    <div className="mt-3 space-y-2 pt-3" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Nome no cartão" />
+                      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="CPF / CNPJ" />
+                      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Número do cartão" />
                       <div className="grid grid-cols-3 gap-2">
-                        <input className={inputClass} placeholder="Mês" />
-                        <input className={inputClass} placeholder="Ano" />
-                        <input className={inputClass} placeholder="CVV *" />
+                        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Mês" />
+                        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Ano" />
+                        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="CVV *" />
                       </div>
-                      <div className="flex items-center justify-between rounded-lg border border-[#E5EAF3] px-3 py-2 text-[10px] text-[#475467]">
+                      <div className="flex items-center justify-between border px-3 py-2 text-[10px]" style={{ ...inputStyle(s), color: s.cardText }}>
                         <span>1x de {formatCurrency(unitPrice)} (à vista)</span>
                         <ChevronDown className="h-3.5 w-3.5" />
                       </div>
@@ -400,24 +457,24 @@ export default function TikTokLayout({ config }: Props) {
             )}
 
             <div className="mt-2">
-              <PaymentOption
-                active={false}
-                icon={<ApplePayIcon size={20} />}
-                title="Apple Pay"
-                onClick={() => undefined}
-              />
+              <PaymentOption active={false} icon={<ApplePayIcon size={20} />} title="Apple Pay" onClick={() => undefined} />
             </div>
 
             {config.boleto && (
               <div className="mt-2">
                 <PaymentOption
                   active={selectedPayment === "boleto"}
-                  icon={<div className="text-[#667085]"><BoletoIcon size={18} /></div>}
+                  icon={<div style={{ color: s.cardLabel }}><BoletoIcon size={18} /></div>}
                   title="Boleto"
                   onClick={() => setSelectedPayment("boleto")}
                 />
               </div>
             )}
+
+            <button className="mt-3 flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
+              <Lock className="h-3.5 w-3.5" />
+              Finalizar pedido • {formatCurrency(unitPrice)}
+            </button>
           </div>
 
           <PaymentFooter />
