@@ -23,7 +23,7 @@ interface Props {
   isPreview?: boolean;
 }
 
-export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr }: Props) {
+export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr, isPreview }: Props) {
   const s = getCheckoutStyles(config);
   const [pixLoading, setPixLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
@@ -39,9 +39,9 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-generate PIX when step 3 mounts
+  // Auto-generate PIX when step 3 mounts (only on public checkout, not preview)
   useEffect(() => {
-    if (!pixData && !pixLoading && !pixError) {
+    if (!isPreview && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
   }, []);
