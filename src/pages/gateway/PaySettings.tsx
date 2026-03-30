@@ -56,6 +56,12 @@ export default function PaySettings() {
     };
     fetchProfile();
     fetchApiKeys();
+    // Load saved domain from localStorage
+    const savedDomain = localStorage.getItem("checkout_custom_domain");
+    if (savedDomain) {
+      setCustomDomain(savedDomain);
+      setDomainStatus("active");
+    }
   }, []);
 
   const fetchApiKeys = async () => {
