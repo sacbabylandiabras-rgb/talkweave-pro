@@ -23,8 +23,9 @@ interface Props {
   isPreview?: boolean;
 }
 
-export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr, isPreview }: Props) {
+export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr, isPreview: isPreviewProp }: Props) {
   const s = getCheckoutStyles(config);
+  const isPreview = isPreviewProp ?? !window.location.pathname.includes('/pay/');
   const [pixLoading, setPixLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
