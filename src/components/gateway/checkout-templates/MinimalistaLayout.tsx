@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { ShieldCheck, Lock, Package, CreditCard, Truck, ShoppingBag } from "lucide-react";
+import { ShieldCheck, Lock, Package, CreditCard, Truck, ShoppingBag, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
-import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
+import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import CheckoutStep2Review from "./CheckoutStep2Review";
+import CheckoutStep3Payment from "./CheckoutStep3Payment";
 
 interface Props {
   config: Record<string, any>;
@@ -11,6 +13,10 @@ interface Props {
 export default function MinimalistaLayout({ config }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+  const [formPhone, setFormPhone] = useState("");
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -31,15 +37,15 @@ export default function MinimalistaLayout({ config }: Props) {
 
   const s = getCheckoutStyles(config);
   const timerStr = `${String(0).padStart(2, "0")}h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
-
-  const steps = [
-    { num: 1, label: "Identificação", icon: <ShoppingBag className="w-4 h-4" /> },
-    { num: 2, label: "Entrega", icon: <Truck className="w-4 h-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
-  ];
-
   const unitPrice = config.price;
   const frete = 1500;
+  const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
+
+  const steps = [
+    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
+    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
+  ];
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
@@ -54,7 +60,6 @@ export default function MinimalistaLayout({ config }: Props) {
         </span>
       </div>
 
-      {/* Countdown */}
       {config.showTimer && (
         <div className="w-full text-center py-2.5 text-sm font-medium" style={{ background: s.primary, color: "#FFFFFF" }}>
           Oferta termina em: <span className="font-bold tracking-wide">{timerStr}</span>
@@ -63,7 +68,6 @@ export default function MinimalistaLayout({ config }: Props) {
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
         <div className="flex flex-col md:flex-row gap-6">
-          {/* LEFT: Steps + Form */}
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
             <div className="flex items-center justify-center gap-2">
@@ -79,15 +83,12 @@ export default function MinimalistaLayout({ config }: Props) {
                       border: step === st.num ? `1.5px solid ${s.stepBg}` : "1.5px solid transparent",
                     }}
                   >
-                    <div
-                      className="w-6 h-6 flex items-center justify-center text-[10px] font-bold"
-                      style={stepStyle(s, step === st.num)}
-                    >
-                      {st.num}
+                    <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
+                      {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                     </div>
                     <span className="hidden sm:inline">{st.label}</span>
                   </button>
-                  {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: s.cardBorder }} />}
+                  {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
                 </div>
               ))}
             </div>
@@ -107,161 +108,73 @@ export default function MinimalistaLayout({ config }: Props) {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} />
                   </div>
                   {config.showCpf && (
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
                     </div>
                   )}
                   {config.showPhone && (
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="+55 (00) 00000-0000" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="+55 (00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
                     </div>
                   )}
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                   </div>
                 </div>
-                <button
-                  onClick={() => setStep(2)}
-                  className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2"
-                  style={buttonStyle(s)}
-                >
+                <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
                   PRÓXIMO
                 </button>
               </div>
             )}
 
-            {/* Step 2: Entrega */}
+            {/* Step 2: Conferência */}
             {step === 2 && (
-              <div className="border p-5 space-y-4" style={cardStyle(s)}>
-                <div>
-                  <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: s.cardTitle }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={stepStyle(s)}>2</div>
-                    Entrega
-                  </h3>
-                  <p className="text-xs mt-1 ml-7" style={{ color: s.cardDesc }}>
-                    Para realizar o frete é necessário preencher todos os campos abaixo.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Sua cidade" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Endereço</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, número" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Apto, bloco (opcional)" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3 text-sm font-medium border" style={{ borderRadius: s.buttonRadius, borderColor: s.cardBorder, color: s.cardLabel, background: s.cardBg }}>
-                    Voltar
-                  </button>
-                  <button onClick={() => setStep(3)} className="flex-1 py-3 font-bold text-sm" style={buttonStyle(s)}>
-                    PRÓXIMO
-                  </button>
-                </div>
-              </div>
+              <CheckoutStep2Review
+                config={config}
+                formName={formName}
+                formEmail={formEmail}
+                formCpf={formCpf}
+                formPhone={formPhone}
+                totalPrice={unitPrice}
+                onBack={() => setStep(1)}
+                onConfirm={() => setStep(3)}
+              />
             )}
 
             {/* Step 3: Pagamento */}
             {step === 3 && (
-              <div className="border p-5 space-y-4" style={cardStyle(s)}>
-                <div>
-                  <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: s.cardTitle }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={stepStyle(s)}>3</div>
-                    Pagamento
-                  </h3>
-                  <p className="text-xs mt-1 ml-7" style={{ color: s.cardDesc }}>
-                    Complete as etapas anteriores para prosseguir!
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  {config.pix && (
-                    <div className="flex items-center gap-3 p-3 border-2 cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.primary, background: `${s.primary}08` }}>
-                      <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: s.primary }}>
-                        <div className="w-3 h-3 rounded-full" style={{ background: s.primary }} />
-                      </div>
-                      <PixIcon size={18} />
-                      <span className="text-sm font-medium" style={{ color: s.cardText }}>PIX — Aprovação instantânea</span>
-                    </div>
-                  )}
-                  {config.creditCard && (
-                    <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                      <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: s.cardBorder }} />
-                      <CreditCard className="w-4 h-4" style={{ color: s.cardLabel }} />
-                      <div className="flex-1">
-                        <span className="text-sm" style={{ color: s.cardText }}>Cartão de Crédito</span>
-                        <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
-                        <CardBrandsRow size={24} />
-                      </div>
-                    </div>
-                  )}
-                  {config.boleto && (
-                    <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                      <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: s.cardBorder }} />
-                      <div style={{ color: s.cardLabel }}><BoletoIcon size={18} /></div>
-                      <span className="text-sm" style={{ color: s.cardText }}>Boleto</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setStep(2)} className="flex-1 py-3 text-sm font-medium border" style={{ borderRadius: s.buttonRadius, borderColor: s.cardBorder, color: s.cardLabel, background: s.cardBg }}>
-                    Voltar
-                  </button>
-                  <button className="flex-1 py-3 font-bold text-sm flex items-center justify-center gap-2" style={buttonStyle(s)}>
-                    <Lock className="w-3.5 h-3.5" />
-                    FINALIZAR PEDIDO
-                  </button>
-                </div>
-              </div>
+              <CheckoutStep3Payment
+                config={config}
+                pixPrice={pixPrice}
+                formName={formName}
+                formEmail={formEmail}
+                formPhone={formPhone}
+                formCpf={formCpf}
+                timerStr={timerStr}
+              />
             )}
           </div>
 
           {/* RIGHT: Summary sidebar */}
           <div className="w-full md:w-60 flex-shrink-0 space-y-4">
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: s.cardTitle }}>Resumo (1)</h4>
-              </div>
+              <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: s.cardTitle }}>Resumo (1)</h4>
               <div className="text-xs" style={{ color: s.cardDesc }}>Tem um cupom?</div>
               <div className="flex gap-2">
                 <input className="flex-1 px-2.5 py-1.5 text-xs border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Código do cupom" />
-                <button className="px-3 py-1.5 text-xs font-medium border" style={{ borderRadius: s.fieldRadius, borderColor: s.cardBorder, color: s.cardText, background: s.cardBg }}>
-                  Aplicar
-                </button>
+                <button className="px-3 py-1.5 text-xs font-medium border" style={{ borderRadius: s.fieldRadius, borderColor: s.cardBorder, color: s.cardText, background: s.cardBg }}>Aplicar</button>
               </div>
               <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: s.cardDesc }}>Produtos</span>
-                  <span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(unitPrice)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: s.cardDesc }}>Frete</span>
-                  <span className="font-medium" style={{ color: s.cardText }}>+ {formatCurrency(frete)}</span>
-                </div>
+                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Produtos</span><span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(unitPrice)}</span></div>
+                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: s.cardText }}>+ {formatCurrency(frete)}</span></div>
                 <div className="flex justify-between text-sm font-bold pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-                  <span style={{ color: "#16A34A" }}>Total</span>
-                  <span style={{ color: "#16A34A" }}>{formatCurrency(unitPrice + frete)}</span>
+                  <span style={{ color: "#16A34A" }}>Total</span><span style={{ color: "#16A34A" }}>{formatCurrency(unitPrice + frete)}</span>
                 </div>
               </div>
             </div>
@@ -269,11 +182,7 @@ export default function MinimalistaLayout({ config }: Props) {
             <div className="border p-4" style={cardStyle(s)}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
-                  {config.productImage ? (
-                    <img src={config.productImage} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-5 h-5" style={{ color: s.cardLabel }} />
-                  )}
+                  {config.productImage ? <img src={config.productImage} alt="" className="w-full h-full object-cover" /> : <Package className="w-5 h-5" style={{ color: s.cardLabel }} />}
                 </div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: s.cardTitle }}>{config.offerName || config.productName || "Produto Exemplo"}</p>

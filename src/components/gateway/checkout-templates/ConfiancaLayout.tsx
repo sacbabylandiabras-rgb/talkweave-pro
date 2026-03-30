@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
-import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
-import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
+import { PaymentFooter } from "./PaymentIcons";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import CheckoutStep2Review from "./CheckoutStep2Review";
+import CheckoutStep3Payment from "./CheckoutStep3Payment";
 
 interface Props {
   config: Record<string, any>;
@@ -16,13 +18,25 @@ const FAQ_ITEMS = [
 ];
 
 export default function ConfiancaLayout({ config }: Props) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+  const [formPhone, setFormPhone] = useState("");
 
   const s = getCheckoutStyles(config);
   const bannerBg = config.bgColor || "#C8E832";
   const unitPrice = config.price || 9900;
   const subtotal = unitPrice * quantity;
+  const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
+
+  const stepLabels = [
+    { num: 1, label: "Identificação", icon: User },
+    { num: 2, label: "Conferência", icon: Check },
+    { num: 3, label: "Pagamento", icon: CreditCard },
+  ];
 
   return (
     <div className="h-full overflow-auto" style={{ fontFamily: s.fontFamily, color: s.textColor }}>
@@ -32,8 +46,7 @@ export default function ConfiancaLayout({ config }: Props) {
           {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-7 object-contain" /> : "Minha Loja"}
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#16A34A" }}>
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Pagamento 100% Seguro
+          <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% Seguro
         </span>
       </div>
 
@@ -56,21 +69,17 @@ export default function ConfiancaLayout({ config }: Props) {
       {/* Step indicators */}
       <div style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
         <div className="flex items-center justify-center gap-10 py-3 mx-auto" style={{ maxWidth: "700px" }}>
-          {[
-            { icon: User, label: "Identificação", active: true },
-            { icon: Truck, label: "Endereço", active: false },
-            { icon: CreditCard, label: "Pagamento", active: false },
-          ].map((st, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
+          {stepLabels.map((sl, i) => (
+            <button key={i} onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1">
               <div className="w-8 h-8 flex items-center justify-center" style={{
                 borderRadius: s.stepRadius,
-                background: st.active ? `${s.stepBg}20` : (s.isDark ? "#333" : "#F3F4F6"),
-                border: st.active ? `2px solid ${s.stepBg}` : "2px solid transparent",
+                background: step === sl.num ? `${s.stepBg}20` : step > sl.num ? `${s.stepBg}20` : (s.isDark ? "#333" : "#F3F4F6"),
+                border: step === sl.num ? `2px solid ${s.stepBg}` : step > sl.num ? `2px solid ${s.stepBg}80` : "2px solid transparent",
               }}>
-                <st.icon className="w-4 h-4" style={{ color: st.active ? s.stepBg : s.cardLabel }} />
+                {step > sl.num ? <Check className="w-4 h-4" style={{ color: s.stepBg }} /> : <sl.icon className="w-4 h-4" style={{ color: step === sl.num ? s.stepBg : s.cardLabel }} />}
               </div>
-              <span className="text-[10px] font-semibold" style={{ color: st.active ? s.stepBg : s.cardLabel }}>{st.label}</span>
-            </div>
+              <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.stepBg : s.cardLabel }}>{sl.label}</span>
+            </button>
           ))}
         </div>
       </div>
@@ -79,42 +88,56 @@ export default function ConfiancaLayout({ config }: Props) {
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: s.bgColor }}>
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="flex-1 space-y-4">
-            {/* Dados pessoais */}
-            <div className="border p-5 space-y-3" style={cardStyle(s)}>
-              <div>
-                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
-                <p className="text-[11px] mt-0.5" style={{ color: s.cardDesc }}>
-                  Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, verificação de pedidos e carrinho de compras.
-                </p>
-              </div>
-              <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: Maria da Silva" /></div>
-              <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: maria@email.com" /></div>
-              {config.showCpf && <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>CPF</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" /></div>}
-              {config.showPhone && (
-                <div>
-                  <label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Celular / WhatsApp</label>
-                  <div className="flex gap-2">
-                    <span className="flex items-center px-2.5 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>+55</span>
-                    <input className="flex-1 px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" />
+            {/* Step 1 */}
+            {step === 1 && (
+              <>
+                <div className="border p-5 space-y-3" style={cardStyle(s)}>
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
+                    <p className="text-[11px] mt-0.5" style={{ color: s.cardDesc }}>
+                      Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, verificação de pedidos e carrinho de compras.
+                    </p>
                   </div>
+                  <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: Maria da Silva" value={formName} onChange={e => setFormName(e.target.value)} /></div>
+                  <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: maria@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
+                  {config.showCpf && <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>CPF</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>}
+                  {config.showPhone && (
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Celular / WhatsApp</label>
+                      <div className="flex gap-2">
+                        <span className="flex items-center px-2.5 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>+55</span>
+                        <input className="flex-1 px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                  <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>Próximo</button>
                 </div>
-              )}
-              <button className="w-full py-3 font-bold text-sm transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>Ir para Entrega</button>
-            </div>
 
-            {/* FAQ */}
-            <div className="border p-5 space-y-2" style={cardStyle(s)}>
-              <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
-              {FAQ_ITEMS.map((item, i) => (
-                <div key={i} style={{ borderBottom: `1px solid ${s.cardBorder}` }} className="last:border-0">
-                  <button className="w-full flex items-center justify-between py-3 text-left" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                    <span className="text-xs font-medium" style={{ color: s.cardText }}>{item.q}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
-                  </button>
-                  {openFaq === i && <p className="text-xs pb-3 leading-relaxed" style={{ color: s.cardDesc }}>{item.a}</p>}
+                {/* FAQ */}
+                <div className="border p-5 space-y-2" style={cardStyle(s)}>
+                  <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
+                  {FAQ_ITEMS.map((item, i) => (
+                    <div key={i} style={{ borderBottom: `1px solid ${s.cardBorder}` }} className="last:border-0">
+                      <button className="w-full flex items-center justify-between py-3 text-left" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                        <span className="text-xs font-medium" style={{ color: s.cardText }}>{item.q}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
+                      </button>
+                      {openFaq === i && <p className="text-xs pb-3 leading-relaxed" style={{ color: s.cardDesc }}>{item.a}</p>}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+
+            {/* Step 2 */}
+            {step === 2 && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && (
+              <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} />
+            )}
           </div>
 
           {/* RIGHT: Sidebar */}
@@ -164,7 +187,6 @@ export default function ConfiancaLayout({ config }: Props) {
               </div>
             ))}
 
-            {/* Shipping & Security */}
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <div className="flex items-start gap-3">
                 <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0"><Truck className="w-3.5 h-3.5 text-blue-500" /></div>

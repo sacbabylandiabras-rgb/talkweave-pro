@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
-import { Lock, ShieldCheck, CreditCard, Package, User, Truck, ChevronDown, ChevronUp, Star } from "lucide-react";
+import { Lock, ShieldCheck, CreditCard, Package, User, Truck, ChevronDown, ChevronUp, Star, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
-import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./PaymentIcons";
+import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import CheckoutStep2Review from "./CheckoutStep2Review";
+import CheckoutStep3Payment from "./CheckoutStep3Payment";
 
 interface Props {
   config: Record<string, any>;
 }
 
 export default function StreamlineLayout({ config }: Props) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 9, s: 0 });
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    identification: true,
-    payment: false,
-    delivery: false,
-  });
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+  const [formPhone, setFormPhone] = useState("");
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -42,30 +44,23 @@ export default function StreamlineLayout({ config }: Props) {
   const frete = 1500;
   const total = unitPrice + frete;
   const timerStr = `${String(countdown.h).padStart(2, "0")} : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
+  const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
-  const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-
-  const SectionHeader = ({ number, title, sectionKey }: { icon: any; number: number; title: string; sectionKey: string }) => (
-    <button onClick={() => toggleSection(sectionKey)} className="w-full flex items-center justify-between py-3">
-      <div className="flex items-center gap-3">
-        <div className="w-7 h-7 flex items-center justify-center text-xs font-bold" style={stepStyle(s)}>{number}</div>
-        <span className="text-sm font-bold" style={{ color: s.cardTitle }}>{title}</span>
-      </div>
-      {openSections[sectionKey] ? <ChevronUp className="w-4 h-4" style={{ color: s.cardLabel }} /> : <ChevronDown className="w-4 h-4" style={{ color: s.cardLabel }} />}
-    </button>
-  );
+  const stepLabels = [
+    { num: 1, label: "Identificação", icon: User },
+    { num: 2, label: "Conferência", icon: Check },
+    { num: 3, label: "Pagamento", icon: CreditCard },
+  ];
 
   const StepTabs = () => (
-    <div className="hidden md:flex items-center border overflow-hidden" style={{ ...cardStyle(s) }}>
-      {[
-        { icon: User, label: "Identificação", num: 1 },
-        { icon: CreditCard, label: "Pagamento", num: 2 },
-        { icon: Truck, label: "Entrega", num: 3 },
-      ].map((st) => (
-        <div key={st.num} className="flex-1 flex items-center gap-2 px-5 py-3" style={{ borderRight: `1px solid ${s.cardBorder}` }}>
-          <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s)}>{st.num}</div>
-          <span className="text-xs font-semibold" style={{ color: s.cardText }}>{st.label}</span>
-        </div>
+    <div className="hidden md:flex items-center border overflow-hidden" style={cardStyle(s)}>
+      {stepLabels.map((st) => (
+        <button key={st.num} onClick={() => setStep(st.num as 1 | 2 | 3)} className="flex-1 flex items-center gap-2 px-5 py-3" style={{ borderRight: `1px solid ${s.cardBorder}`, background: step === st.num ? `${s.stepBg}10` : "transparent" }}>
+          <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
+            {step > st.num ? <Check className="w-3 h-3" /> : st.num}
+          </div>
+          <span className="text-xs font-semibold" style={{ color: step === st.num ? s.stepBg : s.cardText }}>{st.label}</span>
+        </button>
       ))}
     </div>
   );
@@ -97,82 +92,42 @@ export default function StreamlineLayout({ config }: Props) {
           <div className="flex-1 space-y-4">
             <StepTabs />
 
-            {/* 1. Identificação */}
-            <div className="border overflow-hidden" style={cardStyle(s)}>
-              <div className="px-5" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
-                <SectionHeader icon={User} number={1} title="Identificação" sectionKey="identification" />
-                <p className="text-[11px] -mt-2 pb-3" style={{ color: s.cardDesc }}>Preencha seus dados para concluir sua compra com segurança.</p>
-              </div>
-              {openSections.identification && (
+            {/* Step 1: Identificação */}
+            {step === 1 && (
+              <div className="border overflow-hidden" style={cardStyle(s)}>
+                <div className="px-5 py-3" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 flex items-center justify-center text-xs font-bold" style={stepStyle(s)}>1</div>
+                    <span className="text-sm font-bold" style={{ color: s.cardTitle }}>Identificação</span>
+                  </div>
+                  <p className="text-[11px] mt-1 ml-10" style={{ color: s.cardDesc }}>Preencha seus dados para concluir sua compra com segurança.</p>
+                </div>
                 <div className="p-5 space-y-3">
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" /></div>
-                  {config.showCpf && <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" /></div>}
+                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} /></div>
+                  {config.showCpf && <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>}
                   {config.showPhone && (
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
                       <div className="flex gap-2">
                         <span className="flex items-center px-2.5 py-2 border text-xs" style={{ borderRadius: s.fieldRadius, borderColor: s.inputBorder, background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>🇧🇷 +55</span>
-                        <input className="flex-1 px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" />
+                        <input className="flex-1 px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="(00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
                       </div>
                     </div>
                   )}
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" /></div>
-                  <button className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>{config.buttonText || "PRÓXIMO"}</button>
+                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
+                  <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
                 </div>
-              )}
-            </div>
-
-            {/* 2. Pagamento */}
-            <div className="border overflow-hidden" style={cardStyle(s)}>
-              <div className="px-5" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
-                <SectionHeader icon={CreditCard} number={2} title="Pagamento" sectionKey="payment" />
-                <p className="text-[11px] -mt-2 pb-3" style={{ color: s.cardDesc }}>Complete os dados do pagamento para finalizar sua compra.</p>
               </div>
-              {openSections.payment && (
-                <div className="p-5 space-y-3">
-                  {config.pix && (
-                    <div className="flex items-center gap-3 p-3 border-2 cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.primary, background: `${s.primary}08` }}>
-                      <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: s.primary }}><div className="w-2.5 h-2.5 rounded-full" style={{ background: s.primary }} /></div>
-                      <PixIcon size={18} /><span className="text-sm font-medium" style={{ color: s.cardText }}>Pix</span>
-                    </div>
-                  )}
-                  {config.creditCard && (
-                    <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                      <div className="w-4 h-4 rounded-full border-2" style={{ borderColor: s.cardBorder }} />
-                      <CreditCard className="w-4 h-4" style={{ color: s.cardLabel }} />
-                      <div className="flex-1"><span className="text-sm" style={{ color: s.cardText }}>Cartão de Crédito</span><p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p><CardBrandsRow size={24} /></div>
-                    </div>
-                  )}
-                  {config.boleto && (
-                    <div className="flex items-center gap-3 p-3 border cursor-pointer" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                      <div className="w-4 h-4 rounded-full border-2" style={{ borderColor: s.cardBorder }} /><div style={{ color: s.cardLabel }}><BoletoIcon size={18} /></div><span className="text-sm" style={{ color: s.cardText }}>Boleto</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
 
-            {/* 3. Entrega */}
-            {config.showAddress && (
-              <div className="border overflow-hidden" style={cardStyle(s)}>
-                <div className="px-5" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
-                  <SectionHeader icon={Truck} number={3} title="Entrega" sectionKey="delivery" />
-                </div>
-                {openSections.delivery && (
-                  <div className="p-5 space-y-3">
-                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" /></div>
-                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, avenida..." /></div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" /></div>
-                      <div className="col-span-2"><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Apto (opcional)" /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" /></div>
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" /></div>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Step 2: Conferência */}
+            {step === 2 && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            )}
+
+            {/* Step 3: Pagamento */}
+            {step === 3 && (
+              <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
 
             {/* Shipping info */}
@@ -191,9 +146,7 @@ export default function StreamlineLayout({ config }: Props) {
           {/* RIGHT SIDEBAR */}
           <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo (1)</h3>
-              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo (1)</h3>
               <div className="flex gap-2">
                 <input className="flex-1 px-2.5 py-1.5 text-xs border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Código do cupom" />
                 <button className="px-3 py-1.5 text-xs font-semibold text-white" style={{ borderRadius: s.buttonRadius, background: s.buttonColor }}>Aplicar</button>
