@@ -106,8 +106,8 @@ export default function PayWithdrawals() {
       toast.error("O valor mínimo para saque é de R$ 50,00");
       return;
     }
-    if (amountCents + WITHDRAWAL_FEE_CENTS > balance) {
-      toast.error("Saldo insuficiente (valor + taxa de R$ 10,00)");
+    if (amountCents > balance) {
+      toast.error("Saldo insuficiente");
       return;
     }
     if (!pixKey.trim()) {
