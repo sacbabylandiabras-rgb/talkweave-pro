@@ -318,6 +318,7 @@ export default function PaySettings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="api" className="mt-4 space-y-4">
           <Card className="border-[#2A2A2A]">
             <CardHeader><CardTitle className="text-sm">Chaves de API</CardTitle></CardHeader>
             <CardContent className="space-y-4">
