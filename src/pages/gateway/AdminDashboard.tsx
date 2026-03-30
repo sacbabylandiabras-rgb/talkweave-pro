@@ -123,17 +123,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         <Card className="border-[#2A2A2A]">
-          <CardHeader><CardTitle className="text-sm">Volume por Adquirente</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={acquirerData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-                <XAxis dataKey="name" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Bar dataKey="volume" fill="#FF4D2E" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardHeader><CardTitle className="text-sm">Resumo de Transações</CardTitle></CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+            <DollarSign className="w-10 h-10 text-[#FF4D2E]/40" />
+            <p className="text-2xl font-bold">{revenueData.totalTransactions} transações</p>
+            <p className="text-sm text-muted-foreground">{revenueData.approvedTransactions} aprovadas · Receita: {formatCurrency(revenueData.revenueMonth)}</p>
           </CardContent>
         </Card>
       </div>
