@@ -80,7 +80,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
     if (!selfie.file || !docFront.file || !docBack.file) return;
     setSubmitting(true);
     try {
-      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, step2);
+      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 });
     } finally {
       setSubmitting(false);
     }
