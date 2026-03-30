@@ -68,7 +68,7 @@ interface Props {
 }
 
 export default function CheckoutPreview({ config, templateName }: Props) {
-  const [step, setStep] = useState<"identification" | "payment">("identification");
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string } | null>(null);
@@ -81,7 +81,6 @@ export default function CheckoutPreview({ config, templateName }: Props) {
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
 
-  // Countdown timer
   useEffect(() => {
     if (!config.showTimer) return;
     setCountdown({ m: config.timerMinutes || 15, s: 0 });
@@ -160,6 +159,12 @@ export default function CheckoutPreview({ config, templateName }: Props) {
     return <ConfiancaLayout config={config} />;
   }
 
+  const stepLabels = [
+    { num: 1, label: "Identificação", icon: <User className="w-5 h-5" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-5 h-5" /> },
+    { num: 3, label: "Pagamento", icon: <CardIcon className="w-5 h-5" /> },
+  ];
+
   return (
     <div
       className="h-full overflow-auto"
@@ -196,49 +201,42 @@ export default function CheckoutPreview({ config, templateName }: Props) {
           </div>
         )}
 
-        {/* Step Indicators */}
-        <div className="flex items-center justify-center gap-8 py-2">
-          <button onClick={() => setStep("identification")} className="flex flex-col items-center gap-1.5 transition-all">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{
-                background: step === "identification" ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
-                border: step === "identification" ? `2px solid ${s.primary}` : "2px solid transparent",
-                borderRadius: s.stepRadius,
-              }}
-            >
-              <User className="w-5 h-5" style={{ color: step === "identification" ? s.primary : s.cardDesc }} />
+        {/* Step Indicators - 3 steps */}
+        <div className="flex items-center justify-center gap-3 py-2">
+          {stepLabels.map((sl, i) => (
+            <div key={sl.num} className="flex items-center gap-3">
+              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    background: step >= sl.num ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
+                    border: step === sl.num ? `2px solid ${s.primary}` : step > sl.num ? `2px solid ${s.primary}80` : "2px solid transparent",
+                    borderRadius: s.stepRadius,
+                  }}
+                >
+                  {step > sl.num ? (
+                    <Check className="w-5 h-5" style={{ color: s.primary }} />
+                  ) : (
+                    <span style={{ color: step === sl.num ? s.primary : s.cardDesc }}>{sl.icon}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.primary : s.cardDesc }}>
+                  {sl.label}
+                </span>
+              </button>
+              {i < stepLabels.length - 1 && (
+                <div className="w-8 h-[2px] rounded mb-5" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
+              )}
             </div>
-            <span className="text-xs font-semibold" style={{ color: step === "identification" ? s.primary : s.cardDesc }}>
-              Identificação
-            </span>
-          </button>
-          <div className="w-12 h-[2px] rounded" style={{ background: s.cardBorder }} />
-          <button onClick={() => setStep("payment")} className="flex flex-col items-center gap-1.5 transition-all">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{
-                background: step === "payment" ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
-                border: step === "payment" ? `2px solid ${s.primary}` : "2px solid transparent",
-                borderRadius: s.stepRadius,
-              }}
-            >
-              <CardIcon className="w-5 h-5" style={{ color: step === "payment" ? s.primary : s.cardDesc }} />
-            </div>
-            <span className="text-xs font-semibold" style={{ color: step === "payment" ? s.primary : s.cardDesc }}>
-              Pagamento
-            </span>
-          </button>
+          ))}
         </div>
 
-        {/* Order Summary Card */}
+        {/* Order Summary Card - visible on all steps */}
         <div className="rounded-xl border p-4 space-y-4" style={cardStyle(s)}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Resumo do pedido</h3>
             <span className="text-xs" style={{ color: "#16A34A" }}>● Dados seguros</span>
           </div>
-
-          {/* Product Row */}
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6", borderRadius: s.cardRadius }}>
               {config.productImage ? (
@@ -256,30 +254,28 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               )}
               <p className="text-sm font-bold" style={{ color: s.primary }}>{formatCurrency(unitPrice)}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
-                <Minus className="w-3 h-3" style={{ color: s.cardDesc }} />
-              </button>
-              <span className="text-sm font-medium w-6 text-center" style={{ color: s.cardTitle }}>{quantity}</span>
-              <button onClick={() => setQuantity(q => q + 1)} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
-                <Plus className="w-3 h-3" style={{ color: s.cardDesc }} />
-              </button>
-            </div>
+            {step === 1 && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
+                  <Minus className="w-3 h-3" style={{ color: s.cardDesc }} />
+                </button>
+                <span className="text-sm font-medium w-6 text-center" style={{ color: s.cardTitle }}>{quantity}</span>
+                <button onClick={() => setQuantity(q => q + 1)} className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ ...inputStyle(s), padding: 0 }}>
+                  <Plus className="w-3 h-3" style={{ color: s.cardDesc }} />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Coupon */}
-          <div className="flex gap-2">
-            <input
-              className="flex-1 px-3 py-2 text-sm border outline-none placeholder:opacity-50"
-              style={inputStyle(s)}
-              placeholder="Cupom de desconto"
-            />
-            <button className="px-4 py-2 text-sm font-medium border" style={{ ...inputStyle(s), color: s.cardText }}>
-              Aplicar
-            </button>
-          </div>
+          {step === 1 && (
+            <>
+              <div className="flex gap-2">
+                <input className="flex-1 px-3 py-2 text-sm border outline-none placeholder:opacity-50" style={inputStyle(s)} placeholder="Cupom de desconto" />
+                <button className="px-4 py-2 text-sm font-medium border" style={{ ...inputStyle(s), color: s.cardText }}>Aplicar</button>
+              </div>
+            </>
+          )}
 
-          {/* Totals */}
           <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
             <div className="flex justify-between text-sm">
               <span style={{ color: s.cardDesc }}>Subtotal</span>
@@ -296,9 +292,9 @@ export default function CheckoutPreview({ config, templateName }: Props) {
           </div>
         </div>
 
-        {step === "identification" && (
+        {/* ───── STEP 1: Identification ───── */}
+        {step === 1 && (
           <>
-            {/* Personal Data */}
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
                 <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
@@ -309,31 +305,16 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
-                  <input
-                    className="w-full px-3 py-2.5 text-sm border outline-none"
-                    style={inputStyle(s)}
-                    placeholder="Digite seu nome completo"
-                    value={formName} onChange={(e) => setFormName(e.target.value)}
-                  />
+                  <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={(e) => setFormName(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
-                  <input
-                    className="w-full px-3 py-2.5 text-sm border outline-none"
-                    style={inputStyle(s)}
-                    placeholder="seu@email.com"
-                    value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
-                  />
+                  <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
                 </div>
                 {config.showCpf && (
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ</label>
-                    <input
-                      className="w-full px-3 py-2.5 text-sm border outline-none"
-                      style={inputStyle(s)}
-                      placeholder="000.000.000-00"
-                      value={formCpf} onChange={(e) => setFormCpf(e.target.value)}
-                    />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={(e) => setFormCpf(e.target.value)} />
                   </div>
                 )}
                 {config.showPhone && (
@@ -343,12 +324,7 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                       <div className="flex items-center px-3 py-2.5 border text-sm font-medium" style={{ ...inputStyle(s), background: s.isDark ? "#222" : "#F9FAFB", color: s.cardDesc }}>
                         🇧🇷 +55
                       </div>
-                      <input
-                        className="flex-1 px-3 py-2.5 text-sm border outline-none"
-                        style={inputStyle(s)}
-                        placeholder="(00) 00000-0000"
-                        value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
-                      />
+                      <input className="flex-1 px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="(00) 00000-0000" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
                     </div>
                   </div>
                 )}
@@ -367,7 +343,6 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               </div>
             </div>
 
-            {/* Order Bump */}
             {config.showOrderBump && (
               <div className="rounded-xl border-2 p-4 space-y-2" style={{ ...cardStyle(s), borderColor: s.primary, borderStyle: "dashed" }}>
                 <div className="flex items-center gap-2">
@@ -384,105 +359,132 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               </div>
             )}
 
-            {/* CTA */}
             <button
-              onClick={() => setStep("payment")}
+              onClick={() => setStep(2)}
               className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
-              style={{ background: primary, color: "#FFFFFF", borderRadius }}
+              style={buttonStyle(s)}
             >
               <Lock className="w-4 h-4" />
-              {config.buttonText || "Pagar Agora"}
+              Continuar
             </button>
           </>
         )}
 
-        {step === "payment" && (
+        {/* ───── STEP 2: Review / Confirm Data ───── */}
+        {step === 2 && (
           <>
-            {/* Payment Methods */}
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
-              <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Forma de pagamento</h3>
-              <div className="space-y-2">
-                {config.pix && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer" style={{ borderColor: primary, background: `${primary}10` }}>
-                    <div className="flex items-center gap-3">
-                      <PixIcon size={20} />
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: s.cardTitle }}>PIX</p>
-                        <p className="text-xs" style={{ color: s.cardDesc }}>Pagamento instantâneo</p>
-                      </div>
-                    </div>
-                    <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primary }}>
-                      <div className="w-3 h-3 rounded-full" style={{ background: primary }} />
-                    </div>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Confira seus dados</h3>
+                <p className="text-xs mt-0.5" style={{ color: s.cardDesc }}>
+                  Verifique se as informações estão corretas antes de prosseguir.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                  <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Nome</span>
+                  <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formName || "—"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                  <span className="text-xs font-medium" style={{ color: s.cardLabel }}>E-mail</span>
+                  <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formEmail || "—"}</span>
+                </div>
+                {config.showCpf && (
+                  <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                    <span className="text-xs font-medium" style={{ color: s.cardLabel }}>CPF / CNPJ</span>
+                    <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formCpf || "—"}</span>
                   </div>
                 )}
-                {config.creditCard && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5" style={{ color: s.cardDesc }} />
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: s.cardTitle }}>Cartão de Crédito</p>
-                        <p className="text-[10px] font-medium text-[#EF4444]">Sem juros</p>
-                        {config.maxInstallments > 1 && <p className="text-xs" style={{ color: s.cardDesc }}>até {config.maxInstallments}x</p>}
-                        <CardBrandsRow size={24} />
-                      </div>
-                    </div>
-                    <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: cardBorder }} />
+                {config.showPhone && (
+                  <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
+                    <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Celular</span>
+                    <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formPhone || "—"}</span>
                   </div>
                 )}
-                {config.boleto && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer" style={{ borderColor: cardBorder, background: cardBg }}>
-                    <div className="flex items-center gap-3">
-                      <div style={{ color: s.cardDesc }}><BoletoIcon size={20} /></div>
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: s.cardTitle }}>Boleto</p>
-                        <p className="text-xs" style={{ color: s.cardDesc }}>Vencimento em 3 dias</p>
-                      </div>
-                    </div>
-                    <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: cardBorder }} />
-                  </div>
-                )}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Valor total</span>
+                  <span className="text-base font-bold" style={{ color: s.primary }}>{formatCurrency(subtotal)}</span>
+                </div>
               </div>
             </div>
 
-            {/* PIX Details */}
-            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
-              <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Pagamento via PIX</h3>
-              <p className="text-sm" style={{ color: s.cardDesc }}>
-                Valor à vista: <strong style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</strong>
-              </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
+                style={{ borderColor: s.cardBorder, background: s.cardBg, color: s.cardTitle, borderRadius: s.buttonRadius }}
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 py-3.5 font-bold text-sm transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                style={buttonStyle(s)}
+              >
+                <Lock className="w-4 h-4" />
+                Confirmar e Pagar
+              </button>
+            </div>
+          </>
+        )}
 
+        {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
+        {step === 3 && (
+          <>
+            {/* Header */}
+            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+              <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>Já é quase seu...</h3>
+              <p className="text-sm" style={{ color: s.cardDesc }}>
+                Pague seu pix dentro de{" "}
+                <span className="font-bold" style={{ color: s.primary }}>{timerStr}</span>{" "}
+                para garantir sua compra
+              </p>
+              <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
+                <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+              </div>
+            </div>
+
+            {/* Beneficiary Info */}
+            <div className="rounded-xl border p-4" style={cardStyle(s)}>
+              <p className="text-xs" style={{ color: s.cardDesc }}>
+                <ShieldCheck className="w-3.5 h-3.5 inline mr-1 text-green-500" />
+                O beneficiário do Pix é o <strong style={{ color: s.cardTitle }}>INTERMEDIADOR (AKASEG)</strong>, a empresa que gerencia nossos pagamentos de forma segura.
+              </p>
+            </div>
+
+            {/* QR Code Section */}
+            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               {pixData ? (
                 <div className="space-y-4">
+                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                    <Smartphone className="w-4 h-4 inline mr-1" />
+                    aponte a câmera do seu celular
+                  </p>
                   <div className="flex justify-center">
-                    <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-48 h-48 rounded-lg" />
+                    <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
                   </div>
+
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>Ou copie o código PIX:</p>
+                    <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
                     <div className="flex gap-2">
-                      <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: inputBorder, background: isDark ? "#111" : "#F9FAFB", color: subtleText }} />
-                      <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : primary, color: 'white', borderRadius }}>
+                      <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
+                      <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
                         <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
                       </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3">
-                    {[
-                      { icon: <Zap className="w-4 h-4 text-green-500" />, bg: isDark ? "#0a2a0a" : "#F0FDF4", title: "Aprovação instantânea", sub: "Liberação imediata" },
-                      { icon: <Check className="w-4 h-4 text-blue-500" />, bg: isDark ? "#0a0a2a" : "#EFF6FF", title: "Sem custos extras", sub: "Transferência gratuita" },
-                      { icon: <ShieldCheck className="w-4 h-4 text-purple-500" />, bg: isDark ? "#1a0a2a" : "#F5F3FF", title: "100% Seguro", sub: "Desenvolvido pelo Banco Central" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: item.bg }}>{item.icon}</div>
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: s.cardTitle }}>{item.title}</p>
-                          <p className="text-xs" style={{ color: s.cardDesc }}>{item.sub}</p>
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-4">
+                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                    <Smartphone className="w-4 h-4 inline mr-1" />
+                    aponte a câmera do seu celular
+                  </p>
+                  <div className="flex justify-center">
+                    <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                      <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                    </div>
                   </div>
                   {pixError && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
@@ -492,13 +494,96 @@ export default function CheckoutPreview({ config, templateName }: Props) {
                   <button
                     type="button" onClick={handleGeneratePix} disabled={pixLoading}
                     className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
-                    style={{ background: primary, color: "#FFFFFF", borderRadius }}
+                    style={buttonStyle(s)}
                   >
                     {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
                     {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
                   </button>
-                </>
+                </div>
               )}
+            </div>
+
+            {/* How to pay */}
+            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+              <h4 className="text-sm font-bold" style={{ color: s.cardTitle }}>como pagar o pix</h4>
+              <div className="space-y-2.5">
+                {[
+                  "abra o app do seu banco",
+                  'acesse a opção "Copia e Cola"',
+                  "insira o código copiado e finalize seu pagamento",
+                ].map((txt, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: `${s.primary}20`, color: s.primary }}>
+                      {i + 1}
+                    </div>
+                    <p className="text-xs" style={{ color: s.cardDesc }}>{txt}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Security notice */}
+            <div className="rounded-xl border p-4 space-y-2" style={{ ...cardStyle(s), borderColor: "#FCD34D", background: s.isDark ? "#1a1800" : "#FFFBEB" }}>
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs" style={{ color: s.isDark ? "#FCD34D" : "#92400E" }}>
+                  Os bancos reforçaram a segurança do Pix e podem exibir alertas preventivos durante o pagamento. Fique tranquilo — sua transação é segura e está totalmente protegida.
+                </p>
+              </div>
+            </div>
+
+            {/* Upload receipt */}
+            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+              <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: s.primary }}>
+                <FileText className="w-4 h-4" /> enviar comprovante
+              </h4>
+              <p className="text-xs" style={{ color: s.cardDesc }}>
+                (opcional) Se necessário, envie o comprovante para agilizar a confirmação do seu pagamento.
+              </p>
+              <div className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer" style={{ borderColor: s.primary, background: `${s.primary}08` }}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}15` }}>
+                  <FileText className="w-6 h-6" style={{ color: s.primary }} />
+                </div>
+                <p className="text-xs text-center" style={{ color: s.cardDesc }}>
+                  Arraste o comprovante aqui ou clique para selecionar
+                </p>
+                <p className="text-[10px]" style={{ color: s.cardDesc }}>
+                  Formatos: JPG, PNG, WebP, PDF (Até 7MB)
+                </p>
+              </div>
+            </div>
+
+            {/* Banks */}
+            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+              <h4 className="text-sm font-bold" style={{ color: s.cardTitle }}>pague com seu banco</h4>
+              <div className="space-y-2">
+                {[
+                  { name: "Nubank", desc: "Pedir para resolver manualmente" },
+                  { name: "BANCO INTER", desc: "Pedir para resolver manualmente" },
+                  { name: "Bradesco", desc: "Pedir para resolver manualmente" },
+                  { name: "ITAU", desc: "Pedir para resolver manualmente" },
+                  { name: "banco do brasil", desc: "Pedir para resolver manualmente" },
+                ].map((bank, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity" style={{ borderColor: s.cardBorder, background: s.cardBg }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                      <CreditCard className="w-4 h-4" style={{ color: s.cardDesc }} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>{bank.name}</p>
+                      <p className="text-[10px]" style={{ color: s.cardDesc }}>{bank.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button className="w-full text-center text-xs py-2 border rounded-lg" style={{ borderColor: s.cardBorder, color: s.cardDesc, background: s.cardBg }}>
+                ▼ Ver todos os bancos
+              </button>
+            </div>
+
+            {/* Waiting indicator */}
+            <div className="flex items-center justify-center gap-2 py-3">
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: s.primary }} />
+              <span className="text-xs font-medium" style={{ color: s.cardDesc }}>aguardando pagamento...</span>
             </div>
           </>
         )}
@@ -511,7 +596,6 @@ export default function CheckoutPreview({ config, templateName }: Props) {
           </div>
         )}
 
-        {/* Security Badges */}
         <PaymentFooter />
       </div>
     </div>
