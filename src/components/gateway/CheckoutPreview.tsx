@@ -417,7 +417,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
             )}
 
             <button
-              onClick={() => setStep(2)}
+              onClick={() => {
+                const errors: Record<string, string> = {};
+                if (!formName.trim()) errors.name = 'Campo obrigatório';
+                if (!formEmail.trim()) errors.email = 'Campo obrigatório';
+                if (!formCpf.trim()) errors.cpf = 'CPF/CNPJ é obrigatório';
+                setFormErrors(errors);
+                if (Object.keys(errors).length === 0) setStep(2);
+              }}
               className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
               style={buttonStyle(s)}
             >
