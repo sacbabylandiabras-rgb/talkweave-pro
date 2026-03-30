@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { Settings, TestTube, Loader2, CheckCircle, CreditCard } from "lucide-react";
+import { Settings, TestTube, Loader2, CheckCircle, CreditCard, Power } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrencyReais } from "./mock-data";
 import { toast } from "sonner";
+
+type Acquirer = "openpix" | "hubpague";
 
 export default function AdminAcquirers() {
   const [volumeMonth, setVolumeMonth] = useState(0);
@@ -13,14 +16,16 @@ export default function AdminAcquirers() {
   const [loading, setLoading] = useState(true);
   const [testingWoovi, setTestingWoovi] = useState(false);
   const [testingHubpague, setTestingHubpague] = useState(false);
+  const [activeAcquirer, setActiveAcquirer] = useState<Acquirer>("openpix");
+  const [switching, setSwitching] = useState(false);
 
-  // HubPague stats
   const [hubVolumeMonth, setHubVolumeMonth] = useState(0);
   const [hubTxCount, setHubTxCount] = useState(0);
   const [hubApprovalRate, setHubApprovalRate] = useState(0);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
+      // Fetch stats
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
@@ -30,27 +35,66 @@ export default function AdminAcquirers() {
         .gte("created_at", startOfMonth);
 
       const txs = allTx || [];
-
-      // Separate by provider
       const wooviTxs = txs.filter(t => !(t.metadata as any)?.provider || (t.metadata as any)?.provider === 'openpix');
       const hubTxs = txs.filter(t => (t.metadata as any)?.provider === 'hubpague');
 
-      // Woovi stats
       const wooviApproved = wooviTxs.filter(t => t.status === "approved");
       setVolumeMonth(wooviApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
       setTxCount(wooviTxs.length);
       setApprovalRate(wooviTxs.length > 0 ? Math.round((wooviApproved.length / wooviTxs.length) * 100) : 100);
 
-      // HubPague stats
       const hubApproved = hubTxs.filter(t => t.status === "approved");
       setHubVolumeMonth(hubApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
       setHubTxCount(hubTxs.length);
       setHubApprovalRate(hubTxs.length > 0 ? Math.round((hubApproved.length / hubTxs.length) * 100) : 100);
 
+      // Fetch active acquirer
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-config`, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        });
+        const data = await res.json();
+        if (data?.active_acquirer) {
+          setActiveAcquirer(data.active_acquirer as Acquirer);
+        }
+      } catch {}
+
       setLoading(false);
     };
-    fetchStats();
+    fetchData();
   }, []);
+
+  const handleSwitchAcquirer = async (acquirer: Acquirer) => {
+    if (acquirer === activeAcquirer || switching) return;
+    setSwitching(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ acquirer }),
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setActiveAcquirer(acquirer);
+        toast.success(`Adquirente ativa alterada para ${acquirer === 'openpix' ? 'Woovi (OpenPix)' : 'HubPague'}`);
+      } else {
+        toast.error(data?.error || "Erro ao alterar adquirente");
+      }
+    } catch (e: any) {
+      toast.error("Falha ao alterar: " + (e.message || "erro desconhecido"));
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   const handleTestWoovi = async () => {
     setTestingWoovi(true);
@@ -103,7 +147,7 @@ export default function AdminAcquirers() {
       try { data = rawBody ? JSON.parse(rawBody) : null; } catch { data = { error: rawBody }; }
 
       if (response.status === 404 && data?.error === "Checkout not found") {
-        toast.success("Conexão com a Edge Function e HubPague está respondendo corretamente.");
+        toast.success("Conexão com HubPague está respondendo corretamente.");
       } else if (response.ok && data?.brCode) {
         toast.success("Conexão com HubPague está funcionando!");
       } else if (data?.error === "HubPague not configured") {
@@ -122,16 +166,28 @@ export default function AdminAcquirers() {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
+  const isWooviActive = activeAcquirer === "openpix";
+  const isHubActive = activeAcquirer === "hubpague";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Adquirentes</h1>
-        <p className="text-sm text-muted-foreground">Gerencie as adquirentes de pagamento da plataforma</p>
+        <p className="text-sm text-muted-foreground">Selecione qual adquirente será usada para processar pagamentos PIX</p>
+      </div>
+
+      {/* Active acquirer banner */}
+      <div className="p-3 rounded-lg border border-[#FF4D2E]/30 bg-[#FF4D2E]/5 flex items-center gap-3">
+        <Power className="w-4 h-4 text-[#FF4D2E]" />
+        <span className="text-sm">
+          Adquirente ativa: <strong>{isWooviActive ? 'Woovi (OpenPix)' : 'HubPague'}</strong>
+          {switching && <Loader2 className="w-3 h-3 inline ml-2 animate-spin" />}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Woovi (OpenPix) Card */}
-        <Card className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors">
+        <Card className={`border transition-colors ${isWooviActive ? 'border-emerald-500/50 shadow-emerald-500/10 shadow-lg' : 'border-[#2A2A2A] opacity-60'}`}>
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -140,9 +196,16 @@ export default function AdminAcquirers() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Woovi (OpenPix)</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] text-emerald-400 bg-emerald-500/10">Produção</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${isWooviActive ? 'text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground bg-muted'}`}>
+                    {isWooviActive ? 'Ativa' : 'Inativa'}
+                  </span>
                 </div>
               </div>
+              <Switch
+                checked={isWooviActive}
+                onCheckedChange={() => handleSwitchAcquirer('openpix')}
+                disabled={switching || isWooviActive}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -173,7 +236,7 @@ export default function AdminAcquirers() {
         </Card>
 
         {/* HubPague Card */}
-        <Card className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors">
+        <Card className={`border transition-colors ${isHubActive ? 'border-blue-500/50 shadow-blue-500/10 shadow-lg' : 'border-[#2A2A2A] opacity-60'}`}>
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -182,9 +245,16 @@ export default function AdminAcquirers() {
                 </div>
                 <div>
                   <h3 className="font-semibold">HubPague</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] text-blue-400 bg-blue-500/10">Produção</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${isHubActive ? 'text-blue-400 bg-blue-500/10' : 'text-muted-foreground bg-muted'}`}>
+                    {isHubActive ? 'Ativa' : 'Inativa'}
+                  </span>
                 </div>
               </div>
+              <Switch
+                checked={isHubActive}
+                onCheckedChange={() => handleSwitchAcquirer('hubpague')}
+                disabled={switching || isHubActive}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
