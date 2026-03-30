@@ -19,6 +19,7 @@ const AdminGateway = () => {
   const [transactionCount, setTransactionCount] = useState(0);
   const [totalVolume, setTotalVolume] = useState(0);
   const [checkoutCount, setCheckoutCount] = useState(0);
+  const [platformRevenue, setPlatformRevenue] = useState(0);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -28,12 +29,19 @@ const AdminGateway = () => {
     getCurrentUser();
 
     const fetchStats = async () => {
-      const { count: txCount } = await supabase.from("gateway_transactions").select("*", { count: "exact", head: true });
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-stats");
+        if (!error && data) {
+          setTransactionCount(data.totalTransactions || 0);
+          setTotalVolume(data.volumeMonth || 0);
+          setPlatformRevenue(data.revenueMonth || 0);
+        }
+      } catch (e) {
+        console.error("Error fetching admin stats:", e);
+      }
+
       const { count: ckCount } = await supabase.from("gateway_checkouts").select("*", { count: "exact", head: true });
-      const { data: txData } = await supabase.from("gateway_transactions").select("amount").eq("status", "paid");
-      setTransactionCount(txCount || 0);
       setCheckoutCount(ckCount || 0);
-      setTotalVolume(txData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0);
     };
     fetchStats();
   }, []);
