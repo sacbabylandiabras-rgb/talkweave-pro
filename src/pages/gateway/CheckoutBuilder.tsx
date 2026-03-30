@@ -101,8 +101,8 @@ export default function CheckoutBuilder() {
   const [previewPaneWidth, setPreviewPaneWidth] = useState(0);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
 
-  const activeTemplateName = activeTemplateId
-    ? TEMPLATE_NAMES[activeTemplateId] || activeTemplateId
+  const activeTemplateName = config.templateId
+    ? TEMPLATE_NAMES[config.templateId] || config.templateName
     : config.templateName;
 
   const previewViewportWidth = previewMode === "mobile" ? 390 : 1180;
@@ -168,9 +168,12 @@ export default function CheckoutBuilder() {
     setSelectedProductId(productId);
     const prod = products.find((p: any) => p.id === productId);
     if (prod) {
-      updateConfig("productName", prod.name);
-      updateConfig("price", prod.price);
-      updateConfig("productImage", prod.image_url || "");
+      setConfig(prev => ({
+        ...prev,
+        productName: prod.name,
+        price: prod.price,
+        productImage: prod.image_url || ""
+      }));
     }
   };
 
@@ -853,12 +856,19 @@ export default function CheckoutBuilder() {
             >
               <div
                 style={{
-                  width: previewMode === "mobile" ? 390 : "100%",
-                  maxWidth: "100%",
-                  margin: previewMode === "mobile" ? "0 auto" : undefined,
+                  width: previewViewportWidth,
+                  maxWidth: "none",
+                  transformOrigin: "top center",
+                  transform: `scale(${previewScale})`,
+                  margin: "0 auto",
+                  flexShrink: 0,
                 }}
               >
-                <CheckoutPreview config={config} templateName={activeTemplateName} />
+                <CheckoutPreview 
+                  key={`${config.templateId}-${config.format}`}
+                  config={config} 
+                  templateName={activeTemplateName} 
+                />
               </div>
             </CardContent>
           </Card>
