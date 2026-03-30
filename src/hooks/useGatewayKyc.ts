@@ -64,7 +64,7 @@ export function useGatewayKyc() {
     return urlData.publicUrl;
   };
 
-  const submitKyc = async (selfieFile: File, docFrontFile: File, docBackFile: File) => {
+  const submitKyc = async (selfieFile: File, docFrontFile: File, docBackFile: File, whatsapp?: string, businessData?: Record<string, string>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
@@ -75,7 +75,7 @@ export function useGatewayKyc() {
         uploadDocument(docBackFile, "doc_back"),
       ]);
 
-      const kycPayload = {
+      const kycPayload: Record<string, unknown> = {
         user_id: user.id,
         selfie_url: selfieUrl,
         doc_front_url: docFrontUrl,
@@ -83,6 +83,9 @@ export function useGatewayKyc() {
         status: "submitted",
         submitted_at: new Date().toISOString(),
       };
+
+      if (whatsapp) kycPayload.whatsapp = whatsapp;
+      if (businessData) kycPayload.business_data = businessData;
 
       if (kyc) {
         const { error } = await supabase
