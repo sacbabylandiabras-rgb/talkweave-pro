@@ -199,7 +199,125 @@ export default function PaySettings() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="api" className="mt-4 space-y-4">
+        <TabsContent value="dominio" className="mt-4 space-y-4">
+          <Card className="border-[#2A2A2A]">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#FF4D2E]" />
+                Domínio Personalizado
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Use seu próprio domínio para os links de checkout (ex: pay.seusite.com)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-xs">Domínio do Checkout</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={customDomain}
+                    onChange={e => setCustomDomain(e.target.value)}
+                    placeholder="pay.seusite.com"
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-5 text-xs"
+                    onClick={handleSaveDomain}
+                    disabled={domainSaving}
+                  >
+                    {domainSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                    Salvar
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Insira sem http:// ou https://. Ex: pay.meudominio.com
+                </p>
+              </div>
+
+              {domainStatus !== "none" && (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
+                  {domainStatus === "active" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-xs font-medium">
+                      {domainStatus === "active" ? "Domínio configurado" : "Verificando DNS..."}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {customDomain} → seus checkouts usarão este domínio
+                    </p>
+                  </div>
+                  <Badge variant="outline" className={`ml-auto text-[10px] ${domainStatus === "active" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}`}>
+                    {domainStatus === "active" ? "Ativo" : "Pendente"}
+                  </Badge>
+                </div>
+              )}
+
+              <Card className="border-[#2A2A2A] bg-muted/20">
+                <CardContent className="pt-4 pb-4 space-y-3">
+                  <p className="text-xs font-medium text-foreground">📋 Como configurar seu domínio:</p>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">1</span>
+                      <p className="text-[11px] text-muted-foreground">Acesse o painel DNS do seu provedor de domínio (Cloudflare, GoDaddy, Namecheap, etc.)</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">2</span>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Adicione um registro <strong>A</strong> apontando para:</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">185.158.133.1</code>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("185.158.133.1")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">3</span>
+                      <p className="text-[11px] text-muted-foreground">Se usar subdomínio (ex: pay.seusite.com), o <strong>Name</strong> deve ser <code className="bg-background border border-[#2A2A2A] rounded px-1 font-mono">pay</code></p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">4</span>
+                      <p className="text-[11px] text-muted-foreground">Aguarde a propagação DNS (pode levar até 72h) e publique o projeto</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-amber-400">Importante</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Após configurar o DNS, é necessário adicionar o domínio também nas configurações do projeto Lovable (Publish → Domains) e republicar para que o SSL seja ativado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {customDomain && (
+                <div>
+                  <Label className="text-xs">Link de exemplo</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      readOnly
+                      value={`https://${customDomain}/pay/seu-checkout`}
+                      className="font-mono text-xs opacity-70"
+                    />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(`https://${customDomain}/pay/seu-checkout`)}>
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
           <Card className="border-[#2A2A2A]">
             <CardHeader><CardTitle className="text-sm">Chaves de API</CardTitle></CardHeader>
             <CardContent className="space-y-4">
