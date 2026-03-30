@@ -49,9 +49,9 @@ export default function GatewayKycGate({ children }: GatewayKycGateProps) {
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-xl">Verificação de Identidade (KYC)</DialogTitle>
+            <DialogTitle className="text-xl">Cadastro e Verificação</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Para utilizar o gateway de pagamentos, precisamos verificar sua identidade
+              Complete todas as etapas para ativar o gateway de pagamentos
             </p>
           </DialogHeader>
           <GatewayKycSubmission inDialog />
