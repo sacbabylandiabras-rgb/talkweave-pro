@@ -93,14 +93,21 @@ export default function PayWithdrawals() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const MINIMUM_WITHDRAWAL_CENTS = 5000; // R$ 50,00
+  const WITHDRAWAL_FEE_CENTS = 1000; // R$ 10,00
+
   const handleSubmit = async () => {
     const amountCents = Math.round(parseFloat(withdrawAmount.replace(",", ".")) * 100);
     if (!amountCents || amountCents <= 0) {
       toast.error("Informe um valor válido");
       return;
     }
-    if (amountCents > balance) {
-      toast.error("Saldo insuficiente");
+    if (amountCents < MINIMUM_WITHDRAWAL_CENTS) {
+      toast.error("O valor mínimo para saque é de R$ 50,00");
+      return;
+    }
+    if (amountCents + WITHDRAWAL_FEE_CENTS > balance) {
+      toast.error("Saldo insuficiente (valor + taxa de R$ 10,00)");
       return;
     }
     if (!pixKey.trim()) {
@@ -114,7 +121,7 @@ export default function PayWithdrawals() {
 
     const { error } = await supabase.from("gateway_withdrawals" as any).insert({
       user_id: user.id,
-      amount: amountCents,
+      amount: amountCents + WITHDRAWAL_FEE_CENTS,
       pix_key_type: pixKeyType,
       pix_key: pixKey.trim(),
     } as any);
