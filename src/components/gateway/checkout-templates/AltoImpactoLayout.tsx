@@ -100,6 +100,9 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
             {/* Step 1 */}
             {step === 1 && (
               <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
                 <div className="border p-5 space-y-3" style={cardStyle(s)}>
                   <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Informações de contato</h3>
                   <div>
