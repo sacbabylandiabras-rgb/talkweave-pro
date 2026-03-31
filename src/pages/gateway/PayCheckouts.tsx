@@ -25,6 +25,8 @@ export default function PayCheckouts() {
   const navigate = useNavigate();
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_custom_domain") || "");
+  const [domainSaved, setDomainSaved] = useState(false);
 
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
