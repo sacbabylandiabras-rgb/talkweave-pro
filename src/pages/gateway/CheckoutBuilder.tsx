@@ -142,6 +142,9 @@ export default function CheckoutBuilder() {
             if (ck.config.templateId) {
               setActiveTemplateId(ck.config.templateId);
             }
+            if (ck.config.elements && Array.isArray(ck.config.elements)) {
+              setElements(ck.config.elements);
+            }
           }
         }
       }
