@@ -420,7 +420,17 @@
       h += '<div class="guarantee">'+I.shieldSm+' Garantia de '+(cfg.guaranteeDays||7)+' dias — Satisfação ou dinheiro de volta</div>';
     }
     // Footer
-    h += '<div class="foot"><p>Pagamento processado com segurança</p></div>';
+   h += '<div style="padding:16px 0;text-align:center">';
+   h += '<p style="font-size:10px;color:#9CA3AF;font-weight:500;margin-bottom:8px">Formas de Pagamento</p>';
+   h += '<div style="display:flex;align-items:center;justify-content:center;gap:8px">';
+   h += '<img src="/banks/pix.png" alt="Pix" style="height:18px;object-fit:contain">';
+   h += '<img src="/banks/mastercard.png" alt="Mastercard" style="height:17px;object-fit:contain">';
+   h += '<img src="/banks/visa.png" alt="Visa" style="height:17px;object-fit:contain">';
+   h += '<img src="/banks/elo.jpg" alt="Elo" style="height:17px;object-fit:contain">';
+   h += '<img src="/banks/amex.png" alt="Amex" style="height:17px;object-fit:contain;border-radius:3px">';
+   h += '</div>';
+   h += '<p style="font-size:10px;color:#9CA3AF;margin-top:8px">Pagamento processado com segurança por ZapLynxPay</p>';
+   h += '</div>';
     co.innerHTML = h;
     bind();
   }
