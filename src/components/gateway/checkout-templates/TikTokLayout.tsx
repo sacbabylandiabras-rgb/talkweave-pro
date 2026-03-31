@@ -164,7 +164,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
   // Step indicators for desktop
   const StepIndicators = () => (
-    <div className="mb-5 items-center justify-center gap-5" style={{ display: previewMode === "mobile" ? "none" : "flex" }}>
+    <div className={!previewMode ? "mb-5 hidden items-center justify-center gap-5 md:flex" : "mb-5 items-center justify-center gap-5"} style={previewMode ? { display: previewMode === "mobile" ? "none" : "flex" } : undefined}>
       {stepLabels.map((sl, i) => (
         <div key={sl.num} className="flex items-center gap-5">
           <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-2">
