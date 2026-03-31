@@ -532,16 +532,15 @@ serve(async (req) => {
 
       console.log(`🔄 Re-invoking for remaining ${remainingContacts.length} contacts...`);
 
-      const authHeader = req.headers.get('authorization') || '';
       const newRotationOffset = (rotationOffset + currentBatch.length) % (rotatePool.length || 1);
 
-      // Fire-and-forget re-invocation
+      // Use Service Role Key for re-invocations to avoid JWT expiration issues
       try {
-        fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+        const reInvokeResponse = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': authHeader,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
           },
           body: JSON.stringify({
             campaignId,
@@ -549,8 +548,12 @@ serve(async (req) => {
             instanceId: requestedInstanceId,
             rotationOffset: newRotationOffset,
             _isContinuation: true,
+            _userId: credentials.userId,
           }),
-        }).catch(err => console.error('❌ Re-invocation fetch error:', err));
+        });
+        if (!reInvokeResponse.ok) {
+          console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${await reInvokeResponse.text()}`);
+        }
       } catch (reError) {
         console.error(`❌ Re-invocation failed:`, reError);
       }
