@@ -7,7 +7,7 @@ export interface CheckoutElement {
   visible: boolean;
 }
 
-export type ElementPosition = "top" | "above-form" | "below-form" | "sidebar" | "footer";
+export type ElementPosition = "top" | "above-form" | "below-form" | "sidebar" | "sidebar-bottom" | "footer";
 
 export type CheckoutElementType =
   | "text"
