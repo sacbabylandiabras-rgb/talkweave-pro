@@ -76,9 +76,14 @@ interface CheckoutConfig {
 interface Props {
   config: CheckoutConfig;
   templateName?: string;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
-export default function CheckoutPreview({ config, templateName }: Props) {
+export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
