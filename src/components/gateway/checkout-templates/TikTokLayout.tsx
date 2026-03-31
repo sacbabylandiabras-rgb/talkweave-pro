@@ -282,9 +282,18 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         {/* Desktop layout */}
         <div className="hidden gap-4 md:grid md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-4">
+            {/* DROP ZONE: Top */}
+            <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
             {step === 1 && <Step1Desktop />}
             {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
             {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+            {/* DROP ZONE: Below Form */}
+            <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
+          </div>
+          <div className="space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+            <SummaryContent />
           </div>
           <div className="space-y-4">
             <SummaryContent />
