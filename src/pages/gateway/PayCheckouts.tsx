@@ -77,7 +77,7 @@ export default function PayCheckouts() {
       const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
       if (data) {
         const cd = (data as any).custom_domain;
-        const dp = (data as any).domain_prefix || "pay";
+        const dp = cd ? cd.split(".")[0] : "pay";
         if (cd) {
           setSavedDomain(cd);
           setSavedPrefix(dp);
