@@ -96,7 +96,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px" }}>
-        <div className="flex flex-col lg:flex-row gap-5">
+        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
