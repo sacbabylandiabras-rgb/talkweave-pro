@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap, Check } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, ChevronDown, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
@@ -192,21 +192,8 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
               </div>
             </div>
 
-            {/* Testimonials */}
-            {[
-              { name: "Mariana Lopes", text: "Atendimento excelente e tudo chegou perfeito. Recomendo!" },
-              { name: "Ana Paula", text: "Produto de ótima qualidade e entrega super rápida. Amei!" },
-            ].map((t, i) => (
-              <div key={i} className="border p-4" style={cardStyle(s)}>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: s.isDark ? "#333" : "#E5E7EB" }}><User className="w-3 h-3" style={{ color: s.cardLabel }} /></div>
-                  <div className="flex items-center gap-0.5">{[1, 2, 3, 4, 5].map(st => <Star key={st} className="w-3 h-3 fill-yellow-400 text-yellow-400" />)}</div>
-                </div>
-                <p className="text-xs font-bold" style={{ color: s.cardTitle }}>{t.name}</p>
-                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: s.cardDesc }}>{t.text}</p>
-              </div>
-            ))}
-
+            {/* DROP ZONE: Sidebar Bottom */}
+            <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           </div>
         </div>
 

@@ -182,6 +182,8 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
               </div>
             </div>
 
+            {/* DROP ZONE: Sidebar Bottom */}
+            <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           </div>
         </div>
 

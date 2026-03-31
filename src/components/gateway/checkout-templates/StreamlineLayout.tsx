@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lock, ShieldCheck, CreditCard, Package, User, Truck, ChevronDown, ChevronUp, Star, Check } from "lucide-react";
+import { Lock, CreditCard, Package, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
@@ -73,15 +73,6 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
     </div>
   );
 
-  const Testimonial = ({ name, text }: { name: string; text: string }) => (
-    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
-      <div className="flex items-center gap-1 mb-1">
-        {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
-      </div>
-      <p className="text-xs font-bold" style={{ color: s.cardTitle }}>{name}</p>
-      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: s.cardDesc }}>{text}</p>
-    </div>
-  );
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
@@ -186,8 +177,8 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
               </div>
             </div>
 
-            <Testimonial name="Breno Santos" text="Compra rápida, fácil e sem dor de cabeça." />
-            <Testimonial name="Luísa Romeiro" text="Muito satisfeita com a compra. Voltarei com certeza!" />
+            {/* DROP ZONE: Sidebar Bottom */}
+            <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           </div>
         </div>
 
