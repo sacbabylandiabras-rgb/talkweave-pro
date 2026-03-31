@@ -4,8 +4,626 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #EF4444;
+      --primary-fg: #fff;
+      --bg: #EFF1F5;
+      --card-bg: #fff;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --card-radius: 12px;
+      --btn-radius: 10px;
+      --field-radius: 8px;
+      --step-radius: 50%;
+      --input-bg: #FAFAFA;
+      --input-border: #D1D5DB;
+      --card-title: #111827;
+      --card-desc: #6B7280;
+      --card-label: #6B7280;
+      --card-text: #1F2937;
+      --step-bg: #EF4444;
+      --step-text: #fff;
+      --btn-color: #EF4444;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    .loader-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 8px; }
+    .error-wrap h2 { font-size: 1.25rem; font-weight: 600; color: var(--text); }
+    .error-wrap p { font-size: .875rem; color: var(--text-muted); }
+
+    /* Logo header */
+    .logo-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--card-bg); border-bottom: 1px solid var(--border); }
+    .logo-header img { height: 32px; width: auto; object-fit: contain; }
+    .logo-header .safe { display: flex; align-items: center; gap: 4px; font-size: .7rem; font-weight: 500; color: #16A34A; }
+
+    /* Security bar */
+    .security-bar { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; background: #065F46; color: #D1FAE5; font-size: .75rem; }
+    .security-bar svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Container */
+    .checkout-container { max-width: 520px; margin: 0 auto; padding: 24px 16px; }
+
+    /* Cards */
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 20px; margin-bottom: 16px; }
+    .card h3 { font-size: .875rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--card-title); }
+
+    /* Product header */
+    .product-header { display: flex; gap: 14px; align-items: center; }
+    .product-header img { width: 64px; height: 64px; border-radius: var(--card-radius); object-fit: cover; border: 1px solid var(--border); }
+    .product-header .ph-placeholder { width: 64px; height: 64px; border-radius: var(--card-radius); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: var(--input-bg); }
+    .product-header .info { flex: 1; }
+    .product-header .info h2 { font-size: 1rem; font-weight: 700; color: var(--card-title); }
+    .product-header .info .price { font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-top: 4px; }
+    .product-header .info .original-price { font-size: .8rem; color: var(--text-muted); text-decoration: line-through; }
+
+    /* Form */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: .75rem; font-weight: 500; color: var(--card-label); margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 10px 14px; border: 1px solid var(--input-border); border-radius: var(--field-radius); font-size: .85rem; outline: none; transition: border-color .2s; background: var(--input-bg); color: var(--card-text); }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Button */
+    .btn-primary { width: 100%; padding: 14px; border: none; border-radius: var(--btn-radius); background: var(--btn-color); color: var(--primary-fg); font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary:hover { opacity: .9; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Steps nav */
+    .steps-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; padding: 4px 0; }
+    .step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+    .step-circle { width: 40px; height: 40px; border-radius: var(--step-radius); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; border: 2px solid var(--border); color: var(--text-muted); background: transparent; transition: all .3s; }
+    .step-circle.active { border-color: var(--step-bg); color: var(--step-bg); background: rgba(239,68,68,.08); }
+    .step-circle.done { border-color: var(--step-bg); color: var(--step-bg); background: rgba(239,68,68,.08); }
+    .step-label { font-size: .65rem; font-weight: 600; color: var(--card-desc); }
+    .step-label.active { color: var(--step-bg); }
+    .step-line { width: 32px; height: 2px; background: var(--border); margin-bottom: 18px; }
+    .step-line.done { background: var(--primary); }
+
+    /* Review */
+    .review-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .review-row:last-child { border-bottom: none; }
+    .review-row .label { color: var(--card-desc); }
+    .review-row .value { font-weight: 600; color: var(--card-text); }
+
+    /* PIX */
+    .pix-area { text-align: center; }
+    .pix-area .qr-img { width: 200px; height: 200px; margin: 14px auto; border-radius: var(--card-radius); border: 2px solid var(--border); }
+    .copy-code { display: flex; gap: 8px; margin: 12px 0; }
+    .copy-code input { flex: 1; padding: 10px; border: 1px solid var(--input-border); border-radius: var(--field-radius); font-size: .75rem; background: var(--input-bg); color: var(--card-text); }
+    .copy-code button { padding: 10px 16px; border: none; border-radius: var(--field-radius); background: var(--btn-color); color: var(--primary-fg); font-weight: 600; cursor: pointer; white-space: nowrap; font-size: .8rem; }
+
+    /* Timer */
+    .timer-bar { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: var(--primary); color: #fff; font-size: .85rem; font-weight: 600; }
+
+    /* Upload */
+    .upload-area { border: 2px dashed var(--border); border-radius: var(--card-radius); padding: 24px; text-align: center; cursor: pointer; transition: border-color .2s; }
+    .upload-area:hover { border-color: var(--primary); }
+    .upload-area input { display: none; }
+    .upload-area p { font-size: .85rem; color: var(--text-muted); }
+
+    /* Guarantee */
+    .guarantee-box { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #D1FAE5; background: #ECFDF5; border-radius: var(--card-radius); margin-bottom: 16px; }
+    .guarantee-box .icon { width: 36px; height: 36px; background: #A7F3D0; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .guarantee-box .text { font-size: .8rem; color: #065F46; }
+    .guarantee-box .text strong { display: block; font-size: .85rem; }
+
+    /* Banks */
+    .banks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .bank-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .7rem; color: var(--text-muted); cursor: pointer; transition: border-color .2s; }
+    .bank-item:hover { border-color: var(--primary); }
+    .bank-item img { width: 28px; height: 28px; border-radius: 6px; }
+
+    /* Payment tabs */
+    .payment-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-radius: var(--field-radius); padding: 4px; background: var(--input-bg); }
+    .payment-tab { flex: 1; padding: 10px; border: none; border-radius: var(--field-radius); background: transparent; font-size: .8rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all .2s; }
+    .payment-tab.active { background: var(--card-bg); color: var(--card-text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+    /* Footer */
+    .checkout-footer { text-align: center; padding: 24px 16px; font-size: .75rem; color: var(--text-muted); }
+    .checkout-footer .shields { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+
+    /* Summary row */
+    .summary-line { display: flex; justify-content: space-between; font-size: .8rem; padding: 4px 0; }
+    .summary-line .sl-label { color: var(--card-desc); }
+    .summary-line .sl-value { font-weight: 600; color: var(--card-text); }
+    .summary-line.total { font-size: .95rem; font-weight: 700; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+    .summary-line.total .sl-value { color: var(--primary); }
+
+    .hidden { display: none; }
+
+    @media (max-width: 640px) {
+      .checkout-container { padding: 16px 12px; }
+      .card { padding: 16px; }
+      .product-header img, .product-header .ph-placeholder { width: 56px; height: 56px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link id="font-link" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <p style="text-align:center;margin-top:40vh;font-family:sans-serif;color:#6B7280;">Redirecionando...</p>
+
+<div id="app">
+  <div class="loader-wrap"><div class="spinner"></div></div>
+</div>
+
+<script>
+(function() {
+  var SUPABASE_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
+
+  var app = document.getElementById('app');
+  var currentStep = 1;
+  var formData = { name: '', email: '', cpf: '', phone: '' };
+
+  var FONT_MAP = {
+    inter: { family: "'Inter', sans-serif", url: "Inter:wght@400;500;600;700;800" },
+    plus_jakarta: { family: "'Plus Jakarta Sans', sans-serif", url: "Plus+Jakarta+Sans:wght@400;500;600;700;800" },
+    roboto: { family: "'Roboto', sans-serif", url: "Roboto:wght@400;500;700;900" },
+    montserrat: { family: "'Montserrat', sans-serif", url: "Montserrat:wght@400;500;600;700;800" },
+    poppins: { family: "'Poppins', sans-serif", url: "Poppins:wght@400;500;600;700;800" },
+    dm_sans: { family: "'DM Sans', sans-serif", url: "DM+Sans:wght@400;500;600;700" },
+    nunito: { family: "'Nunito', sans-serif", url: "Nunito:wght@400;500;600;700;800" },
+  };
+  var RADIUS_MAP = { none: "0px", sm: "4px", md: "8px", lg: "12px", xl: "16px", "2xl": "24px", full: "9999px", rounded: "8px" };
+
+  function fmt(cents) { return 'R$ ' + (cents / 100).toFixed(2).replace('.', ','); }
+
+  function getSlug() {
+    var parts = window.location.pathname.split('/').filter(Boolean);
+    var i = parts.indexOf('pay');
+    if (i !== -1 && parts[i + 1]) return parts[i + 1];
+    return parts[parts.length - 1] || null;
+  }
+
+  function getTenantId() {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('tenant')) return p.get('tenant');
+    var h = window.location.hostname;
+    if (h === 'localhost' || h.includes('127.0.0.1')) return null;
+    var pts = h.split('.');
+    if (pts.length <= 2) return null;
+    return h;
+  }
+
+  async function fetchTenant(id) {
+    if (!id) return null;
+    try {
+      var r = await fetch(SUPABASE_URL + '/functions/v1/get-tenant?subdomain=' + encodeURIComponent(id), { headers: { apikey: ANON_KEY } });
+      if (!r.ok) return null;
+      var d = await r.json();
+      return d.tenant || null;
+    } catch (e) { return null; }
+  }
+
+  async function fetchCheckout(slug) {
+    var r = await fetch(SUPABASE_URL + '/functions/v1/get-checkout?slug=' + encodeURIComponent(slug), { headers: { apikey: ANON_KEY } });
+    if (!r.ok) return null;
+    return r.json();
+  }
+
+  function applyStyles(cfg) {
+    var root = document.documentElement;
+    var isDark = cfg.theme === 'dark';
+    var primary = cfg.primaryColor || '#EF4444';
+    var btnColor = cfg.buttonColor || primary;
+    var bgColor = cfg.bgColor || (isDark ? '#0D0D0D' : '#EFF1F5');
+    var textColor = cfg.textColor || (isDark ? '#F3F4F6' : '#1F2937');
+    var cardBg = cfg.cardBgColor || (isDark ? '#1A1A1A' : '#FFFFFF');
+    var cardBorder = cfg.cardBorderColor || (isDark ? '#333' : '#E5E7EB');
+    var cardLabel = cfg.cardLabelColor || (isDark ? '#D1D5DB' : '#6B7280');
+    var cardText = cfg.cardTextColor || (isDark ? '#F3F4F6' : '#1F2937');
+    var cardTitle = cfg.cardTitleColor || (isDark ? '#F9FAFB' : '#111827');
+    var cardDesc = cfg.cardDescColor || (isDark ? '#9CA3AF' : '#6B7280');
+    var inputBg = cfg.inputBgColor || (isDark ? '#0D0D0D' : '#FAFAFA');
+    var inputBorder = cfg.inputBorderColor || (isDark ? '#444' : '#D1D5DB');
+    var stepBg = cfg.stepBgColor || primary;
+    var stepText = cfg.stepTextColor || '#FFFFFF';
+    var cardRadius = RADIUS_MAP[cfg.cardBorderRadius] || RADIUS_MAP.xl;
+    var btnRadius = RADIUS_MAP[cfg.buttonBorderRadius] || RADIUS_MAP.md;
+    var fieldRadius = RADIUS_MAP[cfg.fieldBorderRadius] || RADIUS_MAP.md;
+    var stepRadius = RADIUS_MAP[cfg.stepBorderRadius] || RADIUS_MAP.full;
+
+    root.style.setProperty('--primary', primary);
+    root.style.setProperty('--btn-color', btnColor);
+    root.style.setProperty('--bg', bgColor);
+    root.style.setProperty('--text', textColor);
+    root.style.setProperty('--card-bg', cardBg);
+    root.style.setProperty('--border', cardBorder);
+    root.style.setProperty('--card-label', cardLabel);
+    root.style.setProperty('--card-text', cardText);
+    root.style.setProperty('--card-title', cardTitle);
+    root.style.setProperty('--card-desc', cardDesc);
+    root.style.setProperty('--input-bg', inputBg);
+    root.style.setProperty('--input-border', inputBorder);
+    root.style.setProperty('--step-bg', stepBg);
+    root.style.setProperty('--step-text', stepText);
+    root.style.setProperty('--card-radius', cardRadius);
+    root.style.setProperty('--btn-radius', btnRadius);
+    root.style.setProperty('--field-radius', fieldRadius);
+    root.style.setProperty('--step-radius', stepRadius);
+    document.body.style.background = bgColor;
+
+    // Font
+    var fontKey = cfg.font || 'inter';
+    var fontDef = FONT_MAP[fontKey] || FONT_MAP.inter;
+    root.style.setProperty('--font', fontDef.family);
+    document.body.style.fontFamily = fontDef.family;
+    var fontLink = document.getElementById('font-link');
+    if (fontLink) fontLink.href = 'https://fonts.googleapis.com/css2?family=' + fontDef.url + '&display=swap';
+
+    document.title = cfg.productName || 'Checkout';
+  }
+
+  function svgIcon(name) {
+    var icons = {
+      lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+      shield: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+      user: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+      card: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+      package: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+      upload: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+      copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    };
+    return icons[name] || '';
+  }
+
+  function renderSteps() {
+    var labels = [
+      { n: 1, l: 'Identificação', i: 'user' },
+      { n: 2, l: 'Conferência', i: 'check' },
+      { n: 3, l: 'Pagamento', i: 'card' },
+    ];
+    var html = '<div class="steps-nav">';
+    labels.forEach(function(sl, idx) {
+      var cls = currentStep === sl.n ? 'active' : (currentStep > sl.n ? 'done' : '');
+      html += '<div class="step-item" onclick="goStep(' + sl.n + ')">';
+      html += '<div class="step-circle ' + cls + '">';
+      html += currentStep > sl.n ? svgIcon('check') : svgIcon(sl.i);
+      html += '</div>';
+      html += '<span class="step-label ' + cls + '">' + sl.l + '</span>';
+      html += '</div>';
+      if (idx < labels.length - 1) {
+        html += '<div class="step-line ' + (currentStep > sl.n ? 'done' : '') + '"></div>';
+      }
+    });
+    html += '</div>';
+    return html;
+  }
+
+  var checkoutConfig = null;
+  var checkoutData = null;
+  var tenantData = null;
+  var pixResult = null;
+  var timerInterval = null;
+  var timerSeconds = 0;
+
+  function renderCheckout() {
+    var cfg = checkoutConfig;
+    var tenant = tenantData;
+    var html = '';
+
+    // Logo header
+    var logoUrl = cfg.logoUrl || (tenant && tenant.logo_url) || '';
+    if (logoUrl) {
+      html += '<div class="logo-header">';
+      html += '<img src="' + logoUrl + '" alt="Logo" />';
+      html += '<span class="safe">' + svgIcon('shield') + ' Pagamento 100% seguro</span>';
+      html += '</div>';
+    }
+
+    // Security bar
+    html += '<div class="security-bar">' + svgIcon('lock') + ' Ambiente seguro e criptografado</div>';
+
+    // Timer
+    if (cfg.showTimer) {
+      html += '<div class="timer-bar" id="timer-bar">⏰ Oferta termina em: <span id="timer">--:--</span></div>';
+    }
+
+    html += '<div class="checkout-container" id="checkout-content"></div>';
+    html += '<div class="checkout-footer"><div class="shields">🔒 SSL Seguro &nbsp; ✓ Dados Protegidos &nbsp; 🛡️ Anti-fraude</div><p>Pagamento processado com segurança.' + (tenant && tenant.name ? ' ' + tenant.name : '') + '</p></div>';
+
+    app.innerHTML = html;
+
+    if (cfg.showTimer) startTimer(cfg.timerMinutes || 15);
+    renderCurrentStep();
+  }
+
+  function renderCurrentStep() {
+    var container = document.getElementById('checkout-content');
+    if (!container) return;
+    var cfg = checkoutConfig;
+    var html = renderSteps();
+
+    if (currentStep === 1) html += renderStep1(cfg);
+    else if (currentStep === 2) html += renderStep2(cfg);
+    else if (currentStep === 3) html += renderStep3(cfg);
+
+    container.innerHTML = html;
+    bindEvents();
+  }
+
+  function renderProductCard(cfg) {
+    var imgHtml = cfg.productImage
+      ? '<img src="' + cfg.productImage + '" alt="' + cfg.productName + '" />'
+      : '<div class="ph-placeholder">' + svgIcon('package') + '</div>';
+    var h = '<div class="card"><div class="product-header">' + imgHtml + '<div class="info">';
+    h += '<h2>' + (cfg.productName || 'Produto') + '</h2>';
+    if (cfg.originalPrice > cfg.price) h += '<span class="original-price">' + fmt(cfg.originalPrice) + '</span> ';
+    h += '<div class="price">' + fmt(cfg.price) + '</div>';
+    h += '</div></div>';
+    // Summary lines
+    h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">';
+    h += '<div class="summary-line"><span class="sl-label">Subtotal</span><span class="sl-value">' + fmt(cfg.price) + '</span></div>';
+    h += '<div class="summary-line"><span class="sl-label">Frete</span><span class="sl-value" style="color:#16A34A">Grátis</span></div>';
+    var pixPrice = cfg.pixDiscount > 0 ? Math.round(cfg.price * (1 - cfg.pixDiscount / 100)) : cfg.price;
+    h += '<div class="summary-line total"><span class="sl-label">Total</span><span class="sl-value">' + fmt(pixPrice) + '</span></div>';
+    h += '</div></div>';
+    return h;
+  }
+
+  function renderStep1(cfg) {
+    var h = renderProductCard(cfg);
+    // Form card
+    h += '<div class="card"><h3>' + svgIcon('user') + ' Seus dados</h3>';
+    h += '<div class="form-group"><label>Nome completo *</label><input id="f-name" placeholder="Seu nome" value="' + (formData.name || '') + '" /></div>';
+    h += '<div class="form-row">';
+    h += '<div class="form-group"><label>E-mail *</label><input id="f-email" type="email" placeholder="email@exemplo.com" value="' + (formData.email || '') + '" /></div>';
+    if (cfg.showPhone !== false) h += '<div class="form-group"><label>Telefone</label><input id="f-phone" placeholder="(00) 00000-0000" value="' + (formData.phone || '') + '" /></div>';
+    h += '</div>';
+    if (cfg.showCpf !== false) h += '<div class="form-group"><label>CPF</label><input id="f-cpf" placeholder="000.000.000-00" value="' + (formData.cpf || '') + '" /></div>';
+    h += '<button class="btn-primary" id="btn-next1">' + (cfg.buttonText || 'Continuar') + '</button>';
+    h += '</div>';
+    // Guarantee
+    if (cfg.showGuarantee !== false) {
+      h += '<div class="guarantee-box"><div class="icon">' + svgIcon('shield') + '</div><div class="text"><strong>Garantia de ' + (cfg.guaranteeDays || 7) + ' dias</strong>Satisfação garantida ou seu dinheiro de volta.</div></div>';
+    }
+    return h;
+  }
+
+  function renderStep2(cfg) {
+    var h = '<div class="card"><h3>' + svgIcon('check') + ' Conferência dos dados</h3>';
+    h += '<div class="review-row"><span class="label">Nome</span><span class="value">' + (formData.name || '-') + '</span></div>';
+    h += '<div class="review-row"><span class="label">E-mail</span><span class="value">' + (formData.email || '-') + '</span></div>';
+    if (formData.phone) h += '<div class="review-row"><span class="label">Telefone</span><span class="value">' + formData.phone + '</span></div>';
+    if (formData.cpf) h += '<div class="review-row"><span class="label">CPF</span><span class="value">' + formData.cpf + '</span></div>';
+    h += '<div class="review-row"><span class="label">Produto</span><span class="value">' + (cfg.productName || 'Produto') + '</span></div>';
+    var pixPrice = cfg.pixDiscount > 0 ? Math.round(cfg.price * (1 - cfg.pixDiscount / 100)) : cfg.price;
+    h += '<div class="review-row"><span class="label">Valor</span><span class="value" style="color:var(--primary);font-weight:800">' + fmt(pixPrice) + '</span></div>';
+    h += '<div style="display:flex;gap:10px;margin-top:16px">';
+    h += '<button class="btn-primary" style="background:transparent;color:var(--card-text);border:1px solid var(--border);flex:1" id="btn-back2">Voltar</button>';
+    h += '<button class="btn-primary" style="flex:2" id="btn-next2">Confirmar e Pagar</button>';
+    h += '</div></div>';
+    return h;
+  }
+
+  function renderStep3(cfg) {
+    var h = '<div class="card"><h3>' + svgIcon('card') + ' Pagamento</h3>';
+    // Payment tabs
+    var methods = [];
+    if (cfg.pix !== false) methods.push({ id: 'pix', label: 'PIX' });
+    if (cfg.creditCard) methods.push({ id: 'credit', label: 'Cartão' });
+    if (cfg.boleto) methods.push({ id: 'boleto', label: 'Boleto' });
+    if (methods.length > 1) {
+      h += '<div class="payment-tabs">';
+      methods.forEach(function(m) {
+        h += '<button class="payment-tab active" data-method="' + m.id + '">' + m.label + '</button>';
+      });
+      h += '</div>';
+    }
+    // PIX area
+    h += '<div class="pix-area" id="pix-area">';
+    if (pixResult) {
+      h += '<p style="font-size:.85rem;color:var(--card-desc);margin-bottom:8px">Escaneie o QR Code ou copie o código PIX</p>';
+      h += '<img class="qr-img" src="' + pixResult.qrCodeImage + '" alt="QR Code PIX" />';
+      h += '<div class="copy-code"><input readonly value="' + pixResult.brCode + '" id="pix-code" /><button id="btn-copy">' + svgIcon('copy') + ' Copiar</button></div>';
+      // Upload receipt
+      h += '<div style="margin-top:16px">';
+      h += '<div class="upload-area" id="upload-area"><input type="file" id="receipt-input" accept="image/*,.pdf" />' + svgIcon('upload') + '<p>Enviar comprovante de pagamento</p></div>';
+      h += '</div>';
+    } else {
+      h += '<div style="padding:20px;text-align:center"><div class="spinner" style="margin:0 auto"></div><p style="font-size:.8rem;color:var(--card-desc);margin-top:12px">Gerando cobrança PIX...</p></div>';
+    }
+    h += '</div>';
+
+    // Banks
+    h += '<p style="font-size:.75rem;color:var(--card-desc);margin-top:16px;text-align:center">Abra o app do seu banco e pague com PIX</p>';
+    h += '<div class="banks-grid">';
+    var banks = [
+      { n: 'Nubank', c: '#820AD1' }, { n: 'Inter', c: '#FF7A00' }, { n: 'Bradesco', c: '#CC092F' },
+      { n: 'Itaú', c: '#003399' }, { n: 'BB', c: '#FFEF00' }, { n: 'Caixa', c: '#005CA9' },
+      { n: 'Santander', c: '#EC0000' }, { n: 'PicPay', c: '#21C25E' }, { n: 'Mercado Pago', c: '#009EE3' },
+    ];
+    banks.forEach(function(b) {
+      h += '<div class="bank-item"><div style="width:28px;height:28px;border-radius:6px;background:' + b.c + '"></div>' + b.n + '</div>';
+    });
+    h += '</div>';
+
+    h += '</div>';
+    return h;
+  }
+
+  function bindEvents() {
+    var btn1 = document.getElementById('btn-next1');
+    if (btn1) btn1.addEventListener('click', function() {
+      var n = document.getElementById('f-name');
+      var e = document.getElementById('f-email');
+      var p = document.getElementById('f-phone');
+      var c = document.getElementById('f-cpf');
+      formData.name = n ? n.value : '';
+      formData.email = e ? e.value : '';
+      formData.phone = p ? p.value : '';
+      formData.cpf = c ? c.value : '';
+      if (!formData.name || !formData.email) { alert('Preencha nome e e-mail'); return; }
+      currentStep = 2;
+      renderCurrentStep();
+    });
+
+    var btn2 = document.getElementById('btn-next2');
+    if (btn2) btn2.addEventListener('click', function() {
+      currentStep = 3;
+      renderCurrentStep();
+      if (!pixResult) generatePix();
+    });
+
+    var btnBack = document.getElementById('btn-back2');
+    if (btnBack) btnBack.addEventListener('click', function() { currentStep = 1; renderCurrentStep(); });
+
+    var btnCopy = document.getElementById('btn-copy');
+    if (btnCopy) btnCopy.addEventListener('click', function() {
+      var code = document.getElementById('pix-code');
+      if (code) { navigator.clipboard.writeText(code.value); btnCopy.innerHTML = '✓ Copiado!'; setTimeout(function() { btnCopy.innerHTML = svgIcon('copy') + ' Copiar'; }, 2000); }
+    });
+
+    var uploadArea = document.getElementById('upload-area');
+    var receiptInput = document.getElementById('receipt-input');
+    if (uploadArea && receiptInput) {
+      uploadArea.addEventListener('click', function() { receiptInput.click(); });
+      receiptInput.addEventListener('change', function() {
+        if (receiptInput.files && receiptInput.files[0]) {
+          uploadReceipt(receiptInput.files[0]);
+        }
+      });
+    }
+  }
+
+  window.goStep = function(n) {
+    if (n < currentStep) { currentStep = n; renderCurrentStep(); }
+  };
+
+  async function generatePix() {
+    var slug = getSlug();
+    var cfg = checkoutConfig;
+    var pixPrice = cfg.pixDiscount > 0 ? Math.round(cfg.price * (1 - cfg.pixDiscount / 100)) : cfg.price;
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/create-pix-charge', {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: slug, amount: pixPrice,
+          customerName: formData.name, customerEmail: formData.email,
+          customerPhone: formData.phone, customerCpf: formData.cpf,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao gerar PIX');
+      pixResult = data;
+      renderCurrentStep();
+    } catch (e) {
+      var area = document.getElementById('pix-area');
+      if (area) area.innerHTML = '<p style="color:#EF4444;padding:20px">Erro: ' + e.message + '</p>';
+    }
+  }
+
+  async function uploadReceipt(file) {
+    if (!pixResult || !pixResult.correlationID) return;
+    var area = document.getElementById('upload-area');
+    if (area) area.innerHTML = '<div class="spinner" style="margin:0 auto"></div><p style="font-size:.8rem;color:var(--card-desc);margin-top:8px">Enviando...</p>';
+    try {
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('correlationID', pixResult.correlationID);
+      var res = await fetch(SUPABASE_URL + '/functions/v1/upload-receipt', { method: 'POST', headers: { apikey: ANON_KEY }, body: fd });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro');
+      if (area) area.innerHTML = '<p style="color:#16A34A;font-weight:600;padding:12px">✓ Comprovante enviado com sucesso!</p>';
+    } catch (e) {
+      if (area) area.innerHTML = '<p style="color:#EF4444;padding:12px">Erro: ' + e.message + '</p>';
+    }
+  }
+
+  function startTimer(minutes) {
+    timerSeconds = minutes * 60;
+    function tick() {
+      if (timerSeconds <= 0) return;
+      var m = Math.floor(timerSeconds / 60);
+      var s = timerSeconds % 60;
+      var el = document.getElementById('timer');
+      if (el) el.textContent = '00h : ' + String(m).padStart(2, '0') + 'm : ' + String(s).padStart(2, '0') + 's';
+      timerSeconds--;
+      setTimeout(tick, 1000);
+    }
+    tick();
+  }
+
+  async function init() {
+    var slug = getSlug();
+    if (!slug) {
+      app.innerHTML = '<div class="error-wrap"><h2>Link inválido ou expirado.</h2><p>Verifique o link e tente novamente.</p></div>';
+      return;
+    }
+    var tenantId = getTenantId();
+    var results = await Promise.all([fetchTenant(tenantId), fetchCheckout(slug)]);
+    tenantData = results[0];
+    var checkoutResult = results[1];
+
+    if (!checkoutResult || !checkoutResult.checkout) {
+      app.innerHTML = '<div class="error-wrap"><h2>Checkout não encontrado.</h2><p>Este checkout pode estar inativo.</p></div>';
+      return;
+    }
+
+    var checkout = checkoutResult.checkout;
+    var product = checkoutResult.product;
+    var saved = checkout.config || {};
+
+    checkoutConfig = {
+      productName: saved.productName || (product && product.name) || checkout.name || '',
+      offerName: saved.offerName || (product && product.name) || '',
+      price: saved.price || (product && product.price) || 0,
+      originalPrice: saved.originalPrice || 0,
+      buttonText: saved.buttonText || 'Pagar Agora',
+      guaranteeDays: saved.guaranteeDays || 7,
+      showGuarantee: saved.showGuarantee !== false,
+      showTimer: saved.showTimer || false,
+      timerMinutes: saved.timerMinutes || 15,
+      showSecurityBadges: saved.showSecurityBadges !== false,
+      pix: saved.pix !== false,
+      creditCard: saved.creditCard || false,
+      boleto: saved.boleto || false,
+      pixDiscount: saved.pixDiscount || 0,
+      maxInstallments: saved.maxInstallments || 12,
+      showCpf: saved.showCpf !== false,
+      showPhone: saved.showPhone !== false,
+      showAddress: saved.showAddress || false,
+      productImage: saved.productImage || (product && product.image_url) || '',
+      logoUrl: saved.logoUrl || (tenantData && tenantData.logo_url) || '',
+      // Styling config
+      theme: saved.theme || 'light',
+      primaryColor: saved.primaryColor || (tenantData && tenantData.primary_color) || '#EF4444',
+      buttonColor: saved.buttonColor || '',
+      bgColor: saved.bgColor || '',
+      textColor: saved.textColor || '',
+      font: saved.font || 'inter',
+      cardBgColor: saved.cardBgColor || '',
+      cardBorderColor: saved.cardBorderColor || '',
+      cardLabelColor: saved.cardLabelColor || '',
+      cardTextColor: saved.cardTextColor || '',
+      cardTitleColor: saved.cardTitleColor || '',
+      cardDescColor: saved.cardDescColor || '',
+      inputBgColor: saved.inputBgColor || '',
+      inputBorderColor: saved.inputBorderColor || '',
+      stepBgColor: saved.stepBgColor || '',
+      stepTextColor: saved.stepTextColor || '',
+      cardBorderRadius: saved.cardBorderRadius || '',
+      buttonBorderRadius: saved.buttonBorderRadius || '',
+      fieldBorderRadius: saved.fieldBorderRadius || '',
+      stepBorderRadius: saved.stepBorderRadius || '',
+    };
+
+    applyStyles(checkoutConfig);
+    renderCheckout();
+  }
+
+  init();
+})();
+</script>
+
 </body>
 </html>
