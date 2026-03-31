@@ -1032,7 +1032,12 @@ export default function CheckoutBuilder() {
                 <CheckoutPreview 
                   key={`${config.templateId}-${config.format}`}
                   config={config} 
-                  templateName={activeTemplateName} 
+                  templateName={activeTemplateName}
+                  elements={elements}
+                  isBuilder={true}
+                  onSelectElement={setSelectedElementId}
+                  selectedElementId={selectedElementId}
+                  onDropElement={(type, position) => addElement(type, position)}
                 />
               </div>
             </CardContent>
