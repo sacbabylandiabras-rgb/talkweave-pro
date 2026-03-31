@@ -29,6 +29,7 @@ export default function PayCheckouts() {
   const [loading, setLoading] = useState(true);
   const [domainOpen, setDomainOpen] = useState(false);
   const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_custom_domain") || "");
+  const [domainPrefix, setDomainPrefix] = useState(localStorage.getItem("checkout_domain_prefix") || "pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
 
   const fetchData = async () => {
