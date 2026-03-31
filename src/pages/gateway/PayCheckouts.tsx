@@ -46,7 +46,11 @@ export default function PayCheckouts() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    const sd = localStorage.getItem("checkout_custom_domain");
+    if (sd) checkDomainStatus(sd);
+  }, []);
 
   // Check domain status on dialog open
   useEffect(() => {
