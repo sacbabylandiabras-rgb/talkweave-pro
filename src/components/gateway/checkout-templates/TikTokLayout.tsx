@@ -302,6 +302,9 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
           </div>
         </div>
 
+        {/* DROP ZONE: Footer (desktop) */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
+
         {/* Mobile layout */}
         <div className={!previewMode ? "mx-auto max-w-[360px] space-y-3 md:hidden" : "mx-auto max-w-[360px] space-y-3"} style={previewMode ? { display: previewMode === "mobile" ? "block" : "none" } : undefined}>
           {/* DROP ZONE: Top (mobile) */}
