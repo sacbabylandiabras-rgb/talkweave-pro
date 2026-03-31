@@ -285,18 +285,22 @@ export default function PayCheckouts() {
               <p className="text-xs text-muted-foreground">
                 No painel do seu provedor de domínio, adicione os 2 registros abaixo:
               </p>
-              <div className="grid grid-cols-3 gap-1 text-[11px]">
-                <span className="font-semibold text-foreground">Tipo</span>
-                <span className="font-semibold text-foreground">Nome</span>
-                <span className="font-semibold text-foreground">Aponta para</span>
-
-                <span className="text-muted-foreground">CNAME</span>
-                <span className="text-muted-foreground">{domainPrefix}</span>
-                <code className="bg-muted px-1 rounded text-foreground text-[10px] break-all">cname.zaplynxpro.online</code>
-
-                <span className="text-muted-foreground">A</span>
-                <span className="text-muted-foreground">@</span>
-                <code className="bg-muted px-1 rounded text-foreground">185.158.133.1</code>
+              <div className="space-y-2 text-[11px]">
+                <div className="grid grid-cols-[60px_80px_1fr] gap-2">
+                  <span className="font-semibold text-foreground">Tipo</span>
+                  <span className="font-semibold text-foreground">Nome</span>
+                  <span className="font-semibold text-foreground">Aponta para</span>
+                </div>
+                <div className="grid grid-cols-[60px_80px_1fr] gap-2 items-center">
+                  <span className="text-muted-foreground">CNAME</span>
+                  <span className="text-muted-foreground">{domainPrefix}</span>
+                  <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">cname.zaplynxpro.online</code>
+                </div>
+                <div className="grid grid-cols-[60px_80px_1fr] gap-2 items-center">
+                  <span className="text-muted-foreground">A</span>
+                  <span className="text-muted-foreground">@</span>
+                  <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">185.158.133.1</code>
+                </div>
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
                 A propagação pode levar até 72 horas. Use o botão de atualizar para verificar o status.
