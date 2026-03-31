@@ -104,13 +104,14 @@ serve(async (req) => {
     const body: SendCampaignRequest = await req.json();
     const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset, _isContinuation, _userId } = body;
     const rotationOffset = initialRotationOffset || 0;
+    const requestedContacts = Array.isArray(contacts) ? contacts : [];
 
-    if (!campaignId || !contacts || contacts.length === 0) {
+    if (!campaignId || requestedContacts.length === 0) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
 
-    console.log(`🚀 Campaign ${campaignId}: ${contacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
+    console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
 
     // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
     let credentials: { instanceId: string; token: string; clientToken: string; userId: string; instanceName: string };
@@ -195,6 +196,43 @@ serve(async (req) => {
       };
     };
 
+    const queueContinuation = async (
+      contactsToContinue: SendCampaignRequest['contacts'],
+      processedInThisRun: number,
+    ) => {
+      if (!contactsToContinue.length) return true;
+
+      const newRotationOffset = (rotationOffset + processedInThisRun) % (rotatePool.length || 1);
+
+      try {
+        const reInvokeResponse = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            campaignId,
+            contacts: contactsToContinue,
+            instanceId: requestedInstanceId,
+            rotationOffset: newRotationOffset,
+            _isContinuation: true,
+            _userId: credentials.userId,
+          }),
+        });
+
+        if (!reInvokeResponse.ok) {
+          console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${await reInvokeResponse.text()}`);
+          return false;
+        }
+
+        return true;
+      } catch (reError) {
+        console.error(`❌ Re-invocation failed:`, reError);
+        return false;
+      }
+    };
+
     // Check campaign status
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -220,11 +258,34 @@ serve(async (req) => {
 
     if (!campaign.template) throw new Error('Campaign template not found');
 
+    const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
+      ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
+      : [];
+
+    const { count: existingSendsCount } = await supabase
+      .from('campaign_sends')
+      .select('id', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId);
+
+    const shouldUseCampaignAudience =
+      !_isContinuation &&
+      (existingSendsCount ?? 0) === 0 &&
+      campaignTargetContacts.length > 0 &&
+      requestedContacts.length !== campaignTargetContacts.length;
+
+    const executionContacts = shouldUseCampaignAudience ? campaignTargetContacts : requestedContacts;
+
+    if (shouldUseCampaignAudience) {
+      console.log(
+        `⚠️ Campaign ${campaignId}: request had ${requestedContacts.length} contacts, but campaign audience has ${campaignTargetContacts.length}. Using campaign audience as source of truth.`,
+      );
+    }
+
     const delayMs = (campaign.delay_seconds || 2) * 1000;
 
     // Split contacts into current batch and remaining
-    const currentBatch = contacts.slice(0, BATCH_SIZE);
-    const remainingContacts = contacts.slice(BATCH_SIZE);
+    const currentBatch = executionContacts.slice(0, BATCH_SIZE);
+    const remainingContacts = executionContacts.slice(BATCH_SIZE);
 
     console.log(`📦 Processing batch of ${currentBatch.length} contacts. Remaining: ${remainingContacts.length}`);
 
@@ -285,7 +346,7 @@ serve(async (req) => {
         // Check duplicates
         const { data: existingSends } = await supabase.from('campaign_sends').select('id, status').eq('campaign_id', campaignId).eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
-        const phoneOccurrencesBefore = contacts.slice(0, contacts.indexOf(contact)).filter(c => c.phone === contact.phone).length;
+        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter(c => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
           console.log(`⏭️ Skipping ${contact.phone} - already sent`);
@@ -532,32 +593,34 @@ serve(async (req) => {
 
       console.log(`🔄 Re-invoking for remaining ${remainingContacts.length} contacts...`);
 
-      const newRotationOffset = (rotationOffset + currentBatch.length) % (rotatePool.length || 1);
-
-      // Use Service Role Key for re-invocations to avoid JWT expiration issues
-      try {
-        const reInvokeResponse = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify({
-            campaignId,
-            contacts: remainingContacts,
-            instanceId: requestedInstanceId,
-            rotationOffset: newRotationOffset,
-            _isContinuation: true,
-            _userId: credentials.userId,
-          }),
-        });
-        if (!reInvokeResponse.ok) {
-          console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${await reInvokeResponse.text()}`);
-        }
-      } catch (reError) {
-        console.error(`❌ Re-invocation failed:`, reError);
-      }
+      await queueContinuation(remainingContacts, currentBatch.length);
     } else {
+      const totalTargetContacts = campaignTargetContacts.length;
+      const { count: processedCount } = await supabase
+        .from('campaign_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId);
+
+      const totalProcessed = processedCount ?? 0;
+      const missingContacts = totalTargetContacts > totalProcessed
+        ? campaignTargetContacts.slice(totalProcessed)
+        : [];
+
+      if (missingContacts.length > 0) {
+        console.log(`⚠️ Campaign ${campaignId}: blocking completion because only ${totalProcessed}/${totalTargetContacts} contacts were processed. Re-invoking ${missingContacts.length} missing contacts.`);
+
+        await queueContinuation(missingContacts, currentBatch.length);
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Missing contacts queued before completion',
+          campaignId,
+          processed: currentBatch.length,
+          remaining: missingContacts.length,
+          results,
+        }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+
       // All contacts processed - mark campaign as completed
       const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
       if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
