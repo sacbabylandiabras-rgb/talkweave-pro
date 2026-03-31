@@ -11,16 +11,42 @@ interface InstanceSelectorProps {
 
 const ROTATE_ALL = "__rotate_all__";
 
+const STORAGE_KEY = "zaplynx_selected_instances";
+
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceSelectorProps) => {
   const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 
-  // Set initial selection from activeInstance (default)
+  // Restore selection from localStorage or fall back to activeInstance
   useEffect(() => {
-    if (!initialized && activeInstance && instances.length > 0) {
-      setSelectedIds(new Set([activeInstance.id]));
-      setInitialized(true);
+    if (!initialized && instances.length > 0) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed: string[] = JSON.parse(saved);
+          const valid = parsed.filter(id => instances.some(i => i.id === id));
+          if (valid.length > 0) {
+            const restored = new Set(valid);
+            setSelectedIds(restored);
+            setInitialized(true);
+            // Notify parent
+            if (valid.length > 1) {
+              onInstanceChange?.(ROTATE_ALL);
+              onMultiInstanceChange?.(valid);
+            } else {
+              selectInstance(valid[0]);
+              onInstanceChange?.(valid[0]);
+              onMultiInstanceChange?.(valid);
+            }
+            return;
+          }
+        } catch {}
+      }
+      if (activeInstance) {
+        setSelectedIds(new Set([activeInstance.id]));
+        setInitialized(true);
+      }
     }
   }, [activeInstance, instances, initialized]);
 
