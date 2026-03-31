@@ -15,6 +15,7 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
 const FAQ_ITEMS = [
@@ -24,7 +25,7 @@ const FAQ_ITEMS = [
   { q: "Qual o prazo de entrega?", a: "Enviamos em até 24 horas após a confirmação do pagamento." },
 ];
 
-export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -93,7 +94,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
       {/* Main content */}
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: s.bgColor }}>
-        <div className="flex flex-col lg:flex-row gap-5">
+        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -157,7 +158,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
           </div>
 
           {/* RIGHT: Sidebar */}
-          <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 

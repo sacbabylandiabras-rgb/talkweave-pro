@@ -81,9 +81,10 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
-export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
@@ -210,22 +211,22 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   };
 
   if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} {...elementProps} />;
+    return <MinimalistaLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
   if (config.templateId === "alto-impacto") {
-    return <AltoImpactoLayout config={config} {...elementProps} />;
+    return <AltoImpactoLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
   if (config.templateId === "tiktok") {
-    return <TikTokLayout config={config} {...elementProps} />;
+    return <TikTokLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
   if (config.templateId === "streamline") {
-    return <StreamlineLayout config={config} {...elementProps} />;
+    return <StreamlineLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
   if (config.templateId === "lynxfy") {
-    return <LynxFyLayout config={config} {...elementProps} />;
+    return <LynxFyLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
   if (config.templateId === "confianca") {
-    return <ConfiancaLayout config={config} {...elementProps} />;
+    return <ConfiancaLayout config={config} {...elementProps} previewMode={previewMode} />;
   }
 
   const stepLabels = [

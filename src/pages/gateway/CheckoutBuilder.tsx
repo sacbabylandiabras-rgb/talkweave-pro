@@ -1038,6 +1038,7 @@ export default function CheckoutBuilder() {
                   onSelectElement={setSelectedElementId}
                   selectedElementId={selectedElementId}
                   onDropElement={(type, position) => addElement(type, position)}
+                  previewMode={previewMode}
                 />
               </div>
             </CardContent>

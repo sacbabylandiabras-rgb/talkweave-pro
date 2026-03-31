@@ -23,6 +23,7 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
 function getInitialSections(initialState: string) {
@@ -33,7 +34,7 @@ function getInitialSections(initialState: string) {
   };
 }
 
-export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [selectedPayment, setSelectedPayment] = useState<"pix" | "credit" | "boleto">("credit");
@@ -163,7 +164,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
   // Step indicators for desktop
   const StepIndicators = () => (
-    <div className="mb-5 hidden items-center justify-center gap-5 md:flex">
+    <div className="mb-5 items-center justify-center gap-5" style={{ display: previewMode === "mobile" ? "none" : "flex" }}>
       {stepLabels.map((sl, i) => (
         <div key={sl.num} className="flex items-center gap-5">
           <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-2">
@@ -276,11 +277,11 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         </div>
       </div>
 
-      <div className="mx-auto max-w-[980px] px-3 py-6 md:px-4">
+      <div className="mx-auto max-w-[980px] px-3 py-6" style={{ paddingLeft: previewMode === "mobile" ? "0.75rem" : "1rem", paddingRight: previewMode === "mobile" ? "0.75rem" : "1rem" }}>
         <StepIndicators />
 
         {/* Desktop layout */}
-        <div className="hidden gap-4 md:grid md:grid-cols-[minmax(0,1fr)_300px]">
+        <div style={{ display: previewMode === "mobile" ? "none" : "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "1rem" }}>
           <div className="space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -302,7 +303,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         </div>
 
         {/* Mobile layout */}
-        <div className="mx-auto max-w-[360px] space-y-3 md:hidden">
+        <div className="mx-auto max-w-[360px] space-y-3" style={{ display: previewMode === "mobile" ? "block" : "none" }}>
           {/* DROP ZONE: Top (mobile) */}
           <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
           {step === 1 && <Step1Mobile />}

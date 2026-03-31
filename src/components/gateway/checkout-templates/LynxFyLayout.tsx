@@ -15,9 +15,10 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
-export default function LynxFyLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function LynxFyLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 10, s: 0 });
   const [quantity, setQuantity] = useState(1);
@@ -83,14 +84,14 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                 <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === sl.num)}>
                   {step > sl.num ? <Check className="w-3 h-3" /> : sl.num}
                 </div>
-                <span className="hidden sm:inline">{sl.label}</span>
+                <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{sl.label}</span>
               </button>
               {i < stepLabels.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-5">
+        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -153,7 +154,7 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 

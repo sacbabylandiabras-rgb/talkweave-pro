@@ -15,9 +15,10 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
-export default function MinimalistaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function MinimalistaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");
@@ -77,7 +78,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
         {/* DROP ZONE: Top */}
         <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
 
-        <div className="flex flex-col md:flex-row gap-6">
+        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.5rem" }}>
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
             <div className="flex items-center justify-center gap-2">
@@ -96,7 +97,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                     <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
                       {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                     </div>
-                    <span className="hidden sm:inline">{st.label}</span>
+                    <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{st.label}</span>
                   </button>
                   {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
                 </div>
@@ -178,7 +179,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div className="w-full md:w-60 flex-shrink-0 space-y-4">
+          <div style={{ width: previewMode === "mobile" ? "100%" : "15rem", flexShrink: 0 }} className="space-y-4">
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 
