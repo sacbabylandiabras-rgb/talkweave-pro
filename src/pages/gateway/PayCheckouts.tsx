@@ -74,7 +74,7 @@ export default function PayCheckouts() {
     }
 
     try {
-      const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("custom_domain").eq("id", user.id).single();
       if (data) {
         const cd = (data as any).custom_domain;
         const dp = cd ? cd.split(".")[0] : "pay";
