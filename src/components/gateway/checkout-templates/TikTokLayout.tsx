@@ -303,9 +303,13 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
         {/* Mobile layout */}
         <div className="mx-auto max-w-[360px] space-y-3 md:hidden">
+          {/* DROP ZONE: Top (mobile) */}
+          <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
           {step === 1 && <Step1Mobile />}
           {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
           {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+          {/* DROP ZONE: Footer (mobile) */}
+          <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
           <PaymentFooter />
         </div>
       </div>
