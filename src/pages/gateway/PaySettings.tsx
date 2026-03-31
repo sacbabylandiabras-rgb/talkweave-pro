@@ -38,7 +38,10 @@ export default function PaySettings() {
   const [regenerating, setRegenerating] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
   const [domainSaving, setDomainSaving] = useState(false);
-  const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active">("none");
+  const [domainDeleting, setDomainDeleting] = useState(false);
+  const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
+  const [domainSslStatus, setDomainSslStatus] = useState<string>("");
+  const [domainVerification, setDomainVerification] = useState<any>(null);
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
