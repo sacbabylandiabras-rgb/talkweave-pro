@@ -94,7 +94,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
       {/* Main content */}
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: s.bgColor }}>
-        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
+        <div className={!previewMode ? "flex flex-col lg:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" } : undefined}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -158,7 +158,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
           </div>
 
           {/* RIGHT: Sidebar */}
-          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
+          <div className={!previewMode ? "w-full lg:w-72 flex-shrink-0 space-y-4" : "space-y-4"} style={previewMode ? { width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 } : undefined}>
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 

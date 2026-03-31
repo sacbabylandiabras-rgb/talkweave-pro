@@ -84,14 +84,14 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                 <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === sl.num)}>
                   {step > sl.num ? <Check className="w-3 h-3" /> : sl.num}
                 </div>
-                <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{sl.label}</span>
+                <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{sl.label}</span>
               </button>
               {i < stepLabels.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
             </div>
           ))}
         </div>
 
-        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
+        <div className={!previewMode ? "flex flex-col lg:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" } : undefined}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -154,7 +154,7 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
+          <div className={!previewMode ? "w-full lg:w-72 flex-shrink-0 space-y-4" : "space-y-4"} style={previewMode ? { width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 } : undefined}>
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 

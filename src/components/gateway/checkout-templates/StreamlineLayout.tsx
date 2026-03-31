@@ -61,7 +61,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   ];
 
   const StepTabs = () => (
-    <div className="items-center border overflow-hidden" style={{ ...cardStyle(s), display: previewMode === "mobile" ? "none" : "flex" }}>
+    <div className={!previewMode ? "hidden md:flex items-center border overflow-hidden" : "items-center border overflow-hidden"} style={previewMode ? { ...cardStyle(s), display: previewMode === "mobile" ? "none" : "flex" } : cardStyle(s)}>
       {stepLabels.map((st) => (
         <button key={st.num} onClick={() => setStep(st.num as 1 | 2 | 3)} className="flex-1 flex items-center gap-2 px-5 py-3" style={{ borderRight: `1px solid ${s.cardBorder}`, background: step === st.num ? `${s.stepBg}10` : "transparent" }}>
           <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
@@ -96,7 +96,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px" }}>
-        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
+        <div className={!previewMode ? "flex flex-col lg:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" } : undefined}>
           <div className="flex-1 space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
@@ -163,7 +163,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
           </div>
 
           {/* RIGHT SIDEBAR */}
-          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
+          <div className={!previewMode ? "w-full lg:w-72 flex-shrink-0 space-y-4" : "space-y-4"} style={previewMode ? { width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 } : undefined}>
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 
