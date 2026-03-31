@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone, Globe, Copy, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone, Globe, Copy, CheckCircle2, AlertTriangle, Blocks } from "lucide-react";
+import CheckoutElementsSidebar from "@/components/gateway/checkout-elements/CheckoutElementsSidebar";
+import CheckoutElementEditor from "@/components/gateway/checkout-elements/CheckoutElementEditor";
+import { CheckoutElement, CheckoutElementType, ElementPosition, ELEMENT_DEFINITIONS, generateElementId } from "@/components/gateway/checkout-elements/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
