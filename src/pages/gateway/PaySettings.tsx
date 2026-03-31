@@ -161,7 +161,9 @@ export default function PaySettings() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setCustomDomain(data.hostname || domain);
+      const savedDomain = data.hostname || domain;
+      setCustomDomain(savedDomain);
+      localStorage.setItem("checkout_custom_domain", savedDomain);
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.ownership_verification || null);
