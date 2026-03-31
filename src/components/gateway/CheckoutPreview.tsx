@@ -81,6 +81,7 @@ interface Props {
   onSelectElement?: (id: string) => void;
   selectedElementId?: string | null;
   onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
+  previewMode?: "desktop" | "mobile";
 }
 
 export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
