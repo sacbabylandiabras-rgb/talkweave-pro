@@ -2,6 +2,27 @@ import { useState, useEffect } from "react";
 import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
 import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle } from "lucide-react";
 
+function getVideoEmbedUrl(url: string): string {
+  if (!url) return "";
+  // YouTube: watch?v=ID or youtu.be/ID or shorts/ID
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
+  // Vturb: extract embed URL
+  if (url.includes("vturb.com") || url.includes("vturb.com.br")) {
+    // If already an embed URL, use as-is
+    if (url.includes("/embed/") || url.includes("player.vturb")) return url;
+    // Try to extract video ID from various vturb formats
+    const vturbMatch = url.match(/vturb\.com(?:\.br)?\/(?:v|video)\/([a-zA-Z0-9]+)/);
+    if (vturbMatch) return `https://player.vturb.com.br/embed/${vturbMatch[1]}`;
+    return url; // fallback: use as-is
+  }
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  // Already an embed or unknown - use as-is
+  return url;
+}
+
 interface Props {
   element: CheckoutElement;
   primaryColor: string;
