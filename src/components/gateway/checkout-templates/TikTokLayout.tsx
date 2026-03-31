@@ -303,7 +303,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         </div>
 
         {/* Mobile layout */}
-        <div className="mx-auto max-w-[360px] space-y-3" style={{ display: previewMode === "mobile" ? "block" : "none" }}>
+        <div className={!previewMode ? "mx-auto max-w-[360px] space-y-3 md:hidden" : "mx-auto max-w-[360px] space-y-3"} style={previewMode ? { display: previewMode === "mobile" ? "block" : "none" } : undefined}>
           {/* DROP ZONE: Top (mobile) */}
           <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
           {step === 1 && <Step1Mobile />}
