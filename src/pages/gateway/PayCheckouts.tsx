@@ -292,7 +292,7 @@ export default function PayCheckouts() {
 
                 <span className="text-muted-foreground">CNAME</span>
                 <span className="text-muted-foreground">{domainPrefix}</span>
-                <code className="bg-muted px-1 rounded text-foreground text-[10px]">cname.zaplynxpro.online</code>
+                <code className="bg-muted px-1 rounded text-foreground text-[10px] break-all">cname.zaplynxpro.online</code>
 
                 <span className="text-muted-foreground">A</span>
                 <span className="text-muted-foreground">@</span>
