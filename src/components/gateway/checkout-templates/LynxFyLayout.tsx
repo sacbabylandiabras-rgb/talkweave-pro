@@ -92,9 +92,15 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
 
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="flex-1 space-y-4">
+            {/* DROP ZONE: Top */}
+            <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
+
             {/* Step 1 */}
             {step === 1 && (
               <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
                 <div className="border p-5 space-y-3" style={cardStyle(s)}>
                   <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Informações de contato</h3>
                   <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
