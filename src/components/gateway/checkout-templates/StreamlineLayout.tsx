@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lock, ShieldCheck, CreditCard, Package, User, Check } from "lucide-react";
+import { Lock, CreditCard, Package, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
