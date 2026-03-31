@@ -158,6 +158,9 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
           {/* RIGHT: Sidebar */}
           <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo do pedido</h3>
               <div className="flex items-center gap-3">
@@ -227,6 +230,9 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
             )}
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />
