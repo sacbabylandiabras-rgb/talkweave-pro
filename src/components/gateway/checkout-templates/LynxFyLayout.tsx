@@ -193,6 +193,9 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
             </div>
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />

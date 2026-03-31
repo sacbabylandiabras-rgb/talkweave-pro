@@ -126,6 +126,9 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
                   <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>Próximo</button>
                 </div>
 
+                {/* DROP ZONE: Below Form */}
+                <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
+
                 {/* FAQ */}
                 <div className="border p-5 space-y-2" style={cardStyle(s)}>
                   <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
