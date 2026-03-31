@@ -84,7 +84,7 @@ interface Props {
   previewMode?: "desktop" | "mobile";
 }
 
-export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
