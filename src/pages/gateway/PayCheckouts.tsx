@@ -143,10 +143,9 @@ export default function PayCheckouts() {
 
     if (cleaned) {
       const fullDomain = `${domainPrefix}.${cleaned}`;
-      // Save to DB
+      // Save to DB (only custom_domain column exists)
       await supabase.from("profiles").update({
         custom_domain: fullDomain,
-        domain_prefix: domainPrefix,
       } as any).eq("id", user.id);
       // Also save to localStorage as fallback
       localStorage.setItem("checkout_custom_domain", fullDomain);
