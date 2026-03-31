@@ -65,6 +65,33 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
+      // Validate CNAME is pointing correctly before registering
+      const FALLBACK_ORIGIN = "fallback.direitopenalnapratica.online";
+      try {
+        const dnsRes = await fetch(
+          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleanHostname)}&type=CNAME`,
+          { headers: { Accept: "application/dns-json" } }
+        );
+        const dnsData = await dnsRes.json();
+        const cnameRecords = (dnsData.Answer || []).filter((r: any) => r.type === 5);
+        const hasCname = cnameRecords.some(
+          (r: any) => r.data?.replace(/\.$/, "").toLowerCase() === FALLBACK_ORIGIN.toLowerCase()
+        );
+        if (!hasCname) {
+          return new Response(
+            JSON.stringify({
+              error: `CNAME não encontrado. Configure um registro CNAME apontando "${cleanHostname}" para "${FALLBACK_ORIGIN}" no seu provedor DNS e tente novamente.`,
+              cname_target: FALLBACK_ORIGIN,
+              dns_found: cnameRecords.map((r: any) => r.data?.replace(/\.$/, "")),
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log("CNAME validated successfully for", cleanHostname);
+      } catch (dnsErr) {
+        console.warn("DNS validation failed, proceeding anyway:", dnsErr);
+      }
+
       // Create custom hostname in Cloudflare
       const cfRes = await fetch(`${CF_API}/zones/${CLOUDFLARE_ZONE_ID}/custom_hostnames`, {
         method: "POST",
