@@ -102,7 +102,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body: SendCampaignRequest = await req.json();
-    const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset, _isContinuation } = body;
+    const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset, _isContinuation, _userId } = body;
     const rotationOffset = initialRotationOffset || 0;
 
     if (!campaignId || !contacts || contacts.length === 0) {
@@ -112,8 +112,39 @@ serve(async (req) => {
 
     console.log(`🚀 Campaign ${campaignId}: ${contacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
 
-    // Get credentials
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
+    let credentials: { instanceId: string; token: string; clientToken: string; userId: string; instanceName: string };
+    if (_isContinuation && _userId) {
+      console.log(`🔑 Continuation mode: resolving credentials for user ${_userId} via service role`);
+      const { data: instance } = await supabase
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .eq('user_id', _userId)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      const inst = instance || (await supabase
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .eq('user_id', _userId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()).data;
+
+      if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
+        throw new Error('Z-API credentials not found for continuation');
+      }
+      credentials = {
+        instanceId: inst.zapi_instance_id,
+        token: inst.zapi_token,
+        clientToken: inst.zapi_client_token,
+        userId: _userId,
+        instanceName: inst.instance_name || 'Instância',
+      };
+    } else {
+      credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    }
+
     let zapiInstanceId = credentials.instanceId;
     let zapiToken = credentials.token;
     let zapiClientToken = credentials.clientToken;
