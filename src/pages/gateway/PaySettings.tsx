@@ -315,7 +315,7 @@ export default function PaySettings() {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Cloudflare.
+                  Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Vercel.
                 </p>
               </div>
 
