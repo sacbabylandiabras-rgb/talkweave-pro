@@ -160,7 +160,17 @@ export default function PaySettings() {
         body: { action: "create", hostname: domain },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        // Show CNAME validation error with target info
+        if (data.cname_target) {
+          toast.error(`CNAME não encontrado! Aponte "${domain}" para "${data.cname_target}" no seu DNS antes de ativar.`, { duration: 8000 });
+        } else {
+          throw new Error(data.error);
+        }
+        setDomainStatus("error");
+        setDomainSaving(false);
+        return;
+      }
       const savedDomain = data.hostname || domain;
       setCustomDomain(savedDomain);
       localStorage.setItem("checkout_custom_domain", savedDomain);
