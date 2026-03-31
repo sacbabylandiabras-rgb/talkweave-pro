@@ -84,7 +84,7 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                 <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === sl.num)}>
                   {step > sl.num ? <Check className="w-3 h-3" /> : sl.num}
                 </div>
-                <span className="hidden sm:inline">{sl.label}</span>
+                <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{sl.label}</span>
               </button>
               {i < stepLabels.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
             </div>
