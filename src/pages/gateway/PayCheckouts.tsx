@@ -145,6 +145,10 @@ export default function PayCheckouts() {
       custom_domain: null,
       domain_prefix: "pay",
     } as any).eq("id", user.id);
+    // Clear localStorage fallback
+    localStorage.removeItem("checkout_custom_domain");
+    localStorage.removeItem("checkout_domain_prefix");
+    localStorage.removeItem("checkout_domain_root");
 
     setSavedDomain(null);
     setSavedPrefix("pay");
