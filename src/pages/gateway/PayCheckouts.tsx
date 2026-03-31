@@ -35,6 +35,23 @@ export default function PayCheckouts() {
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
   const [domainLoading, setDomainLoading] = useState(false);
 
+  const loadDomainFromLocalStorage = () => {
+    const lsDomain = localStorage.getItem("checkout_custom_domain");
+    const lsPrefix = localStorage.getItem("checkout_domain_prefix") || "pay";
+    const lsRoot = localStorage.getItem("checkout_domain_root") || "";
+
+    if (lsDomain) {
+      setSavedDomain(lsDomain);
+      setSavedPrefix(lsPrefix);
+      setCustomDomain(lsRoot);
+      setDomainPrefix(lsPrefix);
+      checkDomainStatus(lsDomain);
+      return true;
+    }
+
+    return false;
+  };
+
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
       supabase.from("gateway_checkouts" as any).select("*").order("created_at", { ascending: false }),
@@ -51,7 +68,11 @@ export default function PayCheckouts() {
 
   const fetchDomainFromDB = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      loadDomainFromLocalStorage();
+      return;
+    }
+
     try {
       const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
       if (data) {
@@ -69,22 +90,21 @@ export default function PayCheckouts() {
     } catch {
       // columns may not exist yet
     }
-    // Fallback: check localStorage (legacy)
-    const lsDomain = localStorage.getItem("checkout_custom_domain");
-    const lsPrefix = localStorage.getItem("checkout_domain_prefix") || "pay";
-    const lsRoot = localStorage.getItem("checkout_domain_root") || "";
-    if (lsDomain) {
-      setSavedDomain(lsDomain);
-      setSavedPrefix(lsPrefix);
-      setCustomDomain(lsRoot);
-      setDomainPrefix(lsPrefix);
-      checkDomainStatus(lsDomain);
-    }
+
+    loadDomainFromLocalStorage();
   };
 
   useEffect(() => {
     fetchData();
     fetchDomainFromDB();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchDomainFromDB();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
