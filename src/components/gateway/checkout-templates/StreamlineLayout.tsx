@@ -5,12 +5,19 @@ import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
 interface Props {
   config: Record<string, any>;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
-export default function StreamlineLayout({ config }: Props) {
+export default function StreamlineLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");

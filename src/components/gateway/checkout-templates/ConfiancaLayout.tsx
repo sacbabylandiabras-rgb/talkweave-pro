@@ -5,9 +5,16 @@ import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
 interface Props {
   config: Record<string, any>;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
 const FAQ_ITEMS = [
@@ -17,7 +24,7 @@ const FAQ_ITEMS = [
   { q: "Qual o prazo de entrega?", a: "Enviamos em até 24 horas após a confirmação do pagamento." },
 ];
 
-export default function ConfiancaLayout({ config }: Props) {
+export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
