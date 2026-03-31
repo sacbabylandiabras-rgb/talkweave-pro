@@ -317,9 +317,9 @@ export default function PayCheckouts() {
                   <span className="font-semibold text-foreground">Aponta para</span>
                 </div>
                 <div className="grid grid-cols-[60px_80px_1fr] gap-2 items-center">
-                  <span className="text-muted-foreground">CNAME</span>
+                  <span className="text-muted-foreground">A</span>
                   <span className="text-muted-foreground">{domainPrefix}</span>
-                  <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">cname.zaplynxpro.online</code>
+                  <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">185.158.133.1</code>
                 </div>
                 <div className="grid grid-cols-[60px_80px_1fr] gap-2 items-center">
                   <span className="text-muted-foreground">A</span>
