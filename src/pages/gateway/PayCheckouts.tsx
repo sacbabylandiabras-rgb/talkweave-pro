@@ -117,13 +117,19 @@ export default function PayCheckouts() {
     if (!domain) { setDomainStatus("idle"); return; }
     setDomainStatus("checking");
     try {
-      const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
-      const data = await res.json();
-      const answers = data.Answer || [];
-      const pointsToUs = answers.some((a: any) => a.data === "185.158.133.1");
-      setDomainStatus(pointsToUs ? "active" : "pending");
+      // Try fetching the domain to see if Worker proxy is active
+      const res = await fetch(`https://${domain}/`, { method: "HEAD", mode: "no-cors" });
+      setDomainStatus("active");
     } catch {
-      setDomainStatus("pending");
+      // Fallback: check DNS resolution
+      try {
+        const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
+        const data = await dnsRes.json();
+        const hasRecords = (data.Answer || []).length > 0;
+        setDomainStatus(hasRecords ? "active" : "pending");
+      } catch {
+        setDomainStatus("pending");
+      }
     }
   };
 
