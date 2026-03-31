@@ -90,7 +90,52 @@ export default function PayCheckouts() {
         ))}
       </div>
 
-      {checkouts.length === 0 ? (
+      {/* Domínio Personalizado */}
+      <Card className="border-[#2A2A2A]">
+        <CardContent className="pt-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold text-foreground">Domínio Personalizado</p>
+            {customDomain && (
+              <span className="ml-auto flex items-center gap-1 text-xs text-emerald-400">
+                <CheckCircle2 className="w-3 h-3" /> Configurado
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Configure um domínio próprio para todos os seus checkouts (ex: pay.seusite.com)
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="pay.seusite.com"
+              value={customDomain}
+              onChange={e => { setCustomDomain(e.target.value); setDomainSaved(false); }}
+              className="max-w-sm"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+                setCustomDomain(cleaned);
+                if (cleaned) {
+                  localStorage.setItem("checkout_custom_domain", cleaned);
+                } else {
+                  localStorage.removeItem("checkout_custom_domain");
+                }
+                setDomainSaved(true);
+                toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
+                setTimeout(() => setDomainSaved(false), 2000);
+              }}
+            >
+              {domainSaved ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Aponte um registro <strong>A</strong> para <code className="bg-muted px-1 rounded">185.158.133.1</code> no seu provedor de DNS.
+          </p>
+        </CardContent>
+      </Card>
         <Card className="border-[#2A2A2A]">
           <CardContent className="flex items-center justify-center py-16">
             <p className="text-sm text-muted-foreground">Nenhum checkout criado ainda. Clique em "Novo Checkout" para começar.</p>
