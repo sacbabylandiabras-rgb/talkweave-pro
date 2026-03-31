@@ -277,7 +277,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         </div>
       </div>
 
-      <div className="mx-auto max-w-[980px] px-3 py-6" style={{ paddingLeft: previewMode === "mobile" ? "0.75rem" : "1rem", paddingRight: previewMode === "mobile" ? "0.75rem" : "1rem" }}>
+      <div className="mx-auto max-w-[980px] px-3 py-6 md:px-4" style={previewMode ? { paddingLeft: previewMode === "mobile" ? "0.75rem" : "1rem", paddingRight: previewMode === "mobile" ? "0.75rem" : "1rem" } : undefined}>
         <StepIndicators />
 
         {/* Desktop layout */}
