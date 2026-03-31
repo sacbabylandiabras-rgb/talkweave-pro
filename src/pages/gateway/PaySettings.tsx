@@ -353,15 +353,25 @@ export default function PaySettings() {
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">1</span>
-                      <p className="text-[11px] text-muted-foreground">
-                        No DNS do seu domínio, crie um registro <strong>CNAME</strong> apontando para:
-                        <span className="flex items-center gap-1 mt-1">
-                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">cname.vercel-dns.com</code>
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("cname.vercel-dns.com")}>
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </span>
-                      </p>
+                      <div className="text-[11px] text-muted-foreground">
+                        <p className="mb-1">No DNS do seu domínio, adicione o registro adequado:</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1">
+                            <strong>Subdomínio</strong> (ex: pay.dominio.com) → <strong>CNAME</strong> para:
+                            <code className="bg-background border border-[#2A2A2A] rounded px-1.5 py-0.5 font-mono text-[11px]">cname.vercel-dns.com</code>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("cname.vercel-dns.com")}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <strong>Domínio raiz</strong> (ex: dominio.com) → <strong>A</strong> para:
+                            <code className="bg-background border border-[#2A2A2A] rounded px-1.5 py-0.5 font-mono text-[11px]">76.76.21.21</code>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("76.76.21.21")}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">2</span>

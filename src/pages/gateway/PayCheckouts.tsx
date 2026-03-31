@@ -418,7 +418,7 @@ export default function PayCheckouts() {
               <div className="space-y-2">
                 <p className="text-xs font-medium text-foreground">1. Configure o DNS</p>
                 <p className="text-[11px] text-muted-foreground">
-                  No provedor DNS do seu domínio, crie um registro <strong>CNAME</strong>:
+                  No provedor DNS do seu domínio, adicione o registro adequado:
                 </p>
                 <div className="space-y-1 text-[11px]">
                   <div className="grid grid-cols-[50px_70px_1fr] gap-2 items-center">
@@ -436,7 +436,18 @@ export default function PayCheckouts() {
                       </Button>
                     </div>
                   </div>
+                  <div className="grid grid-cols-[50px_70px_1fr] gap-2 items-center">
+                    <span className="text-muted-foreground">A</span>
+                    <span className="text-muted-foreground">@</span>
+                    <div className="flex items-center gap-1">
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">76.76.21.21</code>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { navigator.clipboard.writeText("76.76.21.21"); toast.success("Copiado!"); }}>
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
+                <p className="text-[10px] text-muted-foreground">Use CNAME para subdomínios (ex: pay.dominio.com) ou A para domínio raiz.</p>
               </div>
 
               <div className="space-y-1">
