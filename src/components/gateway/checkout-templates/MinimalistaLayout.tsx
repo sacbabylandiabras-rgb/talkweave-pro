@@ -179,7 +179,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
           </div>
 
           {/* RIGHT: Summary sidebar */}
-          <div style={{ width: previewMode === "mobile" ? "100%" : "15rem", flexShrink: 0 }} className="space-y-4">
+          <div className={!previewMode ? "w-full md:w-60 flex-shrink-0 space-y-4" : "space-y-4"} style={previewMode ? { width: previewMode === "mobile" ? "100%" : "15rem", flexShrink: 0 } : undefined}>
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 
