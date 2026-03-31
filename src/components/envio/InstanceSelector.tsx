@@ -75,6 +75,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceS
         }
       }
 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
       return next;
     });
   };
