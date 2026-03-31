@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2 } from "lucide-react";
+import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,8 +27,9 @@ export default function PayCheckouts() {
   const navigate = useNavigate();
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [domainOpen, setDomainOpen] = useState(false);
   const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_custom_domain") || "");
-  const [domainSaved, setDomainSaved] = useState(false);
+  const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
 
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
@@ -44,6 +47,40 @@ export default function PayCheckouts() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Check domain status on dialog open
+  useEffect(() => {
+    if (domainOpen && customDomain) {
+      checkDomainStatus(customDomain);
+    }
+  }, [domainOpen]);
+
+  const checkDomainStatus = async (domain: string) => {
+    if (!domain) { setDomainStatus("idle"); return; }
+    setDomainStatus("checking");
+    try {
+      const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
+      const data = await res.json();
+      const answers = data.Answer || [];
+      const pointsToUs = answers.some((a: any) => a.data === "185.158.133.1");
+      setDomainStatus(pointsToUs ? "active" : "pending");
+    } catch {
+      setDomainStatus("pending");
+    }
+  };
+
+  const saveDomain = () => {
+    const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    setCustomDomain(cleaned);
+    if (cleaned) {
+      localStorage.setItem("checkout_custom_domain", cleaned);
+      checkDomainStatus(cleaned);
+    } else {
+      localStorage.removeItem("checkout_custom_domain");
+      setDomainStatus("idle");
+    }
+    toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
+  };
+
   const toggleStatus = async (id: string, current: boolean) => {
     await supabase.from("gateway_checkouts" as any).update({ status: !current } as any).eq("id", id);
     fetchData();
@@ -58,6 +95,7 @@ export default function PayCheckouts() {
   const totalVisits = checkouts.reduce((a, c) => a + (c.visits || 0), 0);
   const totalConversions = checkouts.reduce((a, c) => a + (c.conversions || 0), 0);
   const avgConversion = totalVisits > 0 ? ((totalConversions / totalVisits) * 100).toFixed(1) : "0";
+  const savedDomain = localStorage.getItem("checkout_custom_domain");
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -70,9 +108,22 @@ export default function PayCheckouts() {
           <h1 className="text-2xl font-bold text-foreground">Checkouts</h1>
           <p className="text-sm text-muted-foreground">Crie e gerencie seus checkouts de pagamento</p>
         </div>
-        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
-          <Plus className="w-4 h-4 mr-2" /> Novo Checkout
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="rounded-full px-4 gap-2"
+            onClick={() => setDomainOpen(true)}
+          >
+            <Globe className="w-4 h-4" />
+            Domínio
+            {savedDomain && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
+            )}
+          </Button>
+          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
+            <Plus className="w-4 h-4 mr-2" /> Novo Checkout
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -89,53 +140,6 @@ export default function PayCheckouts() {
           </Card>
         ))}
       </div>
-
-      {/* Domínio Personalizado */}
-      <Card className="border-[#2A2A2A]">
-        <CardContent className="pt-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold text-foreground">Domínio Personalizado</p>
-            {customDomain && (
-              <span className="ml-auto flex items-center gap-1 text-xs text-emerald-400">
-                <CheckCircle2 className="w-3 h-3" /> Configurado
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Configure um domínio próprio para todos os seus checkouts (ex: pay.seusite.com)
-          </p>
-          <div className="flex gap-2">
-            <Input
-              placeholder="pay.seusite.com"
-              value={customDomain}
-              onChange={e => { setCustomDomain(e.target.value); setDomainSaved(false); }}
-              className="max-w-sm"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
-                setCustomDomain(cleaned);
-                if (cleaned) {
-                  localStorage.setItem("checkout_custom_domain", cleaned);
-                } else {
-                  localStorage.removeItem("checkout_custom_domain");
-                }
-                setDomainSaved(true);
-                toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
-                setTimeout(() => setDomainSaved(false), 2000);
-              }}
-            >
-              {domainSaved ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
-            </Button>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Aponte um registro <strong>A</strong> para <code className="bg-muted px-1 rounded">185.158.133.1</code> no seu provedor de DNS.
-          </p>
-        </CardContent>
-      </Card>
 
       {checkouts.length === 0 ? (
         <Card className="border-[#2A2A2A]">
@@ -173,7 +177,7 @@ export default function PayCheckouts() {
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/gateway-checkout/checkouts/edit/${ck.id}`)}><Edit className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; navigator.clipboard.writeText(`https://${domain}/pay/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => deleteCheckout(ck.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCheckout(ck.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -184,6 +188,85 @@ export default function PayCheckouts() {
           </CardContent>
         </Card>
       )}
+
+      {/* Domain Dialog */}
+      <Dialog open={domainOpen} onOpenChange={setDomainOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" /> Domínio Personalizado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Configure um domínio próprio para todos os seus checkouts.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Seu domínio</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="pay.seusite.com"
+                  value={customDomain}
+                  onChange={e => setCustomDomain(e.target.value)}
+                />
+                <Button size="sm" onClick={saveDomain}>
+                  <Save className="w-4 h-4 mr-1" /> Salvar
+                </Button>
+              </div>
+            </div>
+
+            {/* Status */}
+            {savedDomain && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-2">
+                  {domainStatus === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  {domainStatus === "active" && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                  {domainStatus === "pending" && <AlertCircle className="w-4 h-4 text-amber-500" />}
+                  <div>
+                    <p className="text-sm font-medium">{savedDomain}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {domainStatus === "checking" && "Verificando DNS..."}
+                      {domainStatus === "active" && "DNS apontando corretamente"}
+                      {domainStatus === "pending" && "DNS ainda não propagado"}
+                      {domainStatus === "idle" && "Salve para verificar"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {domainStatus === "active" ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30">Ativo</Badge>
+                  ) : domainStatus === "pending" ? (
+                    <Badge variant="outline" className="text-amber-500 border-amber-500/30">Pendente</Badge>
+                  ) : null}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => checkDomainStatus(savedDomain)}>
+                    <RefreshCw className={`w-3.5 h-3.5 ${domainStatus === "checking" ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* DNS Instructions */}
+            <div className="space-y-2 p-3 rounded-lg bg-muted/30 border">
+              <p className="text-xs font-semibold text-foreground">Configuração DNS</p>
+              <p className="text-xs text-muted-foreground">
+                No painel do seu provedor de domínio, adicione:
+              </p>
+              <div className="grid grid-cols-3 gap-1 text-[11px]">
+                <span className="font-semibold text-foreground">Tipo</span>
+                <span className="font-semibold text-foreground">Nome</span>
+                <span className="font-semibold text-foreground">Aponta para</span>
+                <span className="text-muted-foreground">A</span>
+                <span className="text-muted-foreground">@</span>
+                <code className="bg-muted px-1 rounded text-foreground">185.158.133.1</code>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                A propagação pode levar até 72 horas. Use o botão de atualizar para verificar o status.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
