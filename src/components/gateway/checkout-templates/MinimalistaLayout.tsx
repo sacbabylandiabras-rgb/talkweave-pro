@@ -179,6 +179,9 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
 
           {/* RIGHT: Summary sidebar */}
           <div className="w-full md:w-60 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: s.cardTitle }}>Resumo (1)</h4>
               <div className="text-xs" style={{ color: s.cardDesc }}>Tem um cupom?</div>
@@ -217,6 +220,9 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
             </div>
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />
