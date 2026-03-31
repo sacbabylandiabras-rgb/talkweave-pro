@@ -13,9 +13,16 @@ import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from 
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
 interface Props {
   config: Record<string, any>;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
 function getInitialSections(initialState: string) {
@@ -26,7 +33,7 @@ function getInitialSections(initialState: string) {
   };
 }
 
-export default function TikTokLayout({ config }: Props) {
+export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [selectedPayment, setSelectedPayment] = useState<"pix" | "credit" | "boleto">("credit");
@@ -275,9 +282,18 @@ export default function TikTokLayout({ config }: Props) {
         {/* Desktop layout */}
         <div className="hidden gap-4 md:grid md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-4">
+            {/* DROP ZONE: Top */}
+            <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
             {step === 1 && <Step1Desktop />}
             {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
             {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+            {/* DROP ZONE: Below Form */}
+            <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
+          </div>
+          <div className="space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+            <SummaryContent />
           </div>
           <div className="space-y-4">
             <SummaryContent />
@@ -287,9 +303,13 @@ export default function TikTokLayout({ config }: Props) {
 
         {/* Mobile layout */}
         <div className="mx-auto max-w-[360px] space-y-3 md:hidden">
+          {/* DROP ZONE: Top (mobile) */}
+          <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
           {step === 1 && <Step1Mobile />}
           {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
           {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+          {/* DROP ZONE: Footer (mobile) */}
+          <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
           <PaymentFooter />
         </div>
       </div>

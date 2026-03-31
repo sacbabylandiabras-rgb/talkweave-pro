@@ -5,12 +5,19 @@ import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
 interface Props {
   config: Record<string, any>;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
-export default function MinimalistaLayout({ config }: Props) {
+export default function MinimalistaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");
@@ -67,6 +74,9 @@ export default function MinimalistaLayout({ config }: Props) {
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
+        {/* DROP ZONE: Top */}
+        <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
+
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
@@ -95,40 +105,48 @@ export default function MinimalistaLayout({ config }: Props) {
 
             {/* Step 1: Identificação */}
             {step === 1 && (
-              <div className="border p-5 space-y-4" style={cardStyle(s)}>
-                <div>
-                  <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: s.cardTitle }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={stepStyle(s)}>1</div>
-                    Identificação
-                  </h3>
-                  <p className="text-xs mt-1 ml-7" style={{ color: s.cardDesc }}>
-                    Preencha as informações essenciais para concluir sua compra com segurança.
-                  </p>
-                </div>
-                <div className="space-y-3">
+              <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
+                <div className="border p-5 space-y-4" style={cardStyle(s)}>
                   <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} />
+                    <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: s.cardTitle }}>
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={stepStyle(s)}>1</div>
+                      Identificação
+                    </h3>
+                    <p className="text-xs mt-1 ml-7" style={{ color: s.cardDesc }}>
+                      Preencha as informações essenciais para concluir sua compra com segurança.
+                    </p>
                   </div>
-                  <div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label>
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} />
+                    </div>
+                    <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label>
                       <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
                     </div>
-                  {config.showPhone && (
+                    {config.showPhone && (
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="+55 (00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+                      </div>
+                    )}
                     <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="+55 (00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                     </div>
-                  )}
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                   </div>
+                  <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
+                    PRÓXIMO
+                  </button>
                 </div>
-                <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
-                  PRÓXIMO
-                </button>
-              </div>
+
+                {/* DROP ZONE: Below Form */}
+                <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
+              </>
             )}
 
             {/* Step 2: Conferência */}
@@ -161,6 +179,9 @@ export default function MinimalistaLayout({ config }: Props) {
 
           {/* RIGHT: Summary sidebar */}
           <div className="w-full md:w-60 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: s.cardTitle }}>Resumo (1)</h4>
               <div className="text-xs" style={{ color: s.cardDesc }}>Tem um cupom?</div>
@@ -199,6 +220,9 @@ export default function MinimalistaLayout({ config }: Props) {
             </div>
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />

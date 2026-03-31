@@ -5,12 +5,19 @@ import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
 interface Props {
   config: Record<string, any>;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
-export default function StreamlineLayout({ config }: Props) {
+export default function StreamlineLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");
@@ -90,11 +97,18 @@ export default function StreamlineLayout({ config }: Props) {
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px" }}>
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="flex-1 space-y-4">
+            {/* DROP ZONE: Top */}
+            <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
+
             <StepTabs />
 
             {/* Step 1: Identificação */}
             {step === 1 && (
-              <div className="border overflow-hidden" style={cardStyle(s)}>
+              <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
+                <div className="border overflow-hidden" style={cardStyle(s)}>
                 <div className="px-5 py-3" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 flex items-center justify-center text-xs font-bold" style={stepStyle(s)}>1</div>
@@ -117,7 +131,11 @@ export default function StreamlineLayout({ config }: Props) {
                   <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
                   <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
                 </div>
-              </div>
+                </div>
+
+                {/* DROP ZONE: Below Form */}
+                <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
+              </>
             )}
 
             {/* Step 2: Conferência */}
@@ -145,6 +163,9 @@ export default function StreamlineLayout({ config }: Props) {
 
           {/* RIGHT SIDEBAR */}
           <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo (1)</h3>
               <div className="flex gap-2">
@@ -179,6 +200,9 @@ export default function StreamlineLayout({ config }: Props) {
             <Testimonial name="Luísa Romeiro" text="Muito satisfeita com a compra. Voltarei com certeza!" />
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />
