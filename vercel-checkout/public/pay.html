@@ -394,7 +394,7 @@
     h += '<div style="margin-top:12px" id="banks-list">';
     var shown = showAllBanks ? BANKS : BANKS.slice(0,5);
     shown.forEach(function(b) {
-      h += '<div class="bank-item" data-bank="'+b.n+'"><div class="bank-logo"><div style="background:'+b.c+'"></div></div>';
+      h += '<div class="bank-item" data-bank="'+b.n+'"><div class="bank-logo"><img src="'+b.logo+'" alt="'+b.n+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px"></div>';
       h += '<div class="bank-info"><p>'+b.n+'</p><p>'+b.d+'</p></div>';
       h += '<span style="color:var(--primary)">'+I.phone+'</span></div>';
     });
