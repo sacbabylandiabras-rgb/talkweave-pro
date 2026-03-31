@@ -283,12 +283,17 @@ export default function PayCheckouts() {
             <div className="space-y-2 p-3 rounded-lg bg-muted/30 border">
               <p className="text-xs font-semibold text-foreground">Configuração DNS</p>
               <p className="text-xs text-muted-foreground">
-                No painel do seu provedor de domínio, adicione:
+                No painel do seu provedor de domínio, adicione os 2 registros abaixo:
               </p>
               <div className="grid grid-cols-3 gap-1 text-[11px]">
                 <span className="font-semibold text-foreground">Tipo</span>
                 <span className="font-semibold text-foreground">Nome</span>
                 <span className="font-semibold text-foreground">Aponta para</span>
+
+                <span className="text-muted-foreground">CNAME</span>
+                <span className="text-muted-foreground">{domainPrefix}</span>
+                <code className="bg-muted px-1 rounded text-foreground text-[10px]">cname.zaplynxpro.online</code>
+
                 <span className="text-muted-foreground">A</span>
                 <span className="text-muted-foreground">@</span>
                 <code className="bg-muted px-1 rounded text-foreground">185.158.133.1</code>
