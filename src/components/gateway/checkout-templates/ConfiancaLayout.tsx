@@ -158,7 +158,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
           </div>
 
           {/* RIGHT: Sidebar */}
-          <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+          <div style={{ width: previewMode === "mobile" ? "100%" : "18rem", flexShrink: 0 }} className="space-y-4">
             {/* DROP ZONE: Sidebar */}
             <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
 
