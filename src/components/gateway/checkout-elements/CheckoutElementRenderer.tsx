@@ -1,0 +1,303 @@
+import { useState, useEffect } from "react";
+import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
+import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle } from "lucide-react";
+
+interface Props {
+  element: CheckoutElement;
+  primaryColor: string;
+  textColor: string;
+  cardBg: string;
+  cardBorder: string;
+  isBuilder?: boolean;
+  onClick?: () => void;
+  isSelected?: boolean;
+}
+
+export default function CheckoutElementRenderer({ element, primaryColor, textColor, cardBg, cardBorder, isBuilder, onClick, isSelected }: Props) {
+  if (!element.visible) return null;
+
+  const c = element.content;
+  const wrapperStyle: React.CSSProperties = {
+    cursor: isBuilder ? "pointer" : undefined,
+    outline: isSelected ? `2px solid #FF4D2E` : isBuilder ? "2px dashed transparent" : "none",
+    borderRadius: "12px",
+    transition: "outline 0.15s",
+  };
+  const hoverClass = isBuilder ? "hover:outline-[#FF4D2E]/30 hover:outline-dashed" : "";
+
+  switch (element.type) {
+    case "text":
+      return (
+        <div style={{ ...wrapperStyle, padding: "8px 0" }} className={hoverClass} onClick={onClick}>
+          <p style={{ fontSize: `${c.fontSize || 14}px`, fontWeight: c.fontWeight || "normal", textAlign: c.textAlign || "left", color: c.color || textColor }}>
+            {c.text || "Seu texto aqui..."}
+          </p>
+        </div>
+      );
+
+    case "image":
+      return (
+        <div style={{ ...wrapperStyle }} className={hoverClass} onClick={onClick}>
+          {c.url ? (
+            <img src={c.url} alt={c.alt || ""} style={{ width: c.width || "100%", borderRadius: `${c.borderRadius || 8}px` }} />
+          ) : (
+            <div className="flex items-center justify-center border-2 border-dashed rounded-xl" style={{ height: "120px", borderColor: cardBorder, color: textColor + "80" }}>
+              <span className="text-xs">Clique para adicionar imagem</span>
+            </div>
+          )}
+        </div>
+      );
+
+    case "video":
+      return (
+        <div style={{ ...wrapperStyle }} className={hoverClass} onClick={onClick}>
+          {c.url ? (
+            <div className="relative w-full" style={{ paddingBottom: "56.25%", borderRadius: "12px", overflow: "hidden" }}>
+              <iframe
+                src={c.url.includes("youtube") ? c.url.replace("watch?v=", "embed/") : c.url}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center border-2 border-dashed rounded-xl" style={{ height: "160px", borderColor: cardBorder, color: textColor + "80" }}>
+              <span className="text-xs">Cole o link do vídeo</span>
+            </div>
+          )}
+        </div>
+      );
+
+    case "gallery":
+      return (
+        <div style={{ ...wrapperStyle }} className={hoverClass} onClick={onClick}>
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${c.columns || 2}, 1fr)` }}>
+            {(c.images && c.images.length > 0 ? c.images : [null, null, null, null]).map((img: string | null, i: number) => (
+              <div key={i} className="rounded-lg overflow-hidden border" style={{ borderColor: cardBorder, aspectRatio: "1/1" }}>
+                {img ? <img src={img} alt="" className="w-full h-full object-cover" /> : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ background: cardBg, color: textColor + "40" }}>
+                    <span className="text-[10px]">Img {i + 1}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "faq":
+      return <FaqElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
+
+    case "benefits":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{c.title || "Por que escolher?"}</h4>
+          <div className="space-y-2">
+            {(c.items || []).map((item: any, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-base">{item.icon || "✅"}</span>
+                <span className="text-sm" style={{ color: textColor }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "seal":
+      return (
+        <div style={{ ...wrapperStyle }} className={hoverClass} onClick={onClick}>
+          <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}30` }}>
+            <Shield className="w-5 h-5" style={{ color: primaryColor }} />
+            <span className="text-sm font-semibold" style={{ color: primaryColor }}>{c.text || "Compra 100% Segura"}</span>
+          </div>
+        </div>
+      );
+
+    case "testimonial":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <div className="space-y-3">
+            {(c.items || []).map((t: any, i: number) => (
+              <div key={i} className="flex gap-3 items-start">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: `${primaryColor}20`, color: primaryColor }}>
+                  {t.avatar ? <img src={t.avatar} className="w-full h-full rounded-full object-cover" /> : t.name?.[0] || "?"}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1 mb-1">
+                    {Array.from({ length: t.rating || 5 }).map((_, j) => (
+                      <Star key={j} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-xs" style={{ color: textColor + "CC" }}>"{t.text}"</p>
+                  <p className="text-[10px] font-semibold mt-1" style={{ color: textColor }}>— {t.name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "reviews":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold" style={{ color: textColor }}>{c.average || 4.8}</p>
+              <div className="flex gap-0.5 mt-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <p className="text-[10px] mt-1" style={{ color: textColor + "80" }}>{c.total || 0} avaliações</p>
+            </div>
+            <div className="flex-1 space-y-1">
+              {(c.distribution || [85, 10, 3, 1, 1]).map((pct: number, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-[10px] w-3" style={{ color: textColor + "80" }}>{5 - i}</span>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: cardBorder }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "#FACC15" }} />
+                  </div>
+                  <span className="text-[10px] w-7 text-right" style={{ color: textColor + "80" }}>{pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+    case "guarantee":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `2px dashed ${primaryColor}40`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
+              <Clock className="w-6 h-6" style={{ color: primaryColor }} />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: textColor }}>Garantia de {c.days || 7} dias</p>
+              <p className="text-xs mt-0.5" style={{ color: textColor + "99" }}>
+                {(c.text || "Garantia incondicional de {days} dias.").replace("{days}", String(c.days || 7))}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "countdown":
+      return <CountdownElement content={c} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
+
+    case "list":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{c.title || "O que você vai receber:"}</h4>
+          <div className="space-y-2.5">
+            {(c.items || []).map((item: any, i: number) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <span className="text-base">{item.icon || "✅"}</span>
+                <span className="text-sm" style={{ color: textColor }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "progress":
+      return (
+        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium" style={{ color: textColor }}>{(c.text || "").replace("{count}", String(c.percentage || 73))}</span>
+            <span className="text-xs font-bold" style={{ color: c.color || primaryColor }}>{c.percentage || 73}%</span>
+          </div>
+          <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: cardBorder }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${c.percentage || 73}%`, background: c.color || primaryColor }} />
+          </div>
+        </div>
+      );
+
+    case "sales":
+      return <SalesElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
+
+    default:
+      return null;
+  }
+}
+
+// Sub-components with state
+
+function FaqElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  return (
+    <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+      <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{content.title || "FAQ"}</h4>
+      <div className="space-y-2">
+        {(content.items || []).map((item: any, i: number) => (
+          <div key={i} className="rounded-lg border overflow-hidden" style={{ borderColor: cardBorder }}>
+            <button
+              className="w-full flex items-center justify-between p-3 text-left"
+              style={{ color: textColor }}
+              onClick={(e) => { e.stopPropagation(); setOpenIdx(openIdx === i ? null : i); }}
+            >
+              <span className="text-xs font-medium">{item.question}</span>
+              {openIdx === i ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
+            </button>
+            {openIdx === i && (
+              <div className="px-3 pb-3">
+                <p className="text-xs" style={{ color: textColor + "99" }}>{item.answer}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CountdownElement({ content, wrapperStyle, hoverClass, onClick }: any) {
+  const [time, setTime] = useState({ m: content.minutes || 15, s: 0 });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(prev => {
+        if (prev.m === 0 && prev.s === 0) return prev;
+        if (prev.s === 0) return { m: prev.m - 1, s: 59 };
+        return { ...prev, s: prev.s - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      style={{ ...wrapperStyle, background: content.bgColor || "#EF4444", borderRadius: "12px", padding: "12px 16px" }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-center gap-2" style={{ color: content.textColor || "#FFFFFF" }}>
+        <Clock className="w-4 h-4" />
+        <span className="text-sm font-medium">{content.text || "Oferta expira em:"}</span>
+        <span className="text-sm font-bold font-mono">
+          {String(time.m).padStart(2, "0")}:{String(time.s).padStart(2, "0")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SalesElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const [count, setCount] = useState(content.count || 1847);
+  useEffect(() => {
+    if (!content.showAnimation) return;
+    const interval = setInterval(() => {
+      setCount((prev: number) => prev + Math.floor(Math.random() * 3) + 1);
+    }, (content.interval || 30) * 1000);
+    return () => clearInterval(interval);
+  }, [content.showAnimation, content.interval]);
+
+  return (
+    <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "12px 16px" }} className={hoverClass} onClick={onClick}>
+      <div className="flex items-center gap-2">
+        <TrendingUp className="w-4 h-4" style={{ color: primaryColor }} />
+        <span className="text-sm font-medium" style={{ color: textColor }}>
+          {(content.text || "{count} pessoas já compraram").replace("{count}", String(count))}
+        </span>
+      </div>
+    </div>
+  );
+}
