@@ -89,7 +89,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
                 <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
                   {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                 </div>
-                <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{st.label}</span>
+                <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{st.label}</span>
               </button>
               {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
             </div>
