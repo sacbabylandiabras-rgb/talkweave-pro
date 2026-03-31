@@ -301,7 +301,7 @@ export default function PayCheckouts() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/gateway-checkout/checkouts/edit/${ck.id}`)}><Edit className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const base = savedDomain ? `https://${savedDomain}` : `${window.location.origin}/pay`; navigator.clipboard.writeText(`${base}/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const defaultLink = `${window.location.origin}/pay/${ck.slug || ck.id}`; if (savedDomain) { const customLink = `https://${savedDomain}/${ck.slug || ck.id}`; navigator.clipboard.writeText(`${customLink}\n${defaultLink}`); toast.success("Links copiados! (personalizado + padrão)"); } else { navigator.clipboard.writeText(defaultLink); toast.success("Link copiado!"); } }}><Copy className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCheckout(ck.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </TableCell>
