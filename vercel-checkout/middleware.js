@@ -1,5 +1,11 @@
 export default function middleware(request) {
   const url = new URL(request.url);
+
+  // If tenant is already set, do nothing (avoid redirect loop)
+  if (url.searchParams.has('tenant')) {
+    return;
+  }
+
   const hostname = request.headers.get('host') || '';
   const parts = hostname.split('.');
 
@@ -10,7 +16,7 @@ export default function middleware(request) {
 
   // Extract subdomain
   const subdomain = parts[0];
-  const skip = ['www', 'api', 'app', 'admin'];
+  const skip = ['www', 'api', 'app', 'admin', 'pay'];
   if (skip.includes(subdomain)) return;
 
   // Inject tenant as query param
