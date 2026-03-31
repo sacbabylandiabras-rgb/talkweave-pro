@@ -209,7 +209,7 @@ export default function PayCheckouts() {
               <label className="text-xs font-medium text-foreground">Seu domínio</label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="pay.seusite.com"
+                  placeholder="seusite.com"
                   value={customDomain}
                   onChange={e => setCustomDomain(e.target.value)}
                 />
@@ -217,6 +217,33 @@ export default function PayCheckouts() {
                   <Save className="w-4 h-4 mr-1" /> Salvar
                 </Button>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Prefixo da URL</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={domainPrefix === "pay" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("pay")}
+                >
+                  /pay/
+                </Button>
+                <Button
+                  variant={domainPrefix === "checkout" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("checkout")}
+                >
+                  /checkout/
+                </Button>
+              </div>
+              {customDomain && (
+                <p className="text-[11px] text-muted-foreground">
+                  Exemplo: <code className="bg-muted px-1 rounded">https://{customDomain}/{domainPrefix}/seu-produto</code>
+                </p>
+              )}
             </div>
 
             {/* Status */}
