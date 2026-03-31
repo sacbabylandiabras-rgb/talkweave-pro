@@ -74,10 +74,10 @@ export default function PayCheckouts() {
     }
 
     try {
-      const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("custom_domain").eq("id", user.id).single();
       if (data) {
         const cd = (data as any).custom_domain;
-        const dp = (data as any).domain_prefix || "pay";
+        const dp = cd ? cd.split(".")[0] : "pay";
         if (cd) {
           setSavedDomain(cd);
           setSavedPrefix(dp);
@@ -143,10 +143,9 @@ export default function PayCheckouts() {
 
     if (cleaned) {
       const fullDomain = `${domainPrefix}.${cleaned}`;
-      // Save to DB
+      // Save to DB (only custom_domain column exists)
       await supabase.from("profiles").update({
         custom_domain: fullDomain,
-        domain_prefix: domainPrefix,
       } as any).eq("id", user.id);
       // Also save to localStorage as fallback
       localStorage.setItem("checkout_custom_domain", fullDomain);
@@ -169,7 +168,6 @@ export default function PayCheckouts() {
 
     await supabase.from("profiles").update({
       custom_domain: null,
-      domain_prefix: "pay",
     } as any).eq("id", user.id);
     // Clear localStorage fallback
     localStorage.removeItem("checkout_custom_domain");
