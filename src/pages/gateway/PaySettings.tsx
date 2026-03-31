@@ -65,8 +65,15 @@ export default function PaySettings() {
   const fetchDomainStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: prof } = await supabase.from("profiles").select("custom_domain").eq("id", user.id).single();
-    const domain = (prof as any)?.custom_domain;
+    // Try to get domain from profile, fallback to localStorage
+    let domain = "";
+    try {
+      const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      domain = (prof as any)?.custom_domain || "";
+    } catch {}
+    if (!domain) {
+      domain = localStorage.getItem("checkout_custom_domain") || "";
+    }
     if (!domain) return;
     setCustomDomain(domain);
     setDomainStatus("pending");
