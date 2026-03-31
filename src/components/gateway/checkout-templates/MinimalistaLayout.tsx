@@ -97,7 +97,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                     <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
                       {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                     </div>
-                    <span className="hidden sm:inline">{st.label}</span>
+                    <span style={{ display: previewMode === "mobile" ? "none" : undefined }}>{st.label}</span>
                   </button>
                   {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
                 </div>
