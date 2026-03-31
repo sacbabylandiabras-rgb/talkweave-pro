@@ -177,7 +177,7 @@ export default function PaySettings() {
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.ownership_verification || null);
-      toast.success("Domínio registrado no Cloudflare! SSL sendo provisionado automaticamente.");
+      toast.success("Domínio registrado no Vercel! SSL sendo provisionado automaticamente.");
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
@@ -315,7 +315,7 @@ export default function PaySettings() {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Cloudflare.
+                  Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Vercel.
                 </p>
               </div>
 
@@ -349,15 +349,15 @@ export default function PaySettings() {
 
               <Card className="border-[#2A2A2A] bg-muted/20">
                 <CardContent className="pt-4 pb-4 space-y-3">
-                  <p className="text-xs font-medium text-foreground">📋 Como funciona:</p>
+                  <p className="text-xs font-medium text-foreground">📋 Como configurar (Vercel):</p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">1</span>
                       <p className="text-[11px] text-muted-foreground">
                         No DNS do seu domínio, crie um registro <strong>CNAME</strong> apontando para:
                         <span className="flex items-center gap-1 mt-1">
-                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">fallback.direitopenalnapratica.online</code>
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("fallback.direitopenalnapratica.online")}>
+                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">cname.vercel-dns.com</code>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("cname.vercel-dns.com")}>
                             <Copy className="w-3 h-3" />
                           </Button>
                         </span>
@@ -365,11 +365,11 @@ export default function PaySettings() {
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">2</span>
-                      <p className="text-[11px] text-muted-foreground">Digite o domínio acima e clique em <strong>Ativar</strong> — o SSL é gerado automaticamente.</p>
+                      <p className="text-[11px] text-muted-foreground">Digite o domínio acima e clique em <strong>Ativar</strong> — o domínio será registrado automaticamente no Vercel.</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">3</span>
-                      <p className="text-[11px] text-muted-foreground">Aguarde alguns minutos para o SSL ficar ativo. Use o botão de refresh para verificar.</p>
+                      <p className="text-[11px] text-muted-foreground">O SSL é provisionado automaticamente pelo Vercel. Aguarde alguns minutos e use o botão de refresh para verificar.</p>
                     </div>
                   </div>
                 </CardContent>

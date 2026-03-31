@@ -7,22 +7,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const CF_API = "https://api.cloudflare.com/client/v4";
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
-    const CLOUDFLARE_ZONE_ID = Deno.env.get("CLOUDFLARE_ZONE_ID");
+    const VERCEL_API_TOKEN = Deno.env.get("VERCEL_API_TOKEN");
+    const VERCEL_PROJECT_ID = Deno.env.get("VERCEL_PROJECT_ID");
+    const VERCEL_TEAM_ID = Deno.env.get("VERCEL_TEAM_ID");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ZONE_ID) {
+    if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
       return new Response(
-        JSON.stringify({ error: "Cloudflare credentials not configured" }),
+        JSON.stringify({ error: "Vercel credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -48,13 +47,13 @@ serve(async (req) => {
     }
 
     const { action, hostname } = await req.json();
-
-    const cfHeaders = {
-      Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+    const teamQuery = VERCEL_TEAM_ID ? `&teamId=${VERCEL_TEAM_ID}` : "";
+    const vercelHeaders = {
+      Authorization: `Bearer ${VERCEL_API_TOKEN}`,
       "Content-Type": "application/json",
     };
 
-    // CREATE custom hostname
+    // CREATE — add domain to Vercel project
     if (action === "create") {
       if (!hostname || typeof hostname !== "string") {
         return new Response(JSON.stringify({ error: "hostname is required" }), {
@@ -65,8 +64,7 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-      // Validate CNAME is pointing correctly before registering
-      const FALLBACK_ORIGIN = "fallback.direitopenalnapratica.online";
+      // Validate CNAME points to cname.vercel-dns.com
       try {
         const dnsRes = await fetch(
           `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleanHostname)}&type=CNAME`,
@@ -75,13 +73,13 @@ serve(async (req) => {
         const dnsData = await dnsRes.json();
         const cnameRecords = (dnsData.Answer || []).filter((r: any) => r.type === 5);
         const hasCname = cnameRecords.some(
-          (r: any) => r.data?.replace(/\.$/, "").toLowerCase() === FALLBACK_ORIGIN.toLowerCase()
+          (r: any) => r.data?.replace(/\.$/, "").toLowerCase() === "cname.vercel-dns.com"
         );
         if (!hasCname) {
           return new Response(
             JSON.stringify({
-              error: `CNAME não encontrado. Configure um registro CNAME apontando "${cleanHostname}" para "${FALLBACK_ORIGIN}" no seu provedor DNS e tente novamente.`,
-              cname_target: FALLBACK_ORIGIN,
+              error: `CNAME não encontrado. Configure um registro CNAME apontando "${cleanHostname}" para "cname.vercel-dns.com" no seu provedor DNS e tente novamente.`,
+              cname_target: "cname.vercel-dns.com",
               dns_found: cnameRecords.map((r: any) => r.data?.replace(/\.$/, "")),
             }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -92,34 +90,28 @@ serve(async (req) => {
         console.warn("DNS validation failed, proceeding anyway:", dnsErr);
       }
 
-      // Create custom hostname in Cloudflare
-      const cfRes = await fetch(`${CF_API}/zones/${CLOUDFLARE_ZONE_ID}/custom_hostnames`, {
-        method: "POST",
-        headers: cfHeaders,
-        body: JSON.stringify({
-          hostname: cleanHostname,
-          ssl: {
-            method: "http",
-            type: "dv",
-            settings: {
-              min_tls_version: "1.2",
-            },
-          },
-        }),
-      });
+      // Add domain to Vercel project
+      const res = await fetch(
+        `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains?${teamQuery.replace(/^&/, "")}`,
+        {
+          method: "POST",
+          headers: vercelHeaders,
+          body: JSON.stringify({ name: cleanHostname }),
+        }
+      );
 
-      const cfData = await cfRes.json();
+      const data = await res.json();
 
-      if (!cfData.success) {
-        const errMsg = cfData.errors?.[0]?.message || "Failed to create custom hostname";
-        console.error("Cloudflare error:", JSON.stringify(cfData));
+      if (!res.ok) {
+        const errMsg = data.error?.message || "Failed to add domain to Vercel";
+        console.error("Vercel error:", JSON.stringify(data));
         return new Response(JSON.stringify({ error: errMsg }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Try to save to profile (column may not exist yet)
+      // Save to profile
       try {
         await supabase
           .from("profiles")
@@ -132,18 +124,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          hostname: cfData.result.hostname,
-          status: cfData.result.status,
-          ssl_status: cfData.result.ssl?.status,
-          cf_hostname_id: cfData.result.id,
-          ownership_verification: cfData.result.ownership_verification,
-          ssl_validation: cfData.result.ssl?.validation_records,
+          hostname: data.name,
+          status: data.verified ? "active" : "pending",
+          ssl_status: data.verified ? "active" : "pending",
+          verification: data.verification || null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // CHECK status of custom hostname
+    // STATUS — check domain verification
     if (action === "status") {
       if (!hostname) {
         return new Response(JSON.stringify({ error: "hostname required" }), {
@@ -154,34 +144,55 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-      const cfRes = await fetch(
-        `${CF_API}/zones/${CLOUDFLARE_ZONE_ID}/custom_hostnames?hostname=${encodeURIComponent(cleanHostname)}`,
-        { headers: cfHeaders }
+      // Get domain info
+      const res = await fetch(
+        `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}?${teamQuery.replace(/^&/, "")}`,
+        { headers: vercelHeaders }
       );
-      const cfData = await cfRes.json();
 
-      if (!cfData.success || !cfData.result?.length) {
+      if (res.status === 404) {
         return new Response(
           JSON.stringify({ status: "not_found" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const ch = cfData.result[0];
+      const data = await res.json();
+
+      // Try to verify if not yet verified
+      if (!data.verified) {
+        try {
+          const verifyRes = await fetch(
+            `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}/verify?${teamQuery.replace(/^&/, "")}`,
+            { method: "POST", headers: vercelHeaders }
+          );
+          const verifyData = await verifyRes.json();
+          return new Response(
+            JSON.stringify({
+              status: verifyData.verified ? "active" : "pending",
+              ssl_status: verifyData.verified ? "active" : "pending",
+              hostname: verifyData.name,
+              verification: verifyData.verification || null,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } catch (verifyErr) {
+          console.warn("Verify attempt failed:", verifyErr);
+        }
+      }
+
       return new Response(
         JSON.stringify({
-          status: ch.status,
-          ssl_status: ch.ssl?.status,
-          hostname: ch.hostname,
-          cf_hostname_id: ch.id,
-          ownership_verification: ch.ownership_verification,
-          ssl_validation: ch.ssl?.validation_records,
+          status: data.verified ? "active" : "pending",
+          ssl_status: data.verified ? "active" : "pending",
+          hostname: data.name,
+          verification: data.verification || null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // DELETE custom hostname
+    // DELETE — remove domain from Vercel project
     if (action === "delete") {
       if (!hostname) {
         return new Response(JSON.stringify({ error: "hostname required" }), {
@@ -192,22 +203,12 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-      // Find the hostname ID first
-      const listRes = await fetch(
-        `${CF_API}/zones/${CLOUDFLARE_ZONE_ID}/custom_hostnames?hostname=${encodeURIComponent(cleanHostname)}`,
-        { headers: cfHeaders }
+      await fetch(
+        `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}?${teamQuery.replace(/^&/, "")}`,
+        { method: "DELETE", headers: vercelHeaders }
       );
-      const listData = await listRes.json();
 
-      if (listData.success && listData.result?.length) {
-        const chId = listData.result[0].id;
-        await fetch(`${CF_API}/zones/${CLOUDFLARE_ZONE_ID}/custom_hostnames/${chId}`, {
-          method: "DELETE",
-          headers: cfHeaders,
-        });
-      }
-
-      // Try to remove from profile
+      // Remove from profile
       try {
         await supabase
           .from("profiles")
