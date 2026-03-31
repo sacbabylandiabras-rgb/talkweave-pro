@@ -135,6 +135,9 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                 <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
                   <Lock className="w-3.5 h-3.5" /> PRÓXIMO
                 </button>
+
+                {/* DROP ZONE: Below Form */}
+                <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
               </>
             )}
 
