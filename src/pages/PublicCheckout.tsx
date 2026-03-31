@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
+import { TenantProvider } from "@/contexts/TenantContext";
+import { useTenant } from "@/hooks/useTenant";
 
 interface CheckoutConfig {
   productName: string;
@@ -98,9 +100,11 @@ const resolveTemplateId = (savedConfig: Record<string, any>) => {
 
 export default function PublicCheckout() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const [config, setConfig] = useState<CheckoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { tenant, loading: tenantLoading } = useTenant();
 
   useEffect(() => {
     if (!slug) return;
@@ -133,6 +137,11 @@ export default function PublicCheckout() {
         const resolvedTemplateId = resolveTemplateId(savedConfig);
 
         const productName = product?.name || checkout.name || "";
+        
+        // Apply tenant branding overrides if available
+        const tenantLogo = tenant?.logo_url || "";
+        const tenantColor = tenant?.primary_color || "";
+        
         const mergedConfig: CheckoutConfig = {
           ...defaultConfig,
           ...savedConfig,
@@ -141,7 +150,9 @@ export default function PublicCheckout() {
           offerName: savedConfig.offerName || productName,
           price: savedConfig.price || (product?.price ? product.price : 0),
           productImage: savedConfig.productImage || product?.image_url || "",
-          logoUrl: savedConfig.logoUrl || "",
+          // Tenant branding: use tenant logo/color as fallback if not set in checkout config
+          logoUrl: savedConfig.logoUrl || tenantLogo || "",
+          primaryColor: savedConfig.primaryColor || tenantColor || defaultConfig.primaryColor,
         };
         setConfig(mergedConfig);
       } catch (e) {
@@ -152,9 +163,9 @@ export default function PublicCheckout() {
     };
 
     fetchCheckout();
-  }, [slug]);
+  }, [slug, tenant]);
 
-  if (loading) {
+  if (loading || tenantLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#EFF1F5" }}>
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -166,7 +177,7 @@ export default function PublicCheckout() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#EFF1F5" }}>
         <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-gray-700">Checkout não encontrado</p>
+          <p className="text-lg font-semibold text-gray-700">Link de pagamento inválido ou expirado.</p>
           <p className="text-sm text-gray-500">Este link pode estar inativo ou não existe.</p>
         </div>
       </div>
@@ -174,8 +185,10 @@ export default function PublicCheckout() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: config.bgColor || "#EFF1F5" }}>
-      <CheckoutPreview config={config as any} />
-    </div>
+    <TenantProvider tenant={tenant}>
+      <div className="min-h-screen" style={{ background: config.bgColor || "#EFF1F5" }}>
+        <CheckoutPreview config={config as any} />
+      </div>
+    </TenantProvider>
   );
 }
