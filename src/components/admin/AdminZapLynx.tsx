@@ -4,13 +4,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2 } from "lucide-react";
+import { useAdminKycQueue } from "@/hooks/useGatewayKyc";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2, Wallet, Clock, CheckCircle, XCircle, Eye, FileSearch, ThumbsUp, ThumbsDown } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
+interface Withdrawal {
+  id: string;
+  user_id: string;
+  amount: number;
+  pix_key_type: string;
+  pix_key: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+const formatCurrency = (cents: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+
+const getWithdrawalStatusBadge = (status: string) => {
+  switch (status) {
+    case "approved":
+      return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />Aprovado</Badge>;
+    case "rejected":
+      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Rejeitado</Badge>;
+    case "processing":
+      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processando</Badge>;
+    default:
+      return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
+  }
+};
+
+const getKycStatusBadge = (status: string) => {
+  switch (status) {
+    case "approved": return <Badge className="bg-emerald-500/10 text-emerald-400 border-0 text-[10px]">Aprovado</Badge>;
+    case "rejected": return <Badge className="bg-red-500/10 text-red-400 border-0 text-[10px]">Reprovado</Badge>;
+    case "submitted": return <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[10px]">Pendente</Badge>;
+    case "pending": return <Badge className="bg-muted text-muted-foreground border-0 text-[10px]">Não enviado</Badge>;
+    default: return null;
+  }
+};
 
 const AdminZapLynx = () => {
   const navigate = useNavigate();
