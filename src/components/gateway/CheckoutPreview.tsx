@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2, Upload } from "lucide-react";
 import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-templates/PaymentIcons";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "./checkout-elements/types";
+import CheckoutDropZone from "./checkout-elements/CheckoutDropZone";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
@@ -74,9 +76,14 @@ interface CheckoutConfig {
 interface Props {
   config: CheckoutConfig;
   templateName?: string;
+  elements?: CheckoutElement[];
+  isBuilder?: boolean;
+  onSelectElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onDropElement?: (type: CheckoutElementType, position: ElementPosition) => void;
 }
 
-export default function CheckoutPreview({ config, templateName }: Props) {
+export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
@@ -250,6 +257,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
 
       <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
 
+        {/* DROP ZONE: Top */}
+        <CheckoutDropZone
+          position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+          cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+          onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+          onDrop={onDropElement} label="Solte aqui (Topo)"
+        />
+
         {templateName && (
           <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -353,6 +368,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
         {/* ───── STEP 1: Identification ───── */}
         {step === 1 && (
           <>
+            {/* DROP ZONE: Above Form */}
+            <CheckoutDropZone
+              position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+              cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+              onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+              onDrop={onDropElement} label="Solte aqui (Acima do formulário)"
+            />
+
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
                 <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
@@ -431,6 +454,13 @@ export default function CheckoutPreview({ config, templateName }: Props) {
               <Lock className="w-4 h-4" />
               Continuar
             </button>
+            {/* DROP ZONE: Below Form */}
+            <CheckoutDropZone
+              position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+              cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+              onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+              onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)"
+            />
           </>
         )}
 
@@ -738,6 +768,14 @@ export default function CheckoutPreview({ config, templateName }: Props) {
             <span>Garantia de {config.guaranteeDays} dias — Satisfação ou dinheiro de volta</span>
           </div>
         )}
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone
+          position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+          cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+          onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+          onDrop={onDropElement} label="Solte aqui (Rodapé)"
+        />
 
         <PaymentFooter />
       </div>

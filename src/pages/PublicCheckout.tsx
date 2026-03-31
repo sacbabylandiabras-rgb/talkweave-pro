@@ -187,7 +187,7 @@ export default function PublicCheckout() {
   return (
     <TenantProvider tenant={tenant}>
       <div className="min-h-screen" style={{ background: config.bgColor || "#EFF1F5" }}>
-        <CheckoutPreview config={config as any} />
+        <CheckoutPreview config={config as any} elements={(config as any).elements || []} />
       </div>
     </TenantProvider>
   );

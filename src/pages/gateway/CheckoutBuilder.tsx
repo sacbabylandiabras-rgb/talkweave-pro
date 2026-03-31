@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone, Globe, Copy, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Palette, CreditCard, FormInput, ShoppingBag, Gift, Code, Layout, Settings2, Upload, Monitor, Smartphone, Globe, Copy, CheckCircle2, AlertTriangle, Blocks } from "lucide-react";
+import CheckoutElementsSidebar from "@/components/gateway/checkout-elements/CheckoutElementsSidebar";
+import CheckoutElementEditor from "@/components/gateway/checkout-elements/CheckoutElementEditor";
+import { CheckoutElement, CheckoutElementType, ElementPosition, ELEMENT_DEFINITIONS, generateElementId } from "@/components/gateway/checkout-elements/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +103,9 @@ export default function CheckoutBuilder() {
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [previewPaneWidth, setPreviewPaneWidth] = useState(0);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
+  const [elements, setElements] = useState<CheckoutElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [draggingType, setDraggingType] = useState<CheckoutElementType | null>(null);
 
   const activeTemplateName = config.templateId
     ? TEMPLATE_NAMES[config.templateId] || config.templateName
@@ -136,6 +142,9 @@ export default function CheckoutBuilder() {
             if (ck.config.templateId) {
               setActiveTemplateId(ck.config.templateId);
             }
+            if (ck.config.elements && Array.isArray(ck.config.elements)) {
+              setElements(ck.config.elements);
+            }
           }
         }
       }
@@ -164,6 +173,60 @@ export default function CheckoutBuilder() {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
+  // Element management
+  const addElement = (type: CheckoutElementType, position: ElementPosition) => {
+    const def = ELEMENT_DEFINITIONS.find(d => d.type === type);
+    if (!def) return;
+    const newEl: CheckoutElement = {
+      id: generateElementId(),
+      type,
+      position,
+      order: elements.filter(e => e.position === position).length,
+      content: JSON.parse(JSON.stringify(def.defaultContent)),
+      visible: true,
+    };
+    setElements(prev => [...prev, newEl]);
+    setSelectedElementId(newEl.id);
+  };
+
+  const removeElement = (id: string) => {
+    setElements(prev => prev.filter(e => e.id !== id));
+    if (selectedElementId === id) setSelectedElementId(null);
+  };
+
+  const toggleElement = (id: string) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, visible: !e.visible } : e));
+  };
+
+  const moveElement = (id: string, direction: "up" | "down") => {
+    setElements(prev => {
+      const el = prev.find(e => e.id === id);
+      if (!el) return prev;
+      const posEls = prev.filter(e => e.position === el.position).sort((a, b) => a.order - b.order);
+      const idx = posEls.findIndex(e => e.id === id);
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= posEls.length) return prev;
+      const swapEl = posEls[swapIdx];
+      return prev.map(e => {
+        if (e.id === id) return { ...e, order: swapEl.order };
+        if (e.id === swapEl.id) return { ...e, order: el.order };
+        return e;
+      });
+    });
+  };
+
+  const updateElementContent = (id: string, content: Record<string, any>) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, content } : e));
+  };
+
+  const updateElementPosition = (id: string, position: ElementPosition) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, position, order: prev.filter(x => x.position === position).length } : e));
+  };
+
+  const handleDragStart = (type: CheckoutElementType) => {
+    setDraggingType(type);
+  };
+
   const selectProduct = (productId: string) => {
     setSelectedProductId(productId);
     const prod = products.find((p: any) => p.id === productId);
@@ -183,12 +246,14 @@ export default function CheckoutBuilder() {
     if (!user) return;
     setSaving(true);
 
+    const configWithElements = { ...config, elements } as any;
+
     if (isEditing) {
       const { error } = await supabase.from("gateway_checkouts" as any)
         .update({
           name: checkoutName,
           product_id: selectedProductId || null,
-          config: config as any,
+          config: configWithElements,
         } as any)
         .eq("id", editId);
       setSaving(false);
@@ -200,7 +265,7 @@ export default function CheckoutBuilder() {
         name: checkoutName,
         product_id: selectedProductId || null,
         slug: checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        config: config as any,
+        config: configWithElements,
       } as any);
       setSaving(false);
       if (error) { toast.error("Erro: " + error.message); return; }
@@ -891,6 +956,36 @@ export default function CheckoutBuilder() {
                 </Tabs>
               </AccordionContent>
             </AccordionItem>
+
+            {/* BLOCO I: Elementos Personalizados */}
+            <AccordionItem value="elementos" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><Blocks className="w-4 h-4 text-[#FF4D2E]" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-[#FF4D2E] text-white rounded-full px-1.5">{elements.length}</span>}</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Arraste ou clique para adicionar elementos ao checkout</p>
+
+                {/* Element editor for selected element */}
+                {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+                  <CheckoutElementEditor
+                    element={elements.find(e => e.id === selectedElementId)!}
+                    onUpdate={updateElementContent}
+                    onUpdatePosition={updateElementPosition}
+                  />
+                )}
+
+                <CheckoutElementsSidebar
+                  elements={elements}
+                  onAddElement={addElement}
+                  onRemoveElement={removeElement}
+                  onToggleElement={toggleElement}
+                  onSelectElement={setSelectedElementId}
+                  onMoveElement={moveElement}
+                  selectedElementId={selectedElementId}
+                  onDragStart={handleDragStart}
+                />
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </div>
 
@@ -937,7 +1032,12 @@ export default function CheckoutBuilder() {
                 <CheckoutPreview 
                   key={`${config.templateId}-${config.format}`}
                   config={config} 
-                  templateName={activeTemplateName} 
+                  templateName={activeTemplateName}
+                  elements={elements}
+                  isBuilder={true}
+                  onSelectElement={setSelectedElementId}
+                  selectedElementId={selectedElementId}
+                  onDropElement={(type, position) => addElement(type, position)}
                 />
               </div>
             </CardContent>
