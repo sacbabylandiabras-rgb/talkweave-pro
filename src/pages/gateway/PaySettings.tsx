@@ -141,24 +141,52 @@ export default function PaySettings() {
     toast.success("Copiado!");
   };
 
-  const handleSaveDomain = () => {
+  const handleSaveDomain = async () => {
     const domain = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
     if (!domain) {
-      localStorage.removeItem("checkout_custom_domain");
-      setDomainStatus("none");
-      setCustomDomain("");
-      toast.success("Domínio removido");
+      handleDeleteDomain();
       return;
     }
     setDomainSaving(true);
-    localStorage.setItem("checkout_custom_domain", domain);
-    setCustomDomain(domain);
-    setDomainStatus("pending");
-    setTimeout(() => {
-      setDomainSaving(false);
-      setDomainStatus("active");
-      toast.success("Domínio salvo! Configure o DNS conforme as instruções.");
-    }, 1000);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "create", hostname: domain },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCustomDomain(data.hostname || domain);
+      setDomainStatus("pending");
+      setDomainSslStatus(data.ssl_status || "");
+      setDomainVerification(data.ownership_verification || null);
+      toast.success("Domínio registrado no Cloudflare! SSL sendo provisionado automaticamente.");
+    } catch (err: any) {
+      console.error("Domain error:", err);
+      toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
+      setDomainStatus("error");
+    }
+    setDomainSaving(false);
+  };
+
+  const handleDeleteDomain = async () => {
+    setDomainDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "delete", hostname: customDomain },
+      });
+      if (error) throw error;
+      setCustomDomain("");
+      setDomainStatus("none");
+      setDomainVerification(null);
+      toast.success("Domínio removido");
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
+    }
+    setDomainDeleting(false);
+  };
+
+  const handleRefreshDomainStatus = async () => {
+    await fetchDomainStatus();
+    toast.success("Status atualizado!");
   };
 
   const publicKey = apiKeys?.public_key || "—";
