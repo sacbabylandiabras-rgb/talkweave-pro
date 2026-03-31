@@ -95,9 +95,15 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px", background: s.bgColor }}>
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="flex-1 space-y-4">
+            {/* DROP ZONE: Top */}
+            <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
+
             {/* Step 1 */}
             {step === 1 && (
               <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
                 <div className="border p-5 space-y-3" style={cardStyle(s)}>
                   <div>
                     <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Dados pessoais</h3>
