@@ -61,7 +61,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   ];
 
   const StepTabs = () => (
-    <div className="items-center border overflow-hidden" style={{ ...cardStyle(s), display: previewMode === "mobile" ? "none" : "flex" }}>
+    <div className={!previewMode ? "hidden md:flex items-center border overflow-hidden" : "items-center border overflow-hidden"} style={previewMode ? { ...cardStyle(s), display: previewMode === "mobile" ? "none" : "flex" } : cardStyle(s)}>
       {stepLabels.map((st) => (
         <button key={st.num} onClick={() => setStep(st.num as 1 | 2 | 3)} className="flex-1 flex items-center gap-2 px-5 py-3" style={{ borderRight: `1px solid ${s.cardBorder}`, background: step === st.num ? `${s.stepBg}10` : "transparent" }}>
           <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
