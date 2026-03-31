@@ -149,17 +149,6 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
               <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
 
-            {/* Shipping info */}
-            <div className="border p-4 space-y-2" style={cardStyle(s)}>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0"><Truck className="w-4 h-4 text-blue-500" /></div>
-                <div><p className="text-xs font-bold" style={{ color: s.cardTitle }}>Frete Grátis</p><p className="text-[11px]" style={{ color: s.cardDesc }}>Para todo o Brasil em compras acima de R$ 99</p></div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0"><Package className="w-4 h-4 text-green-500" /></div>
-                <div><p className="text-xs font-bold" style={{ color: s.cardTitle }}>Entrega Rápida</p><p className="text-[11px]" style={{ color: s.cardDesc }}>Enviaremos em até 24 horas após a confirmação</p></div>
-              </div>
-            </div>
           </div>
 
           {/* RIGHT SIDEBAR */}

@@ -211,14 +211,6 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
               </div>
             </div>
 
-            <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center">
-              <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>Atenção</p>
-              <p className="text-xs mt-0.5" style={{ color: s.cardDesc }}>Não perca essa oportunidade!</p>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <ShoppingBag className="w-4 h-4 text-green-600" />
-                <span className="text-lg font-extrabold text-green-600">55 Compras</span>
-              </div>
-            </div>
           </div>
         </div>
 

@@ -129,16 +129,6 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
                   </div>
                 </div>
 
-                <div className="overflow-hidden border" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                  <div className="py-4 px-5 text-center font-bold text-sm" style={{ background: "linear-gradient(135deg, #0EA5E9, #2563EB)", color: "#fff" }}>
-                    🚚 Frete Grátis para todo o Brasil!
-                  </div>
-                </div>
-                <div className="overflow-hidden border" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                  <div className="py-3 px-5 text-center font-semibold text-xs" style={{ background: "linear-gradient(135deg, #3B82F6, #6366F1)", color: "#fff" }}>
-                    ⚡ Entrega digital imediata após confirmação
-                  </div>
-                </div>
 
                 {/* DROP ZONE: Below Form */}
                 <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
@@ -192,14 +182,6 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
               </div>
             </div>
 
-            <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center">
-              <p className="text-xs font-semibold" style={{ color: s.cardTitle }}>Atenção</p>
-              <p className="text-xs mt-0.5" style={{ color: s.cardDesc }}>Não perca essa oportunidade!</p>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <ShoppingBag className="w-4 h-4 text-green-600" />
-                <span className="text-lg font-extrabold text-green-600">55 Compras</span>
-              </div>
-            </div>
           </div>
         </div>
 
