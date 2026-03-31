@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
+import { resolveCheckoutFormat } from "@/components/gateway/checkout-templates/checkout-format-helpers";
 
 const defaultConfig = {
   productName: "",
@@ -110,6 +111,25 @@ export default function CheckoutBuilder() {
   const activeTemplateName = config.templateId
     ? TEMPLATE_NAMES[config.templateId] || config.templateName
     : config.templateName;
+  const checkoutSlug = checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") : "meu-checkout";
+  const checkoutDomain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online";
+  const checkoutUrl = `https://${checkoutDomain}/pay/${checkoutSlug}`;
+  const resolvedFormat = resolveCheckoutFormat(config.format);
+  const embedCode = resolvedFormat.shell === "inline"
+    ? `<iframe src="${checkoutUrl}" width="100%" height="760" style="border:0;border-radius:24px;overflow:hidden;" loading="lazy"></iframe>`
+    : resolvedFormat.shell === "modal"
+      ? `<button type="button" data-open-zaplynx-checkout>Abrir checkout</button>`
+      : `<a href="${checkoutUrl}" target="_blank" rel="noopener">Abrir checkout</a>`;
+  const jsCode = resolvedFormat.shell === "inline"
+    ? `const iframe = document.createElement('iframe');\niframe.src = '${checkoutUrl}';\niframe.width = '100%';\niframe.height = '760';\niframe.style.border = '0';\niframe.style.borderRadius = '24px';\ndocument.getElementById('checkout-embed')?.appendChild(iframe);`
+    : resolvedFormat.shell === "modal"
+      ? `document.querySelector('[data-open-zaplynx-checkout]')?.addEventListener('click', () => window.open('${checkoutUrl}', '_blank'));`
+      : `window.location.href = '${checkoutUrl}';`;
+
+  const copySnippet = async (content: string, label: string) => {
+    await navigator.clipboard.writeText(content);
+    toast.success(`${label} copiado!`);
+  };
 
   const previewViewportWidth = previewMode === "mobile" ? 390 : 1180;
   const previewScale = previewPaneWidth
@@ -926,30 +946,30 @@ export default function CheckoutBuilder() {
                   <TabsContent value="link" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        https://{localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "meu-checkout"}
+                        {checkoutUrl}
                       </code>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; navigator.clipboard.writeText(`https://${domain}/pay/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}`); toast.success("Copiado!"); }}>
+                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => copySnippet(checkoutUrl, "Link") }>
                       Copiar Link
                     </Button>
                   </TabsContent>
                   <TabsContent value="embed" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        {`<iframe src="https://${localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}" width="100%" height="700" frameborder="0"></iframe>`}
+                        {embedCode}
                       </code>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => toast.success("Copiado!")}>
+                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => copySnippet(embedCode, "Código HTML") }>
                       Copiar Código
                     </Button>
                   </TabsContent>
                   <TabsContent value="js" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        {`<script src="https://${localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/js/checkout.js" data-checkout="${checkoutName?.toLowerCase().replace(/\s+/g, "-") || "meu-checkout"}"></script>`}
+                        {jsCode}
                       </code>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => toast.success("Copiado!")}>
+                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => copySnippet(jsCode, "Script") }>
                       Copiar Script
                     </Button>
                   </TabsContent>
@@ -1000,7 +1020,7 @@ export default function CheckoutBuilder() {
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
                 <span className="text-[10px] text-muted-foreground font-mono ml-2">
-                  {localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
+                  {checkoutDomain}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
