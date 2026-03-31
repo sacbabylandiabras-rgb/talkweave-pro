@@ -34,7 +34,7 @@ function getInitialSections(initialState: string) {
   };
 }
 
-export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement }: Props) {
+export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [selectedPayment, setSelectedPayment] = useState<"pix" | "credit" | "boleto">("credit");
