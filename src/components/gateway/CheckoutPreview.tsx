@@ -257,6 +257,14 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
       <div className="max-w-lg mx-auto py-6 px-4 space-y-4">
 
+        {/* DROP ZONE: Top */}
+        <CheckoutDropZone
+          position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+          cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+          onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+          onDrop={onDropElement} label="Solte aqui (Topo)"
+        />
+
         {templateName && (
           <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
