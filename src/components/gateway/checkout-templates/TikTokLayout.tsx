@@ -281,7 +281,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         <StepIndicators />
 
         {/* Desktop layout */}
-        <div className="hidden gap-4 md:grid md:grid-cols-[minmax(0,1fr)_300px]">
+        <div style={{ display: previewMode === "mobile" ? "none" : "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "1rem" }}>
           <div className="space-y-4">
             {/* DROP ZONE: Top */}
             <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
