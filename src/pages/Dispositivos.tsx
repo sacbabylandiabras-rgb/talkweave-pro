@@ -616,9 +616,9 @@ const Dispositivos = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { name: "Plano Start", price: "R$397/mês", features: ["1 instância", "Envios ilimitados", "Suporte básico"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NN" },
-              { name: "Plano Pro", price: "R$497/mês", features: ["3 instâncias", "Campanhas avançadas", "Suporte prioritário"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NP", popular: true },
-              { name: "Plano Scale", price: "R$897/mês", features: ["10 instâncias", "API completa", "Suporte VIP"], link: "https://checkout.perfectpay.com.br/pay/PPU38CQ97NO" },
+              { name: "Plano Start", price: "R$100/mês", features: ["1 instância", "Envios ilimitados", "Suporte básico"], link: "https://pay.zaplynxpro.online/pay/zaplynx" },
+              { name: "Plano Pro", price: "R$300/mês", features: ["3 instâncias", "Campanhas avançadas", "Suporte prioritário"], link: "https://pay.zaplynxpro.online/pay/zaplynx-pro", popular: true },
+              { name: "Plano Scale", price: "R$897/mês", features: ["10 instâncias", "API completa", "Suporte VIP"], link: "https://pay.zaplynxpro.online/pay/zaplynx-scale" },
             ].map((plan, i) => (
               <a
                 key={i}
