@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Package, Truck, User, Minus, Plus, Trash2, ChevronDown, Star, Zap, Check } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, ChevronDown, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
