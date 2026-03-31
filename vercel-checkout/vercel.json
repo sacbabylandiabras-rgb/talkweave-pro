@@ -1,6 +1,6 @@
 {
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/pay/:slug*", "destination": "/pay.html" }
+    { "source": "/pay/:slug*", "destination": "https://talkweave-pro.lovable.app/pay/:slug*" }
   ]
 }

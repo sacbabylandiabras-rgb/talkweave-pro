@@ -4,47 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .loader-wrap { display: flex; align-items: center; justify-content: center; height: 100vh; background: #EFF1F5; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #E5E7EB; border-top-color: #EF4444; border-radius: 50%; animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    iframe { width: 100%; height: 100%; border: none; }
-    .error-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 8px; background: #EFF1F5; }
-    .error-wrap h2 { font-size: 1.25rem; font-weight: 600; color: #1F2937; }
-    .error-wrap p { font-size: .875rem; color: #6B7280; }
-  </style>
 </head>
 <body>
-
-<div id="app">
-  <div class="loader-wrap"><div class="spinner"></div></div>
-</div>
-
-<script>
-(function() {
-  var LOVABLE_APP_URL = 'https://talkweave-pro.lovable.app';
-
-  function getSlug() {
-    var parts = window.location.pathname.split('/').filter(Boolean);
-    var payIdx = parts.indexOf('pay');
-    if (payIdx !== -1 && parts[payIdx + 1]) return parts[payIdx + 1];
-    return parts[parts.length - 1] || null;
-  }
-
-  var slug = getSlug();
-  if (!slug) {
-    document.getElementById('app').innerHTML = '<div class="error-wrap"><h2>Link de pagamento inválido.</h2><p>Verifique o link e tente novamente.</p></div>';
-    return;
-  }
-
-  var iframeSrc = LOVABLE_APP_URL + '/pay/' + encodeURIComponent(slug);
-  document.getElementById('app').innerHTML = '<iframe src="' + iframeSrc + '" allow="clipboard-write; payment" allowfullscreen></iframe>';
-  document.title = 'Checkout';
-})();
-</script>
-
+  <p style="text-align:center;margin-top:40vh;font-family:sans-serif;color:#6B7280;">Redirecionando...</p>
 </body>
 </html>
