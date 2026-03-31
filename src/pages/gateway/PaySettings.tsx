@@ -59,13 +59,36 @@ export default function PaySettings() {
     };
     fetchProfile();
     fetchApiKeys();
-    // Load saved domain from localStorage
-    const savedDomain = localStorage.getItem("checkout_custom_domain");
-    if (savedDomain) {
-      setCustomDomain(savedDomain);
-      setDomainStatus("active");
-    }
+    fetchDomainStatus();
   }, []);
+
+  const fetchDomainStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: prof } = await supabase.from("profiles").select("custom_domain").eq("id", user.id).single();
+    const domain = (prof as any)?.custom_domain;
+    if (!domain) return;
+    setCustomDomain(domain);
+    setDomainStatus("pending");
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "status", hostname: domain },
+      });
+      if (error) throw error;
+      if (data?.status === "active") {
+        setDomainStatus("active");
+      } else if (data?.status === "not_found") {
+        setDomainStatus("none");
+      } else {
+        setDomainStatus("pending");
+      }
+      setDomainSslStatus(data?.ssl_status || "");
+      setDomainVerification(data?.ownership_verification || null);
+    } catch (err) {
+      console.error("Error checking domain status:", err);
+      setDomainStatus("pending");
+    }
+  };
 
   const fetchApiKeys = async () => {
     setKeysLoading(true);
