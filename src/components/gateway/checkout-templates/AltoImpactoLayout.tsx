@@ -72,6 +72,8 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
+        {/* DROP ZONE: Top */}
+        <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
         {/* Step indicators */}
         <div className="flex items-center justify-center gap-3 mb-5">
           {steps.map((st, i) => (
