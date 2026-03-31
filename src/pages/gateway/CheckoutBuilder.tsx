@@ -246,12 +246,14 @@ export default function CheckoutBuilder() {
     if (!user) return;
     setSaving(true);
 
+    const configWithElements = { ...config, elements } as any;
+
     if (isEditing) {
       const { error } = await supabase.from("gateway_checkouts" as any)
         .update({
           name: checkoutName,
           product_id: selectedProductId || null,
-          config: config as any,
+          config: configWithElements,
         } as any)
         .eq("id", editId);
       setSaving(false);
@@ -263,7 +265,7 @@ export default function CheckoutBuilder() {
         name: checkoutName,
         product_id: selectedProductId || null,
         slug: checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        config: config as any,
+        config: configWithElements,
       } as any);
       setSaving(false);
       if (error) { toast.error("Erro: " + error.message); return; }
