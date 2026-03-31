@@ -190,9 +190,12 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                   <input className="flex-1 px-2.5 py-1.5 text-xs border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Código do cupom" />
                   <button className="px-3 py-1.5 text-xs font-semibold text-white" style={{ borderRadius: s.buttonRadius, background: s.buttonColor }}>Aplicar</button>
                 </div>
-              </div>
             </div>
+
+            {/* DROP ZONE: Sidebar Bottom */}
+            <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           </div>
+        </div>
         </div>
 
         {/* DROP ZONE: Footer */}

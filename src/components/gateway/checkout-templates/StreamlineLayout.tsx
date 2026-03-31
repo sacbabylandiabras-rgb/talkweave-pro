@@ -186,8 +186,8 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
               </div>
             </div>
 
-            <Testimonial name="Breno Santos" text="Compra rápida, fácil e sem dor de cabeça." />
-            <Testimonial name="Luísa Romeiro" text="Muito satisfeita com a compra. Voltarei com certeza!" />
+            {/* DROP ZONE: Sidebar Bottom */}
+            <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           </div>
         </div>
 
