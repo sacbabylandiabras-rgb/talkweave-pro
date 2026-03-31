@@ -180,11 +180,15 @@ serve(async (req) => {
         });
       }
 
-      // Remove from profile
-      await supabase
-        .from("profiles")
-        .update({ custom_domain: null })
-        .eq("id", user.id);
+      // Try to remove from profile
+      try {
+        await supabase
+          .from("profiles")
+          .update({ custom_domain: null } as any)
+          .eq("id", user.id);
+      } catch (dbErr) {
+        console.warn("Could not remove domain from profile:", dbErr);
+      }
 
       return new Response(
         JSON.stringify({ success: true }),
