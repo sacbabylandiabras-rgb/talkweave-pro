@@ -110,16 +110,31 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
             <Input value={c.url || ""} onChange={e => update("url", e.target.value)} className="mt-1 text-xs" placeholder="https://..." />
           </div>
           <label className="flex items-center gap-1.5 px-3 py-2 text-xs border border-dashed rounded-lg cursor-pointer hover:bg-muted">
-            <Upload className="w-3.5 h-3.5" /> Enviar imagem
+            <Upload className="w-3.5 h-3.5" /> Enviar imagem (até 2MB)
             <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, url => update("url", url)); }} />
           </label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Alt text</Label>
+              <Input value={c.alt || ""} onChange={e => update("alt", e.target.value)} className="mt-1 text-xs" placeholder="Descrição" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Border radius</Label>
+              <Input type="number" value={c.borderRadius || 8} onChange={e => update("borderRadius", e.target.value)} className="mt-1 text-xs" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[10px]">Largura</Label>
+            <Input value={c.width || "100%"} onChange={e => update("width", e.target.value)} className="mt-1 text-xs" placeholder="100% ou 300px" />
+          </div>
         </>
       )}
 
       {element.type === "video" && (
         <div>
-          <Label className="text-[10px]">URL do vídeo (YouTube ou Vimeo)</Label>
-          <Input value={c.url || ""} onChange={e => update("url", e.target.value)} className="mt-1 text-xs" placeholder="https://youtube.com/watch?v=..." />
+          <Label className="text-[10px]">URL do vídeo (YouTube ou Vturb)</Label>
+          <Input value={c.url || ""} onChange={e => update("url", e.target.value)} className="mt-1 text-xs" placeholder="https://youtube.com/watch?v=... ou Vturb" />
+          <p className="text-[9px] text-muted-foreground mt-1">Aceita: YouTube (watch, shorts, embed), Vturb, Vimeo</p>
         </div>
       )}
 
