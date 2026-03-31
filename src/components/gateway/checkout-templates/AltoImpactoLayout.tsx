@@ -96,7 +96,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
           ))}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-5">
+        <div style={{ display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" }}>
           <div className="flex-1 space-y-4">
             {/* Step 1 */}
             {step === 1 && (
