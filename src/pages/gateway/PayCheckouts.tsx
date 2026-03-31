@@ -132,6 +132,27 @@ export default function PayCheckouts() {
         </div>
       </div>
 
+      {/* Saved domain banner */}
+      {savedDomain && (
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-foreground font-medium">{savedDomain}</span>
+            {domainStatus === "active" && <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 text-[10px]">Ativo</Badge>}
+            {domainStatus === "pending" && <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-[10px]">Pendente</Badge>}
+            {domainStatus === "checking" && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => checkDomainStatus(savedDomain)}>
+              <RefreshCw className={`w-3 h-3 ${domainStatus === "checking" ? "animate-spin" : ""}`} /> Atualizar
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setDomainOpen(true)}>
+              <Edit className="w-3 h-3 mr-1" /> Editar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "Total Checkouts", value: String(checkouts.length) },
