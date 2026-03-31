@@ -103,6 +103,9 @@ export default function CheckoutBuilder() {
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [previewPaneWidth, setPreviewPaneWidth] = useState(0);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
+  const [elements, setElements] = useState<CheckoutElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [draggingType, setDraggingType] = useState<CheckoutElementType | null>(null);
 
   const activeTemplateName = config.templateId
     ? TEMPLATE_NAMES[config.templateId] || config.templateName
