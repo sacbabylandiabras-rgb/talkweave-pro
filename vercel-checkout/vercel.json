@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/pay/:slug*", "destination": "/pay.html" }
+  ]
+}
