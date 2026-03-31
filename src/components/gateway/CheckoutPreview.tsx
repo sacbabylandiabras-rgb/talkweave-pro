@@ -11,6 +11,7 @@ import StreamlineLayout from "@/components/gateway/checkout-templates/Streamline
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
 import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
+import { resolveCheckoutFormat } from "@/components/gateway/checkout-templates/checkout-format-helpers";
 import nubankLogo from "@/assets/banks/nubank.png";
 import interLogo from "@/assets/banks/inter.png";
 import bradescoLogo from "@/assets/banks/bradesco.png";
@@ -199,6 +200,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   };
 
   const s = getCheckoutStyles(config);
+  const resolvedFormat = resolveCheckoutFormat(config.format);
+  const isOneStep = resolvedFormat.flow === "one_step";
 
   const unitPrice = config.price;
   const subtotal = unitPrice * quantity;
@@ -210,23 +213,57 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     elements, isBuilder, onSelectElement, selectedElementId, onDropElement,
   };
 
-  if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} {...elementProps} previewMode={previewMode} />;
-  }
-  if (config.templateId === "alto-impacto") {
-    return <AltoImpactoLayout config={config} {...elementProps} previewMode={previewMode} />;
-  }
-  if (config.templateId === "tiktok") {
-    return <TikTokLayout config={config} {...elementProps} previewMode={previewMode} />;
-  }
-  if (config.templateId === "streamline") {
-    return <StreamlineLayout config={config} {...elementProps} previewMode={previewMode} />;
-  }
-  if (config.templateId === "lynxfy") {
-    return <LynxFyLayout config={config} {...elementProps} previewMode={previewMode} />;
-  }
-  if (config.templateId === "confianca") {
-    return <ConfiancaLayout config={config} {...elementProps} previewMode={previewMode} />;
+  const wrapBuilderShell = (content: JSX.Element) => {
+    if (!isBuilder) return content;
+
+    if (resolvedFormat.shell === "modal") {
+      return (
+        <div className="flex min-h-[760px] items-center justify-center rounded-[2rem] border border-border bg-background/80 p-4">
+          <div className="w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3 text-xs">
+              <span className="font-semibold text-foreground">Prévia Modal Pop-up</span>
+              <span className="text-muted-foreground">Abre sobre a página</span>
+            </div>
+            {content}
+          </div>
+        </div>
+      );
+    }
+
+    if (resolvedFormat.shell === "inline") {
+      return (
+        <div className="rounded-[1.75rem] border border-dashed border-border bg-background p-3">
+          <div className="mb-3 flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-2 text-xs">
+            <span className="font-semibold text-foreground">Prévia Inline / Embed</span>
+            <span className="text-muted-foreground">Incorporado em página externa</span>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">{content}</div>
+        </div>
+      );
+    }
+
+    return content;
+  };
+
+  if (!isOneStep) {
+    if (config.templateId === "minimalista") {
+      return wrapBuilderShell(<MinimalistaLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
+    if (config.templateId === "alto-impacto") {
+      return wrapBuilderShell(<AltoImpactoLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
+    if (config.templateId === "tiktok") {
+      return wrapBuilderShell(<TikTokLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
+    if (config.templateId === "streamline") {
+      return wrapBuilderShell(<StreamlineLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
+    if (config.templateId === "lynxfy") {
+      return wrapBuilderShell(<LynxFyLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
+    if (config.templateId === "confianca") {
+      return wrapBuilderShell(<ConfiancaLayout config={config} {...elementProps} previewMode={previewMode} />);
+    }
   }
 
   const stepLabels = [
@@ -235,7 +272,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     { num: 3, label: "Pagamento", icon: <CardIcon className="w-5 h-5" /> },
   ];
 
-  return (
+  return wrapBuilderShell(
     <div
       className="h-full overflow-auto"
       style={{ background: s.bgColor, fontFamily: s.fontFamily, minHeight: "100%", color: s.textColor }}
@@ -280,7 +317,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* Step Indicators - 3 steps */}
-        <div className="flex items-center justify-center gap-3 py-2">
+        {!isOneStep && <div className="flex items-center justify-center gap-3 py-2">
           {stepLabels.map((sl, i) => (
             <div key={sl.num} className="flex items-center gap-3">
               <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
@@ -307,7 +344,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
               )}
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Order Summary Card - visible on all steps */}
         <div className="rounded-xl border p-4 space-y-4" style={cardStyle(s)}>
@@ -371,7 +408,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         </div>
 
         {/* ───── STEP 1: Identification ───── */}
-        {step === 1 && (
+        {(step === 1 || isOneStep) && (
           <>
             {/* DROP ZONE: Above Form */}
             <CheckoutDropZone
@@ -444,7 +481,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
               </div>
             )}
 
-            <button
+            {!isOneStep && <button
               onClick={() => {
                 const errors: Record<string, string> = {};
                 if (!formName.trim()) errors.name = 'Campo obrigatório';
@@ -458,7 +495,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
             >
               <Lock className="w-4 h-4" />
               Continuar
-            </button>
+            </button>}
             {/* DROP ZONE: Below Form */}
             <CheckoutDropZone
               position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor}
@@ -470,7 +507,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 2: Review / Confirm Data ───── */}
-        {step === 2 && (
+        {!isOneStep && step === 2 && (
           <>
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
@@ -526,7 +563,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
-        {step === 3 && (
+        {(step === 3 || isOneStep) && (
           <>
             {/* Header */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
