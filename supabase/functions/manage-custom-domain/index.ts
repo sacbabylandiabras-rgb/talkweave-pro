@@ -92,14 +92,14 @@ serve(async (req) => {
         });
       }
 
-      // Save to profile
-      const { error: dbError } = await supabase
-        .from("profiles")
-        .update({ custom_domain: cleanHostname })
-        .eq("id", user.id);
-
-      if (dbError) {
-        console.error("DB error:", dbError);
+      // Try to save to profile (column may not exist yet)
+      try {
+        await supabase
+          .from("profiles")
+          .update({ custom_domain: cleanHostname } as any)
+          .eq("id", user.id);
+      } catch (dbErr) {
+        console.warn("Could not save domain to profile:", dbErr);
       }
 
       return new Response(
