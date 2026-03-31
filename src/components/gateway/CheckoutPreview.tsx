@@ -454,6 +454,13 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
               <Lock className="w-4 h-4" />
               Continuar
             </button>
+            {/* DROP ZONE: Below Form */}
+            <CheckoutDropZone
+              position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor}
+              cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder}
+              onSelectElement={onSelectElement} selectedElementId={selectedElementId}
+              onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)"
+            />
           </>
         )}
 
