@@ -28,7 +28,7 @@ export default function PayCheckouts() {
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [domainOpen, setDomainOpen] = useState(false);
-  const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_custom_domain") || "");
+  const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_domain_root") || "");
   const [domainPrefix, setDomainPrefix] = useState(localStorage.getItem("checkout_domain_prefix") || "pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
 
@@ -70,15 +70,18 @@ export default function PayCheckouts() {
   };
 
   const saveDomain = () => {
-    const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").replace(/^(pay\.|checkout\.)/, "");
     setCustomDomain(cleaned);
     if (cleaned) {
-      localStorage.setItem("checkout_custom_domain", cleaned);
+      const fullDomain = `${domainPrefix}.${cleaned}`;
+      localStorage.setItem("checkout_custom_domain", fullDomain);
       localStorage.setItem("checkout_domain_prefix", domainPrefix);
-      checkDomainStatus(cleaned);
+      localStorage.setItem("checkout_domain_root", cleaned);
+      checkDomainStatus(fullDomain);
     } else {
       localStorage.removeItem("checkout_custom_domain");
       localStorage.removeItem("checkout_domain_prefix");
+      localStorage.removeItem("checkout_domain_root");
       setDomainStatus("idle");
     }
     toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
@@ -206,7 +209,29 @@ export default function PayCheckouts() {
             </p>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground">Seu domínio</label>
+              <label className="text-xs font-medium text-foreground">Subdomínio</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={domainPrefix === "pay" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("pay")}
+                >
+                  pay.
+                </Button>
+                <Button
+                  variant={domainPrefix === "checkout" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("checkout")}
+                >
+                  checkout.
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Domínio raiz</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="seusite.com"
@@ -217,31 +242,9 @@ export default function PayCheckouts() {
                   <Save className="w-4 h-4 mr-1" /> Salvar
                 </Button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground">Prefixo da URL</label>
-              <div className="flex gap-2">
-                <Button
-                  variant={domainPrefix === "pay" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setDomainPrefix("pay")}
-                >
-                  /pay/
-                </Button>
-                <Button
-                  variant={domainPrefix === "checkout" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setDomainPrefix("checkout")}
-                >
-                  /checkout/
-                </Button>
-              </div>
               {customDomain && (
                 <p className="text-[11px] text-muted-foreground">
-                  Exemplo: <code className="bg-muted px-1 rounded">https://{customDomain}/{domainPrefix}/seu-produto</code>
+                  Seu link ficará: <code className="bg-muted px-1 rounded">https://{domainPrefix}.{customDomain.replace(/^(pay\.|checkout\.)/, "")}/pay/seu-produto</code>
                 </p>
               )}
             </div>
