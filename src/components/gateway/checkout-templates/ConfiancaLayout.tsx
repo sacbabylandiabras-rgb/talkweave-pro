@@ -207,28 +207,6 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
               </div>
             ))}
 
-            <div className="border p-4 space-y-3" style={cardStyle(s)}>
-              <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0"><Truck className="w-3.5 h-3.5 text-blue-500" /></div>
-                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Frete Grátis</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Para todo o Brasil em compras acima de R$ 199</p></div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0"><ShieldCheck className="w-3.5 h-3.5 text-green-500" /></div>
-                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Compra Segura</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Seus dados protegidos e pagamento seguro</p></div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0"><Zap className="w-3.5 h-3.5 text-yellow-500" /></div>
-                <div><p className="text-xs font-bold" style={{ color: s.primary }}>Entrega Rápida</p><p className="text-[10px]" style={{ color: s.cardDesc }}>Enviamos em até 24 horas após a confirmação</p></div>
-              </div>
-            </div>
-
-            {config.showGuarantee && (
-              <div className="border-2 border-dashed p-4 text-center" style={{ borderRadius: s.cardRadius, borderColor: s.primary, background: `${s.primary}10` }}>
-                <ShieldCheck className="w-6 h-6 mx-auto mb-1" style={{ color: s.primary }} />
-                <p className="text-xs font-bold" style={{ color: s.primary }}>Garantia de {config.guaranteeDays || 30} dias</p>
-                <p className="text-[10px] mt-0.5" style={{ color: s.cardDesc }}>Satisfação garantida ou seu dinheiro de volta</p>
-              </div>
-            )}
           </div>
         </div>
 
