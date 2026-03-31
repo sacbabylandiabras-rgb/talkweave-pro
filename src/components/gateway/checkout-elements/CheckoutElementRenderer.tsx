@@ -54,14 +54,16 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
           {c.url ? (
             <div className="relative w-full" style={{ paddingBottom: "56.25%", borderRadius: "12px", overflow: "hidden" }}>
               <iframe
-                src={c.url.includes("youtube") ? c.url.replace("watch?v=", "embed/") : c.url}
+                src={getVideoEmbedUrl(c.url)}
                 className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                style={{ border: 0 }}
               />
             </div>
           ) : (
             <div className="flex items-center justify-center border-2 border-dashed rounded-xl" style={{ height: "160px", borderColor: cardBorder, color: textColor + "80" }}>
-              <span className="text-xs">Cole o link do vídeo</span>
+              <span className="text-xs">Cole o link do YouTube ou Vturb</span>
             </div>
           )}
         </div>
