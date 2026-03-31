@@ -21,12 +21,18 @@ serve(async (req) => {
 
     console.log('HubPague webhook received:', JSON.stringify(payload))
 
-    const notificationType = payload.notification_type || ''
+    const notificationType = payload.notification_type || payload.type || payload.event || ''
 
-    // Handle transaction webhooks
-    if (notificationType === 'transaction') {
-      const hubpagueId = payload.id || ''
-      const hubStatus = (payload.status || '').toLowerCase()
+    // Handle transaction webhooks - accept multiple format variations
+    const isTransaction = notificationType === 'transaction' || 
+      notificationType === 'payment' ||
+      notificationType === 'charge' ||
+      payload.status !== undefined ||
+      payload.id !== undefined
+
+    if (isTransaction) {
+      const hubpagueId = payload.id || payload.payment_id || payload.charge_id || payload.transaction_id || ''
+      const hubStatus = (payload.status || payload.payment_status || '').toLowerCase()
 
       console.log('Transaction webhook - ID:', hubpagueId, 'Status:', hubStatus)
 
