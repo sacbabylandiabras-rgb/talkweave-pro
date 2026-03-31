@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
