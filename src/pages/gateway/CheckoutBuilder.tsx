@@ -956,6 +956,36 @@ export default function CheckoutBuilder() {
                 </Tabs>
               </AccordionContent>
             </AccordionItem>
+
+            {/* BLOCO I: Elementos Personalizados */}
+            <AccordionItem value="elementos" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><Blocks className="w-4 h-4 text-[#FF4D2E]" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-[#FF4D2E] text-white rounded-full px-1.5">{elements.length}</span>}</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Arraste ou clique para adicionar elementos ao checkout</p>
+
+                {/* Element editor for selected element */}
+                {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+                  <CheckoutElementEditor
+                    element={elements.find(e => e.id === selectedElementId)!}
+                    onUpdate={updateElementContent}
+                    onUpdatePosition={updateElementPosition}
+                  />
+                )}
+
+                <CheckoutElementsSidebar
+                  elements={elements}
+                  onAddElement={addElement}
+                  onRemoveElement={removeElement}
+                  onToggleElement={toggleElement}
+                  onSelectElement={setSelectedElementId}
+                  onMoveElement={moveElement}
+                  selectedElementId={selectedElementId}
+                  onDragStart={handleDragStart}
+                />
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </div>
 
