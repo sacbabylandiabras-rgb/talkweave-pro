@@ -161,6 +161,9 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
 
           {/* RIGHT sidebar */}
           <div className="w-full md:w-60 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4" style={cardStyle(s)}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
@@ -198,6 +201,9 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
             </div>
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />
