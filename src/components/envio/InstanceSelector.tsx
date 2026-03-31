@@ -83,6 +83,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceS
   const selectAll = () => {
     const allIds = new Set(instances.map(i => i.id));
     setSelectedIds(allIds);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(allIds)));
     onInstanceChange?.(ROTATE_ALL);
     onMultiInstanceChange?.(Array.from(allIds));
   };
