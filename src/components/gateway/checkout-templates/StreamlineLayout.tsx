@@ -163,6 +163,9 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
 
           {/* RIGHT SIDEBAR */}
           <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            {/* DROP ZONE: Sidebar */}
+            <CheckoutDropZone position="sidebar" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar)" />
+
             <div className="border p-4 space-y-3" style={cardStyle(s)}>
               <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: s.cardDesc }}>Resumo (1)</h3>
               <div className="flex gap-2">
@@ -197,6 +200,9 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
             <Testimonial name="Luísa Romeiro" text="Muito satisfeita com a compra. Voltarei com certeza!" />
           </div>
         </div>
+
+        {/* DROP ZONE: Footer */}
+        <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
       <PaymentFooter />
