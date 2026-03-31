@@ -104,7 +104,11 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
 
             {/* Step 1: Identificação */}
             {step === 1 && (
-              <div className="border overflow-hidden" style={cardStyle(s)}>
+              <>
+                {/* DROP ZONE: Above Form */}
+                <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
+                <div className="border overflow-hidden" style={cardStyle(s)}>
                 <div className="px-5 py-3" style={{ borderBottom: `1px solid ${s.cardBorder}` }}>
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 flex items-center justify-center text-xs font-bold" style={stepStyle(s)}>1</div>
