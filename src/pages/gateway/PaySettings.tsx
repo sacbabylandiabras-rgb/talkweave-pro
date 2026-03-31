@@ -273,18 +273,30 @@ export default function PaySettings() {
                     onChange={e => setCustomDomain(e.target.value)}
                     placeholder="pay.seusite.com"
                     className="font-mono text-xs"
+                    disabled={domainStatus === "active" || domainStatus === "pending"}
                   />
-                  <Button
-                    className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-5 text-xs"
-                    onClick={handleSaveDomain}
-                    disabled={domainSaving}
-                  >
-                    {domainSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                    Salvar
-                  </Button>
+                  {domainStatus === "none" || domainStatus === "error" ? (
+                    <Button
+                      className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-5 text-xs"
+                      onClick={handleSaveDomain}
+                      disabled={domainSaving || !customDomain.trim()}
+                    >
+                      {domainSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                      Ativar
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefreshDomainStatus} title="Atualizar status">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={handleDeleteDomain} disabled={domainDeleting} title="Remover domínio">
+                        {domainDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Insira sem http:// ou https://. Ex: pay.meudominio.com
+                  Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Cloudflare.
                 </p>
               </div>
 
@@ -292,68 +304,59 @@ export default function PaySettings() {
                 <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
                   {domainStatus === "active" ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : domainStatus === "error" ? (
+                    <XCircle className="w-4 h-4 text-destructive shrink-0" />
                   ) : (
                     <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
                   )}
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs font-medium">
-                      {domainStatus === "active" ? "Domínio configurado" : "Verificando DNS..."}
+                      {domainStatus === "active" ? "Domínio ativo com SSL" : domainStatus === "error" ? "Erro na configuração" : "Provisionando SSL..."}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {customDomain} → seus checkouts usarão este domínio
+                      {customDomain}
+                      {domainSslStatus && ` • SSL: ${domainSslStatus}`}
                     </p>
                   </div>
-                  <Badge variant="outline" className={`ml-auto text-[10px] ${domainStatus === "active" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}`}>
-                    {domainStatus === "active" ? "Ativo" : "Pendente"}
+                  <Badge variant="outline" className={`text-[10px] ${
+                    domainStatus === "active" ? "border-emerald-500/30 text-emerald-400" :
+                    domainStatus === "error" ? "border-destructive/30 text-destructive" :
+                    "border-amber-500/30 text-amber-400"
+                  }`}>
+                    {domainStatus === "active" ? "Ativo" : domainStatus === "error" ? "Erro" : "Pendente"}
                   </Badge>
                 </div>
               )}
 
               <Card className="border-[#2A2A2A] bg-muted/20">
                 <CardContent className="pt-4 pb-4 space-y-3">
-                  <p className="text-xs font-medium text-foreground">📋 Como configurar seu domínio:</p>
+                  <p className="text-xs font-medium text-foreground">📋 Como funciona:</p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">1</span>
-                      <p className="text-[11px] text-muted-foreground">Acesse o painel DNS do seu provedor de domínio (Cloudflare, GoDaddy, Namecheap, etc.)</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        No DNS do seu domínio, crie um registro <strong>CNAME</strong> apontando para:
+                        <span className="flex items-center gap-1 mt-1">
+                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">fallback.direitopenalnapratica.online</code>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("fallback.direitopenalnapratica.online")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </span>
+                      </p>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">2</span>
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">Adicione um registro <strong>A</strong> apontando para:</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <code className="text-[11px] bg-background border border-[#2A2A2A] rounded px-2 py-0.5 font-mono">185.158.133.1</code>
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("185.158.133.1")}>
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
+                      <p className="text-[11px] text-muted-foreground">Digite o domínio acima e clique em <strong>Ativar</strong> — o SSL é gerado automaticamente.</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">3</span>
-                      <p className="text-[11px] text-muted-foreground">Se usar subdomínio (ex: pay.seusite.com), o <strong>Name</strong> deve ser <code className="bg-background border border-[#2A2A2A] rounded px-1 font-mono">pay</code></p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">4</span>
-                      <p className="text-[11px] text-muted-foreground">Aguarde a propagação DNS (pode levar até 72h) e publique o projeto</p>
+                      <p className="text-[11px] text-muted-foreground">Aguarde alguns minutos para o SSL ficar ativo. Use o botão de refresh para verificar.</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-amber-400">Importante</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Após configurar o DNS, é necessário adicionar o domínio também nas configurações do projeto Lovable (Publish → Domains) e republicar para que o SSL seja ativado.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {customDomain && (
+              {customDomain && domainStatus !== "none" && (
                 <div>
                   <Label className="text-xs">Link de exemplo</Label>
                   <div className="flex items-center gap-2 mt-1">
