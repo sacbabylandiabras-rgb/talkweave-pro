@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,12 @@ export default function PayCheckouts() {
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [domainOpen, setDomainOpen] = useState(false);
-  const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_domain_root") || "");
-  const [domainPrefix, setDomainPrefix] = useState(localStorage.getItem("checkout_domain_prefix") || "pay");
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainPrefix, setDomainPrefix] = useState("pay");
+  const [savedDomain, setSavedDomain] = useState<string | null>(null);
+  const [savedPrefix, setSavedPrefix] = useState("pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
+  const [domainLoading, setDomainLoading] = useState(false);
 
   const fetchData = async () => {
     const [ckRes, prodRes] = await Promise.all([
@@ -46,16 +49,31 @@ export default function PayCheckouts() {
     setLoading(false);
   };
 
+  const fetchDomainFromDB = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
+    if (data) {
+      const cd = (data as any).custom_domain;
+      const dp = (data as any).domain_prefix || "pay";
+      if (cd) {
+        setSavedDomain(cd);
+        setSavedPrefix(dp);
+        setCustomDomain(cd.replace(`${dp}.`, ""));
+        setDomainPrefix(dp);
+        checkDomainStatus(cd);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchData();
-    const sd = localStorage.getItem("checkout_custom_domain");
-    if (sd) checkDomainStatus(sd);
+    fetchDomainFromDB();
   }, []);
 
-  // Check domain status on dialog open
   useEffect(() => {
-    if (domainOpen && customDomain) {
-      checkDomainStatus(customDomain);
+    if (domainOpen && savedDomain) {
+      checkDomainStatus(savedDomain);
     }
   }, [domainOpen]);
 
@@ -73,22 +91,48 @@ export default function PayCheckouts() {
     }
   };
 
-  const saveDomain = () => {
+  const saveDomain = async () => {
+    setDomainLoading(true);
     const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").replace(/^(pay\.|checkout\.)/, "");
     setCustomDomain(cleaned);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setDomainLoading(false); return; }
+
     if (cleaned) {
       const fullDomain = `${domainPrefix}.${cleaned}`;
-      localStorage.setItem("checkout_custom_domain", fullDomain);
-      localStorage.setItem("checkout_domain_prefix", domainPrefix);
-      localStorage.setItem("checkout_domain_root", cleaned);
+      await supabase.from("profiles").update({
+        custom_domain: fullDomain,
+        domain_prefix: domainPrefix,
+      } as any).eq("id", user.id);
+      setSavedDomain(fullDomain);
+      setSavedPrefix(domainPrefix);
       checkDomainStatus(fullDomain);
+      toast.success("Domínio salvo!");
     } else {
-      localStorage.removeItem("checkout_custom_domain");
-      localStorage.removeItem("checkout_domain_prefix");
-      localStorage.removeItem("checkout_domain_root");
-      setDomainStatus("idle");
+      toast.error("Informe um domínio válido");
     }
-    toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
+    setDomainLoading(false);
+  };
+
+  const deleteDomain = async () => {
+    setDomainLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setDomainLoading(false); return; }
+
+    await supabase.from("profiles").update({
+      custom_domain: null,
+      domain_prefix: "pay",
+    } as any).eq("id", user.id);
+
+    setSavedDomain(null);
+    setSavedPrefix("pay");
+    setCustomDomain("");
+    setDomainPrefix("pay");
+    setDomainStatus("idle");
+    setDomainOpen(false);
+    toast.success("Domínio removido!");
+    setDomainLoading(false);
   };
 
   const toggleStatus = async (id: string, current: boolean) => {
@@ -105,7 +149,6 @@ export default function PayCheckouts() {
   const totalVisits = checkouts.reduce((a, c) => a + (c.visits || 0), 0);
   const totalConversions = checkouts.reduce((a, c) => a + (c.conversions || 0), 0);
   const avgConversion = totalVisits > 0 ? ((totalConversions / totalVisits) * 100).toFixed(1) : "0";
-  const savedDomain = localStorage.getItem("checkout_custom_domain");
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -207,7 +250,7 @@ export default function PayCheckouts() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/gateway-checkout/checkouts/edit/${ck.id}`)}><Edit className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; const prefix = localStorage.getItem("checkout_domain_prefix") || "pay"; navigator.clipboard.writeText(`https://${domain}/${prefix}/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const domain = savedDomain || "pay.zaplynxpro.online"; navigator.clipboard.writeText(`https://${domain}/${savedPrefix}/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCheckout(ck.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </TableCell>
@@ -263,8 +306,8 @@ export default function PayCheckouts() {
                   value={customDomain}
                   onChange={e => setCustomDomain(e.target.value)}
                 />
-                <Button size="sm" onClick={saveDomain}>
-                  <Save className="w-4 h-4 mr-1" /> Salvar
+                <Button size="sm" onClick={saveDomain} disabled={domainLoading}>
+                  {domainLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Salvar</>}
                 </Button>
               </div>
               {customDomain && (
@@ -302,6 +345,19 @@ export default function PayCheckouts() {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {/* Delete domain button */}
+            {savedDomain && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full gap-2"
+                onClick={deleteDomain}
+                disabled={domainLoading}
+              >
+                {domainLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Excluir Domínio</>}
+              </Button>
             )}
 
             {/* DNS Instructions */}
