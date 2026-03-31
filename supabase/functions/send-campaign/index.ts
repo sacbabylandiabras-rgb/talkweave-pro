@@ -47,7 +47,7 @@ const isZapiConfirmed = (payload: any) => {
   return Boolean(ackId || ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result));
 };
 
-const BATCH_SIZE = 10; // Process 10 contacts per invocation max
+const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
 const readDeviceConnectivity = (deviceStatus: any) => {
   const isConnected = deviceStatus?.connected === true ||
