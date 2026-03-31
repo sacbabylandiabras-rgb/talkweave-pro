@@ -205,23 +205,27 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
   const timerStr = `00h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
 
+  const elementProps = {
+    elements, isBuilder, onSelectElement, selectedElementId, onDropElement,
+  };
+
   if (config.templateId === "minimalista") {
-    return <MinimalistaLayout config={config} />;
+    return <MinimalistaLayout config={config} {...elementProps} />;
   }
   if (config.templateId === "alto-impacto") {
-    return <AltoImpactoLayout config={config} />;
+    return <AltoImpactoLayout config={config} {...elementProps} />;
   }
   if (config.templateId === "tiktok") {
-    return <TikTokLayout config={config} />;
+    return <TikTokLayout config={config} {...elementProps} />;
   }
   if (config.templateId === "streamline") {
-    return <StreamlineLayout config={config} />;
+    return <StreamlineLayout config={config} {...elementProps} />;
   }
   if (config.templateId === "lynxfy") {
-    return <LynxFyLayout config={config} />;
+    return <LynxFyLayout config={config} {...elementProps} />;
   }
   if (config.templateId === "confianca") {
-    return <ConfiancaLayout config={config} />;
+    return <ConfiancaLayout config={config} {...elementProps} />;
   }
 
   const stepLabels = [
