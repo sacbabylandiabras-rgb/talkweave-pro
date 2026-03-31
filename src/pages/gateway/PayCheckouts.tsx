@@ -168,7 +168,6 @@ export default function PayCheckouts() {
 
     await supabase.from("profiles").update({
       custom_domain: null,
-      domain_prefix: "pay",
     } as any).eq("id", user.id);
     // Clear localStorage fallback
     localStorage.removeItem("checkout_custom_domain");
