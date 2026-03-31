@@ -13,6 +13,7 @@ interface SendCampaignRequest {
   instanceId?: string;
   rotationOffset?: number;
   _isContinuation?: boolean;
+  _userId?: string; // Used by service-role re-invocations to bypass JWT auth
 }
 
 interface CampaignSendRecord {
