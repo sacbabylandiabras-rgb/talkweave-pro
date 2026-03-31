@@ -105,6 +105,10 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
 
             {/* Step 1: Identificação */}
             {step === 1 && (
+              <>
+              {/* DROP ZONE: Above Form */}
+              <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
+
               <div className="border p-5 space-y-4" style={cardStyle(s)}>
                 <div>
                   <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: s.cardTitle }}>
