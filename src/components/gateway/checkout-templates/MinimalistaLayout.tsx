@@ -74,6 +74,9 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
+        {/* DROP ZONE: Top */}
+        <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
+
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
