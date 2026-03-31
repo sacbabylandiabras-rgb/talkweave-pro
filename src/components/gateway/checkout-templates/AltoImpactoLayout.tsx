@@ -129,16 +129,6 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
                   </div>
                 </div>
 
-                <div className="overflow-hidden border" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                  <div className="py-4 px-5 text-center font-bold text-sm" style={{ background: "linear-gradient(135deg, #0EA5E9, #2563EB)", color: "#fff" }}>
-                    🚚 Frete Grátis para todo o Brasil!
-                  </div>
-                </div>
-                <div className="overflow-hidden border" style={{ borderRadius: s.cardRadius, borderColor: s.cardBorder }}>
-                  <div className="py-3 px-5 text-center font-semibold text-xs" style={{ background: "linear-gradient(135deg, #3B82F6, #6366F1)", color: "#fff" }}>
-                    ⚡ Entrega digital imediata após confirmação
-                  </div>
-                </div>
 
                 {/* DROP ZONE: Below Form */}
                 <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
