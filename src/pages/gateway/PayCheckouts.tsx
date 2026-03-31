@@ -52,17 +52,33 @@ export default function PayCheckouts() {
   const fetchDomainFromDB = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
-    if (data) {
-      const cd = (data as any).custom_domain;
-      const dp = (data as any).domain_prefix || "pay";
-      if (cd) {
-        setSavedDomain(cd);
-        setSavedPrefix(dp);
-        setCustomDomain(cd.replace(`${dp}.`, ""));
-        setDomainPrefix(dp);
-        checkDomainStatus(cd);
+    try {
+      const { data } = await supabase.from("profiles").select("custom_domain, domain_prefix").eq("id", user.id).single();
+      if (data) {
+        const cd = (data as any).custom_domain;
+        const dp = (data as any).domain_prefix || "pay";
+        if (cd) {
+          setSavedDomain(cd);
+          setSavedPrefix(dp);
+          setCustomDomain(cd.replace(`${dp}.`, ""));
+          setDomainPrefix(dp);
+          checkDomainStatus(cd);
+          return;
+        }
       }
+    } catch {
+      // columns may not exist yet
+    }
+    // Fallback: check localStorage (legacy)
+    const lsDomain = localStorage.getItem("checkout_custom_domain");
+    const lsPrefix = localStorage.getItem("checkout_domain_prefix") || "pay";
+    const lsRoot = localStorage.getItem("checkout_domain_root") || "";
+    if (lsDomain) {
+      setSavedDomain(lsDomain);
+      setSavedPrefix(lsPrefix);
+      setCustomDomain(lsRoot);
+      setDomainPrefix(lsPrefix);
+      checkDomainStatus(lsDomain);
     }
   };
 
