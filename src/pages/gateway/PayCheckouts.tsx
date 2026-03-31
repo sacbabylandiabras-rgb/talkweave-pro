@@ -136,6 +136,8 @@ export default function PayCheckouts() {
           </p>
         </CardContent>
       </Card>
+
+      {checkouts.length === 0 ? (
         <Card className="border-[#2A2A2A]">
           <CardContent className="flex items-center justify-center py-16">
             <p className="text-sm text-muted-foreground">Nenhum checkout criado ainda. Clique em "Novo Checkout" para começar.</p>
