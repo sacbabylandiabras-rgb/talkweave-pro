@@ -70,15 +70,18 @@ export default function PayCheckouts() {
   };
 
   const saveDomain = () => {
-    const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const cleaned = customDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").replace(/^(pay\.|checkout\.)/, "");
     setCustomDomain(cleaned);
     if (cleaned) {
-      localStorage.setItem("checkout_custom_domain", cleaned);
+      const fullDomain = `${domainPrefix}.${cleaned}`;
+      localStorage.setItem("checkout_custom_domain", fullDomain);
       localStorage.setItem("checkout_domain_prefix", domainPrefix);
-      checkDomainStatus(cleaned);
+      localStorage.setItem("checkout_domain_root", cleaned);
+      checkDomainStatus(fullDomain);
     } else {
       localStorage.removeItem("checkout_custom_domain");
       localStorage.removeItem("checkout_domain_prefix");
+      localStorage.removeItem("checkout_domain_root");
       setDomainStatus("idle");
     }
     toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
