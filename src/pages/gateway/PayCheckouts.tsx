@@ -74,9 +74,11 @@ export default function PayCheckouts() {
     setCustomDomain(cleaned);
     if (cleaned) {
       localStorage.setItem("checkout_custom_domain", cleaned);
+      localStorage.setItem("checkout_domain_prefix", domainPrefix);
       checkDomainStatus(cleaned);
     } else {
       localStorage.removeItem("checkout_custom_domain");
+      localStorage.removeItem("checkout_domain_prefix");
       setDomainStatus("idle");
     }
     toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
