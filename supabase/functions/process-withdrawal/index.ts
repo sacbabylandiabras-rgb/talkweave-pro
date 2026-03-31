@@ -99,13 +99,18 @@ serve(async (req) => {
       })
     }
 
-    // APPROVED: execute PIX transfer via OpenPix
-    const openpixAppId = Deno.env.get('OPENPIX_APP_ID')
-    if (!openpixAppId) {
-      return new Response(JSON.stringify({ error: 'OpenPix not configured. Cannot process automatic payout.' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    // APPROVED: determine active acquirer for payout
+    let activeAcquirer = 'openpix'
+    try {
+      const { data: configData } = await supabase
+        .from('gateway_platform_config')
+        .select('value')
+        .eq('key', 'active_acquirer')
+        .single()
+      if (configData?.value) activeAcquirer = configData.value
+    } catch {}
+
+    console.log(`Active acquirer for payout: ${activeAcquirer}`)
 
     // Mark as processing
     await supabase
@@ -113,83 +118,157 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', withdrawalId)
 
-    // Map pix_key_type to OpenPix key type
-    const pixKeyTypeMap: Record<string, string> = {
-      'cpf': 'CPF',
-      'cnpj': 'CNPJ',
-      'email': 'EMAIL',
-      'telefone': 'PHONE',
-      'phone': 'PHONE',
-      'aleatoria': 'RANDOM',
-      'random': 'RANDOM',
-      'evp': 'RANDOM',
-    }
-
-    const keyType = pixKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'CPF'
     const WITHDRAWAL_FEE_CENTS = 1000 // R$ 10,00
     const payoutAmount = withdrawal.amount - WITHDRAWAL_FEE_CENTS
-    const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
 
-    console.log(`Processing withdrawal ${withdrawal.id}: ${withdrawal.amount} cents (fee: ${WITHDRAWAL_FEE_CENTS}, payout: ${payoutAmount}) to ${withdrawal.pix_key} (${keyType})`)
-
-    // Create payment request on OpenPix
-    const paymentRes = await fetch('https://api.openpix.com.br/api/v1/payment', {
-      method: 'POST',
-      headers: {
-        'Authorization': openpixAppId,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        value: payoutAmount,
-        destinationAlias: withdrawal.pix_key,
-        destinationAliasType: keyType,
-        correlationID,
-        comment: `Saque ZapLynxPay #${withdrawal.id.slice(0, 8)}`,
-      }),
-    })
-
-    const paymentData = await paymentRes.json()
-    console.log('OpenPix payment response:', JSON.stringify(paymentData))
-
-    if (!paymentRes.ok) {
-      console.error('OpenPix payment error:', paymentData)
-
-      // Revert to pending
-      await supabase
-        .from('gateway_withdrawals')
-        .update({
-          status: 'pending',
-          admin_notes: `Erro OpenPix: ${paymentData?.message || paymentData?.error || JSON.stringify(paymentData)}`,
+    if (activeAcquirer === 'hubpague') {
+      // === HubPague Transfer ===
+      const hubpagueToken = Deno.env.get('HUBPAGUE_TOKEN')
+      if (!hubpagueToken) {
+        await supabase.from('gateway_withdrawals').update({ status: 'pending', admin_notes: 'HUBPAGUE_TOKEN não configurado' }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'HubPague não configurado. Não é possível processar saque automático.' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
-        .eq('id', withdrawalId)
+      }
 
-      return new Response(JSON.stringify({
-        error: 'Falha ao processar transferência PIX',
-        details: paymentData?.message || paymentData?.error || 'Unknown OpenPix error',
-      }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Map pix_key_type to HubPague format: cpf, cnpj, email, phone, randomkey
+      const hubKeyTypeMap: Record<string, string> = {
+        'cpf': 'cpf',
+        'cnpj': 'cnpj',
+        'email': 'email',
+        'telefone': 'phone',
+        'phone': 'phone',
+        'aleatoria': 'randomkey',
+        'random': 'randomkey',
+        'evp': 'randomkey',
+      }
+      const hubKeyType = hubKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'cpf'
+
+      console.log(`HubPague transfer: ${payoutAmount} cents to ${withdrawal.pix_key} (${hubKeyType})`)
+
+      const hubRes = await fetch('https://app.hubpague.io/api/transfers/out', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${hubpagueToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pix_key_type: hubKeyType,
+          pix_key: withdrawal.pix_key,
+          value: payoutAmount,
+        }),
       })
-    }
 
-    // Success - update withdrawal
-    await supabase
-      .from('gateway_withdrawals')
-      .update({
+      const hubData = await hubRes.json()
+      console.log('HubPague transfer response:', JSON.stringify(hubData))
+
+      if (!hubRes.ok) {
+        console.error('HubPague transfer error:', hubData)
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `Erro HubPague: ${hubData?.message || hubData?.error || JSON.stringify(hubData)}`,
+        }).eq('id', withdrawalId)
+
+        return new Response(JSON.stringify({
+          error: 'Falha ao processar transferência PIX via HubPague',
+          details: hubData?.message || hubData?.error || 'Unknown HubPague error',
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const transferId = hubData.transfer_id || `hub_${withdrawalId}`
+
+      await supabase.from('gateway_withdrawals').update({
         status: 'approved',
-        admin_notes: adminNotes?.trim() || `PIX enviado automaticamente. Correlation: ${correlationID}`,
+        admin_notes: adminNotes?.trim() || `PIX enviado via HubPague. Transfer ID: ${transferId}`,
         reviewed_by: adminId,
         reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', withdrawalId)
+      }).eq('id', withdrawalId)
 
-    return new Response(JSON.stringify({
-      success: true,
-      status: 'approved',
-      correlationID,
-      message: 'Transferência PIX processada com sucesso',
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+      return new Response(JSON.stringify({
+        success: true,
+        status: 'approved',
+        correlationID: transferId,
+        message: 'Transferência PIX processada com sucesso via HubPague',
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+
+    } else {
+      // === OpenPix (Woovi) Transfer ===
+      const openpixAppId = Deno.env.get('OPENPIX_APP_ID')
+      if (!openpixAppId) {
+        await supabase.from('gateway_withdrawals').update({ status: 'pending' }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'OpenPix não configurado. Não é possível processar saque automático.' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const pixKeyTypeMap: Record<string, string> = {
+        'cpf': 'CPF',
+        'cnpj': 'CNPJ',
+        'email': 'EMAIL',
+        'telefone': 'PHONE',
+        'phone': 'PHONE',
+        'aleatoria': 'RANDOM',
+        'random': 'RANDOM',
+        'evp': 'RANDOM',
+      }
+      const keyType = pixKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'CPF'
+      const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
+
+      console.log(`OpenPix transfer: ${payoutAmount} cents to ${withdrawal.pix_key} (${keyType})`)
+
+      const paymentRes = await fetch('https://api.openpix.com.br/api/v1/payment', {
+        method: 'POST',
+        headers: {
+          'Authorization': openpixAppId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          value: payoutAmount,
+          destinationAlias: withdrawal.pix_key,
+          destinationAliasType: keyType,
+          correlationID,
+          comment: `Saque ZapLynxPay #${withdrawal.id.slice(0, 8)}`,
+        }),
+      })
+
+      const paymentData = await paymentRes.json()
+      console.log('OpenPix payment response:', JSON.stringify(paymentData))
+
+      if (!paymentRes.ok) {
+        console.error('OpenPix payment error:', paymentData)
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `Erro OpenPix: ${paymentData?.message || paymentData?.error || JSON.stringify(paymentData)}`,
+        }).eq('id', withdrawalId)
+
+        return new Response(JSON.stringify({
+          error: 'Falha ao processar transferência PIX',
+          details: paymentData?.message || paymentData?.error || 'Unknown OpenPix error',
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      await supabase.from('gateway_withdrawals').update({
+        status: 'approved',
+        admin_notes: adminNotes?.trim() || `PIX enviado via OpenPix. Correlation: ${correlationID}`,
+        reviewed_by: adminId,
+        reviewed_at: new Date().toISOString(),
+      }).eq('id', withdrawalId)
+
+      return new Response(JSON.stringify({
+        success: true,
+        status: 'approved',
+        correlationID,
+        message: 'Transferência PIX processada com sucesso via OpenPix',
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
   } catch (error) {
     console.error('Process withdrawal error:', error)
