@@ -64,6 +64,67 @@ const AdminZapLynx = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
 
+  // KYC
+  const { queue: kycQueue, loading: kycLoading, approveKyc, rejectKyc, refetch: refetchKyc } = useAdminKycQueue();
+  const [rejectReason, setRejectReason] = useState("");
+  const [kycProcessing, setKycProcessing] = useState(false);
+  const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
+
+  // Withdrawals
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [wProfiles, setWProfiles] = useState<Record<string, { full_name: string | null; email: string | null }>>({});
+  const [wLoading, setWLoading] = useState(true);
+  const [wTab, setWTab] = useState("pending");
+  const [reviewDialog, setReviewDialog] = useState<{ open: boolean; withdrawal: Withdrawal | null; action: "approved" | "rejected" }>({ open: false, withdrawal: null, action: "approved" });
+  const [adminNotes, setAdminNotes] = useState("");
+  const [wSubmitting, setWSubmitting] = useState(false);
+
+  const fetchWithdrawals = async () => {
+    setWLoading(true);
+    const { data: wData } = await supabase.from("gateway_withdrawals" as any).select("*").order("created_at", { ascending: false });
+    const list = (wData || []) as unknown as Withdrawal[];
+    setWithdrawals(list);
+    const userIds = [...new Set(list.map(w => w.user_id))];
+    if (userIds.length > 0) {
+      const { data: pData } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds);
+      const map: Record<string, { full_name: string | null; email: string | null }> = {};
+      (pData || []).forEach(p => { map[p.id] = p; });
+      setWProfiles(map);
+    }
+    setWLoading(false);
+  };
+
+  useEffect(() => { fetchWithdrawals(); }, []);
+
+  const handleWithdrawalReview = async () => {
+    if (!reviewDialog.withdrawal) return;
+    if (reviewDialog.action === "rejected" && !adminNotes.trim()) { toast.error("Informe o motivo da rejeição"); return; }
+    setWSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: { withdrawalId: reviewDialog.withdrawal.id, action: reviewDialog.action, adminNotes: adminNotes.trim() || null },
+      });
+      if (error || data?.error) { toast.error(data?.error || "Erro ao processar saque"); }
+      else { toast.success(reviewDialog.action === "approved" ? "Saque aprovado e PIX enviado!" : "Saque rejeitado"); setReviewDialog({ open: false, withdrawal: null, action: "approved" }); setAdminNotes(""); fetchWithdrawals(); }
+    } catch (err: any) { toast.error(err?.message || "Erro inesperado"); }
+    setWSubmitting(false);
+  };
+
+  const handleKycApprove = async (id: string) => {
+    setKycProcessing(true);
+    await approveKyc(id);
+    setKycProcessing(false);
+  };
+
+  const handleKycReject = async (id: string) => {
+    if (!rejectReason.trim()) { toast.error("Informe o motivo da reprovação"); return; }
+    setKycProcessing(true);
+    await rejectKyc(id, rejectReason);
+    setRejectReason("");
+    setSelectedKycId(null);
+    setKycProcessing(false);
+  };
+
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
     setEditDialogOpen(true);
