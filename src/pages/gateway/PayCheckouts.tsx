@@ -29,6 +29,7 @@ export default function PayCheckouts() {
   const [loading, setLoading] = useState(true);
   const [domainOpen, setDomainOpen] = useState(false);
   const [customDomain, setCustomDomain] = useState(localStorage.getItem("checkout_custom_domain") || "");
+  const [domainPrefix, setDomainPrefix] = useState(localStorage.getItem("checkout_domain_prefix") || "pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
 
   const fetchData = async () => {
@@ -73,9 +74,11 @@ export default function PayCheckouts() {
     setCustomDomain(cleaned);
     if (cleaned) {
       localStorage.setItem("checkout_custom_domain", cleaned);
+      localStorage.setItem("checkout_domain_prefix", domainPrefix);
       checkDomainStatus(cleaned);
     } else {
       localStorage.removeItem("checkout_custom_domain");
+      localStorage.removeItem("checkout_domain_prefix");
       setDomainStatus("idle");
     }
     toast.success(cleaned ? "Domínio salvo!" : "Domínio removido");
@@ -176,7 +179,7 @@ export default function PayCheckouts() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/gateway-checkout/checkouts/edit/${ck.id}`)}><Edit className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; navigator.clipboard.writeText(`https://${domain}/pay/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { const domain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online"; const prefix = localStorage.getItem("checkout_domain_prefix") || "pay"; navigator.clipboard.writeText(`https://${domain}/${prefix}/${ck.slug || ck.id}`); toast.success("Link copiado!"); }}><Copy className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCheckout(ck.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </TableCell>
@@ -206,7 +209,7 @@ export default function PayCheckouts() {
               <label className="text-xs font-medium text-foreground">Seu domínio</label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="pay.seusite.com"
+                  placeholder="seusite.com"
                   value={customDomain}
                   onChange={e => setCustomDomain(e.target.value)}
                 />
@@ -214,6 +217,33 @@ export default function PayCheckouts() {
                   <Save className="w-4 h-4 mr-1" /> Salvar
                 </Button>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Prefixo da URL</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={domainPrefix === "pay" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("pay")}
+                >
+                  /pay/
+                </Button>
+                <Button
+                  variant={domainPrefix === "checkout" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDomainPrefix("checkout")}
+                >
+                  /checkout/
+                </Button>
+              </div>
+              {customDomain && (
+                <p className="text-[11px] text-muted-foreground">
+                  Exemplo: <code className="bg-muted px-1 rounded">https://{customDomain}/{domainPrefix}/seu-produto</code>
+                </p>
+              )}
             </div>
 
             {/* Status */}
