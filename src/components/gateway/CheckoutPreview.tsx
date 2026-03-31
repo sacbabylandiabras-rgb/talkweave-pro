@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2, Upload } from "lucide-react";
 import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-templates/PaymentIcons";
+import { CheckoutElement, CheckoutElementType, ElementPosition } from "./checkout-elements/types";
+import CheckoutDropZone from "./checkout-elements/CheckoutDropZone";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
