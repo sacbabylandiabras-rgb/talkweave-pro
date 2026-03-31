@@ -96,7 +96,10 @@ export default function CheckoutElementsSidebar({
                   <button
                     key={def.type}
                     draggable
-                    onDragStart={() => onDragStart(def.type)}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("element-type", def.type);
+                      onDragStart(def.type);
+                    }}
                     onClick={() => onAddElement(def.type, "below-form")}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#FF4D2E]/50 hover:bg-[#FF4D2E]/5 transition-all cursor-grab active:cursor-grabbing"
                   >
