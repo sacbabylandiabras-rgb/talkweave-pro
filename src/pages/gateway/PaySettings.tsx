@@ -177,7 +177,7 @@ export default function PaySettings() {
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.ownership_verification || null);
-      toast.success("Domínio registrado no Cloudflare! SSL sendo provisionado automaticamente.");
+      toast.success("Domínio registrado no Vercel! SSL sendo provisionado automaticamente.");
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));

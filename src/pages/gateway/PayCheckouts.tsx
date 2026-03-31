@@ -413,10 +413,13 @@ export default function PayCheckouts() {
 
             {/* Setup Instructions */}
             <div className="space-y-3 p-3 rounded-lg bg-muted/30 border">
-              <p className="text-xs font-semibold text-foreground">📋 Como configurar (Cloudflare)</p>
+              <p className="text-xs font-semibold text-foreground">📋 Como configurar (Vercel)</p>
               
               <div className="space-y-2">
-                <p className="text-xs font-medium text-foreground">1. Adicione o subdomínio no DNS</p>
+                <p className="text-xs font-medium text-foreground">1. Configure o DNS</p>
+                <p className="text-[11px] text-muted-foreground">
+                  No provedor DNS do seu domínio, crie um registro <strong>CNAME</strong>:
+                </p>
                 <div className="space-y-1 text-[11px]">
                   <div className="grid grid-cols-[50px_70px_1fr] gap-2 items-center">
                     <span className="font-semibold text-foreground">Tipo</span>
@@ -424,69 +427,27 @@ export default function PayCheckouts() {
                     <span className="font-semibold text-foreground">Conteúdo</span>
                   </div>
                   <div className="grid grid-cols-[50px_70px_1fr] gap-2 items-center">
-                    <span className="text-muted-foreground">A</span>
+                    <span className="text-muted-foreground">CNAME</span>
                     <span className="text-muted-foreground">{domainPrefix}</span>
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">192.0.2.1</code>
+                    <div className="flex items-center gap-1">
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground text-[11px]">cname.vercel-dns.com</code>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { navigator.clipboard.writeText("cname.vercel-dns.com"); toast.success("Copiado!"); }}>
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Proxy (nuvem laranja) ativado. O IP é apenas placeholder.</p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs font-medium text-foreground">2. Crie um Worker no Cloudflare</p>
+                <p className="text-xs font-medium text-foreground">2. Ative o domínio</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Vá em <strong>Workers & Pages → Create Worker</strong> e cole o código abaixo:
-                </p>
-                <div className="relative">
-                  <pre className="bg-muted/60 p-2 rounded text-[10px] font-mono overflow-x-auto whitespace-pre-wrap text-foreground">{`export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const target = "https://talkweave-pro.lovable.app/pay"
-      + url.pathname + url.search;
-    const res = await fetch(target, {
-      method: request.method,
-      headers: { ...Object.fromEntries(request.headers),
-        Host: "talkweave-pro.lovable.app" },
-      body: request.method !== "GET"
-        ? request.body : undefined,
-    });
-    return new Response(res.body, res);
-  }
-}`}</pre>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const target = "https://talkweave-pro.lovable.app/pay" + url.pathname + url.search;
-    const res = await fetch(target, {
-      method: request.method,
-      headers: { ...Object.fromEntries(request.headers), Host: "talkweave-pro.lovable.app" },
-      body: request.method !== "GET" ? request.body : undefined,
-    });
-    return new Response(res.body, res);
-  }
-}`);
-                      toast.success("Código copiado!");
-                    }}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-foreground">3. Vincule o Worker ao domínio</p>
-                <p className="text-[11px] text-muted-foreground">
-                  No Worker → <strong>Settings → Triggers → Custom Domains</strong> → adicione <code className="bg-muted px-1 rounded">{domainPrefix}.{customDomain || "seudominio.com"}</code>
+                  Após configurar o DNS, clique em <strong>Salvar</strong> acima. O domínio será registrado automaticamente no Vercel com SSL.
                 </p>
               </div>
 
               <p className="text-[10px] text-muted-foreground mt-1">
-                ⏱ A propagação pode levar alguns minutos. Use o botão "Atualizar" para verificar.
+                ⏱ A propagação DNS pode levar alguns minutos. Use o botão "Atualizar" para verificar.
               </p>
             </div>
           </div>
