@@ -35,6 +35,14 @@
 
     /* Container */
     .co { max-width: 32rem; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 16px; }
+    /* 2-col layout */
+    .layout-2col { max-width: 56rem; margin: 0 auto; padding: 24px 16px; display: flex; gap: 20px; }
+    .layout-2col .col-main { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .layout-2col .col-side { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+    @media (max-width: 768px) {
+      .layout-2col { flex-direction: column; padding: 16px 12px; }
+      .layout-2col .col-side { width: 100%; }
+    }
 
     /* Steps */
     .steps { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0; }
@@ -42,6 +50,13 @@
     .step-c { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--step-radius); transition: all .3s; }
     .step-l { font-size: 10px; font-weight: 600; }
     .step-sep { width: 32px; height: 2px; border-radius: 1px; margin-bottom: 20px; }
+
+    /* Horizontal steps (tabs) */
+    .step-tabs { display: flex; border: 1px solid var(--border); border-radius: var(--card-radius); overflow: hidden; background: var(--card-bg); }
+    .step-tab { flex: 1; display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: .75rem; font-weight: 600; cursor: pointer; border-right: 1px solid var(--border); color: var(--card-text); background: transparent; border-top: none; border-bottom: none; border-left: none; }
+    .step-tab:last-child { border-right: none; }
+    .step-tab.active { background: rgba(239,68,68,.06); }
+    .step-num { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border-radius: var(--step-radius); flex-shrink: 0; }
 
     /* Card */
     .c { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 20px; }
@@ -120,7 +135,6 @@
     .bank-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: opacity .2s; margin-bottom: 8px; background: var(--card-bg); }
     .bank-item:hover { opacity: .8; }
     .bank-logo { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
-    .bank-logo div { width: 100%; height: 100%; border-radius: 6px; }
     .bank-info { flex: 1; }
     .bank-info p:first-child { font-size: .75rem; font-weight: 600; color: var(--card-title); }
     .bank-info p:last-child { font-size: .625rem; color: var(--card-desc); }
@@ -128,15 +142,42 @@
 
     /* Guarantee */
     .guarantee { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: .75rem; padding: 8px 0; color: var(--card-desc); }
+    /* Guarantee dashed box */
+    .guarantee-box { border: 2px dashed var(--primary); border-radius: var(--card-radius); padding: 16px; text-align: center; background: rgba(239,68,68,.04); }
 
     /* Waiting */
     .waiting { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; }
     .waiting span { font-size: .75rem; font-weight: 500; color: var(--card-desc); }
 
-    /* Footer */
-    .foot { text-align: center; padding: 16px; font-size: .7rem; color: var(--card-desc); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .foot-badges { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-    .foot-badges img { height: 20px; }
+    /* Testimonial */
+    .testimonial { border-radius: 12px; border: 1px solid #FED7AA; background: #FFF7ED; padding: 16px; }
+    .testimonial .stars { display: flex; gap: 2px; margin-bottom: 4px; }
+    .testimonial .t-name { font-size: .75rem; font-weight: 700; color: var(--card-title); }
+    .testimonial .t-text { font-size: .75rem; color: var(--card-desc); margin-top: 2px; line-height: 1.5; }
+    /* Confianca testimonial (inside card) */
+    .testimonial-card { border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--card-bg); padding: 16px; }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 0; background: none; border: none; cursor: pointer; text-align: left; font-size: .75rem; font-weight: 500; color: var(--card-text); }
+    .faq-a { font-size: .75rem; color: var(--card-desc); padding-bottom: 12px; line-height: 1.5; }
+
+    /* Collapsible section (TokLynx mobile) */
+    .collapse-header { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: .6875rem; font-weight: 600; color: var(--card-title); }
+    .collapse-content { padding: 0 16px 16px; }
+
+    /* Banner (Confianca) */
+    .banner-area { width: 100%; padding: 32px 24px; display: flex; align-items: center; justify-content: center; }
+
+    /* Info badges */
+    .info-badge { display: flex; align-items: flex-start; gap: 12px; }
+    .info-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .info-badge .ib-title { font-size: .75rem; font-weight: 700; color: var(--card-title); }
+    .info-badge .ib-desc { font-size: .6875rem; color: var(--card-desc); }
+
+    /* Promo banner (Alto Impacto) */
+    .promo-banner { border-radius: var(--card-radius); border: 1px solid var(--border); overflow: hidden; text-align: center; padding: 12px 20px; font-size: .75rem; font-weight: 600; color: #fff; }
 
     .hidden { display: none; }
 
@@ -159,11 +200,13 @@
   var step = 1, fd = { name:'', email:'', cpf:'', phone:'' }, pixData = null, cfg = null, tenant = null;
   var showAllBanks = false, receiptUploaded = false;
   var timerSec = 0, countM = 0, countS = 0;
+  var quantity = 1; // LynxFy / Confianca
+  var openFaq = -1; // Confianca
 
   var FONTS = {
     inter: { f: "'Inter', sans-serif", u: "Inter:wght@400;500;600;700;800" },
     plus_jakarta: { f: "'Plus Jakarta Sans', sans-serif", u: "Plus+Jakarta+Sans:wght@400;500;600;700;800" },
-    roboto: { f: "'Roboto', sans-serif", u: "Roboto:wght@400;500;700;900" },
+    roboto: { f: "'Roboto', sans-serif", u: "Roboto:wght@400;500;600;700;900" },
     montserrat: { f: "'Montserrat', sans-serif", u: "Montserrat:wght@400;500;600;700;800" },
     poppins: { f: "'Poppins', sans-serif", u: "Poppins:wght@400;500;600;700;800" },
     dm_sans: { f: "'DM Sans', sans-serif", u: "DM+Sans:wght@400;500;600;700" },
@@ -175,13 +218,13 @@
   function getSlug() { var p = location.pathname.split('/').filter(Boolean), i = p.indexOf('pay'); return (i!==-1 && p[i+1]) ? p[i+1] : p[p.length-1] || null; }
   function getTenant() { var p = new URLSearchParams(location.search); if (p.get('tenant')) return p.get('tenant'); var h = location.hostname; if (h==='localhost'||h.includes('127.0.0.1')) return null; return h.split('.').length > 2 ? h : null; }
 
-  // SVG icons
   var I = {
     lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     shield: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
     shieldSm: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
     user: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     check: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+    checkSm: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>',
     card: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
     cart: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>',
     phone: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
@@ -189,6 +232,15 @@
     file: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
     warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     qr: '<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/></svg>',
+    chevDown: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>',
+    chevUp: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>',
+    star: '<svg width="14" height="14" viewBox="0 0 24 24" fill="#FACC15" stroke="#FACC15" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    truck: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+    package: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+    zap: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    minus: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    plus: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    shoppingBag: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
   };
 
   var BANKS = [
@@ -201,6 +253,13 @@
     { n:'Santander', d:'Abrir app Santander', logo:'/banks/santander.png' },
     { n:'PicPay', d:'Abrir app PicPay', logo:'/banks/picpay.png' },
     { n:'Mercado Pago', d:'Abrir app Mercado Pago', logo:'/banks/mercadopago.png' },
+  ];
+
+  var FAQ_ITEMS = [
+    { q: 'Quais formas de pagamento são aceitas?', a: 'Aceitamos Pix, cartão de crédito (Visa, Mastercard, Elo, Amex) e boleto bancário.' },
+    { q: 'Posso parcelar minha compra?', a: 'Sim! Parcele em até 12x sem juros no cartão de crédito.' },
+    { q: 'Recebo confirmação após o pagamento?', a: 'Sim, você receberá um e-mail e mensagem no WhatsApp com a confirmação.' },
+    { q: 'Qual o prazo de entrega?', a: 'Enviamos em até 24 horas após a confirmação do pagamento.' },
   ];
 
   function applyCSS(c) {
@@ -230,15 +289,40 @@
     if (fl) fl.href = 'https://fonts.googleapis.com/css2?family=' + fd2.u + '&display=swap';
   }
 
-  function pixPrice() { return cfg.pixDiscount > 0 ? Math.round(cfg.price * (1 - cfg.pixDiscount/100)) : cfg.price; }
+  function pixPrice() {
+    var base = cfg.price;
+    if (cfg.templateId === 'lynxfy' || cfg.templateId === 'confianca') base = cfg.price * quantity;
+    return cfg.pixDiscount > 0 ? Math.round(base * (1 - cfg.pixDiscount/100)) : base;
+  }
 
-  // Steps
+  function getTimerStr() {
+    return '00h : '+String(countM).padStart(2,'0')+'m : '+String(countS).padStart(2,'0')+'s';
+  }
+
+  /* ── Resolve template ID ── */
+  function resolveTemplate(id) {
+    if (!id) return 'default';
+    var map = {
+      'minimalista':'minimalista','Minimalista':'minimalista',
+      'alto-impacto':'alto-impacto','Alto Impacto':'alto-impacto','alto_impacto':'alto-impacto',
+      'tiktok':'tiktok','TikTok':'tiktok','TokLynx':'tiktok','toklynx':'tiktok',
+      'streamline':'streamline','Streamline':'streamline',
+      'lynxfy':'lynxfy','LynxFy':'lynxfy',
+      'confianca':'confianca','Confiança':'confianca','confiança':'confianca',
+    };
+    return map[id] || 'default';
+  }
+
+  /* ══════════════════════════════════
+     SHARED COMPONENTS
+     ══════════════════════════════════ */
+
+  // Step indicators (pill style - used by most templates)
   function stepsHTML() {
     var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
     var h = '<div class="steps">';
     labels.forEach(function(s,i) {
       var active = step===s.n, done = step > s.n;
-      var bgC = (active||done) ? 'var(--primary)' : '#E5E7EB';
       var bgA = (active||done) ? 'rgba(239,68,68,.08)' : '#E5E7EB';
       var border = active ? '2px solid var(--primary)' : done ? '2px solid rgba(239,68,68,.5)' : '2px solid transparent';
       var iconColor = (active||done) ? 'var(--primary)' : 'var(--card-desc)';
@@ -257,63 +341,125 @@
     return h;
   }
 
-  // Summary card (always visible)
-  function summaryHTML() {
+  // Step tabs (horizontal - Streamline)
+  function stepTabsHTML() {
+    var labels = [{n:1,l:'Identificação'},{n:2,l:'Conferência'},{n:3,l:'Pagamento'}];
+    var h = '<div class="step-tabs">';
+    labels.forEach(function(s) {
+      var active = step===s.n, done = step > s.n;
+      var bg = active ? 'var(--step-bg)' : (done ? 'var(--step-bg)' : '#E5E7EB');
+      var fg = (active||done) ? 'var(--step-text)' : '#9CA3AF';
+      h += '<button class="step-tab'+(active?' active':'')+'" onclick="goStep('+s.n+')">';
+      h += '<div class="step-num" style="background:'+bg+';color:'+fg+'">'+(done?I.checkSm:s.n)+'</div>';
+      h += '<span style="color:'+(active?'var(--step-bg)':'var(--card-text)')+'">'+s.l+'</span>';
+      h += '</button>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // Sidebar summary card
+  function sidebarSummaryHTML(opts) {
+    opts = opts || {};
+    var price = cfg.price;
+    if (opts.useQuantity) price = cfg.price * quantity;
+    var frete = opts.freteGratis ? 0 : 1500;
+    var total = price + frete;
     var h = '<div class="c">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center"><h3>Resumo do pedido</h3><span style="font-size:.75rem;color:#16A34A">● Dados seguros</span></div>';
+    h += '<h3 style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--card-desc)">Resumo'+(opts.showCount?' ('+quantity+')':'')+'</h3>';
+    // Product
     h += '<div style="display:flex;align-items:center;gap:12px;margin-top:12px">';
-    h += '<div style="width:56px;height:56px;border-radius:var(--card-radius);overflow:hidden;flex-shrink:0;background:#F3F4F6;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)">';
-    if (cfg.productImage) h += '<img src="'+cfg.productImage+'" alt="" style="width:100%;height:100%;object-fit:cover" />';
-    else h += '<span style="color:var(--card-desc)">'+I.cart+'</span>';
+    h += '<div style="width:48px;height:48px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#F3F4F6;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)">';
+    if (cfg.productImage) h += '<img src="'+cfg.productImage+'" style="width:100%;height:100%;object-fit:cover" />';
+    else h += '<span style="color:var(--card-desc)">'+I.package+'</span>';
     h += '</div>';
     h += '<div style="flex:1;min-width:0">';
-    h += '<p style="font-size:.875rem;font-weight:500;color:var(--card-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(cfg.offerName||cfg.productName||'Produto')+'</p>';
-    if (cfg.originalPrice > cfg.price) h += '<p style="font-size:.75rem;text-decoration:line-through;color:var(--card-desc)">'+fmt(cfg.originalPrice)+'</p>';
-    h += '<p style="font-size:.875rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</p>';
-    h += '</div></div>';
-    // Coupon (step 1 only)
+    h += '<p style="font-size:.75rem;font-weight:600;color:var(--card-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(cfg.offerName||cfg.productName||'Produto')+'</p>';
+    h += '<p style="font-size:.75rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</p>';
+    h += '</div>';
+    if (opts.showQuantity) {
+      h += '<div style="display:flex;align-items:center;gap:4px">';
+      h += '<button onclick="changeQty(-1)" style="width:20px;height:20px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;background:none;cursor:pointer;color:var(--card-label)">'+I.minus+'</button>';
+      h += '<span style="font-size:.75rem;font-weight:500;width:16px;text-align:center;color:var(--card-text)">'+quantity+'</span>';
+      h += '<button onclick="changeQty(1)" style="width:20px;height:20px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;background:none;cursor:pointer;color:var(--card-label)">'+I.plus+'</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+    // Coupon
     if (step === 1) {
       h += '<div style="display:flex;gap:8px;margin-top:12px">';
-      h += '<input style="flex:1;padding:8px 12px;font-size:.875rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Cupom de desconto" />';
-      h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
+      h += '<input style="flex:1;padding:6px 10px;font-size:.75rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Cupom de desconto" />';
+      h += '<button style="padding:6px 12px;font-size:.75rem;font-weight:600;border:none;border-radius:var(--btn-radius);background:var(--btn-color);color:#fff;cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
     // Totals
     h += '<div class="sum-sep">';
-    h += '<div class="sum-row"><span class="sl">Subtotal</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
-    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">Grátis</span></div>';
-    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Produtos</span><span class="sv">'+fmt(price)+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">'+(frete>0?'+ '+fmt(frete):'Grátis')+'</span></div>';
+    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(total)+'</span></div>';
     h += '</div></div>';
     return h;
   }
 
-  // Step 1
-  function step1HTML() {
-    var h = '<div class="c">';
-    h += '<h3>Dados pessoais</h3><p class="desc">Informe seus dados para concluir sua compra com segurança.</p>';
-    h += '<div style="margin-top:16px">';
-    h += '<div class="fg"><label>Nome completo</label><input id="f-name" placeholder="Digite seu nome completo" value="'+fd.name+'" /></div>';
-    h += '<div class="fg"><label>E-mail</label><input id="f-email" type="email" placeholder="seu@email.com" value="'+fd.email+'" /></div>';
-    h += '<div class="fg"><label>CPF ou CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+fd.cpf+'" /><div class="err" id="cpf-err"></div></div>';
-    if (cfg.showPhone !== false) {
-      h += '<div class="fg"><label>Celular (WhatsApp)</label>';
+  // "Atenção" purchase count card
+  function purchaseCountHTML() {
+    return '<div style="border-radius:12px;border:1px solid #BBF7D0;background:#F0FDF4;padding:16px;text-align:center">'
+      +'<p style="font-size:.75rem;font-weight:600;color:var(--card-title)">Atenção</p>'
+      +'<p style="font-size:.75rem;margin-top:2px;color:var(--card-desc)">Não perca essa oportunidade!</p>'
+      +'<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">'
+      +'<span style="color:#16A34A">'+I.shoppingBag+'</span>'
+      +'<span style="font-size:1.125rem;font-weight:800;color:#16A34A">55 Compras</span>'
+      +'</div></div>';
+  }
+
+  // Form field helpers
+  function fieldHTML(id, label, placeholder, value, opts) {
+    opts = opts || {};
+    var h = '<div class="fg">';
+    h += '<label>'+label+(opts.required?' <span style="color:#EF4444">*</span>':'')+'</label>';
+    if (opts.phone) {
       h += '<div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div>';
-      h += '<input id="f-phone" placeholder="(00) 00000-0000" value="'+fd.phone+'" style="flex:1" /></div></div>';
+      h += '<input id="'+id+'" placeholder="'+placeholder+'" value="'+(value||'')+'" style="flex:1" /></div>';
+    } else {
+      h += '<input id="'+id+'" placeholder="'+placeholder+'" value="'+(value||'')+'"'+(opts.type?' type="'+opts.type+'"':'')+' />';
     }
-    h += '</div></div>';
-    // Order bump
-    if (cfg.showOrderBump) {
-      h += '<div class="c" style="border:2px dashed var(--primary)">';
-      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--primary)" /><span style="font-size:.75rem;font-weight:700;color:var(--primary)">🎁 OFERTA ESPECIAL!</span></div>';
-      h += '<p style="font-size:.75rem;color:var(--card-desc)">'+(cfg.orderBumpText||'Adicione este produto por apenas')+' <strong style="color:var(--primary)">'+fmt(cfg.orderBumpPrice)+'</strong></p>';
-      h += '</div>';
-    }
-    // Button
-    h += '<button class="btn" id="btn-s1">'+I.lock+' Continuar</button>';
+    if (opts.errId) h += '<div class="err" id="'+opts.errId+'"></div>';
+    h += '</div>';
     return h;
   }
 
-  // Step 2
+  // Payment footer
+  function footerHTML() {
+    return '<div style="padding:16px 0;text-align:center">'
+      +'<p style="font-size:10px;color:#9CA3AF;font-weight:500;margin-bottom:8px">Formas de Pagamento</p>'
+      +'<div style="display:flex;align-items:center;justify-content:center;gap:8px">'
+      +'<img src="/banks/pix.png" alt="Pix" style="height:18px;object-fit:contain">'
+      +'<img src="/banks/mastercard.png" alt="Mastercard" style="height:17px;object-fit:contain">'
+      +'<img src="/banks/visa.png" alt="Visa" style="height:17px;object-fit:contain">'
+      +'<img src="/banks/elo.jpg" alt="Elo" style="height:17px;object-fit:contain">'
+      +'<img src="/banks/amex.png" alt="Amex" style="height:17px;object-fit:contain;border-radius:3px">'
+      +'</div>'
+      +'<p style="font-size:10px;color:#9CA3AF;margin-top:8px">Pagamento processado com segurança por ZapLynxPay</p>'
+      +'</div>';
+  }
+
+  // Guarantee
+  function guaranteeHTML(opts) {
+    opts = opts || {};
+    if (cfg.showGuarantee === false) return '';
+    if (opts.dashed) {
+      return '<div class="guarantee-box">'
+        +I.shieldSm
+        +'<p style="font-size:.75rem;font-weight:700;color:var(--primary);margin-top:4px">Garantia de '+(cfg.guaranteeDays||7)+' dias</p>'
+        +'<p style="font-size:.625rem;color:var(--card-desc);margin-top:2px">Satisfação garantida ou seu dinheiro de volta</p>'
+        +'</div>';
+    }
+    return '<div class="guarantee">'+I.shieldSm+' Garantia de '+(cfg.guaranteeDays||7)+' dias — Satisfação ou dinheiro de volta</div>';
+  }
+
+  /* ══════════════════════════════════
+     SHARED STEP 2: REVIEW
+     ══════════════════════════════════ */
   function step2HTML() {
     var h = '<div class="c">';
     h += '<h3>Confira seus dados</h3><p class="desc">Verifique se as informações estão corretas antes de prosseguir.</p>';
@@ -322,7 +468,9 @@
     h += '<div class="rv"><span class="rl">E-mail</span><span class="rval">'+(fd.email||'—')+'</span></div>';
     h += '<div class="rv"><span class="rl">CPF / CNPJ</span><span class="rval">'+(fd.cpf||'—')+'</span></div>';
     if (cfg.showPhone !== false && fd.phone) h += '<div class="rv"><span class="rl">Celular</span><span class="rval">'+fd.phone+'</span></div>';
-    h += '<div class="rv"><span class="rl">Valor total</span><span class="rval" style="font-size:1rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</span></div>';
+    var tp = cfg.price;
+    if (cfg.templateId === 'lynxfy' || cfg.templateId === 'confianca') tp = cfg.price * quantity;
+    h += '<div class="rv"><span class="rl">Valor total</span><span class="rval" style="font-size:1rem;font-weight:700;color:var(--primary)">'+fmt(tp)+'</span></div>';
     h += '</div></div>';
     h += '<div class="btn-row">';
     h += '<button class="btn btn-outline" id="btn-back">Voltar</button>';
@@ -331,12 +479,13 @@
     return h;
   }
 
-  // Step 3
+  /* ══════════════════════════════════
+     SHARED STEP 3: PAYMENT
+     ══════════════════════════════════ */
   function step3HTML() {
     var pp = pixPrice();
-    var tStr = '00h : '+String(countM).padStart(2,'0')+'m : '+String(countS).padStart(2,'0')+'s';
+    var tStr = getTimerStr();
     var h = '';
-    // "Já é quase seu..."
     h += '<div class="c">';
     h += '<h3 style="font-size:1.125rem">Já é quase seu...</h3>';
     h += '<p style="font-size:.875rem;color:var(--card-desc);margin-top:8px">Pague seu pix dentro de <span style="font-weight:700;color:var(--primary)">'+tStr+'</span> para garantir sua compra</p>';
@@ -344,11 +493,7 @@
     h += '<span style="font-size:.875rem;font-weight:500;color:var(--card-desc)">Valor do pedido</span>';
     h += '<span style="font-size:1.25rem;font-weight:700;color:var(--card-title)">'+fmt(pp)+'</span>';
     h += '</div></div>';
-
-    // Beneficiary
     h += '<div class="c" style="padding:16px"><p class="benef">'+I.shieldSm+' O beneficiário do Pix é o <strong>INTERMEDIADOR (AKASEG)</strong>, a empresa que gerencia nossos pagamentos de forma segura.</p></div>';
-
-    // QR Code
     h += '<div class="c">';
     if (pixData) {
       h += '<p style="font-size:.75rem;font-weight:500;color:var(--card-label);text-align:center">'+I.phone+' aponte a câmera do seu celular</p>';
@@ -362,18 +507,13 @@
       h += '<div id="pix-status" style="text-align:center;padding:8px"><div class="spinner" style="margin:0 auto"></div><p style="font-size:.75rem;color:var(--card-desc);margin-top:8px">Gerando QR Code PIX...</p></div>';
     }
     h += '</div>';
-
-    // How to pay
     h += '<div class="c"><h3 style="font-size:.875rem">como pagar o pix</h3><div style="margin-top:12px">';
-    var steps = ['abra o app do seu banco','acesse a opção "Copia e Cola"','insira o código copiado e finalize seu pagamento'];
-    steps.forEach(function(t,i) {
+    var howSteps = ['abra o app do seu banco','acesse a opção "Copia e Cola"','insira o código copiado e finalize seu pagamento'];
+    howSteps.forEach(function(t,i) {
       h += '<div class="how-step"><div class="how-num" style="background:rgba(239,68,68,.08);color:var(--primary)">'+(i+1)+'</div><p class="how-text">'+t+'</p></div>';
     });
     h += '</div></div>';
-
-    // Warning
     h += '<div class="warn">'+I.warn+'<p>Os bancos reforçaram a segurança do Pix e podem exibir alertas preventivos durante o pagamento. Fique tranquilo — sua transação é segura e está totalmente protegida.</p></div>';
-
     // Upload receipt
     h += '<div class="c">';
     h += '<h3 style="color:var(--primary);display:flex;align-items:center;gap:8px">'+I.file+' enviar comprovante</h3>';
@@ -388,7 +528,6 @@
       h += '</div>';
     }
     h += '</div>';
-
     // Banks
     h += '<div class="c"><h3 style="font-size:.875rem">pague com seu banco</h3><p style="font-size:.75rem;color:var(--card-desc);margin-top:4px">Clique no seu banco para abrir o app e pagar:</p>';
     h += '<div style="margin-top:12px" id="banks-list">';
@@ -401,40 +540,318 @@
     h += '</div>';
     h += '<button class="bank-toggle" id="btn-banks">'+(showAllBanks ? '▲ Ver menos' : '▼ Ver todos os bancos')+'</button>';
     h += '</div>';
-
-    // Waiting
     h += '<div class="waiting"><div class="spinner" style="width:16px;height:16px;border-width:2px"></div><span>aguardando pagamento...</span></div>';
-
     return h;
   }
 
+  /* ══════════════════════════════════
+     TEMPLATE-SPECIFIC STEP 1
+     ══════════════════════════════════ */
+
+  // Default / generic
+  function step1Default() {
+    var h = '<div class="c">';
+    h += '<h3>Dados pessoais</h3><p class="desc">Informe seus dados para concluir sua compra com segurança.</p>';
+    h += '<div style="margin-top:16px">';
+    h += fieldHTML('f-name','Nome completo','Digite seu nome completo',fd.name);
+    h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
+    if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
+    h += '</div></div>';
+    if (cfg.showOrderBump) {
+      h += '<div class="c" style="border:2px dashed var(--primary)">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--primary)" /><span style="font-size:.75rem;font-weight:700;color:var(--primary)">🎁 OFERTA ESPECIAL!</span></div>';
+      h += '<p style="font-size:.75rem;color:var(--card-desc)">'+(cfg.orderBumpText||'Adicione este produto por apenas')+' <strong style="color:var(--primary)">'+fmt(cfg.orderBumpPrice)+'</strong></p>';
+      h += '</div>';
+    }
+    h += '<button class="btn" id="btn-s1">'+I.lock+' Continuar</button>';
+    return h;
+  }
+
+  // Minimalista: same as default but with step indicator inside card
+  function step1Minimalista() {
+    var h = '<div class="c">';
+    h += '<div><h3 style="display:flex;align-items:center;gap:8px"><div class="step-num" style="background:var(--step-bg);color:var(--step-text)">1</div> Identificação</h3>';
+    h += '<p class="desc" style="margin-left:32px">Preencha as informações essenciais para concluir sua compra com segurança.</p></div>';
+    h += '<div style="margin-top:16px">';
+    h += fieldHTML('f-name','Nome completo','Digite seu nome completo',fd.name);
+    h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
+    if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
+    h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    h += '</div>';
+    h += '<button class="btn" id="btn-s1" style="margin-top:8px">PRÓXIMO</button>';
+    h += '</div>';
+    return h;
+  }
+
+  // Alto Impacto: email first, phone+cpf side by side, promo banners
+  function step1AltoImpacto() {
+    var h = '<div class="c">';
+    h += '<h3>Informações de contato</h3>';
+    h += '<div style="margin-top:12px">';
+    h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    h += fieldHTML('f-name','Nome completo','Digite seu nome completo',fd.name);
+    h += '<div class="fg-row">';
+    h += '<div class="fg"><label>Celular</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
+    h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
+    h += '</div>';
+    h += '</div></div>';
+    h += '<div class="promo-banner" style="background:linear-gradient(135deg,#0EA5E9,#2563EB)">🚚 Frete Grátis para todo o Brasil!</div>';
+    h += '<div class="promo-banner" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">⚡ Entrega digital imediata após confirmação</div>';
+    h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
+    return h;
+  }
+
+  // TokLynx/TikTok: contact + address + cpf sections
+  function step1TokLynx() {
+    var h = '';
+    if (cfg.showAddress) {
+      h += '<div class="c">';
+      h += '<h3 style="font-size:.6875rem">Endereço de Entrega</h3>';
+      h += '<div style="margin-top:8px">';
+      h += fieldHTML('f-cep','CEP','00000-000','');
+      h += '<div class="fg-row">';
+      h += '<div class="fg"><label>Rua</label><input placeholder="Rua *" /></div>';
+      h += '<div class="fg"><label>Número</label><input placeholder="Nº *" /></div>';
+      h += '</div>';
+      h += fieldHTML('f-comp','Complemento','Complemento','');
+      h += '<div class="fg-row">';
+      h += '<div class="fg"><label>Bairro</label><input placeholder="Bairro *" /></div>';
+      h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade *" /></div>';
+      h += '<div class="fg"><label>UF</label><input placeholder="UF *" /></div>';
+      h += '</div></div></div>';
+    }
+    h += '<div class="c">';
+    h += '<h3 style="font-size:.6875rem">CPF / CNPJ <span style="color:#EF4444">*</span></h3>';
+    h += '<div style="margin-top:8px">';
+    h += '<input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.6875rem;outline:none;background:var(--input-bg);color:var(--card-text)" />';
+    h += '<div class="err" id="cpf-err"></div>';
+    h += '</div></div>';
+    h += '<div class="c">';
+    h += '<h3 style="font-size:.6875rem;display:flex;align-items:center;gap:6px">'+I.user+' Informações de Contato</h3>';
+    h += '<div style="margin-top:8px">';
+    h += '<input id="f-name" placeholder="Nome completo *" value="'+(fd.name||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.6875rem;outline:none;background:var(--input-bg);color:var(--card-text);margin-bottom:8px" />';
+    h += '<div class="fg-row">';
+    h += '<div class="fg"><input id="f-email" placeholder="E-mail *" value="'+(fd.email||'')+'" /></div>';
+    h += '<div class="fg"><input id="f-phone" placeholder="Telefone *" value="'+(fd.phone||'')+'" /></div>';
+    h += '</div></div></div>';
+    h += '<button class="btn" id="btn-s1">'+I.lock+' Próximo</button>';
+    return h;
+  }
+
+  // Streamline: form inside a bordered section with header
+  function step1Streamline() {
+    var h = '<div class="c" style="overflow:hidden;padding:0">';
+    h += '<div style="padding:12px 20px;border-bottom:1px solid var(--border)">';
+    h += '<div style="display:flex;align-items:center;gap:12px"><div class="step-num" style="background:var(--step-bg);color:var(--step-text)">1</div><span style="font-size:.875rem;font-weight:700;color:var(--card-title)">Identificação</span></div>';
+    h += '<p style="font-size:.6875rem;margin-top:4px;margin-left:36px;color:var(--card-desc)">Preencha seus dados para concluir sua compra com segurança.</p>';
+    h += '</div>';
+    h += '<div style="padding:20px">';
+    h += fieldHTML('f-name','Nome completo','Digite seu nome completo',fd.name);
+    h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
+    if (cfg.showPhone !== false) {
+      h += '<div class="fg"><label>Celular (WhatsApp)</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
+    }
+    h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    h += '<button class="btn" id="btn-s1" style="text-transform:uppercase;letter-spacing:.05em">PRÓXIMO</button>';
+    h += '</div></div>';
+    // Shipping info
+    h += '<div class="c" style="display:flex;flex-direction:column;gap:12px">';
+    h += '<div class="info-badge"><div class="info-icon" style="background:#EFF6FF"><span style="color:#3B82F6">'+I.truck+'</span></div><div><p class="ib-title">Frete Grátis</p><p class="ib-desc">Para todo o Brasil em compras acima de R$ 99</p></div></div>';
+    h += '<div class="info-badge"><div class="info-icon" style="background:#F0FDF4"><span style="color:#22C55E">'+I.package+'</span></div><div><p class="ib-title">Entrega Rápida</p><p class="ib-desc">Enviaremos em até 24 horas após a confirmação</p></div></div>';
+    h += '</div>';
+    return h;
+  }
+
+  // LynxFy: email first, phone+cpf side by side, optional address
+  function step1LynxFy() {
+    var h = '<div class="c">';
+    h += '<h3>Informações de contato</h3>';
+    h += '<div style="margin-top:12px">';
+    h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    h += fieldHTML('f-name','Nome completo','Digite seu nome completo',fd.name);
+    h += '<div class="fg-row">';
+    if (cfg.showPhone !== false) {
+      h += '<div class="fg"><label>Celular</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
+    }
+    h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
+    h += '</div>';
+    h += '</div></div>';
+    if (cfg.showAddress) {
+      h += '<div class="c">';
+      h += '<h3>Endereço de entrega</h3><div style="margin-top:12px">';
+      h += fieldHTML('f-cep','CEP','00000-000','');
+      h += fieldHTML('f-rua','Rua','Rua, avenida...','');
+      h += '<div class="fg-row">';
+      h += '<div class="fg"><label>Número</label><input placeholder="Nº" /></div>';
+      h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade" /></div>';
+      h += '<div class="fg"><label>Estado</label><input placeholder="UF" /></div>';
+      h += '</div></div></div>';
+    }
+    h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
+    return h;
+  }
+
+  // Confiança: personal data form + FAQ
+  function step1Confianca() {
+    var h = '<div class="c">';
+    h += '<div><h3>Dados pessoais</h3><p class="desc">Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, verificação de pedidos e carrinho de compras.</p></div>';
+    h += '<div style="margin-top:12px">';
+    h += fieldHTML('f-name','Nome completo','Ex.: Maria da Silva',fd.name);
+    h += fieldHTML('f-email','E-mail','Ex.: maria@email.com',fd.email,{type:'email'});
+    h += fieldHTML('f-cpf','CPF','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
+    if (cfg.showPhone !== false) {
+      h += '<div class="fg"><label>Celular / WhatsApp</label><div class="phone-row"><div class="phone-prefix">+55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
+    }
+    h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
+    h += '</div></div>';
+    // FAQ
+    h += '<div class="c">';
+    h += '<h3 style="color:var(--primary);margin-bottom:8px">Perguntas Frequentes</h3>';
+    FAQ_ITEMS.forEach(function(item,i) {
+      h += '<div class="faq-item">';
+      h += '<button class="faq-q" data-faq="'+i+'">'+item.q+'<span style="color:var(--card-label)">'+(openFaq===i?I.chevUp:I.chevDown)+'</span></button>';
+      if (openFaq === i) h += '<div class="faq-a">'+item.a+'</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  /* ══════════════════════════════════
+     TEMPLATE SIDEBAR EXTRAS
+     ══════════════════════════════════ */
+  function sidebarStreamline() {
+    var h = '';
+    h += '<div class="testimonial"><div class="stars">'+I.star+I.star+I.star+I.star+I.star+'</div><p class="t-name">Breno Santos</p><p class="t-text">Compra rápida, fácil e sem dor de cabeça.</p></div>';
+    h += '<div class="testimonial"><div class="stars">'+I.star+I.star+I.star+I.star+I.star+'</div><p class="t-name">Luísa Romeiro</p><p class="t-text">Muito satisfeita com a compra. Voltarei com certeza!</p></div>';
+    return h;
+  }
+
+  function sidebarConfianca() {
+    var h = '';
+    // Testimonials
+    var reviews = [
+      { name: 'Mariana Lopes', text: 'Atendimento excelente e tudo chegou perfeito. Recomendo!' },
+      { name: 'Ana Paula', text: 'Produto de ótima qualidade e entrega super rápida. Amei!' },
+    ];
+    reviews.forEach(function(t) {
+      h += '<div class="testimonial-card">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+      h += '<div style="width:24px;height:24px;border-radius:50%;background:#E5E7EB;display:flex;align-items:center;justify-content:center"><span style="color:var(--card-label)">'+I.user+'</span></div>';
+      h += '<div style="display:flex;gap:2px">'+I.star+I.star+I.star+I.star+I.star+'</div>';
+      h += '</div>';
+      h += '<p style="font-size:.75rem;font-weight:700;color:var(--card-title)">'+t.name+'</p>';
+      h += '<p style="font-size:.6875rem;margin-top:2px;color:var(--card-desc);line-height:1.5">'+t.text+'</p>';
+      h += '</div>';
+    });
+    // Info badges
+    h += '<div class="c" style="display:flex;flex-direction:column;gap:12px">';
+    h += '<div class="info-badge"><div class="info-icon" style="background:#EFF6FF"><span style="color:#3B82F6">'+I.truck+'</span></div><div><p class="ib-title" style="color:var(--primary)">Frete Grátis</p><p class="ib-desc">Para todo o Brasil em compras acima de R$ 199</p></div></div>';
+    h += '<div class="info-badge"><div class="info-icon" style="background:#F0FDF4"><span style="color:#22C55E">'+I.shield+'</span></div><div><p class="ib-title" style="color:var(--primary)">Compra Segura</p><p class="ib-desc">Seus dados protegidos e pagamento seguro</p></div></div>';
+    h += '<div class="info-badge"><div class="info-icon" style="background:#FEF9C3"><span style="color:#EAB308">'+I.zap+'</span></div><div><p class="ib-title" style="color:var(--primary)">Entrega Rápida</p><p class="ib-desc">Enviamos em até 24 horas após a confirmação</p></div></div>';
+    h += '</div>';
+    if (cfg.showGuarantee !== false) h += guaranteeHTML({dashed:true});
+    return h;
+  }
+
+  /* ══════════════════════════════════
+     MAIN RENDER
+     ══════════════════════════════════ */
   function render() {
     var co = document.getElementById('co');
     if (!co) return;
-    var h = stepsHTML() + summaryHTML();
-    if (step===1) h += step1HTML();
-    else if (step===2) h += step2HTML();
-    else if (step===3) h += step3HTML();
-    // Guarantee
-    if (cfg.showGuarantee !== false) {
-      h += '<div class="guarantee">'+I.shieldSm+' Garantia de '+(cfg.guaranteeDays||7)+' dias — Satisfação ou dinheiro de volta</div>';
+    var tid = cfg.templateId;
+    var use2Col = (tid === 'minimalista' || tid === 'alto-impacto' || tid === 'streamline' || tid === 'lynxfy' || tid === 'confianca');
+
+    if (use2Col) {
+      // 2-column layout
+      var mainH = '';
+      // Step indicators in main column
+      if (tid === 'streamline') mainH += stepTabsHTML();
+      else mainH += stepsHTML();
+
+      if (step === 1) {
+        if (tid === 'minimalista') mainH += step1Minimalista();
+        else if (tid === 'alto-impacto') mainH += step1AltoImpacto();
+        else if (tid === 'streamline') mainH += step1Streamline();
+        else if (tid === 'lynxfy') mainH += step1LynxFy();
+        else if (tid === 'confianca') mainH += step1Confianca();
+        else mainH += step1Default();
+      } else if (step === 2) mainH += step2HTML();
+      else mainH += step3HTML();
+
+      // Sidebar
+      var sideH = '';
+      if (tid === 'confianca') sideH += sidebarSummaryHTML({freteGratis:true,showQuantity:true,useQuantity:true});
+      else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
+      else sideH += sidebarSummaryHTML({});
+
+      if (tid === 'minimalista' || tid === 'alto-impacto') sideH += purchaseCountHTML();
+      if (tid === 'streamline') sideH += sidebarStreamline();
+      if (tid === 'confianca') sideH += sidebarConfianca();
+
+      co.innerHTML = '<div class="col-main">'+mainH+'</div><div class="col-side">'+sideH+footerHTML()+'</div>';
+      co.className = 'layout-2col';
+    } else if (tid === 'tiktok') {
+      // TokLynx: 2-col on desktop, single on mobile
+      var mainH2 = stepsHTML();
+      if (step === 1) mainH2 += step1TokLynx();
+      else if (step === 2) mainH2 += step2HTML();
+      else mainH2 += step3HTML();
+
+      var sideH2 = sidebarSummaryHTML({freteGratis:true});
+      sideH2 += footerHTML();
+
+      co.innerHTML = '<div class="col-main">'+mainH2+'</div><div class="col-side">'+sideH2+'</div>';
+      co.className = 'layout-2col';
+    } else {
+      // Default single-column
+      var h = stepsHTML();
+      // Summary (always visible)
+      h += defaultSummaryHTML();
+      if (step === 1) h += step1Default();
+      else if (step === 2) h += step2HTML();
+      else h += step3HTML();
+      h += guaranteeHTML();
+      h += footerHTML();
+      co.innerHTML = h;
+      co.className = 'co';
     }
-    // Footer
-   h += '<div style="padding:16px 0;text-align:center">';
-   h += '<p style="font-size:10px;color:#9CA3AF;font-weight:500;margin-bottom:8px">Formas de Pagamento</p>';
-   h += '<div style="display:flex;align-items:center;justify-content:center;gap:8px">';
-   h += '<img src="/banks/pix.png" alt="Pix" style="height:18px;object-fit:contain">';
-   h += '<img src="/banks/mastercard.png" alt="Mastercard" style="height:17px;object-fit:contain">';
-   h += '<img src="/banks/visa.png" alt="Visa" style="height:17px;object-fit:contain">';
-   h += '<img src="/banks/elo.jpg" alt="Elo" style="height:17px;object-fit:contain">';
-   h += '<img src="/banks/amex.png" alt="Amex" style="height:17px;object-fit:contain;border-radius:3px">';
-   h += '</div>';
-   h += '<p style="font-size:10px;color:#9CA3AF;margin-top:8px">Pagamento processado com segurança por ZapLynxPay</p>';
-   h += '</div>';
-    co.innerHTML = h;
+
     bind();
   }
 
+  function defaultSummaryHTML() {
+    var h = '<div class="c">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center"><h3>Resumo do pedido</h3><span style="font-size:.75rem;color:#16A34A">● Dados seguros</span></div>';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-top:12px">';
+    h += '<div style="width:56px;height:56px;border-radius:var(--card-radius);overflow:hidden;flex-shrink:0;background:#F3F4F6;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)">';
+    if (cfg.productImage) h += '<img src="'+cfg.productImage+'" alt="" style="width:100%;height:100%;object-fit:cover" />';
+    else h += '<span style="color:var(--card-desc)">'+I.cart+'</span>';
+    h += '</div>';
+    h += '<div style="flex:1;min-width:0">';
+    h += '<p style="font-size:.875rem;font-weight:500;color:var(--card-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(cfg.offerName||cfg.productName||'Produto')+'</p>';
+    if (cfg.originalPrice > cfg.price) h += '<p style="font-size:.75rem;text-decoration:line-through;color:var(--card-desc)">'+fmt(cfg.originalPrice)+'</p>';
+    h += '<p style="font-size:.875rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</p>';
+    h += '</div></div>';
+    if (step === 1) {
+      h += '<div style="display:flex;gap:8px;margin-top:12px">';
+      h += '<input style="flex:1;padding:8px 12px;font-size:.875rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Cupom de desconto" />';
+      h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
+      h += '</div>';
+    }
+    h += '<div class="sum-sep">';
+    h += '<div class="sum-row"><span class="sl">Subtotal</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">Grátis</span></div>';
+    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
+    h += '</div></div>';
+    return h;
+  }
+
+  /* ══════════════════════════════════
+     EVENT BINDING
+     ══════════════════════════════════ */
   function bind() {
     var b1 = document.getElementById('btn-s1');
     if (b1) b1.onclick = function() {
@@ -456,13 +873,21 @@
     if (uz && ri) { uz.onclick = function() { ri.click(); }; ri.onchange = function() { if(ri.files&&ri.files[0]) uploadReceipt(ri.files[0]); }; }
     var bt = document.getElementById('btn-banks');
     if (bt) bt.onclick = function() { showAllBanks = !showAllBanks; render(); };
-    // Bank items - copy pix code
     document.querySelectorAll('.bank-item').forEach(function(el) {
       el.onclick = function() { if (pixData && pixData.brCode) navigator.clipboard.writeText(pixData.brCode); };
     });
+    // FAQ (Confianca)
+    document.querySelectorAll('.faq-q').forEach(function(el) {
+      el.onclick = function() {
+        var idx = parseInt(el.getAttribute('data-faq'));
+        openFaq = openFaq === idx ? -1 : idx;
+        render();
+      };
+    });
   }
 
-  window.goStep = function(n) { if (n < step) { step = n; render(); } };
+  window.goStep = function(n) { if (n <= step) { step = n; render(); } };
+  window.changeQty = function(d) { quantity = Math.max(1, quantity + d); render(); };
 
   async function genPix() {
     try {
@@ -517,6 +942,7 @@
     if (!cr||!cr.checkout) { app.innerHTML = '<div class="error-wrap"><h2>Checkout não encontrado.</h2><p>Este checkout pode estar inativo.</p></div>'; return; }
     var co = cr.checkout, pr = cr.product, sv = co.config||{};
     cfg = {
+      templateId: resolveTemplate(sv.templateId),
       productName: sv.productName||(pr&&pr.name)||co.name||'',
       offerName: sv.offerName||(pr&&pr.name)||'',
       price: sv.price||(pr&&pr.price)||0,
@@ -547,14 +973,69 @@
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
     };
     applyCSS(cfg);
-    // Render shell
+
+    // Build shell (timer + logo header)
     var shell = '';
-    if (cfg.showTimer) shell += '<div class="timer-banner">Oferta termina em: <b id="timer-val">00h : '+String(cfg.timerMinutes).padStart(2,'0')+'m : 00s</b></div>';
-    if (cfg.logoUrl) {
-      shell += '<div class="logo-header"><img src="'+cfg.logoUrl+'" alt="Logo" /><span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+    // Confianca has a banner area instead of standard header
+    if (cfg.templateId === 'confianca') {
+      // Header
+      shell += '<div class="logo-header">';
+      if (cfg.logoUrl) shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
+      else shell += '<span style="font-size:.875rem;font-weight:700;color:var(--card-title)">Minha Loja</span>';
+      shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+      // Banner
+      if (cfg.productImage) {
+        shell += '<div class="banner-area" style="background:'+(cfg.bgColor||'#C8E832')+'">';
+        shell += '<img src="'+cfg.productImage+'" alt="" style="max-height:160px;object-fit:contain;border-radius:var(--card-radius)" />';
+        shell += '</div>';
+      }
+      // Step indicators bar
+      shell += '<div id="confianca-steps" style="background:var(--card-bg);border-bottom:1px solid var(--border)"></div>';
+    } else {
+      if (cfg.showTimer) shell += '<div class="timer-banner">Oferta termina em: <b id="timer-val">00h : '+String(cfg.timerMinutes).padStart(2,'0')+'m : 00s</b></div>';
+      shell += '<div class="logo-header">';
+      if (cfg.logoUrl) shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
+      else shell += '<span style="font-size:.875rem;font-weight:700;color:var(--card-title)">Minha Loja</span>';
+      shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
     }
-    shell += '<div class="co" id="co"></div>';
+    // Streamline: product image banner
+    if (cfg.templateId === 'streamline' && cfg.productImage) {
+      shell += '<div style="width:100%;max-height:208px;overflow:hidden"><img src="'+cfg.productImage+'" alt="" style="width:100%;height:100%;object-fit:cover" /></div>';
+    }
+    if (cfg.templateId === 'streamline' && cfg.showTimer) {
+      shell += '<div class="timer-banner" style="display:flex;align-items:center;justify-content:center;gap:8px">Oferta termina em: <span style="font-weight:700;background:rgba(255,255,255,.2);padding:2px 12px;border-radius:9999px;font-size:.75rem" id="timer-val">00h : '+String(cfg.timerMinutes).padStart(2,'0')+'m : 00s</span></div>';
+    }
+    shell += '<div id="co"></div>';
     app.innerHTML = shell;
+
+    // Confianca step indicators (rendered separately)
+    if (cfg.templateId === 'confianca') {
+      var csEl = document.getElementById('confianca-steps');
+      if (csEl) {
+        var renderConfiancaSteps = function() {
+          var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+          var sh = '<div style="display:flex;align-items:center;justify-content:center;gap:40px;padding:12px;max-width:700px;margin:0 auto">';
+          labels.forEach(function(s) {
+            var active = step===s.n, done = step > s.n;
+            var bg = active ? 'rgba(239,68,68,.12)' : done ? 'rgba(239,68,68,.12)' : '#F3F4F6';
+            var border = active ? '2px solid var(--step-bg)' : done ? '2px solid rgba(239,68,68,.5)' : '2px solid transparent';
+            sh += '<button onclick="goStep('+s.n+')" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer">';
+            sh += '<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--step-radius);background:'+bg+';border:'+border+'">';
+            sh += '<span style="color:'+(step>=s.n?'var(--step-bg)':'var(--card-label)')+'">'+(done?I.checkSm:I[s.i])+'</span>';
+            sh += '</div>';
+            sh += '<span style="font-size:10px;font-weight:600;color:'+(active?'var(--step-bg)':'var(--card-label)')+'">'+s.l+'</span>';
+            sh += '</button>';
+          });
+          sh += '</div>';
+          csEl.innerHTML = sh;
+        };
+        renderConfiancaSteps();
+        // Re-render on step change
+        var origRender = render;
+        render = function() { origRender(); renderConfiancaSteps(); };
+      }
+    }
+
     if (cfg.showTimer) startTimer(cfg.timerMinutes||15);
     document.title = cfg.productName || 'Checkout';
     render();
