@@ -58,6 +58,7 @@ import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
+import ThankYou from "./pages/ThankYou";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
 const queryClient = new QueryClient();
 
@@ -132,7 +133,9 @@ const App = () => (
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
               <Route path="/pay/:slug" element={<PublicCheckout />} />
+              <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
               <Route path="/checkout/:slug" element={<PublicCheckout />} />
+              <Route path="/checkout/:slug/obrigado" element={<ThankYou />} />
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
               <Route path="/termos-servico" element={<TermosServico />} />
               <Route path="*" element={<NotFound />} />
