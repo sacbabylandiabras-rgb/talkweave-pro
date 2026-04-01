@@ -140,13 +140,14 @@ const Auth = () => {
 
     try {
       // Validar inputs
-      signupSchema.parse({ email: email.trim(), password, whatsapp: whatsapp.trim() });
+      signupSchema.parse({ email: email.trim(), password, fullName: fullName.trim(), whatsapp: whatsapp.trim() });
 
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           data: {
+            full_name: fullName.trim(),
             whatsapp: whatsapp.trim()
           }
         }
