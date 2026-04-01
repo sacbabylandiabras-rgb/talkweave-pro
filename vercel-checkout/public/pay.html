@@ -396,7 +396,7 @@
     // Totals
     h += '<div class="sum-sep">';
     h += '<div class="sum-row"><span class="sl">Produtos</span><span class="sv">'+fmt(price)+'</span></div>';
-    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">'+(frete>0?'+ '+fmt(frete):'Grátis')+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:'+(frete>0?'var(--card-text)':'#16A34A')+'">'+(frete>0?'+ '+fmt(frete):'Grátis')+'</span></div>';
     h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(total)+'</span></div>';
     h += '</div></div>';
     return h;
