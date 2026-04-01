@@ -38,11 +38,15 @@ export default function AdminDashboard() {
           setRevenueData({
             volumeToday: data.volumeToday || 0,
             volumeMonth: data.volumeMonth || 0,
+            revenueToday: data.revenueToday || 0,
             revenueMonth: data.revenueMonth || 0,
+            revenueTotal: data.revenueTotal || 0,
             approvalRate: data.approvalRate || 0,
             pendingKyc: data.pendingKyc || 0,
             totalTransactions: data.totalTransactions || 0,
             approvedTransactions: data.approvedTransactions || 0,
+            feePercent: data.feePercent || 6.99,
+            feeFixed: data.feeFixed || 199,
           });
         }
       } catch (error) {
