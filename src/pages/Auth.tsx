@@ -40,7 +40,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        navigate("/gateway-checkout/dashboard");
       }
     };
     checkUser();
