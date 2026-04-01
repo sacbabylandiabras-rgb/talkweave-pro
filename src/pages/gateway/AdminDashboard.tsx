@@ -17,11 +17,15 @@ export default function AdminDashboard() {
   const [revenueData, setRevenueData] = useState({
     volumeToday: 0,
     volumeMonth: 0,
+    revenueToday: 0,
     revenueMonth: 0,
+    revenueTotal: 0,
     approvalRate: 0,
     pendingKyc: 0,
     totalTransactions: 0,
     approvedTransactions: 0,
+    feePercent: 6.99,
+    feeFixed: 199,
   });
 
   useEffect(() => {
