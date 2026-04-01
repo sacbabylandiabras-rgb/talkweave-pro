@@ -20,7 +20,7 @@ export function useWorkspace() {
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceType>(() => {
-    return (localStorage.getItem("active_workspace") as WorkspaceType) || "zapi";
+    return (localStorage.getItem("active_workspace") as WorkspaceType) || "gateway";
   });
 
   useEffect(() => {
