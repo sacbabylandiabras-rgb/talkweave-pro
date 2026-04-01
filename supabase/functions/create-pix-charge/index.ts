@@ -148,6 +148,30 @@ async function processOpenPix(supabase: any, checkout: any, amountCents: number,
       .eq('id', checkout.id)
   } catch {}
 
+  // Send PIX generated email
+  if (customerEmail) {
+    try {
+      const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
+      await fetch(emailUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          type: 'pix_generated',
+          to: customerEmail,
+          data: {
+            customerName: customerName || 'Cliente',
+            amount: amountCents,
+            productName: (checkout.config as any)?.productName || checkout.name || 'Produto',
+            brCode: brCode || undefined,
+          },
+        }),
+      })
+      console.log('PIX generated email sent to:', customerEmail)
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr)
+    }
+  }
+
   return new Response(JSON.stringify({
     qrCodeImage,
     brCode,
@@ -237,6 +261,30 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
       .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
       .eq('id', checkout.id)
   } catch {}
+
+  // Send PIX generated email
+  if (customerEmail) {
+    try {
+      const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
+      await fetch(emailUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          type: 'pix_generated',
+          to: customerEmail,
+          data: {
+            customerName: customerName || 'Cliente',
+            amount: amountCents,
+            productName: (checkout.config as any)?.productName || checkout.name || 'Produto',
+            brCode: brCode || undefined,
+          },
+        }),
+      })
+      console.log('PIX generated email sent to:', customerEmail)
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr)
+    }
+  }
 
   return new Response(JSON.stringify({
     qrCodeImage,

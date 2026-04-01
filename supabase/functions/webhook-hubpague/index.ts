@@ -126,6 +126,36 @@ serve(async (req) => {
           } catch (pushErr) {
             console.error('Push notification error:', pushErr)
           }
+
+          // Send approved email to customer
+          const customerEmail = payload.customer?.email || tx.customer_email
+          if (customerEmail) {
+            try {
+              const emailUrl = `${supabaseUrl}/functions/v1/send-gateway-email`
+              let productName = 'Produto'
+              if (tx.checkout_id) {
+                const { data: co } = await supabase.from('gateway_checkouts').select('name, config').eq('id', tx.checkout_id).single()
+                if (co) productName = (co.config as any)?.productName || co.name || 'Produto'
+              }
+              await fetch(emailUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  type: 'approved',
+                  to: customerEmail,
+                  data: {
+                    customerName: payload.customer?.name || tx.customer_name || 'Cliente',
+                    amount: tx.amount || 0,
+                    productName,
+                    transactionId: tx.id,
+                  },
+                }),
+              })
+              console.log('Approved email sent to:', customerEmail)
+            } catch (emailErr) {
+              console.error('Approved email error:', emailErr)
+            }
+          }
         }
 
         // Forward to UTMify if configured
