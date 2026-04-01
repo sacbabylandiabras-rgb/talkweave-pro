@@ -75,6 +75,8 @@ const defaultConfig = {
   templateName: "",
   shippingEnabled: false,
   shippingPrice: 1500,
+  emailPixGenerated: true,
+  emailApproved: true,
 };
 
 const formatOptions = [
