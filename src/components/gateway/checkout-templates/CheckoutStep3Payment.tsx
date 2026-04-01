@@ -126,6 +126,18 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao enviar comprovante');
       setReceiptUploaded(true);
+      // Redirect to thank you page after 2 seconds
+      const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
+      if (slug) {
+        const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+        const params = new URLSearchParams();
+        if (formName) params.set('name', formName);
+        if (pixData?.correlationID) params.set('tid', pixData.correlationID);
+        if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+        setTimeout(() => {
+          window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+        }, 2000);
+      }
     } catch (e: any) {
       setReceiptError(e.message || 'Erro ao enviar comprovante');
     } finally {
