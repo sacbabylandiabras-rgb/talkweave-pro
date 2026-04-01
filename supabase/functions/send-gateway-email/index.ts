@@ -26,6 +26,7 @@ function buildPixGeneratedEmail(data: { customerName: string; amount: number; pr
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
   <tr><td style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:30px;text-align:center">
+    <img src="${LOGO_URL}" alt="ZapLynxPay" width="48" height="48" style="display:block;margin:0 auto 12px;border-radius:8px" />
     <h1 style="margin:0;color:#fff;font-size:22px">🔑 PIX Gerado</h1>
   </td></tr>
   <tr><td style="padding:30px">
