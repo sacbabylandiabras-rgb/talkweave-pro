@@ -279,7 +279,7 @@ serve(async (req) => {
       await supabase.from('gateway_withdrawals').update({
         status: 'approved',
         admin_notes: adminNotes?.trim() || `PIX enviado via OpenPix. Correlation: ${correlationID}`,
-        reviewed_by: adminId,
+        reviewed_by: callerId,
         reviewed_at: new Date().toISOString(),
       }).eq('id', withdrawalId)
 
