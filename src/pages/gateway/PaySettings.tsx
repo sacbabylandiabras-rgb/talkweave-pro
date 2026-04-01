@@ -79,6 +79,7 @@ export default function PaySettings() {
     if (!domain) return;
     setCustomDomain(domain);
     setDomainStatus("pending");
+    setStatusChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
         body: { action: "status", hostname: domain },
@@ -92,11 +93,13 @@ export default function PaySettings() {
         setDomainStatus("pending");
       }
       setDomainSslStatus(data?.ssl_status || "");
-      setDomainVerification(data?.ownership_verification || null);
+      setDomainVerification(data?.verification || null);
+      setSslInfo(data?.ssl || null);
     } catch (err) {
       console.error("Error checking domain status:", err);
       setDomainStatus("pending");
     }
+    setStatusChecking(false);
   };
 
   const fetchApiKeys = async () => {
