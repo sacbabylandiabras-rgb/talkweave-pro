@@ -69,6 +69,7 @@ const defaultConfig = {
   orderBumpPrice: 2900,
   productImage: "",
   logoUrl: "",
+  faviconUrl: "",
   templateId: "",
   templateName: "",
 };
@@ -483,6 +484,45 @@ export default function CheckoutBuilder() {
                     </label>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">Aparecerá no topo do checkout. Máx 2MB.</p>
+                </div>
+
+                {/* Favicon */}
+                <div>
+                  <Label className="text-xs">Favicon do Checkout</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {config.faviconUrl ? (
+                      <div className="relative">
+                        <img src={config.faviconUrl} alt="Favicon" className="h-8 w-8 object-contain rounded border border-gray-200" />
+                        <button
+                          onClick={() => updateConfig("faviconUrl", "")}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
+                        >×</button>
+                      </div>
+                    ) : null}
+                    <label className="flex items-center gap-1.5 px-3 py-2 text-xs border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <Upload className="w-3.5 h-3.5" />
+                      {config.faviconUrl ? "Trocar" : "Enviar favicon"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) { toast.error("Máximo 2MB"); return; }
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) return;
+                          const fileName = `${user.id}/favicon-${Date.now()}.${file.name.split('.').pop()}`;
+                          const { error } = await supabase.storage.from("product-images").upload(fileName, file, { upsert: true });
+                          if (error) { toast.error("Erro ao enviar: " + error.message); return; }
+                          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+                          updateConfig("faviconUrl", urlData.publicUrl);
+                          toast.success("Favicon enviado!");
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Ícone da aba do navegador. Máx 2MB. Recomendado: 32x32px.</p>
                 </div>
 
                 <p className="text-[10px] text-muted-foreground">Defina as cores que serão usadas nos elementos do checkout</p>

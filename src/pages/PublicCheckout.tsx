@@ -38,6 +38,7 @@ interface CheckoutConfig {
   orderBumpPrice: number;
   productImage: string;
   logoUrl: string;
+  faviconUrl: string;
   templateId: string;
   templateName: string;
   [key: string]: any;
@@ -76,6 +77,7 @@ const defaultConfig: CheckoutConfig = {
   orderBumpPrice: 0,
   productImage: "",
   logoUrl: "",
+  faviconUrl: "",
   templateId: "",
   templateName: "",
 };
@@ -152,6 +154,7 @@ export default function PublicCheckout() {
           productImage: savedConfig.productImage || product?.image_url || "",
           // Tenant branding: use tenant logo/color as fallback if not set in checkout config
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
+          faviconUrl: savedConfig.faviconUrl || "",
           primaryColor: savedConfig.primaryColor || tenantColor || defaultConfig.primaryColor,
         };
         setConfig(mergedConfig);
@@ -164,6 +167,20 @@ export default function PublicCheckout() {
 
     fetchCheckout();
   }, [slug, tenant]);
+
+  // Set dynamic favicon
+  useEffect(() => {
+    if (config?.faviconUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = config.faviconUrl;
+      link.type = "image/png";
+    }
+  }, [config?.faviconUrl]);
 
   if (loading || tenantLoading) {
     return (
