@@ -67,12 +67,15 @@ Deno.serve(async (req) => {
       pendingKyc: kycRes.count || 0,
       volumeToday: todayApproved.reduce((s: number, t: any) => s + t.amount, 0),
       volumeMonth: monthApproved.reduce((s: number, t: any) => s + t.amount, 0),
+      revenueToday: todayApproved.reduce((s: number, t: any) => s + (t.fee || 0), 0),
       revenueMonth: monthApproved.reduce((s: number, t: any) => s + t.fee, 0),
       revenueTotal: approved.reduce((s: number, t: any) => s + t.fee, 0),
       volumeTotal: approved.reduce((s: number, t: any) => s + t.amount, 0),
       approvalRate: allTx.length > 0 ? (approved.length / allTx.length) * 100 : 0,
       totalTransactions: allTx.length,
       approvedTransactions: approved.length,
+      feePercent: 6.99,
+      feeFixed: 199,
     };
 
     return new Response(JSON.stringify(stats), {
