@@ -202,10 +202,20 @@ export default function PayCheckouts() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setDomainLoading(false); return; }
 
+    // Remove domain from Vercel via Edge Function
+    if (savedDomain) {
+      try {
+        await supabase.functions.invoke("manage-custom-domain", {
+          body: { action: "delete", hostname: savedDomain },
+        });
+      } catch (err) {
+        console.warn("Could not remove domain from Vercel:", err);
+      }
+    }
+
     await supabase.from("profiles").update({
       custom_domain: null,
     } as any).eq("id", user.id);
-    // Clear localStorage fallback
     localStorage.removeItem("checkout_custom_domain");
     localStorage.removeItem("checkout_domain_prefix");
     localStorage.removeItem("checkout_domain_root");
@@ -215,6 +225,7 @@ export default function PayCheckouts() {
     setCustomDomain("");
     setDomainPrefix("pay");
     setDomainStatus("idle");
+    setSslInfo(null);
     setDomainOpen(false);
     toast.success("Domínio removido!");
     setDomainLoading(false);
