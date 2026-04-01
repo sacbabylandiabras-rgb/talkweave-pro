@@ -101,7 +101,6 @@ serve(async (req) => {
         .update({
           status: 'rejected',
           admin_notes: adminNotes.trim(),
-          reviewed_by: adminId,
           reviewed_by: callerId,
           reviewed_at: new Date().toISOString(),
         })
