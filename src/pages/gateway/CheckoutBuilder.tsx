@@ -931,7 +931,30 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* BLOCO G: Domínio Personalizado */}
+            {/* BLOCO F2: Notificações por Email */}
+            <AccordionItem value="notificacoes" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-[#FF4D2E]" /> Notificações por Email</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Escolha quais emails serão enviados ao lead automaticamente</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs">PIX Gerado</Label>
+                    <p className="text-[10px] text-muted-foreground">Envia o código PIX por email ao cliente</p>
+                  </div>
+                  <Switch checked={config.emailPixGenerated} onCheckedChange={v => updateConfig("emailPixGenerated", v)} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs">Compra Aprovada</Label>
+                    <p className="text-[10px] text-muted-foreground">Confirma o pagamento por email ao cliente</p>
+                  </div>
+                  <Switch checked={config.emailApproved} onCheckedChange={v => updateConfig("emailApproved", v)} />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="dominio" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#FF4D2E]" /> Domínio Personalizado</div>
