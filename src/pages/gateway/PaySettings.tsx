@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function PaySettings() {
   const [showSecret, setShowSecret] = useState(false);
@@ -44,6 +58,22 @@ export default function PaySettings() {
   const [domainVerification, setDomainVerification] = useState<any>(null);
   const [sslInfo, setSslInfo] = useState<any>(null);
   const [statusChecking, setStatusChecking] = useState(false);
+
+  // Webhooks state
+  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [webhooksLoading, setWebhooksLoading] = useState(true);
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<any>(null);
+  const [webhookForm, setWebhookForm] = useState({
+    name: "",
+    webhook_url: "",
+    method: "POST",
+    auth_type: "none",
+    auth_token: "",
+    active: true,
+  });
+
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +92,88 @@ export default function PaySettings() {
     fetchProfile();
     fetchApiKeys();
     fetchDomainStatus();
+    fetchWebhooks();
   }, []);
+
+  const fetchWebhooks = async () => {
+    setWebhooksLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setWebhooksLoading(false); return; }
+    const { data, error } = await supabase
+      .from("gateway_integrations")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setWebhooks(data);
+    setWebhooksLoading(false);
+  };
+
+  const openCreateWebhook = () => {
+    setEditingWebhook(null);
+    setWebhookForm({ name: "", webhook_url: "", method: "POST", auth_type: "none", auth_token: "", active: true });
+    setWebhookDialogOpen(true);
+  };
+
+  const openEditWebhook = (wh: any) => {
+    setEditingWebhook(wh);
+    setWebhookForm({
+      name: wh.name || "",
+      webhook_url: wh.webhook_url || "",
+      method: wh.method || "POST",
+      auth_type: wh.auth_type || "none",
+      auth_token: wh.auth_token || "",
+      active: wh.active ?? true,
+    });
+    setWebhookDialogOpen(true);
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!webhookForm.name.trim() || !webhookForm.webhook_url.trim()) {
+      toast.error("Nome e URL são obrigatórios");
+      return;
+    }
+    setWebhookSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setWebhookSaving(false); return; }
+    const payload = {
+      name: webhookForm.name.trim(),
+      webhook_url: webhookForm.webhook_url.trim(),
+      method: webhookForm.method,
+      auth_type: webhookForm.auth_type,
+      auth_token: webhookForm.auth_type !== "none" ? webhookForm.auth_token : null,
+      active: webhookForm.active,
+      user_id: user.id,
+    };
+    let error;
+    if (editingWebhook) {
+      ({ error } = await supabase.from("gateway_integrations").update(payload).eq("id", editingWebhook.id));
+    } else {
+      ({ error } = await supabase.from("gateway_integrations").insert(payload));
+    }
+    if (error) {
+      toast.error("Erro ao salvar webhook: " + error.message);
+    } else {
+      toast.success(editingWebhook ? "Webhook atualizado!" : "Webhook criado!");
+      setWebhookDialogOpen(false);
+      fetchWebhooks();
+    }
+    setWebhookSaving(false);
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    const { error } = await supabase.from("gateway_integrations").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir: " + error.message);
+    } else {
+      toast.success("Webhook removido!");
+      fetchWebhooks();
+    }
+  };
+
+  const handleToggleWebhook = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("gateway_integrations").update({ active }).eq("id", id);
+    if (!error) fetchWebhooks();
+  };
 
   const fetchDomainStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -590,12 +701,122 @@ export default function PaySettings() {
           <Card className="border-[#2A2A2A]">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Endpoints de Webhook</CardTitle>
-              <Button size="sm" className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Adicionar</Button>
+              <Button size="sm" className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs" onClick={openCreateWebhook}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
+              </Button>
             </CardHeader>
-            <CardContent className="flex items-center justify-center py-12">
-              <p className="text-sm text-muted-foreground">Nenhum webhook configurado.</p>
+            <CardContent>
+              {webhooksLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : webhooks.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-sm text-muted-foreground">Nenhum webhook configurado.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {webhooks.map((wh) => (
+                    <div key={wh.id} className="flex items-center gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-muted/20">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{wh.name}</p>
+                          <Badge variant="outline" className="text-[10px] shrink-0">{wh.method}</Badge>
+                          {wh.auth_type !== "none" && (
+                            <Badge variant="outline" className="text-[10px] shrink-0 border-amber-500/30 text-amber-400">
+                              <Lock className="w-2.5 h-2.5 mr-0.5" />{wh.auth_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{wh.webhook_url}</p>
+                      </div>
+                      <Switch checked={wh.active} onCheckedChange={(checked) => handleToggleWebhook(wh.id, checked)} />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditWebhook(wh)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir webhook?</AlertDialogTitle>
+                            <AlertDialogDescription>O endpoint "{wh.name}" será removido permanentemente.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteWebhook(wh.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{editingWebhook ? "Editar Webhook" : "Novo Webhook"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs">Nome</Label>
+                  <Input value={webhookForm.name} onChange={e => setWebhookForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Meu ERP" className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">URL do Webhook</Label>
+                  <Input value={webhookForm.webhook_url} onChange={e => setWebhookForm(p => ({ ...p, webhook_url: e.target.value }))} placeholder="https://meusite.com/webhook" className="mt-1 font-mono text-xs" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Método HTTP</Label>
+                    <Select value={webhookForm.method} onValueChange={v => setWebhookForm(p => ({ ...p, method: v }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="POST">POST</SelectItem>
+                        <SelectItem value="PUT">PUT</SelectItem>
+                        <SelectItem value="PATCH">PATCH</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Autenticação</Label>
+                    <Select value={webhookForm.auth_type} onValueChange={v => setWebhookForm(p => ({ ...p, auth_type: v }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        <SelectItem value="bearer">Bearer Token</SelectItem>
+                        <SelectItem value="basic">Basic Auth</SelectItem>
+                        <SelectItem value="api_key">API Key</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {webhookForm.auth_type !== "none" && (
+                  <div>
+                    <Label className="text-xs">Token / Credencial</Label>
+                    <Input type="password" value={webhookForm.auth_token} onChange={e => setWebhookForm(p => ({ ...p, auth_token: e.target.value }))} placeholder="Insira o token" className="mt-1 font-mono text-xs" />
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Ativo</Label>
+                  <Switch checked={webhookForm.active} onCheckedChange={checked => setWebhookForm(p => ({ ...p, active: checked }))} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
+                <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white" onClick={handleSaveWebhook} disabled={webhookSaving}>
+                  {webhookSaving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                  {editingWebhook ? "Salvar" : "Criar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="notificacoes" className="mt-4 space-y-4">
