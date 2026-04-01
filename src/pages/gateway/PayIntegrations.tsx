@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
-import { Link2, CheckCircle, XCircle, ShoppingBag, Loader2, Trash2, Save, Eye, EyeOff, BarChart3 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link2, CheckCircle, XCircle, Loader2, Trash2, Save, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import utmifyLogo from "@/assets/utmify-logo.png";
 
-function UtmifySection() {
+function UtmifyCard() {
+  const [open, setOpen] = useState(false);
   const [token, setToken] = useState("");
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,67 +75,89 @@ function UtmifySection() {
   if (loading) return null;
 
   return (
-    <Card className="border-[#2A2A2A]">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-emerald-400" />
-            UTMify
-            {existingId && (
-              <Badge className={active ? "bg-emerald-500/10 text-emerald-400 border-0 text-[10px]" : "bg-muted text-muted-foreground border-0 text-[10px]"}>
-                {active ? "Ativo" : "Inativo"}
-              </Badge>
-            )}
-          </CardTitle>
-          <Switch checked={active} onCheckedChange={setActive} />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Envia automaticamente os dados de cada venda aprovada para a UTMify
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label className="text-xs">API Token</Label>
-          <div className="relative mt-1">
-            <Input
-              type={showToken ? "text" : "password"}
-              placeholder="Seu token da UTMify"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowToken(!showToken)}
-            >
-              {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+    <>
+      <Card
+        className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors cursor-pointer"
+        onClick={() => setOpen(true)}
+      >
+        <CardContent className="p-5 flex items-center gap-4">
+          <img src={utmifyLogo} alt="UTMify" className="w-12 h-12 rounded-lg object-cover" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm">UTMify</h3>
+              {existingId && (
+                <Badge className={active ? "bg-emerald-500/10 text-emerald-400 border-0 text-[10px]" : "bg-muted text-muted-foreground border-0 text-[10px]"}>
+                  {active ? "Ativo" : "Inativo"}
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Rastreamento de vendas e UTMs</p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Encontre em: UTMify → Configurações → Integrações → API Token
-          </p>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground text-xs">Dados enviados por transação:</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>Nome, e-mail e telefone do comprador</li>
-            <li>Valor, status e método de pagamento</li>
-            <li>Produto e checkout de origem</li>
-            <li>Parâmetros UTM capturados no checkout</li>
-          </ul>
-        </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <img src={utmifyLogo} alt="UTMify" className="w-10 h-10 rounded-lg object-cover" />
+              <div>
+                <DialogTitle>UTMify</DialogTitle>
+                <DialogDescription>Envia dados de cada venda aprovada para a UTMify</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <Button
-          className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
-          disabled={saving}
-          onClick={handleSave}
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-          Salvar Configuração
-        </Button>
-      </CardContent>
-    </Card>
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Integração ativa</Label>
+              <Switch checked={active} onCheckedChange={setActive} />
+            </div>
+
+            <div>
+              <Label className="text-xs">API Token</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  placeholder="Seu token da UTMify"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Encontre em: UTMify → Configurações → Integrações → API Token
+              </p>
+            </div>
+
+            <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground text-xs">Dados enviados por transação:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Nome, e-mail e telefone do comprador</li>
+                <li>Valor, status e método de pagamento</li>
+                <li>Produto e checkout de origem</li>
+                <li>Parâmetros UTM capturados no checkout</li>
+              </ul>
+            </div>
+
+            <Button
+              className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar Configuração
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
