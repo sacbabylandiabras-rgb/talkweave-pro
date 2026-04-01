@@ -168,6 +168,20 @@ export default function PublicCheckout() {
     fetchCheckout();
   }, [slug, tenant]);
 
+  // Set dynamic favicon
+  useEffect(() => {
+    if (config?.faviconUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = config.faviconUrl;
+      link.type = "image/png";
+    }
+  }, [config?.faviconUrl]);
+
   if (loading || tenantLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#EFF1F5" }}>
