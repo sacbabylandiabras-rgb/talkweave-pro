@@ -18,37 +18,23 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceS
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 
-  // Restore selection from localStorage or fall back to activeInstance
+  // Always select all instances by default
   useEffect(() => {
     if (!initialized && instances.length > 0) {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed: string[] = JSON.parse(saved);
-          const valid = parsed.filter(id => instances.some(i => i.id === id));
-          if (valid.length > 0) {
-            const restored = new Set(valid);
-            setSelectedIds(restored);
-            setInitialized(true);
-            // Notify parent
-            if (valid.length > 1) {
-              onInstanceChange?.(ROTATE_ALL);
-              onMultiInstanceChange?.(valid);
-            } else {
-              selectInstance(valid[0]);
-              onInstanceChange?.(valid[0]);
-              onMultiInstanceChange?.(valid);
-            }
-            return;
-          }
-        } catch {}
-      }
-      if (activeInstance) {
-        setSelectedIds(new Set([activeInstance.id]));
-        setInitialized(true);
+      const allIds = instances.map(i => i.id);
+      setSelectedIds(new Set(allIds));
+      setInitialized(true);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allIds));
+      if (allIds.length > 1) {
+        onInstanceChange?.(ROTATE_ALL);
+        onMultiInstanceChange?.(allIds);
+      } else {
+        selectInstance(allIds[0]);
+        onInstanceChange?.(allIds[0]);
+        onMultiInstanceChange?.(allIds);
       }
     }
-  }, [activeInstance, instances, initialized]);
+  }, [instances, initialized]);
 
   const toggleInstance = (id: string) => {
     setSelectedIds(prev => {
