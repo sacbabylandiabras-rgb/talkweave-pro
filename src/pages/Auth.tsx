@@ -30,6 +30,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
   
