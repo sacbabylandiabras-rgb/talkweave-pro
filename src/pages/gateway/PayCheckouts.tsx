@@ -432,6 +432,61 @@ export default function PayCheckouts() {
               </div>
             )}
 
+            {/* SSL Info */}
+            {savedDomain && sslInfo && (
+              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+                <div className="flex items-center gap-2">
+                  {sslInfo.active ? (
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span className="text-sm font-medium">Certificado SSL</span>
+                  {sslInfo.active ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 ml-auto">Ativo</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 ml-auto">Provisionando</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-muted-foreground">HTTPS</span>
+                    <p className={`font-medium ${sslInfo.https_reachable ? "text-emerald-500" : "text-amber-500"}`}>
+                      {sslInfo.https_reachable ? "Acessível" : "Indisponível"}
+                    </p>
+                  </div>
+                  {sslInfo.issuer && (
+                    <div>
+                      <span className="text-muted-foreground">Emissor</span>
+                      <p className="font-medium text-foreground">{sslInfo.issuer}</p>
+                    </div>
+                  )}
+                  {sslInfo.expires_at && (
+                    <div>
+                      <span className="text-muted-foreground">Expira em</span>
+                      <p className="font-medium text-foreground">
+                        {(() => {
+                          const days = Math.ceil((new Date(sslInfo.expires_at).getTime() - Date.now()) / 86400000);
+                          return days > 0 ? `${days} dias` : "Expirado";
+                        })()}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Renovação</span>
+                    <p className="font-medium text-emerald-500">Automática</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {savedDomain && !sslInfo && domainStatus !== "checking" && (
+              <div className="p-3 rounded-lg bg-muted/50 border flex items-center gap-2">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Clique em atualizar para verificar o SSL</span>
+              </div>
+            )}
+
             {/* Delete domain button */}
             {savedDomain && (
               <Button
