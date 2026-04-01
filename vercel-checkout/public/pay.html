@@ -216,6 +216,14 @@
   var RM = { none:"0px", sm:"4px", md:"8px", lg:"12px", xl:"16px", "2xl":"24px", full:"9999px", rounded:"8px" };
 
   function fmt(c) { return 'R$ ' + (c/100).toFixed(2).replace('.',','); }
+  function isTruthyBoolean(v) { return v === true || v === 'true' || v === 1 || v === '1'; }
+  function toCents(v) {
+    var n = Number(v);
+    return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
+  function getShippingAmount(config) {
+    return isTruthyBoolean(config && config.shippingEnabled) ? toCents(config.shippingPrice) : 0;
+  }
   function getSlug() { var p = location.pathname.split('/').filter(Boolean), i = p.indexOf('pay'); return (i!==-1 && p[i+1]) ? p[i+1] : p[p.length-1] || null; }
   function getTenant() { var p = new URLSearchParams(location.search); if (p.get('tenant')) return p.get('tenant'); var h = location.hostname; if (h==='localhost'||h.includes('127.0.0.1')) return null; return h.split('.').length > 2 ? h : null; }
 
@@ -364,7 +372,7 @@
     opts = opts || {};
     var price = cfg.price;
     if (opts.useQuantity) price = cfg.price * quantity;
-    var frete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
+    var frete = getShippingAmount(cfg);
     var total = price + frete;
     var h = '<div class="c">';
     h += '<h3 style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--card-desc)">Resumo'+(opts.showCount?' ('+quantity+')':'')+'</h3>';
@@ -842,7 +850,7 @@
       h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
-    var osFrete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
+    var osFrete = getShippingAmount(cfg);
     h += '<div class="sum-sep">';
     h += '<div class="sum-row"><span class="sl">Subtotal</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
     h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:'+(osFrete>0?'var(--card-text)':'#16A34A')+'">'+(osFrete>0?'+ '+fmt(osFrete):'Grátis')+'</span></div>';
@@ -975,7 +983,7 @@
       stepBgColor: sv.stepBgColor||'', stepTextColor: sv.stepTextColor||'',
       cardBorderRadius: sv.cardBorderRadius||'', buttonBorderRadius: sv.buttonBorderRadius||'',
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
-      shippingEnabled: sv.shippingEnabled||false, shippingPrice: sv.shippingPrice||0,
+      shippingEnabled: isTruthyBoolean(sv.shippingEnabled), shippingPrice: toCents(sv.shippingPrice),
     };
     applyCSS(cfg);
 
