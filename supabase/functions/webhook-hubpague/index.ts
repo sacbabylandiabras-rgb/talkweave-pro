@@ -138,11 +138,11 @@ serve(async (req) => {
                 },
                 products: [{
                   id: tx.product_id || tx.id,
-                  name: tx.customer_name || 'Produto',
+                  name: payload.products?.[0]?.name || 'Produto',
                   planId: null,
                   planName: null,
                   quantity: 1,
-                  priceInCents: tx.amount || 0,
+                  priceInCents: tx.amount || payload.total || 0,
                 }],
                 trackingParameters: {
                   src: (tx.metadata as any)?.src || null,
