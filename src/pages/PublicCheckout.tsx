@@ -154,6 +154,7 @@ export default function PublicCheckout() {
           productImage: savedConfig.productImage || product?.image_url || "",
           // Tenant branding: use tenant logo/color as fallback if not set in checkout config
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
+          faviconUrl: savedConfig.faviconUrl || "",
           primaryColor: savedConfig.primaryColor || tenantColor || defaultConfig.primaryColor,
         };
         setConfig(mergedConfig);
