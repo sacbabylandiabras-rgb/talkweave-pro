@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import utmifyLogo from "@/assets/utmify-logo.png";
+import { ShopifyCard } from "@/components/gateway/ShopifyIntegrationCard";
+import { toast } from "sonner";
+import utmifyLogo from "@/assets/utmify-logo.png";
 
 function UtmifyCard() {
   const [open, setOpen] = useState(false);
