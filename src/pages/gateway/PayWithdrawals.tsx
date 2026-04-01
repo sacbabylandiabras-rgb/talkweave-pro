@@ -130,7 +130,7 @@ export default function PayWithdrawals() {
       toast.error("Erro ao solicitar saque");
     } else {
       // Get the withdrawal ID just inserted
-      const { data: latestW } = await supabase
+      const { data: latestW } = await (supabase as any)
         .from("gateway_withdrawals" as any)
         .select("id")
         .eq("user_id", user.id)
