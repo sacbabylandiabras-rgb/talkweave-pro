@@ -45,7 +45,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
 
   const s = getCheckoutStyles(config);
   const unitPrice = config.price || 9900;
-  const frete = 1500;
+  const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0;
   const timerStr = `${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
