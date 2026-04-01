@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2 } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,8 @@ export default function PaySettings() {
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
   const [domainSslStatus, setDomainSslStatus] = useState<string>("");
   const [domainVerification, setDomainVerification] = useState<any>(null);
+  const [sslInfo, setSslInfo] = useState<any>(null);
+  const [statusChecking, setStatusChecking] = useState(false);
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -77,6 +79,7 @@ export default function PaySettings() {
     if (!domain) return;
     setCustomDomain(domain);
     setDomainStatus("pending");
+    setStatusChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
         body: { action: "status", hostname: domain },
@@ -90,11 +93,13 @@ export default function PaySettings() {
         setDomainStatus("pending");
       }
       setDomainSslStatus(data?.ssl_status || "");
-      setDomainVerification(data?.ownership_verification || null);
+      setDomainVerification(data?.verification || null);
+      setSslInfo(data?.ssl || null);
     } catch (err) {
       console.error("Error checking domain status:", err);
       setDomainStatus("pending");
     }
+    setStatusChecking(false);
   };
 
   const fetchApiKeys = async () => {
@@ -208,6 +213,21 @@ export default function PaySettings() {
     toast.success("Status atualizado!");
   };
 
+  const formatSslExpiry = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const d = new Date(typeof dateStr === "number" ? dateStr : dateStr);
+      const now = new Date();
+      const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        formatted: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+        daysLeft: diffDays,
+        isExpiringSoon: diffDays < 30,
+        isExpired: diffDays < 0,
+      };
+    } catch { return null; }
+  };
+
   const publicKey = apiKeys?.public_key || "—";
   const secretKey = apiKeys?.secret_key || "—";
 
@@ -305,8 +325,8 @@ export default function PaySettings() {
                     </Button>
                   ) : (
                     <div className="flex gap-1">
-                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefreshDomainStatus} title="Atualizar status">
-                        <RefreshCw className="w-3.5 h-3.5" />
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefreshDomainStatus} disabled={statusChecking} title="Atualizar status">
+                        {statusChecking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={handleDeleteDomain} disabled={domainDeleting} title="Remover domínio">
                         {domainDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -320,30 +340,128 @@ export default function PaySettings() {
               </div>
 
               {domainStatus !== "none" && (
-                <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
-                  {domainStatus === "active" ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  ) : domainStatus === "error" ? (
-                    <XCircle className="w-4 h-4 text-destructive shrink-0" />
-                  ) : (
-                    <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
-                  )}
-                  <div className="flex-1">
-                    <p className="text-xs font-medium">
-                      {domainStatus === "active" ? "Domínio ativo com SSL" : domainStatus === "error" ? "Erro na configuração" : "Provisionando SSL..."}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {customDomain}
-                      {domainSslStatus && ` • SSL: ${domainSslStatus}`}
-                    </p>
+                <div className="space-y-3">
+                  {/* Domain Status */}
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
+                    {domainStatus === "active" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : domainStatus === "error" ? (
+                      <XCircle className="w-4 h-4 text-destructive shrink-0" />
+                    ) : (
+                      <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">
+                        {domainStatus === "active" ? "Domínio verificado" : domainStatus === "error" ? "Erro na configuração" : "Verificando domínio..."}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{customDomain}</p>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${
+                      domainStatus === "active" ? "border-emerald-500/30 text-emerald-400" :
+                      domainStatus === "error" ? "border-destructive/30 text-destructive" :
+                      "border-amber-500/30 text-amber-400"
+                    }`}>
+                      {domainStatus === "active" ? "Verificado" : domainStatus === "error" ? "Erro" : "Pendente"}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    domainStatus === "active" ? "border-emerald-500/30 text-emerald-400" :
-                    domainStatus === "error" ? "border-destructive/30 text-destructive" :
-                    "border-amber-500/30 text-amber-400"
-                  }`}>
-                    {domainStatus === "active" ? "Ativo" : domainStatus === "error" ? "Erro" : "Pendente"}
-                  </Badge>
+
+                  {/* SSL Certificate Details */}
+                  <Card className="border-[#2A2A2A] bg-muted/20">
+                    <CardContent className="pt-4 pb-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-[#FF4D2E]" />
+                        <p className="text-xs font-medium text-foreground">Certificado SSL</p>
+                        {statusChecking && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* SSL Status */}
+                        <div className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <ShieldCheck className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Status</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {domainSslStatus === "active" ? (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                            ) : domainSslStatus === "provisioning" ? (
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-muted-foreground shrink-0" />
+                            )}
+                            <span className="text-xs font-medium">
+                              {domainSslStatus === "active" ? "Ativo" : domainSslStatus === "provisioning" ? "Provisionando" : "Pendente"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* HTTPS Reachable */}
+                        <div className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Globe className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">HTTPS</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {sslInfo?.https_reachable ? (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+                            )}
+                            <span className="text-xs font-medium">
+                              {sslInfo?.https_reachable ? "Acessível" : "Inacessível"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Issuer */}
+                        <div className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Shield className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Emissor</span>
+                          </div>
+                          <span className="text-xs font-medium">
+                            {sslInfo?.issuer || "—"}
+                          </span>
+                        </div>
+
+                        {/* Expiry */}
+                        <div className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Expira em</span>
+                          </div>
+                          {(() => {
+                            const expiry = formatSslExpiry(sslInfo?.expires_at);
+                            if (!expiry) return <span className="text-xs font-medium">—</span>;
+                            return (
+                              <div>
+                                <span className={`text-xs font-medium ${expiry.isExpired ? "text-destructive" : expiry.isExpiringSoon ? "text-amber-400" : ""}`}>
+                                  {expiry.formatted}
+                                </span>
+                                <p className={`text-[10px] ${expiry.isExpired ? "text-destructive" : expiry.isExpiringSoon ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  {expiry.isExpired ? "Expirado!" : `${expiry.daysLeft} dias restantes`}
+                                </p>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Auto-renew note */}
+                      <div className="flex items-center gap-2 p-2 rounded border border-emerald-500/10 bg-emerald-500/5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <p className="text-[10px] text-muted-foreground">Renovação automática via Let's Encrypt (Vercel)</p>
+                      </div>
+
+                      {/* Misconfigured warning */}
+                      {sslInfo?.misconfigured && (
+                        <div className="flex items-center gap-2 p-2 rounded border border-amber-500/20 bg-amber-500/5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <p className="text-[10px] text-amber-400">DNS pode estar mal configurado. Verifique os registros abaixo.</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 
