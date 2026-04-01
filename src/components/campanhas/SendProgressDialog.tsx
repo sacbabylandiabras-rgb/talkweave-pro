@@ -134,9 +134,11 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       } else if (
         campaignData?.status !== 'active' &&
         campaignData?.status !== 'paused' &&
+        campaignData?.status !== 'draft' &&
         effectiveTotal > 0 && 
         dbTotal >= effectiveTotal && 
-        newStats.pending === 0
+        newStats.pending === 0 &&
+        (sent + delivered + failed) >= effectiveTotal
       ) {
         setIsComplete(true);
       }
