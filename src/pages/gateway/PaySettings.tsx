@@ -59,6 +59,15 @@ export default function PaySettings() {
   const [sslInfo, setSslInfo] = useState<any>(null);
   const [statusChecking, setStatusChecking] = useState(false);
 
+  // Notification preferences state
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({
+    "Transação aprovada": false,
+    "Transação recusada": false,
+    "Estorno realizado": true,
+    "Chargeback recebido": true,
+    "Relatório semanal": false,
+  });
+
   // Webhooks state
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [webhooksLoading, setWebhooksLoading] = useState(true);
@@ -823,10 +832,13 @@ export default function PaySettings() {
           <Card className="border-[#2A2A2A]">
             <CardHeader><CardTitle className="text-sm">Notificações por E-mail</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {["Transação aprovada", "Transação recusada", "Estorno realizado", "Chargeback recebido", "Relatório semanal"].map(n => (
+              {Object.keys(notifPrefs).map(n => (
                 <div key={n} className="flex items-center justify-between">
                   <span className="text-sm">{n}</span>
-                  <Switch defaultChecked={n.includes("Chargeback") || n.includes("Estorno")} />
+                  <Switch
+                    checked={notifPrefs[n]}
+                    onCheckedChange={(checked) => setNotifPrefs(p => ({ ...p, [n]: checked }))}
+                  />
                 </div>
               ))}
             </CardContent>
