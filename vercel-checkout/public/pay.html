@@ -364,7 +364,7 @@
     opts = opts || {};
     var price = cfg.price;
     if (opts.useQuantity) price = cfg.price * quantity;
-    var frete = opts.freteGratis ? 0 : 1500;
+    var frete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
     var total = price + frete;
     var h = '<div class="c">';
     h += '<h3 style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--card-desc)">Resumo'+(opts.showCount?' ('+quantity+')':'')+'</h3>';
