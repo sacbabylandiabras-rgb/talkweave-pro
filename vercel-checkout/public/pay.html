@@ -842,10 +842,11 @@
       h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
+    var osFrete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
     h += '<div class="sum-sep">';
     h += '<div class="sum-row"><span class="sl">Subtotal</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
-    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">Grátis</span></div>';
-    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:'+(osFrete>0?'var(--card-text)':'#16A34A')+'">'+(osFrete>0?'+ '+fmt(osFrete):'Grátis')+'</span></div>';
+    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price + osFrete)+'</span></div>';
     h += '</div></div>';
     return h;
   }
