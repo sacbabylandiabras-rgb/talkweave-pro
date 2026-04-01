@@ -84,61 +84,52 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
               <Route element={<DashboardLayout />}>
-                {/* Dashboard — acessível no mobile */}
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/gateway-checkout/dashboard" element={<GatewayKycGate><PayDashboard /></GatewayKycGate>} />
-
-                {/* Rotas desktop-only */}
-                <Route path="/perfil" element={<MobileRestricted><Perfil /></MobileRestricted>} />
-                <Route path="/campanhas" element={<MobileRestricted><Campanhas /></MobileRestricted>} />
-                <Route path="/contatos" element={<MobileRestricted><Contatos /></MobileRestricted>} />
-                <Route path="/relatorio" element={<MobileRestricted><Relatorio /></MobileRestricted>} />
-                <Route path="/gateway" element={<MobileRestricted><GatewayIntegracoes /></MobileRestricted>} />
-                <Route path="/admin" element={<MobileRestricted><Admin /></MobileRestricted>} />
-                <Route path="/dispositivos" element={<MobileRestricted><Dispositivos /></MobileRestricted>} />
-                <Route path="/modelos" element={<MobileRestricted><Modelos /></MobileRestricted>} />
-                <Route path="/fluxo-visual" element={<MobileRestricted><FluxoVisual /></MobileRestricted>} />
-                <Route path="/enviar-mensagem" element={<MobileRestricted><EnviarMensagem /></MobileRestricted>} />
-                <Route path="/configuracao-zapi" element={<MobileRestricted><ConfiguracaoZAPI /></MobileRestricted>} />
-                <Route path="/mensagens" element={<MobileRestricted><MensagensRecebidas /></MobileRestricted>} />
-                <Route path="/apanhador-grupos" element={<MobileRestricted><ApanhadorGrupos /></MobileRestricted>} />
-                <Route path="/criar-grupos" element={<MobileRestricted><CriarGrupos /></MobileRestricted>} />
-                <Route path="/agente-ia" element={<MobileRestricted><AgenteIA /></MobileRestricted>} />
-
-                {/* Meta API */}
-                <Route path="/meta/dashboard" element={<MobileRestricted><DashboardMeta /></MobileRestricted>} />
-                <Route path="/meta/templates" element={<MobileRestricted><TemplatesAprovados /></MobileRestricted>} />
-                <Route path="/meta/enviar" element={<MobileRestricted><EnvioCloudAPI /></MobileRestricted>} />
-                <Route path="/meta/configuracao" element={<MobileRestricted><ConfiguracaoMeta /></MobileRestricted>} />
-
-                {/* Gateway — Lojista (desktop-only exceto dashboard) */}
-                <Route path="/gateway-checkout/products" element={<MobileRestricted><GatewayKycGate><PayProducts /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/checkouts" element={<MobileRestricted><GatewayKycGate><PayCheckouts /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/checkouts/new" element={<MobileRestricted><GatewayKycGate><CheckoutBuilder /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/checkouts/edit/:id" element={<MobileRestricted><GatewayKycGate><CheckoutBuilder /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/reports" element={<MobileRestricted><GatewayKycGate><PayReports /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/pixels" element={<MobileRestricted><GatewayKycGate><PayPixels /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/integrations" element={<MobileRestricted><GatewayKycGate><PayIntegrations /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/settings" element={<MobileRestricted><GatewayKycGate><PaySettings /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/withdrawals" element={<MobileRestricted><GatewayKycGate><PayWithdrawals /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/fees" element={<MobileRestricted><GatewayKycGate><AdminFees /></GatewayKycGate></MobileRestricted>} />
-                <Route path="/gateway-checkout/docs" element={<MobileRestricted><PayDocs /></MobileRestricted>} />
-                {/* Gateway — Admin */}
-                <Route path="/gateway-checkout/admin/dashboard" element={<MobileRestricted><AdminPayDashboard /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/companies" element={<MobileRestricted><AdminCompanies /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/acquirers" element={<MobileRestricted><AdminAcquirers /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/fees" element={<MobileRestricted><AdminFees /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/users" element={<MobileRestricted><AdminPayUsers /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/kyc" element={<MobileRestricted><AdminKYC /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/reports" element={<MobileRestricted><AdminPayReports /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/transactions" element={<MobileRestricted><AdminTransactions /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/managers" element={<MobileRestricted><AdminManagers /></MobileRestricted>} />
-                <Route path="/gateway-checkout/admin/withdrawals" element={<MobileRestricted><AdminWithdrawals /></MobileRestricted>} />
-                {/* Gateway — Manager */}
-                <Route path="/gateway-checkout/manager/dashboard" element={<MobileRestricted><ManagerDashboard /></MobileRestricted>} />
-                <Route path="/gateway-checkout/manager/clients" element={<MobileRestricted><ManagerClients /></MobileRestricted>} />
-                <Route path="/gateway-checkout/manager/commissions" element={<MobileRestricted><ManagerCommissions /></MobileRestricted>} />
-                <Route path="/gateway-checkout/manager/referral" element={<MobileRestricted><ManagerReferral /></MobileRestricted>} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/campanhas" element={<Campanhas />} />
+                <Route path="/contatos" element={<Contatos />} />
+                <Route path="/relatorio" element={<Relatorio />} />
+                <Route path="/gateway" element={<GatewayIntegracoes />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/dispositivos" element={<Dispositivos />} />
+                <Route path="/modelos" element={<Modelos />} />
+                <Route path="/fluxo-visual" element={<FluxoVisual />} />
+                <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
+                <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
+                <Route path="/mensagens" element={<MensagensRecebidas />} />
+                <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
+                <Route path="/criar-grupos" element={<CriarGrupos />} />
+                <Route path="/agente-ia" element={<AgenteIA />} />
+                <Route path="/meta/dashboard" element={<DashboardMeta />} />
+                <Route path="/meta/templates" element={<TemplatesAprovados />} />
+                <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
+                <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                <Route path="/gateway-checkout/products" element={<GatewayKycGate><PayProducts /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts" element={<GatewayKycGate><PayCheckouts /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts/new" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/checkouts/edit/:id" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/reports" element={<GatewayKycGate><PayReports /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/pixels" element={<GatewayKycGate><PayPixels /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/withdrawals" element={<GatewayKycGate><PayWithdrawals /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/fees" element={<GatewayKycGate><AdminFees /></GatewayKycGate>} />
+                <Route path="/gateway-checkout/docs" element={<PayDocs />} />
+                <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
+                <Route path="/gateway-checkout/admin/companies" element={<AdminCompanies />} />
+                <Route path="/gateway-checkout/admin/acquirers" element={<AdminAcquirers />} />
+                <Route path="/gateway-checkout/admin/fees" element={<AdminFees />} />
+                <Route path="/gateway-checkout/admin/users" element={<AdminPayUsers />} />
+                <Route path="/gateway-checkout/admin/kyc" element={<AdminKYC />} />
+                <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
+                <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
+                <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
+                <Route path="/gateway-checkout/admin/withdrawals" element={<AdminWithdrawals />} />
+                <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
+                <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
+                <Route path="/gateway-checkout/manager/commissions" element={<ManagerCommissions />} />
+                <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
               </Route>
               <Route path="/invite/:slug" element={<InvitePage />} />
               <Route path="/pay/:slug" element={<PublicCheckout />} />
