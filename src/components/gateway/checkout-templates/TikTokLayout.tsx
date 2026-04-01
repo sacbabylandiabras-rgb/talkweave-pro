@@ -115,8 +115,10 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
             </div>
             <div className="space-y-2 pt-3" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
               <div className="flex items-center justify-between text-[10px]" style={{ color: s.cardDesc }}><span>Subtotal</span><span>{formatCurrency(unitPrice)}</span></div>
-              <div className="flex items-center justify-between text-[10px]" style={{ color: s.cardDesc }}><span>Frete</span><span style={{ color: safeGreen }}>Grátis</span></div>
-              <div className="flex items-center justify-between pt-1 text-sm font-bold"><span style={{ color: s.cardTitle }}>Total</span><span style={{ color: s.primary }}>{formatCurrency(unitPrice)}</span></div>
+              {(() => { const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0; return (
+                <div className="flex items-center justify-between text-[10px]" style={{ color: s.cardDesc }}><span>Frete</span><span style={{ color: frete > 0 ? s.cardText : safeGreen }}>{frete > 0 ? formatCurrency(frete) : "Grátis"}</span></div>
+              ); })()}
+              <div className="flex items-center justify-between pt-1 text-sm font-bold"><span style={{ color: s.cardTitle }}>Total</span><span style={{ color: s.primary }}>{formatCurrency(unitPrice + (config.shippingEnabled ? (config.shippingPrice || 0) : 0))}</span></div>
             </div>
           </>
         )}

@@ -192,7 +192,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
               </div>
               <div className="space-y-2 pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
                 <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Produtos</span><span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(unitPrice)}</span></div>
-                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: s.cardText }}>+ {formatCurrency(frete)}</span></div>
+                <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: frete > 0 ? s.cardText : "#16A34A" }}>{frete > 0 ? `+ ${formatCurrency(frete)}` : "Grátis"}</span></div>
                 <div className="flex justify-between text-sm font-bold pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
                   <span style={{ color: "#16A34A" }}>Total</span><span style={{ color: "#16A34A" }}>{formatCurrency(unitPrice + frete)}</span>
                 </div>
