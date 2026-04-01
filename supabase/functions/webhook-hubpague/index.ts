@@ -64,7 +64,7 @@ serve(async (req) => {
       if (!tx) {
         const { data: txByExt } = await supabase
           .from('gateway_transactions')
-          .select('id, user_id, checkout_id, external_id')
+          .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
           .contains('metadata', { provider: 'hubpague' })
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
