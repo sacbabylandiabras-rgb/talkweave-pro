@@ -72,6 +72,8 @@ interface CheckoutConfig {
   logoUrl?: string;
   templateId?: string;
   templateName?: string;
+  shippingEnabled?: boolean;
+  shippingPrice?: number;
 }
 
 interface Props {
@@ -398,11 +400,13 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
             </div>
             <div className="flex justify-between text-sm">
               <span style={{ color: s.cardDesc }}>Frete</span>
-              <span style={{ color: "#16A34A" }} className="font-medium">Grátis</span>
+              {(() => { const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0; return (
+                <span style={{ color: frete > 0 ? s.cardText : "#16A34A" }} className="font-medium">{frete > 0 ? formatCurrency(frete) : "Grátis"}</span>
+              ); })()}
             </div>
             <div className="flex justify-between text-base font-bold pt-1" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
               <span style={{ color: s.cardTitle }}>Total</span>
-              <span style={{ color: s.primary }}>{formatCurrency(subtotal)}</span>
+              <span style={{ color: s.primary }}>{formatCurrency(subtotal + (config.shippingEnabled ? (config.shippingPrice || 0) : 0))}</span>
             </div>
           </div>
         </div>

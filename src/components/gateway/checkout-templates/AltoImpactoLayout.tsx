@@ -45,7 +45,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
 
   const s = getCheckoutStyles(config);
   const unitPrice = config.price || 9900;
-  const frete = 1500;
+  const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0;
   const timerStr = `${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
@@ -176,7 +176,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
 
             <div className="border p-4 space-y-2" style={cardStyle(s)}>
               <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Subtotal / 1 item</span><span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(unitPrice)}</span></div>
-              <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: s.cardText }}>{formatCurrency(frete)}</span></div>
+              <div className="flex justify-between text-xs"><span style={{ color: s.cardDesc }}>Frete</span><span className="font-medium" style={{ color: frete > 0 ? s.cardText : "#16A34A" }}>{frete > 0 ? formatCurrency(frete) : "Grátis"}</span></div>
               <div className="flex justify-between text-sm font-bold pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
                 <span style={{ color: s.primary }}>Total</span><span style={{ color: s.primary }}>{formatCurrency(unitPrice + frete)}</span>
               </div>

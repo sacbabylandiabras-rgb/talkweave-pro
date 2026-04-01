@@ -73,6 +73,8 @@ const defaultConfig = {
   pageTitle: "",
   templateId: "",
   templateName: "",
+  shippingEnabled: false,
+  shippingPrice: 1500,
 };
 
 const formatOptions = [
@@ -389,6 +391,19 @@ export default function CheckoutBuilder() {
                     <Input type="number" step="0.01" value={(config.originalPrice / 100).toFixed(2)} onChange={e => updateConfig("originalPrice", Math.round(parseFloat(e.target.value || "0") * 100))} className="mt-1" />
                   </div>
                 </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs">Cobrar Frete</Label>
+                    <p className="text-[10px] text-muted-foreground">Ative para produtos físicos/drop</p>
+                  </div>
+                  <Switch checked={config.shippingEnabled} onCheckedChange={v => updateConfig("shippingEnabled", v)} />
+                </div>
+                {config.shippingEnabled && (
+                  <div>
+                    <Label className="text-xs">Valor do Frete (R$)</Label>
+                    <Input type="number" step="0.01" value={(config.shippingPrice / 100).toFixed(2)} onChange={e => updateConfig("shippingPrice", Math.round(parseFloat(e.target.value || "0") * 100))} className="mt-1" />
+                  </div>
+                )}
                 <div>
                   <Label className="text-xs">Texto do botão</Label>
                   <Input value={config.buttonText} onChange={e => updateConfig("buttonText", e.target.value)} className="mt-1" />
