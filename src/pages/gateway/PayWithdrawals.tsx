@@ -129,7 +129,35 @@ export default function PayWithdrawals() {
     if (error) {
       toast.error("Erro ao solicitar saque");
     } else {
-      toast.success("Solicitação de saque enviada!");
+      // Get the withdrawal ID just inserted
+      const { data: latestW } = await supabase
+        .from("gateway_withdrawals" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestW?.id) {
+        // Auto-process: call process-withdrawal with action 'auto'
+        toast.info("Processando saque via PIX...");
+        try {
+          const { data: autoResult, error: autoErr } = await supabase.functions.invoke("process-withdrawal", {
+            body: { withdrawalId: latestW.id, action: "auto" },
+          });
+          if (autoErr || autoResult?.error) {
+            toast.error("Saque solicitado, mas o processamento automático falhou: " + (autoResult?.error || autoResult?.details || autoErr?.message || "Erro desconhecido"));
+          } else {
+            toast.success("Saque processado! PIX enviado automaticamente.");
+          }
+        } catch (e: any) {
+          toast.error("Saque criado, processamento automático falhou: " + (e.message || ""));
+        }
+      } else {
+        toast.success("Solicitação de saque enviada!");
+      }
+
       setDialogOpen(false);
       setPixKey("");
       setWithdrawAmount("");
