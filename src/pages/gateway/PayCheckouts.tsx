@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X } from "lucide-react";
+import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export default function PayCheckouts() {
   const [savedPrefix, setSavedPrefix] = useState("pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
   const [domainLoading, setDomainLoading] = useState(false);
+  const [sslInfo, setSslInfo] = useState<any>(null);
 
   const loadDomainFromLocalStorage = () => {
     const lsDomain = localStorage.getItem("checkout_custom_domain");
@@ -116,17 +117,29 @@ export default function PayCheckouts() {
   const checkDomainStatus = async (domain: string) => {
     if (!domain) { setDomainStatus("idle"); return; }
     setDomainStatus("checking");
+    setSslInfo(null);
     try {
-      // Try fetching the domain to see if Worker proxy is active
-      const res = await fetch(`https://${domain}/`, { method: "HEAD", mode: "no-cors" });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const res = await supabase.functions.invoke("manage-custom-domain", {
+          body: { action: "status", hostname: domain },
+        });
+        if (res.data) {
+          setDomainStatus(res.data.status === "active" ? "active" : "pending");
+          setSslInfo(res.data.ssl || null);
+          return;
+        }
+      }
+    } catch {}
+    // Fallback
+    try {
+      await fetch(`https://${domain}/`, { method: "HEAD", mode: "no-cors" });
       setDomainStatus("active");
     } catch {
-      // Fallback: check DNS resolution
       try {
         const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
         const data = await dnsRes.json();
-        const hasRecords = (data.Answer || []).length > 0;
-        setDomainStatus(hasRecords ? "active" : "pending");
+        setDomainStatus((data.Answer || []).length > 0 ? "active" : "pending");
       } catch {
         setDomainStatus("pending");
       }
@@ -416,6 +429,61 @@ export default function PayCheckouts() {
                     <RefreshCw className={`w-3.5 h-3.5 ${domainStatus === "checking" ? "animate-spin" : ""}`} />
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* SSL Info */}
+            {savedDomain && sslInfo && (
+              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+                <div className="flex items-center gap-2">
+                  {sslInfo.active ? (
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span className="text-sm font-medium">Certificado SSL</span>
+                  {sslInfo.active ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 ml-auto">Ativo</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 ml-auto">Provisionando</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-muted-foreground">HTTPS</span>
+                    <p className={`font-medium ${sslInfo.https_reachable ? "text-emerald-500" : "text-amber-500"}`}>
+                      {sslInfo.https_reachable ? "Acessível" : "Indisponível"}
+                    </p>
+                  </div>
+                  {sslInfo.issuer && (
+                    <div>
+                      <span className="text-muted-foreground">Emissor</span>
+                      <p className="font-medium text-foreground">{sslInfo.issuer}</p>
+                    </div>
+                  )}
+                  {sslInfo.expires_at && (
+                    <div>
+                      <span className="text-muted-foreground">Expira em</span>
+                      <p className="font-medium text-foreground">
+                        {(() => {
+                          const days = Math.ceil((new Date(sslInfo.expires_at).getTime() - Date.now()) / 86400000);
+                          return days > 0 ? `${days} dias` : "Expirado";
+                        })()}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Renovação</span>
+                    <p className="font-medium text-emerald-500">Automática</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {savedDomain && !sslInfo && domainStatus !== "checking" && (
+              <div className="p-3 rounded-lg bg-muted/50 border flex items-center gap-2">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Clique em atualizar para verificar o SSL</span>
               </div>
             )}
 
