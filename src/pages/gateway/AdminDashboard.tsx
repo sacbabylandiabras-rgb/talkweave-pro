@@ -115,11 +115,32 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         <Card className="border-[#2A2A2A]">
-          <CardHeader><CardTitle className="text-sm">Resumo de Transações</CardTitle></CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
-            <DollarSign className="w-10 h-10 text-[#FF4D2E]/40" />
-            <p className="text-2xl font-bold">{revenueData.totalTransactions} transações</p>
-            <p className="text-sm text-muted-foreground">{revenueData.approvedTransactions} aprovadas · Receita: {formatCurrency(revenueData.revenueMonth)}</p>
+          <CardHeader><CardTitle className="text-sm">Receita da Plataforma (Taxas)</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-amber-400">{formatCurrency(revenueData.revenueTotal)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Receita total acumulada</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-muted/30 rounded-lg p-3 text-center">
+                <p className="text-lg font-bold">{formatCurrency(revenueData.revenueToday)}</p>
+                <p className="text-[10px] text-muted-foreground">Hoje</p>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3 text-center">
+                <p className="text-lg font-bold">{formatCurrency(revenueData.revenueMonth)}</p>
+                <p className="text-[10px] text-muted-foreground">Este mês</p>
+              </div>
+            </div>
+            <div className="border-t border-[#2A2A2A] pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Configuração de taxa atual:</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">PIX</span>
+                <span className="font-mono font-medium">{revenueData.feePercent}% + R$ {(revenueData.feeFixed / 100).toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="border-t border-[#2A2A2A] pt-3">
+              <p className="text-xs text-muted-foreground">{revenueData.approvedTransactions} transações aprovadas · {revenueData.totalTransactions} total</p>
+            </div>
           </CardContent>
         </Card>
       </div>
