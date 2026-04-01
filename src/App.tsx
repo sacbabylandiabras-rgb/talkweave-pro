@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { MobileRestricted } from "./components/layout/MobileRestricted";
+import { usePushNotifications } from "./hooks/usePushNotifications";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -60,7 +62,13 @@ import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
 import ThankYou from "./pages/ThankYou";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
+
 const queryClient = new QueryClient();
+
+function AppContent() {
+  usePushNotifications();
+  return null;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
