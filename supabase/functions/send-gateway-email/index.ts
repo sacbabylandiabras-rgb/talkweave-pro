@@ -57,35 +57,38 @@ function buildPixGeneratedEmail(data: { customerName: string; amount: number; pr
 function buildApprovedEmail(data: { customerName: string; amount: number; productName: string; transactionId: string }): { subject: string; html: string } {
   const amount = formatCurrency(data.amount)
   return {
-    subject: `✅ Pagamento aprovado - ${amount} | ${data.productName}`,
+    subject: `Pagamento aprovado - ${amount} | ${data.productName}`,
     html: `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 20px">
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
-  <tr><td style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:30px;text-align:center">
-    <img src="${LOGO_URL}" alt="ZapLynxPay" width="48" height="48" style="display:block;margin:0 auto 12px;border-radius:8px" />
-    <h1 style="margin:0;color:#fff;font-size:22px">✅ Pagamento Aprovado!</h1>
+<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden">
+  <tr><td style="padding:32px 32px 0;text-align:center">
+    <img src="${LOGO_URL}" alt="ZapLynxPay" width="40" height="40" style="display:block;margin:0 auto 16px;border-radius:8px;background:#fff" />
+    <div style="display:inline-block;background:#ecfdf5;color:#059669;font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:4px">Pagamento Aprovado</div>
   </td></tr>
-  <tr><td style="padding:30px">
-    <p style="color:#0f172a;font-size:16px;margin:0 0 20px">Olá <strong>${data.customerName}</strong>,</p>
-    <p style="color:#64748b;font-size:14px;margin:0 0 25px">Seu pagamento foi confirmado com sucesso! Obrigado pela sua compra.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin-bottom:25px">
-      <tr><td>
-        <p style="color:#64748b;font-size:12px;margin:0 0 4px">Produto</p>
-        <p style="color:#0f172a;font-size:16px;font-weight:bold;margin:0 0 16px">${data.productName}</p>
-        <p style="color:#64748b;font-size:12px;margin:0 0 4px">Valor pago</p>
-        <p style="color:#16a34a;font-size:24px;font-weight:bold;margin:0 0 16px">${amount}</p>
-        <p style="color:#64748b;font-size:12px;margin:0 0 4px">ID da transação</p>
-        <p style="color:#334155;font-size:13px;margin:0">${data.transactionId}</p>
+  <tr><td style="padding:24px 32px 32px">
+    <p style="color:#3f3f46;font-size:14px;margin:0 0 20px">Olá <strong>${data.customerName}</strong>, seu pagamento foi confirmado. Obrigado pela compra!</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px">
+      <tr><td style="padding:16px;border-bottom:1px solid #e4e4e7">
+        <p style="color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px">Produto</p>
+        <p style="color:#18181b;font-size:15px;font-weight:600;margin:0">${data.productName}</p>
+      </td></tr>
+      <tr><td style="padding:16px;border-bottom:1px solid #e4e4e7">
+        <p style="color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px">Valor pago</p>
+        <p style="color:#18181b;font-size:22px;font-weight:700;margin:0">${amount}</p>
+      </td></tr>
+      <tr><td style="padding:16px">
+        <p style="color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px">Transação</p>
+        <p style="color:#3f3f46;font-size:12px;font-family:monospace;margin:0">${data.transactionId}</p>
       </td></tr>
     </table>
-    <p style="color:#64748b;font-size:13px;margin:0;text-align:center">Guarde este email como comprovante da sua compra.</p>
+    <p style="color:#a1a1aa;font-size:12px;margin:0;text-align:center">Guarde este email como comprovante.</p>
   </td></tr>
-  <tr><td style="background:#f8fafc;padding:20px;text-align:center;border-top:1px solid #e2e8f0">
-    <p style="color:#94a3b8;font-size:11px;margin:0">ZapLynxPay • Pagamentos seguros</p>
+  <tr><td style="padding:16px 32px;text-align:center;border-top:1px solid #f4f4f5">
+    <p style="color:#a1a1aa;font-size:11px;margin:0">ZapLynxPay</p>
   </td></tr>
 </table>
 </td></tr></table>
