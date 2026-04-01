@@ -64,50 +64,8 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-      // Validate DNS: check CNAME or A record
-      try {
-        // Check CNAME first
-        const cnameRes = await fetch(
-          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleanHostname)}&type=CNAME`,
-          { headers: { Accept: "application/dns-json" } }
-        );
-        const cnameData = await cnameRes.json();
-        const cnameRecords = (cnameData.Answer || []).filter((r: any) => r.type === 5);
-        const hasCname = cnameRecords.some(
-          (r: any) => r.data?.replace(/\.$/, "").toLowerCase() === "cname.vercel-dns.com"
-        );
-
-        // Check A record
-        const aRes = await fetch(
-          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleanHostname)}&type=A`,
-          { headers: { Accept: "application/dns-json" } }
-        );
-        const aData = await aRes.json();
-        const aRecords = (aData.Answer || []).filter((r: any) => r.type === 1);
-        const hasA = aRecords.some(
-          (r: any) => r.data === "76.76.21.21"
-        );
-
-        if (!hasCname && !hasA) {
-          return new Response(
-            JSON.stringify({
-              error: `DNS não configurado. Configure um registro CNAME apontando "${cleanHostname}" para "cname.vercel-dns.com" (subdomínio) ou um registro A para "76.76.21.21" (domínio raiz) e tente novamente.`,
-              cname_target: "cname.vercel-dns.com",
-              a_target: "76.76.21.21",
-              dns_found: {
-                cname: cnameRecords.map((r: any) => r.data?.replace(/\.$/, "")),
-                a: aRecords.map((r: any) => r.data),
-              },
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        console.log("DNS validated successfully for", cleanHostname, hasCname ? "(CNAME)" : "(A record)");
-      } catch (dnsErr) {
-        console.warn("DNS validation failed, proceeding anyway:", dnsErr);
-      }
-
-      // Add domain to Vercel project
+      // Add domain to Vercel project (DNS validation is done after, not before)
+      console.log("Registering domain on Vercel:", cleanHostname);
       const res = await fetch(
         `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains?${teamQuery.replace(/^&/, "")}`,
         {
