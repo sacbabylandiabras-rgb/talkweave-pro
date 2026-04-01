@@ -213,6 +213,21 @@ export default function PaySettings() {
     toast.success("Status atualizado!");
   };
 
+  const formatSslExpiry = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const d = new Date(typeof dateStr === "number" ? dateStr : dateStr);
+      const now = new Date();
+      const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        formatted: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+        daysLeft: diffDays,
+        isExpiringSoon: diffDays < 30,
+        isExpired: diffDays < 0,
+      };
+    } catch { return null; }
+  };
+
   const publicKey = apiKeys?.public_key || "—";
   const secretKey = apiKeys?.secret_key || "—";
 
