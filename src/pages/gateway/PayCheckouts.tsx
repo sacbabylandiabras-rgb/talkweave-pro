@@ -34,6 +34,7 @@ export default function PayCheckouts() {
   const [savedPrefix, setSavedPrefix] = useState("pay");
   const [domainStatus, setDomainStatus] = useState<"idle" | "checking" | "active" | "pending">("idle");
   const [domainLoading, setDomainLoading] = useState(false);
+  const [sslInfo, setSslInfo] = useState<any>(null);
 
   const loadDomainFromLocalStorage = () => {
     const lsDomain = localStorage.getItem("checkout_custom_domain");
