@@ -65,8 +65,8 @@ export default function AdminDashboard() {
     { label: "Volume Mês", value: formatCurrency(revenueData.volumeMonth), icon: BarChart3, color: "text-purple-400" },
     { label: "Taxa Aprovação", value: revenueData.approvalRate > 0 ? `${revenueData.approvalRate.toFixed(1)}%` : "0%", icon: Activity, color: "text-emerald-400" },
     { label: "Transações Aprovadas", value: String(revenueData.approvedTransactions), icon: DollarSign, color: "text-emerald-400" },
-    { label: "Receita ZapLynxPay", value: formatCurrency(revenueData.revenueMonth), icon: CreditCard, color: "text-amber-400" },
-    { label: "Empresas Ativas", value: String(mockCompanies.filter(c => c.status === "active").length), icon: Building2, color: "text-blue-400" },
+    { label: "Receita Hoje", value: formatCurrency(revenueData.revenueToday), icon: CreditCard, color: "text-amber-400" },
+    { label: "Receita Mês", value: formatCurrency(revenueData.revenueMonth), icon: CreditCard, color: "text-amber-400" },
   ];
 
   if (loading) {
