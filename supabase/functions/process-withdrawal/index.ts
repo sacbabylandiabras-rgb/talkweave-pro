@@ -144,7 +144,18 @@ serve(async (req) => {
       }
       const hubKeyType = hubKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'cpf'
 
-      console.log(`HubPague transfer: ${payoutAmount} cents to ${withdrawal.pix_key} (${hubKeyType})`)
+      // Format PIX key for HubPague (requires formatted CPF/CNPJ/phone)
+      let formattedPixKey = withdrawal.pix_key?.trim() || ''
+      const rawDigits = formattedPixKey.replace(/\D/g, '')
+      if (hubKeyType === 'cpf' && rawDigits.length === 11 && !formattedPixKey.includes('.')) {
+        formattedPixKey = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+      } else if (hubKeyType === 'cnpj' && rawDigits.length === 14 && !formattedPixKey.includes('.')) {
+        formattedPixKey = rawDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+      } else if (hubKeyType === 'phone' && !formattedPixKey.startsWith('+')) {
+        formattedPixKey = '+' + rawDigits
+      }
+
+      console.log(`HubPague transfer: ${payoutAmount} cents to ${formattedPixKey} (${hubKeyType})`)
 
       const hubRes = await fetch('https://app.hubpague.io/api/transfers/out', {
         method: 'POST',
@@ -154,7 +165,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           pix_key_type: hubKeyType,
-          pix_key: withdrawal.pix_key,
+          pix_key: formattedPixKey,
           value: payoutAmount,
         }),
       })
