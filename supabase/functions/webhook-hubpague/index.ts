@@ -104,6 +104,28 @@ serve(async (req) => {
           } catch (fwdErr) {
             console.error('Forward error:', fwdErr)
           }
+
+          // Send push notification
+          try {
+            const amount = (tx.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+            const pushUrl = `${supabaseUrl}/functions/v1/send-push-notification`
+            await fetch(pushUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                user_id: tx.user_id,
+                title: '💰 Nova venda aprovada!',
+                body: `Pagamento de ${amount} recebido${tx.customer_name ? ` de ${tx.customer_name}` : ''}`,
+                data: { transaction_id: tx.id, type: 'transaction_approved' },
+              }),
+            })
+            console.log('Push notification sent for transaction:', tx.id)
+          } catch (pushErr) {
+            console.error('Push notification error:', pushErr)
+          }
         }
 
         // Forward to UTMify if configured
