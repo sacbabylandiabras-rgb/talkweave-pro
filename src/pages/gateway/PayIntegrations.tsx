@@ -167,7 +167,7 @@ export default function PayIntegrations() {
   const [loading, setLoading] = useState(true);
 
   const fetchIntegrations = async () => {
-    const { data, error } = await supabase.from("gateway_integrations").select("*").neq("name", "UTMify").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("gateway_integrations").select("*").not("name", "in", '("UTMify","Shopify")').order("created_at", { ascending: false });
     if (!error && data) setIntegrations(data);
     setLoading(false);
   };
