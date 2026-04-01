@@ -976,6 +976,12 @@
     };
     applyCSS(cfg);
 
+    // Dynamic favicon
+    if (cfg.faviconUrl) {
+      var fav = document.getElementById('dynamic-favicon');
+      if (fav) { fav.href = cfg.faviconUrl; fav.type = 'image/png'; }
+    }
+
     // Build shell (timer + logo header)
     var shell = '';
     // Confianca has a banner area instead of standard header
