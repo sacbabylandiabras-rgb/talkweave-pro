@@ -46,7 +46,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const s = getCheckoutStyles(config);
   const timerStr = `${String(0).padStart(2, "0")}h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const unitPrice = config.price;
-  const frete = 1500;
+  const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
   const steps = [
