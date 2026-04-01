@@ -593,8 +593,19 @@ serve(async (req) => {
 
       console.log(`🔄 Re-invoking for remaining ${remainingContacts.length} contacts...`);
 
-      await queueContinuation(remainingContacts, currentBatch.length);
+      const continuationSuccess = await queueContinuation(remainingContacts, currentBatch.length);
+      if (!continuationSuccess) {
+        // Retry once after 2s
+        console.log(`⚠️ Re-invocation failed. Retrying in 2s...`);
+        await sleep(2000);
+        const retrySuccess = await queueContinuation(remainingContacts, currentBatch.length);
+        if (!retrySuccess) {
+          console.error(`❌ Re-invocation failed after retry. Campaign ${campaignId} stuck with ${remainingContacts.length} remaining contacts.`);
+          // Do NOT mark as completed - leave as active so it can be retried
+        }
+      }
     } else {
+      // Last batch finished - check if ALL contacts from the audience were actually processed
       const totalTargetContacts = campaignTargetContacts.length;
       const { count: processedCount } = await supabase
         .from('campaign_sends')
@@ -602,14 +613,24 @@ serve(async (req) => {
         .eq('campaign_id', campaignId);
 
       const totalProcessed = processedCount ?? 0;
-      const missingContacts = totalTargetContacts > totalProcessed
-        ? campaignTargetContacts.slice(totalProcessed)
-        : [];
 
-      if (missingContacts.length > 0) {
+      // STRICT completion check: only complete if processed >= target audience
+      // If target audience is 0 (edge case), use the current batch as reference
+      const effectiveTarget = totalTargetContacts > 0 ? totalTargetContacts : totalProcessed;
+
+      if (totalTargetContacts > 0 && totalProcessed < totalTargetContacts) {
+        // Still missing contacts - DO NOT mark as completed
+        const missingContacts = campaignTargetContacts.slice(totalProcessed);
         console.log(`⚠️ Campaign ${campaignId}: blocking completion because only ${totalProcessed}/${totalTargetContacts} contacts were processed. Re-invoking ${missingContacts.length} missing contacts.`);
 
-        await queueContinuation(missingContacts, currentBatch.length);
+        const continuationSuccess = await queueContinuation(missingContacts, currentBatch.length);
+        if (!continuationSuccess) {
+          await sleep(2000);
+          const retrySuccess = await queueContinuation(missingContacts, currentBatch.length);
+          if (!retrySuccess) {
+            console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}. ${missingContacts.length} contacts not processed.`);
+          }
+        }
 
         return new Response(JSON.stringify({
           success: true,
@@ -622,6 +643,7 @@ serve(async (req) => {
       }
 
       // All contacts processed - mark campaign as completed
+      console.log(`✅ Campaign ${campaignId}: ${totalProcessed}/${effectiveTarget} contacts processed. Marking as completed.`);
       const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
       if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
         await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
