@@ -186,6 +186,7 @@ async function processOpenPix(supabase: any, checkout: any, amountCents: number,
 }
 
 async function processHubPague(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const hubpagueToken = Deno.env.get('HUBPAGUE_TOKEN')
   if (!hubpagueToken) {
     return new Response(JSON.stringify({ error: 'HubPague not configured' }), {
