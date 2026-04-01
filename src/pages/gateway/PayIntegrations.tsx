@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import utmifyLogo from "@/assets/utmify-logo.png";
+import { ShopifyCard } from "@/components/gateway/ShopifyIntegrationCard";
 
 function UtmifyCard() {
   const [open, setOpen] = useState(false);
@@ -166,7 +167,7 @@ export default function PayIntegrations() {
   const [loading, setLoading] = useState(true);
 
   const fetchIntegrations = async () => {
-    const { data, error } = await supabase.from("gateway_integrations").select("*").neq("name", "UTMify").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("gateway_integrations").select("*").not("name", "in", '("UTMify","Shopify")').order("created_at", { ascending: false });
     if (!error && data) setIntegrations(data);
     setLoading(false);
   };
@@ -203,8 +204,11 @@ export default function PayIntegrations() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rastreamento</h2>
-        <UtmifyCard />
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Plataformas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <UtmifyCard />
+          <ShopifyCard />
+        </div>
       </div>
 
       <div>
