@@ -16,6 +16,14 @@ const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
 
 const workspaces = [
   {
+    id: "gateway" as WorkspaceType,
+    label: "Gateway e Checkout",
+    description: "Integrações e pagamentos",
+    icon: ShoppingCart,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
     id: "zapi" as WorkspaceType,
     label: "ZapLynx",
     description: "Mensagens e Automações",
@@ -30,14 +38,6 @@ const workspaces = [
     icon: Globe,
     color: "text-[#0668E1]",
     bg: "bg-[#0668E1]/10",
-  },
-  {
-    id: "gateway" as WorkspaceType,
-    label: "Gateway e Checkout",
-    description: "Integrações e pagamentos",
-    icon: ShoppingCart,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
   },
 ];
 
