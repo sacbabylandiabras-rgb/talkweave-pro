@@ -146,6 +146,7 @@ const Auth = () => {
         email: email.trim(),
         password,
         options: {
+          emailRedirectTo: 'https://talkweave-pro.lovable.app/gateway-checkout/dashboard',
           data: {
             full_name: fullName.trim(),
             whatsapp: whatsapp.trim()
