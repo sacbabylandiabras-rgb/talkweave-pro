@@ -77,6 +77,7 @@ const defaultConfig: CheckoutConfig = {
   orderBumpPrice: 0,
   productImage: "",
   logoUrl: "",
+  faviconUrl: "",
   templateId: "",
   templateName: "",
 };
