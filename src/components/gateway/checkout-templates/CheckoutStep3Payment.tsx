@@ -60,15 +60,14 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const res = await fetch(
-          `${supabaseUrl}/rest/v1/gateway_transactions?external_id=eq.${encodeURIComponent(pixData.correlationID!)}&select=status`,
-          { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } }
+          `${supabaseUrl}/functions/v1/check-payment-status?external_id=${encodeURIComponent(pixData.correlationID!)}`,
+          { headers: { apikey: anonKey } }
         );
         if (res.ok) {
-          const rows = await res.json();
-          if (rows?.[0]?.status === 'approved') {
+          const data = await res.json();
+          if (data?.status === 'approved') {
             setPaymentApproved(true);
             if (pollingRef.current) clearInterval(pollingRef.current);
-            // Redirect to thank you page
             const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
             if (slug) {
               const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
