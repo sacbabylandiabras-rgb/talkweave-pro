@@ -325,8 +325,8 @@ export default function PaySettings() {
                     </Button>
                   ) : (
                     <div className="flex gap-1">
-                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefreshDomainStatus} title="Atualizar status">
-                        <RefreshCw className="w-3.5 h-3.5" />
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefreshDomainStatus} disabled={statusChecking} title="Atualizar status">
+                        {statusChecking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={handleDeleteDomain} disabled={domainDeleting} title="Remover domínio">
                         {domainDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
