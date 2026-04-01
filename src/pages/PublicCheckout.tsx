@@ -38,6 +38,7 @@ interface CheckoutConfig {
   orderBumpPrice: number;
   productImage: string;
   logoUrl: string;
+  faviconUrl: string;
   templateId: string;
   templateName: string;
   [key: string]: any;
