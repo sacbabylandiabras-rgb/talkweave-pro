@@ -69,6 +69,7 @@ const defaultConfig = {
   orderBumpPrice: 2900,
   productImage: "",
   logoUrl: "",
+  faviconUrl: "",
   templateId: "",
   templateName: "",
 };
