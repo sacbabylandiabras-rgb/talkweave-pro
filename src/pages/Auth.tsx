@@ -48,7 +48,7 @@ const Auth = () => {
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate("/dashboard");
+        navigate("/gateway-checkout/dashboard");
       }
       
       // Quando o usuário confirma o email
