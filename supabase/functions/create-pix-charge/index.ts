@@ -264,8 +264,9 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
       .eq('id', checkout.id)
   } catch {}
 
-  // Send PIX generated email
-  if (customerEmail) {
+  // Send PIX generated email (if enabled in checkout config)
+  const emailPixEnabled = (checkout.config as any)?.emailPixGenerated !== false
+  if (customerEmail && emailPixEnabled) {
     try {
       const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
       await fetch(emailUrl, {
