@@ -49,7 +49,7 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
 
   const s = getCheckoutStyles(config);
   const unitPrice = config.price || 9900;
-  const frete = 1500;
+  const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0;
   const subtotal = unitPrice * quantity;
   const total = subtotal + frete;
   const timerStr = `${String(countdown.h).padStart(2, "0")}h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
