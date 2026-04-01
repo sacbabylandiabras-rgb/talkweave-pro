@@ -16,6 +16,7 @@ const authSchema = z.object({
 });
 
 const signupSchema = authSchema.extend({
+  fullName: z.string().trim().min(3, "Nome completo deve ter no mínimo 3 caracteres").max(100, "Nome muito longo"),
   whatsapp: z.string()
     .regex(/^\+?[1-9]\d{1,14}$/, "WhatsApp inválido. Use formato: +5511999999999")
     .min(10, "WhatsApp deve ter no mínimo 10 dígitos")
