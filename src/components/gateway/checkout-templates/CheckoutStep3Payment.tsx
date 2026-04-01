@@ -40,12 +40,56 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Payment status polling
+  const [paymentApproved, setPaymentApproved] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Auto-generate PIX when step 3 mounts (only on public checkout, not preview)
   useEffect(() => {
     if (!isPreview && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
   }, []);
+
+  // Poll for payment status once we have a correlationID
+  useEffect(() => {
+    if (isPreview || !pixData?.correlationID || paymentApproved) return;
+
+    const checkStatus = async () => {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/check-payment-status?external_id=${encodeURIComponent(pixData.correlationID!)}`,
+          { headers: { apikey: anonKey } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.status === 'approved') {
+            setPaymentApproved(true);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
+            if (slug) {
+              const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+              const params = new URLSearchParams();
+              if (formName) params.set('name', formName);
+              if (pixData.correlationID) params.set('tid', pixData.correlationID);
+              if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+              window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+            }
+          }
+        }
+      } catch {}
+    };
+
+    // Check immediately then every 5 seconds
+    checkStatus();
+    pollingRef.current = setInterval(checkStatus, 5000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [pixData?.correlationID, isPreview, paymentApproved]);
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
@@ -126,18 +170,6 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao enviar comprovante');
       setReceiptUploaded(true);
-      // Redirect to thank you page after 2 seconds
-      const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
-      if (slug) {
-        const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
-        const params = new URLSearchParams();
-        if (formName) params.set('name', formName);
-        if (pixData?.correlationID) params.set('tid', pixData.correlationID);
-        if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
-        setTimeout(() => {
-          window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
-        }, 2000);
-      }
     } catch (e: any) {
       setReceiptError(e.message || 'Erro ao enviar comprovante');
     } finally {
