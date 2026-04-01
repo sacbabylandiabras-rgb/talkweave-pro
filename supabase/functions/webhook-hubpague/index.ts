@@ -54,7 +54,7 @@ serve(async (req) => {
       // First try metadata match
       const { data: txByMeta } = await supabase
         .from('gateway_transactions')
-        .select('id, user_id, checkout_id, external_id')
+        .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
         .contains('metadata', { hubpague_id: hubpagueId })
         .single()
 
@@ -64,7 +64,7 @@ serve(async (req) => {
       if (!tx) {
         const { data: txByExt } = await supabase
           .from('gateway_transactions')
-          .select('id, user_id, checkout_id, external_id')
+          .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
           .contains('metadata', { provider: 'hubpague' })
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
@@ -138,11 +138,11 @@ serve(async (req) => {
                 },
                 products: [{
                   id: tx.product_id || tx.id,
-                  name: tx.customer_name || 'Produto',
+                  name: payload.products?.[0]?.name || 'Produto',
                   planId: null,
                   planName: null,
                   quantity: 1,
-                  priceInCents: tx.amount || 0,
+                  priceInCents: tx.amount || payload.total || 0,
                 }],
                 trackingParameters: {
                   src: (tx.metadata as any)?.src || null,
