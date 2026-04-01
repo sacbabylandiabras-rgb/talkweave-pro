@@ -492,7 +492,7 @@ export const useCampaigns = () => {
       const remainingContacts = [...failedOrPendingPhones, ...neverProcessedContacts];
 
       console.log('Never processed:', neverProcessedContacts.length);
-      console.log('Failed to retry:', failedContacts.length);
+      console.log('Failed to retry:', failedOrPendingPhones.length);
       console.log('Total remaining to send:', remainingContacts.length);
       console.log('=== END RESUME INFO ===');
 
