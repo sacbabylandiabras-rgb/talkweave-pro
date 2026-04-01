@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDeviceType } from "@/hooks/useDeviceType";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
@@ -100,10 +101,16 @@ const gatewayBottomItems = [
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
   const { activeWorkspace, workspaceLabel } = useWorkspace();
+  const { isNative } = useDeviceType();
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
-  const bottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
+  const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
+
+  const allMenuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
+  const allBottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
+
+  const menuItems = isNative ? allMenuItems.filter(i => dashboardIds.includes(i.id)) : allMenuItems;
+  const bottomItems = isNative ? [] : allBottomItems;
   const brandLabel = activeWorkspace === "gateway" ? "Gateway" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
