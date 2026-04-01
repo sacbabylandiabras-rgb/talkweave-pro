@@ -73,6 +73,8 @@ const defaultConfig = {
   pageTitle: "",
   templateId: "",
   templateName: "",
+  shippingEnabled: false,
+  shippingPrice: 1500,
 };
 
 const formatOptions = [
