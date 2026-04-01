@@ -364,7 +364,7 @@
     opts = opts || {};
     var price = cfg.price;
     if (opts.useQuantity) price = cfg.price * quantity;
-    var frete = opts.freteGratis ? 0 : 1500;
+    var frete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
     var total = price + frete;
     var h = '<div class="c">';
     h += '<h3 style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--card-desc)">Resumo'+(opts.showCount?' ('+quantity+')':'')+'</h3>';
@@ -396,7 +396,7 @@
     // Totals
     h += '<div class="sum-sep">';
     h += '<div class="sum-row"><span class="sl">Produtos</span><span class="sv">'+fmt(price)+'</span></div>';
-    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">'+(frete>0?'+ '+fmt(frete):'Grátis')+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:'+(frete>0?'var(--card-text)':'#16A34A')+'">'+(frete>0?'+ '+fmt(frete):'Grátis')+'</span></div>';
     h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(total)+'</span></div>';
     h += '</div></div>';
     return h;
@@ -784,7 +784,7 @@
 
       // Sidebar
       var sideH = '';
-      if (tid === 'confianca') sideH += sidebarSummaryHTML({freteGratis:true,showQuantity:true,useQuantity:true});
+      if (tid === 'confianca') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true});
       else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
       else sideH += sidebarSummaryHTML({});
 
@@ -801,7 +801,7 @@
       else if (step === 2) mainH2 += step2HTML();
       else mainH2 += step3HTML();
 
-      var sideH2 = sidebarSummaryHTML({freteGratis:true});
+      var sideH2 = sidebarSummaryHTML({});
       sideH2 += footerHTML();
 
       co.innerHTML = '<div class="col-main">'+mainH2+'</div><div class="col-side">'+sideH2+'</div>';
@@ -842,10 +842,11 @@
       h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
+    var osFrete = cfg.shippingEnabled ? (cfg.shippingPrice || 0) : 0;
     h += '<div class="sum-sep">';
     h += '<div class="sum-row"><span class="sl">Subtotal</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
-    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:#16A34A">Grátis</span></div>';
-    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price)+'</span></div>';
+    h += '<div class="sum-row"><span class="sl">Frete</span><span class="sv" style="color:'+(osFrete>0?'var(--card-text)':'#16A34A')+'">'+(osFrete>0?'+ '+fmt(osFrete):'Grátis')+'</span></div>';
+    h += '<div class="sum-total"><span style="color:var(--card-title)">Total</span><span class="sv">'+fmt(cfg.price + osFrete)+'</span></div>';
     h += '</div></div>';
     return h;
   }
@@ -974,6 +975,7 @@
       stepBgColor: sv.stepBgColor||'', stepTextColor: sv.stepTextColor||'',
       cardBorderRadius: sv.cardBorderRadius||'', buttonBorderRadius: sv.buttonBorderRadius||'',
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
+      shippingEnabled: sv.shippingEnabled||false, shippingPrice: sv.shippingPrice||0,
     };
     applyCSS(cfg);
 
