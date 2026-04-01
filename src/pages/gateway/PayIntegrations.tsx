@@ -50,9 +50,9 @@ function UtmifySection() {
     const payload = {
       user_id: user.id,
       name: "UTMify",
-      webhook_url: "https://api.utmify.com.br/api/v1/transactions",
+      webhook_url: "https://api.utmify.com.br/api-credentials/orders",
       method: "POST",
-      auth_type: "bearer",
+      auth_type: "x-api-token",
       auth_token: token,
       active,
     };

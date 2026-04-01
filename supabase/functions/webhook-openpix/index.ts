@@ -89,6 +89,76 @@ serve(async (req) => {
       }
     }
 
+    // Forward to UTMify if configured
+    if (tx?.user_id) {
+      try {
+        const { data: utmifyConfig } = await supabase
+          .from('gateway_integrations')
+          .select('*')
+          .eq('user_id', tx.user_id)
+          .eq('name', 'UTMify')
+          .eq('active', true)
+          .maybeSingle()
+
+        if (utmifyConfig?.auth_token) {
+          const utmifyStatus = newStatus === 'approved' ? 'paid' : newStatus === 'refunded' ? 'refunded' : 'waiting_payment'
+          const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+          const createdAt = tx.created_at ? new Date(tx.created_at).toISOString().replace('T', ' ').substring(0, 19) : now
+
+          const utmifyPayload = {
+            orderId: tx.external_id || tx.id,
+            platform: 'ZapLynxPay',
+            paymentMethod: 'pix',
+            status: utmifyStatus,
+            createdAt,
+            approvedDate: utmifyStatus === 'paid' ? now : null,
+            refundedAt: utmifyStatus === 'refunded' ? now : null,
+            customer: {
+              name: charge.customer?.name || tx.customer_name || '',
+              email: charge.customer?.email || tx.customer_email || '',
+              phone: charge.customer?.phone || tx.customer_phone || null,
+              document: charge.customer?.taxID?.taxID || null,
+            },
+            products: [{
+              id: tx.product_id || tx.id,
+              name: tx.customer_name || 'Produto',
+              planId: null,
+              planName: null,
+              quantity: 1,
+              priceInCents: tx.amount || 0,
+            }],
+            trackingParameters: {
+              src: (tx.metadata as any)?.src || null,
+              sck: (tx.metadata as any)?.sck || null,
+              utm_source: (tx.metadata as any)?.utm_source || null,
+              utm_campaign: (tx.metadata as any)?.utm_campaign || null,
+              utm_medium: (tx.metadata as any)?.utm_medium || null,
+              utm_content: (tx.metadata as any)?.utm_content || null,
+              utm_term: (tx.metadata as any)?.utm_term || null,
+            },
+            commission: {
+              totalPriceInCents: tx.amount || 0,
+              gatewayFeeInCents: tx.fee || 0,
+              userCommissionInCents: tx.net || 0,
+              currency: 'BRL',
+            },
+          }
+
+          const utmRes = await fetch('https://api.utmify.com.br/api-credentials/orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-token': utmifyConfig.auth_token,
+            },
+            body: JSON.stringify(utmifyPayload),
+          })
+          console.log('UTMify response:', utmRes.status, await utmRes.text())
+        }
+      } catch (utmErr) {
+        console.error('UTMify forward error:', utmErr)
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx?.id }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
