@@ -453,18 +453,23 @@ export const useCampaigns = () => {
 
       console.log('All sends in database:', allSends?.length);
 
-      // Count successful sends (not by unique phone — same phone can appear multiple times)
-      const successfulCount = allSends?.filter(
-        send => send.status === 'sent' || send.status === 'delivered'
-      ).length || 0;
+      // Build sets of phones already successfully sent
+      const successfulPhones = new Set<string>();
+      const failedOrPendingPhones: Array<{ phone: string; name?: string }> = [];
 
-      // Count failed/pending sends that need retry
-      const failedOrPendingFromDB = (allSends || []).filter(
-        send => send.status === 'failed' || send.status === 'pending'
-      );
+      for (const send of (allSends || [])) {
+        if (send.status === 'sent' || send.status === 'delivered') {
+          successfulPhones.add(send.phone);
+        } else if (send.status === 'failed' || send.status === 'pending') {
+          failedOrPendingPhones.push({
+            phone: send.phone,
+            name: send.contact_name || undefined,
+          });
+        }
+      }
 
-      console.log('Successful count:', successfulCount);
-      console.log('Failed/pending count:', failedOrPendingFromDB.length);
+      console.log('Successfully sent phones:', successfulPhones.size);
+      console.log('Failed/pending phones:', failedOrPendingPhones.length);
 
       // Get all target contacts from campaign
       const targetContacts: Array<{ phone: string; name?: string }> = 
@@ -475,20 +480,16 @@ export const useCampaigns = () => {
 
       console.log('Total target contacts:', targetContacts.length);
 
-      // Total processed (successful + failed + pending records in DB)
-      const totalProcessed = allSends?.length || 0;
+      // Find contacts that were never processed (not in campaign_sends at all)
+      const allProcessedPhones = new Set(
+        (allSends || []).map(s => s.phone)
+      );
+      const neverProcessedContacts = targetContacts.filter(
+        c => !allProcessedPhones.has(c.phone)
+      );
 
-      // Remaining = contacts that were never processed (by position/count, not phone)
-      // E.g., if we have 7 contacts and 3 were processed, remaining = contacts[3..6]
-      const neverProcessedContacts = targetContacts.slice(totalProcessed);
-
-      // Also re-send failed ones
-      const failedContacts = failedOrPendingFromDB.map(send => ({
-        phone: send.phone,
-        name: send.contact_name || undefined,
-      }));
-
-      const remainingContacts = [...failedContacts, ...neverProcessedContacts];
+      // Combine: retry failed/pending + send never-processed
+      const remainingContacts = [...failedOrPendingPhones, ...neverProcessedContacts];
 
       console.log('Never processed:', neverProcessedContacts.length);
       console.log('Failed to retry:', failedContacts.length);
