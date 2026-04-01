@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDeviceType } from "@/hooks/useDeviceType";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
