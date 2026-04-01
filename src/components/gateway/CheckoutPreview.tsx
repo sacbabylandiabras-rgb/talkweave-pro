@@ -72,6 +72,8 @@ interface CheckoutConfig {
   logoUrl?: string;
   templateId?: string;
   templateName?: string;
+  shippingEnabled?: boolean;
+  shippingPrice?: number;
 }
 
 interface Props {
