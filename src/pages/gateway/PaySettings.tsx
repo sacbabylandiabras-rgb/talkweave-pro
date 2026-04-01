@@ -42,6 +42,8 @@ export default function PaySettings() {
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
   const [domainSslStatus, setDomainSslStatus] = useState<string>("");
   const [domainVerification, setDomainVerification] = useState<any>(null);
+  const [sslInfo, setSslInfo] = useState<any>(null);
+  const [statusChecking, setStatusChecking] = useState(false);
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
