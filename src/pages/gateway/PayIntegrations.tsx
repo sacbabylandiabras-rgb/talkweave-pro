@@ -204,8 +204,11 @@ export default function PayIntegrations() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rastreamento</h2>
-        <UtmifyCard />
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Plataformas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <UtmifyCard />
+          <ShopifyCard />
+        </div>
       </div>
 
       <div>
