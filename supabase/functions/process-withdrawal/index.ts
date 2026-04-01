@@ -24,7 +24,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Verify admin
     const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } }
     })
@@ -35,23 +34,22 @@ serve(async (req) => {
       })
     }
 
-    const adminId = userData.user.id
+    const callerId = userData.user.id
+
+    // Check if admin
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', adminId)
+      .eq('user_id', callerId)
       .eq('role', 'admin')
       .single()
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const isAdmin = !!roleData
 
     const { withdrawalId, action, adminNotes } = await req.json()
 
-    if (!withdrawalId || !action || !['approved', 'rejected'].includes(action)) {
+    // Allow 'auto' action for self-service instant withdrawal
+    if (!withdrawalId || !action || !['approved', 'rejected', 'auto'].includes(action)) {
       return new Response(JSON.stringify({ error: 'Invalid request: withdrawalId and action (approved/rejected) required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -70,6 +68,20 @@ serve(async (req) => {
       })
     }
 
+    // For 'auto' action: verify the caller owns this withdrawal
+    if (action === 'auto') {
+      if (withdrawal.user_id !== callerId) {
+        return new Response(JSON.stringify({ error: 'Forbidden: you can only auto-process your own withdrawals' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    } else if (!isAdmin) {
+      // Only admins can approve/reject
+      return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     if (withdrawal.status !== 'pending' && withdrawal.status !== 'processing') {
       return new Response(JSON.stringify({ error: 'Withdrawal already processed' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -77,7 +89,7 @@ serve(async (req) => {
     }
 
     // If rejected, just update status
-    if (action === 'rejected') {
+    if (action === 'rejected' && isAdmin) {
       if (!adminNotes?.trim()) {
         return new Response(JSON.stringify({ error: 'Rejection reason is required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -89,7 +101,7 @@ serve(async (req) => {
         .update({
           status: 'rejected',
           admin_notes: adminNotes.trim(),
-          reviewed_by: adminId,
+          reviewed_by: callerId,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', withdrawalId)
@@ -193,7 +205,7 @@ serve(async (req) => {
       await supabase.from('gateway_withdrawals').update({
         status: 'approved',
         admin_notes: adminNotes?.trim() || `PIX enviado via HubPague. Transfer ID: ${transferId}`,
-        reviewed_by: adminId,
+          reviewed_by: callerId,
         reviewed_at: new Date().toISOString(),
       }).eq('id', withdrawalId)
 
@@ -267,7 +279,7 @@ serve(async (req) => {
       await supabase.from('gateway_withdrawals').update({
         status: 'approved',
         admin_notes: adminNotes?.trim() || `PIX enviado via OpenPix. Correlation: ${correlationID}`,
-        reviewed_by: adminId,
+        reviewed_by: callerId,
         reviewed_at: new Date().toISOString(),
       }).eq('id', withdrawalId)
 
