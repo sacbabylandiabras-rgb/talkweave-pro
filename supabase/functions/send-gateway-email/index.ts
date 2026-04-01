@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const FROM_EMAIL = 'pay@zaplynxpro.online'
 const FROM_NAME = 'ZapLynxPay'
+const LOGO_URL = 'https://talkweave-pro.lovable.app/images/logo.png'
 
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
