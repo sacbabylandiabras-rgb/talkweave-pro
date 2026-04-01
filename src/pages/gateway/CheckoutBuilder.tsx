@@ -70,6 +70,7 @@ const defaultConfig = {
   productImage: "",
   logoUrl: "",
   faviconUrl: "",
+  pageTitle: "",
   templateId: "",
   templateName: "",
 };

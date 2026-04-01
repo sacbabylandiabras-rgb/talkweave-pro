@@ -78,6 +78,7 @@ const defaultConfig: CheckoutConfig = {
   productImage: "",
   logoUrl: "",
   faviconUrl: "",
+  pageTitle: "",
   templateId: "",
   templateName: "",
 };
