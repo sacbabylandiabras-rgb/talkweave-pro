@@ -16,6 +16,7 @@ const authSchema = z.object({
 });
 
 const signupSchema = authSchema.extend({
+  fullName: z.string().trim().min(3, "Nome completo deve ter no mínimo 3 caracteres").max(100, "Nome muito longo"),
   whatsapp: z.string()
     .regex(/^\+?[1-9]\d{1,14}$/, "WhatsApp inválido. Use formato: +5511999999999")
     .min(10, "WhatsApp deve ter no mínimo 10 dígitos")
@@ -29,6 +30,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
   
@@ -138,13 +140,14 @@ const Auth = () => {
 
     try {
       // Validar inputs
-      signupSchema.parse({ email: email.trim(), password, whatsapp: whatsapp.trim() });
+      signupSchema.parse({ email: email.trim(), password, fullName: fullName.trim(), whatsapp: whatsapp.trim() });
 
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           data: {
+            full_name: fullName.trim(),
             whatsapp: whatsapp.trim()
           }
         }
@@ -176,6 +179,7 @@ const Auth = () => {
       // Limpar campos
       setEmail("");
       setPassword("");
+      setFullName("");
       setWhatsapp("");
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -257,6 +261,18 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Nome Completo</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
