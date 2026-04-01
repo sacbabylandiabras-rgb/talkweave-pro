@@ -110,17 +110,20 @@ serve(async (req) => {
         console.error('Push notification error:', pushErr)
       }
 
-      // Send approved email to customer
+      // Send approved email to customer (if enabled in checkout config)
       const customerEmail = charge.customer?.email || tx?.customer_email
-      if (customerEmail) {
+      let emailApprovedEnabled = true
+      let productName = 'Produto'
+      if (tx.checkout_id) {
+        const { data: co } = await supabase.from('gateway_checkouts').select('name, config').eq('id', tx.checkout_id).single()
+        if (co) {
+          productName = (co.config as any)?.productName || co.name || 'Produto'
+          emailApprovedEnabled = (co.config as any)?.emailApproved !== false
+        }
+      }
+      if (customerEmail && emailApprovedEnabled) {
         try {
           const emailUrl = `${supabaseUrl}/functions/v1/send-gateway-email`
-          // Get product name from checkout
-          let productName = 'Produto'
-          if (tx.checkout_id) {
-            const { data: co } = await supabase.from('gateway_checkouts').select('name, config').eq('id', tx.checkout_id).single()
-            if (co) productName = (co.config as any)?.productName || co.name || 'Produto'
-          }
           await fetch(emailUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
