@@ -117,17 +117,29 @@ export default function PayCheckouts() {
   const checkDomainStatus = async (domain: string) => {
     if (!domain) { setDomainStatus("idle"); return; }
     setDomainStatus("checking");
+    setSslInfo(null);
     try {
-      // Try fetching the domain to see if Worker proxy is active
-      const res = await fetch(`https://${domain}/`, { method: "HEAD", mode: "no-cors" });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const res = await supabase.functions.invoke("manage-custom-domain", {
+          body: { action: "status", hostname: domain },
+        });
+        if (res.data) {
+          setDomainStatus(res.data.status === "active" ? "active" : "pending");
+          setSslInfo(res.data.ssl || null);
+          return;
+        }
+      }
+    } catch {}
+    // Fallback
+    try {
+      await fetch(`https://${domain}/`, { method: "HEAD", mode: "no-cors" });
       setDomainStatus("active");
     } catch {
-      // Fallback: check DNS resolution
       try {
         const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
         const data = await dnsRes.json();
-        const hasRecords = (data.Answer || []).length > 0;
-        setDomainStatus(hasRecords ? "active" : "pending");
+        setDomainStatus((data.Answer || []).length > 0 ? "active" : "pending");
       } catch {
         setDomainStatus("pending");
       }
