@@ -179,6 +179,7 @@ const Auth = () => {
       // Limpar campos
       setEmail("");
       setPassword("");
+      setFullName("");
       setWhatsapp("");
     } catch (error) {
       if (error instanceof z.ZodError) {
