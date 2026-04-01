@@ -150,7 +150,7 @@ serve(async (req) => {
       );
     }
 
-    // STATUS — check domain verification
+    // STATUS — check domain verification + SSL details
     if (action === "status") {
       if (!hostname) {
         return new Response(JSON.stringify({ error: "hostname required" }), {
@@ -161,7 +161,7 @@ serve(async (req) => {
 
       const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-      // Get domain info
+      // Get domain info from Vercel
       const res = await fetch(
         `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}?${teamQuery.replace(/^&/, "")}`,
         { headers: vercelHeaders }
@@ -177,33 +177,80 @@ serve(async (req) => {
       const data = await res.json();
 
       // Try to verify if not yet verified
+      let domainData = data;
       if (!data.verified) {
         try {
           const verifyRes = await fetch(
             `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}/verify?${teamQuery.replace(/^&/, "")}`,
             { method: "POST", headers: vercelHeaders }
           );
-          const verifyData = await verifyRes.json();
-          return new Response(
-            JSON.stringify({
-              status: verifyData.verified ? "active" : "pending",
-              ssl_status: verifyData.verified ? "active" : "pending",
-              hostname: verifyData.name,
-              verification: verifyData.verification || null,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          domainData = await verifyRes.json();
         } catch (verifyErr) {
           console.warn("Verify attempt failed:", verifyErr);
         }
       }
 
+      // Get SSL certificate details via domain config endpoint
+      let sslDetails: any = null;
+      try {
+        const certRes = await fetch(
+          `https://api.vercel.com/v6/domains/${encodeURIComponent(cleanHostname)}/config?${teamQuery.replace(/^&/, "")}`,
+          { headers: vercelHeaders }
+        );
+        if (certRes.ok) {
+          const certData = await certRes.json();
+          sslDetails = {
+            configured: !certData.misconfigured,
+            misconfigured: certData.misconfigured || false,
+            // certs array from Vercel
+            certs: (certData.certs || []).map((c: any) => ({
+              issuer: c.issuer || null,
+              expiry: c.expiresAt || null,
+              auto_renew: true,
+            })),
+            // DNS records Vercel expects
+            expected_cnames: certData.cnames || [],
+            expected_a_values: certData.aValues || [],
+          };
+        }
+      } catch (certErr) {
+        console.warn("Could not fetch SSL details:", certErr);
+      }
+
+      // Also do a live HTTPS check
+      let httpsReachable = false;
+      try {
+        const liveCheck = await fetch(`https://${cleanHostname}`, {
+          method: "HEAD",
+          redirect: "follow",
+        });
+        httpsReachable = liveCheck.ok || liveCheck.status < 500;
+      } catch {
+        httpsReachable = false;
+      }
+
+      const isVerified = domainData.verified === true;
+      const sslActive = sslDetails?.certs?.length > 0 && !sslDetails?.misconfigured;
+
       return new Response(
         JSON.stringify({
-          status: data.verified ? "active" : "pending",
-          ssl_status: data.verified ? "active" : "pending",
-          hostname: data.name,
-          verification: data.verification || null,
+          status: isVerified ? "active" : "pending",
+          ssl_status: sslActive ? "active" : isVerified ? "provisioning" : "pending",
+          hostname: domainData.name,
+          verification: domainData.verification || null,
+          ssl: {
+            active: sslActive,
+            https_reachable: httpsReachable,
+            issuer: sslDetails?.certs?.[0]?.issuer || null,
+            expires_at: sslDetails?.certs?.[0]?.expiry || null,
+            auto_renew: true,
+            misconfigured: sslDetails?.misconfigured || false,
+          },
+          dns: {
+            configured: sslDetails?.configured || false,
+            expected_cnames: sslDetails?.expected_cnames || [],
+            expected_a_values: sslDetails?.expected_a_values || [],
+          },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
