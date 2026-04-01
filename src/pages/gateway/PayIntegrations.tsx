@@ -204,7 +204,7 @@ export default function PayIntegrations() {
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rastreamento</h2>
-        <UtmifySection />
+        <UtmifyCard />
       </div>
 
       <div>
