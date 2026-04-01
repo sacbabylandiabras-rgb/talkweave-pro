@@ -156,7 +156,30 @@ export default function PayCheckouts() {
 
     if (cleaned) {
       const fullDomain = `${domainPrefix}.${cleaned}`;
-      // Save to DB (only custom_domain column exists)
+
+      // Register domain on Vercel via Edge Function
+      try {
+        const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+          body: { action: "create", hostname: fullDomain },
+        });
+        if (error) {
+          console.error("Edge function error:", error);
+          toast.error("Erro ao registrar domínio no Vercel: " + (error.message || "Erro desconhecido"));
+          setDomainLoading(false);
+          return;
+        }
+        if (data?.error) {
+          toast.error(data.error);
+          setDomainLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        toast.error("Erro ao conectar com o servidor: " + (err.message || ""));
+        setDomainLoading(false);
+        return;
+      }
+
+      // Save to DB
       await supabase.from("profiles").update({
         custom_domain: fullDomain,
       } as any).eq("id", user.id);
@@ -167,7 +190,7 @@ export default function PayCheckouts() {
       setSavedDomain(fullDomain);
       setSavedPrefix(domainPrefix);
       checkDomainStatus(fullDomain);
-      toast.success("Domínio salvo!");
+      toast.success("Domínio registrado no Vercel com sucesso!");
     } else {
       toast.error("Informe um domínio válido");
     }
@@ -179,10 +202,20 @@ export default function PayCheckouts() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setDomainLoading(false); return; }
 
+    // Remove domain from Vercel via Edge Function
+    if (savedDomain) {
+      try {
+        await supabase.functions.invoke("manage-custom-domain", {
+          body: { action: "delete", hostname: savedDomain },
+        });
+      } catch (err) {
+        console.warn("Could not remove domain from Vercel:", err);
+      }
+    }
+
     await supabase.from("profiles").update({
       custom_domain: null,
     } as any).eq("id", user.id);
-    // Clear localStorage fallback
     localStorage.removeItem("checkout_custom_domain");
     localStorage.removeItem("checkout_domain_prefix");
     localStorage.removeItem("checkout_domain_root");
@@ -192,6 +225,7 @@ export default function PayCheckouts() {
     setCustomDomain("");
     setDomainPrefix("pay");
     setDomainStatus("idle");
+    setSslInfo(null);
     setDomainOpen(false);
     toast.success("Domínio removido!");
     setDomainLoading(false);
