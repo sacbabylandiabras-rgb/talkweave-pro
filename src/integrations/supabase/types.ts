@@ -430,6 +430,7 @@ export type Database = {
       }
       gateway_kyc: {
         Row: {
+          business_data: Json | null
           created_at: string
           doc_back_url: string | null
           doc_front_url: string | null
@@ -442,8 +443,10 @@ export type Database = {
           submitted_at: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
+          business_data?: Json | null
           created_at?: string
           doc_back_url?: string | null
           doc_front_url?: string | null
@@ -456,8 +459,10 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
+          business_data?: Json | null
           created_at?: string
           doc_back_url?: string | null
           doc_front_url?: string | null
@@ -470,6 +475,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
