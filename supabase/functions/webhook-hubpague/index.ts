@@ -54,7 +54,7 @@ serve(async (req) => {
       // First try metadata match
       const { data: txByMeta } = await supabase
         .from('gateway_transactions')
-        .select('id, user_id, checkout_id, external_id')
+        .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
         .contains('metadata', { hubpague_id: hubpagueId })
         .single()
 
