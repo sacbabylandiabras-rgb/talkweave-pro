@@ -70,6 +70,7 @@ const defaultConfig = {
   productImage: "",
   logoUrl: "",
   faviconUrl: "",
+  pageTitle: "",
   templateId: "",
   templateName: "",
 };
@@ -523,6 +524,18 @@ export default function CheckoutBuilder() {
                     </label>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">Ícone da aba do navegador. Máx 2MB. Recomendado: 32x32px.</p>
+                </div>
+
+                {/* Page Title */}
+                <div>
+                  <Label className="text-xs">Título da Aba</Label>
+                  <Input
+                    value={config.pageTitle}
+                    onChange={e => updateConfig("pageTitle", e.target.value)}
+                    placeholder="Ex: Checkout - Minha Loja"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Texto exibido na aba do navegador. Se vazio, mostra "Checkout".</p>
                 </div>
 
                 <p className="text-[10px] text-muted-foreground">Defina as cores que serão usadas nos elementos do checkout</p>

@@ -78,6 +78,7 @@ const defaultConfig: CheckoutConfig = {
   productImage: "",
   logoUrl: "",
   faviconUrl: "",
+  pageTitle: "",
   templateId: "",
   templateName: "",
 };
@@ -155,6 +156,7 @@ export default function PublicCheckout() {
           // Tenant branding: use tenant logo/color as fallback if not set in checkout config
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
           faviconUrl: savedConfig.faviconUrl || "",
+          pageTitle: savedConfig.pageTitle || "",
           primaryColor: savedConfig.primaryColor || tenantColor || defaultConfig.primaryColor,
         };
         setConfig(mergedConfig);
@@ -168,7 +170,7 @@ export default function PublicCheckout() {
     fetchCheckout();
   }, [slug, tenant]);
 
-  // Set dynamic favicon
+  // Set dynamic favicon and page title
   useEffect(() => {
     if (config?.faviconUrl) {
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
@@ -180,7 +182,10 @@ export default function PublicCheckout() {
       link.href = config.faviconUrl;
       link.type = "image/png";
     }
-  }, [config?.faviconUrl]);
+    if (config?.pageTitle) {
+      document.title = config.pageTitle;
+    }
+  }, [config?.faviconUrl, config?.pageTitle]);
 
   if (loading || tenantLoading) {
     return (
