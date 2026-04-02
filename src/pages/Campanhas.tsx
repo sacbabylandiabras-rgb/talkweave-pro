@@ -561,9 +561,17 @@ const Campanhas = () => {
                       </Button>
                     )}
 
-                    {/* Botões para completed - Forçar Parada + Duplicar */}
+                    {/* Botões para completed - Retomar + Forçar Parada + Duplicar */}
                     {campaign.status === 'completed' && (
                       <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleResumeCampaign(campaign.id)}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                          Retomar de onde parou
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
