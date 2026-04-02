@@ -147,15 +147,27 @@ export default function ConfiguracaoInstagram() {
         <CardHeader>
           <CardTitle className="text-sm">Webhook (automático)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex gap-2">
-            <Input value={webhookUrl} readOnly className="font-mono text-xs" />
-            <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
-              <Copy className="w-4 h-4" />
-            </Button>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">URL de Callback</p>
+            <div className="flex gap-2">
+              <Input value={webhookUrl} readOnly className="font-mono text-xs" />
+              <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Verificar Token</p>
+            <div className="flex gap-2">
+              <Input value={verifyToken} readOnly className="font-mono text-xs" />
+              <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(verifyToken); toast.success("Token copiado!"); }}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Esta URL é configurada automaticamente ao conectar sua conta
+            Cole a URL e o token no painel do Meta Developer (Passo 3 — Configurar webhooks)
           </p>
         </CardContent>
       </Card>
