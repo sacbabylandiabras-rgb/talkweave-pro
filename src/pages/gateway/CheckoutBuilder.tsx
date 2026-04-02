@@ -221,7 +221,7 @@ export default function CheckoutBuilder() {
       visible: true,
     };
     setElements(prev => [...prev, newEl]);
-    setSelectedElementId(newEl.id);
+    handleSelectElement(newEl.id);
   };
 
   const removeElement = (id: string) => {
