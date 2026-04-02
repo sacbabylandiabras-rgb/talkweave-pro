@@ -62,6 +62,10 @@ import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
 import ThankYou from "./pages/ThankYou";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
+import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
+import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
+import ContatosInstagram from "./pages/instagram/ContatosInstagram";
+import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +109,10 @@ const App = () => (
                 <Route path="/meta/templates" element={<TemplatesAprovados />} />
                 <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
+                <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
+                <Route path="/instagram/contatos" element={<ContatosInstagram />} />
+                <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
                 <Route path="/gateway-checkout/products" element={<GatewayKycGate><PayProducts /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/checkouts" element={<GatewayKycGate><PayCheckouts /></GatewayKycGate>} />
                 <Route path="/gateway-checkout/checkouts/new" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
