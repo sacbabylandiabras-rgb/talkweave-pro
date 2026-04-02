@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink, Instagram } from "lucide-react";
+import { CheckCircle2, Loader2, Copy, Instagram } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 
 export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
@@ -15,15 +18,20 @@ export default function ConfiguracaoInstagram() {
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
 
-  const handleLoginInstagram = () => {
+  const handleLoginInstagram = async () => {
     if (!FACEBOOK_APP_ID) {
       toast.error("Facebook App ID não configurado. Configure VITE_FACEBOOK_APP_ID no projeto.");
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Você precisa estar logado para conectar o Instagram.");
+      return;
+    }
+
     setConnecting(true);
 
-    const redirectUri = `${window.location.origin}/meta-oauth-callback`;
     const scopes = [
       "instagram_basic",
       "instagram_manage_comments",
@@ -31,10 +39,19 @@ export default function ConfiguracaoInstagram() {
       "pages_show_list",
       "pages_read_engagement",
     ].join(",");
+    const statePayload = encodeURIComponent(
+      btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
+    );
 
-    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code`;
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopes}&state=${statePayload}&response_type=code`;
 
     const popup = window.open(authUrl, "instagram_login", "width=600,height=700,scrollbars=yes");
+
+    if (!popup) {
+      setConnecting(false);
+      toast.error("Libere pop-ups do navegador para continuar.");
+      return;
+    }
 
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
@@ -50,7 +67,7 @@ export default function ConfiguracaoInstagram() {
     window.addEventListener("message", handleMessage);
 
     const checkClosed = setInterval(() => {
-      if (popup?.closed) {
+      if (popup.closed) {
         clearInterval(checkClosed);
         setConnecting(false);
         window.removeEventListener("message", handleMessage);
