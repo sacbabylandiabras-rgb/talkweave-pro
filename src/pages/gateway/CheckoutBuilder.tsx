@@ -112,6 +112,15 @@ export default function CheckoutBuilder() {
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
   const [elements, setElements] = useState<CheckoutElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(["produto", "formato", "aparencia", "pagamento", "campos"]);
+
+  // Auto-open "elementos" accordion when an element is selected
+  const handleSelectElement = (id: string | null) => {
+    setSelectedElementId(id);
+    if (id && !openAccordions.includes("elementos")) {
+      setOpenAccordions(prev => [...prev, "elementos"]);
+    }
+  };
   const [draggingType, setDraggingType] = useState<CheckoutElementType | null>(null);
 
   const activeTemplateName = config.templateId
