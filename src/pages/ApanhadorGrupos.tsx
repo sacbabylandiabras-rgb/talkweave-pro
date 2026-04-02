@@ -428,7 +428,7 @@ const ApanhadorGrupos = () => {
                               </Select>
                         )}
 
-                        {instances.length > 1 && (
+                        {instances.length >= 1 && (
                           <div>
                             <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
                               <Smartphone className="h-3.5 w-3.5" />
