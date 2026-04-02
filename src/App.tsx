@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
