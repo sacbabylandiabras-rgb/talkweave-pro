@@ -33,9 +33,9 @@ export default function ConfiguracaoInstagram() {
     setConnecting(true);
 
     const scopes = [
-      "instagram_basic",
-      "instagram_manage_comments",
-      "instagram_manage_messages",
+      "instagram_business_basic",
+      "instagram_business_manage_comments",
+      "instagram_business_manage_messages",
       "pages_show_list",
       "pages_read_engagement",
     ].join(",");
@@ -165,9 +165,9 @@ export default function ConfiguracaoInstagram() {
           <CardTitle className="text-sm">Permissões solicitadas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1.5 text-xs text-muted-foreground">
-          <p>• <strong>instagram_basic</strong> — Acesso ao perfil da conta</p>
-          <p>• <strong>instagram_manage_comments</strong> — Ler e responder comentários</p>
-          <p>• <strong>instagram_manage_messages</strong> — Enviar e ler Direct Messages</p>
+          <p>• <strong>instagram_business_basic</strong> — Acesso ao perfil da conta profissional</p>
+          <p>• <strong>instagram_business_manage_comments</strong> — Ler e responder comentários</p>
+          <p>• <strong>instagram_business_manage_messages</strong> — Enviar e ler Direct Messages</p>
           <p>• <strong>pages_show_list</strong> — Listar páginas conectadas</p>
           <p>• <strong>pages_read_engagement</strong> — Métricas de engajamento</p>
         </CardContent>
