@@ -1,30 +1,67 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink, Instagram } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+
 export default function ConfiguracaoInstagram() {
-  const [accessToken, setAccessToken] = useState("");
-  const [accountId, setAccountId] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [testing, setTesting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [accountName, setAccountName] = useState("");
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
 
-  const handleTestConnection = async () => {
-    if (!accessToken || !accountId) {
-      toast.error("Preencha o Access Token e o ID da conta");
+  const handleLoginInstagram = () => {
+    if (!FACEBOOK_APP_ID) {
+      toast.error("Facebook App ID não configurado. Configure VITE_FACEBOOK_APP_ID no projeto.");
       return;
     }
-    setTesting(true);
-    // Simulated test
-    await new Promise(r => setTimeout(r, 2000));
-    setIsConnected(true);
-    setTesting(false);
-    toast.success("Conexão com Instagram validada com sucesso!");
+
+    setConnecting(true);
+
+    const redirectUri = `${window.location.origin}/meta-oauth-callback`;
+    const scopes = [
+      "instagram_basic",
+      "instagram_manage_comments",
+      "instagram_manage_messages",
+      "pages_show_list",
+      "pages_read_engagement",
+    ].join(",");
+
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code`;
+
+    const popup = window.open(authUrl, "instagram_login", "width=600,height=700,scrollbars=yes");
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "META_OAUTH_SUCCESS") {
+        setIsConnected(true);
+        setAccountName("@sua_conta");
+        setConnecting(false);
+        toast.success("Instagram conectado com sucesso!");
+        window.removeEventListener("message", handleMessage);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    const checkClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkClosed);
+        setConnecting(false);
+        window.removeEventListener("message", handleMessage);
+      }
+    }, 1000);
+  };
+
+  const handleDisconnect = () => {
+    setIsConnected(false);
+    setAccountName("");
+    toast.info("Instagram desconectado");
   };
 
   const copyWebhookUrl = () => {
@@ -39,79 +76,83 @@ export default function ConfiguracaoInstagram() {
         <p className="text-sm text-muted-foreground mt-0.5">Conecte sua conta do Instagram para ativar automações</p>
       </div>
 
-      {/* Status */}
+      {/* Status Card */}
       <Card className="border-border">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isConnected ? "bg-[#00ff88]/10" : "bg-destructive/10"}`}>
-                {isConnected ? <CheckCircle2 className="w-5 h-5 text-[#00ff88]" /> : <XCircle className="w-5 h-5 text-destructive" />}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{isConnected ? "Conectado" : "Desconectado"}</p>
-                <p className="text-xs text-muted-foreground">{isConnected ? "API do Instagram ativa" : "Configure as credenciais abaixo"}</p>
-              </div>
+        <CardContent className="pt-6 pb-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isConnected ? "bg-[#00ff88]/10" : "bg-muted/30"}`}>
+              {isConnected ? (
+                <CheckCircle2 className="w-8 h-8 text-[#00ff88]" />
+              ) : (
+                <Instagram className="w-8 h-8 text-muted-foreground" />
+              )}
             </div>
-            <Badge variant={isConnected ? "default" : "destructive"}
-              className={isConnected ? "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30" : ""}>
-              {isConnected ? "Online" : "Offline"}
-            </Badge>
+
+            {isConnected ? (
+              <>
+                <div>
+                  <Badge className="bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 mb-2">Conectado</Badge>
+                  <p className="text-sm font-medium">{accountName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sua conta está pronta para automações</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleDisconnect} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  Desconectar
+                </Button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm font-medium">Nenhuma conta conectada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Faça login com o Instagram para começar</p>
+                </div>
+                <Button
+                  onClick={handleLoginInstagram}
+                  disabled={connecting}
+                  className="gap-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 hover:from-purple-700 hover:via-pink-600 hover:to-orange-500 text-white border-0 px-6"
+                  size="lg"
+                >
+                  {connecting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Instagram className="w-5 h-5" />
+                  )}
+                  {connecting ? "Conectando..." : "Entrar com Instagram"}
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Credentials */}
+      {/* Webhook URL */}
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="text-sm">Credenciais da API</CardTitle>
+          <CardTitle className="text-sm">Webhook (automático)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Access Token</label>
-            <Input
-              type="password"
-              value={accessToken}
-              onChange={e => setAccessToken(e.target.value)}
-              placeholder="Cole seu Access Token do Instagram"
-            />
+        <CardContent className="space-y-2">
+          <div className="flex gap-2">
+            <Input value={webhookUrl} readOnly className="font-mono text-xs" />
+            <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+              <Copy className="w-4 h-4" />
+            </Button>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">ID da Conta Instagram</label>
-            <Input
-              value={accountId}
-              onChange={e => setAccountId(e.target.value)}
-              placeholder="Ex: 17841400123456789"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">URL do Webhook (gerada automaticamente)</label>
-            <div className="flex gap-2">
-              <Input value={webhookUrl} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Configure esta URL no painel de desenvolvedor do Facebook/Instagram</p>
-          </div>
-          <Button onClick={handleTestConnection} disabled={testing} className="w-full gap-2">
-            {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {testing ? "Testando..." : "Testar Conexão"}
-          </Button>
+          <p className="text-[10px] text-muted-foreground">
+            Esta URL é configurada automaticamente ao conectar sua conta
+          </p>
         </CardContent>
       </Card>
 
       {/* Help */}
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="text-sm">Como configurar</CardTitle>
+          <CardTitle className="text-sm">Permissões solicitadas</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs text-muted-foreground">
-          <p>1. Acesse o <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">Facebook Developers <ExternalLink className="w-3 h-3" /></a></p>
-          <p>2. Crie ou selecione um App com permissão de Instagram Graph API</p>
-          <p>3. Gere um Access Token de longa duração</p>
-          <p>4. Cole o token e o ID da sua conta Instagram acima</p>
-          <p>5. Configure a URL do webhook no painel do App</p>
-          <p>6. Clique em "Testar Conexão" para validar</p>
+        <CardContent className="space-y-1.5 text-xs text-muted-foreground">
+          <p>• <strong>instagram_basic</strong> — Acesso ao perfil da conta</p>
+          <p>• <strong>instagram_manage_comments</strong> — Ler e responder comentários</p>
+          <p>• <strong>instagram_manage_messages</strong> — Enviar e ler Direct Messages</p>
+          <p>• <strong>pages_show_list</strong> — Listar páginas conectadas</p>
+          <p>• <strong>pages_read_engagement</strong> — Métricas de engajamento</p>
         </CardContent>
       </Card>
     </div>
