@@ -372,7 +372,7 @@ export default function CheckoutBuilder() {
             </CardContent>
           </Card>
 
-          <Accordion type="multiple" defaultValue={["produto", "formato", "aparencia", "pagamento", "campos"]} className="space-y-2">
+          <Accordion type="multiple" value={openAccordions} onValueChange={setOpenAccordions} className="space-y-2">
             {/* BLOCO A: Produto & Oferta */}
             <AccordionItem value="produto" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
