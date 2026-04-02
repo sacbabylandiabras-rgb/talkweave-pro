@@ -1101,7 +1101,7 @@ export default function CheckoutBuilder() {
                   onAddElement={addElement}
                   onRemoveElement={removeElement}
                   onToggleElement={toggleElement}
-                  onSelectElement={setSelectedElementId}
+                  onSelectElement={handleSelectElement}
                   onMoveElement={moveElement}
                   selectedElementId={selectedElementId}
                   onDragStart={handleDragStart}
