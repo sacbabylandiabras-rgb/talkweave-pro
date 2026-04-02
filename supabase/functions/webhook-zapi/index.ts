@@ -507,8 +507,27 @@ serve(async (req) => {
               }
 
               const responseType = welcomeConfig.response_type || 'text'
-              const baseUrl = `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`
-              const headers = { 'Content-Type': 'application/json', 'Client-Token': instData.zapi_client_token }
+
+              // If a specific instance_id is configured, use that instance's credentials
+              let sendInstData = instData
+              if (welcomeConfig.instance_id) {
+                const { data: overrideInst } = await supabase
+                  .from('zapi_instances')
+                  .select('zapi_instance_id, zapi_token, zapi_client_token')
+                  .eq('user_id', instData.user_id)
+                  .eq('id', welcomeConfig.instance_id)
+                  .eq('is_active', true)
+                  .maybeSingle()
+                if (overrideInst) {
+                  console.log('🔄 Using override instance for welcome:', welcomeConfig.instance_id)
+                  sendInstData = { ...instData, ...overrideInst }
+                } else {
+                  console.log('⚠️ Override instance not found or inactive, using original')
+                }
+              }
+
+              const baseUrl = `https://api.z-api.io/instances/${sendInstData.zapi_instance_id}/token/${sendInstData.zapi_token}`
+              const headers = { 'Content-Type': 'application/json', 'Client-Token': sendInstData.zapi_client_token }
 
               if (responseType === 'flow' && welcomeConfig.flow_id) {
               // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message

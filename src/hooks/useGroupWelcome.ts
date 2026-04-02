@@ -74,6 +74,7 @@ export function useGroupWelcome() {
             response_type: data.response_type || 'text',
             template_id: data.template_id || null,
             flow_id: data.flow_id || null,
+            instance_id: data.instance_id || null,
             active,
           });
         if (error) throw error;
