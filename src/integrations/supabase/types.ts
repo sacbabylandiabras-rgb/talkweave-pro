@@ -763,6 +763,7 @@ export type Database = {
           group_id: string
           group_name: string
           id: string
+          instance_id: string | null
           message: string
           response_type: string
           template_id: string | null
@@ -776,6 +777,7 @@ export type Database = {
           group_id: string
           group_name?: string
           id?: string
+          instance_id?: string | null
           message?: string
           response_type?: string
           template_id?: string | null
@@ -789,6 +791,7 @@ export type Database = {
           group_id?: string
           group_name?: string
           id?: string
+          instance_id?: string | null
           message?: string
           response_type?: string
           template_id?: string | null
