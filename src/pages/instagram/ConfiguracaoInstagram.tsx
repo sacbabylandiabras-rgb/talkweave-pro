@@ -43,7 +43,7 @@ export default function ConfiguracaoInstagram() {
       btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
     );
 
-    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopes}&state=${statePayload}&response_type=code`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${statePayload}`;
 
     const popup = window.open(authUrl, "instagram_login", "width=600,height=700,scrollbars=yes");
 
