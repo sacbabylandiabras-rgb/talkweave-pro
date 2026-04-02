@@ -66,6 +66,7 @@ import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
 import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
+import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,7 @@ const App = () => (
                 <Route path="/meta/templates" element={<TemplatesAprovados />} />
                 <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                 <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
                 <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
                 <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
                 <Route path="/instagram/contatos" element={<ContatosInstagram />} />

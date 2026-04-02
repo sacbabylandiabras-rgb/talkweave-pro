@@ -59,6 +59,7 @@ const zapiMenuItems = [
 ];
 
 const instagramMenuItems = [
+  { id: "ig-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/instagram/dashboard" },
   { id: "ig-campanhas", label: "Campanhas", icon: Megaphone, path: "/instagram/campanhas" },
   { id: "ig-automacao", label: "Automação", icon: Workflow, path: "/instagram/automacao" },
   { id: "ig-contatos", label: "Contatos", icon: Users, path: "/instagram/contatos" },
