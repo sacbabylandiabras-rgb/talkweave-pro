@@ -78,6 +78,30 @@ serve(async (req) => {
       const data = await res.json();
 
       if (!res.ok) {
+        const errCode = data.error?.code;
+        // If domain is already added to this project, treat as success
+        if (errCode === "domain_already_in_use" && data.error?.domain) {
+          console.log("Domain already exists in project, treating as success");
+          // Save to profile
+          try {
+            await supabase
+              .from("profiles")
+              .update({ custom_domain: cleanHostname } as any)
+              .eq("id", user.id);
+          } catch (dbErr) {
+            console.warn("Could not save domain to profile:", dbErr);
+          }
+          return new Response(
+            JSON.stringify({
+              success: true,
+              hostname: cleanHostname,
+              status: data.error.domain.verified ? "active" : "pending",
+              ssl_status: data.error.domain.verified ? "active" : "pending",
+              verification: null,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         const errMsg = data.error?.message || "Failed to add domain to Vercel";
         console.error("Vercel error:", JSON.stringify(data));
         return new Response(JSON.stringify({ error: errMsg }), {
