@@ -108,6 +108,15 @@ function GerenciarGrupoTab() {
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const getInstanceCredentials = (group: any) => {
+    // Priority: manual override > group's sourceInstanceId > fallback
+    const overrideInst = overrideInstanceId ? instances.find((i) => i.id === overrideInstanceId) : null;
+    if (overrideInst) {
+      return {
+        instanceId: overrideInst.zapi_instance_id,
+        instanceToken: overrideInst.zapi_token,
+        instanceClientToken: overrideInst.zapi_client_token,
+      };
+    }
     const inst = instances.find((i) => i.zapi_instance_id === group?.sourceInstanceId);
     if (inst) {
       return {
