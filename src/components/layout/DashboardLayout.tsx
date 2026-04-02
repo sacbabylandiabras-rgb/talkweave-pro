@@ -79,6 +79,12 @@ export function DashboardLayout() {
       "/apanhador-grupos": "apanhador-grupos",
       "/agente-ia": "agente-ia",
       "/criar-grupos": "criar-grupos",
+      // Instagram routes
+      "/instagram/dashboard": "ig-dashboard",
+      "/instagram/campanhas": "ig-campanhas",
+      "/instagram/automacao": "ig-automacao",
+      "/instagram/contatos": "ig-contatos",
+      "/instagram/configuracao": "ig-configuracao",
       // Meta API routes
       "/meta/dashboard": "painel-meta",
       "/meta/templates": "templates-aprovados",
