@@ -56,10 +56,9 @@ export default function PayDocs() {
               </pre>
             </div>
 
-            <h3 className="font-semibold">Ambientes</h3>
+            <h3 className="font-semibold">Base URL</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span><code className="text-xs font-mono text-muted-foreground">https://api.zaplynxpay.com.br/v1</code></div>
-              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 font-bold">SANDBOX</span><code className="text-xs font-mono text-muted-foreground">https://api-sandbox.zaplynxpay.com.br/v1</code></div>
+              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span><code className="text-xs font-mono text-muted-foreground">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></div>
             </div>
           </div>
         )}
@@ -68,11 +67,12 @@ export default function PayDocs() {
         {activeSection === "auth" && (
           <div className="space-y-4">
             <h1 className="text-3xl font-bold">Autenticação</h1>
-            <p className="text-muted-foreground">Todas as requisições devem incluir a chave secreta no header Authorization.</p>
-            <CodeBlock language="http" code={`Authorization: Bearer sk_live_SUA_CHAVE_SECRETA\nContent-Type: application/json`} />
+            <p className="text-muted-foreground">Todas as requisições devem incluir o <code className="font-mono text-xs">apikey</code> header com a chave anon do Supabase e, para rotas protegidas, o token JWT do usuário.</p>
+            <CodeBlock language="http" code={`apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\nAuthorization: Bearer TOKEN_JWT_DO_USUARIO\nContent-Type: application/json`} />
+            <p className="text-muted-foreground text-sm mt-2">Para endpoints públicos (como <code className="font-mono text-xs">get-checkout</code>), apenas o header <code className="font-mono text-xs">apikey</code> é necessário.</p>
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div><p className="text-sm font-medium text-amber-400">Atenção</p><p className="text-xs text-muted-foreground mt-1">Nunca exponha sua chave secreta (sk_live_*) em código frontend. Use apenas no backend.</p></div>
+              <div><p className="text-sm font-medium text-amber-400">Atenção</p><p className="text-xs text-muted-foreground mt-1">Nunca exponha sua Service Role Key em código frontend. Use apenas a chave anon (pública) no cliente.</p></div>
             </div>
           </div>
         )}
@@ -236,7 +236,7 @@ if (req.headers['x-zaplynxpay-signature'] !== sig) {
         {activeSection === "sandbox" && (
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">Sandbox & Testes</h1>
-            <p className="text-muted-foreground">URL: <code className="font-mono text-xs text-[#FF4D2E]">https://api-sandbox.zaplynxpay.com.br/v1</code></p>
+            <p className="text-muted-foreground">Base URL: <code className="font-mono text-xs text-[#FF4D2E]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></p>
             
             <h2 className="text-xl font-semibold">Cartões de Teste</h2>
             <div className="rounded-lg border border-[#2A2A2A] overflow-hidden">
