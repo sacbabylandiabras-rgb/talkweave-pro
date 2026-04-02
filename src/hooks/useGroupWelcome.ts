@@ -47,6 +47,7 @@ export function useGroupWelcome() {
       response_type?: 'text' | 'template' | 'flow';
       template_id?: string | null;
       flow_id?: string | null;
+      instance_id?: string | null;
     }
   ) => {
     try {
