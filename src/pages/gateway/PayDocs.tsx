@@ -235,7 +235,7 @@ if (req.headers['x-zaplynxpay-signature'] !== sig) {
         {activeSection === "sandbox" && (
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">Sandbox & Testes</h1>
-            <p className="text-muted-foreground">URL: <code className="font-mono text-xs text-[#FF4D2E]">https://api-sandbox.zaplynxpay.com.br/v1</code></p>
+            <p className="text-muted-foreground">Base URL: <code className="font-mono text-xs text-[#FF4D2E]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></p>
             
             <h2 className="text-xl font-semibold">Cartões de Teste</h2>
             <div className="rounded-lg border border-[#2A2A2A] overflow-hidden">
