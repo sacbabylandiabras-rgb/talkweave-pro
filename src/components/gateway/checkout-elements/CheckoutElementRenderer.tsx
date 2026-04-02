@@ -255,24 +255,32 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
 // Sub-components with state
 
 function FaqElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [openIdx, setOpenIdx] = useState<Set<number>>(new Set(content.items?.map((_: any, i: number) => i) || []));
+  const toggle = (i: number) => {
+    setOpenIdx(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  };
   return (
     <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-      <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{content.title || "FAQ"}</h4>
+      <h4 className="text-sm font-bold mb-1" style={{ color: textColor }}>{content.title || "FAQ"}</h4>
+      {content.description && <p className="text-xs mb-3" style={{ color: textColor + "80" }}>{content.description}</p>}
       <div className="space-y-2">
         {(content.items || []).map((item: any, i: number) => (
-          <div key={i} className="rounded-lg border overflow-hidden" style={{ borderColor: cardBorder }}>
+          <div key={i} className="border-t" style={{ borderColor: cardBorder }}>
             <button
-              className="w-full flex items-center justify-between p-3 text-left"
+              className="w-full flex items-center justify-between py-3 text-left"
               style={{ color: textColor }}
-              onClick={(e) => { e.stopPropagation(); setOpenIdx(openIdx === i ? null : i); }}
+              onClick={(e) => { e.stopPropagation(); toggle(i); }}
             >
-              <span className="text-xs font-medium">{item.question}</span>
-              {openIdx === i ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
+              <span className="text-xs font-semibold">{item.question}</span>
+              {openIdx.has(i) ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
             </button>
-            {openIdx === i && (
-              <div className="px-3 pb-3">
-                <p className="text-xs" style={{ color: textColor + "99" }}>{item.answer}</p>
+            {openIdx.has(i) && (
+              <div className="pb-3">
+                <p className="text-xs" style={{ color: textColor + "80" }}>{item.answer}</p>
               </div>
             )}
           </div>
