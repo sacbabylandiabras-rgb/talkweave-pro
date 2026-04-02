@@ -214,8 +214,22 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
       {/* Main Menu */}
       <nav className="flex-1 overflow-y-auto px-2 py-1">
         <ul className="space-y-0.5">
-          {menuItems.map(renderItem)}
+          {menuItems.filter(i => i.id !== "instagram").map(renderItem)}
         </ul>
+
+        {/* Instagram section */}
+        {menuItems.some(i => i.id === "instagram") && (
+          <>
+            {!collapsed && (
+              <div className="px-2 pt-3 pb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Instagram</span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {menuItems.filter(i => i.id === "instagram").map(renderItem)}
+            </ul>
+          </>
+        )}
       </nav>
 
       {/* Bottom */}
