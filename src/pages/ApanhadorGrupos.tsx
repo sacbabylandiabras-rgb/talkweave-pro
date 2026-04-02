@@ -468,6 +468,7 @@ const ApanhadorGrupos = () => {
                               response_type: currentType as any,
                               template_id: currentTemplateId || null,
                               flow_id: currentFlowId || null,
+                              instance_id: currentInstanceId || null,
                             });
                           }}
                         >
