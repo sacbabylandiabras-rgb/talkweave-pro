@@ -100,8 +100,6 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-
-      <WhatsAppFloatingButton />
     </div>
   );
 }
