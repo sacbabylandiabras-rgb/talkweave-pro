@@ -322,7 +322,7 @@ const ApanhadorGrupos = () => {
                           <MessageCircle className="h-4 w-4 text-primary" />
                           <span className="text-sm font-medium text-foreground">Mensagem de Boas-vindas</span>
                         </div>
-                        <Switch
+                         <Switch
                           checked={isWelcomeActive}
                           onCheckedChange={(checked) => {
                             saveConfig(welcomeGroupId, grupo.nome, checked, {
@@ -330,6 +330,7 @@ const ApanhadorGrupos = () => {
                               response_type: currentType as any,
                               template_id: currentTemplateId || null,
                               flow_id: currentFlowId || null,
+                              instance_id: currentInstanceId || null,
                             });
                           }}
                         />
