@@ -686,10 +686,8 @@ const EnviarMensagem = () => {
         }
       }
       
-      // Atualizar status da campanha (apenas se não foi cancelado)
-      
-      // Atualizar status da campanha (apenas se não foi cancelado)
-      if (!cancelarEnvioRef.current) {
+      // Atualizar status da campanha (apenas se não foi cancelado E não foi interrompido externamente)
+      if (!cancelarEnvioRef.current && !interrompidoExternamente) {
         const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
         await supabase
           .from('campaigns')
