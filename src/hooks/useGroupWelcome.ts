@@ -11,6 +11,7 @@ export interface GroupWelcomeConfig {
   response_type: 'text' | 'template' | 'flow';
   template_id: string | null;
   flow_id: string | null;
+  instance_id: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -46,6 +47,7 @@ export function useGroupWelcome() {
       response_type?: 'text' | 'template' | 'flow';
       template_id?: string | null;
       flow_id?: string | null;
+      instance_id?: string | null;
     }
   ) => {
     try {
@@ -72,6 +74,7 @@ export function useGroupWelcome() {
             response_type: data.response_type || 'text',
             template_id: data.template_id || null,
             flow_id: data.flow_id || null,
+            instance_id: data.instance_id || null,
             active,
           });
         if (error) throw error;

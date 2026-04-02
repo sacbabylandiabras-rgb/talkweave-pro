@@ -7,9 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow } from "lucide-react";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups();
   const { configs: welcomeConfigs, saveConfig } = useGroupWelcome();
+  const { instances } = useZapiInstances();
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
@@ -37,6 +39,7 @@ const ApanhadorGrupos = () => {
   const [editingType, setEditingType] = useState<Map<string, string>>(new Map());
   const [editingTemplateId, setEditingTemplateId] = useState<Map<string, string>>(new Map());
   const [editingFlowId, setEditingFlowId] = useState<Map<string, string>>(new Map());
+  const [editingInstanceId, setEditingInstanceId] = useState<Map<string, string>>(new Map());
 
   // Load templates and flows
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
@@ -234,6 +237,7 @@ const ApanhadorGrupos = () => {
             const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
             const currentTemplateId = editingTemplateId.get(grupo.id) ?? welcomeConfig?.template_id ?? '';
             const currentFlowId = editingFlowId.get(grupo.id) ?? welcomeConfig?.flow_id ?? '';
+            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? '';
 
             return (
               <Card key={grupo.id}>
@@ -318,7 +322,7 @@ const ApanhadorGrupos = () => {
                           <MessageCircle className="h-4 w-4 text-primary" />
                           <span className="text-sm font-medium text-foreground">Mensagem de Boas-vindas</span>
                         </div>
-                        <Switch
+                         <Switch
                           checked={isWelcomeActive}
                           onCheckedChange={(checked) => {
                             saveConfig(welcomeGroupId, grupo.nome, checked, {
@@ -326,6 +330,7 @@ const ApanhadorGrupos = () => {
                               response_type: currentType as any,
                               template_id: currentTemplateId || null,
                               flow_id: currentFlowId || null,
+                              instance_id: currentInstanceId || null,
                             });
                           }}
                         />
@@ -421,7 +426,35 @@ const ApanhadorGrupos = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
-                            )}
+                        )}
+
+                        {instances.length > 1 && (
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                              <Smartphone className="h-3.5 w-3.5" />
+                              Instância de Disparo
+                            </label>
+                            <Select
+                              value={currentInstanceId || "auto"}
+                              onValueChange={(val) => setEditingInstanceId(prev => new Map(prev).set(grupo.id, val === "auto" ? "" : val))}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Automática (mesma do grupo)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">🔄 Automática (mesma do grupo)</SelectItem>
+                                {instances.map(inst => (
+                                  <SelectItem key={inst.id} value={inst.id}>
+                                    {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Escolha qual número vai enviar a mensagem de boas-vindas
+                            </p>
+                          </div>
+                        )}
                           </div>
                         )}
                       </div>
@@ -435,6 +468,7 @@ const ApanhadorGrupos = () => {
                               response_type: currentType as any,
                               template_id: currentTemplateId || null,
                               flow_id: currentFlowId || null,
+                              instance_id: currentInstanceId || null,
                             });
                           }}
                         >
