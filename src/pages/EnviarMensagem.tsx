@@ -453,6 +453,7 @@ const EnviarMensagem = () => {
             .single();
 
           if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+            interrompidoExternamente = true;
             try {
               const { data: sessionData } = await supabase.auth.getSession();
               const token = sessionData?.session?.access_token;
