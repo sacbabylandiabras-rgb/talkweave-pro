@@ -30,6 +30,7 @@ const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups();
   const { configs: welcomeConfigs, saveConfig } = useGroupWelcome();
+  const { instances } = useZapiInstances();
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
@@ -38,6 +39,7 @@ const ApanhadorGrupos = () => {
   const [editingType, setEditingType] = useState<Map<string, string>>(new Map());
   const [editingTemplateId, setEditingTemplateId] = useState<Map<string, string>>(new Map());
   const [editingFlowId, setEditingFlowId] = useState<Map<string, string>>(new Map());
+  const [editingInstanceId, setEditingInstanceId] = useState<Map<string, string>>(new Map());
 
   // Load templates and flows
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
