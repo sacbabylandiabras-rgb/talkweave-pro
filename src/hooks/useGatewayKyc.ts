@@ -15,6 +15,7 @@ export interface KycData {
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
+  whatsapp: string | null;
 }
 
 export function useGatewayKyc() {
