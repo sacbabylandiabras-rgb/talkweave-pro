@@ -80,7 +80,7 @@ serve(async (req) => {
       const shortLivedToken = tokenData.access_token;
 
       const longLivedRes = await fetch(
-        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(META_APP_SECRET)}&access_token=${encodeURIComponent(shortLivedToken)}`
+        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(igAppSecret)}&access_token=${encodeURIComponent(shortLivedToken)}`
       );
       const longLivedData = await longLivedRes.json();
       const finalToken = longLivedData.access_token || shortLivedToken;
