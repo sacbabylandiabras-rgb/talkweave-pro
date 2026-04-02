@@ -4,7 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+
 
 export function DashboardLayout() {
   const navigate = useNavigate();
