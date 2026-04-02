@@ -11,6 +11,7 @@ export interface GroupWelcomeConfig {
   response_type: 'text' | 'template' | 'flow';
   template_id: string | null;
   flow_id: string | null;
+  instance_id: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
