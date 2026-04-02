@@ -142,20 +142,31 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
         <>
           <div>
             <Label className="text-[10px]">Título</Label>
-            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" />
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Perguntas Frequentes" />
           </div>
+          <div>
+            <Label className="text-[10px]">Descrição</Label>
+            <Input value={c.description || ""} onChange={e => update("description", e.target.value)} className="mt-1 text-xs" placeholder="FAQ" />
+          </div>
+          <p className="text-[10px] font-semibold text-muted-foreground">Perguntas e Respostas</p>
           {(c.items || []).map((item: any, i: number) => (
-            <div key={i} className="space-y-1 p-2 rounded border border-border">
+            <div key={i} className="space-y-2 p-3 rounded-lg border border-border bg-background">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold">Pergunta {i + 1}</span>
                 <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
               </div>
-              <Input value={item.question} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], question: e.target.value }; update("items", items); }} className="text-xs" placeholder="Pergunta" />
-              <Textarea value={item.answer} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], answer: e.target.value }; update("items", items); }} className="text-xs" rows={2} placeholder="Resposta" />
+              <div>
+                <Label className="text-[10px]">Pergunta</Label>
+                <Input value={item.question} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], question: e.target.value }; update("items", items); }} className="mt-1 text-xs" placeholder="Nova Pergunta" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Resposta</Label>
+                <Textarea value={item.answer} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], answer: e.target.value }; update("items", items); }} className="mt-1 text-xs" rows={3} placeholder="Nova Resposta" />
+              </div>
             </div>
           ))}
-          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { question: "", answer: "" }])}>
-            <Plus className="w-3 h-3 mr-1" /> Adicionar pergunta
+          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { question: "Nova Pergunta", answer: "Nova Resposta" }])}>
+            <Plus className="w-3 h-3 mr-1" /> Adicionar Pergunta
           </Button>
         </>
       )}
