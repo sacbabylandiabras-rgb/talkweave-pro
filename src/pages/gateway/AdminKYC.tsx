@@ -21,7 +21,7 @@ const getDocStatusBadge = (status: string) => {
   }
 };
 
-type EnrichedKyc = KycData & { email?: string; full_name?: string; whatsapp_profile?: string };
+type EnrichedKyc = KycData & { email?: string; full_name?: string; whatsapp_profile?: string; whatsapp?: string };
 
 export default function AdminKYC() {
   const { queue, loading, approveKyc, rejectKyc, refetch } = useAdminKycQueue();
