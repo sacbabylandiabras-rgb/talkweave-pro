@@ -237,6 +237,7 @@ const ApanhadorGrupos = () => {
             const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
             const currentTemplateId = editingTemplateId.get(grupo.id) ?? welcomeConfig?.template_id ?? '';
             const currentFlowId = editingFlowId.get(grupo.id) ?? welcomeConfig?.flow_id ?? '';
+            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? '';
 
             return (
               <Card key={grupo.id}>
