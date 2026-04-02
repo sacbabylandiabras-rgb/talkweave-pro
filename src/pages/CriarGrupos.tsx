@@ -62,6 +62,7 @@ function GerenciarGrupoTab() {
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [overrideInstanceId, setOverrideInstanceId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -107,6 +108,15 @@ function GerenciarGrupoTab() {
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const getInstanceCredentials = (group: any) => {
+    // Priority: manual override > group's sourceInstanceId > fallback
+    const overrideInst = overrideInstanceId ? instances.find((i) => i.id === overrideInstanceId) : null;
+    if (overrideInst) {
+      return {
+        instanceId: overrideInst.zapi_instance_id,
+        instanceToken: overrideInst.zapi_token,
+        instanceClientToken: overrideInst.zapi_client_token,
+      };
+    }
     const inst = instances.find((i) => i.zapi_instance_id === group?.sourceInstanceId);
     if (inst) {
       return {
@@ -379,6 +389,28 @@ function GerenciarGrupoTab() {
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
+
+          {instances.length > 1 && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5" />
+                Instância de disparo
+              </label>
+              <Select value={overrideInstanceId || "auto"} onValueChange={(v) => setOverrideInstanceId(v === "auto" ? "" : v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Automática (do grupo)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">🔄 Automática (do grupo)</SelectItem>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {selectedGroup && (
             <div className="flex gap-6 pt-2">
