@@ -15,6 +15,7 @@ serve(async (req) => {
 
   const META_APP_ID = Deno.env.get("META_APP_ID");
   const META_APP_SECRET = Deno.env.get("META_APP_SECRET");
+  const INSTAGRAM_APP_SECRET = Deno.env.get("INSTAGRAM_APP_SECRET");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -41,14 +42,25 @@ serve(async (req) => {
     const isInstagramFlow = url.searchParams.get("ig_flow") === "1";
 
     if (isInstagramFlow) {
+      const igAppId = "931384643004158";
+      const igAppSecret = INSTAGRAM_APP_SECRET || META_APP_SECRET;
+
+      if (!igAppSecret) {
+        console.error("INSTAGRAM_APP_SECRET not configured");
+        return new Response(errorPage("Instagram App Secret não configurado."), {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+          status: 500,
+        });
+      }
+
       const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          client_id: META_APP_ID,
-          client_secret: META_APP_SECRET,
+          client_id: igAppId,
+          client_secret: igAppSecret,
           grant_type: "authorization_code",
           redirect_uri: `${SUPABASE_URL}/functions/v1/meta-oauth-callback?ig_flow=1`,
           code,
@@ -68,7 +80,7 @@ serve(async (req) => {
       const shortLivedToken = tokenData.access_token;
 
       const longLivedRes = await fetch(
-        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(META_APP_SECRET)}&access_token=${encodeURIComponent(shortLivedToken)}`
+        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(igAppSecret)}&access_token=${encodeURIComponent(shortLivedToken)}`
       );
       const longLivedData = await longLivedRes.json();
       const finalToken = longLivedData.access_token || shortLivedToken;
