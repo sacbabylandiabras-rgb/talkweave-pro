@@ -21,7 +21,7 @@ const getDocStatusBadge = (status: string) => {
   }
 };
 
-type EnrichedKyc = KycData & { email?: string; full_name?: string };
+type EnrichedKyc = KycData & { email?: string; full_name?: string; whatsapp_profile?: string; whatsapp?: string };
 
 export default function AdminKYC() {
   const { queue, loading, approveKyc, rejectKyc, refetch } = useAdminKycQueue();
@@ -133,6 +133,7 @@ export default function AdminKYC() {
             <TableHeader>
               <TableRow className="border-[#2A2A2A]">
                 <TableHead>Usuário</TableHead>
+                <TableHead>Telefone</TableHead>
                 <TableHead>Data Envio</TableHead>
                 <TableHead>Documentos</TableHead>
                 <TableHead>Status</TableHead>
@@ -147,6 +148,9 @@ export default function AdminKYC() {
                       <span className="font-medium text-sm">{k.full_name || "Sem nome"}</span>
                       <span className="text-xs text-muted-foreground">{k.email}</span>
                     </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground font-mono">
+                    {(k as any).whatsapp_profile || k.whatsapp || "—"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {k.submitted_at ? format(new Date(k.submitted_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}
@@ -185,7 +189,7 @@ export default function AdminKYC() {
                 </TableRow>
               ))}
               {queue.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-12">Nenhum registro de KYC</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-12">Nenhum registro de KYC</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
