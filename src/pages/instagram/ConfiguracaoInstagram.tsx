@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+const INSTAGRAM_APP_ID = import.meta.env.VITE_INSTAGRAM_APP_ID || "931384643004158";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 
@@ -19,8 +19,8 @@ export default function ConfiguracaoInstagram() {
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
 
   const handleLoginInstagram = async () => {
-    if (!FACEBOOK_APP_ID) {
-      toast.error("Facebook App ID não configurado. Configure VITE_FACEBOOK_APP_ID no projeto.");
+    if (!INSTAGRAM_APP_ID) {
+      toast.error("Instagram App ID não configurado.");
       return;
     }
 
@@ -43,7 +43,7 @@ export default function ConfiguracaoInstagram() {
       btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
     );
 
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${statePayload}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${statePayload}`;
 
     const popup = window.open(authUrl, "instagram_login", "width=600,height=700,scrollbars=yes");
 
