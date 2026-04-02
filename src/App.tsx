@@ -141,6 +141,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <WhatsAppFloatingButton />
         </WorkspaceProvider>
       </TooltipProvider>
     </ThemeProvider>
