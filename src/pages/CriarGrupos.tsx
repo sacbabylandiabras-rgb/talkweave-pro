@@ -62,6 +62,7 @@ function GerenciarGrupoTab() {
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [overrideInstanceId, setOverrideInstanceId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
