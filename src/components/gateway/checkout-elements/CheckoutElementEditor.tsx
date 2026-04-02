@@ -189,25 +189,82 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
       {element.type === "testimonial" && (
         <>
           {(c.items || []).map((t: any, i: number) => (
-            <div key={i} className="space-y-1 p-2 rounded border border-border">
+            <div key={i} className="space-y-2 p-3 rounded-lg border border-border bg-background">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold">Depoimento {i + 1}</span>
                 <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
               </div>
-              <Input value={t.name} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], name: e.target.value }; update("items", items); }} className="text-xs" placeholder="Nome" />
-              <Textarea value={t.text} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], text: e.target.value }; update("items", items); }} className="text-xs" rows={2} placeholder="Depoimento" />
-              <div className="flex items-center gap-2">
-                <Label className="text-[10px]">Nota:</Label>
-                <Select value={String(t.rating || 5)} onValueChange={v => { const items = [...(c.items || [])]; items[i] = { ...items[i], rating: parseInt(v) }; update("items", items); }}>
-                  <SelectTrigger className="w-16 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1,2,3,4,5].map(n => <SelectItem key={n} value={String(n)}>{"⭐".repeat(n)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+
+              {/* Avatar upload */}
+              <div>
+                <Label className="text-[10px]">Foto do autor</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 flex items-center justify-center bg-muted">
+                    {t.avatar ? (
+                      <img src={t.avatar} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{t.name?.[0] || "?"}</span>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-1 px-2 py-1.5 text-[10px] border border-dashed rounded-lg cursor-pointer hover:bg-muted flex-1">
+                    <Upload className="w-3 h-3" /> {t.avatar ? "Trocar foto" : "Enviar foto"}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImageUpload(f, url => {
+                        const items = [...(c.items || [])];
+                        items[i] = { ...items[i], avatar: url };
+                        update("items", items);
+                      });
+                    }} />
+                  </label>
+                  {t.avatar && (
+                    <button onClick={() => { const items = [...(c.items || [])]; items[i] = { ...items[i], avatar: "" }; update("items", items); }} className="text-red-500">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div>
+                <Label className="text-[10px]">Nome</Label>
+                <Input value={t.name} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], name: e.target.value }; update("items", items); }} className="mt-1 text-xs" placeholder="Ex: Maria Silva" />
+              </div>
+
+              {/* Star rating - clickable stars */}
+              <div>
+                <Label className="text-[10px]">Estrelas</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  {[1,2,3,4,5].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => { const items = [...(c.items || [])]; items[i] = { ...items[i], rating: n }; update("items", items); }}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 20 20" fill={n <= (t.rating || 5) ? "#FACC15" : "#D1D5DB"} stroke={n <= (t.rating || 5) ? "#FACC15" : "#D1D5DB"}>
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </button>
+                  ))}
+                  <span className="text-[10px] text-muted-foreground ml-1">{t.rating || 5}/5</span>
+                </div>
+              </div>
+
+              {/* Testimonial text */}
+              <div>
+                <Label className="text-[10px]">Depoimento</Label>
+                <Textarea value={t.text} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], text: e.target.value }; update("items", items); }} className="mt-1 text-xs" rows={3} placeholder="Texto do depoimento..." />
+              </div>
+
+              {/* Time ago */}
+              <div>
+                <Label className="text-[10px]">Tempo (ex: há 3 dias)</Label>
+                <Input value={t.timeAgo || ""} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], timeAgo: e.target.value }; update("items", items); }} className="mt-1 text-xs" placeholder="há 3 dias" />
               </div>
             </div>
           ))}
-          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { name: "", text: "", rating: 5, avatar: "" }])}>
+          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { name: "", text: "", rating: 5, avatar: "", timeAgo: "há 3 dias" }])}>
             <Plus className="w-3 h-3 mr-1" /> Adicionar depoimento
           </Button>
         </>

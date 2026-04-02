@@ -105,8 +105,8 @@ export const ELEMENT_DEFINITIONS: ElementDefinition[] = [
     category: "trust",
     defaultContent: {
       items: [
-        { name: "Maria S.", text: "Produto incrível! Superou minhas expectativas.", rating: 5, avatar: "" },
-        { name: "João P.", text: "Entrega rápida e qualidade excelente.", rating: 5, avatar: "" },
+        { name: "Maria S.", text: "Produto incrível! Superou minhas expectativas.", rating: 5, avatar: "", timeAgo: "há 3 dias" },
+        { name: "João P.", text: "Entrega rápida e qualidade excelente.", rating: 5, avatar: "", timeAgo: "há 5 dias" },
       ],
     },
   },

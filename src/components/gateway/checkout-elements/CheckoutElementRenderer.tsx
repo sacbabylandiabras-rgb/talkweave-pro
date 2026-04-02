@@ -137,21 +137,30 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
 
     case "testimonial":
       return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="space-y-3">
+        <div style={{ ...wrapperStyle }} className={hoverClass} onClick={onClick}>
+          <div className="space-y-4">
             {(c.items || []).map((t: any, i: number) => (
-              <div key={i} className="flex gap-3 items-start">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: `${primaryColor}20`, color: primaryColor }}>
-                  {t.avatar ? <img src={t.avatar} className="w-full h-full rounded-full object-cover" /> : t.name?.[0] || "?"}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-1">
-                    {Array.from({ length: t.rating || 5 }).map((_, j) => (
-                      <Star key={j} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    ))}
+              <div key={i} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }}>
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: `${primaryColor}20` }}>
+                    {t.avatar ? (
+                      <img src={t.avatar} className="w-full h-full object-cover" alt={t.name || ""} />
+                    ) : (
+                      <span className="text-sm font-bold" style={{ color: primaryColor }}>{t.name?.[0] || "?"}</span>
+                    )}
                   </div>
-                  <p className="text-xs" style={{ color: textColor + "CC" }}>"{t.text}"</p>
-                  <p className="text-[10px] font-semibold mt-1" style={{ color: textColor }}>— {t.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-sm font-semibold" style={{ color: textColor }}>{t.name || "Anônimo"}</p>
+                      {t.timeAgo && <span className="text-[10px] shrink-0" style={{ color: textColor + "80" }}>{t.timeAgo}</span>}
+                    </div>
+                    <div className="flex items-center gap-0.5 mb-2">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <Star key={j} className="w-3.5 h-3.5" style={{ fill: j < (t.rating || 5) ? "#FACC15" : "#D1D5DB", color: j < (t.rating || 5) ? "#FACC15" : "#D1D5DB" }} />
+                      ))}
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: textColor + "CC" }}>{t.text}</p>
+                  </div>
                 </div>
               </div>
             ))}
