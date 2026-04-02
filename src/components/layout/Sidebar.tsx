@@ -56,7 +56,13 @@ const zapiMenuItems = [
   { id: "criar-grupos", label: "Criar Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
-  { id: "instagram", label: "Instagram", icon: Instagram, path: "https://instagram.com", external: true },
+];
+
+const instagramMenuItems = [
+  { id: "ig-campanhas", label: "Campanhas", icon: Megaphone, path: "/instagram/campanhas" },
+  { id: "ig-automacao", label: "Automação", icon: Workflow, path: "/instagram/automacao" },
+  { id: "ig-contatos", label: "Contatos", icon: Users, path: "/instagram/contatos" },
+  { id: "ig-configuracao", label: "Configuração", icon: Settings, path: "/instagram/configuracao" },
 ];
 
 const metaMenuItems = [
@@ -214,11 +220,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
       {/* Main Menu */}
       <nav className="flex-1 overflow-y-auto px-2 py-1">
         <ul className="space-y-0.5">
-          {menuItems.filter(i => i.id !== "instagram").map(renderItem)}
+          {menuItems.map(renderItem)}
         </ul>
 
         {/* Instagram section */}
-        {menuItems.some(i => i.id === "instagram") && (
+        {activeWorkspace === "zapi" && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
@@ -226,7 +232,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
               </div>
             )}
             <ul className="space-y-0.5">
-              {menuItems.filter(i => i.id === "instagram").map(renderItem)}
+              {instagramMenuItems.map(renderItem)}
             </ul>
           </>
         )}
