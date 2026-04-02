@@ -56,10 +56,9 @@ export default function PayDocs() {
               </pre>
             </div>
 
-            <h3 className="font-semibold">Ambientes</h3>
+            <h3 className="font-semibold">Base URL</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span><code className="text-xs font-mono text-muted-foreground">https://api.zaplynxpay.com.br/v1</code></div>
-              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 font-bold">SANDBOX</span><code className="text-xs font-mono text-muted-foreground">https://api-sandbox.zaplynxpay.com.br/v1</code></div>
+              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span><code className="text-xs font-mono text-muted-foreground">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></div>
             </div>
           </div>
         )}
