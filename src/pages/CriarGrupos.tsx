@@ -390,6 +390,28 @@ function GerenciarGrupoTab() {
             </Button>
           </div>
 
+          {instances.length > 1 && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5" />
+                Instância de disparo
+              </label>
+              <Select value={overrideInstanceId || "auto"} onValueChange={(v) => setOverrideInstanceId(v === "auto" ? "" : v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Automática (do grupo)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">🔄 Automática (do grupo)</SelectItem>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {selectedGroup && (
             <div className="flex gap-6 pt-2">
               {/* Left: Form controls */}
