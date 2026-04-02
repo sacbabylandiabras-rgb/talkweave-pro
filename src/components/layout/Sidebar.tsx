@@ -25,7 +25,8 @@ import {
   PlugZap,
   Activity,
   Wallet,
-  Receipt
+  Receipt,
+  Instagram
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
