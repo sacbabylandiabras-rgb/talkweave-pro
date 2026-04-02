@@ -25,7 +25,8 @@ import {
   PlugZap,
   Activity,
   Wallet,
-  Receipt
+  Receipt,
+  Instagram
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const zapiMenuItems = [
   { id: "criar-grupos", label: "Criar Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
+  { id: "instagram", label: "Instagram", icon: Instagram, path: "https://instagram.com", external: true },
 ];
 
 const metaMenuItems = [
@@ -113,35 +115,46 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const bottomItems = isNative ? [] : allBottomItems;
   const brandLabel = activeWorkspace === "gateway" ? "Gateway" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
-  const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean }) => {
+  const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean; external?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
 
     const Icon = item.icon;
     const isActive = activeItem === item.id;
 
+    const linkContent = (
+      <>
+        <Icon className={cn(
+          "shrink-0 transition-colors duration-200",
+          collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+        )} />
+        {!collapsed && (
+          <span className="truncate">{item.label}</span>
+        )}
+      </>
+    );
+
+    const className = cn(
+      "group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200",
+      collapsed && "justify-center px-2",
+      isActive
+        ? "bg-primary/10 text-primary border border-primary/20"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
+    );
+
     return (
       <li key={item.id}>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <Link
-              to={item.path}
-              className={cn(
-                "group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200",
-                collapsed && "justify-center px-2",
-                isActive
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
-              )}
-            >
-              <Icon className={cn(
-                "shrink-0 transition-colors duration-200",
-                collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
-                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-              )} />
-              {!collapsed && (
-                <span className="truncate">{item.label}</span>
-              )}
-            </Link>
+            {item.external ? (
+              <a href={item.path} target="_blank" rel="noopener noreferrer" className={className}>
+                {linkContent}
+              </a>
+            ) : (
+              <Link to={item.path} className={className}>
+                {linkContent}
+              </Link>
+            )}
           </TooltipTrigger>
           {collapsed && (
             <TooltipContent side="right" className="font-medium text-xs">
