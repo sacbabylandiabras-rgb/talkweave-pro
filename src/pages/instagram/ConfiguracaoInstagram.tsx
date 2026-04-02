@@ -17,6 +17,7 @@ export default function ConfiguracaoInstagram() {
   const [accountName, setAccountName] = useState("");
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
+  const verifyToken = "zaplynx_ig_verify_2024";
 
   const handleLoginInstagram = async () => {
     if (!INSTAGRAM_APP_ID) {
