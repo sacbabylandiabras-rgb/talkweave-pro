@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+const INSTAGRAM_APP_ID = import.meta.env.VITE_INSTAGRAM_APP_ID || "931384643004158";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 
