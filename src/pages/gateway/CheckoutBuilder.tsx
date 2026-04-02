@@ -226,7 +226,7 @@ export default function CheckoutBuilder() {
 
   const removeElement = (id: string) => {
     setElements(prev => prev.filter(e => e.id !== id));
-    if (selectedElementId === id) setSelectedElementId(null);
+    if (selectedElementId === id) handleSelectElement(null);
   };
 
   const toggleElement = (id: string) => {
