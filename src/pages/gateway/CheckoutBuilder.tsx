@@ -112,6 +112,15 @@ export default function CheckoutBuilder() {
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
   const [elements, setElements] = useState<CheckoutElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(["produto", "formato", "aparencia", "pagamento", "campos"]);
+
+  // Auto-open "elementos" accordion when an element is selected
+  const handleSelectElement = (id: string | null) => {
+    setSelectedElementId(id);
+    if (id && !openAccordions.includes("elementos")) {
+      setOpenAccordions(prev => [...prev, "elementos"]);
+    }
+  };
   const [draggingType, setDraggingType] = useState<CheckoutElementType | null>(null);
 
   const activeTemplateName = config.templateId
@@ -212,12 +221,12 @@ export default function CheckoutBuilder() {
       visible: true,
     };
     setElements(prev => [...prev, newEl]);
-    setSelectedElementId(newEl.id);
+    handleSelectElement(newEl.id);
   };
 
   const removeElement = (id: string) => {
     setElements(prev => prev.filter(e => e.id !== id));
-    if (selectedElementId === id) setSelectedElementId(null);
+    if (selectedElementId === id) handleSelectElement(null);
   };
 
   const toggleElement = (id: string) => {
@@ -363,7 +372,7 @@ export default function CheckoutBuilder() {
             </CardContent>
           </Card>
 
-          <Accordion type="multiple" defaultValue={["produto", "formato", "aparencia", "pagamento", "campos"]} className="space-y-2">
+          <Accordion type="multiple" value={openAccordions} onValueChange={setOpenAccordions} className="space-y-2">
             {/* BLOCO A: Produto & Oferta */}
             <AccordionItem value="produto" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
@@ -1092,7 +1101,7 @@ export default function CheckoutBuilder() {
                   onAddElement={addElement}
                   onRemoveElement={removeElement}
                   onToggleElement={toggleElement}
-                  onSelectElement={setSelectedElementId}
+                  onSelectElement={handleSelectElement}
                   onMoveElement={moveElement}
                   selectedElementId={selectedElementId}
                   onDragStart={handleDragStart}
@@ -1148,7 +1157,7 @@ export default function CheckoutBuilder() {
                   templateName={activeTemplateName}
                   elements={elements}
                   isBuilder={true}
-                  onSelectElement={setSelectedElementId}
+                  onSelectElement={handleSelectElement}
                   selectedElementId={selectedElementId}
                   onDropElement={(type, position) => addElement(type, position)}
                   previewMode={previewMode}
