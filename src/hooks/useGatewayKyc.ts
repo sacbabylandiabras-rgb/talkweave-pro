@@ -129,12 +129,12 @@ export function useAdminKycQueue() {
       const userIds = kycData?.map(k => k.user_id) || [];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, email, full_name")
+        .select("id, email, full_name, whatsapp")
         .in("id", userIds);
 
       const enriched = kycData?.map(k => {
         const profile = profiles?.find(p => p.id === k.user_id);
-        return { ...k, email: profile?.email || "", full_name: profile?.full_name || "" };
+        return { ...k, email: profile?.email || "", full_name: profile?.full_name || "", whatsapp_profile: (profile as any)?.whatsapp || "" };
       }) || [];
 
       setQueue(enriched);
