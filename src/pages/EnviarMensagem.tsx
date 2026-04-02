@@ -427,7 +427,7 @@ const EnviarMensagem = () => {
 
       let processados = 0;
       let erros = 0;
-      
+      let interrompidoExternamente = false;
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado localmente
@@ -453,6 +453,7 @@ const EnviarMensagem = () => {
             .single();
 
           if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+            interrompidoExternamente = true;
             try {
               const { data: sessionData } = await supabase.auth.getSession();
               const token = sessionData?.session?.access_token;
@@ -685,10 +686,8 @@ const EnviarMensagem = () => {
         }
       }
       
-      // Atualizar status da campanha (apenas se não foi cancelado)
-      
-      // Atualizar status da campanha (apenas se não foi cancelado)
-      if (!cancelarEnvioRef.current) {
+      // Atualizar status da campanha (apenas se não foi cancelado E não foi interrompido externamente)
+      if (!cancelarEnvioRef.current && !interrompidoExternamente) {
         const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
         await supabase
           .from('campaigns')
