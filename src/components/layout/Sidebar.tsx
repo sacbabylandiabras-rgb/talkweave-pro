@@ -56,6 +56,7 @@ const zapiMenuItems = [
   { id: "criar-grupos", label: "Criar Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
+  { id: "instagram", label: "Instagram", icon: Instagram, path: "https://instagram.com", external: true },
 ];
 
 const metaMenuItems = [
