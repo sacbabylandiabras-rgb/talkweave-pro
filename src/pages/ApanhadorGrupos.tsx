@@ -426,7 +426,35 @@ const ApanhadorGrupos = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
-                            )}
+                        )}
+
+                        {instances.length > 1 && (
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                              <Smartphone className="h-3.5 w-3.5" />
+                              Instância de Disparo
+                            </label>
+                            <Select
+                              value={currentInstanceId || "auto"}
+                              onValueChange={(val) => setEditingInstanceId(prev => new Map(prev).set(grupo.id, val === "auto" ? "" : val))}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Automática (mesma do grupo)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">🔄 Automática (mesma do grupo)</SelectItem>
+                                {instances.map(inst => (
+                                  <SelectItem key={inst.id} value={inst.id}>
+                                    {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Escolha qual número vai enviar a mensagem de boas-vindas
+                            </p>
+                          </div>
+                        )}
                           </div>
                         )}
                       </div>
