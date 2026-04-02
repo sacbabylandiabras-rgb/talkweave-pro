@@ -1157,7 +1157,7 @@ export default function CheckoutBuilder() {
                   templateName={activeTemplateName}
                   elements={elements}
                   isBuilder={true}
-                  onSelectElement={setSelectedElementId}
+                  onSelectElement={handleSelectElement}
                   selectedElementId={selectedElementId}
                   onDropElement={(type, position) => addElement(type, position)}
                   previewMode={previewMode}
