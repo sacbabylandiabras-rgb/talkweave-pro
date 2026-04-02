@@ -38,6 +38,79 @@ serve(async (req) => {
       // Backward compatibility with old state format
     }
 
+    const isInstagramFlow = url.searchParams.get("ig_flow") === "1";
+
+    if (isInstagramFlow) {
+      const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: META_APP_ID,
+          client_secret: META_APP_SECRET,
+          grant_type: "authorization_code",
+          redirect_uri: `${SUPABASE_URL}/functions/v1/meta-oauth-callback?ig_flow=1`,
+          code,
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+
+      if (!tokenRes.ok || tokenData.error_type || tokenData.error_message) {
+        console.error("Instagram token exchange error:", tokenData);
+        return new Response(errorPage("Erro ao trocar código do Instagram: " + (tokenData.error_message || "desconhecido")), {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+          status: 400,
+        });
+      }
+
+      const shortLivedToken = tokenData.access_token;
+
+      const longLivedRes = await fetch(
+        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(META_APP_SECRET)}&access_token=${encodeURIComponent(shortLivedToken)}`
+      );
+      const longLivedData = await longLivedRes.json();
+      const finalToken = longLivedData.access_token || shortLivedToken;
+
+      const profileRes = await fetch(
+        `https://graph.instagram.com/v25.0/me?fields=user_id,username,name,profile_picture_url,account_type&access_token=${encodeURIComponent(finalToken)}`
+      );
+      const profileData = await profileRes.json();
+
+      if (!profileRes.ok || profileData.error) {
+        console.error("Instagram profile fetch error:", profileData);
+        return new Response(errorPage("Erro ao buscar perfil do Instagram."), {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+          status: 400,
+        });
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { error: dbError } = await supabase
+        .from("meta_credentials")
+        .upsert({
+          user_id: userId,
+          access_token: finalToken,
+          app_id: META_APP_ID,
+          fb_user_id: String(profileData.user_id || profileData.id || ""),
+          fb_user_name: profileData.username || profileData.name || "Instagram conectado",
+          connected: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+
+      if (dbError) {
+        console.error("DB error:", dbError);
+        return new Response(errorPage("Erro ao salvar credenciais do Instagram."), {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+          status: 500,
+        });
+      }
+
+      const redirectBase = (appOrigin || "https://zaplynx.pro").replace(/\/$/, "");
+      return Response.redirect(`${redirectBase}/meta-oauth-callback?name=${encodeURIComponent(profileData.username || "Instagram conectado")}`, 302);
+    }
+
     // Exchange code for access token
     const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(SUPABASE_URL + "/functions/v1/meta-oauth-callback")}&client_secret=${META_APP_SECRET}&code=${code}`;
 
