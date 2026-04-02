@@ -65,6 +65,7 @@ export default function PayDocs() {
         )}
 
         {activeSection === "integration" && <SectionIntegration />}
+        {activeSection === "auth" && (
           <div className="space-y-4">
             <h1 className="text-3xl font-bold">Autenticação</h1>
             <p className="text-muted-foreground">Todas as requisições devem incluir a chave secreta no header Authorization.</p>
