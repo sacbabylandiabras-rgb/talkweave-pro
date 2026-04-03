@@ -121,7 +121,11 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
                   </div>
                   <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: Maria da Silva" value={formName} onChange={e => setFormName(e.target.value)} /></div>
                   <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Ex.: maria@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
-                  <div><label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>CPF <span style={{ color: '#EF4444' }}>*</span></label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>CPF <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={{ ...inputStyle(s), ...(cpfError ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={e => { setFormCpf(formatCpfCnpj(e.target.value)); setCpfError(""); }} maxLength={18} />
+                    {cpfError && <span className="text-[11px] mt-0.5 block" style={{ color: '#EF4444' }}>{cpfError}</span>}
+                  </div>
                   {config.showPhone && (
                     <div>
                       <label className="text-xs font-medium block mb-1.5" style={{ color: s.cardLabel }}>Celular / WhatsApp</label>
