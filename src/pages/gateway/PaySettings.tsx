@@ -164,8 +164,9 @@ export default function PaySettings() {
     setWebhookSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setWebhookSaving(false); return; }
+    const webhookName = webhookForm.description.trim() || webhookForm.webhook_type === "transaction" ? "Transação" : "Saque";
     const payload = {
-      name: webhookForm.name.trim(),
+      name: webhookForm.description.trim() || webhookName,
       webhook_url: webhookForm.webhook_url.trim(),
       method: webhookForm.method,
       auth_type: webhookForm.auth_type,
