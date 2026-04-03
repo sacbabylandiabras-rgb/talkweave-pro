@@ -281,6 +281,27 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
               </div>
             </TabsContent>
 
+            {/* Products */}
+            <TabsContent value="products">
+              {data.products.length === 0 ? <EmptyState text="Nenhum produto cadastrado" /> : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Tipo</TableHead><TableHead>Categoria</TableHead><TableHead>Preço</TableHead><TableHead>Status</TableHead><TableHead>Data</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {data.products.map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{p.type}</Badge></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{p.category || "—"}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(p.price)}</TableCell>
+                        <TableCell><Badge variant={p.status ? "default" : "secondary"} className="text-[10px]">{p.status ? "Ativo" : "Inativo"}</Badge></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
             {/* Integrations */}
             <TabsContent value="integrations" className="space-y-4">
               <div>
