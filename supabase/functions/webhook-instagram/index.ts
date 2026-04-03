@@ -212,11 +212,43 @@ serve(async (req) => {
                   // 2) Send Private Reply DM (uses comment_id — no 24h window needed)
                   if (auto.dm_message && commentId && accessToken) {
                     try {
-                      const dmText = auto.dm_message
+                      // Parse dm_message — may be JSON with buttons
+                      let dmText = auto.dm_message;
+                      let dmButtons: { title: string; url: string }[] = [];
+                      try {
+                        const parsed = JSON.parse(auto.dm_message);
+                        if (parsed.text !== undefined) {
+                          dmText = parsed.text || "";
+                          dmButtons = (parsed.buttons || []).filter((b: any) => b.title && b.url);
+                        }
+                      } catch { /* plain text */ }
+
+                      dmText = dmText
                         .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                         .replace(/\{\{comentario\}\}/g, commentText);
 
-                      // Use Private Replies endpoint: recipient.comment_id
+                      // Private Reply: send text message with comment_id
+                      // If buttons exist, use Button Template format
+                      let messagePayload: any;
+                      if (dmButtons.length > 0) {
+                        messagePayload = {
+                          attachment: {
+                            type: "template",
+                            payload: {
+                              template_type: "button",
+                              text: dmText,
+                              buttons: dmButtons.slice(0, 3).map(b => ({
+                                type: "web_url",
+                                url: b.url,
+                                title: b.title.slice(0, 20),
+                              })),
+                            },
+                          },
+                        };
+                      } else {
+                        messagePayload = { text: dmText };
+                      }
+
                       const dmRes = await fetch(
                         `https://graph.instagram.com/v21.0/${igPageId}/messages`,
                         {
@@ -227,16 +259,15 @@ serve(async (req) => {
                           },
                           body: JSON.stringify({
                             recipient: { comment_id: commentId },
-                            message: { text: dmText },
+                            message: messagePayload,
                           }),
                         }
                       );
                       const dmData = await dmRes.json();
 
                       if (dmRes.ok && !dmData.error) {
-                        console.log(`✅ Private Reply DM sent to @${fromUsername}`);
+                        console.log(`✅ Private Reply DM sent to @${fromUsername}${dmButtons.length > 0 ? ` with ${dmButtons.length} button(s)` : ""}`);
 
-                        // Log DM event
                         await supabase.from("instagram_events").insert({
                           user_id: userId,
                           event_type: "dm_sent",
