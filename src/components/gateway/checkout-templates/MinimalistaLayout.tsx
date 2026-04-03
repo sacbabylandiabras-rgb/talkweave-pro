@@ -26,6 +26,12 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [cpfError, setCpfError] = useState("");
+
+  const handleNext = () => {
+    if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
+    setCpfError(""); setStep(2);
+  };
 
   useEffect(() => {
     if (!config.showTimer) return;
