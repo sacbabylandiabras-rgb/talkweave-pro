@@ -7,9 +7,10 @@ serve(async (req) => {
   const state = url.searchParams.get("state");
 
   if (!code || !state) {
-    return new Response(errorPage("Parâmetros inválidos. Feche esta janela e tente novamente."), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-      status: 400,
+    return redirectToApp(null, "/meta/configuracao", {
+      error: "1",
+      popup: "1",
+      message: "Parâmetros inválidos. Tente novamente.",
     });
   }
 
@@ -48,9 +49,10 @@ serve(async (req) => {
 
       if (!igAppSecret) {
         console.error("INSTAGRAM_APP_SECRET not configured");
-        return new Response(errorPage("Instagram App Secret não configurado no servidor."), {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-          status: 500,
+        return redirectToApp(appOrigin, "/instagram/configuracao", {
+          error: "1",
+          popup: "1",
+          message: "Instagram App Secret não configurado no servidor.",
         });
       }
 
@@ -86,18 +88,20 @@ serve(async (req) => {
         tokenData = JSON.parse(tokenText);
       } catch {
         console.error("Failed to parse token response:", tokenText);
-        return new Response(errorPage("Resposta inválida do Instagram. Tente novamente."), {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-          status: 400,
+        return redirectToApp(appOrigin, "/instagram/configuracao", {
+          error: "1",
+          popup: "1",
+          message: "Resposta inválida do Instagram. Tente novamente.",
         });
       }
 
       if (!tokenRes.ok || tokenData.error_type || tokenData.error_message) {
         console.error("Instagram token exchange error:", tokenData);
         const errMsg = tokenData.error_message || tokenData.error?.message || "Erro desconhecido";
-        return new Response(errorPage(`Erro ao trocar código do Instagram: ${errMsg}`), {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-          status: 400,
+        return redirectToApp(appOrigin, "/instagram/configuracao", {
+          error: "1",
+          popup: "1",
+          message: `Erro ao trocar código do Instagram: ${errMsg}`,
         });
       }
 
@@ -162,24 +166,28 @@ serve(async (req) => {
 
       if (dbError) {
         console.error("DB error:", dbError);
-        return new Response(errorPage("Erro ao salvar credenciais do Instagram."), {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-          status: 500,
+        return redirectToApp(appOrigin, "/instagram/configuracao", {
+          error: "1",
+          popup: "1",
+          message: "Erro ao salvar credenciais do Instagram.",
         });
       }
 
       console.log("Instagram connected successfully for user:", userId, "username:", username);
 
-      const igRedirect = appOrigin || "https://zaplynx.pro";
-      return Response.redirect(`${igRedirect}/instagram/configuracao?connected=1`, 302);
+      return redirectToApp(appOrigin, "/instagram/configuracao", {
+        connected: "1",
+        popup: "1",
+      });
     }
 
     // === Facebook / WhatsApp Business flow ===
     if (!META_APP_ID || !META_APP_SECRET) {
       console.error("META_APP_ID or META_APP_SECRET not configured");
-      return new Response(errorPage("Configuração do servidor incompleta."), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-        status: 500,
+      return redirectToApp(appOrigin, "/meta/configuracao", {
+        error: "1",
+        popup: "1",
+        message: "Configuração do servidor incompleta.",
       });
     }
 
@@ -189,9 +197,10 @@ serve(async (req) => {
 
     if (tokenData.error) {
       console.error("Token exchange error:", tokenData.error);
-      return new Response(errorPage("Erro ao trocar código: " + (tokenData.error.message || "desconhecido")), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-        status: 400,
+      return redirectToApp(appOrigin, "/meta/configuracao", {
+        error: "1",
+        popup: "1",
+        message: "Erro ao trocar código: " + (tokenData.error.message || "desconhecido"),
       });
     }
 
@@ -319,57 +328,43 @@ serve(async (req) => {
 
     if (dbError) {
       console.error("DB error:", dbError);
-      return new Response(errorPage("Erro ao salvar credenciais."), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-        status: 500,
+      return redirectToApp(appOrigin, "/meta/configuracao", {
+        error: "1",
+        popup: "1",
+        message: "Erro ao salvar credenciais.",
       });
     }
 
-    const redirectTarget = appOrigin || "https://zaplynx.pro";
-    return Response.redirect(`${redirectTarget}/meta/configuracao?connected=1`, 302);
+    return redirectToApp(appOrigin, "/meta/configuracao", {
+      connected: "1",
+      popup: "1",
+    });
 
   } catch (err) {
     console.error("OAuth callback error:", err);
-    const redirectTarget = "https://zaplynx.pro";
-    return Response.redirect(`${redirectTarget}/meta/configuracao?error=1`, 302);
+    return redirectToApp(null, "/meta/configuracao", {
+      error: "1",
+      popup: "1",
+      message: "Falha ao concluir a conexão.",
+    });
   }
 });
 
-function successPage(name: string) {
-  return `<!DOCTYPE html>
-<html><head><title>Conectado!</title><style>
-body{font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f0fdf4}
-.card{text-align:center;padding:40px;border-radius:16px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
-.check{width:64px;height:64px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-h2{margin:0 0 8px;color:#15803d}p{color:#6b7280;margin:0}
-</style></head><body>
-<div class="card">
-<div class="check"><svg width="32" height="32" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
-<h2>@${name}</h2>
-<p>Conta conectada com sucesso!<br>Esta janela será fechada automaticamente.</p>
-</div>
-<script>
-try {
-  if (window.opener) {
-    window.opener.postMessage({type:'META_OAUTH_SUCCESS'},'*');
+function redirectToApp(
+  appOrigin: string | null,
+  path: string,
+  params: Record<string, string>,
+) {
+  const target = new URL(path, sanitizeOrigin(appOrigin));
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) target.searchParams.set(key, value);
   }
-} catch(e) { console.warn('postMessage failed:', e); }
-setTimeout(function(){ window.close(); }, 3000);
-</script>
-</body></html>`;
+
+  return Response.redirect(target.toString(), 302);
 }
 
-function errorPage(msg: string) {
-  return `<!DOCTYPE html>
-<html><head><title>Erro</title><style>
-body{font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fef2f2}
-.card{text-align:center;padding:40px;border-radius:16px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:500px}
-h2{margin:0 0 8px;color:#dc2626}p{color:#6b7280;margin:0;word-break:break-word}
-</style></head><body>
-<div class="card">
-<h2>Erro na conexão</h2>
-<p>${msg}</p>
-</div>
-<script>setTimeout(function(){ window.close(); },8000);</script>
-</body></html>`;
+function sanitizeOrigin(origin: string | null) {
+  if (origin && /^https?:\/\//.test(origin)) return origin;
+  return "https://zaplynx.pro";
 }
