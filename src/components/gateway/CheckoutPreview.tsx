@@ -441,7 +441,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                 </div>
                 <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ ...inputStyle(s), ...(formErrors.cpf ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={(e) => { setFormCpf(e.target.value); setFormErrors(prev => ({ ...prev, cpf: '' })); }} />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={{ ...inputStyle(s), ...(formErrors.cpf ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={(e) => { setFormCpf(formatCpfCnpj(e.target.value)); setFormErrors(prev => ({ ...prev, cpf: '' })); }} maxLength={18} />
                     {formErrors.cpf && <p className="text-xs mt-1" style={{ color: '#EF4444' }}>{formErrors.cpf}</p>}
                   </div>
                 {config.showPhone && (
