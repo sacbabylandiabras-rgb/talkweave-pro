@@ -140,20 +140,6 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
                 {/* DROP ZONE: Below Form */}
                 <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
-
-                {/* FAQ */}
-                <div className="border p-5 space-y-2" style={cardStyle(s)}>
-                  <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
-                  {FAQ_ITEMS.map((item, i) => (
-                    <div key={i} style={{ borderBottom: `1px solid ${s.cardBorder}` }} className="last:border-0">
-                      <button className="w-full flex items-center justify-between py-3 text-left" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                        <span className="text-xs font-medium" style={{ color: s.cardText }}>{item.q}</span>
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
-                      </button>
-                      {openFaq === i && <p className="text-xs pb-3 leading-relaxed" style={{ color: s.cardDesc }}>{item.a}</p>}
-                    </div>
-                  ))}
-                </div>
               </>
             )}
 
