@@ -145,7 +145,12 @@ export default function AutomacaoComentarios() {
       } catch {}
 
       if (flowData && flowData.nodes?.length > 0) {
-        setNodes(flowData.nodes);
+        // Strip cached dimensions so React Flow recalculates node sizes
+        const cleanNodes = flowData.nodes.map((n: any) => {
+          const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
+          return rest;
+        });
+        setNodes(cleanNodes);
         setEdges(flowData.edges || []);
       } else {
         // Legacy: convert old format to flow nodes
