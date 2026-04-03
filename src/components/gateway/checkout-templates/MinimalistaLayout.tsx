@@ -148,7 +148,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                       <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                     </div>
                   </div>
-                  <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
+                  <button onClick={handleNext} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
                     PRÓXIMO
                   </button>
                 </div>

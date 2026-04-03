@@ -144,7 +144,7 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                   </div>
                 )}
 
-                <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
+                <button onClick={handleNext} className="w-full py-3.5 font-bold text-sm transition-transform hover:scale-[1.01] flex items-center justify-center gap-2" style={buttonStyle(s)}>
                   <Lock className="w-3.5 h-3.5" /> PRÓXIMO
                 </button>
 

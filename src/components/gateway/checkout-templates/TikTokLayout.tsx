@@ -267,7 +267,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
       <MobileSection open={mobileSections.cpf} title="CPF / CNPJ *" onToggle={() => setMobileSections(prev => ({ ...prev, cpf: !prev.cpf }))}>
           {CpfForm}
         </MobileSection>
-      <button onClick={() => setStep(2)} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
+      <button onClick={handleNext} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
         <Lock className="h-3.5 w-3.5" /> Próximo
       </button>
     </>
