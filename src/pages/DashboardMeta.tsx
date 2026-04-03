@@ -33,6 +33,15 @@ interface BusinessProfile {
   vertical?: string;
 }
 
+interface MetaPhoneNumber {
+  id: string;
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  name_status?: string;
+  code_verification_status?: string;
+}
+
 async function getInvokeErrorMessage(error: unknown, fallback: string) {
   if (!error) return fallback;
   if (typeof error === "object" && error !== null && "context" in error) {
@@ -56,7 +65,9 @@ export default function DashboardMeta() {
 
   const [profile, setProfile] = useState<BusinessProfile>({});
   const [phoneInfo, setPhoneInfo] = useState<PhoneInfo>({});
+  const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingPhones, setLoadingPhones] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editForm, setEditForm] = useState({ about: "", description: "", address: "", email: "" });
@@ -70,7 +81,13 @@ export default function DashboardMeta() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
-    if (isConnected) fetchProfile();
+    if (isConnected) {
+      void fetchProfile();
+      void fetchPhoneNumbers();
+      return;
+    }
+
+    setPhoneNumbers([]);
   }, [isConnected]);
 
   const fetchProfile = async () => {
@@ -94,6 +111,29 @@ export default function DashboardMeta() {
       toast.error(msg);
     } finally {
       setLoadingProfile(false);
+    }
+  };
+
+  const fetchPhoneNumbers = async (showError = false) => {
+    setLoadingPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
+    } catch (err) {
+      setPhoneNumbers([]);
+
+      if (showError) {
+        const msg = await getInvokeErrorMessage(err, "Erro ao buscar números da conta");
+        toast.error(msg);
+      }
+    } finally {
+      setLoadingPhones(false);
     }
   };
 
@@ -360,6 +400,94 @@ export default function DashboardMeta() {
                 </Button>
               </div>
             )}
+          </div>
+        )}
+      </Card>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
+              Números da conta conectada
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Todos os números vinculados à conta WhatsApp Business conectada
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[9px]">
+              {phoneNumbers.length} número{phoneNumbers.length === 1 ? "" : "s"}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => fetchPhoneNumbers(true)}
+              disabled={loadingPhones}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingPhones ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
+        </div>
+
+        {loadingPhones ? (
+          <div className="flex items-center justify-center gap-2 py-6">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Carregando números da conta...</span>
+          </div>
+        ) : phoneNumbers.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-4 text-center">
+            <p className="text-xs text-muted-foreground">Nenhum número adicional foi encontrado nesta conta.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {phoneNumbers.map((phoneNumber) => {
+              const isCurrentNumber = phoneNumber.id === creds?.phone_number_id;
+
+              return (
+                <div key={phoneNumber.id} className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {phoneNumber.display_phone_number || "Número sem identificação"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {phoneNumber.verified_name || "Nome verificado não disponível"}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {isCurrentNumber && (
+                        <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20">
+                          Ativo
+                        </Badge>
+                      )}
+                      {phoneNumber.quality_rating && (
+                        <Badge variant="secondary" className="text-[9px]">
+                          {phoneNumber.quality_rating}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {phoneNumber.name_status && (
+                      <Badge variant="outline" className="text-[9px]">
+                        {phoneNumber.name_status}
+                      </Badge>
+                    )}
+                    {phoneNumber.code_verification_status && (
+                      <Badge variant="outline" className="text-[9px]">
+                        {phoneNumber.code_verification_status}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>

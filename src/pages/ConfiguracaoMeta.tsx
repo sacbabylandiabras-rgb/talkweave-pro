@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface MetaPhoneNumber {
+  id?: string;
   display_phone_number: string;
   verified_name?: string;
   quality_rating?: string;
@@ -53,7 +54,7 @@ export default function ConfiguracaoMeta() {
   const isConnected = creds?.connected === true;
 
   const fetchPhoneNumbers = async (showError = false) => {
-    if (!isConnected || !creds?.waba_id) {
+    if (!isConnected) {
       setPhoneNumbers([]);
       return;
     }
@@ -80,12 +81,12 @@ export default function ConfiguracaoMeta() {
   };
 
   useEffect(() => {
-    if (isConnected && creds?.waba_id) {
+    if (isConnected) {
       void fetchPhoneNumbers();
     } else {
       setPhoneNumbers([]);
     }
-  }, [isConnected, creds?.waba_id]);
+  }, [isConnected, creds?.access_token, creds?.waba_id]);
 
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta`;
   const verifyToken = "zaplynx_whatsapp_verify_2024";
@@ -441,7 +442,7 @@ export default function ConfiguracaoMeta() {
               <div className="space-y-2">
                 {phoneNumbers.map((phoneNumber, index) => (
                   <div
-                    key={`${phoneNumber.display_phone_number}-${index}`}
+                    key={phoneNumber.id || `${phoneNumber.display_phone_number}-${index}`}
                     className="rounded-lg border border-border p-3 space-y-2"
                   >
                     <div className="flex items-start justify-between gap-3">
