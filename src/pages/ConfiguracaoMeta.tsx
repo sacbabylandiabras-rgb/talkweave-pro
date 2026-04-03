@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Globe, CheckCircle2, AlertCircle, Copy, Loader2, LogOut, RefreshCw, Shield, AlertTriangle } from "lucide-react";
+import { Globe, CheckCircle2, AlertCircle, Copy, Loader2, LogOut, RefreshCw, Shield, AlertTriangle, Settings2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { FacebookConnectDialog } from "@/components/layout/FacebookConnectDialog";
@@ -17,11 +18,18 @@ export default function ConfiguracaoMeta() {
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
+  const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
+
+  // Manual config fields
+  const [manualToken, setManualToken] = useState("");
+  const [manualPhoneId, setManualPhoneId] = useState("");
+  const [manualWabaId, setManualWabaId] = useState("");
 
   const isConnected = creds?.connected === true;
 
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta`;
+  const verifyToken = "zaplynx_whatsapp_verify_2024";
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -35,7 +43,7 @@ export default function ConfiguracaoMeta() {
     setDisconnecting(true);
     try {
       const { error } = await supabase
-        .from("meta_credentials")
+        .from("meta_credentials" as any)
         .update({
           connected: false,
           access_token: null,
@@ -56,6 +64,65 @@ export default function ConfiguracaoMeta() {
       toast.error("Erro ao desconectar conta");
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  const handleManualSave = async () => {
+    if (!manualToken || !manualPhoneId || !manualWabaId) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Faça login primeiro");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        user_id: user.id,
+        access_token: manualToken.trim(),
+        phone_number_id: manualPhoneId.trim(),
+        waba_id: manualWabaId.trim(),
+        app_id: "1485715796604849",
+        connected: true,
+        fb_user_name: "Configuração Manual",
+        updated_at: new Date().toISOString(),
+      };
+
+      // Check if row exists
+      const { data: existing } = await supabase
+        .from("meta_credentials" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        ({ error } = await supabase
+          .from("meta_credentials" as any)
+          .update(payload as any)
+          .eq("user_id", user.id));
+      } else {
+        ({ error } = await supabase
+          .from("meta_credentials" as any)
+          .insert(payload as any));
+      }
+
+      if (error) throw error;
+
+      toast.success("Credenciais salvas com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      setManualToken("");
+      setManualPhoneId("");
+      setManualWabaId("");
+    } catch (err: any) {
+      console.error("Save error:", err);
+      toast.error("Erro ao salvar credenciais");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -89,7 +156,7 @@ export default function ConfiguracaoMeta() {
               Conectado como {creds?.fb_user_name || "Conta Business"}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Credenciais configuradas automaticamente via Facebook Login
+              Credenciais configuradas · Phone ID: {creds?.phone_number_id || "—"}
             </p>
           </div>
           <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20">
@@ -102,7 +169,7 @@ export default function ConfiguracaoMeta() {
           <div className="flex-1">
             <p className="text-xs font-medium text-foreground">Nenhuma conta conectada</p>
             <p className="text-[10px] text-muted-foreground">
-              Conecte sua conta Facebook Business para ativar a API oficial
+              Conecte via Facebook ou configure manualmente com o token da Meta
             </p>
           </div>
           <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">
@@ -111,53 +178,149 @@ export default function ConfiguracaoMeta() {
         </Card>
       )}
 
-      {/* Connect / Reconnect */}
+      {/* Connect methods */}
       {!isConnected ? (
-        <Card className="p-6 space-y-4">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-xl bg-[#1877F2]/10 flex items-center justify-center mx-auto">
-              <svg viewBox="0 0 24 24" className="w-7 h-7 text-[#1877F2]" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-            </div>
-            <p className="text-sm font-semibold text-foreground">Conecte com um clique</p>
-            <p className="text-xs text-muted-foreground">
-              Todas as credenciais serão preenchidas automaticamente via OAuth
-            </p>
-          </div>
-          <Button
-            className="w-full gap-2.5 h-11 bg-[#1877F2] hover:bg-[#166FE5] text-white"
-            onClick={() => setFbDialogOpen(true)}
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Conectar com Facebook
-          </Button>
-        </Card>
+        <Tabs defaultValue="manual" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="manual" className="gap-1.5 text-xs">
+              <Settings2 className="w-3.5 h-3.5" />
+              Configuração Manual
+            </TabsTrigger>
+            <TabsTrigger value="oauth" className="gap-1.5 text-xs">
+              <Globe className="w-3.5 h-3.5" />
+              Conectar via Facebook
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manual">
+            <Card className="p-5 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Configuração Manual (Recomendado)</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cole os dados do painel{" "}
+                  <a
+                    href="https://developers.facebook.com/apps/1485715796604849/use_cases/customize/wa-dev-console/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Meta for Developers
+                  </a>
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    Access Token <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={manualToken}
+                    onChange={(e) => setManualToken(e.target.value)}
+                    placeholder="EAAVHQCpLN7EBRE..."
+                    className="h-9 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Copie o "Token de acesso temporário" ou use um System User Token permanente
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      Phone Number ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={manualPhoneId}
+                      onChange={(e) => setManualPhoneId(e.target.value)}
+                      placeholder="850315024833115"
+                      className="h-9 text-xs font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      "Identificação do número de telefone" na página da API
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      WABA ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={manualWabaId}
+                      onChange={(e) => setManualWabaId(e.target.value)}
+                      placeholder="1434845678365078"
+                      className="h-9 text-xs font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      "Identificação da conta do WhatsApp Business"
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full gap-2 h-10"
+                onClick={handleManualSave}
+                disabled={saving || !manualToken || !manualPhoneId || !manualWabaId}
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Salvar Credenciais
+              </Button>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="oauth">
+            <Card className="p-6 space-y-4">
+              <div className="text-center space-y-2">
+                <div className="w-14 h-14 rounded-xl bg-[#1877F2]/10 flex items-center justify-center mx-auto">
+                  <svg viewBox="0 0 24 24" className="w-7 h-7 text-[#1877F2]" fill="currentColor">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-foreground">Conecte via OAuth</p>
+                <p className="text-xs text-muted-foreground">
+                  Preenche automaticamente via Facebook Login (pode não detectar Phone Number ID)
+                </p>
+              </div>
+              <Button
+                className="w-full gap-2.5 h-11 bg-[#1877F2] hover:bg-[#166FE5] text-white"
+                onClick={() => setFbDialogOpen(true)}
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Conectar com Facebook
+              </Button>
+            </Card>
+          </TabsContent>
+        </Tabs>
       ) : (
         <>
-          {/* Credentials display (read-only) */}
+          {/* Credentials display */}
           <Card className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">Credenciais da API</p>
-              <Badge variant="outline" className="text-[9px]">Preenchido via OAuth</Badge>
+              <Badge variant="outline" className="text-[9px]">Configurado</Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">App ID</Label>
-                <Input value={creds?.app_id || "—"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Input value={creds?.app_id || "1485715796604849"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Facebook User ID</Label>
-                <Input value={creds?.fb_user_id || "—"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Label className="text-xs text-muted-foreground">WABA ID</Label>
+                <Input value={creds?.waba_id || "—"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Access Token</Label>
-              <Input value={maskedToken} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+              <div className="flex gap-2">
+                <Input value={maskedToken} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => copyToClipboard(creds?.access_token as string)}>
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -166,39 +329,55 @@ export default function ConfiguracaoMeta() {
                 <Input value={creds?.phone_number_id || "Não detectado"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Business Account ID</Label>
-                <Input value={creds?.business_account_id || "Não detectado"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Label className="text-xs text-muted-foreground">Método</Label>
+                <Input value={creds?.fb_user_name || "—"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">WABA ID</Label>
-              <Input value={creds?.waba_id || "Não detectado"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>Versão da API: v21.0</span>
-              <span>Atualizado em: {creds?.updated_at ? new Date(creds.updated_at as string).toLocaleString("pt-BR") : "—"}</span>
+              <span>Atualizado: {creds?.updated_at ? new Date(creds.updated_at as string).toLocaleString("pt-BR") : "—"}</span>
             </div>
           </Card>
 
-          {/* Webhook URL */}
-          <Card className="p-4 space-y-2">
+          {/* Webhook config */}
+          <Card className="p-4 space-y-3">
             <Label className="text-xs font-medium flex items-center gap-2">
               <Shield className="w-3.5 h-3.5 text-primary" />
-              Webhook URL (configure na Meta)
+              Configuração do Webhook (Meta for Developers)
             </Label>
-            <div className="flex gap-2">
-              <Input value={webhookUrl} readOnly className="h-9 text-xs font-mono bg-muted/50" />
-              <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => copyToClipboard(webhookUrl)}>
-                <Copy className="w-3.5 h-3.5" />
-              </Button>
+
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Callback URL</Label>
+                <div className="flex gap-2">
+                  <Input value={webhookUrl} readOnly className="h-9 text-xs font-mono bg-muted/50" />
+                  <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => copyToClipboard(webhookUrl)}>
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Verify Token</Label>
+                <div className="flex gap-2">
+                  <Input value={verifyToken} readOnly className="h-9 text-xs font-mono bg-muted/50" />
+                  <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => copyToClipboard(verifyToken)}>
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Cole esta URL no campo "Callback URL" na configuração de Webhooks do seu App Meta.
-            </p>
+
+            <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+              <p className="text-[10px] font-medium text-foreground">Campos para assinar no Webhook:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["messages", "message_deliveries", "message_reads"].map((f) => (
+                  <Badge key={f} variant="secondary" className="text-[9px] font-mono">{f}</Badge>
+                ))}
+              </div>
+            </div>
           </Card>
 
           {/* Actions */}
