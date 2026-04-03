@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, ChevronDown, Check } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
