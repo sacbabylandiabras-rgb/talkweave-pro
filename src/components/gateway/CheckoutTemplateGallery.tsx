@@ -207,7 +207,7 @@ const CHECKOUT_TEMPLATES: CheckoutTemplate[] = [
       textColor: "#1F2937",
       font: "inter",
       borderStyle: "rounded",
-      showTimer: true,
+      showTimer: false,
       timerMinutes: 10,
       showGuarantee: false,
       showSecurityBadges: true,
