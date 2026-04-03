@@ -15,6 +15,7 @@ import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users,
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { ViewUserAccountDialog } from "@/components/admin/ViewUserAccountDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -63,6 +64,8 @@ const AdminZapLynx = () => {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
   // KYC
   const { queue: kycQueue, loading: kycLoading, approveKyc, rejectKyc, refetch: refetchKyc } = useAdminKycQueue();
@@ -264,6 +267,7 @@ const AdminZapLynx = () => {
                     <TableCell><Badge variant={user.is_active ? "default" : "destructive"}>{user.is_active ? "Ativo" : "Inativo"}</Badge></TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => { setViewingUser(user); setViewDialogOpen(true); }} title="Ver conta completa"><Eye className="w-4 h-4" /></Button>
                         <Button size="sm" variant="outline" onClick={() => handleEditUser(user)} title="Editar"><Pencil className="w-4 h-4" /></Button>
                         <Button size="sm" variant={user.roles.includes("admin") ? "destructive" : "default"} onClick={() => toggleAdminRole(user.id, user.roles)} disabled={user.id === currentUserId} title={user.roles.includes("admin") ? "Remover Admin" : "Tornar Admin"}>
                           {user.roles.includes("admin") ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
@@ -517,6 +521,7 @@ const AdminZapLynx = () => {
       </Dialog>
 
       <EditUserDialog user={editingUser} open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={refetch} />
+      <ViewUserAccountDialog user={viewingUser} open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
 
       <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
         <AlertDialogContent>
