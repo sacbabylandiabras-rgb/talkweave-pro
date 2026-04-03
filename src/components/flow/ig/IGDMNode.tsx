@@ -1,5 +1,5 @@
 import { Handle, Position } from "reactflow";
-import { Send, Link2, MessageCircle } from "lucide-react";
+import { Send, Link2, MessageCircle, Plus } from "lucide-react";
 
 export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
@@ -27,18 +27,42 @@ export function IGDMNode({ data }: any) {
           Clique para editar a mensagem
         </div>
       )}
-      {buttons.length > 0 && (
-        <div className="mt-2 space-y-1">
-          {buttons.map((btn: any, idx: number) => (
-            <div key={idx} className="bg-muted/50 rounded-md px-2 py-1">
-              <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
-                {btn.type === "reply" ? <MessageCircle className="h-3 w-3" /> : <Link2 className="h-3 w-3" />}
+
+      {/* Buttons section - always visible */}
+      <div className="mt-2 space-y-1">
+        {buttons.length > 0 ? (
+          buttons.map((btn: any, idx: number) => (
+            <div key={idx} className="bg-blue-500/10 border border-blue-500/20 rounded-md px-2.5 py-1.5 flex items-center gap-1.5">
+              {btn.type === "reply" ? (
+                <MessageCircle className="h-3 w-3 text-blue-500 shrink-0" />
+              ) : (
+                <Link2 className="h-3 w-3 text-blue-500 shrink-0" />
+              )}
+              <span className="text-xs text-card-foreground font-medium truncate">
                 {btn.title || `Botão ${idx + 1}`}
-              </div>
+              </span>
+              {btn.type === "url" && btn.url && (
+                <span className="text-[9px] text-muted-foreground truncate ml-auto">
+                  🔗
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="border border-dashed border-blue-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-blue-500/5 transition-colors">
+            <Plus className="h-3 w-3 text-blue-500/50" />
+            <span className="text-[10px] text-blue-500/50 font-medium">
+              Clique para adicionar botões
+            </span>
+          </div>
+        )}
+        {buttons.length > 0 && buttons.length < 3 && (
+          <div className="text-[9px] text-muted-foreground text-center">
+            {buttons.length}/3 botões
+          </div>
+        )}
+      </div>
+
       <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-blue-500" />
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-blue-500" />
     </div>
