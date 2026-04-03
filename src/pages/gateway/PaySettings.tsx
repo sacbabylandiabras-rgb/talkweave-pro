@@ -172,6 +172,11 @@ export default function PaySettings() {
       auth_token: webhookForm.auth_type !== "none" ? webhookForm.auth_token : null,
       active: webhookForm.active,
       user_id: user.id,
+      headers: {
+        description: webhookForm.description,
+        webhook_type: webhookForm.webhook_type,
+        events: webhookForm.events,
+      },
     };
     let error;
     if (editingWebhook) {
