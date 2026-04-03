@@ -14,12 +14,22 @@ import { FacebookConnectDialog } from "@/components/layout/FacebookConnectDialog
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
+interface MetaPhoneNumber {
+  display_phone_number: string;
+  verified_name?: string;
+  quality_rating?: string;
+  name_status?: string;
+  code_verification_status?: string;
+}
+
 export default function ConfiguracaoMeta() {
   const { data: creds, isLoading } = useMetaCredentials();
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>([]);
+  const [loadingPhones, setLoadingPhones] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -41,6 +51,41 @@ export default function ConfiguracaoMeta() {
   const [manualWabaId, setManualWabaId] = useState("");
 
   const isConnected = creds?.connected === true;
+
+  const fetchPhoneNumbers = async (showError = false) => {
+    if (!isConnected || !creds?.waba_id) {
+      setPhoneNumbers([]);
+      return;
+    }
+
+    setLoadingPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
+    } catch (err) {
+      console.error("Error fetching Meta phone numbers:", err);
+      setPhoneNumbers([]);
+      if (showError) {
+        toast.error("Erro ao buscar os números da conta conectada");
+      }
+    } finally {
+      setLoadingPhones(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected && creds?.waba_id) {
+      void fetchPhoneNumbers();
+    } else {
+      setPhoneNumbers([]);
+    }
+  }, [isConnected, creds?.waba_id]);
 
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta`;
   const verifyToken = "zaplynx_whatsapp_verify_2024";
@@ -354,6 +399,82 @@ export default function ConfiguracaoMeta() {
               <span>Versão da API: v21.0</span>
               <span>Atualizado: {creds?.updated_at ? new Date(creds.updated_at as string).toLocaleString("pt-BR") : "—"}</span>
             </div>
+          </Card>
+
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Números da conta conectada</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Todos os números vinculados à WABA desta conta
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[9px]">
+                  {phoneNumbers.length} número{phoneNumbers.length === 1 ? "" : "s"}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => fetchPhoneNumbers(true)}
+                  disabled={loadingPhones}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingPhones ? "animate-spin" : ""}`} />
+                  Atualizar
+                </Button>
+              </div>
+            </div>
+
+            {loadingPhones ? (
+              <div className="flex items-center justify-center gap-2 py-6">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Carregando números da conta...</span>
+              </div>
+            ) : phoneNumbers.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-4 text-center">
+                <p className="text-xs text-muted-foreground">
+                  Nenhum número foi encontrado para esta conta conectada.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {phoneNumbers.map((phoneNumber, index) => (
+                  <div
+                    key={`${phoneNumber.display_phone_number}-${index}`}
+                    className="rounded-lg border border-border p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {phoneNumber.display_phone_number || "Número sem identificação"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {phoneNumber.verified_name || "Nome verificado não disponível"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {phoneNumber.quality_rating && (
+                          <Badge variant="secondary" className="text-[9px]">
+                            {phoneNumber.quality_rating}
+                          </Badge>
+                        )}
+                        {phoneNumber.name_status && (
+                          <Badge variant="outline" className="text-[9px]">
+                            {phoneNumber.name_status}
+                          </Badge>
+                        )}
+                        {phoneNumber.code_verification_status && (
+                          <Badge variant="outline" className="text-[9px]">
+                            {phoneNumber.code_verification_status}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Webhook config */}
