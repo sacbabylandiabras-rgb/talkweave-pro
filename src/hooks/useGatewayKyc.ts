@@ -45,7 +45,7 @@ export function useGatewayKyc() {
 
   useEffect(() => { fetchKyc(); }, []);
 
-  const uploadDocument = async (file: File, type: "selfie" | "doc_front" | "doc_back") => {
+  const uploadDocument = async (file: File, type: "selfie" | "doc_front" | "doc_back" | "cnpj_doc") => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Não autenticado");
 
