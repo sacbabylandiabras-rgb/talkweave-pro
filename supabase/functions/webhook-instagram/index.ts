@@ -310,16 +310,21 @@ serve(async (req) => {
 
                       // Traverse children — if DM has buttons, STOP (don't follow button paths)
                       // Button paths (btn-0, btn-1...) are only followed when user clicks a button
-                      const dmButtons = (node.data?.buttons || []).filter((b: any) => b.title);
-                      if (node.type === "igDM" && dmButtons.length > 0) {
+                      const allButtons = (node.data?.buttons || []);
+                      const hasButtons = node.type === "igDM" && allButtons.length > 0;
+                      if (hasButtons) {
                         // Only follow the default bottom handle, not button-specific handles
                         const defaultChildren = getOutgoing(node.id, "source-bottom");
                         for (const child of defaultChildren) {
                           await executeNode(child);
                         }
-                        console.log(`⏹ DM node "${node.data?.label}" has ${dmButtons.length} buttons — waiting for user response to branch`);
+                        console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
                       } else {
-                        const children = getOutgoing(node.id);
+                        // For non-button nodes, exclude any btn-* handles (safety)
+                        const children = flowEdges
+                          .filter((e: any) => e.source === node.id && !(e.sourceHandle || "").startsWith("btn-"))
+                          .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
+                          .filter(Boolean);
                         for (const child of children) {
                           await executeNode(child);
                         }
