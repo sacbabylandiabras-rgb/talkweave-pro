@@ -754,8 +754,11 @@ export default function PaySettings() {
                   {webhooks.map((wh) => (
                     <div key={wh.id} className="flex items-center gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-muted/20">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium truncate">{wh.name}</p>
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {wh.headers?.webhook_type === "withdrawal" ? "Saque" : "Transação"}
+                          </Badge>
                           <Badge variant="outline" className="text-[10px] shrink-0">{wh.method}</Badge>
                           {wh.auth_type !== "none" && (
                             <Badge variant="outline" className="text-[10px] shrink-0 border-amber-500/30 text-amber-400">
@@ -764,6 +767,17 @@ export default function PaySettings() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{wh.webhook_url}</p>
+                        {wh.headers?.events && (
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {Object.entries(wh.headers.events as Record<string, boolean>)
+                              .filter(([, v]) => v)
+                              .map(([k]) => (
+                                <Badge key={k} variant="secondary" className="text-[9px] px-1.5 py-0">
+                                  {k === "approved" ? "Aprovada" : k === "pending" ? "Pendente" : k === "refused" ? "Recusada" : k === "refunded" ? "Estornado" : k === "cancelled" ? "Cancelada" : "MED"}
+                                </Badge>
+                              ))}
+                          </div>
+                        )}
                       </div>
                       <Switch checked={wh.active} onCheckedChange={(checked) => handleToggleWebhook(wh.id, checked)} />
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditWebhook(wh)}>
