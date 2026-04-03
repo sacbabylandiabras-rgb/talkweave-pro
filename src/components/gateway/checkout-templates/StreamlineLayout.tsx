@@ -136,7 +136,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
                     </div>
                   )}
                   <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
-                  <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
+                  <button onClick={handleNext} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
                 </div>
                 </div>
 
