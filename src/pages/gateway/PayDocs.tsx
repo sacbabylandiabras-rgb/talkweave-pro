@@ -64,18 +64,18 @@ export default function PayDocs() {
               <code className="block text-sm font-mono text-foreground bg-muted/40 rounded-lg px-4 py-3 select-all break-all">
                 https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1
               </code>
-              <p className="text-xs text-muted-foreground">
-                Exemplo de chamada completa: <code className="font-mono text-[#FF4D2E]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/get-checkout?slug=meu-produto</code>
-              </p>
             </div>
 
             <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 flex gap-3">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-400">⚠️ URL Incorreta Comum</p>
+                <p className="text-sm font-medium text-red-400">⚠️ Erro Comum: "Requested function was not found"</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <strong>NÃO</strong> use <code className="font-mono text-red-400">api.zaplynxpay.com.br/v1</code> — esse domínio não existe.<br />
-                  A URL correta é sempre <code className="font-mono text-emerald-400">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/</code> seguida do nome da função.
+                  A URL base <strong>sozinha não funciona</strong>. Você <strong>deve</strong> adicionar o nome da função no final.<br /><br />
+                  <span className="text-red-400 font-mono">❌ https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</span><br />
+                  <span className="text-red-400 font-mono">❌ https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/</span><br />
+                  <span className="text-emerald-400 font-mono">✅ https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/get-checkout?slug=meu-produto</span><br />
+                  <span className="text-emerald-400 font-mono">✅ https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/create-pix-charge</span>
                 </p>
               </div>
             </div>
