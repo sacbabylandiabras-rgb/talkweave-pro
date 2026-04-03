@@ -49,11 +49,13 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   const [selfie, setSelfie] = useState<DocUpload>({ file: null, preview: "" });
   const [docFront, setDocFront] = useState<DocUpload>({ file: null, preview: "" });
   const [docBack, setDocBack] = useState<DocUpload>({ file: null, preview: "" });
+  const [cnpjDoc, setCnpjDoc] = useState<DocUpload>({ file: null, preview: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const selfieRef = useRef<HTMLInputElement>(null);
   const frontRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
+  const cnpjDocRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | undefined, setter: (v: DocUpload) => void) => {
     if (!file) return;
