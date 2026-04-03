@@ -21,8 +21,6 @@ serve(async (req) => {
 
     console.log('OpenPix webhook received:', JSON.stringify(payload))
 
-    // OpenPix sends: { event, charge: { correlationID, status, value, ... } }
-    // or { pixQrCode: {...}, charge: {...}, pix: {...} }
     const event = payload.event || ''
     const charge = payload.charge || payload.pix?.charge || {}
     const correlationID = charge.correlationID || charge.identifier || ''
@@ -50,22 +48,46 @@ serve(async (req) => {
 
     console.log('Mapped status:', newStatus)
 
-    // Update transaction by external_id (correlationID)
-    const { data: tx, error: txErr } = await supabase
+    // ── DEDUPLICATION: check current status BEFORE updating ──
+    const { data: existingTx } = await supabase
+      .from('gateway_transactions')
+      .select('id, user_id, checkout_id, status, customer_email, customer_name, customer_phone, amount, fee, net, product_id, external_id, metadata, created_at')
+      .eq('external_id', correlationID)
+      .single()
+
+    if (!existingTx) {
+      console.log('No transaction found for correlationID:', correlationID)
+      return new Response(JSON.stringify({ ok: true, message: 'transaction not found' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // If status is already the same, skip ALL side effects (dedup)
+    if (existingTx.status === newStatus) {
+      console.log('Transaction already has status', newStatus, '- skipping duplicate webhook')
+      return new Response(JSON.stringify({ ok: true, message: 'duplicate, already processed', status: newStatus, transactionId: existingTx.id }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Update transaction status
+    const { error: txErr } = await supabase
       .from('gateway_transactions')
       .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('external_id', correlationID)
-      .select('id, user_id, checkout_id, status')
-      .single()
+      .eq('id', existingTx.id)
 
     if (txErr) {
       console.error('Error updating transaction:', txErr)
     } else {
-      console.log('Transaction updated:', tx?.id, 'to', newStatus)
+      console.log('Transaction updated:', existingTx.id, 'from', existingTx.status, 'to', newStatus)
     }
 
-    // Also forward to webhook-gateway if payment approved (to trigger WhatsApp messages)
-    if (newStatus === 'approved' && tx?.user_id) {
+    const tx = existingTx
+
+    // Forward to webhook-gateway if payment approved (to trigger WhatsApp messages)
+    if (newStatus === 'approved' && tx.user_id) {
       try {
         const gatewayUrl = `${supabaseUrl}/functions/v1/webhook-gateway?user_id=${tx.user_id}`
         const forwardPayload = {
@@ -111,7 +133,7 @@ serve(async (req) => {
       }
 
       // Send approved email to customer (if enabled in checkout config)
-      const customerEmail = charge.customer?.email || tx?.customer_email
+      const customerEmail = charge.customer?.email || tx.customer_email
       let emailApprovedEnabled = true
       let productName = 'Produto'
       if (tx.checkout_id) {
@@ -131,8 +153,8 @@ serve(async (req) => {
               type: 'approved',
               to: customerEmail,
               data: {
-                customerName: charge.customer?.name || tx?.customer_name || 'Cliente',
-                amount: charge.value || tx?.amount || 0,
+                customerName: charge.customer?.name || tx.customer_name || 'Cliente',
+                amount: charge.value || tx.amount || 0,
                 productName,
                 transactionId: tx.id,
               },
@@ -145,8 +167,86 @@ serve(async (req) => {
       }
     }
 
+    // ── Dispatch to user-configured outbound webhooks ──
+    if (tx.user_id) {
+      try {
+        const { data: webhooks } = await supabase
+          .from('gateway_integrations')
+          .select('*')
+          .eq('user_id', tx.user_id)
+          .eq('active', true)
+
+        if (webhooks && webhooks.length > 0) {
+          const eventKeyMap: Record<string, string> = {
+            approved: 'approved',
+            pending: 'pending',
+            expired: 'expired',
+            failed: 'refused',
+          }
+          const eventKey = eventKeyMap[newStatus] || newStatus
+
+          for (const wh of webhooks) {
+            if (wh.name === 'UTMify' || wh.name === 'Shopify') continue
+
+            const whHeaders = wh.headers as any || {}
+            const events = whHeaders.events || {}
+            const hasEventConfig = Object.keys(events).length > 0
+
+            if (hasEventConfig && !events[eventKey]) {
+              console.log(`Webhook ${wh.name}: evento '${eventKey}' não habilitado, pulando`)
+              continue
+            }
+
+            const outPayload = {
+              event: `transaction.${eventKey}`,
+              transaction: {
+                id: tx.id,
+                external_id: tx.external_id,
+                status: newStatus,
+                amount: tx.amount,
+                fee: tx.fee,
+                net: tx.net,
+                payment_method: 'pix',
+                customer: {
+                  name: charge.customer?.name || tx.customer_name || null,
+                  email: charge.customer?.email || tx.customer_email || null,
+                  phone: charge.customer?.phone || tx.customer_phone || null,
+                },
+                product_id: tx.product_id,
+                checkout_id: tx.checkout_id,
+                created_at: tx.created_at,
+                updated_at: new Date().toISOString(),
+              },
+            }
+
+            const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+            if (wh.auth_type === 'bearer' && wh.auth_token) {
+              reqHeaders['Authorization'] = `Bearer ${wh.auth_token}`
+            } else if (wh.auth_type === 'basic' && wh.auth_token) {
+              reqHeaders['Authorization'] = `Basic ${wh.auth_token}`
+            } else if (wh.auth_type === 'api_key' && wh.auth_token) {
+              reqHeaders['x-api-key'] = wh.auth_token
+            }
+
+            try {
+              const whRes = await fetch(wh.webhook_url, {
+                method: wh.method || 'POST',
+                headers: reqHeaders,
+                body: JSON.stringify(outPayload),
+              })
+              console.log(`Webhook ${wh.name} (${wh.webhook_url}): ${whRes.status}`)
+            } catch (whErr) {
+              console.error(`Webhook ${wh.name} error:`, whErr)
+            }
+          }
+        }
+      } catch (dispatchErr) {
+        console.error('Outbound webhook dispatch error:', dispatchErr)
+      }
+    }
+
     // Forward to UTMify if configured
-    if (tx?.user_id) {
+    if (tx.user_id) {
       try {
         const { data: utmifyConfig } = await supabase
           .from('gateway_integrations')
@@ -215,7 +315,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx?.id }), {
+    return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx.id }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

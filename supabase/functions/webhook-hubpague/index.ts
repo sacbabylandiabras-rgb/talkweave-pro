@@ -51,20 +51,18 @@ serve(async (req) => {
       console.log('Mapped status:', newStatus)
 
       // Try to find transaction by hubpague_id in metadata or by external_id
-      // First try metadata match
       const { data: txByMeta } = await supabase
         .from('gateway_transactions')
-        .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
+        .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status')
         .contains('metadata', { hubpague_id: hubpagueId })
         .single()
 
       let tx = txByMeta
 
-      // If not found by metadata, try external_id pattern
       if (!tx) {
         const { data: txByExt } = await supabase
           .from('gateway_transactions')
-          .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at')
+          .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status')
           .contains('metadata', { provider: 'hubpague' })
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
@@ -74,12 +72,21 @@ serve(async (req) => {
       }
 
       if (tx) {
+        // ── DEDUPLICATION: if status is already the same, skip ALL side effects ──
+        if (tx.status === newStatus) {
+          console.log('Transaction already has status', newStatus, '- skipping duplicate webhook')
+          return new Response(JSON.stringify({ ok: true, message: 'duplicate, already processed', status: newStatus, transactionId: tx.id }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
         await supabase
           .from('gateway_transactions')
           .update({ status: newStatus, updated_at: new Date().toISOString() })
           .eq('id', tx.id)
 
-        console.log('Transaction updated:', tx.id, 'to', newStatus)
+        console.log('Transaction updated:', tx.id, 'from', tx.status, 'to', newStatus)
 
         // Forward to webhook-gateway for WhatsApp notifications if approved
         if (newStatus === 'approved' && tx.user_id) {
@@ -172,7 +179,6 @@ serve(async (req) => {
               .eq('active', true)
 
             if (webhooks && webhooks.length > 0) {
-              // Map hubpague raw status to webhook event key
               const hubEventMap: Record<string, string> = {
                 paid: 'approved',
                 processing: 'pending',
@@ -186,15 +192,12 @@ serve(async (req) => {
               const eventKey = hubEventMap[hubStatus] || newStatus
 
               for (const wh of webhooks) {
-                // Skip UTMify (handled separately) and Shopify integrations
                 if (wh.name === 'UTMify' || wh.name === 'Shopify') continue
 
-                // Check if this webhook has event filtering enabled
                 const whHeaders = wh.headers as any || {}
                 const events = whHeaders.events || {}
                 const hasEventConfig = Object.keys(events).length > 0
 
-                // If events are configured, only send if this event is enabled
                 if (hasEventConfig && !events[eventKey]) {
                   console.log(`Webhook ${wh.name}: evento '${eventKey}' não habilitado, pulando`)
                   continue
@@ -222,7 +225,6 @@ serve(async (req) => {
                   },
                 }
 
-                // Build headers
                 const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
                 if (wh.auth_type === 'bearer' && wh.auth_token) {
                   reqHeaders['Authorization'] = `Bearer ${wh.auth_token}`
@@ -331,7 +333,6 @@ serve(async (req) => {
     // Handle transfer webhooks
     if (notificationType === 'transfer_out') {
       console.log('Transfer webhook received:', payload.transfer_id, payload.status)
-      // Could update withdrawal status here if needed
     }
 
     return new Response(JSON.stringify({ ok: true }), {
