@@ -398,11 +398,117 @@ serve(async (req) => {
             }
           }
 
-          // Handle messaging events (DMs received)
+          // Handle messaging events (DMs received / postback button clicks)
           if (entry.messaging) {
             for (const event of entry.messaging) {
+              const senderId = event.sender?.id;
+
+              // Handle postback (button click from interactive DM)
+              if (event.postback && senderId && accessToken) {
+                const payload = event.postback.payload || "";
+                const title = event.postback.title || payload;
+                console.log(`🔘 Postback from ${senderId}: "${title}" (payload: ${payload})`);
+
+                // Find active automations with flows
+                const { data: automations } = await supabase
+                  .from("instagram_automations")
+                  .select("*")
+                  .eq("user_id", userId)
+                  .eq("active", true);
+
+                for (const auto of (automations || [])) {
+                  try {
+                    const parsed = JSON.parse(auto.dm_message || "");
+                    if (!parsed.__flow__ || !parsed.nodes?.length) continue;
+
+                    const fNodes = parsed.nodes;
+                    const fEdges = parsed.edges || [];
+
+                    // Find DM nodes that have a button matching the clicked payload/title
+                    for (const node of fNodes) {
+                      if (node.type !== "igDM") continue;
+                      const buttons = (node.data?.buttons || []);
+                      const btnIndex = buttons.findIndex((b: any) =>
+                        b.title === title || b.title === payload
+                      );
+                      if (btnIndex === -1) continue;
+
+                      console.log(`✅ Found matching button "${title}" at index ${btnIndex} in node ${node.id}`);
+
+                      // Follow the edge from this button's handle
+                      const handleId = `btn-${btnIndex}`;
+                      const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
+
+                      const replaceVars = (txt: string) =>
+                        txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
+                           .replace(/\{\{comentario\}\}/g, title);
+
+                      const visited = new Set<string>();
+                      const executeNode = async (n: any) => {
+                        if (visited.has(n.id)) return;
+                        visited.add(n.id);
+                        const d = n.data || {};
+
+                        if (n.type === "igDM" && accessToken) {
+                          const dmText = replaceVars(d.message || "");
+                          const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+                          let messagePayload: any;
+                          if (dmButtons.length > 0) {
+                            const apiButtons = dmButtons.slice(0, 3).map((b: any) =>
+                              b.type === "reply"
+                                ? { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }
+                                : { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }
+                            );
+                            messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: apiButtons } } };
+                          } else if (dmText) {
+                            messagePayload = { text: dmText };
+                          }
+                          if (messagePayload) {
+                            const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                              body: JSON.stringify({ recipient: { id: senderId }, message: messagePayload }),
+                            });
+                            const rd = await res.json();
+                            if (res.ok && !rd.error) console.log(`✅ Branch DM sent to ${senderId}`);
+                            else console.error("❌ Branch DM error:", JSON.stringify(rd));
+                          }
+                        }
+
+                        if (n.type === "igDelay") {
+                          const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
+                          if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                        }
+
+                        // Continue traversal (stop at button nodes)
+                        const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
+                        if (n.type === "igDM" && btnCount > 0) {
+                          const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
+                          for (const e of defaultEdges) {
+                            const next = fNodes.find((fn: any) => fn.id === e.target);
+                            if (next) await executeNode(next);
+                          }
+                        } else {
+                          const nextEdges = fEdges.filter((e: any) => e.source === n.id);
+                          for (const e of nextEdges) {
+                            const next = fNodes.find((fn: any) => fn.id === e.target);
+                            if (next) await executeNode(next);
+                          }
+                        }
+                      };
+
+                      for (const edge of branchEdges) {
+                        const target = fNodes.find((fn: any) => fn.id === edge.target);
+                        if (target) await executeNode(target);
+                      }
+                      break; // Only process first matching automation
+                    }
+                  } catch { /* not flow JSON */ }
+                }
+              }
+
               if (event.message) {
-                console.log(`📨 DM from ${event.sender?.id}: ${event.message.text || "(media)"}`);
+                console.log(`📨 DM from ${senderId}: ${event.message.text || "(media)"}`);
               }
             }
           }
