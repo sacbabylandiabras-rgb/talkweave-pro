@@ -492,6 +492,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                 if (!formName.trim()) errors.name = 'Campo obrigatório';
                 if (!formEmail.trim()) errors.email = 'Campo obrigatório';
                 if (!formCpf.trim()) errors.cpf = 'CPF/CNPJ é obrigatório';
+                else if (!validateCpfCnpj(formCpf)) errors.cpf = 'CPF ou CNPJ inválido';
                 setFormErrors(errors);
                 if (Object.keys(errors).length === 0) setStep(2);
               }}
