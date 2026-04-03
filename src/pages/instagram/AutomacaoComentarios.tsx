@@ -1,23 +1,116 @@
-import { useState, useEffect } from "react";
-import { Plus, Save, Trash2, MessageCircle, Send, Clock, Variable, ArrowLeft, Link, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useCallback, useRef, useEffect } from "react";
+import ReactFlow, {
+  Node,
+  Edge,
+  Controls,
+  Background,
+  MiniMap,
+  Connection,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  NodeTypes,
+  BackgroundVariant,
+  MarkerType,
+} from "reactflow";
+import "reactflow/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Save,
+  Plus,
+  ArrowLeft,
+  Trash2,
+  MessageCircle,
+  Send,
+  Clock,
+  Reply,
+  Link2,
+  X,
+  Variable,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useInstagramAutomations } from "@/hooks/useInstagramAutomations";
+import { IGGatilhoNode } from "@/components/flow/ig/IGGatilhoNode";
+import { IGRespostaNode } from "@/components/flow/ig/IGRespostaNode";
+import { IGDMNode } from "@/components/flow/ig/IGDMNode";
+import { IGDelayNode } from "@/components/flow/ig/IGDelayNode";
 
-interface FlowBlock {
-  id: string;
-  type: "trigger" | "reply_comment" | "send_direct";
-  data: Record<string, any>;
-}
+const nodeTypes: NodeTypes = {
+  igGatilho: IGGatilhoNode,
+  igResposta: IGRespostaNode,
+  igDM: IGDMNode,
+  igDelay: IGDelayNode,
+};
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
+const defaultNodes: Node[] = [
+  {
+    id: "1",
+    type: "igGatilho",
+    position: { x: 50, y: 200 },
+    data: { label: "Gatilho", keywords: "" },
+  },
+  {
+    id: "2",
+    type: "igResposta",
+    position: { x: 350, y: 100 },
+    data: { label: "Responder Comentário", message: "" },
+  },
+  {
+    id: "3",
+    type: "igDM",
+    position: { x: 350, y: 300 },
+    data: { label: "Enviar DM", message: "", buttons: [] },
+  },
+];
+
+const defaultEdges: Edge[] = [
+  {
+    id: "e1-2",
+    source: "1",
+    target: "2",
+    sourceHandle: "source-right",
+    targetHandle: "target-left",
+    animated: true,
+    style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" },
+  },
+  {
+    id: "e1-3",
+    source: "1",
+    target: "3",
+    sourceHandle: "source-bottom",
+    targetHandle: "target-top",
+    animated: true,
+    style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" },
+  },
+];
+
+const blocosDisponiveis = [
+  { type: "igGatilho", label: "Gatilho", icon: MessageCircle, description: "Palavra-chave no comentário" },
+  { type: "igResposta", label: "Resposta", icon: Reply, description: "Responder comentário publicamente" },
+  { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta com botões" },
+  { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar antes do próximo passo" },
+];
 
 export default function AutomacaoComentarios() {
   const navigate = useNavigate();
@@ -25,345 +118,528 @@ export default function AutomacaoComentarios() {
   const editId = searchParams.get("id");
   const { automations, createAutomation, updateAutomation } = useInstagramAutomations();
 
+  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [flowName, setFlowName] = useState("Novo Fluxo");
   const [isActive, setIsActive] = useState(false);
-  const [blocks, setBlocks] = useState<FlowBlock[]>([
-    { id: generateId(), type: "trigger", data: { keywords: "", matchType: "any" } },
-    { id: generateId(), type: "reply_comment", data: { message: "" } },
-    { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes", buttons: [] as { title: string; url: string }[] } },
-  ]);
+  const [saving, setSaving] = useState(false);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
-  // Load existing automation if editing
+  // Load existing automation
   useEffect(() => {
     if (editId && automations.length > 0) {
-      const existing = automations.find(a => a.id === editId);
-      if (existing) {
-        setFlowName(existing.name);
-        setIsActive(existing.active);
+      const existing = automations.find((a) => a.id === editId);
+      if (!existing) return;
 
-        // Parse dm_message — may be JSON with buttons
+      setFlowName(existing.name);
+      setIsActive(existing.active);
+
+      // Check if dm_message contains flow data
+      let flowData: any = null;
+      try {
+        const parsed = JSON.parse(existing.dm_message || "");
+        if (parsed.__flow__) flowData = parsed;
+      } catch {}
+
+      if (flowData && flowData.nodes?.length > 0) {
+        setNodes(flowData.nodes);
+        setEdges(flowData.edges || []);
+      } else {
+        // Legacy: convert old format to flow nodes
         let dmText = existing.dm_message || "";
-        let dmButtons: { title: string; url: string }[] = [];
+        let dmButtons: any[] = [];
         try {
           const parsed = JSON.parse(dmText);
           if (parsed.text !== undefined) {
             dmText = parsed.text || "";
             dmButtons = parsed.buttons || [];
           }
-        } catch { /* plain text */ }
+        } catch {}
 
-        setBlocks([
-          { id: generateId(), type: "trigger", data: { keywords: existing.keyword, matchType: "any" } },
-          { id: generateId(), type: "reply_comment", data: { message: existing.reply_comment || "" } },
-          { id: generateId(), type: "send_direct", data: { message: dmText, delayValue: 0, delayUnit: "minutes", buttons: dmButtons } },
-        ]);
+        const legacyNodes: Node[] = [
+          {
+            id: "1",
+            type: "igGatilho",
+            position: { x: 50, y: 200 },
+            data: { label: "Gatilho", keywords: existing.keyword || "" },
+          },
+          {
+            id: "2",
+            type: "igResposta",
+            position: { x: 350, y: 100 },
+            data: { label: "Responder Comentário", message: existing.reply_comment || "" },
+          },
+          {
+            id: "3",
+            type: "igDM",
+            position: { x: 350, y: 300 },
+            data: { label: "Enviar DM", message: dmText, buttons: dmButtons },
+          },
+        ];
+        setNodes(legacyNodes);
+        setEdges(defaultEdges);
       }
     }
   }, [editId, automations]);
 
-  const addDirectBlock = () => {
-    setBlocks(prev => [...prev, {
-      id: generateId(),
-      type: "send_direct",
-      data: { message: "", delayValue: 5, delayUnit: "minutes" },
-    }]);
-  };
+  const onConnect = useCallback(
+    (params: Connection) =>
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            animated: true,
+            style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" },
+          },
+          eds
+        )
+      ),
+    [setEdges]
+  );
 
-  const removeBlock = (id: string) => {
-    setBlocks(prev => prev.filter(b => b.id !== id));
-  };
+  const onEdgeClick = useCallback(
+    (_e: React.MouseEvent, edge: Edge) => {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      toast.success("Conexão removida");
+    },
+    [setEdges]
+  );
 
-  const updateBlock = (id: string, data: Record<string, any>) => {
-    setBlocks(prev => prev.map(b => b.id === id ? { ...b, data: { ...b.data, ...data } } : b));
-  };
+  const onNodeClick = useCallback((_e: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+    setIsEditDialogOpen(true);
+  }, []);
 
-  const insertVariable = (blockId: string, variable: string) => {
-    setBlocks(prev => prev.map(b => {
-      if (b.id !== blockId) return b;
-      return { ...b, data: { ...b.data, message: (b.data.message || "") + `{{${variable}}}` } };
-    }));
-  };
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
 
-  const handleSave = async () => {
-    const triggerBlock = blocks.find(b => b.type === "trigger");
-    const replyBlock = blocks.find(b => b.type === "reply_comment");
-    const dmBlock = blocks.find(b => b.type === "send_direct");
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const type = event.dataTransfer.getData("application/reactflow");
+      if (!type || !reactFlowInstance) return;
 
-    // Encode buttons into dm_message as JSON if buttons exist
-    const dmButtons = dmBlock?.data.buttons || [];
-    const dmText = dmBlock?.data.message || "";
-    const dmMessage = dmButtons.length > 0
-      ? JSON.stringify({ text: dmText, buttons: dmButtons })
-      : dmText;
-
-    const payload = {
-      name: flowName,
-      keyword: triggerBlock?.data.keywords || "",
-      reply_comment: replyBlock?.data.message || "",
-      dm_message: dmMessage,
-      active: isActive,
-    };
-
-    if (editId) {
-      updateAutomation.mutate({ id: editId, ...payload }, {
-        onSuccess: () => navigate("/instagram/campanhas"),
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
       });
-    } else {
-      createAutomation.mutate(payload, {
-        onSuccess: () => navigate("/instagram/campanhas"),
+
+      const labelMap: Record<string, string> = {
+        igGatilho: "Gatilho",
+        igResposta: "Responder Comentário",
+        igDM: "Enviar DM",
+        igDelay: "Espera",
+      };
+
+      const newNode: Node = {
+        id: `${Date.now()}`,
+        type,
+        position,
+        data: {
+          label: labelMap[type] || type,
+          message: "",
+          keywords: "",
+          buttons: [],
+          delayValue: 5,
+          delayUnit: "seconds",
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+      toast.success("Bloco adicionado!");
+    },
+    [reactFlowInstance, setNodes]
+  );
+
+  const onDragStart = (event: React.DragEvent, nodeType: string) => {
+    event.dataTransfer.setData("application/reactflow", nodeType);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+      setIsEditDialogOpen(false);
+      toast.success("Bloco removido!");
+    },
+    [setNodes, setEdges]
+  );
+
+  const handleSaveNode = () => {
+    if (!selectedNode) return;
+    setNodes((nds) => nds.map((n) => (n.id === selectedNode.id ? { ...n, data: selectedNode.data } : n)));
+    setIsEditDialogOpen(false);
+    toast.success("Bloco atualizado!");
+  };
+
+  const handleSaveFlow = async () => {
+    if (saving) return;
+    setSaving(true);
+
+    try {
+      // Extract keyword from trigger nodes
+      const triggerNodes = nodes.filter((n) => n.type === "igGatilho");
+      const keywords = triggerNodes.map((n) => n.data.keywords || "").filter(Boolean).join(",");
+
+      // Extract reply_comment from first reply node (for backward compat)
+      const replyNode = nodes.find((n) => n.type === "igResposta");
+      const replyComment = replyNode?.data.message || "";
+
+      // Store the full flow in dm_message
+      const serializedNodes = JSON.parse(JSON.stringify(nodes));
+      const serializedEdges = JSON.parse(JSON.stringify(edges));
+      const flowJson = JSON.stringify({
+        __flow__: true,
+        nodes: serializedNodes,
+        edges: serializedEdges,
       });
+
+      const payload = {
+        name: flowName,
+        keyword: keywords,
+        reply_comment: replyComment,
+        dm_message: flowJson,
+        active: isActive,
+      };
+
+      if (editId) {
+        updateAutomation.mutate(
+          { id: editId, ...payload },
+          { onSuccess: () => navigate("/instagram/campanhas") }
+        );
+      } else {
+        createAutomation.mutate(payload, {
+          onSuccess: () => navigate("/instagram/campanhas"),
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar fluxo");
+    } finally {
+      setSaving(false);
     }
   };
 
+  // Edit dialog content
+  const renderEditPanel = () => {
+    if (!selectedNode) return null;
+    const { type } = selectedNode;
+
+    if (type === "igGatilho") {
+      return (
+        <div className="space-y-4">
+          <div>
+            <Label>Palavras-chave (separadas por vírgula)</Label>
+            <Input
+              value={selectedNode.data.keywords || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
+              }
+              placeholder="eu quero, me manda, info"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Deixe vazio para disparar em qualquer comentário</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "igResposta") {
+      return (
+        <div className="space-y-4">
+          <div>
+            <Label>Mensagem de resposta no comentário</Label>
+            <Textarea
+              value={selectedNode.data.message || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, message: e.target.value } })
+              }
+              placeholder="Obrigado pelo interesse! Te enviei uma DM 😉"
+              rows={3}
+            />
+            <div className="flex gap-1 mt-1">
+              {["nome_usuario", "comentario"].map((v) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-6 gap-1"
+                  onClick={() =>
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: { ...selectedNode.data, message: (selectedNode.data.message || "") + `{{${v}}}` },
+                    })
+                  }
+                >
+                  <Variable className="w-3 h-3" />
+                  {v}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "igDM") {
+      const buttons = selectedNode.data.buttons || [];
+      return (
+        <div className="space-y-4">
+          <div>
+            <Label>Mensagem da DM</Label>
+            <Textarea
+              value={selectedNode.data.message || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, message: e.target.value } })
+              }
+              placeholder="Olá {{nome_usuario}}! Aqui está o que você pediu 🎁"
+              rows={4}
+            />
+            <div className="flex gap-1 mt-1">
+              {["nome_usuario", "comentario"].map((v) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-6 gap-1"
+                  onClick={() =>
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: { ...selectedNode.data, message: (selectedNode.data.message || "") + `{{${v}}}` },
+                    })
+                  }
+                >
+                  <Variable className="w-3 h-3" />
+                  {v}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <Link2 className="w-3 h-3" /> Botões (máx. 3)
+            </Label>
+            {buttons.map((btn: any, idx: number) => (
+              <div key={idx} className="space-y-1.5 p-2 border border-border rounded-md">
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={btn.type || "url"}
+                    onChange={(e) => {
+                      const newBtns = [...buttons];
+                      newBtns[idx] = { ...newBtns[idx], type: e.target.value, url: e.target.value === "reply" ? "" : newBtns[idx].url };
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons: newBtns } });
+                    }}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs min-w-[80px]"
+                  >
+                    <option value="url">URL</option>
+                    <option value="reply">Reply</option>
+                  </select>
+                  <Input
+                    value={btn.title || ""}
+                    onChange={(e) => {
+                      const newBtns = [...buttons];
+                      newBtns[idx] = { ...newBtns[idx], title: e.target.value };
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons: newBtns } });
+                    }}
+                    placeholder="Texto do botão"
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => {
+                      const newBtns = buttons.filter((_: any, i: number) => i !== idx);
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons: newBtns } });
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+                {(btn.type || "url") === "url" && (
+                  <Input
+                    value={btn.url || ""}
+                    onChange={(e) => {
+                      const newBtns = [...buttons];
+                      newBtns[idx] = { ...newBtns[idx], url: e.target.value };
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons: newBtns } });
+                    }}
+                    placeholder="https://..."
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+            ))}
+            {buttons.length < 3 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1 border-dashed w-full"
+                onClick={() => {
+                  const newBtns = [...buttons, { title: "", url: "", type: "url" }];
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, buttons: newBtns } });
+                }}
+              >
+                <Plus className="w-3 h-3" /> Adicionar Botão
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "igDelay") {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label>Tempo</Label>
+              <Input
+                type="number"
+                min={0}
+                value={selectedNode.data.delayValue || 0}
+                onChange={(e) =>
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, delayValue: parseInt(e.target.value) || 0 },
+                  })
+                }
+              />
+            </div>
+            <div className="flex-1">
+              <Label>Unidade</Label>
+              <Select
+                value={selectedNode.data.delayUnit || "seconds"}
+                onValueChange={(v) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, delayUnit: v } })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="seconds">Segundos</SelectItem>
+                  <SelectItem value="minutes">Minutos</SelectItem>
+                  <SelectItem value="hours">Horas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
-    <div className="space-y-6 w-full max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="w-full h-[calc(100vh-80px)] flex flex-col">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/instagram/campanhas")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/instagram/campanhas")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">
-              {editId ? "Editar Fluxo" : "Automação de Comentários"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Construa fluxos de resposta automática para comentários do Instagram</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
+          <Input
+            value={flowName}
+            onChange={(e) => setFlowName(e.target.value)}
+            className="h-8 w-48 text-sm font-medium"
+          />
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{isActive ? "Ativo" : "Pausado"}</span>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
+            <span className="text-xs text-muted-foreground">{isActive ? "Ativo" : "Inativo"}</span>
           </div>
-          <Button onClick={handleSave} className="gap-2" disabled={createAutomation.isPending || updateAutomation.isPending}>
-            <Save className="w-4 h-4" />
-            Salvar Fluxo
-          </Button>
         </div>
-      </div>
 
-      <Card className="border-border">
-        <CardContent className="pt-4 pb-4">
-          <label className="text-xs text-muted-foreground mb-1.5 block">Nome do Fluxo</label>
-          <Input value={flowName} onChange={e => setFlowName(e.target.value)} placeholder="Ex: Promoção Black Friday" />
-        </CardContent>
-      </Card>
-
-      <div className="relative space-y-0">
-        {blocks.map((block, index) => (
-          <div key={block.id} className="relative">
-            {index > 0 && (
-              <div className="flex justify-center py-2">
-                <div className="w-px h-6 bg-primary/40" />
-                <div className="absolute w-2 h-2 border-r-2 border-b-2 border-primary/40 transform rotate-45 translate-y-4" />
+        <div className="flex items-center gap-2">
+          {/* Block toolbar */}
+          {blocosDisponiveis.map((bloco) => {
+            const Icon = bloco.icon;
+            return (
+              <div
+                key={bloco.type}
+                draggable
+                onDragStart={(e) => onDragStart(e, bloco.type)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-md cursor-grab bg-card hover:bg-muted/50 transition-colors"
+                title={bloco.description}
+              >
+                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium">{bloco.label}</span>
               </div>
-            )}
+            );
+          })}
 
-            {block.type === "trigger" && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                      <MessageCircle className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                    Gatilho — Palavras-chave
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Palavras-chave (separadas por vírgula)</label>
-                    <Input
-                      value={block.data.keywords}
-                      onChange={e => updateBlock(block.id, { keywords: e.target.value })}
-                      placeholder="quero, info, link, preço"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Tipo de correspondência</label>
-                    <Select value={block.data.matchType} onValueChange={v => updateBlock(block.id, { matchType: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Qualquer palavra</SelectItem>
-                        <SelectItem value="exact">Frase exata</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {block.data.keywords && (
-                    <div className="flex flex-wrap gap-1">
-                      {block.data.keywords.split(",").map((kw: string, i: number) => kw.trim() && (
-                        <Badge key={i} variant="secondary" className="text-[10px]">{kw.trim()}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {block.type === "reply_comment" && (
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
-                      <MessageCircle className="w-3.5 h-3.5 text-amber-500" />
-                    </div>
-                    Responder Comentário
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Resposta pública no comentário</label>
-                  <Textarea
-                    value={block.data.message}
-                    onChange={e => updateBlock(block.id, { message: e.target.value })}
-                    placeholder='Ex: "Te mandei no direct! 📩"'
-                    rows={2}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {block.type === "send_direct" && (
-              <Card className="border-blue-500/30 bg-blue-500/5">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
-                        <Send className="w-3.5 h-3.5 text-blue-500" />
-                      </div>
-                      Enviar Direct
-                    </CardTitle>
-                    {blocks.filter(b => b.type === "send_direct").length > 1 && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeBlock(block.id)}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Mensagem</label>
-                    <Textarea
-                      value={block.data.message}
-                      onChange={e => updateBlock(block.id, { message: e.target.value })}
-                      placeholder="Olá {{nome_usuario}}! Vi que você comentou no nosso post..."
-                      rows={3}
-                    />
-                    <div className="flex gap-1 mt-2">
-                      {["nome_usuario", "comentario", "post_url"].map(v => (
-                        <Button key={v} variant="outline" size="sm" className="text-[10px] h-6 px-2 gap-1" onClick={() => insertVariable(block.id, v)}>
-                          <Variable className="w-3 h-3" />
-                          {v}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Buttons section */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
-                      <Link className="w-3 h-3" /> Botões (máx. 3)
-                    </label>
-                    {(block.data.buttons || []).map((btn: { title: string; url: string; type?: string }, btnIdx: number) => (
-                      <div key={btnIdx} className="space-y-1.5">
-                        <div className="flex gap-2 items-center">
-                          <select
-                            value={btn.type || "url"}
-                            onChange={e => {
-                              const newButtons = [...(block.data.buttons || [])];
-                              newButtons[btnIdx] = { ...newButtons[btnIdx], type: e.target.value, url: e.target.value === "reply" ? "" : newButtons[btnIdx].url };
-                              updateBlock(block.id, { buttons: newButtons });
-                            }}
-                            className="h-9 rounded-md border border-input bg-background px-2 text-xs min-w-[90px]"
-                          >
-                            <option value="url">🔗 URL</option>
-                            <option value="reply">💬 Reply</option>
-                          </select>
-                          <Input
-                            value={btn.title}
-                            onChange={e => {
-                              const newButtons = [...(block.data.buttons || [])];
-                              newButtons[btnIdx] = { ...newButtons[btnIdx], title: e.target.value };
-                              updateBlock(block.id, { buttons: newButtons });
-                            }}
-                            placeholder="Texto do botão"
-                            className="flex-1"
-                          />
-                          {(btn.type || "url") === "url" && (
-                            <Input
-                              value={btn.url}
-                              onChange={e => {
-                                const newButtons = [...(block.data.buttons || [])];
-                                newButtons[btnIdx] = { ...newButtons[btnIdx], url: e.target.value };
-                                updateBlock(block.id, { buttons: newButtons });
-                              }}
-                              placeholder="https://..."
-                              className="flex-1"
-                            />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => {
-                              const newButtons = (block.data.buttons || []).filter((_: any, i: number) => i !== btnIdx);
-                              updateBlock(block.id, { buttons: newButtons });
-                            }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {(block.data.buttons || []).length < 3 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs gap-1 border-dashed"
-                        onClick={() => {
-                          const newButtons = [...(block.data.buttons || []), { title: "", url: "", type: "url" }];
-                          updateBlock(block.id, { buttons: newButtons });
-                        }}
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Adicionar Botão
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Delay
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={block.data.delayValue}
-                        onChange={e => updateBlock(block.id, { delayValue: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="w-32">
-                      <label className="text-xs text-muted-foreground mb-1.5 block">&nbsp;</label>
-                      <Select value={block.data.delayUnit} onValueChange={v => updateBlock(block.id, { delayUnit: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="minutes">Minutos</SelectItem>
-                          <SelectItem value="hours">Horas</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        ))}
-
-        <div className="flex justify-center pt-4">
-          <Button variant="outline" onClick={addDirectBlock} className="gap-2 border-dashed">
-            <Plus className="w-4 h-4" />
-            Adicionar Envio de Direct
+          <Button onClick={handleSaveFlow} disabled={saving} size="sm" className="gap-1.5 ml-2">
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       </div>
+
+      {/* Canvas */}
+      <div ref={reactFlowWrapper} className="flex-1">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onEdgeClick={onEdgeClick}
+          onNodeClick={onNodeClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onInit={setReactFlowInstance}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-background"
+        >
+          <Controls className="!bg-card !border-border !shadow-md" />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} className="!bg-background" />
+          <MiniMap
+            className="!bg-card !border-border"
+            nodeColor={() => "hsl(var(--primary))"}
+            maskColor="hsl(var(--background) / 0.7)"
+          />
+        </ReactFlow>
+      </div>
+
+      {/* Edit Node Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Editar: {selectedNode?.data.label}</span>
+              {selectedNode && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => handleDeleteNode(selectedNode.id)}
+                >
+                  <Trash2 className="w-3 h-3" /> Excluir
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {renderEditPanel()}
+          </ScrollArea>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveNode}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
