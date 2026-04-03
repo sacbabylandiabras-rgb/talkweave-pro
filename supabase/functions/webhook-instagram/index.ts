@@ -209,30 +209,32 @@ serve(async (req) => {
                     }
                   }
 
-                  // 2) Send DM
-                  if (auto.dm_message && fromId && accessToken) {
+                  // 2) Send Private Reply DM (uses comment_id — no 24h window needed)
+                  if (auto.dm_message && commentId && accessToken) {
                     try {
                       const dmText = auto.dm_message
                         .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                         .replace(/\{\{comentario\}\}/g, commentText);
 
-                      // Get the Instagram Business Account's IGID for sending
+                      // Use Private Replies endpoint: recipient.comment_id
                       const dmRes = await fetch(
-                        `https://graph.instagram.com/v21.0/me/messages`,
+                        `https://graph.instagram.com/v21.0/${igPageId}/messages`,
                         {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${accessToken}`,
+                          },
                           body: JSON.stringify({
-                            recipient: { id: fromId },
+                            recipient: { comment_id: commentId },
                             message: { text: dmText },
-                            access_token: accessToken,
                           }),
                         }
                       );
                       const dmData = await dmRes.json();
 
                       if (dmRes.ok && !dmData.error) {
-                        console.log(`✅ DM sent to @${fromUsername}`);
+                        console.log(`✅ Private Reply DM sent to @${fromUsername}`);
 
                         // Log DM event
                         await supabase.from("instagram_events").insert({
@@ -246,10 +248,10 @@ serve(async (req) => {
                           processed: true,
                         });
                       } else {
-                        console.error("❌ DM error:", JSON.stringify(dmData));
+                        console.error("❌ Private Reply DM error:", JSON.stringify(dmData));
                       }
                     } catch (e) {
-                      console.error("❌ DM failed:", e);
+                      console.error("❌ Private Reply DM failed:", e);
                     }
                   }
 
