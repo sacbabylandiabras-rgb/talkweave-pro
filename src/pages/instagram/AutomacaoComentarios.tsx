@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Save, Trash2, MessageCircle, Send, Clock, Variable, ArrowLeft } from "lucide-react";
+import { Plus, Save, Trash2, MessageCircle, Send, Clock, Variable, ArrowLeft, Link, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,7 @@ export default function AutomacaoComentarios() {
   const [blocks, setBlocks] = useState<FlowBlock[]>([
     { id: generateId(), type: "trigger", data: { keywords: "", matchType: "any" } },
     { id: generateId(), type: "reply_comment", data: { message: "" } },
-    { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes" } },
+    { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes", buttons: [] as { title: string; url: string }[] } },
   ]);
 
   // Load existing automation if editing
@@ -40,10 +40,22 @@ export default function AutomacaoComentarios() {
       if (existing) {
         setFlowName(existing.name);
         setIsActive(existing.active);
+
+        // Parse dm_message — may be JSON with buttons
+        let dmText = existing.dm_message || "";
+        let dmButtons: { title: string; url: string }[] = [];
+        try {
+          const parsed = JSON.parse(dmText);
+          if (parsed.text !== undefined) {
+            dmText = parsed.text || "";
+            dmButtons = parsed.buttons || [];
+          }
+        } catch { /* plain text */ }
+
         setBlocks([
           { id: generateId(), type: "trigger", data: { keywords: existing.keyword, matchType: "any" } },
           { id: generateId(), type: "reply_comment", data: { message: existing.reply_comment || "" } },
-          { id: generateId(), type: "send_direct", data: { message: existing.dm_message || "", delayValue: 0, delayUnit: "minutes" } },
+          { id: generateId(), type: "send_direct", data: { message: dmText, delayValue: 0, delayUnit: "minutes", buttons: dmButtons } },
         ]);
       }
     }
@@ -77,11 +89,18 @@ export default function AutomacaoComentarios() {
     const replyBlock = blocks.find(b => b.type === "reply_comment");
     const dmBlock = blocks.find(b => b.type === "send_direct");
 
+    // Encode buttons into dm_message as JSON if buttons exist
+    const dmButtons = dmBlock?.data.buttons || [];
+    const dmText = dmBlock?.data.message || "";
+    const dmMessage = dmButtons.length > 0
+      ? JSON.stringify({ text: dmText, buttons: dmButtons })
+      : dmText;
+
     const payload = {
       name: flowName,
       keyword: triggerBlock?.data.keywords || "",
       reply_comment: replyBlock?.data.message || "",
-      dm_message: dmBlock?.data.message || "",
+      dm_message: dmMessage,
       active: isActive,
     };
 
@@ -236,6 +255,63 @@ export default function AutomacaoComentarios() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Buttons section */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
+                      <Link className="w-3 h-3" /> Botões (máx. 3)
+                    </label>
+                    {(block.data.buttons || []).map((btn: { title: string; url: string }, btnIdx: number) => (
+                      <div key={btnIdx} className="flex gap-2 items-center">
+                        <Input
+                          value={btn.title}
+                          onChange={e => {
+                            const newButtons = [...(block.data.buttons || [])];
+                            newButtons[btnIdx] = { ...newButtons[btnIdx], title: e.target.value };
+                            updateBlock(block.id, { buttons: newButtons });
+                          }}
+                          placeholder="Texto do botão"
+                          className="flex-1"
+                        />
+                        <Input
+                          value={btn.url}
+                          onChange={e => {
+                            const newButtons = [...(block.data.buttons || [])];
+                            newButtons[btnIdx] = { ...newButtons[btnIdx], url: e.target.value };
+                            updateBlock(block.id, { buttons: newButtons });
+                          }}
+                          placeholder="https://..."
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => {
+                            const newButtons = (block.data.buttons || []).filter((_: any, i: number) => i !== btnIdx);
+                            updateBlock(block.id, { buttons: newButtons });
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(block.data.buttons || []).length < 3 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs gap-1 border-dashed"
+                        onClick={() => {
+                          const newButtons = [...(block.data.buttons || []), { title: "", url: "" }];
+                          updateBlock(block.id, { buttons: newButtons });
+                        }}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Adicionar Botão
+                      </Button>
+                    )}
+                  </div>
+
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1">
