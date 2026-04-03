@@ -65,16 +65,25 @@ export function useGatewayKyc() {
     return urlData.publicUrl;
   };
 
-  const submitKyc = async (selfieFile: File, docFrontFile: File, docBackFile: File, whatsapp?: string, businessData?: { [key: string]: string }) => {
+  const submitKyc = async (selfieFile: File, docFrontFile: File, docBackFile: File, whatsapp?: string, businessData?: { [key: string]: string }, cnpjDocFile?: File) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const [selfieUrl, docFrontUrl, docBackUrl] = await Promise.all([
+      const uploads: Promise<string>[] = [
         uploadDocument(selfieFile, "selfie"),
         uploadDocument(docFrontFile, "doc_front"),
         uploadDocument(docBackFile, "doc_back"),
-      ]);
+      ];
+      if (cnpjDocFile) {
+        uploads.push(uploadDocument(cnpjDocFile, "doc_back")); // reuse type for path
+      }
+
+      const results = await Promise.all(uploads);
+      const [selfieUrl, docFrontUrl, docBackUrl] = results;
+      const cnpjDocUrl = results[3] || null;
+
+      const finalBusinessData = { ...(businessData || {}), ...(cnpjDocUrl ? { cnpj_doc_url: cnpjDocUrl } : {}) };
 
       const kycPayload = {
         user_id: user.id,
@@ -84,7 +93,7 @@ export function useGatewayKyc() {
         status: "submitted" as const,
         submitted_at: new Date().toISOString(),
         ...(whatsapp ? { whatsapp } : {}),
-        ...(businessData ? { business_data: businessData } : {}),
+        business_data: finalBusinessData,
       };
 
       if (kyc) {
