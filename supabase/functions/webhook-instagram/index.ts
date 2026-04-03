@@ -37,11 +37,68 @@ serve(async (req) => {
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      console.log("📩 Instagram webhook event received:", JSON.stringify(body).slice(0, 500));
 
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      // Manual token save action
+      if (body.action === "save_ig_token" && body.token && body.user_id) {
+        console.log("💾 Saving Instagram token manually for user:", body.user_id);
+        const igAppId = "829722106116857";
+
+        let username = "Instagram conectado";
+        let igUserId = "";
+        try {
+          const profileRes = await fetch(
+            `https://graph.instagram.com/v21.0/me?fields=user_id,username,name&access_token=${encodeURIComponent(body.token)}`
+          );
+          const profileData = await profileRes.json();
+          console.log("Profile data:", JSON.stringify(profileData).slice(0, 300));
+          if (profileRes.ok && !profileData.error) {
+            username = profileData.username || profileData.name || username;
+            igUserId = String(profileData.user_id || profileData.id || "");
+          }
+        } catch (e) {
+          console.warn("Failed to fetch profile:", e);
+        }
+
+        const { data: existing } = await supabase
+          .from("meta_credentials")
+          .select("id")
+          .eq("user_id", body.user_id)
+          .eq("app_id", igAppId)
+          .maybeSingle();
+
+        const credData = {
+          user_id: body.user_id,
+          access_token: body.token,
+          app_id: igAppId,
+          fb_user_id: igUserId,
+          fb_user_name: username,
+          connected: true,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: dbError } = existing
+          ? await supabase.from("meta_credentials").update(credData).eq("id", existing.id)
+          : await supabase.from("meta_credentials").insert(credData);
+
+        if (dbError) {
+          console.error("DB error:", dbError);
+          return new Response(JSON.stringify({ error: "Erro ao salvar token" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true, username }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("📩 Instagram webhook event received:", JSON.stringify(body).slice(0, 500));
 
       // Instagram sends events in this format:
       // { object: "instagram", entry: [{ id, time, messaging/changes }] }
