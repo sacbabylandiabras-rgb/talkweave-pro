@@ -765,9 +765,7 @@
       else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
       else sideH += sidebarSummaryHTML({});
 
-      if (tid === 'minimalista' || tid === 'alto-impacto') sideH += purchaseCountHTML();
-      if (tid === 'streamline') sideH += sidebarStreamline();
-      if (tid === 'confianca') sideH += sidebarConfianca();
+      // Elements are now added by the user via the builder, not hardcoded
 
       co.innerHTML = '<div class="col-main">'+mainH+'</div><div class="col-side">'+sideH+footerHTML()+'</div>';
       co.className = 'layout-2col';
