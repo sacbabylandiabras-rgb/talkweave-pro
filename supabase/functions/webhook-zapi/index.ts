@@ -276,9 +276,29 @@ const resolveCreateGroupPhones = async (baseUrl: string, headers: Record<string,
 
 const TEMP_PARTICIPANT_PHONE = '5518981939571'
 
+const WHATSAPP_VERIFY_TOKEN = "zaplynx_whatsapp_verify_2024";
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Meta webhook verification (GET request)
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    const mode = url.searchParams.get("hub.mode");
+    const token = url.searchParams.get("hub.verify_token");
+    const challenge = url.searchParams.get("hub.challenge");
+
+    console.log("📋 WhatsApp webhook verification:", { mode, token, challenge });
+
+    if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
+      console.log("✅ WhatsApp webhook verified");
+      return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
+    }
+
+    console.error("❌ WhatsApp webhook verification failed");
+    return new Response("Forbidden", { status: 403 });
   }
 
   let processingLockId: string | null = null
