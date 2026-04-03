@@ -35,6 +35,7 @@ export default function ConfiguracaoInstagram() {
         .from("meta_credentials")
         .select("*")
         .eq("user_id", user.id)
+        .eq("app_id", INSTAGRAM_APP_ID)
         .maybeSingle();
 
       if (data?.connected && data?.access_token) {
