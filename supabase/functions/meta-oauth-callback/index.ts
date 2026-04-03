@@ -213,19 +213,84 @@ serve(async (req) => {
     let businessAccountId = null;
     let wabaId = null;
 
+    // Try multiple approaches to find WABA
     if (bizData.data && bizData.data.length > 0) {
       businessAccountId = bizData.data[0].id;
-      const wabaListRes = await fetch(`https://graph.facebook.com/v21.0/${businessAccountId}/owned_whatsapp_business_accounts?access_token=${finalToken}`);
-      const wabaListData = await wabaListRes.json();
-      if (wabaListData.data && wabaListData.data.length > 0) {
-        wabaId = wabaListData.data[0].id;
-        const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${finalToken}`);
+      
+      // 1. Try owned_whatsapp_business_accounts
+      const ownedRes = await fetch(`https://graph.facebook.com/v21.0/${businessAccountId}/owned_whatsapp_business_accounts?access_token=${finalToken}`);
+      const ownedData = await ownedRes.json();
+      console.log("Owned WABAs:", JSON.stringify(ownedData).substring(0, 500));
+      
+      if (ownedData.data && ownedData.data.length > 0) {
+        wabaId = ownedData.data[0].id;
+      }
+      
+      // 2. If not found, try client_whatsapp_business_accounts
+      if (!wabaId) {
+        const clientRes = await fetch(`https://graph.facebook.com/v21.0/${businessAccountId}/client_whatsapp_business_accounts?access_token=${finalToken}`);
+        const clientData = await clientRes.json();
+        console.log("Client WABAs:", JSON.stringify(clientData).substring(0, 500));
+        if (clientData.data && clientData.data.length > 0) {
+          wabaId = clientData.data[0].id;
+        }
+      }
+
+      // 3. Try all businesses
+      if (!wabaId && bizData.data.length > 1) {
+        for (const biz of bizData.data.slice(1)) {
+          const r = await fetch(`https://graph.facebook.com/v21.0/${biz.id}/owned_whatsapp_business_accounts?access_token=${finalToken}`);
+          const d = await r.json();
+          if (d.data && d.data.length > 0) {
+            businessAccountId = biz.id;
+            wabaId = d.data[0].id;
+            break;
+          }
+        }
+      }
+
+      // Get phone numbers if we found a WABA
+      if (wabaId) {
+        const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name&access_token=${finalToken}`);
         const phoneData = await phoneRes.json();
+        console.log("Phone numbers:", JSON.stringify(phoneData).substring(0, 500));
         if (phoneData.data && phoneData.data.length > 0) {
           phoneNumberId = phoneData.data[0].id;
         }
       }
     }
+
+    // 4. Last resort: try direct WABA discovery via debug_token
+    if (!wabaId) {
+      try {
+        const debugRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${finalToken}&access_token=${finalToken}`);
+        const debugData = await debugRes.json();
+        console.log("Debug token granular_scopes:", JSON.stringify(debugData?.data?.granular_scopes || []).substring(0, 500));
+        
+        const scopes = debugData?.data?.granular_scopes || [];
+        for (const scope of scopes) {
+          if (scope.scope === "whatsapp_business_management" && scope.target_ids?.length > 0) {
+            wabaId = scope.target_ids[0];
+            console.log("Found WABA from debug_token:", wabaId);
+            
+            const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name&access_token=${finalToken}`);
+            const phoneData = await phoneRes.json();
+            if (phoneData.data && phoneData.data.length > 0) {
+              phoneNumberId = phoneData.data[0].id;
+            }
+            break;
+          }
+          if (scope.scope === "whatsapp_business_messaging" && scope.target_ids?.length > 0 && !phoneNumberId) {
+            phoneNumberId = scope.target_ids[0];
+            console.log("Found phone_number_id from debug_token:", phoneNumberId);
+          }
+        }
+      } catch (e) {
+        console.warn("debug_token lookup failed:", e);
+      }
+    }
+    
+    console.log("Final credentials - WABA:", wabaId, "Phone:", phoneNumberId, "Business:", businessAccountId);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: existing } = await supabase
