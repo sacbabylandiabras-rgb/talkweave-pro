@@ -169,7 +169,12 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
     </div>
   );
 
-  const CpfForm = <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} />;
+  const CpfForm = (
+    <div>
+      <input className="w-full border outline-none placeholder:text-gray-400" style={{ ...compactInputStyle, ...(cpfError ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={e => { setFormCpf(formatCpfCnpj(e.target.value)); setCpfError(""); }} maxLength={18} />
+      {cpfError && <span className="text-[11px] mt-0.5 block" style={{ color: '#EF4444' }}>{cpfError}</span>}
+    </div>
+  );
 
   // Step indicators for desktop
   const StepIndicators = () => (
