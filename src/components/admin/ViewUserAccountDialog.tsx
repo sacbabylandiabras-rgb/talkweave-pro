@@ -72,6 +72,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         redirectLinks: redirectLinks || [],
         metaCreds,
         kycData,
+        products: products || [],
       });
     } catch (err) {
       console.error("Error fetching user data:", err);
