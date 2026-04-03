@@ -85,7 +85,7 @@ export default function ThankYou() {
                 <CheckCircle2 className="w-12 h-12 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-white">
-                Pagamento Confirmado!
+                {customTitle || "Pagamento Confirmado!"}
               </h1>
               <p className="text-white/80 mt-1 text-sm">
                 Obrigado pela sua compra, {customerName}
