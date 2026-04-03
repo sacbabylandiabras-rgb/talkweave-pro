@@ -261,39 +261,55 @@ export default function AutomacaoComentarios() {
                     <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
                       <Link className="w-3 h-3" /> Botões (máx. 3)
                     </label>
-                    {(block.data.buttons || []).map((btn: { title: string; url: string }, btnIdx: number) => (
-                      <div key={btnIdx} className="flex gap-2 items-center">
-                        <Input
-                          value={btn.title}
-                          onChange={e => {
-                            const newButtons = [...(block.data.buttons || [])];
-                            newButtons[btnIdx] = { ...newButtons[btnIdx], title: e.target.value };
-                            updateBlock(block.id, { buttons: newButtons });
-                          }}
-                          placeholder="Texto do botão"
-                          className="flex-1"
-                        />
-                        <Input
-                          value={btn.url}
-                          onChange={e => {
-                            const newButtons = [...(block.data.buttons || [])];
-                            newButtons[btnIdx] = { ...newButtons[btnIdx], url: e.target.value };
-                            updateBlock(block.id, { buttons: newButtons });
-                          }}
-                          placeholder="https://..."
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => {
-                            const newButtons = (block.data.buttons || []).filter((_: any, i: number) => i !== btnIdx);
-                            updateBlock(block.id, { buttons: newButtons });
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </Button>
+                    {(block.data.buttons || []).map((btn: { title: string; url: string; type?: string }, btnIdx: number) => (
+                      <div key={btnIdx} className="space-y-1.5">
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={btn.type || "url"}
+                            onChange={e => {
+                              const newButtons = [...(block.data.buttons || [])];
+                              newButtons[btnIdx] = { ...newButtons[btnIdx], type: e.target.value, url: e.target.value === "reply" ? "" : newButtons[btnIdx].url };
+                              updateBlock(block.id, { buttons: newButtons });
+                            }}
+                            className="h-9 rounded-md border border-input bg-background px-2 text-xs min-w-[90px]"
+                          >
+                            <option value="url">🔗 URL</option>
+                            <option value="reply">💬 Reply</option>
+                          </select>
+                          <Input
+                            value={btn.title}
+                            onChange={e => {
+                              const newButtons = [...(block.data.buttons || [])];
+                              newButtons[btnIdx] = { ...newButtons[btnIdx], title: e.target.value };
+                              updateBlock(block.id, { buttons: newButtons });
+                            }}
+                            placeholder="Texto do botão"
+                            className="flex-1"
+                          />
+                          {(btn.type || "url") === "url" && (
+                            <Input
+                              value={btn.url}
+                              onChange={e => {
+                                const newButtons = [...(block.data.buttons || [])];
+                                newButtons[btnIdx] = { ...newButtons[btnIdx], url: e.target.value };
+                                updateBlock(block.id, { buttons: newButtons });
+                              }}
+                              placeholder="https://..."
+                              className="flex-1"
+                            />
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => {
+                              const newButtons = (block.data.buttons || []).filter((_: any, i: number) => i !== btnIdx);
+                              updateBlock(block.id, { buttons: newButtons });
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                     {(block.data.buttons || []).length < 3 && (
@@ -302,7 +318,7 @@ export default function AutomacaoComentarios() {
                         size="sm"
                         className="text-xs gap-1 border-dashed"
                         onClick={() => {
-                          const newButtons = [...(block.data.buttons || []), { title: "", url: "" }];
+                          const newButtons = [...(block.data.buttons || []), { title: "", url: "", type: "url" }];
                           updateBlock(block.id, { buttons: newButtons });
                         }}
                       >
