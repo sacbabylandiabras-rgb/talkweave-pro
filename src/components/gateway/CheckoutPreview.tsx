@@ -4,7 +4,7 @@ import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-te
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "./checkout-elements/types";
 import CheckoutDropZone from "./checkout-elements/CheckoutDropZone";
 import { formatCurrency } from "@/pages/gateway/mock-data";
-import { validateCpfCnpj } from "@/components/gateway/checkout-templates/cpf-cnpj-validator";
+import { validateCpfCnpj, formatCpfCnpj } from "@/components/gateway/checkout-templates/cpf-cnpj-validator";
 import MinimalistaLayout from "@/components/gateway/checkout-templates/MinimalistaLayout";
 import AltoImpactoLayout from "@/components/gateway/checkout-templates/AltoImpactoLayout";
 import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
