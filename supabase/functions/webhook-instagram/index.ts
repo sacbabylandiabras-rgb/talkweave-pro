@@ -200,9 +200,16 @@ serve(async (req) => {
                       txt.replace(/\{\{nome_usuario\}\}/g, fromUsername)
                          .replace(/\{\{comentario\}\}/g, commentText);
 
-                    const getOutgoing = (nodeId: string) =>
+                    // Get outgoing edges, optionally filtering by source handle
+                    const getOutgoing = (nodeId: string, handleFilter?: string) =>
                       flowEdges
-                        .filter((e: any) => e.source === nodeId)
+                        .filter((e: any) => {
+                          if (e.source !== nodeId) return false;
+                          if (handleFilter !== undefined) {
+                            return e.sourceHandle === handleFilter;
+                          }
+                          return true;
+                        })
                         .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
                         .filter(Boolean);
 
