@@ -40,10 +40,22 @@ export default function AutomacaoComentarios() {
       if (existing) {
         setFlowName(existing.name);
         setIsActive(existing.active);
+
+        // Parse dm_message — may be JSON with buttons
+        let dmText = existing.dm_message || "";
+        let dmButtons: { title: string; url: string }[] = [];
+        try {
+          const parsed = JSON.parse(dmText);
+          if (parsed.text !== undefined) {
+            dmText = parsed.text || "";
+            dmButtons = parsed.buttons || [];
+          }
+        } catch { /* plain text */ }
+
         setBlocks([
           { id: generateId(), type: "trigger", data: { keywords: existing.keyword, matchType: "any" } },
           { id: generateId(), type: "reply_comment", data: { message: existing.reply_comment || "" } },
-          { id: generateId(), type: "send_direct", data: { message: existing.dm_message || "", delayValue: 0, delayUnit: "minutes" } },
+          { id: generateId(), type: "send_direct", data: { message: dmText, delayValue: 0, delayUnit: "minutes", buttons: dmButtons } },
         ]);
       }
     }
