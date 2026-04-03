@@ -267,6 +267,7 @@ const AdminZapLynx = () => {
                     <TableCell><Badge variant={user.is_active ? "default" : "destructive"}>{user.is_active ? "Ativo" : "Inativo"}</Badge></TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => { setViewingUser(user); setViewDialogOpen(true); }} title="Ver conta completa"><Eye className="w-4 h-4" /></Button>
                         <Button size="sm" variant="outline" onClick={() => handleEditUser(user)} title="Editar"><Pencil className="w-4 h-4" /></Button>
                         <Button size="sm" variant={user.roles.includes("admin") ? "destructive" : "default"} onClick={() => toggleAdminRole(user.id, user.roles)} disabled={user.id === currentUserId} title={user.roles.includes("admin") ? "Remover Admin" : "Tornar Admin"}>
                           {user.roles.includes("admin") ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
