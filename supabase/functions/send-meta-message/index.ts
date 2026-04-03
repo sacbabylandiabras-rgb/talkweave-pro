@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { listAccessiblePhoneNumbers, type MetaCredentialsForDiscovery } from "./meta-phone-discovery.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +42,7 @@ serve(async (req) => {
 
     const { data: creds, error: credsError } = await serviceClient
       .from("meta_credentials")
-      .select("access_token, phone_number_id, waba_id")
+      .select("access_token, phone_number_id, waba_id, business_account_id")
       .eq("user_id", userId)
       .eq("connected", true)
       .maybeSingle();
@@ -50,8 +51,8 @@ serve(async (req) => {
       return jsonResponse({ error: "Conta Meta não conectada. Conecte via Facebook primeiro." }, 400);
     }
 
-    if (!creds.access_token || !creds.phone_number_id) {
-      return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+    if (!creds.access_token) {
+      return jsonResponse({ error: "Credenciais incompletas. Access Token não detectado. Reconecte sua conta." }, 400);
     }
 
     const body = await req.json();
@@ -59,19 +60,34 @@ serve(async (req) => {
 
     switch (action) {
       case "send_template":
-        return await sendTemplateMessage(creds, body);
+        if (!creds.phone_number_id) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
       case "send_text":
-        return await sendTextMessage(creds, body);
+        if (!creds.phone_number_id) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await sendTextMessage({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
       case "list_templates":
         return await listTemplates(creds);
       case "create_template":
         return await createTemplate(creds, body);
       case "get_profile":
-        return await getBusinessProfile(creds);
+        if (!creds.phone_number_id) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await getBusinessProfile({ access_token: creds.access_token, phone_number_id: creds.phone_number_id });
       case "update_profile_name":
-        return await updateProfileName(creds, body);
+        if (!creds.phone_number_id) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await updateProfileName({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
       case "update_profile_photo":
-        return await updateProfilePhoto(creds, body);
+        if (!creds.phone_number_id) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await updateProfilePhoto({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
       case "get_phone_numbers":
         return await getPhoneNumbers(creds);
       default:
@@ -173,7 +189,7 @@ async function sendTextMessage(
 }
 
 // ── List Templates ──
-async function listTemplates(creds: { access_token: string; phone_number_id: string; waba_id?: string }) {
+async function listTemplates(creds: { access_token: string; waba_id?: string | null }) {
   if (!creds.waba_id) {
     return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
   }
@@ -188,7 +204,7 @@ async function listTemplates(creds: { access_token: string; phone_number_id: str
 
 // ── Create Template ──
 async function createTemplate(
-  creds: { access_token: string; phone_number_id: string; waba_id?: string },
+  creds: { access_token: string; waba_id?: string | null },
   body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string; buttons?: { type: string; text: string; url?: string; phone_number?: string }[] }
 ) {
   if (!creds.waba_id) {
@@ -305,15 +321,10 @@ async function updateProfilePhoto(
 }
 
 // ── Get Phone Numbers ──
-async function getPhoneNumbers(creds: { access_token: string; phone_number_id: string; waba_id?: string }) {
-  if (!creds.waba_id) {
-    return jsonResponse({ error: "WABA ID não configurado" }, 400);
-  }
-
-  const result = await metaFetch(
-    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/phone_numbers?fields=display_phone_number,verified_name,quality_rating,name_status,code_verification_status`,
-    creds.access_token
-  );
-  if (result instanceof Response) return result;
-  return jsonResponse({ phone_numbers: result.data.data || [] });
+async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
+  const phoneNumbers = await listAccessiblePhoneNumbers(creds, API_VERSION);
+  return jsonResponse({
+    current_phone_number_id: creds.phone_number_id || null,
+    phone_numbers: phoneNumbers,
+  });
 }
