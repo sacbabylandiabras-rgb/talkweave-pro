@@ -179,153 +179,190 @@ serve(async (req) => {
 
                   console.log(`✅ Matched automation "${auto.name}" for comment "${commentText}"`);
 
-                  // 1) Reply to comment publicly
-                  if (auto.reply_comment && commentId && accessToken) {
-                    try {
-                      const replyText = auto.reply_comment
-                        .replace(/\{\{nome_usuario\}\}/g, fromUsername)
-                        .replace(/\{\{comentario\}\}/g, commentText);
+                  // === FLOW ENGINE: traverse nodes/edges or use legacy fields ===
+                  let flowNodes: any[] = [];
+                  let flowEdges: any[] = [];
+                  let isFlowMode = false;
 
-                      const replyRes = await fetch(
-                        `https://graph.instagram.com/v21.0/${commentId}/replies`,
-                        {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            message: replyText,
-                            access_token: accessToken,
-                          }),
-                        }
-                      );
-                      const replyData = await replyRes.json();
-
-                      if (replyRes.ok && !replyData.error) {
-                        console.log(`✅ Reply sent to comment ${commentId}`);
-                      } else {
-                        console.error("❌ Reply error:", JSON.stringify(replyData));
-                      }
-                    } catch (e) {
-                      console.error("❌ Reply failed:", e);
+                  try {
+                    const parsed = JSON.parse(auto.dm_message || "");
+                    if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                      flowNodes = parsed.nodes;
+                      flowEdges = parsed.edges || [];
+                      isFlowMode = true;
                     }
-                  }
+                  } catch { /* not flow JSON */ }
 
-                  // 2) Send Private Reply DM (uses comment_id — no 24h window needed)
-                  if (auto.dm_message && commentId && accessToken && fromId) {
-                    try {
-                      // Parse dm_message — may be JSON with buttons
-                      let dmText = auto.dm_message;
-                      let dmButtons: { title: string; url: string; type?: string }[] = [];
-                      try {
-                        const parsed = JSON.parse(auto.dm_message);
-                        if (parsed.text !== undefined) {
-                          dmText = parsed.text || "";
-                          dmButtons = (parsed.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-                        }
-                      } catch { /* plain text */ }
+                  if (isFlowMode) {
+                    // Traverse the flow graph starting from trigger nodes
+                    const visited = new Set<string>();
+                    const replaceVars = (txt: string) =>
+                      txt.replace(/\{\{nome_usuario\}\}/g, fromUsername)
+                         .replace(/\{\{comentario\}\}/g, commentText);
 
-                      dmText = dmText
-                        .replace(/\{\{nome_usuario\}\}/g, fromUsername)
-                        .replace(/\{\{comentario\}\}/g, commentText);
+                    const getOutgoing = (nodeId: string) =>
+                      flowEdges
+                        .filter((e: any) => e.source === nodeId)
+                        .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
+                        .filter(Boolean);
 
-                      // Use recipient.id (IGSID) to send Button/Generic Template with real buttons
-                      // Private Reply (comment_id) only supports text — recipient.id supports templates
-                      let messagePayload: any;
-                      const hasButtons = dmButtons.length > 0;
+                    const executeNode = async (node: any) => {
+                      if (visited.has(node.id)) return;
+                      visited.add(node.id);
 
-                      if (hasButtons) {
-                        // Build Button Template payload
-                        const apiButtons = dmButtons.slice(0, 3).map((b: any) => {
-                          if (b.type === "reply") {
-                            return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                          }
-                          return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
-                        });
+                      const d = node.data || {};
 
-                        messagePayload = {
-                          attachment: {
-                            type: "template",
-                            payload: {
-                              template_type: "button",
-                              text: dmText || "Selecione uma opção:",
-                              buttons: apiButtons,
-                            },
-                          },
-                        };
-                      } else {
-                        messagePayload = { text: dmText };
-                      }
-
-                      // Send using IGSID (from.id) — supports templates & buttons
-                      const dmRes = await fetch(
-                        `https://graph.instagram.com/v21.0/${igPageId}/messages`,
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${accessToken}`,
-                          },
-                          body: JSON.stringify({
-                            recipient: { id: fromId },
-                            message: messagePayload,
-                          }),
-                        }
-                      );
-                      const dmData = await dmRes.json();
-
-                      if (dmRes.ok && !dmData.error) {
-                        console.log(`✅ DM sent to @${fromUsername} (IGSID: ${fromId})${hasButtons ? ` with ${dmButtons.length} button(s)` : ""}`);
-
-                        await supabase.from("instagram_events").insert({
-                          user_id: userId,
-                          event_type: "dm_sent",
-                          ig_user_id: fromId,
-                          username: fromUsername,
-                          media_id: mediaId,
-                          comment_text: dmText,
-                          payload: dmData,
-                          processed: true,
-                        });
-                      } else {
-                        console.error("❌ DM error:", JSON.stringify(dmData));
-
-                        // Fallback: try Private Reply (text only) if IGSID method fails
-                        if (hasButtons) {
-                          console.log("🔄 Fallback: sending as Private Reply (text only)...");
-                          const btnLines = dmButtons.slice(0, 3).map((b: any) => {
-                            if (b.type === "reply") return `▶ ${b.title}`;
-                            return `🔗 ${b.title}: ${b.url}`;
-                          });
-                          const fallbackText = dmText + "\n\n" + btnLines.join("\n");
-
-                          const fbRes = await fetch(
-                            `https://graph.instagram.com/v21.0/${igPageId}/messages`,
+                      if (node.type === "igResposta" && d.message && commentId && accessToken) {
+                        try {
+                          const replyText = replaceVars(d.message);
+                          const res = await fetch(
+                            `https://graph.instagram.com/v21.0/${commentId}/replies`,
                             {
                               method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${accessToken}`,
-                              },
-                              body: JSON.stringify({
-                                recipient: { comment_id: commentId },
-                                message: { text: fallbackText },
-                              }),
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ message: replyText, access_token: accessToken }),
                             }
                           );
-                          const fbData = await fbRes.json();
-                          if (fbRes.ok && !fbData.error) {
-                            console.log(`✅ Fallback Private Reply sent to @${fromUsername}`);
+                          const rd = await res.json();
+                          if (res.ok && !rd.error) console.log(`✅ Reply sent to comment ${commentId}`);
+                          else console.error("❌ Reply error:", JSON.stringify(rd));
+                        } catch (e) { console.error("❌ Reply failed:", e); }
+                      }
+
+                      if (node.type === "igDM" && fromId && accessToken) {
+                        try {
+                          const dmText = replaceVars(d.message || "");
+                          const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+                          let messagePayload: any;
+
+                          if (dmButtons.length > 0) {
+                            const apiButtons = dmButtons.slice(0, 3).map((b: any) => {
+                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                            });
+                            messagePayload = {
+                              attachment: {
+                                type: "template",
+                                payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons },
+                              },
+                            };
                           } else {
-                            console.error("❌ Fallback also failed:", JSON.stringify(fbData));
+                            if (!dmText) { /* skip empty DM */ }
+                            messagePayload = { text: dmText };
                           }
+
+                          if (messagePayload) {
+                            const dmRes = await fetch(
+                              `https://graph.instagram.com/v21.0/${igPageId}/messages`,
+                              {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                body: JSON.stringify({ recipient: { id: fromId }, message: messagePayload }),
+                              }
+                            );
+                            const dmData = await dmRes.json();
+
+                            if (dmRes.ok && !dmData.error) {
+                              console.log(`✅ DM sent to @${fromUsername}${dmButtons.length > 0 ? ` (${dmButtons.length} btn)` : ""}`);
+                              await supabase.from("instagram_events").insert({
+                                user_id: userId, event_type: "dm_sent", ig_user_id: fromId,
+                                username: fromUsername, media_id: mediaId, comment_text: dmText,
+                                payload: dmData, processed: true,
+                              });
+                            } else {
+                              console.error("❌ DM error:", JSON.stringify(dmData));
+                              // Fallback: Private Reply text
+                              const btnLines = dmButtons.map((b: any) => b.type === "reply" ? `▶ ${b.title}` : `🔗 ${b.title}: ${b.url}`);
+                              const fallbackText = (dmText + (btnLines.length > 0 ? "\n\n" + btnLines.join("\n") : "")).trim();
+                              if (fallbackText && commentId) {
+                                const fbRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                  body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: fallbackText } }),
+                                });
+                                const fbData = await fbRes.json();
+                                if (fbRes.ok && !fbData.error) console.log(`✅ Fallback sent to @${fromUsername}`);
+                                else console.error("❌ Fallback failed:", JSON.stringify(fbData));
+                              }
+                            }
+                          }
+                        } catch (e) { console.error("❌ DM failed:", e); }
+                      }
+
+                      if (node.type === "igDelay") {
+                        const val = parseInt(d.delayValue) || 0;
+                        const unit = d.delayUnit || "seconds";
+                        const ms = val * (unit === "hours" ? 3600000 : unit === "minutes" ? 60000 : 1000);
+                        if (ms > 0 && ms <= 30000) {
+                          console.log(`⏱ Waiting ${val} ${unit}...`);
+                          await new Promise(r => setTimeout(r, ms));
+                        } else if (ms > 30000) {
+                          console.log(`⏱ Delay ${val} ${unit} too long for sync execution, skipping`);
                         }
                       }
-                    } catch (e) {
-                      console.error("❌ DM failed:", e);
+
+                      // Traverse children
+                      const children = getOutgoing(node.id);
+                      for (const child of children) {
+                        await executeNode(child);
+                      }
+                    };
+
+                    // Start from trigger nodes
+                    const triggerNodes = flowNodes.filter((n: any) => n.type === "igGatilho");
+                    for (const trigger of triggerNodes) {
+                      const children = getOutgoing(trigger.id);
+                      for (const child of children) {
+                        await executeNode(child);
+                      }
+                    }
+                  } else {
+                    // === LEGACY MODE: use flat fields ===
+                    if (auto.reply_comment && commentId && accessToken) {
+                      try {
+                        const replyText = auto.reply_comment
+                          .replace(/\{\{nome_usuario\}\}/g, fromUsername)
+                          .replace(/\{\{comentario\}\}/g, commentText);
+                        const replyRes = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ message: replyText, access_token: accessToken }),
+                        });
+                        const replyData = await replyRes.json();
+                        if (replyRes.ok && !replyData.error) console.log(`✅ Reply sent to comment ${commentId}`);
+                        else console.error("❌ Reply error:", JSON.stringify(replyData));
+                      } catch (e) { console.error("❌ Reply failed:", e); }
+                    }
+
+                    if (auto.dm_message && fromId && accessToken) {
+                      try {
+                        let dmText = auto.dm_message;
+                        let dmButtons: any[] = [];
+                        try {
+                          const p = JSON.parse(auto.dm_message);
+                          if (p.text !== undefined) { dmText = p.text || ""; dmButtons = (p.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply")); }
+                        } catch {}
+                        dmText = dmText.replace(/\{\{nome_usuario\}\}/g, fromUsername).replace(/\{\{comentario\}\}/g, commentText);
+                        let messagePayload: any;
+                        if (dmButtons.length > 0) {
+                          const apiButtons = dmButtons.slice(0, 3).map((b: any) => b.type === "reply" ? { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" } : { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url });
+                          messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons } } };
+                        } else {
+                          messagePayload = { text: dmText };
+                        }
+                        const dmRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                          body: JSON.stringify({ recipient: { id: fromId }, message: messagePayload }),
+                        });
+                        const dmData = await dmRes.json();
+                        if (dmRes.ok && !dmData.error) console.log(`✅ DM sent to @${fromUsername}`);
+                        else console.error("❌ DM error:", JSON.stringify(dmData));
+                      } catch (e) { console.error("❌ DM failed:", e); }
                     }
                   }
 
                   // Mark event as processed
-                  // (update the last inserted event)
                   await supabase
                     .from("instagram_events")
                     .update({ processed: true })
