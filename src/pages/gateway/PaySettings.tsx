@@ -127,14 +127,21 @@ export default function PaySettings() {
     setWebhooksLoading(false);
   };
 
+  const defaultWebhookForm = {
+    name: "", webhook_url: "", method: "POST", auth_type: "none", auth_token: "", active: true,
+    description: "", webhook_type: "transaction",
+    events: { approved: false, pending: false, refused: false, refunded: false, cancelled: false, med: false },
+  };
+
   const openCreateWebhook = () => {
     setEditingWebhook(null);
-    setWebhookForm({ name: "", webhook_url: "", method: "POST", auth_type: "none", auth_token: "", active: true });
+    setWebhookForm({ ...defaultWebhookForm });
     setWebhookDialogOpen(true);
   };
 
   const openEditWebhook = (wh: any) => {
     setEditingWebhook(wh);
+    const headers = wh.headers || {};
     setWebhookForm({
       name: wh.name || "",
       webhook_url: wh.webhook_url || "",
@@ -142,6 +149,9 @@ export default function PaySettings() {
       auth_type: wh.auth_type || "none",
       auth_token: wh.auth_token || "",
       active: wh.active ?? true,
+      description: headers.description || "",
+      webhook_type: headers.webhook_type || "transaction",
+      events: headers.events || { approved: false, pending: false, refused: false, refunded: false, cancelled: false, med: false },
     });
     setWebhookDialogOpen(true);
   };
