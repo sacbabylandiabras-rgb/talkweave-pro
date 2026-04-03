@@ -30,7 +30,7 @@ export default function AutomacaoComentarios() {
   const [blocks, setBlocks] = useState<FlowBlock[]>([
     { id: generateId(), type: "trigger", data: { keywords: "", matchType: "any" } },
     { id: generateId(), type: "reply_comment", data: { message: "" } },
-    { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes" } },
+    { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes", buttons: [] as { title: string; url: string }[] } },
   ]);
 
   // Load existing automation if editing
