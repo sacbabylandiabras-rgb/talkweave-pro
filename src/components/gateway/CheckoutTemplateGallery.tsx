@@ -149,7 +149,7 @@ const CHECKOUT_TEMPLATES: CheckoutTemplate[] = [
       textColor: "#FFFFFF",
       font: "plus_jakarta",
       borderStyle: "pill",
-      showTimer: true,
+      showTimer: false,
       timerMinutes: 15,
       showGuarantee: false,
       showSecurityBadges: true,
