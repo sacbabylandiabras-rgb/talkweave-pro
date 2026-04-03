@@ -242,15 +242,37 @@ serve(async (req) => {
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                           let messagePayload: any;
 
-                          if (dmButtons.length > 0) {
-                            const apiButtons = dmButtons.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
-                            });
+                          const replyButtons = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
+                          const urlButtons = dmButtons.filter((b: any) => b.type !== "reply");
+
+                          if (replyButtons.length > 0) {
+                            // Use Quick Replies (Instagram-supported interactive buttons)
+                            const quickReplies = replyButtons.map((b: any) => ({
+                              content_type: "text",
+                              title: (b.title || "").slice(0, 20),
+                              payload: b.title || "reply",
+                            }));
+                            messagePayload = {
+                              text: dmText || "Selecione uma opção:",
+                              quick_replies: quickReplies,
+                            };
+                          } else if (urlButtons.length > 0) {
+                            // Use Generic Template for URL buttons
+                            const genButtons = urlButtons.slice(0, 3).map((b: any) => ({
+                              type: "web_url",
+                              title: (b.title || "").slice(0, 20),
+                              url: b.url,
+                            }));
                             messagePayload = {
                               attachment: {
                                 type: "template",
-                                payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons },
+                                payload: {
+                                  template_type: "generic",
+                                  elements: [{
+                                    title: dmText || "Selecione uma opção:",
+                                    buttons: genButtons,
+                                  }],
+                                },
                               },
                             };
                           } else {
@@ -367,9 +389,14 @@ serve(async (req) => {
                         } catch {}
                         dmText = dmText.replace(/\{\{nome_usuario\}\}/g, fromUsername).replace(/\{\{comentario\}\}/g, commentText);
                         let messagePayload: any;
-                        if (dmButtons.length > 0) {
-                          const apiButtons = dmButtons.slice(0, 3).map((b: any) => b.type === "reply" ? { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" } : { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url });
-                          messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons } } };
+                        const replyBtns = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
+                        const urlBtns = dmButtons.filter((b: any) => b.type !== "reply");
+                        if (replyBtns.length > 0) {
+                          const quickReplies = replyBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }));
+                          messagePayload = { text: dmText || "Selecione uma opção:", quick_replies: quickReplies };
+                        } else if (urlBtns.length > 0) {
+                          const genButtons = urlBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }));
+                          messagePayload = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione uma opção:", buttons: genButtons }] } } };
                         } else {
                           messagePayload = { text: dmText };
                         }
@@ -459,12 +486,15 @@ serve(async (req) => {
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                           let messagePayload: any;
                           if (dmButtons.length > 0) {
-                            const apiButtons = dmButtons.slice(0, 3).map((b: any) =>
-                              b.type === "reply"
-                                ? { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }
-                                : { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }
-                            );
-                            messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: apiButtons } } };
+                            const replyBtns = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
+                            const urlBtns = dmButtons.filter((b: any) => b.type !== "reply");
+                            if (replyBtns.length > 0) {
+                              const qr = replyBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }));
+                              messagePayload = { text: dmText || "Selecione:", quick_replies: qr };
+                            } else if (urlBtns.length > 0) {
+                              const gb = urlBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }));
+                              messagePayload = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione:", buttons: gb }] } } };
+                            }
                           } else if (dmText) {
                             messagePayload = { text: dmText };
                           }
@@ -512,7 +542,98 @@ serve(async (req) => {
                 }
               }
 
-              if (event.message) {
+              // Handle Quick Reply taps (Instagram sends these as message events with quick_reply)
+              if (event.message?.quick_reply && senderId && accessToken) {
+                const payload = event.message.quick_reply.payload || "";
+                const title = event.message.text || payload;
+                console.log(`🔘 Quick Reply from ${senderId}: "${title}" (payload: ${payload})`);
+
+                const { data: automations } = await supabase
+                  .from("instagram_automations")
+                  .select("*")
+                  .eq("user_id", userId)
+                  .eq("active", true);
+
+                for (const auto of (automations || [])) {
+                  try {
+                    const parsed = JSON.parse(auto.dm_message || "");
+                    if (!parsed.__flow__ || !parsed.nodes?.length) continue;
+
+                    const fNodes = parsed.nodes;
+                    const fEdges = parsed.edges || [];
+
+                    for (const node of fNodes) {
+                      if (node.type !== "igDM") continue;
+                      const buttons = (node.data?.buttons || []);
+                      const btnIndex = buttons.findIndex((b: any) =>
+                        b.title === title || b.title === payload
+                      );
+                      if (btnIndex === -1) continue;
+
+                      console.log(`✅ Quick Reply matched button "${title}" at index ${btnIndex} in node ${node.id}`);
+
+                      const handleId = `btn-${btnIndex}`;
+                      const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
+
+                      const replaceVars = (txt: string) =>
+                        txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
+                           .replace(/\{\{comentario\}\}/g, title);
+
+                      const visited = new Set<string>();
+                      const executeNode = async (n: any) => {
+                        if (visited.has(n.id)) return;
+                        visited.add(n.id);
+                        const d = n.data || {};
+
+                        if (n.type === "igDM" && accessToken) {
+                          const dmText = replaceVars(d.message || "");
+                          const dmBtns = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+                          let mp: any;
+                          const rBtns = dmBtns.filter((b: any) => b.type === "reply").slice(0, 13);
+                          const uBtns = dmBtns.filter((b: any) => b.type !== "reply");
+                          if (rBtns.length > 0) {
+                            mp = { text: dmText || "Selecione:", quick_replies: rBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" })) };
+                          } else if (uBtns.length > 0) {
+                            mp = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione:", buttons: uBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url })) }] } } };
+                          } else if (dmText) {
+                            mp = { text: dmText };
+                          }
+                          if (mp) {
+                            const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                              body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
+                            });
+                            const rd = await res.json();
+                            if (res.ok && !rd.error) console.log(`✅ QR Branch DM sent to ${senderId}`);
+                            else console.error("❌ QR Branch DM error:", JSON.stringify(rd));
+                          }
+                        }
+
+                        if (n.type === "igDelay") {
+                          const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
+                          if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                        }
+
+                        const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
+                        if (n.type === "igDM" && btnCount > 0) {
+                          const defEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
+                          for (const e of defEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
+                        } else {
+                          const nextEdges = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-"));
+                          for (const e of nextEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
+                        }
+                      };
+
+                      for (const edge of branchEdges) {
+                        const target = fNodes.find((fn: any) => fn.id === edge.target);
+                        if (target) await executeNode(target);
+                      }
+                      break;
+                    }
+                  } catch { /* not flow JSON */ }
+                }
+              } else if (event.message && !event.message.quick_reply) {
                 console.log(`📨 DM from ${senderId}: ${event.message.text || "(media)"}`);
               }
             }
