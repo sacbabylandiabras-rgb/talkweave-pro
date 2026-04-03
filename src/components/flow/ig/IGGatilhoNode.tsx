@@ -23,8 +23,6 @@ export function IGGatilhoNode({ data }: any) {
           Qualquer comentário
         </div>
       )}
-        </div>
-      </div>
       <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-pink-500" />
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-pink-500" />
     </div>
