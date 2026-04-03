@@ -878,6 +878,15 @@
       if(c) c.style.borderColor='';
       step = 2; render();
     };
+    var cpfInput = document.getElementById('f-cpf');
+    if (cpfInput) {
+      cpfInput.setAttribute('maxlength','18');
+      cpfInput.oninput = function() {
+        cpfInput.value = formatCpfCnpj(cpfInput.value);
+        var err=document.getElementById('cpf-err'); if(err) err.textContent='';
+        cpfInput.style.borderColor='';
+      };
+    }
     var b2 = document.getElementById('btn-s2');
     if (b2) b2.onclick = function() { step = 3; render(); if (!pixData) genPix(); };
     var bb = document.getElementById('btn-back');
