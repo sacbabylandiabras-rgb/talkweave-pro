@@ -231,20 +231,29 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { error: dbError } = await supabase
+    const { data: existing } = await supabase
       .from("meta_credentials")
-      .upsert({
-        user_id: userId,
-        access_token: finalToken,
-        app_id: META_APP_ID,
-        phone_number_id: phoneNumberId,
-        business_account_id: businessAccountId,
-        waba_id: wabaId,
-        fb_user_id: wabaData.id,
-        fb_user_name: wabaData.name,
-        connected: true,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      .select("id")
+      .eq("user_id", userId)
+      .eq("app_id", META_APP_ID)
+      .maybeSingle();
+
+    const credData = {
+      user_id: userId,
+      access_token: finalToken,
+      app_id: META_APP_ID,
+      phone_number_id: phoneNumberId,
+      business_account_id: businessAccountId,
+      waba_id: wabaId,
+      fb_user_id: wabaData.id,
+      fb_user_name: wabaData.name,
+      connected: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: dbError } = existing
+      ? await supabase.from("meta_credentials").update(credData).eq("id", existing.id)
+      : await supabase.from("meta_credentials").insert(credData);
 
     if (dbError) {
       console.error("DB error:", dbError);
