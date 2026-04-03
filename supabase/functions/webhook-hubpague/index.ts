@@ -162,6 +162,93 @@ serve(async (req) => {
           }
         }
 
+        // ── Dispatch to user-configured outbound webhooks ──
+        if (tx.user_id) {
+          try {
+            const { data: webhooks } = await supabase
+              .from('gateway_integrations')
+              .select('*')
+              .eq('user_id', tx.user_id)
+              .eq('active', true)
+
+            if (webhooks && webhooks.length > 0) {
+              // Map hubpague raw status to webhook event key
+              const hubEventMap: Record<string, string> = {
+                paid: 'approved',
+                processing: 'pending',
+                pending: 'pending',
+                failed: 'refused',
+                blocked: 'refused',
+                cancelled: 'cancelled',
+                returned: 'refunded',
+                med: 'med',
+              }
+              const eventKey = hubEventMap[hubStatus] || newStatus
+
+              for (const wh of webhooks) {
+                // Skip UTMify (handled separately) and Shopify integrations
+                if (wh.name === 'UTMify' || wh.name === 'Shopify') continue
+
+                // Check if this webhook has event filtering enabled
+                const whHeaders = wh.headers as any || {}
+                const events = whHeaders.events || {}
+                const hasEventConfig = Object.keys(events).length > 0
+
+                // If events are configured, only send if this event is enabled
+                if (hasEventConfig && !events[eventKey]) {
+                  console.log(`Webhook ${wh.name}: evento '${eventKey}' não habilitado, pulando`)
+                  continue
+                }
+
+                const outPayload = {
+                  event: `transaction.${eventKey}`,
+                  transaction: {
+                    id: tx.id,
+                    external_id: tx.external_id,
+                    status: newStatus,
+                    amount: tx.amount,
+                    fee: tx.fee,
+                    net: tx.net,
+                    payment_method: 'pix',
+                    customer: {
+                      name: payload.customer?.name || tx.customer_name || null,
+                      email: payload.customer?.email || tx.customer_email || null,
+                      phone: payload.customer?.phone || tx.customer_phone || null,
+                    },
+                    product_id: tx.product_id,
+                    checkout_id: tx.checkout_id,
+                    created_at: tx.created_at,
+                    updated_at: new Date().toISOString(),
+                  },
+                }
+
+                // Build headers
+                const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+                if (wh.auth_type === 'bearer' && wh.auth_token) {
+                  reqHeaders['Authorization'] = `Bearer ${wh.auth_token}`
+                } else if (wh.auth_type === 'basic' && wh.auth_token) {
+                  reqHeaders['Authorization'] = `Basic ${wh.auth_token}`
+                } else if (wh.auth_type === 'api_key' && wh.auth_token) {
+                  reqHeaders['x-api-key'] = wh.auth_token
+                }
+
+                try {
+                  const whRes = await fetch(wh.webhook_url, {
+                    method: wh.method || 'POST',
+                    headers: reqHeaders,
+                    body: JSON.stringify(outPayload),
+                  })
+                  console.log(`Webhook ${wh.name} (${wh.webhook_url}): ${whRes.status}`)
+                } catch (whErr) {
+                  console.error(`Webhook ${wh.name} error:`, whErr)
+                }
+              }
+            }
+          } catch (dispatchErr) {
+            console.error('Outbound webhook dispatch error:', dispatchErr)
+          }
+        }
+
         // Forward to UTMify if configured
         if (tx.user_id) {
           try {
