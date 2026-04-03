@@ -242,15 +242,37 @@ serve(async (req) => {
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                           let messagePayload: any;
 
-                          if (dmButtons.length > 0) {
-                            const apiButtons = dmButtons.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
-                            });
+                          const replyButtons = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
+                          const urlButtons = dmButtons.filter((b: any) => b.type !== "reply");
+
+                          if (replyButtons.length > 0) {
+                            // Use Quick Replies (Instagram-supported interactive buttons)
+                            const quickReplies = replyButtons.map((b: any) => ({
+                              content_type: "text",
+                              title: (b.title || "").slice(0, 20),
+                              payload: b.title || "reply",
+                            }));
+                            messagePayload = {
+                              text: dmText || "Selecione uma opção:",
+                              quick_replies: quickReplies,
+                            };
+                          } else if (urlButtons.length > 0) {
+                            // Use Generic Template for URL buttons
+                            const genButtons = urlButtons.slice(0, 3).map((b: any) => ({
+                              type: "web_url",
+                              title: (b.title || "").slice(0, 20),
+                              url: b.url,
+                            }));
                             messagePayload = {
                               attachment: {
                                 type: "template",
-                                payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons },
+                                payload: {
+                                  template_type: "generic",
+                                  elements: [{
+                                    title: dmText || "Selecione uma opção:",
+                                    buttons: genButtons,
+                                  }],
+                                },
                               },
                             };
                           } else {
