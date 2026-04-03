@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MessageSquareHeart, Save, Eye, Send } from "lucide-react";
 import { useWelcomeMessage } from "@/hooks/useWelcomeMessage";
+import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
