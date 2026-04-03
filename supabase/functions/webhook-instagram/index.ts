@@ -241,16 +241,16 @@ serve(async (req) => {
                           const dmText = replaceVars(d.message || "");
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
 
-                          // Build the interactive payload (buttons)
+                          // Build Button Template payload (postback + web_url, max 3)
                           const buildButtonPayload = (text: string, buttons: any[]) => {
-                            const replyBtns = buttons.filter((b: any) => b.type === "reply").slice(0, 13);
-                            const urlBtns = buttons.filter((b: any) => b.type !== "reply");
-                            if (replyBtns.length > 0) {
-                              return { text: text || "Selecione uma opção:", quick_replies: replyBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" })) };
-                            }
-                            if (urlBtns.length > 0) {
-                              const gb = urlBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }));
-                              return { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: text || "Selecione uma opção:", buttons: gb }] } } };
+                            const templateBtns = buttons.slice(0, 3).map((b: any) => {
+                              if (b.type === "reply") {
+                                return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                              }
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                            });
+                            if (templateBtns.length > 0) {
+                              return { attachment: { type: "template", payload: { template_type: "button", text: text || "Selecione uma opção:", buttons: templateBtns } } };
                             }
                             return text ? { text } : null;
                           };
@@ -278,38 +278,50 @@ serve(async (req) => {
                               console.error(`❌ DM error (code=${errCode}):`, JSON.stringify(dmData));
 
                               if (isWindowError && commentId) {
-                                // Step 1: Open window with Private Reply (text-only)
-                                const openText = dmButtons.length > 0
-                                  ? (dmText || "Olá! Confira as opções abaixo:")
-                                  : dmText;
+                                // Step 1: Try Private Reply WITH button template
+                                const prPayload = dmButtons.length > 0
+                                  ? buildButtonPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
+                                  : { text: dmText };
                                 const prRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                  body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: openText } }),
+                                  body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
                                 });
                                 const prData = await prRes.json();
 
                                 if (prRes.ok && !prData.error) {
                                   const igsid = prData.recipient_id;
-                                  console.log(`✅ Private Reply sent → IGSID: ${igsid}`);
+                                  console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
+                                  dmData = prData;
+                                } else {
+                                  console.warn("⚠️ Private Reply with template failed, trying text-only:", JSON.stringify(prData));
+                                  // Step 2: Fallback → text-only Private Reply, then send buttons via IGSID
+                                  const textPrRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                    body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
+                                  });
+                                  const textPrData = await textPrRes.json();
 
-                                  // Step 2: If there are buttons, send them now using the IGSID (window is open)
-                                  if (dmButtons.length > 0 && igsid) {
-                                    // Small delay to ensure window is registered
-                                    await new Promise(r => setTimeout(r, 500));
-                                    const btnPayload = buildButtonPayload("", dmButtons);
-                                    if (btnPayload) {
-                                      const { res: btnRes, data: btnData } = await sendDM(igsid, btnPayload);
-                                      if (btnRes.ok && !btnData.error) {
-                                        console.log(`✅ Buttons sent to @${fromUsername} via IGSID ${igsid}`);
-                                        dmData = btnData; // update for event log
-                                      } else {
-                                        console.error("❌ Button send error:", JSON.stringify(btnData));
+                                  if (textPrRes.ok && !textPrData.error) {
+                                    const igsid = textPrData.recipient_id;
+                                    console.log(`✅ Text Private Reply sent → IGSID: ${igsid}`);
+                                    if (dmButtons.length > 0 && igsid) {
+                                      await new Promise(r => setTimeout(r, 1000));
+                                      const btnPayload = buildButtonPayload("", dmButtons);
+                                      if (btnPayload) {
+                                        const { res: btnRes, data: btnData } = await sendDM(igsid, btnPayload);
+                                        if (btnRes.ok && !btnData.error) {
+                                          console.log(`✅ Buttons sent to @${fromUsername} via IGSID ${igsid}`);
+                                          dmData = btnData;
+                                        } else {
+                                          console.error("❌ Button send error:", JSON.stringify(btnData));
+                                        }
                                       }
                                     }
+                                  } else {
+                                    console.error("❌ Text Private Reply also failed:", JSON.stringify(textPrData));
                                   }
-                                } else {
-                                  console.error("❌ Private Reply failed:", JSON.stringify(prData));
                                 }
                               }
                             } else {
@@ -397,10 +409,11 @@ serve(async (req) => {
                         dmText = dmText.replace(/\{\{nome_usuario\}\}/g, fromUsername).replace(/\{\{comentario\}\}/g, commentText);
 
                         const buildBtnPayload = (text: string, buttons: any[]) => {
-                          const rBtns = buttons.filter((b: any) => b.type === "reply").slice(0, 13);
-                          const uBtns = buttons.filter((b: any) => b.type !== "reply");
-                          if (rBtns.length > 0) return { text: text || "Selecione:", quick_replies: rBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" })) };
-                          if (uBtns.length > 0) { const gb = uBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url })); return { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: text || "Selecione:", buttons: gb }] } } }; }
+                          const templateBtns = buttons.slice(0, 3).map((b: any) => {
+                            if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                            return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                          });
+                          if (templateBtns.length > 0) return { attachment: { type: "template", payload: { template_type: "button", text: text || "Selecione:", buttons: templateBtns } } };
                           return text ? { text } : null;
                         };
 
@@ -419,31 +432,46 @@ serve(async (req) => {
                             const isWindowErr = (dmData.error?.error_subcode === 2534022) || (dmData.error?.message || "").includes("outside of allowed window");
                             console.error("❌ DM error:", JSON.stringify(dmData));
                             if (isWindowErr && commentId) {
-                              const openText = dmButtons.length > 0 ? (dmText || "Olá! Confira as opções abaixo:") : dmText;
+                              // Try Private Reply WITH button template first
+                              const prPayload = dmButtons.length > 0
+                                ? buildBtnPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
+                                : { text: dmText };
                               const prRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: openText } }),
+                                body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
                               });
                               const prData = await prRes.json();
                               if (prRes.ok && !prData.error) {
                                 const igsid = prData.recipient_id;
-                                console.log(`✅ Private Reply sent → IGSID: ${igsid}`);
-                                if (dmButtons.length > 0 && igsid) {
-                                  await new Promise(r => setTimeout(r, 500));
-                                  const btnPayload = buildBtnPayload("", dmButtons);
-                                  if (btnPayload) {
-                                    const btnRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                      body: JSON.stringify({ recipient: { id: igsid }, message: btnPayload }),
-                                    });
-                                    const btnData = await btnRes.json();
-                                    if (btnRes.ok && !btnData.error) console.log(`✅ Buttons sent via IGSID ${igsid}`);
-                                    else console.error("❌ Button send error:", JSON.stringify(btnData));
+                                console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
+                              } else {
+                                console.warn("⚠️ Template PR failed, trying text-only:", JSON.stringify(prData));
+                                const textPrRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                  body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
+                                });
+                                const textPrData = await textPrRes.json();
+                                if (textPrRes.ok && !textPrData.error) {
+                                  const igsid = textPrData.recipient_id;
+                                  console.log(`✅ Text PR sent → IGSID: ${igsid}`);
+                                  if (dmButtons.length > 0 && igsid) {
+                                    await new Promise(r => setTimeout(r, 1000));
+                                    const btnPayload = buildBtnPayload("", dmButtons);
+                                    if (btnPayload) {
+                                      const btnRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                        body: JSON.stringify({ recipient: { id: igsid }, message: btnPayload }),
+                                      });
+                                      const btnData = await btnRes.json();
+                                      if (btnRes.ok && !btnData.error) console.log(`✅ Buttons sent via IGSID ${igsid}`);
+                                      else console.error("❌ Button send error:", JSON.stringify(btnData));
+                                    }
                                   }
-                                }
-                              } else console.error("❌ Private Reply failed:", JSON.stringify(prData));
+                                } else console.error("❌ Text PR also failed:", JSON.stringify(textPrData));
+                              }
                             }
                           }
                         }
@@ -525,15 +553,11 @@ serve(async (req) => {
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                           let messagePayload: any;
                           if (dmButtons.length > 0) {
-                            const replyBtns = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
-                            const urlBtns = dmButtons.filter((b: any) => b.type !== "reply");
-                            if (replyBtns.length > 0) {
-                              const qr = replyBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }));
-                              messagePayload = { text: dmText || "Selecione:", quick_replies: qr };
-                            } else if (urlBtns.length > 0) {
-                              const gb = urlBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }));
-                              messagePayload = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione:", buttons: gb }] } } };
-                            }
+                            const templateBtns = dmButtons.slice(0, 3).map((b: any) => {
+                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                            });
+                            messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
                           } else if (dmText) {
                             messagePayload = { text: dmText };
                           }
@@ -628,12 +652,12 @@ serve(async (req) => {
                           const dmText = replaceVars(d.message || "");
                           const dmBtns = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                           let mp: any;
-                          const rBtns = dmBtns.filter((b: any) => b.type === "reply").slice(0, 13);
-                          const uBtns = dmBtns.filter((b: any) => b.type !== "reply");
-                          if (rBtns.length > 0) {
-                            mp = { text: dmText || "Selecione:", quick_replies: rBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" })) };
-                          } else if (uBtns.length > 0) {
-                            mp = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione:", buttons: uBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url })) }] } } };
+                          if (dmBtns.length > 0) {
+                            const templateBtns = dmBtns.slice(0, 3).map((b: any) => {
+                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                            });
+                            mp = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
                           } else if (dmText) {
                             mp = { text: dmText };
                           }
