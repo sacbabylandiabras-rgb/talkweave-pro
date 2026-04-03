@@ -495,8 +495,9 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
               <ul className="text-xs text-muted-foreground space-y-1.5">
                 <li>• Selfie: Rosto visível segurando o documento ao lado</li>
                 <li>• Documento aceito: RG, CNH ou Passaporte</li>
+                <li>• Cartão CNPJ: Foto ou PDF do cartão CNPJ</li>
                 <li>• As fotos devem estar nítidas e sem cortes</li>
-                <li>• Formato: JPG ou PNG, máximo 10MB cada</li>
+                <li>• Formato: JPG, PNG ou PDF, máximo 10MB cada</li>
               </ul>
             </CardContent>
           </Card>
