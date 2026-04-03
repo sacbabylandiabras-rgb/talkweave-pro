@@ -789,7 +789,7 @@
       if (step === 1) h += step1Default();
       else if (step === 2) h += step2HTML();
       else h += step3HTML();
-      h += guaranteeHTML();
+      // guarantee removed from default - must be added via builder
       h += footerHTML();
       co.innerHTML = h;
       co.className = 'co';
