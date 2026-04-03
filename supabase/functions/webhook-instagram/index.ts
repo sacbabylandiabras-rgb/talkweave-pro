@@ -389,9 +389,14 @@ serve(async (req) => {
                         } catch {}
                         dmText = dmText.replace(/\{\{nome_usuario\}\}/g, fromUsername).replace(/\{\{comentario\}\}/g, commentText);
                         let messagePayload: any;
-                        if (dmButtons.length > 0) {
-                          const apiButtons = dmButtons.slice(0, 3).map((b: any) => b.type === "reply" ? { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" } : { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url });
-                          messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione uma opção:", buttons: apiButtons } } };
+                        const replyBtns = dmButtons.filter((b: any) => b.type === "reply").slice(0, 13);
+                        const urlBtns = dmButtons.filter((b: any) => b.type !== "reply");
+                        if (replyBtns.length > 0) {
+                          const quickReplies = replyBtns.map((b: any) => ({ content_type: "text", title: (b.title || "").slice(0, 20), payload: b.title || "reply" }));
+                          messagePayload = { text: dmText || "Selecione uma opção:", quick_replies: quickReplies };
+                        } else if (urlBtns.length > 0) {
+                          const genButtons = urlBtns.slice(0, 3).map((b: any) => ({ type: "web_url", title: (b.title || "").slice(0, 20), url: b.url }));
+                          messagePayload = { attachment: { type: "template", payload: { template_type: "generic", elements: [{ title: dmText || "Selecione uma opção:", buttons: genButtons }] } } };
                         } else {
                           messagePayload = { text: dmText };
                         }
