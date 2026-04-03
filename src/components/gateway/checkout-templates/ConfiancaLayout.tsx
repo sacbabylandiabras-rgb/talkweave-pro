@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, ChevronDown, Check } from "lucide-react";
+import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
@@ -19,17 +19,9 @@ interface Props {
   previewMode?: "desktop" | "mobile";
 }
 
-const FAQ_ITEMS = [
-  { q: "Quais formas de pagamento são aceitas?", a: "Aceitamos Pix, cartão de crédito (Visa, Mastercard, Elo, Amex) e boleto bancário." },
-  { q: "Posso parcelar minha compra?", a: "Sim! Parcele em até 12x sem juros no cartão de crédito." },
-  { q: "Recebo confirmação após o pagamento?", a: "Sim, você receberá um e-mail e mensagem no WhatsApp com a confirmação." },
-  { q: "Qual o prazo de entrega?", a: "Enviamos em até 24 horas após a confirmação do pagamento." },
-];
-
 export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
@@ -140,20 +132,6 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
                 {/* DROP ZONE: Below Form */}
                 <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
-
-                {/* FAQ */}
-                <div className="border p-5 space-y-2" style={cardStyle(s)}>
-                  <h3 className="text-sm font-bold mb-2" style={{ color: s.primary }}>Perguntas Frequentes</h3>
-                  {FAQ_ITEMS.map((item, i) => (
-                    <div key={i} style={{ borderBottom: `1px solid ${s.cardBorder}` }} className="last:border-0">
-                      <button className="w-full flex items-center justify-between py-3 text-left" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                        <span className="text-xs font-medium" style={{ color: s.cardText }}>{item.q}</span>
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} style={{ color: s.cardLabel }} />
-                      </button>
-                      {openFaq === i && <p className="text-xs pb-3 leading-relaxed" style={{ color: s.cardDesc }}>{item.a}</p>}
-                    </div>
-                  ))}
-                </div>
               </>
             )}
 

@@ -719,16 +719,6 @@
     }
     h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
     h += '</div></div>';
-    // FAQ
-    h += '<div class="c">';
-    h += '<h3 style="color:var(--primary);margin-bottom:8px">Perguntas Frequentes</h3>';
-    FAQ_ITEMS.forEach(function(item,i) {
-      h += '<div class="faq-item">';
-      h += '<button class="faq-q" data-faq="'+i+'">'+item.q+'<span style="color:var(--card-label)">'+(openFaq===i?I.chevUp:I.chevDown)+'</span></button>';
-      if (openFaq === i) h += '<div class="faq-a">'+item.a+'</div>';
-      h += '</div>';
-    });
-    h += '</div>';
     return h;
   }
 
@@ -736,37 +726,11 @@
      TEMPLATE SIDEBAR EXTRAS
      ══════════════════════════════════ */
   function sidebarStreamline() {
-    var h = '';
-    h += '<div class="testimonial"><div class="stars">'+I.star+I.star+I.star+I.star+I.star+'</div><p class="t-name">Breno Santos</p><p class="t-text">Compra rápida, fácil e sem dor de cabeça.</p></div>';
-    h += '<div class="testimonial"><div class="stars">'+I.star+I.star+I.star+I.star+I.star+'</div><p class="t-name">Luísa Romeiro</p><p class="t-text">Muito satisfeita com a compra. Voltarei com certeza!</p></div>';
-    return h;
+    return '';
   }
 
   function sidebarConfianca() {
-    var h = '';
-    // Testimonials
-    var reviews = [
-      { name: 'Mariana Lopes', text: 'Atendimento excelente e tudo chegou perfeito. Recomendo!' },
-      { name: 'Ana Paula', text: 'Produto de ótima qualidade e entrega super rápida. Amei!' },
-    ];
-    reviews.forEach(function(t) {
-      h += '<div class="testimonial-card">';
-      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-      h += '<div style="width:24px;height:24px;border-radius:50%;background:#E5E7EB;display:flex;align-items:center;justify-content:center"><span style="color:var(--card-label)">'+I.user+'</span></div>';
-      h += '<div style="display:flex;gap:2px">'+I.star+I.star+I.star+I.star+I.star+'</div>';
-      h += '</div>';
-      h += '<p style="font-size:.75rem;font-weight:700;color:var(--card-title)">'+t.name+'</p>';
-      h += '<p style="font-size:.6875rem;margin-top:2px;color:var(--card-desc);line-height:1.5">'+t.text+'</p>';
-      h += '</div>';
-    });
-    // Info badges
-    h += '<div class="c" style="display:flex;flex-direction:column;gap:12px">';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#EFF6FF"><span style="color:#3B82F6">'+I.truck+'</span></div><div><p class="ib-title" style="color:var(--primary)">Frete Grátis</p><p class="ib-desc">Para todo o Brasil em compras acima de R$ 199</p></div></div>';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#F0FDF4"><span style="color:#22C55E">'+I.shield+'</span></div><div><p class="ib-title" style="color:var(--primary)">Compra Segura</p><p class="ib-desc">Seus dados protegidos e pagamento seguro</p></div></div>';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#FEF9C3"><span style="color:#EAB308">'+I.zap+'</span></div><div><p class="ib-title" style="color:var(--primary)">Entrega Rápida</p><p class="ib-desc">Enviamos em até 24 horas após a confirmação</p></div></div>';
-    h += '</div>';
-    if (cfg.showGuarantee !== false) h += guaranteeHTML({dashed:true});
-    return h;
+    return '';
   }
 
   /* ══════════════════════════════════
@@ -801,9 +765,7 @@
       else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
       else sideH += sidebarSummaryHTML({});
 
-      if (tid === 'minimalista' || tid === 'alto-impacto') sideH += purchaseCountHTML();
-      if (tid === 'streamline') sideH += sidebarStreamline();
-      if (tid === 'confianca') sideH += sidebarConfianca();
+      // Elements are now added by the user via the builder, not hardcoded
 
       co.innerHTML = '<div class="col-main">'+mainH+'</div><div class="col-side">'+sideH+footerHTML()+'</div>';
       co.className = 'layout-2col';
@@ -827,7 +789,7 @@
       if (step === 1) h += step1Default();
       else if (step === 2) h += step2HTML();
       else h += step3HTML();
-      h += guaranteeHTML();
+      // guarantee removed from default - must be added via builder
       h += footerHTML();
       co.innerHTML = h;
       co.className = 'co';
@@ -976,7 +938,7 @@
       originalPrice: sv.originalPrice||0,
       buttonText: sv.buttonText||'Pagar Agora',
       guaranteeDays: sv.guaranteeDays||7,
-      showGuarantee: sv.showGuarantee!==false,
+      showGuarantee: sv.showGuarantee===true,
       showTimer: sv.showTimer||false,
       timerMinutes: sv.timerMinutes||15,
       showSecurityBadges: sv.showSecurityBadges!==false,
