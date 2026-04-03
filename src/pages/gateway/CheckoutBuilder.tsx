@@ -968,7 +968,75 @@ export default function CheckoutBuilder() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="dominio" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+            {/* BLOCO F3: Página de Obrigado */}
+            <AccordionItem value="obrigado" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2"><PartyPopper className="w-4 h-4 text-[#FF4D2E]" /> Página de Obrigado</div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 space-y-3">
+                <p className="text-[10px] text-muted-foreground">Configure o que acontece após o pagamento ser aprovado</p>
+                <div>
+                  <Label className="text-xs">Tipo de redirecionamento</Label>
+                  <Select value={config.thankYouType} onValueChange={v => updateConfig("thankYouType", v)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Página padrão (ZapLynx)</SelectItem>
+                      <SelectItem value="custom_url">URL externa personalizada</SelectItem>
+                      <SelectItem value="custom_message">Mensagem personalizada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {config.thankYouType === "custom_url" && (
+                  <div>
+                    <Label className="text-xs">URL de redirecionamento</Label>
+                    <Input
+                      value={config.thankYouUrl}
+                      onChange={e => updateConfig("thankYouUrl", e.target.value)}
+                      placeholder="https://seusite.com/obrigado"
+                      className="mt-1 font-mono text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      O cliente será redirecionado para esta URL após o pagamento
+                    </p>
+                  </div>
+                )}
+
+                {config.thankYouType === "custom_message" && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Título</Label>
+                      <Input
+                        value={config.thankYouTitle}
+                        onChange={e => updateConfig("thankYouTitle", e.target.value)}
+                        placeholder="Pagamento Confirmado!"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Mensagem</Label>
+                      <Textarea
+                        value={config.thankYouMessage}
+                        onChange={e => updateConfig("thankYouMessage", e.target.value)}
+                        placeholder="Obrigado pela sua compra..."
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {config.thankYouType === "default" && (
+                  <div className="bg-muted/30 border border-border rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      ℹ️ A página padrão exibe o resumo da compra com o nome do produto, valor pago e ID da transação.
+                    </p>
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#FF4D2E]" /> Domínio Personalizado</div>
               </AccordionTrigger>
