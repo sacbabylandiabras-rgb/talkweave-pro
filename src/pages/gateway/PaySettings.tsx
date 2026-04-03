@@ -81,6 +81,16 @@ export default function PaySettings() {
     auth_type: "none",
     auth_token: "",
     active: true,
+    description: "",
+    webhook_type: "transaction",
+    events: {
+      approved: false,
+      pending: false,
+      refused: false,
+      refunded: false,
+      cancelled: false,
+      med: false,
+    } as Record<string, boolean>,
   });
 
   useEffect(() => {
