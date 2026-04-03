@@ -521,6 +521,7 @@ const AdminZapLynx = () => {
       </Dialog>
 
       <EditUserDialog user={editingUser} open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={refetch} />
+      <ViewUserAccountDialog user={viewingUser} open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
 
       <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
         <AlertDialogContent>
