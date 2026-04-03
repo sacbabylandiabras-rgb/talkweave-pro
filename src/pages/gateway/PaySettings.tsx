@@ -157,8 +157,8 @@ export default function PaySettings() {
   };
 
   const handleSaveWebhook = async () => {
-    if (!webhookForm.name.trim() || !webhookForm.webhook_url.trim()) {
-      toast.error("Nome e URL são obrigatórios");
+    if (!webhookForm.webhook_url.trim()) {
+      toast.error("URL é obrigatória");
       return;
     }
     setWebhookSaving(true);
