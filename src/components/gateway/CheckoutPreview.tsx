@@ -97,6 +97,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
   const [showAllBanks, setShowAllBanks] = useState(false);
+  const [paymentApproved, setPaymentApproved] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
