@@ -76,7 +76,7 @@ export function useGatewayKyc() {
         uploadDocument(docBackFile, "doc_back"),
       ];
       if (cnpjDocFile) {
-        uploads.push(uploadDocument(cnpjDocFile, "doc_back")); // reuse type for path
+        uploads.push(uploadDocument(cnpjDocFile, "cnpj_doc"));
       }
 
       const results = await Promise.all(uploads);
