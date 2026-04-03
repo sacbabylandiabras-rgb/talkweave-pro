@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import {
   ChevronDown,
   CreditCard,
@@ -43,6 +44,12 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [cpfError, setCpfError] = useState("");
+
+  const handleNext = () => {
+    if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
+    setCpfError(""); setStep(2);
+  };
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -162,7 +169,12 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
     </div>
   );
 
-  const CpfForm = <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} />;
+  const CpfForm = (
+    <div>
+      <input className="w-full border outline-none placeholder:text-gray-400" style={{ ...compactInputStyle, ...(cpfError ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={e => { setFormCpf(formatCpfCnpj(e.target.value)); setCpfError(""); }} maxLength={18} />
+      {cpfError && <span className="text-[11px] mt-0.5 block" style={{ color: '#EF4444' }}>{cpfError}</span>}
+    </div>
+  );
 
   // Step indicators for desktop
   const StepIndicators = () => (
@@ -223,7 +235,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         </h3>
         {ContactForm}
       </div>
-      <button onClick={() => setStep(2)} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
+      <button onClick={handleNext} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
         <Lock className="h-3.5 w-3.5" /> Próximo
       </button>
     </div>
@@ -255,7 +267,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
       <MobileSection open={mobileSections.cpf} title="CPF / CNPJ *" onToggle={() => setMobileSections(prev => ({ ...prev, cpf: !prev.cpf }))}>
           {CpfForm}
         </MobileSection>
-      <button onClick={() => setStep(2)} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
+      <button onClick={handleNext} className="flex w-full items-center justify-center gap-2 px-5 py-3 text-xs font-bold" style={buttonStyle(s)}>
         <Lock className="h-3.5 w-3.5" /> Próximo
       </button>
     </>

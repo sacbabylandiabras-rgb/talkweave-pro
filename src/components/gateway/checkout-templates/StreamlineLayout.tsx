@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Lock, CreditCard, Package, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
@@ -25,6 +26,16 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [cpfError, setCpfError] = useState("");
+
+  const handleNext = () => {
+    if (!validateCpfCnpj(formCpf)) {
+      setCpfError("CPF ou CNPJ inválido");
+      return;
+    }
+    setCpfError("");
+    setStep(2);
+  };
 
   useEffect(() => {
     if (!config.showTimer) return;
@@ -110,7 +121,11 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
                 </div>
                 <div className="p-5 space-y-3">
                   <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nome completo</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Digite seu nome completo" value={formName} onChange={e => setFormName(e.target.value)} /></div>
-                  <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="000.000.000-00" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={{ ...inputStyle(s), ...(cpfError ? { borderColor: '#EF4444' } : {}) }} placeholder="000.000.000-00" value={formCpf} onChange={e => { setFormCpf(formatCpfCnpj(e.target.value)); setCpfError(""); }} maxLength={18} />
+                    {cpfError && <span className="text-[11px] mt-0.5 block" style={{ color: '#EF4444' }}>{cpfError}</span>}
+                  </div>
                   {config.showPhone && (
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Celular (WhatsApp)</label>
@@ -121,7 +136,7 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
                     </div>
                   )}
                   <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
-                  <button onClick={() => setStep(2)} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
+                  <button onClick={handleNext} className="w-full py-3 font-bold text-sm uppercase tracking-wide transition-transform hover:scale-[1.01]" style={buttonStyle(s)}>PRÓXIMO</button>
                 </div>
                 </div>
 
