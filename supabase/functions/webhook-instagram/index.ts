@@ -210,16 +210,16 @@ serve(async (req) => {
                   }
 
                   // 2) Send Private Reply DM (uses comment_id — no 24h window needed)
-                  if (auto.dm_message && commentId && accessToken) {
+                  if (auto.dm_message && commentId && accessToken && fromId) {
                     try {
                       // Parse dm_message — may be JSON with buttons
                       let dmText = auto.dm_message;
-                      let dmButtons: { title: string; url: string }[] = [];
+                      let dmButtons: { title: string; url: string; type?: string }[] = [];
                       try {
                         const parsed = JSON.parse(auto.dm_message);
                         if (parsed.text !== undefined) {
                           dmText = parsed.text || "";
-                          dmButtons = (parsed.buttons || []).filter((b: any) => b.title && b.url);
+                          dmButtons = (parsed.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
                         }
                       } catch { /* plain text */ }
 
@@ -227,20 +227,35 @@ serve(async (req) => {
                         .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                         .replace(/\{\{comentario\}\}/g, commentText);
 
-                      // Private Reply only supports plain text — no templates/buttons
-                      // Append button info as inline text
-                      if (dmButtons.length > 0) {
-                        const btnLines = dmButtons.slice(0, 3).map((b: any) => {
+                      // Use recipient.id (IGSID) to send Button/Generic Template with real buttons
+                      // Private Reply (comment_id) only supports text — recipient.id supports templates
+                      let messagePayload: any;
+                      const hasButtons = dmButtons.length > 0;
+
+                      if (hasButtons) {
+                        // Build Button Template payload
+                        const apiButtons = dmButtons.slice(0, 3).map((b: any) => {
                           if (b.type === "reply") {
-                            return `▶ ${b.title}`;
+                            return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
                           }
-                          return `🔗 ${b.title}: ${b.url}`;
+                          return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
                         });
-                        dmText += "\n\n" + btnLines.join("\n");
+
+                        messagePayload = {
+                          attachment: {
+                            type: "template",
+                            payload: {
+                              template_type: "button",
+                              text: dmText || "Selecione uma opção:",
+                              buttons: apiButtons,
+                            },
+                          },
+                        };
+                      } else {
+                        messagePayload = { text: dmText };
                       }
 
-                      const messagePayload = { text: dmText };
-
+                      // Send using IGSID (from.id) — supports templates & buttons
                       const dmRes = await fetch(
                         `https://graph.instagram.com/v21.0/${igPageId}/messages`,
                         {
@@ -250,7 +265,7 @@ serve(async (req) => {
                             "Authorization": `Bearer ${accessToken}`,
                           },
                           body: JSON.stringify({
-                            recipient: { comment_id: commentId },
+                            recipient: { id: fromId },
                             message: messagePayload,
                           }),
                         }
@@ -258,7 +273,7 @@ serve(async (req) => {
                       const dmData = await dmRes.json();
 
                       if (dmRes.ok && !dmData.error) {
-                        console.log(`✅ Private Reply DM sent to @${fromUsername}${dmButtons.length > 0 ? ` with ${dmButtons.length} button(s)` : ""}`);
+                        console.log(`✅ DM sent to @${fromUsername} (IGSID: ${fromId})${hasButtons ? ` with ${dmButtons.length} button(s)` : ""}`);
 
                         await supabase.from("instagram_events").insert({
                           user_id: userId,
@@ -271,10 +286,41 @@ serve(async (req) => {
                           processed: true,
                         });
                       } else {
-                        console.error("❌ Private Reply DM error:", JSON.stringify(dmData));
+                        console.error("❌ DM error:", JSON.stringify(dmData));
+
+                        // Fallback: try Private Reply (text only) if IGSID method fails
+                        if (hasButtons) {
+                          console.log("🔄 Fallback: sending as Private Reply (text only)...");
+                          const btnLines = dmButtons.slice(0, 3).map((b: any) => {
+                            if (b.type === "reply") return `▶ ${b.title}`;
+                            return `🔗 ${b.title}: ${b.url}`;
+                          });
+                          const fallbackText = dmText + "\n\n" + btnLines.join("\n");
+
+                          const fbRes = await fetch(
+                            `https://graph.instagram.com/v21.0/${igPageId}/messages`,
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${accessToken}`,
+                              },
+                              body: JSON.stringify({
+                                recipient: { comment_id: commentId },
+                                message: { text: fallbackText },
+                              }),
+                            }
+                          );
+                          const fbData = await fbRes.json();
+                          if (fbRes.ok && !fbData.error) {
+                            console.log(`✅ Fallback Private Reply sent to @${fromUsername}`);
+                          } else {
+                            console.error("❌ Fallback also failed:", JSON.stringify(fbData));
+                          }
+                        }
                       }
                     } catch (e) {
-                      console.error("❌ Private Reply DM failed:", e);
+                      console.error("❌ DM failed:", e);
                     }
                   }
 
