@@ -172,14 +172,18 @@ serve(async (req) => {
               .eq('active', true)
 
             if (webhooks && webhooks.length > 0) {
-              // Map internal status to event key used in the webhook config
-              const eventMap: Record<string, string> = {
-                approved: 'approved',
+              // Map hubpague raw status to webhook event key
+              const hubEventMap: Record<string, string> = {
+                paid: 'approved',
+                processing: 'pending',
                 pending: 'pending',
                 failed: 'refused',
-                refunded: 'refunded',
+                blocked: 'refused',
+                cancelled: 'cancelled',
+                returned: 'refunded',
+                med: 'med',
               }
-              const eventKey = eventMap[newStatus] || newStatus
+              const eventKey = hubEventMap[hubStatus] || newStatus
 
               for (const wh of webhooks) {
                 // Skip UTMify (handled separately) and Shopify integrations
