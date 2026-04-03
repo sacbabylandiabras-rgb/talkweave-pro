@@ -426,6 +426,8 @@ const ApanhadorGrupos = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
+                            )}
+                          </div>
                         )}
 
                         {instances.length >= 1 && (
@@ -453,8 +455,6 @@ const ApanhadorGrupos = () => {
                             <p className="text-[11px] text-muted-foreground mt-1">
                               Escolha qual número vai enviar a mensagem de boas-vindas
                             </p>
-                          </div>
-                        )}
                           </div>
                         )}
                       </div>
