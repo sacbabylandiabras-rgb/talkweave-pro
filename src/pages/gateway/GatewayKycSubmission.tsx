@@ -478,7 +478,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!selfie.file || !docFront.file || !docBack.file || submitting}
+              disabled={!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file || submitting}
               className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white px-8"
             >
               {submitting ? (
