@@ -719,16 +719,6 @@
     }
     h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
     h += '</div></div>';
-    // FAQ
-    h += '<div class="c">';
-    h += '<h3 style="color:var(--primary);margin-bottom:8px">Perguntas Frequentes</h3>';
-    FAQ_ITEMS.forEach(function(item,i) {
-      h += '<div class="faq-item">';
-      h += '<button class="faq-q" data-faq="'+i+'">'+item.q+'<span style="color:var(--card-label)">'+(openFaq===i?I.chevUp:I.chevDown)+'</span></button>';
-      if (openFaq === i) h += '<div class="faq-a">'+item.a+'</div>';
-      h += '</div>';
-    });
-    h += '</div>';
     return h;
   }
 
