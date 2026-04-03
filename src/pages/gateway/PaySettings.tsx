@@ -795,17 +795,56 @@ export default function PaySettings() {
           <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingWebhook ? "Editar Webhook" : "Novo Webhook"}</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <Webhook className="w-5 h-5 text-[#FF4D2E]" />
+                  {editingWebhook ? "Editar Webhook" : "Novo Webhook"}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label className="text-xs">Nome</Label>
-                  <Input value={webhookForm.name} onChange={e => setWebhookForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Meu ERP" className="mt-1" />
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={webhookForm.webhook_type} onValueChange={v => setWebhookForm(p => ({ ...p, webhook_type: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transaction">Transação</SelectItem>
+                      <SelectItem value="withdrawal">Saque</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">URL do Webhook</Label>
+                  <Label className="text-xs">Descrição</Label>
+                  <Input value={webhookForm.description} onChange={e => setWebhookForm(p => ({ ...p, description: e.target.value }))} placeholder="Ex: Notificação para meu ERP" className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">URL</Label>
                   <Input value={webhookForm.webhook_url} onChange={e => setWebhookForm(p => ({ ...p, webhook_url: e.target.value }))} placeholder="https://meusite.com/webhook" className="mt-1 font-mono text-xs" />
                 </div>
+
+                <div>
+                  <Label className="text-xs mb-2 block">Eventos</Label>
+                  <div className="space-y-2.5">
+                    {[
+                      { key: "approved", label: "Aprovada" },
+                      { key: "pending", label: "Pendente" },
+                      { key: "refused", label: "Recusada" },
+                      { key: "refunded", label: "Estornado" },
+                      { key: "cancelled", label: "Cancelada" },
+                      { key: "med", label: "MED" },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{label}</span>
+                        <Switch
+                          checked={webhookForm.events[key] || false}
+                          onCheckedChange={checked => setWebhookForm(p => ({
+                            ...p,
+                            events: { ...p.events, [key]: checked },
+                          }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Método HTTP</Label>
@@ -837,17 +876,13 @@ export default function PaySettings() {
                     <Input type="password" value={webhookForm.auth_token} onChange={e => setWebhookForm(p => ({ ...p, auth_token: e.target.value }))} placeholder="Insira o token" className="mt-1 font-mono text-xs" />
                   </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Ativo</Label>
-                  <Switch checked={webhookForm.active} onCheckedChange={checked => setWebhookForm(p => ({ ...p, active: checked }))} />
-                </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
-                <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white" onClick={handleSaveWebhook} disabled={webhookSaving}>
+              <DialogFooter className="flex-col gap-2 sm:flex-col">
+                <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white" onClick={handleSaveWebhook} disabled={webhookSaving}>
                   {webhookSaving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                  {editingWebhook ? "Salvar" : "Criar"}
+                  Salvar Webhook
                 </Button>
+                <Button variant="outline" className="w-full" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
