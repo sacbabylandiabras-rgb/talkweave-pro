@@ -170,11 +170,8 @@ serve(async (req) => {
 
       console.log("Instagram connected successfully for user:", userId, "username:", username);
 
-      // Return success page that sends postMessage and closes
-      return new Response(successPage(username), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-        status: 200,
-      });
+      const igRedirect = appOrigin || "https://zaplynx.pro";
+      return Response.redirect(`${igRedirect}/instagram/configuracao?connected=1`, 302);
     }
 
     // === Facebook / WhatsApp Business flow ===
