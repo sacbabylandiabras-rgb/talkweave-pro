@@ -56,9 +56,57 @@ export default function PayDocs() {
               </pre>
             </div>
 
-            <h3 className="font-semibold">Base URL</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2"><span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span><code className="text-xs font-mono text-muted-foreground">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></div>
+            <h3 className="font-semibold">🔗 Base URL da API</h3>
+            <div className="rounded-lg border-2 border-[#FF4D2E]/40 bg-[#FF4D2E]/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span>
+              </div>
+              <code className="block text-sm font-mono text-foreground bg-muted/40 rounded-lg px-4 py-3 select-all break-all">
+                https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1
+              </code>
+              <p className="text-xs text-muted-foreground">
+                Exemplo de chamada completa: <code className="font-mono text-[#FF4D2E]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/get-checkout?slug=meu-produto</code>
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-400">⚠️ URL Incorreta Comum</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <strong>NÃO</strong> use <code className="font-mono text-red-400">api.zaplynxpay.com.br/v1</code> — esse domínio não existe.<br />
+                  A URL correta é sempre <code className="font-mono text-emerald-400">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/</code> seguida do nome da função.
+                </p>
+              </div>
+            </div>
+
+            <h3 className="font-semibold mt-4">Headers Obrigatórios</h3>
+            <CodeBlock language="http" code={`apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8
+Content-Type: application/json`} />
+            <p className="text-xs text-muted-foreground">
+              O header <code className="font-mono">apikey</code> é obrigatório em todas as requisições. Para endpoints protegidos, adicione também <code className="font-mono">Authorization: Bearer TOKEN_JWT</code>.
+            </p>
+
+            <h3 className="font-semibold mt-4">Endpoints Disponíveis</h3>
+            <div className="rounded-lg border border-[#2A2A2A] overflow-hidden">
+              <table className="w-full text-xs">
+                <thead><tr className="bg-muted/30 border-b border-[#2A2A2A]"><th className="text-left p-3 font-medium">Método</th><th className="text-left p-3 font-medium">Endpoint</th><th className="text-left p-3 font-medium">Descrição</th></tr></thead>
+                <tbody>
+                  {[
+                    ["GET", "get-checkout?slug=xxx", "Buscar dados do checkout público"],
+                    ["POST", "create-pix-charge", "Criar cobrança PIX"],
+                    ["GET", "check-payment-status?id=xxx", "Verificar status do pagamento"],
+                    ["POST", "upload-receipt", "Enviar comprovante de pagamento"],
+                    ["POST", "webhook-gateway", "Receber webhooks de pagamento"],
+                  ].map(([m, e, d]) => (
+                    <tr key={e} className="border-b border-[#2A2A2A]">
+                      <td className="p-3"><span className={`font-mono font-bold ${m === 'GET' ? 'text-emerald-400' : 'text-amber-400'}`}>{m}</span></td>
+                      <td className="p-3 font-mono text-[#FF4D2E]">{e}</td>
+                      <td className="p-3 text-muted-foreground">{d}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
