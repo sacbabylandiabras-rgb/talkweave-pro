@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, User, MessageSquare, Users, Zap, CreditCard, Bot, Send, Link2 } from "lucide-react";
+import { Loader2, User, MessageSquare, Users, Zap, CreditCard, Bot, Send, Link2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,6 +42,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         { data: redirectLinks },
         { data: metaCreds },
         { data: kycData },
+        { data: products },
       ] = await Promise.all([
         supabase.from("zapi_instances").select("*").eq("user_id", userId),
         supabase.from("saved_contacts").select("id, name, phone, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
@@ -55,6 +56,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         supabase.from("redirect_links").select("id, name, slug, active, created_at").eq("user_id", userId),
         supabase.from("meta_credentials").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("gateway_kyc").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("gateway_products").select("id, name, price, type, status, category, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
       ]);
 
       setData({
@@ -70,6 +72,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         redirectLinks: redirectLinks || [],
         metaCreds,
         kycData,
+        products: products || [],
       });
     } catch (err) {
       console.error("Error fetching user data:", err);
@@ -123,6 +126,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
               <TabsTrigger value="contacts" className="text-xs gap-1"><Users className="w-3 h-3" />Contatos ({data.contacts.length})</TabsTrigger>
               <TabsTrigger value="campaigns" className="text-xs gap-1"><Send className="w-3 h-3" />Campanhas ({data.campaigns.length})</TabsTrigger>
               <TabsTrigger value="templates" className="text-xs gap-1"><MessageSquare className="w-3 h-3" />Modelos ({data.templates.length})</TabsTrigger>
+              <TabsTrigger value="products" className="text-xs gap-1"><Package className="w-3 h-3" />Produtos ({data.products.length})</TabsTrigger>
               <TabsTrigger value="transactions" className="text-xs gap-1"><CreditCard className="w-3 h-3" />Transações ({data.transactions.length})</TabsTrigger>
               <TabsTrigger value="automations" className="text-xs gap-1"><Bot className="w-3 h-3" />Automações</TabsTrigger>
               <TabsTrigger value="integrations" className="text-xs gap-1"><Link2 className="w-3 h-3" />Integrações</TabsTrigger>
@@ -275,6 +279,27 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
                   </div>
                 )}
               </div>
+            </TabsContent>
+
+            {/* Products */}
+            <TabsContent value="products">
+              {data.products.length === 0 ? <EmptyState text="Nenhum produto cadastrado" /> : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Tipo</TableHead><TableHead>Categoria</TableHead><TableHead>Preço</TableHead><TableHead>Status</TableHead><TableHead>Data</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {data.products.map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{p.type}</Badge></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{p.category || "—"}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(p.price)}</TableCell>
+                        <TableCell><Badge variant={p.status ? "default" : "secondary"} className="text-[10px]">{p.status ? "Ativo" : "Inativo"}</Badge></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </TabsContent>
 
             {/* Integrations */}
