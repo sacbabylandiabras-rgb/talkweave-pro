@@ -147,8 +147,7 @@ export default function ThankYou() {
               {/* Mensagem de entrega */}
               <div className="mt-5 p-4 rounded-xl border border-dashed border-gray-300 bg-white text-center">
                 <p className="text-sm text-gray-600">
-                  📧 Os detalhes de acesso ao produto serão enviados para o seu
-                  e-mail ou WhatsApp em instantes.
+                  {customMessage || "📧 Os detalhes de acesso ao produto serão enviados para o seu e-mail ou WhatsApp em instantes."}
                 </p>
               </div>
 
