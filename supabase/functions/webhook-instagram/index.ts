@@ -237,11 +237,20 @@ serve(async (req) => {
                             payload: {
                               template_type: "button",
                               text: dmText,
-                              buttons: dmButtons.slice(0, 3).map(b => ({
-                                type: "web_url",
-                                url: b.url,
-                                title: b.title.slice(0, 20),
-                              })),
+                              buttons: dmButtons.slice(0, 3).map((b: any) => {
+                                if (b.type === "reply") {
+                                  return {
+                                    type: "postback",
+                                    title: b.title.slice(0, 20),
+                                    payload: b.title.slice(0, 100),
+                                  };
+                                }
+                                return {
+                                  type: "web_url",
+                                  url: b.url,
+                                  title: b.title.slice(0, 20),
+                                };
+                              }),
                             },
                           },
                         };
