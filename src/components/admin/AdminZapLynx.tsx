@@ -15,6 +15,7 @@ import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users,
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { ViewUserAccountDialog } from "@/components/admin/ViewUserAccountDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
