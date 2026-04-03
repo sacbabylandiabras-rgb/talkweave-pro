@@ -237,7 +237,7 @@ const CHECKOUT_TEMPLATES: CheckoutTemplate[] = [
       font: "inter",
       borderStyle: "rounded",
       showTimer: false,
-      showGuarantee: true,
+      showGuarantee: false,
       guaranteeDays: 30,
       showSecurityBadges: true,
       showOrderBump: false,

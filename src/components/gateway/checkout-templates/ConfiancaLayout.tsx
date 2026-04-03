@@ -19,17 +19,9 @@ interface Props {
   previewMode?: "desktop" | "mobile";
 }
 
-const FAQ_ITEMS = [
-  { q: "Quais formas de pagamento são aceitas?", a: "Aceitamos Pix, cartão de crédito (Visa, Mastercard, Elo, Amex) e boleto bancário." },
-  { q: "Posso parcelar minha compra?", a: "Sim! Parcele em até 12x sem juros no cartão de crédito." },
-  { q: "Recebo confirmação após o pagamento?", a: "Sim, você receberá um e-mail e mensagem no WhatsApp com a confirmação." },
-  { q: "Qual o prazo de entrega?", a: "Enviamos em até 24 horas após a confirmação do pagamento." },
-];
-
 export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
