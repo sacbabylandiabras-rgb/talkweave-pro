@@ -308,10 +308,21 @@ serve(async (req) => {
                         }
                       }
 
-                      // Traverse children
-                      const children = getOutgoing(node.id);
-                      for (const child of children) {
-                        await executeNode(child);
+                      // Traverse children — if DM has buttons, STOP (don't follow button paths)
+                      // Button paths (btn-0, btn-1...) are only followed when user clicks a button
+                      const dmButtons = (node.data?.buttons || []).filter((b: any) => b.title);
+                      if (node.type === "igDM" && dmButtons.length > 0) {
+                        // Only follow the default bottom handle, not button-specific handles
+                        const defaultChildren = getOutgoing(node.id, "source-bottom");
+                        for (const child of defaultChildren) {
+                          await executeNode(child);
+                        }
+                        console.log(`⏹ DM node "${node.data?.label}" has ${dmButtons.length} buttons — waiting for user response to branch`);
+                      } else {
+                        const children = getOutgoing(node.id);
+                        for (const child of children) {
+                          await executeNode(child);
+                        }
                       }
                     };
 
