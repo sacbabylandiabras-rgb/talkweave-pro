@@ -38,12 +38,15 @@ serve(async (req) => {
     try {
       const body = await req.json();
 
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
       // Manual token save action
       if (body.action === "save_ig_token" && body.token && body.user_id) {
         console.log("💾 Saving Instagram token manually for user:", body.user_id);
         const igAppId = "829722106116857";
 
-        // Get profile info with the token
         let username = "Instagram conectado";
         let igUserId = "";
         try {
@@ -96,10 +99,6 @@ serve(async (req) => {
       }
 
       console.log("📩 Instagram webhook event received:", JSON.stringify(body).slice(0, 500));
-
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
       // Instagram sends events in this format:
       // { object: "instagram", entry: [{ id, time, messaging/changes }] }
