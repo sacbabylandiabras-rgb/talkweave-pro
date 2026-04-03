@@ -75,6 +75,7 @@ const MensagemBoasVindas = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <InstanceSelector />
           <div>
             <Label htmlFor="mensagem-boas-vindas">Mensagem de Boas-vindas</Label>
             <Textarea 
