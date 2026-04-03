@@ -57,11 +57,13 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   const backRef = useRef<HTMLInputElement>(null);
   const cnpjDocRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File | undefined, setter: (v: DocUpload) => void) => {
+  const handleFile = (file: File | undefined, setter: (v: DocUpload) => void, allowPdf = false) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !(allowPdf && isPdf)) return;
     if (file.size > 10 * 1024 * 1024) return;
-    setter({ file, preview: URL.createObjectURL(file) });
+    setter({ file, preview: isPdf ? "pdf" : URL.createObjectURL(file) });
   };
 
   const isStep1Valid = step1.whatsapp.trim().length >= 10;
