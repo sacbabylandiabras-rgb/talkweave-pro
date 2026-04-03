@@ -730,30 +730,7 @@
   }
 
   function sidebarConfianca() {
-    var h = '';
-    // Testimonials
-    var reviews = [
-      { name: 'Mariana Lopes', text: 'Atendimento excelente e tudo chegou perfeito. Recomendo!' },
-      { name: 'Ana Paula', text: 'Produto de ótima qualidade e entrega super rápida. Amei!' },
-    ];
-    reviews.forEach(function(t) {
-      h += '<div class="testimonial-card">';
-      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-      h += '<div style="width:24px;height:24px;border-radius:50%;background:#E5E7EB;display:flex;align-items:center;justify-content:center"><span style="color:var(--card-label)">'+I.user+'</span></div>';
-      h += '<div style="display:flex;gap:2px">'+I.star+I.star+I.star+I.star+I.star+'</div>';
-      h += '</div>';
-      h += '<p style="font-size:.75rem;font-weight:700;color:var(--card-title)">'+t.name+'</p>';
-      h += '<p style="font-size:.6875rem;margin-top:2px;color:var(--card-desc);line-height:1.5">'+t.text+'</p>';
-      h += '</div>';
-    });
-    // Info badges
-    h += '<div class="c" style="display:flex;flex-direction:column;gap:12px">';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#EFF6FF"><span style="color:#3B82F6">'+I.truck+'</span></div><div><p class="ib-title" style="color:var(--primary)">Frete Grátis</p><p class="ib-desc">Para todo o Brasil em compras acima de R$ 199</p></div></div>';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#F0FDF4"><span style="color:#22C55E">'+I.shield+'</span></div><div><p class="ib-title" style="color:var(--primary)">Compra Segura</p><p class="ib-desc">Seus dados protegidos e pagamento seguro</p></div></div>';
-    h += '<div class="info-badge"><div class="info-icon" style="background:#FEF9C3"><span style="color:#EAB308">'+I.zap+'</span></div><div><p class="ib-title" style="color:var(--primary)">Entrega Rápida</p><p class="ib-desc">Enviamos em até 24 horas após a confirmação</p></div></div>';
-    h += '</div>';
-    if (cfg.showGuarantee !== false) h += guaranteeHTML({dashed:true});
-    return h;
+    return '';
   }
 
   /* ══════════════════════════════════
