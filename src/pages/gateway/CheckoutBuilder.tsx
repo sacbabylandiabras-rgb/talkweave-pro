@@ -1037,6 +1037,7 @@ export default function CheckoutBuilder() {
             </AccordionItem>
 
             <AccordionItem value="dominio" className="border-[#2A2A2A] rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#FF4D2E]" /> Domínio Personalizado</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
