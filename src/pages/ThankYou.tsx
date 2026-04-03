@@ -14,6 +14,8 @@ export default function ThankYou() {
   const customerName = searchParams.get("name") || "Cliente";
   const transactionId = searchParams.get("tid") || "";
   const amount = searchParams.get("amount") || "";
+  const customTitle = searchParams.get("title") || "";
+  const customMessage = searchParams.get("msg") || "";
 
   useEffect(() => {
     if (!slug) return;
@@ -83,7 +85,7 @@ export default function ThankYou() {
                 <CheckCircle2 className="w-12 h-12 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-white">
-                Pagamento Confirmado!
+                {customTitle || "Pagamento Confirmado!"}
               </h1>
               <p className="text-white/80 mt-1 text-sm">
                 Obrigado pela sua compra, {customerName}
@@ -145,8 +147,7 @@ export default function ThankYou() {
               {/* Mensagem de entrega */}
               <div className="mt-5 p-4 rounded-xl border border-dashed border-gray-300 bg-white text-center">
                 <p className="text-sm text-gray-600">
-                  📧 Os detalhes de acesso ao produto serão enviados para o seu
-                  e-mail ou WhatsApp em instantes.
+                  {customMessage || "📧 Os detalhes de acesso ao produto serão enviados para o seu e-mail ou WhatsApp em instantes."}
                 </p>
               </div>
 

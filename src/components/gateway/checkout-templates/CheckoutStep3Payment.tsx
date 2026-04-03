@@ -70,12 +70,22 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
             if (pollingRef.current) clearInterval(pollingRef.current);
             const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
             if (slug) {
-              const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
-              const params = new URLSearchParams();
-              if (formName) params.set('name', formName);
-              if (pixData.correlationID) params.set('tid', pixData.correlationID);
-              if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
-              window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+              // Check thank you config
+              const thankYouType = config.thankYouType || 'default';
+              if (thankYouType === 'custom_url' && config.thankYouUrl) {
+                window.location.href = config.thankYouUrl;
+              } else {
+                const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+                const params = new URLSearchParams();
+                if (formName) params.set('name', formName);
+                if (pixData.correlationID) params.set('tid', pixData.correlationID);
+                if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+                if (thankYouType === 'custom_message') {
+                  if (config.thankYouTitle) params.set('title', config.thankYouTitle);
+                  if (config.thankYouMessage) params.set('msg', config.thankYouMessage);
+                }
+                window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+              }
             }
           }
         }
