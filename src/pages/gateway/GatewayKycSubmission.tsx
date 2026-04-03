@@ -354,7 +354,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
       {/* Step 3: Documents */}
       {step === 3 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Selfie */}
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
@@ -432,6 +432,41 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                 )}
                 <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => backRef.current?.click()}>
                   <Upload className="w-3 h-3 mr-1" /> {docBack.file ? "Trocar" : "Selecionar"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Cartão CNPJ */}
+            <Card className="border-[#2A2A2A] overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#FF4D2E]" />
+                  Cartão CNPJ
+                </CardTitle>
+                <CardDescription className="text-xs">Foto ou PDF do cartão CNPJ da empresa</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <input ref={cnpjDocRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFile(e.target.files?.[0], setCnpjDoc, true)} />
+                {cnpjDoc.preview ? (
+                  cnpjDoc.preview === "pdf" ? (
+                    <div className="aspect-[4/3] rounded-lg border border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 bg-muted/30">
+                      <Building2 className="w-8 h-8 text-[#FF4D2E]/60" />
+                      <span className="text-xs text-muted-foreground font-medium">{cnpjDoc.file?.name}</span>
+                      <Badge variant="secondary" className="text-[10px]">PDF</Badge>
+                    </div>
+                  ) : (
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-[#2A2A2A] mb-2">
+                      <img src={cnpjDoc.preview} alt="Cartão CNPJ" className="w-full h-full object-cover" />
+                    </div>
+                  )
+                ) : (
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
+                    <Building2 className="w-8 h-8 text-muted-foreground/30" />
+                    <span className="text-xs text-muted-foreground">PDF ou Imagem</span>
+                  </div>
+                )}
+                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => cnpjDocRef.current?.click()}>
+                  <Upload className="w-3 h-3 mr-1" /> {cnpjDoc.file ? "Trocar" : "Selecionar"}
                 </Button>
               </CardContent>
             </Card>
