@@ -1605,45 +1605,9 @@ serve(async (req) => {
 
     await makeMessageVisibleInInbox(supabase, lockId)
 
-    // Forward to gateway integrations
-    const { data: gateways } = await supabase
-      .from('gateway_integrations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('active', true)
-
-    if (gateways && gateways.length > 0) {
-      console.log(`Encaminhando para ${gateways.length} gateway(s)`)
-      const gatewayPayload = {
-        event: 'message_received',
-        phone,
-        message: messageRaw || null,
-        timestamp: new Date().toISOString(),
-        raw: webhook,
-      }
-
-      await Promise.allSettled(gateways.map(async (gw) => {
-        try {
-          const gwHeaders: Record<string, string> = {
-            'Content-Type': 'application/json',
-            ...(gw.headers as Record<string, string> || {}),
-          }
-          if (gw.auth_type === 'bearer' && gw.auth_token) {
-            gwHeaders['Authorization'] = `Bearer ${gw.auth_token}`
-          } else if (gw.auth_type === 'api_key' && gw.auth_token) {
-            gwHeaders['X-API-Key'] = gw.auth_token
-          }
-          const opts: RequestInit = { method: gw.method || 'POST', headers: gwHeaders }
-          if (gw.method !== 'GET') {
-            opts.body = JSON.stringify(gatewayPayload)
-          }
-          const res = await fetch(gw.webhook_url, opts)
-          console.log(`Gateway ${gw.name}: status ${res.status}`)
-        } catch (e) {
-          console.error(`Gateway ${gw.name} erro:`, e)
-        }
-      }))
-    }
+    // Do not forward regular inbound WhatsApp messages to payment/webhook integrations.
+    // These integrations are reserved for gateway transaction events (approved, pending, refunded, etc).
+    console.log('Encaminhamento para gateway_integrations ignorado no webhook-zapi para evitar disparos indevidos')
 
     // === CHECK FLOW AUTOMATIONS FIRST ===
     const { data: flowAutomations, error: flowError } = await supabase
