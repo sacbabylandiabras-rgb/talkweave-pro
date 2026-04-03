@@ -140,6 +140,54 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     }
   }, [step]);
 
+  // Poll for payment status once we have a correlationID
+  useEffect(() => {
+    if (!isPublicCheckout || !pixData?.correlationID || paymentApproved) return;
+
+    const checkStatus = async () => {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/check-payment-status?external_id=${encodeURIComponent(pixData.correlationID!)}`,
+          { headers: { apikey: anonKey } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.status === 'approved') {
+            setPaymentApproved(true);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
+            if (slug) {
+              const thankYouType = (config as any).thankYouType || 'default';
+              if (thankYouType === 'custom_url' && (config as any).thankYouUrl) {
+                window.location.href = (config as any).thankYouUrl;
+              } else {
+                const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+                const params = new URLSearchParams();
+                if (formName) params.set('name', formName);
+                if (pixData.correlationID) params.set('tid', pixData.correlationID);
+                if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+                if (thankYouType === 'custom_message') {
+                  if ((config as any).thankYouTitle) params.set('title', (config as any).thankYouTitle);
+                  if ((config as any).thankYouMessage) params.set('msg', (config as any).thankYouMessage);
+                }
+                window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+              }
+            }
+          }
+        }
+      } catch {}
+    };
+
+    checkStatus();
+    pollingRef.current = setInterval(checkStatus, 5000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [pixData?.correlationID, paymentApproved]);
+
   const handleGeneratePix = async () => {
     setPixLoading(true);
     setPixError(null);
