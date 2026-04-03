@@ -77,6 +77,10 @@ const defaultConfig = {
   shippingPrice: 1500,
   emailPixGenerated: true,
   emailApproved: true,
+  thankYouType: "default" as "default" | "custom_url" | "custom_message",
+  thankYouUrl: "",
+  thankYouTitle: "Pagamento Confirmado!",
+  thankYouMessage: "Obrigado pela sua compra! Os detalhes de acesso serão enviados para o seu e-mail ou WhatsApp em instantes.",
 };
 
 const formatOptions = [
