@@ -341,8 +341,8 @@ const ChatView = ({
         await onSendMessage(conversation.phone, newMessage.trim());
       }
       setNewMessage("");
-    } catch (e) {
-      // error handled by parent
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e?.message || "Falha ao enviar mensagem", variant: "destructive" });
     } finally {
       setSending(false);
     }
