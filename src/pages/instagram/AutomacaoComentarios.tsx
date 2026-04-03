@@ -89,11 +89,18 @@ export default function AutomacaoComentarios() {
     const replyBlock = blocks.find(b => b.type === "reply_comment");
     const dmBlock = blocks.find(b => b.type === "send_direct");
 
+    // Encode buttons into dm_message as JSON if buttons exist
+    const dmButtons = dmBlock?.data.buttons || [];
+    const dmText = dmBlock?.data.message || "";
+    const dmMessage = dmButtons.length > 0
+      ? JSON.stringify({ text: dmText, buttons: dmButtons })
+      : dmText;
+
     const payload = {
       name: flowName,
       keyword: triggerBlock?.data.keywords || "",
       reply_comment: replyBlock?.data.message || "",
-      dm_message: dmBlock?.data.message || "",
+      dm_message: dmMessage,
       active: isActive,
     };
 
