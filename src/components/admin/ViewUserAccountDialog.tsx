@@ -55,6 +55,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         supabase.from("redirect_links").select("id, name, slug, active, created_at").eq("user_id", userId),
         supabase.from("meta_credentials").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("gateway_kyc").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("gateway_products").select("id, name, price, type, status, category, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
       ]);
 
       setData({
