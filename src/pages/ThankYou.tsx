@@ -14,6 +14,8 @@ export default function ThankYou() {
   const customerName = searchParams.get("name") || "Cliente";
   const transactionId = searchParams.get("tid") || "";
   const amount = searchParams.get("amount") || "";
+  const customTitle = searchParams.get("title") || "";
+  const customMessage = searchParams.get("msg") || "";
 
   useEffect(() => {
     if (!slug) return;
