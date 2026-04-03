@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Plus, Save, Trash2, GripVertical, MessageCircle, Send, Clock, Variable } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Save, Trash2, MessageCircle, Send, Clock, Variable, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useInstagramAutomations } from "@/hooks/useInstagramAutomations";
 
 interface FlowBlock {
   id: string;
@@ -18,6 +20,11 @@ interface FlowBlock {
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export default function AutomacaoComentarios() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("id");
+  const { automations, createAutomation, updateAutomation } = useInstagramAutomations();
+
   const [flowName, setFlowName] = useState("Novo Fluxo");
   const [isActive, setIsActive] = useState(false);
   const [blocks, setBlocks] = useState<FlowBlock[]>([
@@ -25,6 +32,22 @@ export default function AutomacaoComentarios() {
     { id: generateId(), type: "reply_comment", data: { message: "" } },
     { id: generateId(), type: "send_direct", data: { message: "", delayValue: 0, delayUnit: "minutes" } },
   ]);
+
+  // Load existing automation if editing
+  useEffect(() => {
+    if (editId && automations.length > 0) {
+      const existing = automations.find(a => a.id === editId);
+      if (existing) {
+        setFlowName(existing.name);
+        setIsActive(existing.active);
+        setBlocks([
+          { id: generateId(), type: "trigger", data: { keywords: existing.keyword, matchType: "any" } },
+          { id: generateId(), type: "reply_comment", data: { message: existing.reply_comment || "" } },
+          { id: generateId(), type: "send_direct", data: { message: existing.dm_message || "", delayValue: 0, delayUnit: "minutes" } },
+        ]);
+      }
+    }
+  }, [editId, automations]);
 
   const addDirectBlock = () => {
     setBlocks(prev => [...prev, {
@@ -49,30 +72,56 @@ export default function AutomacaoComentarios() {
     }));
   };
 
-  const handleSave = () => {
-    toast.success("Fluxo salvo com sucesso!");
+  const handleSave = async () => {
+    const triggerBlock = blocks.find(b => b.type === "trigger");
+    const replyBlock = blocks.find(b => b.type === "reply_comment");
+    const dmBlock = blocks.find(b => b.type === "send_direct");
+
+    const payload = {
+      name: flowName,
+      keyword: triggerBlock?.data.keywords || "",
+      reply_comment: replyBlock?.data.message || "",
+      dm_message: dmBlock?.data.message || "",
+      active: isActive,
+    };
+
+    if (editId) {
+      updateAutomation.mutate({ id: editId, ...payload }, {
+        onSuccess: () => navigate("/instagram/campanhas"),
+      });
+    } else {
+      createAutomation.mutate(payload, {
+        onSuccess: () => navigate("/instagram/campanhas"),
+      });
+    }
   };
 
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Automação de Comentários</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Construa fluxos de resposta automática para comentários do Instagram</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/instagram/campanhas")}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
+              {editId ? "Editar Fluxo" : "Automação de Comentários"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Construa fluxos de resposta automática para comentários do Instagram</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{isActive ? "Ativo" : "Pausado"}</span>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
-          <Button onClick={handleSave} className="gap-2">
+          <Button onClick={handleSave} className="gap-2" disabled={createAutomation.isPending || updateAutomation.isPending}>
             <Save className="w-4 h-4" />
             Salvar Fluxo
           </Button>
         </div>
       </div>
 
-      {/* Flow Name */}
       <Card className="border-border">
         <CardContent className="pt-4 pb-4">
           <label className="text-xs text-muted-foreground mb-1.5 block">Nome do Fluxo</label>
@@ -80,11 +129,9 @@ export default function AutomacaoComentarios() {
         </CardContent>
       </Card>
 
-      {/* Flow Blocks */}
       <div className="relative space-y-0">
         {blocks.map((block, index) => (
           <div key={block.id} className="relative">
-            {/* Connector Arrow */}
             {index > 0 && (
               <div className="flex justify-center py-2">
                 <div className="w-px h-6 bg-primary/40" />
@@ -92,7 +139,6 @@ export default function AutomacaoComentarios() {
               </div>
             )}
 
-            {/* Block */}
             {block.type === "trigger" && (
               <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-2">
@@ -136,14 +182,12 @@ export default function AutomacaoComentarios() {
             {block.type === "reply_comment" && (
               <Card className="border-amber-500/30 bg-amber-500/5">
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
-                        <MessageCircle className="w-3.5 h-3.5 text-amber-500" />
-                      </div>
-                      Responder Comentário
-                    </CardTitle>
-                  </div>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <MessageCircle className="w-3.5 h-3.5 text-amber-500" />
+                    </div>
+                    Responder Comentário
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Resposta pública no comentário</label>
@@ -221,7 +265,6 @@ export default function AutomacaoComentarios() {
           </div>
         ))}
 
-        {/* Add block button */}
         <div className="flex justify-center pt-4">
           <Button variant="outline" onClick={addDirectBlock} className="gap-2 border-dashed">
             <Plus className="w-4 h-4" />
