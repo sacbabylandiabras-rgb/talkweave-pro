@@ -33,6 +33,12 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
+  const [cpfError, setCpfError] = useState("");
+
+  const handleNext = () => {
+    if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
+    setCpfError(""); setStep(2);
+  };
   const [formPhone, setFormPhone] = useState("");
 
   const s = getCheckoutStyles(config);
