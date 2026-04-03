@@ -227,36 +227,19 @@ serve(async (req) => {
                         .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                         .replace(/\{\{comentario\}\}/g, commentText);
 
-                      // Private Reply: send text message with comment_id
-                      // If buttons exist, use Button Template format
-                      let messagePayload: any;
+                      // Private Reply only supports plain text — no templates/buttons
+                      // Append button info as inline text
                       if (dmButtons.length > 0) {
-                        messagePayload = {
-                          attachment: {
-                            type: "template",
-                            payload: {
-                              template_type: "button",
-                              text: dmText,
-                              buttons: dmButtons.slice(0, 3).map((b: any) => {
-                                if (b.type === "reply") {
-                                  return {
-                                    type: "postback",
-                                    title: b.title.slice(0, 20),
-                                    payload: b.title.slice(0, 100),
-                                  };
-                                }
-                                return {
-                                  type: "web_url",
-                                  url: b.url,
-                                  title: b.title.slice(0, 20),
-                                };
-                              }),
-                            },
-                          },
-                        };
-                      } else {
-                        messagePayload = { text: dmText };
+                        const btnLines = dmButtons.slice(0, 3).map((b: any) => {
+                          if (b.type === "reply") {
+                            return `▶ ${b.title}`;
+                          }
+                          return `🔗 ${b.title}: ${b.url}`;
+                        });
+                        dmText += "\n\n" + btnLines.join("\n");
                       }
+
+                      const messagePayload = { text: dmText };
 
                       const dmRes = await fetch(
                         `https://graph.instagram.com/v21.0/${igPageId}/messages`,
