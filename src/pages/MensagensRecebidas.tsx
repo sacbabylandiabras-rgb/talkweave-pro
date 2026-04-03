@@ -341,8 +341,8 @@ const ChatView = ({
         await onSendMessage(conversation.phone, newMessage.trim());
       }
       setNewMessage("");
-    } catch (e) {
-      // error handled by parent
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e?.message || "Falha ao enviar mensagem", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -864,7 +864,7 @@ const MensagensRecebidas = () => {
         {showChat && (
           <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
             await sendMessage(phone, message, mediaUrl, mediaType);
-            toast({ title: "Mensagem processada", description: "A mensagem foi aceita pela Z-API e será exibida no chat após confirmação do backend." });
+            toast({ title: "Mensagem enviada", description: "Mensagem aceita pela Z-API." });
           }} />
         )}
       </div>
