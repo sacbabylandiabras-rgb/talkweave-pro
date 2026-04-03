@@ -76,13 +76,17 @@ function abrirCheckout() {
   "customer": {
     "name": "João Silva",
     "email": "joao@email.com",
-    "phone": "5511999998888"
+    "phone": "5511999998888",
+    "document": "123.456.789-00"
   },
   "metadata": {
     "order_id": "pedido_123",
     "utm_source": "instagram"
   }
 }`} />
+      <p className="text-muted-foreground text-sm">
+        O campo <code className="font-mono text-[#FF4D2E]">document</code> aceita CPF (xxx.xxx.xxx-xx) ou CNPJ (xx.xxx.xxx/xxxx-xx) e é <strong>obrigatório</strong> para geração do PIX.
+      </p>
 
       <h3 className="text-sm font-semibold mt-4">Resposta</h3>
       <CodeBlock code={`{
