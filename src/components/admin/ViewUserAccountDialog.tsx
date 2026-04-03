@@ -126,6 +126,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
               <TabsTrigger value="contacts" className="text-xs gap-1"><Users className="w-3 h-3" />Contatos ({data.contacts.length})</TabsTrigger>
               <TabsTrigger value="campaigns" className="text-xs gap-1"><Send className="w-3 h-3" />Campanhas ({data.campaigns.length})</TabsTrigger>
               <TabsTrigger value="templates" className="text-xs gap-1"><MessageSquare className="w-3 h-3" />Modelos ({data.templates.length})</TabsTrigger>
+              <TabsTrigger value="products" className="text-xs gap-1"><Package className="w-3 h-3" />Produtos ({data.products.length})</TabsTrigger>
               <TabsTrigger value="transactions" className="text-xs gap-1"><CreditCard className="w-3 h-3" />Transações ({data.transactions.length})</TabsTrigger>
               <TabsTrigger value="automations" className="text-xs gap-1"><Bot className="w-3 h-3" />Automações</TabsTrigger>
               <TabsTrigger value="integrations" className="text-xs gap-1"><Link2 className="w-3 h-3" />Integrações</TabsTrigger>
