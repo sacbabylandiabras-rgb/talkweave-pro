@@ -18,9 +18,13 @@ export function IGDMNode({ data }: any) {
           </div>
         </div>
       </div>
-      {data.message && (
-        <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap break-words line-clamp-3">
-          {data.message}
+      {data.message ? (
+        <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/40 rounded whitespace-pre-wrap break-words">
+          ✉️ {data.message}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground/50 mt-2 p-2 bg-muted/20 rounded italic">
+          Clique para editar a mensagem
         </div>
       )}
       {buttons.length > 0 && (

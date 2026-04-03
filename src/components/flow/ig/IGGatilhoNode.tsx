@@ -12,18 +12,17 @@ export function IGGatilhoNode({ data }: any) {
           <div className="text-sm font-semibold text-card-foreground">
             {data.label || "Gatilho"}
           </div>
-          {data.keywords && (
-            <div className="text-xs text-muted-foreground mt-1">
-              🔑 {data.keywords}
-            </div>
-          )}
-          {!data.keywords && (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Comentário no post
-            </div>
-          )}
         </div>
       </div>
+      {data.keywords ? (
+        <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/40 rounded whitespace-pre-wrap break-words">
+          🔑 {data.keywords}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground/50 mt-2 p-2 bg-muted/20 rounded italic">
+          Qualquer comentário
+        </div>
+      )}
       <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-pink-500" />
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-pink-500" />
     </div>
