@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, ChevronDown, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";

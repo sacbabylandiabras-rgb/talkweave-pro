@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import {
   ChevronDown,
   CreditCard,
