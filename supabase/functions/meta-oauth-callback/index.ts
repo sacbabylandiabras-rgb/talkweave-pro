@@ -170,11 +170,8 @@ serve(async (req) => {
 
       console.log("Instagram connected successfully for user:", userId, "username:", username);
 
-      // Return success page that sends postMessage and closes
-      return new Response(successPage(username), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-        status: 200,
-      });
+      const igRedirect = appOrigin || "https://zaplynx.pro";
+      return Response.redirect(`${igRedirect}/instagram/configuracao?connected=1`, 302);
     }
 
     // === Facebook / WhatsApp Business flow ===
@@ -263,17 +260,13 @@ serve(async (req) => {
       });
     }
 
-    return new Response(successPage(wabaData.name || "Conta conectada"), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-      status: 200,
-    });
+    const redirectTarget = appOrigin || "https://zaplynx.pro";
+    return Response.redirect(`${redirectTarget}/meta/configuracao?connected=1`, 302);
 
   } catch (err) {
     console.error("OAuth callback error:", err);
-    return new Response(errorPage("Erro interno: " + (err as Error).message), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-      status: 500,
-    });
+    const redirectTarget = "https://zaplynx.pro";
+    return Response.redirect(`${redirectTarget}/meta/configuracao?error=1`, 302);
   }
 });
 

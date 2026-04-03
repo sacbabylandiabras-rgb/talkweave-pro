@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Globe, CheckCircle2, AlertCircle, Copy, Loader2, LogOut, RefreshCw, Shield, AlertTriangle, Settings2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,20 @@ export default function ConfiguracaoMeta() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Detect OAuth redirect with ?connected=1
+  useEffect(() => {
+    if (searchParams.get("connected") === "1") {
+      toast.success("Conta Meta conectada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      setSearchParams({}, { replace: true });
+    } else if (searchParams.get("error") === "1") {
+      toast.error("Erro ao conectar conta Meta. Tente novamente.");
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, queryClient]);
 
   // Manual config fields
   const [manualToken, setManualToken] = useState("");

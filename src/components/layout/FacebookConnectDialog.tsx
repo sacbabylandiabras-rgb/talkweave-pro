@@ -28,6 +28,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
 
   const isConnected = metaCreds?.connected === true;
 
+  // Listen for postMessage (legacy) or URL param on focus
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === "META_OAUTH_SUCCESS") {
@@ -37,7 +38,26 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
       }
     };
     window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    
+    // Check URL params when window regains focus (redirect flow)
+    const focusHandler = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("connected") === "1") {
+        setConnecting(false);
+        toast.success("Conta conectada com sucesso!");
+        queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        // Clean URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete("connected");
+        window.history.replaceState({}, "", url.pathname);
+      }
+    };
+    window.addEventListener("focus", focusHandler);
+    
+    return () => {
+      window.removeEventListener("message", handler);
+      window.removeEventListener("focus", focusHandler);
+    };
   }, [queryClient]);
 
   const handleFacebookConnect = async () => {
