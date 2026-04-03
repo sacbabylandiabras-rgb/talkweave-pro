@@ -42,6 +42,7 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         { data: redirectLinks },
         { data: metaCreds },
         { data: kycData },
+        { data: products },
       ] = await Promise.all([
         supabase.from("zapi_instances").select("*").eq("user_id", userId),
         supabase.from("saved_contacts").select("id, name, phone, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
