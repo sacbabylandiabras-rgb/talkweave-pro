@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Globe, CheckCircle2, AlertCircle, Copy, Loader2, LogOut, RefreshCw, Shield, AlertTriangle, Settings2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
