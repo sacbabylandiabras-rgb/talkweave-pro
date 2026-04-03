@@ -362,38 +362,12 @@ function redirectToApp(
   }
 
   const destination = target.toString();
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Redirecionando…</title>
-  </head>
-  <body>
-    <script>
-      (function () {
-        var destination = ${JSON.stringify(destination)};
-        try {
-          if (window.opener && !window.opener.closed) {
-            window.opener.location.href = destination;
-            window.close();
-            return;
-          }
-        } catch (error) {
-          console.warn('OAuth popup redirect fallback', error);
-        }
+  console.log("Redirecting to:", destination);
 
-        window.location.replace(destination);
-      })();
-    </script>
-    <p style="font-family: system-ui, sans-serif; padding: 24px;">Redirecionando…</p>
-  </body>
-</html>`;
-
-  return new Response(html, {
-    status: 200,
+  return new Response(null, {
+    status: 302,
     headers: {
-      "Content-Type": "text/html; charset=utf-8",
+      "Location": destination,
       "Cache-Control": "no-store",
     },
   });
