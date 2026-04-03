@@ -872,7 +872,10 @@
     if (b1) b1.onclick = function() {
       var n=document.getElementById('f-name'), e=document.getElementById('f-email'), c=document.getElementById('f-cpf'), p=document.getElementById('f-phone');
       fd.name = n?n.value:''; fd.email = e?e.value:''; fd.cpf = c?c.value:''; fd.phone = p?p.value:'';
-      if (!fd.cpf.trim()) { var err=document.getElementById('cpf-err'); if(err) err.textContent='CPF/CNPJ é obrigatório'; return; }
+      var err=document.getElementById('cpf-err');
+      if (!fd.cpf.trim()) { if(err) err.textContent='CPF/CNPJ é obrigatório'; return; }
+      if (!validateCpfCnpj(fd.cpf)) { if(err) err.textContent='CPF ou CNPJ inválido'; if(c) c.style.borderColor='#EF4444'; return; }
+      if(c) c.style.borderColor='';
       step = 2; render();
     };
     var b2 = document.getElementById('btn-s2');
