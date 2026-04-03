@@ -800,6 +800,117 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_automations: {
+        Row: {
+          active: boolean
+          created_at: string
+          dm_message: string | null
+          id: string
+          keyword: string
+          name: string
+          reply_comment: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          dm_message?: string | null
+          id?: string
+          keyword?: string
+          name?: string
+          reply_comment?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          dm_message?: string | null
+          id?: string
+          keyword?: string
+          name?: string
+          reply_comment?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      instagram_contacts: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          ig_user_id: string
+          profile_pic_url: string | null
+          source: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          ig_user_id?: string
+          profile_pic_url?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          ig_user_id?: string
+          profile_pic_url?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      instagram_events: {
+        Row: {
+          comment_text: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ig_user_id: string | null
+          media_id: string | null
+          payload: Json | null
+          processed: boolean
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          comment_text?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ig_user_id?: string | null
+          media_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          comment_text?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ig_user_id?: string | null
+          media_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       message_logs: {
         Row: {
           created_at: string
