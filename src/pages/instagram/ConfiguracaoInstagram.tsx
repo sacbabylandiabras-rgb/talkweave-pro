@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CheckCircle2, Loader2, Copy, Instagram } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Loader2, Copy, Instagram, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,16 +15,51 @@ export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [accountName, setAccountName] = useState("");
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
   const verifyToken = "zaplynx_ig_verify_2024";
 
-  const handleLoginInstagram = async () => {
-    if (!INSTAGRAM_APP_ID) {
-      toast.error("Instagram App ID não configurado.");
-      return;
-    }
+  // Check existing connection on mount
+  useEffect(() => {
+    checkConnection();
+  }, []);
 
+  const checkConnection = async () => {
+    setCheckingStatus(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("meta_credentials")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data?.connected && data?.access_token) {
+        setIsConnected(true);
+        setAccountName(data.fb_user_name ? `@${data.fb_user_name}` : "Instagram conectado");
+      }
+    } catch (err) {
+      console.error("Error checking Instagram connection:", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
+  // Listen for OAuth callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const igConnected = params.get("ig_connected");
+    if (igConnected === "1") {
+      checkConnection();
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const handleLoginInstagram = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Você precisa estar logado para conectar o Instagram.");
@@ -40,6 +75,7 @@ export default function ConfiguracaoInstagram() {
       "pages_show_list",
       "pages_read_engagement",
     ].join(",");
+
     const statePayload = encodeURIComponent(
       btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
     );
@@ -54,38 +90,59 @@ export default function ConfiguracaoInstagram() {
       return;
     }
 
+    // Listen for postMessage from popup
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
       if (event.data?.type === "META_OAUTH_SUCCESS") {
-        setIsConnected(true);
-        setAccountName("@sua_conta");
         setConnecting(false);
+        checkConnection();
         toast.success("Instagram conectado com sucesso!");
         window.removeEventListener("message", handleMessage);
       }
     };
-
     window.addEventListener("message", handleMessage);
 
-    const checkClosed = setInterval(() => {
+    // Also poll for popup close + check DB
+    const checkClosed = setInterval(async () => {
       if (popup.closed) {
         clearInterval(checkClosed);
-        setConnecting(false);
         window.removeEventListener("message", handleMessage);
+        setConnecting(false);
+        // Check DB in case postMessage didn't work (cross-origin)
+        await checkConnection();
       }
-    }, 1000);
+    }, 1500);
   };
 
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setAccountName("");
-    toast.info("Instagram desconectado");
+  const handleDisconnect = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("meta_credentials")
+        .update({ connected: false, access_token: null })
+        .eq("user_id", user.id);
+
+      setIsConnected(false);
+      setAccountName("");
+      toast.info("Instagram desconectado");
+    } catch (err) {
+      toast.error("Erro ao desconectar");
+    }
   };
 
-  const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    toast.success("URL copiada!");
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
   };
+
+  if (checkingStatus) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full max-w-2xl">
@@ -98,9 +155,9 @@ export default function ConfiguracaoInstagram() {
       <Card className="border-border">
         <CardContent className="pt-6 pb-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isConnected ? "bg-[#00ff88]/10" : "bg-muted/30"}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isConnected ? "bg-primary/10" : "bg-muted/30"}`}>
               {isConnected ? (
-                <CheckCircle2 className="w-8 h-8 text-[#00ff88]" />
+                <CheckCircle2 className="w-8 h-8 text-primary" />
               ) : (
                 <Instagram className="w-8 h-8 text-muted-foreground" />
               )}
@@ -109,13 +166,19 @@ export default function ConfiguracaoInstagram() {
             {isConnected ? (
               <>
                 <div>
-                  <Badge className="bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 mb-2">Conectado</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/30 mb-2">Conectado</Badge>
                   <p className="text-sm font-medium">{accountName}</p>
                   <p className="text-xs text-muted-foreground mt-1">Sua conta está pronta para automações</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleDisconnect} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                  Desconectar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={checkConnection} className="gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Verificar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDisconnect} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                    Desconectar
+                  </Button>
+                </div>
               </>
             ) : (
               <>
@@ -152,7 +215,7 @@ export default function ConfiguracaoInstagram() {
             <p className="text-xs font-medium text-muted-foreground">URL de Callback</p>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+              <Button variant="outline" size="icon" onClick={() => copyToClipboard(webhookUrl, "URL")}>
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
@@ -161,7 +224,7 @@ export default function ConfiguracaoInstagram() {
             <p className="text-xs font-medium text-muted-foreground">Verificar Token</p>
             <div className="flex gap-2">
               <Input value={verifyToken} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(verifyToken); toast.success("Token copiado!"); }}>
+              <Button variant="outline" size="icon" onClick={() => copyToClipboard(verifyToken, "Token")}>
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
@@ -172,7 +235,25 @@ export default function ConfiguracaoInstagram() {
         </CardContent>
       </Card>
 
-      {/* Help */}
+      {/* Redirect URI for Developer Console */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-sm">URI de Redirecionamento (para o Meta Developer)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex gap-2">
+            <Input value={REDIRECT_URI} readOnly className="font-mono text-xs" />
+            <Button variant="outline" size="icon" onClick={() => copyToClipboard(REDIRECT_URI, "URI")}>
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Adicione esta URL em <strong>Instagram &gt; Configurações Básicas &gt; URIs de Redirecionamento do OAuth válidos</strong> no Meta Developer
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Permissions */}
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-sm">Permissões solicitadas</CardTitle>
