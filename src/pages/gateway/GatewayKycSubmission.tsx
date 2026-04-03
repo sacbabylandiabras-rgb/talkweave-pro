@@ -81,10 +81,10 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
     step2.address_state.trim() !== "";
 
   const handleSubmit = async () => {
-    if (!selfie.file || !docFront.file || !docBack.file) return;
+    if (!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file) return;
     setSubmitting(true);
     try {
-      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 });
+      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 }, cnpjDoc.file);
     } finally {
       setSubmitting(false);
     }
