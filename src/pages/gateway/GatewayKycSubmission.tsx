@@ -49,17 +49,21 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   const [selfie, setSelfie] = useState<DocUpload>({ file: null, preview: "" });
   const [docFront, setDocFront] = useState<DocUpload>({ file: null, preview: "" });
   const [docBack, setDocBack] = useState<DocUpload>({ file: null, preview: "" });
+  const [cnpjDoc, setCnpjDoc] = useState<DocUpload>({ file: null, preview: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const selfieRef = useRef<HTMLInputElement>(null);
   const frontRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
+  const cnpjDocRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File | undefined, setter: (v: DocUpload) => void) => {
+  const handleFile = (file: File | undefined, setter: (v: DocUpload) => void, allowPdf = false) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !(allowPdf && isPdf)) return;
     if (file.size > 10 * 1024 * 1024) return;
-    setter({ file, preview: URL.createObjectURL(file) });
+    setter({ file, preview: isPdf ? "pdf" : URL.createObjectURL(file) });
   };
 
   const isStep1Valid = step1.whatsapp.trim().length >= 10;
@@ -77,10 +81,10 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
     step2.address_state.trim() !== "";
 
   const handleSubmit = async () => {
-    if (!selfie.file || !docFront.file || !docBack.file) return;
+    if (!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file) return;
     setSubmitting(true);
     try {
-      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 });
+      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 }, cnpjDoc.file);
     } finally {
       setSubmitting(false);
     }
@@ -350,7 +354,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
       {/* Step 3: Documents */}
       {step === 3 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Selfie */}
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
@@ -431,6 +435,41 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Cartão CNPJ */}
+            <Card className="border-[#2A2A2A] overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#FF4D2E]" />
+                  Cartão CNPJ
+                </CardTitle>
+                <CardDescription className="text-xs">Foto ou PDF do cartão CNPJ da empresa</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <input ref={cnpjDocRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFile(e.target.files?.[0], setCnpjDoc, true)} />
+                {cnpjDoc.preview ? (
+                  cnpjDoc.preview === "pdf" ? (
+                    <div className="aspect-[4/3] rounded-lg border border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 bg-muted/30">
+                      <Building2 className="w-8 h-8 text-[#FF4D2E]/60" />
+                      <span className="text-xs text-muted-foreground font-medium">{cnpjDoc.file?.name}</span>
+                      <Badge variant="secondary" className="text-[10px]">PDF</Badge>
+                    </div>
+                  ) : (
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-[#2A2A2A] mb-2">
+                      <img src={cnpjDoc.preview} alt="Cartão CNPJ" className="w-full h-full object-cover" />
+                    </div>
+                  )
+                ) : (
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
+                    <Building2 className="w-8 h-8 text-muted-foreground/30" />
+                    <span className="text-xs text-muted-foreground">PDF ou Imagem</span>
+                  </div>
+                )}
+                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => cnpjDocRef.current?.click()}>
+                  <Upload className="w-3 h-3 mr-1" /> {cnpjDoc.file ? "Trocar" : "Selecionar"}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="flex justify-between">
@@ -439,7 +478,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!selfie.file || !docFront.file || !docBack.file || submitting}
+              disabled={!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file || submitting}
               className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white px-8"
             >
               {submitting ? (
@@ -456,8 +495,9 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
               <ul className="text-xs text-muted-foreground space-y-1.5">
                 <li>• Selfie: Rosto visível segurando o documento ao lado</li>
                 <li>• Documento aceito: RG, CNH ou Passaporte</li>
+                <li>• Cartão CNPJ: Foto ou PDF do cartão CNPJ</li>
                 <li>• As fotos devem estar nítidas e sem cortes</li>
-                <li>• Formato: JPG ou PNG, máximo 10MB cada</li>
+                <li>• Formato: JPG, PNG ou PDF, máximo 10MB cada</li>
               </ul>
             </CardContent>
           </Card>
