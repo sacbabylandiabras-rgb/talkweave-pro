@@ -5,7 +5,7 @@ export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[200px] max-w-[280px]">
+    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[220px] max-w-[300px]">
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-blue-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-blue-500" />
       <div className="flex items-center gap-2">
@@ -28,28 +28,33 @@ export function IGDMNode({ data }: any) {
         </div>
       )}
 
-      {/* Buttons section - always visible */}
-      <div className="mt-2 space-y-1">
+      {/* Buttons with individual output handles */}
+      <div className="mt-2 space-y-1.5">
         {buttons.length > 0 ? (
           buttons.map((btn: any, idx: number) => (
-            <div key={idx} className="bg-blue-500/10 border border-blue-500/20 rounded-md px-2.5 py-1.5 flex items-center gap-1.5">
-              {btn.type === "reply" ? (
-                <MessageCircle className="h-3 w-3 text-blue-500 shrink-0" />
-              ) : (
-                <Link2 className="h-3 w-3 text-blue-500 shrink-0" />
-              )}
-              <span className="text-xs text-card-foreground font-medium truncate">
-                {btn.title || `Botão ${idx + 1}`}
-              </span>
-              {btn.type === "url" && btn.url && (
-                <span className="text-[9px] text-muted-foreground truncate ml-auto">
-                  🔗
+            <div key={idx} className="relative">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-md px-2.5 py-1.5 pr-6 flex items-center gap-1.5">
+                {btn.type === "reply" ? (
+                  <MessageCircle className="h-3 w-3 text-blue-500 shrink-0" />
+                ) : (
+                  <Link2 className="h-3 w-3 text-blue-500 shrink-0" />
+                )}
+                <span className="text-xs text-card-foreground font-medium truncate">
+                  {btn.title || `Botão ${idx + 1}`}
                 </span>
-              )}
+              </div>
+              {/* Individual handle for each button */}
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={`btn-${idx}`}
+                className="w-2.5 h-2.5 !bg-blue-400 !border-2 !border-blue-600 !right-[-5px]"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              />
             </div>
           ))
         ) : (
-          <div className="border border-dashed border-blue-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-blue-500/5 transition-colors">
+          <div className="border border-dashed border-blue-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5">
             <Plus className="h-3 w-3 text-blue-500/50" />
             <span className="text-[10px] text-blue-500/50 font-medium">
               Clique para adicionar botões
@@ -63,7 +68,7 @@ export function IGDMNode({ data }: any) {
         )}
       </div>
 
-      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-blue-500" />
+      {/* Default output handle (for flow without button branching) */}
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-blue-500" />
     </div>
   );
