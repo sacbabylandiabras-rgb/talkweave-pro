@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock } from "lucide-react";
+import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye } from "lucide-react";
 import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
@@ -57,7 +57,8 @@ const EnviarMensagem = () => {
   const [arquivoMidia, setArquivoMidia] = useState<File | null>(null);
   const [legenda, setLegenda] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
-  const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
+  const [delay, setDelay] = useState(2);
+  const [viewOnce, setViewOnce] = useState(false);
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
@@ -187,7 +188,7 @@ const EnviarMensagem = () => {
           if (isImage) {
             await sendImage(validatedData.phone, base64File, legenda || '');
           } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '');
+            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce);
           } else if (isAudio) {
             await sendAudio(validatedData.phone, base64File, legenda || '');
           } else {
@@ -281,7 +282,7 @@ const EnviarMensagem = () => {
           if (isImage) {
             await sendImage(validatedData.phone, base64File, legenda || '');
           } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '');
+            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce);
           } else if (isAudio) {
             await sendAudio(validatedData.phone, base64File, legenda || '');
           } else {
@@ -597,7 +598,7 @@ const EnviarMensagem = () => {
             if (isImage) {
               await sendImage(contato.telefone, base64File, legenda || '');
             } else if (isVideo) {
-              await sendVideo(contato.telefone, base64File, legenda || '');
+              await sendVideo(contato.telefone, base64File, legenda || '', viewOnce);
             } else if (isAudio) {
               await sendAudio(contato.telefone, base64File, legenda || '');
             } else {
@@ -793,7 +794,7 @@ const EnviarMensagem = () => {
       if (isImage) {
         await sendImage(validatedData.phone, base64File, legenda || mensagem);
       } else if (isVideo) {
-        await sendVideo(validatedData.phone, base64File, legenda || mensagem);
+        await sendVideo(validatedData.phone, base64File, legenda || mensagem, viewOnce);
       } else if (isAudio) {
         await sendAudio(validatedData.phone, base64File, legenda || mensagem);
       } else {
@@ -905,6 +906,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   
                   <div>
@@ -983,6 +986,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   
                   <div>
@@ -1182,6 +1187,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
@@ -1310,6 +1317,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>

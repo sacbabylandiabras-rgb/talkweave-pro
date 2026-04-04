@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Paperclip, FileText, Eye, Check, Phone, Wifi } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 
@@ -17,6 +19,8 @@ interface MediaModelSectionProps {
   setModeloSelecionado: (value: string) => void;
   aplicarModelo: (modeloId: string) => void;
   modelosDisponiveis: MessageTemplate[];
+  viewOnce?: boolean;
+  setViewOnce?: (value: boolean) => void;
 }
 
 const MediaModelSection = ({
@@ -27,10 +31,14 @@ const MediaModelSection = ({
   modeloSelecionado,
   setModeloSelecionado,
   aplicarModelo,
-  modelosDisponiveis
+  modelosDisponiveis,
+  viewOnce,
+  setViewOnce,
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  
+  const isVideoFile = arquivoMidia?.type?.startsWith('video/') || false;
   
   const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado);
 
@@ -101,6 +109,26 @@ const MediaModelSection = ({
                     controls
                     className="w-full"
                   />
+                )}
+                {isVideoFile && setViewOnce && (
+                  <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4 text-primary" />
+                      <div>
+                        <Label className="text-sm font-medium cursor-pointer" htmlFor="viewOnce-toggle">
+                          Vídeo Instantâneo
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">
+                          Vídeo circular que só pode ser visto uma vez
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="viewOnce-toggle"
+                      checked={viewOnce || false}
+                      onCheckedChange={setViewOnce}
+                    />
+                  </div>
                 )}
                 {!arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
                   <div className="flex items-center gap-2 p-2 bg-background rounded border border-border text-sm text-muted-foreground">
