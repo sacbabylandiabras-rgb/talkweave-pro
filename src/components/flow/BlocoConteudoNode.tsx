@@ -133,7 +133,7 @@ export function BlocoConteudoNode({ data }: any) {
             const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
 
             return (
-              <div key={btn.id || idx} className="bg-muted/50 rounded-md px-2 py-1.5">
+              <div key={btn.id || idx} className="bg-white dark:bg-card border border-border rounded-md px-2 py-1.5">
                 <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
