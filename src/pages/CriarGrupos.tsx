@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
-  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3
+  MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3, Workflow, Smartphone
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
@@ -828,7 +828,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, refetch } = useRedirectLinks();
+  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
@@ -849,7 +849,36 @@ function LinksRotativosTab() {
   const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
   const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Page customization dialog state
+  // Automation config state
+  const [expandedAutomation, setExpandedAutomation] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
+  const [savingAutomation, setSavingAutomation] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [tplRes, flowRes] = await Promise.all([
+        supabase.from('message_templates').select('id, name, category').eq('active', true).order('name'),
+        supabase.from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
+      ]);
+      if (tplRes.data) setTemplates(tplRes.data);
+      if (flowRes.data) setFlows(flowRes.data);
+    };
+    loadOptions();
+  }, []);
+
+  const handleSaveAutomation = async (linkId: string, updates: Record<string, any>) => {
+    setSavingAutomation(linkId);
+    try {
+      await updateLink(linkId, updates as any);
+      toast.success("Automação salva!");
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || ""));
+    } finally {
+      setSavingAutomation(null);
+    }
+  };
+
   const [editPageLinkId, setEditPageLinkId] = useState<string | null>(null);
   const [pageConfig, setPageConfig] = useState<Record<string, {
     title?: string;
@@ -1563,6 +1592,147 @@ function LinksRotativosTab() {
                   Criar Próximo Grupo
                 </Button>
                 )}
+
+              {/* Automation Section */}
+              <Collapsible open={expandedAutomation === link.id} onOpenChange={(open) => setExpandedAutomation(open ? link.id : null)}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between mt-2">
+                    <span className="flex items-center gap-2">
+                      <Workflow className="w-4 h-4" />
+                      Automação do Link
+                      {(link.welcome_type && link.welcome_type !== 'none') && (
+                        <Badge variant="secondary" className="text-[10px]">Ativa</Badge>
+                      )}
+                      {link.notify_admin && (
+                        <Badge variant="secondary" className="text-[10px]">Notificação</Badge>
+                      )}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedAutomation === link.id ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4 p-4 rounded-lg border border-border bg-muted/20">
+                  {/* Welcome type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      Mensagem de Boas-vindas
+                    </label>
+                    <Select
+                      value={link.welcome_type || 'none'}
+                      onValueChange={(v) => handleSaveAutomation(link.id, { welcome_type: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Desativada</SelectItem>
+                        <SelectItem value="text">Texto</SelectItem>
+                        <SelectItem value="template">Modelo</SelectItem>
+                        <SelectItem value="flow">Fluxo Visual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {link.welcome_type === 'text' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Mensagem</label>
+                      <Textarea
+                        value={link.welcome_message || ''}
+                        onChange={(e) => {/* local state not needed, save on blur */}}
+                        onBlur={(e) => handleSaveAutomation(link.id, { welcome_message: e.target.value })}
+                        defaultValue={link.welcome_message || ''}
+                        placeholder="Olá {{nome}}! Bem-vindo ao grupo!"
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">Variáveis: {'{{nome}}'}, {'{{telefone}}'}, {'{{grupo}}'}</p>
+                    </div>
+                  )}
+
+                  {link.welcome_type === 'template' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Modelo</label>
+                      <Select
+                        value={link.welcome_template_id || ''}
+                        onValueChange={(v) => handleSaveAutomation(link.id, { welcome_template_id: v || null })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                        <SelectContent>
+                          {templates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {link.welcome_type === 'flow' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Fluxo Visual</label>
+                      <Select
+                        value={link.welcome_flow_id || ''}
+                        onValueChange={(v) => handleSaveAutomation(link.id, { welcome_flow_id: v || null })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecione um fluxo" /></SelectTrigger>
+                        <SelectContent>
+                          {flows.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {link.welcome_type && link.welcome_type !== 'none' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        Instância de envio
+                      </label>
+                      <Select
+                        value={link.welcome_instance_id || 'auto'}
+                        onValueChange={(v) => handleSaveAutomation(link.id, { welcome_instance_id: v === 'auto' ? null : v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Automática (instância do grupo)</SelectItem>
+                          {instances.map((inst) => (
+                            <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Admin notification */}
+                  <div className="pt-2 border-t border-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Notificar admin ao entrar
+                      </label>
+                      <Switch
+                        checked={link.notify_admin || false}
+                        onCheckedChange={(v) => handleSaveAutomation(link.id, { notify_admin: v })}
+                      />
+                    </div>
+                    {link.notify_admin && (
+                      <div className="space-y-1">
+                        <Input
+                          placeholder="Telefone do admin (ex: 5511999999999)"
+                          defaultValue={link.notify_phone || ''}
+                          onBlur={(e) => handleSaveAutomation(link.id, { notify_phone: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Receba uma mensagem toda vez que alguém entrar via este link</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {savingAutomation === link.id && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Salvando...
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
 
             </CardContent>
           </Card>

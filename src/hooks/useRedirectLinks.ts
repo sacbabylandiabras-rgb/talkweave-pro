@@ -18,6 +18,13 @@ export interface RedirectLink {
   max_members_per_group: number;
   active: boolean;
   created_at: string;
+  welcome_type: string;
+  welcome_message: string;
+  welcome_template_id: string | null;
+  welcome_flow_id: string | null;
+  welcome_instance_id: string | null;
+  notify_admin: boolean;
+  notify_phone: string;
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];
@@ -175,6 +182,12 @@ export function useRedirectLinks() {
     await fetchLinks();
   };
 
+  const updateLink = async (id: string, updates: Partial<RedirectLink>) => {
+    const { error } = await (supabase as any).from("redirect_links").update(updates).eq("id", id);
+    if (error) throw error;
+    await fetchLinks();
+  };
+
   useEffect(() => {
     fetchLinks();
   }, [fetchLinks]);
@@ -189,5 +202,6 @@ export function useRedirectLinks() {
     addGroupToLink,
     removeGroupFromLink,
     updateGroupInLink,
+    updateLink,
   };
 }
