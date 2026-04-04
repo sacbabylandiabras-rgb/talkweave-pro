@@ -27,7 +27,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Fetch rotative links with their groups
-  const [rotativeLinks, setRotativeLinks] = useState<Array<{ id: string; name: string; slug: string; groups: Array<{ group_id: string; group_name: string }> }>>([]);
+  const [rotativeLinks, setRotativeLinks] = useState<Array<{ id: string; name: string; slug: string; groups: Array<{ group_id: string; group_name: string; instance_id?: string | null }> }>>([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
 
   useEffect(() => {
@@ -37,12 +37,12 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       try {
         const { data: links } = await supabase.from('redirect_links').select('id, name, slug');
         if (!links) { setLoadingLinks(false); return; }
-        const { data: linkGroups } = await supabase.from('redirect_link_groups').select('redirect_link_id, group_id, group_name');
+        const { data: linkGroups } = await supabase.from('redirect_link_groups').select('redirect_link_id, group_id, group_name, instance_id');
         const mapped = links.map(l => ({
           id: l.id,
           name: l.name,
           slug: l.slug,
-          groups: (linkGroups || []).filter(g => g.redirect_link_id === l.id).map(g => ({ group_id: g.group_id, group_name: g.group_name })),
+          groups: (linkGroups || []).filter(g => g.redirect_link_id === l.id).map(g => ({ group_id: g.group_id, group_name: g.group_name, instance_id: g.instance_id })),
         })).filter(l => l.groups.length > 0);
         setRotativeLinks(mapped);
       } catch (e) {
@@ -115,6 +115,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     try {
       const groupContacts = selectedGroups.map(groupId => {
         const group = groups.find(g => g.id === groupId);
+        const linkGroup = rotativeLinks.flatMap(link => link.groups).find(g => g.group_id === groupId);
         // Normalize group ID: remove "-group" suffix before @g.us for Z-API compatibility
         let normalizedId = groupId;
         if (normalizedId.includes("-group@g.us")) {
@@ -124,7 +125,9 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         }
         return {
           phone: normalizedId,
-          name: group?.nome || "Grupo",
+          name: group?.nome || linkGroup?.group_name || "Grupo",
+          sourceInstanceId: group?.sourceInstanceId || linkGroup?.instance_id || null,
+          sourceInstanceName: group?.sourceInstanceName || null,
         };
       });
 
