@@ -1211,7 +1211,11 @@ export type Database = {
           active: boolean
           created_at: string
           group_message_enabled: boolean
+          group_message_flow_id: string | null
+          group_message_instance_id: string | null
+          group_message_template_id: string | null
           group_message_text: string
+          group_message_type: string
           id: string
           max_members_per_group: number
           name: string
@@ -1230,7 +1234,11 @@ export type Database = {
           active?: boolean
           created_at?: string
           group_message_enabled?: boolean
+          group_message_flow_id?: string | null
+          group_message_instance_id?: string | null
+          group_message_template_id?: string | null
           group_message_text?: string
+          group_message_type?: string
           id?: string
           max_members_per_group?: number
           name: string
@@ -1249,7 +1257,11 @@ export type Database = {
           active?: boolean
           created_at?: string
           group_message_enabled?: boolean
+          group_message_flow_id?: string | null
+          group_message_instance_id?: string | null
+          group_message_template_id?: string | null
           group_message_text?: string
+          group_message_type?: string
           id?: string
           max_members_per_group?: number
           name?: string
