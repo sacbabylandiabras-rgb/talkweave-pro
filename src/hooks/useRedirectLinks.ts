@@ -202,5 +202,6 @@ export function useRedirectLinks() {
     addGroupToLink,
     removeGroupFromLink,
     updateGroupInLink,
+    updateLink,
   };
 }
