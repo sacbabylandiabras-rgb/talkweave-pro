@@ -909,6 +909,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   
                   <div>
@@ -989,6 +991,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   
                   <div>
@@ -1190,6 +1194,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
@@ -1320,6 +1326,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
