@@ -380,11 +380,14 @@ const Campanhas = () => {
     );
   }
 
+  const contactCampaigns = campaigns.filter(c => c.target_audience?.type !== 'groups');
+  const groupCampaigns = campaigns.filter(c => c.target_audience?.type === 'groups');
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Campanhas</h1>
-        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+        <Button size="sm" onClick={() => activeTab === 'grupos' ? setShowCreateGroupDialog(true) : setShowCreateDialog(true)}>
           <Plus className="w-4 h-4 mr-1" />
           Nova
         </Button>
@@ -413,6 +416,20 @@ const Campanhas = () => {
           />
         </CardContent>
       </Card>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="contatos" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Contatos
+          </TabsTrigger>
+          <TabsTrigger value="grupos" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Grupos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="contatos" className="mt-4">
 
       <CreateCampaignDialog 
         open={showCreateDialog} 
@@ -445,7 +462,7 @@ const Campanhas = () => {
 
       <div className="grid gap-4">
         {(() => {
-          const visibleCampaigns = campaigns;
+          const visibleCampaigns = contactCampaigns;
           
           if (visibleCampaigns.length === 0) {
             return (
@@ -453,7 +470,7 @@ const Campanhas = () => {
                 <CardContent className="text-center py-8">
                   <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    Nenhuma campanha pendente ou pausada. Crie uma nova campanha!
+                    Nenhuma campanha de contatos. Crie uma nova campanha!
                   </p>
                   <Button onClick={() => setShowCreateDialog(true)}>
                     <Plus className="w-4 h-4 mr-2" />
