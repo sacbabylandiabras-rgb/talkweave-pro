@@ -849,7 +849,36 @@ function LinksRotativosTab() {
   const [applyingPhoto, setApplyingPhoto] = useState<string | null>(null);
   const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Page customization dialog state
+  // Automation config state
+  const [expandedAutomation, setExpandedAutomation] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
+  const [savingAutomation, setSavingAutomation] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [tplRes, flowRes] = await Promise.all([
+        supabase.from('message_templates').select('id, name, category').eq('active', true).order('name'),
+        supabase.from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
+      ]);
+      if (tplRes.data) setTemplates(tplRes.data);
+      if (flowRes.data) setFlows(flowRes.data);
+    };
+    loadOptions();
+  }, []);
+
+  const handleSaveAutomation = async (linkId: string, updates: Record<string, any>) => {
+    setSavingAutomation(linkId);
+    try {
+      await updateLink(linkId, updates as any);
+      toast.success("Automação salva!");
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || ""));
+    } finally {
+      setSavingAutomation(null);
+    }
+  };
+
   const [editPageLinkId, setEditPageLinkId] = useState<string | null>(null);
   const [pageConfig, setPageConfig] = useState<Record<string, {
     title?: string;
