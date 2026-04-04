@@ -323,10 +323,18 @@ serve(async (req) => {
       console.error('Device check error:', e);
     }
 
+    // Normalize group phone IDs: remove "-group" suffix before @g.us
+    const normalizeGroupPhone = (phone: string): string => {
+      if (phone.includes('-group@g.us')) {
+        return phone.replace('-group@g.us', '@g.us');
+      }
+      return phone;
+    };
+
     // Process current batch
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
-      const contact = currentBatch[i];
+      const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
       const currentInstance = getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
 
