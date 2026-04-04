@@ -195,8 +195,9 @@ function HeroSection() {
     let doneTimer = 0;
     let animId: number;
 
-    const tagline = stage.querySelector("#lp-tagline") as HTMLElement;
-    const sub = stage.querySelector("#lp-sub") as HTMLElement;
+    const heroSection = stage.closest("#lp-hero-section");
+    const tagline = heroSection?.querySelector("#lp-tagline") as HTMLElement;
+    const sub = heroSection?.querySelector("#lp-sub") as HTMLElement;
 
     function initPositions() {
       const w = W();
@@ -402,10 +403,7 @@ function HeroSection() {
     <div id="lp-hero-section">
       <div className="lp-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="lp-canvas" />
-        <div className="lp-overlay">
-          <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
-          <div id="lp-sub">Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
-        </div>
+        <div className="lp-overlay" />
         <div className="lp-screens-reveal" ref={screensRef}>
           <div className="lp-screen-wrap">
             {screens.map((src, i) => (
@@ -420,6 +418,11 @@ function HeroSection() {
             ))}
           </div>
         </div>
+      </div>
+      {/* Tagline below stage so it doesn't overlap */}
+      <div style={{ textAlign: "center", padding: "18px 16px 0" }}>
+        <div id="lp-tagline" style={{ opacity: 1 }}>ZapLynx <em>engole</em> a concorrência</div>
+        <div id="lp-sub" style={{ opacity: 1 }}>Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
       </div>
     </div>
   );
