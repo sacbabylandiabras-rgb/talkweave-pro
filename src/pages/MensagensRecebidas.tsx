@@ -337,9 +337,11 @@ const ChatView = ({
         const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, attachedFile.mediaType === 'video' ? viewOnce : undefined);
+        const isVideo = attachedFile.mediaType === 'video';
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, isVideo ? viewOnce : undefined, isVideo ? isPtv : undefined);
         setAttachedFile(null);
         setViewOnce(false);
+        setIsPtv(false);
       } else {
         await onSendMessage(conversation.phone, newMessage.trim());
       }
