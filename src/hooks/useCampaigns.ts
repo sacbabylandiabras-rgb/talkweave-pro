@@ -345,10 +345,35 @@ export const useCampaigns = () => {
 
       console.log('✅ send-campaign invoked successfully:', data);
 
-      toast({
-        title: "Sucesso",
-        description: `Campanha enviada para ${contacts.length} contatos`,
-      });
+      if (data && typeof data === 'object' && 'stopped' in data && data.stopped) {
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
+        throw new Error((data as { error?: string; message?: string }).error || (data as { message?: string }).message || 'Campanha pausada');
+      }
+
+      const batchResults = data && typeof data === 'object' && Array.isArray((data as { results?: unknown[] }).results)
+        ? (data as { results: Array<{ success?: boolean }> }).results
+        : [];
+      const sentCount = batchResults.filter(result => result?.success).length;
+      const failedCount = batchResults.filter(result => result?.success === false).length;
+      const hasRemaining = Boolean(data && typeof data === 'object' && Number((data as { remaining?: number }).remaining || 0) > 0);
+
+      if (failedCount > 0) {
+        toast({
+          title: sentCount > 0 ? "Atenção" : "Erro",
+          description: sentCount > 0
+            ? `Campanha iniciada com ${sentCount} envio(s) e ${failedCount} falha(s) neste lote`
+            : "Nenhuma mensagem foi enviada neste lote",
+          variant: sentCount > 0 ? undefined : "destructive",
+        });
+      } else {
+        toast({
+          title: "Sucesso",
+          description: hasRemaining
+            ? `Campanha iniciada para ${contacts.length} contatos`
+            : `Lote enviado com sucesso para ${sentCount || contacts.length} contato(s)`,
+        });
+      }
 
       return data;
     } catch (error) {
