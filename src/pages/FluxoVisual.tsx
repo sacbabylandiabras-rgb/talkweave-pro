@@ -839,7 +839,7 @@ export default function FluxoVisual() {
               break;
             case "video":
               if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '' });
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(nodeData.viewOnce ? { viewOnce: true } : {}), ...(nodeData.isPtv ? { isPtv: true } : {}) });
               break;
             case "audio":
               if (!mediaUrl) continue;
