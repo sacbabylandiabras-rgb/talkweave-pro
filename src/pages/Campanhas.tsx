@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -11,6 +12,7 @@ import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
+import { CreateGroupCampaignDialog } from "@/components/campanhas/CreateGroupCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
