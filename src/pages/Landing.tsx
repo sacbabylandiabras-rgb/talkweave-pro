@@ -233,12 +233,24 @@ function HeroSection() {
           ctx.fill();
         });
       } else if (name === "Hotmart") {
-        ctx.fillStyle = "#e8432a";
+        // Fundo circular vermelho Hotmart
+        ctx.fillStyle = "#f04e23";
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        // Letra "H" branca estilizada
+        ctx.fillStyle = "#fff";
+        const lw = r * 0.16;
+        const hh = r * 0.7;
+        // Pilar esquerdo
+        ctx.fillRect(cx - r * 0.32, cy - hh * 0.5, lw, hh);
+        // Pilar direito
+        ctx.fillRect(cx + r * 0.16, cy - hh * 0.5, lw, hh);
+        // Barra horizontal
+        ctx.fillRect(cx - r * 0.32, cy - lw * 0.5, r * 0.64, lw);
+        // Chama/ponta no topo do pilar direito
         ctx.beginPath();
-        ctx.moveTo(cx - r * 0.2, cy - r * 0.05);
-        ctx.quadraticCurveTo(cx, cy - r * 0.72, cx + r * 0.2, cy - r * 0.05);
+        ctx.moveTo(cx + r * 0.24, cy - hh * 0.5);
+        ctx.quadraticCurveTo(cx + r * 0.24, cy - hh * 0.5 - r * 0.28, cx + r * 0.38, cy - hh * 0.5 - r * 0.18);
+        ctx.quadraticCurveTo(cx + r * 0.32, cy - hh * 0.5 - r * 0.06, cx + r * 0.32, cy - hh * 0.5);
         ctx.fill();
       } else if (name === "DevZapp") {
         ctx.fillStyle = "#1a5c3a";
