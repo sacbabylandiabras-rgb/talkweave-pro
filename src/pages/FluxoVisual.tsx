@@ -72,6 +72,7 @@ import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
+import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
