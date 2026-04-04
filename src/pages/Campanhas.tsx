@@ -48,7 +48,8 @@ const Campanhas = () => {
   const { instances, activeInstance } = useZapiInstances();
   
   
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("contatos");
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
