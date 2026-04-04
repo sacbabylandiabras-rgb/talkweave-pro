@@ -1221,6 +1221,15 @@ export type Database = {
           name: string
           notify_admin: boolean
           notify_phone: string
+          recurrence_pattern: string | null
+          schedule_flow_id: string | null
+          schedule_instance_id: string | null
+          schedule_message_text: string
+          schedule_message_type: string
+          schedule_template_id: string | null
+          schedule_time: string | null
+          schedule_type: string
+          scheduled_at: string | null
           slug: string
           updated_at: string
           user_id: string
@@ -1244,6 +1253,15 @@ export type Database = {
           name: string
           notify_admin?: boolean
           notify_phone?: string
+          recurrence_pattern?: string | null
+          schedule_flow_id?: string | null
+          schedule_instance_id?: string | null
+          schedule_message_text?: string
+          schedule_message_type?: string
+          schedule_template_id?: string | null
+          schedule_time?: string | null
+          schedule_type?: string
+          scheduled_at?: string | null
           slug: string
           updated_at?: string
           user_id: string
@@ -1267,6 +1285,15 @@ export type Database = {
           name?: string
           notify_admin?: boolean
           notify_phone?: string
+          recurrence_pattern?: string | null
+          schedule_flow_id?: string | null
+          schedule_instance_id?: string | null
+          schedule_message_text?: string
+          schedule_message_type?: string
+          schedule_template_id?: string | null
+          schedule_time?: string | null
+          schedule_type?: string
+          scheduled_at?: string | null
           slug?: string
           updated_at?: string
           user_id?: string
