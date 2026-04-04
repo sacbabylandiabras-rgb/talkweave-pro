@@ -1720,6 +1720,92 @@ export default function FluxoVisual() {
               </>
             )}
 
+            {selectedNode?.type === "blocoAgendamento" && (
+              <>
+                <div>
+                  <Label>Tipo de Agendamento</Label>
+                  <Select
+                    value={selectedNode.data.scheduleType || "once"}
+                    onValueChange={(value) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, scheduleType: value },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="once">Data e hora única</SelectItem>
+                      <SelectItem value="recurring">Recorrente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedNode.data.scheduleType === "recurring" ? (
+                  <div>
+                    <Label>Padrão de Recorrência</Label>
+                    <Select
+                      value={selectedNode.data.recurrencePattern || "daily"}
+                      onValueChange={(value) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, recurrencePattern: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Diariamente</SelectItem>
+                        <SelectItem value="weekly">Semanalmente</SelectItem>
+                        <SelectItem value="monthly">Mensalmente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                <div>
+                  <Label>{selectedNode.data.scheduleType === "recurring" ? "Início em" : "Data e Hora"}</Label>
+                  <Input
+                    type="datetime-local"
+                    value={selectedNode.data.scheduledAt || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, scheduledAt: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+
+                {selectedNode.data.scheduleType === "recurring" && (
+                  <div>
+                    <Label>Horário de envio</Label>
+                    <Input
+                      type="time"
+                      value={selectedNode.data.scheduleTime || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, scheduleTime: e.target.value },
+                        })
+                      }
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Horário em que o envio será disparado em cada recorrência
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground p-2 bg-accent/50 rounded">
+                  💡 O bloco seguinte será executado na data/hora agendada. Conecte ao bloco de conteúdo que deseja enviar.
+                </p>
+              </>
+            )}
+
             <div className="flex justify-between pt-4">
               <Button
                 variant="destructive"
