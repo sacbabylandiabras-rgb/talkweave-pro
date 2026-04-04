@@ -27,6 +27,10 @@ export interface RedirectLink {
   notify_phone: string;
   group_message_enabled: boolean;
   group_message_text: string;
+  group_message_type: string;
+  group_message_template_id: string | null;
+  group_message_flow_id: string | null;
+  group_message_instance_id: string | null;
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];

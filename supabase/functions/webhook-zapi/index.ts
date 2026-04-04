@@ -956,33 +956,87 @@ serve(async (req) => {
                   }
 
                   // === GROUP MESSAGE (send inside the group) ===
-                  if (redirectLink.group_message_enabled && redirectLink.group_message_text) {
-                    const groupMsg = (redirectLink.group_message_text || '')
-                      .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
-                      .replace(/\{\{telefone\}\}/gi, joinedPhone)
-
-                    // Send to group using @g.us format
+                  const gmType = redirectLink.group_message_type || 'none'
+                  if (gmType !== 'none') {
                     const groupChatId = normalizedGroupId.replace(/-group$/i, '@g.us')
 
                     let gmInstData = instData
-                    if (redirectLink.welcome_instance_id) {
+                    if (redirectLink.group_message_instance_id) {
                       const { data: overrideInst } = await supabase
                         .from('zapi_instances')
                         .select('zapi_instance_id, zapi_token, zapi_client_token')
                         .eq('user_id', instData.user_id)
-                        .eq('id', redirectLink.welcome_instance_id)
+                        .eq('id', redirectLink.group_message_instance_id)
                         .eq('is_active', true)
                         .maybeSingle()
                       if (overrideInst) gmInstData = { ...instData, ...overrideInst }
                     }
 
                     const gmBaseUrl = `https://api.z-api.io/instances/${gmInstData.zapi_instance_id}/token/${gmInstData.zapi_token}`
-                    await fetch(`${gmBaseUrl}/send-text`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Client-Token': gmInstData.zapi_client_token },
-                      body: JSON.stringify({ phone: groupChatId, message: groupMsg }),
-                    })
-                    console.log(`📢 Group message sent to ${groupChatId}`)
+                    const gmHeaders = { 'Content-Type': 'application/json', 'Client-Token': gmInstData.zapi_client_token }
+
+                    if (gmType === 'text' && redirectLink.group_message_text) {
+                      const groupMsg = (redirectLink.group_message_text || '')
+                        .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                        .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                        .replace(/\{\{grupo\}\}/gi, groupName)
+                      await fetch(`${gmBaseUrl}/send-text`, {
+                        method: 'POST', headers: gmHeaders,
+                        body: JSON.stringify({ phone: groupChatId, message: groupMsg }),
+                      })
+                      console.log(`📢 Group text message sent to ${groupChatId}`)
+                    } else if (gmType === 'template' && redirectLink.group_message_template_id) {
+                      const { data: tpl } = await supabase
+                        .from('message_templates')
+                        .select('*')
+                        .eq('id', redirectLink.group_message_template_id)
+                        .maybeSingle()
+                      if (tpl) {
+                        const tplContent = (tpl.content || '')
+                          .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                          .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                          .replace(/\{\{grupo\}\}/gi, groupName)
+
+                        if (tpl.media_url) {
+                          const fileType = tpl.file_type || 'image'
+                          const endpoint = fileType === 'video' ? 'send-video' : fileType === 'audio' ? 'send-audio' : fileType === 'document' ? 'send-document' : 'send-image'
+                          await fetch(`${gmBaseUrl}/${endpoint}`, {
+                            method: 'POST', headers: gmHeaders,
+                            body: JSON.stringify({ phone: groupChatId, image: tpl.media_url, video: tpl.media_url, audio: tpl.media_url, document: tpl.media_url, caption: tplContent }),
+                          })
+                        } else {
+                          await fetch(`${gmBaseUrl}/send-text`, {
+                            method: 'POST', headers: gmHeaders,
+                            body: JSON.stringify({ phone: groupChatId, message: tplContent }),
+                          })
+                        }
+                        console.log(`📢 Group template message sent to ${groupChatId}`)
+                      }
+                    } else if (gmType === 'flow' && redirectLink.group_message_flow_id) {
+                      // Trigger flow for group chat
+                      const { data: flowData } = await supabase
+                        .from('flow_automations')
+                        .select('*')
+                        .eq('id', redirectLink.group_message_flow_id)
+                        .maybeSingle()
+                      if (flowData) {
+                        const flowPayload = {
+                          instanceId: gmInstData.zapi_instance_id || '',
+                          phone: groupChatId,
+                          message: { text: { message: '__manual_flow_trigger__' } },
+                          senderName: joinedName || '',
+                          momment: 'received',
+                          isGroup: true,
+                        }
+                        const fnUrl = Deno.env.get('SUPABASE_URL') + '/functions/v1/webhook-zapi'
+                        await fetch(fnUrl, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+                          body: JSON.stringify(flowPayload),
+                        })
+                        console.log(`📢 Group flow triggered for ${groupChatId}`)
+                      }
+                    }
                   }
 
                   // === ADMIN NOTIFICATION ===
