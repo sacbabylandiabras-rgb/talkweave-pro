@@ -110,6 +110,26 @@ const MediaModelSection = ({
                     className="w-full"
                   />
                 )}
+                {isVideoFile && setViewOnce && (
+                  <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4 text-primary" />
+                      <div>
+                        <Label className="text-sm font-medium cursor-pointer" htmlFor="viewOnce-toggle">
+                          Vídeo Instantâneo
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">
+                          Vídeo circular que só pode ser visto uma vez
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="viewOnce-toggle"
+                      checked={viewOnce || false}
+                      onCheckedChange={setViewOnce}
+                    />
+                  </div>
+                )}
                 {!arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
                   <div className="flex items-center gap-2 p-2 bg-background rounded border border-border text-sm text-muted-foreground">
                     <FileText className="w-8 h-8" />
