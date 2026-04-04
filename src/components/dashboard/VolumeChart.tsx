@@ -186,18 +186,18 @@ export function VolumeChart() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[340px] rounded-xl border border-border/60 bg-card">
+      <div className="flex items-center justify-center h-[340px] rounded border border-border/60 bg-card">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-5 hover:shadow-md transition-shadow duration-300">
+    <div className="rounded border border-border/60 bg-card p-5 hover:shadow-md transition-shadow duration-300">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-accent/10">
+          <div className="p-1.5 rounded bg-accent/10">
             <TrendingUp className="w-4 h-4 text-accent" />
           </div>
           <div>
@@ -211,7 +211,7 @@ export function VolumeChart() {
         <div className="flex flex-wrap items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded-lg border-border/60", !dateFrom && "text-muted-foreground")}>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded border-border/60", !dateFrom && "text-muted-foreground")}>
                 <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
                 {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
               </Button>
@@ -225,7 +225,7 @@ export function VolumeChart() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded-lg border-border/60", !dateTo && "text-muted-foreground")}>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal text-xs h-8 rounded border-border/60", !dateTo && "text-muted-foreground")}>
                 <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
                 {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
               </Button>
