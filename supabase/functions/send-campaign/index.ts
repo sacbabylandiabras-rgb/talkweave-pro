@@ -436,9 +436,15 @@ serve(async (req) => {
           continue;
 
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
-          const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-          const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaign.template.media_url }) });
-          if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
+          if (campaignIsPtv) {
+            const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaign.template.media_url }) });
+            if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
+          } else {
+            const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaign.template.media_url, ...(campaignViewOnce ? { viewOnce: true } : {}) }) });
+            if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
+          }
 
           await sleep(Math.max(delayMs / 2, 1000));
 
