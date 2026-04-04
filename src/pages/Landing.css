@@ -197,11 +197,11 @@
 .lp-screen-slide img {
   width: 100%;
   height: auto;
-  max-height: 400px;
   display: block;
   border-radius: 9px;
-  object-fit: contain;
+  object-fit: cover;
   object-position: top center;
+  image-rendering: auto;
 }
 .lp-screen-dots {
   display: flex;
