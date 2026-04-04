@@ -115,6 +115,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         delay_seconds: 2,
       });
       setImportedContacts([]);
+      setViewOnce(false);
+      setIsPtv(false);
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating campaign:', error);
