@@ -300,7 +300,7 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
@@ -310,6 +310,7 @@ const ChatView = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<{ file: File; previewUrl: string; mediaType: string } | null>(null);
   const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
