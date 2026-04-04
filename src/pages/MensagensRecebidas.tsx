@@ -599,7 +599,22 @@ const ChatView = ({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setAttachedFile(null)}>
+            {attachedFile.mediaType === 'video' && (
+              <button
+                type="button"
+                onClick={() => setViewOnce(!viewOnce)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0",
+                  viewOnce
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                )}
+              >
+                <Video className="w-3.5 h-3.5" />
+                Instantâneo
+              </button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
