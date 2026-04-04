@@ -168,6 +168,7 @@ export const useZapi = () => {
       message?: string;
       mediaUrl?: string;
       mediaType?: string;
+      viewOnce?: boolean;
       instanceId?: string;
       title?: string;
       footer?: string;
