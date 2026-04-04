@@ -851,7 +851,7 @@ function LinksRotativosTab() {
   const linkPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Automation config state
-  const [expandedAutomation, setExpandedAutomation] = useState<string | null>(null);
+  const [automationDialogLink, setAutomationDialogLink] = useState<any | null>(null);
   const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [savingAutomation, setSavingAutomation] = useState<string | null>(null);
