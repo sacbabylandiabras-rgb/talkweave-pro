@@ -84,6 +84,7 @@ const nodeTypes: NodeTypes = {
   blocoCondicao: BlocoCondicaoNode,
   blocoAcao: BlocoAcaoNode,
   blocoGatilho: BlocoGatilhoNode,
+  blocoAgendamento: BlocoAgendamentoNode,
 };
 
 const initialNodes: Node[] = [
