@@ -134,7 +134,7 @@ export function BlocoConteudoNode({ data }: any) {
 
             return (
               <div key={btn.id || idx} className="bg-white dark:bg-card border border-border rounded-md px-2 py-1.5">
-                <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
+                <div className="text-[10px] text-card-foreground flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
                 </div>
@@ -142,7 +142,7 @@ export function BlocoConteudoNode({ data }: any) {
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
+                        className="h-full bg-orange-500 rounded-full transition-all"
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       />
                     </div>
