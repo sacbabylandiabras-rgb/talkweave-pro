@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
-import { Users, Loader2, Search, MessageSquare } from "lucide-react";
-import { CarouselPreview } from "./CarouselPreview";
+import { supabase } from "@/integrations/supabase/client";
+import { Users, Loader2, Search, MessageSquare, Link2 } from "lucide-react";
 
 interface CreateGroupCampaignDialogProps {
   open: boolean;
@@ -24,6 +23,34 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const { createCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
   const { groups, loading: loadingGroups } = useWhatsAppGroups();
+
+  // Fetch rotative links with their groups
+  const [rotativeLinks, setRotativeLinks] = useState<Array<{ id: string; name: string; slug: string; groups: Array<{ group_id: string; group_name: string }> }>>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const fetchLinks = async () => {
+      setLoadingLinks(true);
+      try {
+        const { data: links } = await supabase.from('redirect_links').select('id, name, slug');
+        if (!links) { setLoadingLinks(false); return; }
+        const { data: linkGroups } = await supabase.from('redirect_link_groups').select('redirect_link_id, group_id, group_name');
+        const mapped = links.map(l => ({
+          id: l.id,
+          name: l.name,
+          slug: l.slug,
+          groups: (linkGroups || []).filter(g => g.redirect_link_id === l.id).map(g => ({ group_id: g.group_id, group_name: g.group_name })),
+        })).filter(l => l.groups.length > 0);
+        setRotativeLinks(mapped);
+      } catch (e) {
+        console.error('Error fetching rotative links:', e);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+    fetchLinks();
+  }, [open]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -184,42 +211,88 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
               />
             </div>
 
-            {loadingGroups ? (
+            {(loadingGroups || loadingLinks) ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">Carregando grupos...</span>
               </div>
-            ) : filteredGroups.length === 0 ? (
+            ) : (filteredGroups.length === 0 && rotativeLinks.length === 0) ? (
               <div className="text-center py-6 text-muted-foreground text-sm">
                 Nenhum grupo encontrado
               </div>
             ) : (
-              <ScrollArea className="h-[240px] border border-border/50 rounded-lg">
+              <ScrollArea className="h-[280px] border border-border/50 rounded-lg">
                 <div className="p-2 space-y-1">
-                  {filteredGroups.map(group => (
-                    <label
-                      key={group.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedGroups.includes(group.id)}
-                        onCheckedChange={() => toggleGroup(group.id)}
-                      />
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {group.foto ? (
-                          <img src={group.foto} alt="" className="w-8 h-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{group.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">{group.membros} membros</p>
+                  {/* Rotative Links sections */}
+                  {rotativeLinks.map(link => {
+                    const linkFilteredGroups = link.groups.filter(g =>
+                      g.group_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      link.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                    if (linkFilteredGroups.length === 0) return null;
+                    return (
+                      <div key={link.id} className="mb-2">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/40 rounded-md mb-1">
+                          <Link2 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-semibold text-primary">{link.name}</span>
+                          <span className="text-[10px] text-muted-foreground">/{link.slug}</span>
                         </div>
+                        {linkFilteredGroups.map(g => (
+                          <label
+                            key={`${link.id}-${g.group_id}`}
+                            className="flex items-center gap-3 p-2 pl-6 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                          >
+                            <Checkbox
+                              checked={selectedGroups.includes(g.group_id)}
+                              onCheckedChange={() => toggleGroup(g.group_id)}
+                            />
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{g.group_name}</p>
+                            </div>
+                          </label>
+                        ))}
                       </div>
-                    </label>
-                  ))}
+                    );
+                  })}
+
+                  {/* WhatsApp Groups (not in rotative links) */}
+                  {filteredGroups.length > 0 && (
+                    <div className="mb-2">
+                      {rotativeLinks.length > 0 && (
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/40 rounded-md mb-1">
+                          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-muted-foreground">Grupos WhatsApp</span>
+                        </div>
+                      )}
+                      {filteredGroups.map(group => (
+                        <label
+                          key={group.id}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        >
+                          <Checkbox
+                            checked={selectedGroups.includes(group.id)}
+                            onCheckedChange={() => toggleGroup(group.id)}
+                          />
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {group.foto ? (
+                              <img src={group.foto} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{group.nome}</p>
+                              <p className="text-[10px] text-muted-foreground">{group.membros} membros</p>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             )}
