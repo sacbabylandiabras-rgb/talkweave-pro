@@ -1424,7 +1424,26 @@ serve(async (req) => {
       }
 
       const nowIso = new Date().toISOString()
-      const candidatePhones = Array.from(new Set([phone, resolvedPhone].filter(Boolean)))
+      const expandCampaignCallbackPhones = (value?: string | null) => {
+        if (!value) return []
+
+        const candidates = new Set<string>([value])
+
+        if (value.endsWith('@g.us')) {
+          candidates.add(value.replace(/@g\.us$/i, ''))
+        } else if (/^\d+$/.test(value)) {
+          candidates.add(`${value}@g.us`)
+        }
+
+        return Array.from(candidates)
+      }
+
+      const candidatePhones = Array.from(
+        new Set([
+          ...expandCampaignCallbackPhones(phone),
+          ...expandCampaignCallbackPhones(resolvedPhone),
+        ].filter(Boolean))
+      )
 
       let campaignSendQuery = supabase
         .from('campaign_sends')
