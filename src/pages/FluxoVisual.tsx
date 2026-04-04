@@ -61,6 +61,7 @@ import {
   Link2,
   MessageCircle,
   Phone as PhoneIcon,
+  CalendarClock,
   ArrowRight,
   MousePointerClick,
   Info,
@@ -71,6 +72,7 @@ import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
+import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +84,7 @@ const nodeTypes: NodeTypes = {
   blocoCondicao: BlocoCondicaoNode,
   blocoAcao: BlocoAcaoNode,
   blocoGatilho: BlocoGatilhoNode,
+  blocoAgendamento: BlocoAgendamentoNode,
 };
 
 const initialNodes: Node[] = [
@@ -119,6 +122,12 @@ const blocosDisponiveis = [
     label: "Gatilho",
     icon: Key,
     description: "Palavra-chave que dispara o fluxo",
+  },
+  {
+    type: "blocoAgendamento",
+    label: "Agendamento",
+    icon: CalendarClock,
+    description: "Agendar envio para data/hora específica",
   },
 ];
 
@@ -359,7 +368,7 @@ export default function FluxoVisual() {
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : "Ação"}`,
           content: "",
         },
       };
@@ -1708,6 +1717,92 @@ export default function FluxoVisual() {
                     placeholder="Configure a ação..."
                   />
                 </div>
+              </>
+            )}
+
+            {selectedNode?.type === "blocoAgendamento" && (
+              <>
+                <div>
+                  <Label>Tipo de Agendamento</Label>
+                  <Select
+                    value={selectedNode.data.scheduleType || "once"}
+                    onValueChange={(value) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, scheduleType: value },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="once">Data e hora única</SelectItem>
+                      <SelectItem value="recurring">Recorrente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedNode.data.scheduleType === "recurring" ? (
+                  <div>
+                    <Label>Padrão de Recorrência</Label>
+                    <Select
+                      value={selectedNode.data.recurrencePattern || "daily"}
+                      onValueChange={(value) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, recurrencePattern: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Diariamente</SelectItem>
+                        <SelectItem value="weekly">Semanalmente</SelectItem>
+                        <SelectItem value="monthly">Mensalmente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                <div>
+                  <Label>{selectedNode.data.scheduleType === "recurring" ? "Início em" : "Data e Hora"}</Label>
+                  <Input
+                    type="datetime-local"
+                    value={selectedNode.data.scheduledAt || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, scheduledAt: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+
+                {selectedNode.data.scheduleType === "recurring" && (
+                  <div>
+                    <Label>Horário de envio</Label>
+                    <Input
+                      type="time"
+                      value={selectedNode.data.scheduleTime || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, scheduleTime: e.target.value },
+                        })
+                      }
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Horário em que o envio será disparado em cada recorrência
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground p-2 bg-accent/50 rounded">
+                  💡 O bloco seguinte será executado na data/hora agendada. Conecte ao bloco de conteúdo que deseja enviar.
+                </p>
               </>
             )}
 
