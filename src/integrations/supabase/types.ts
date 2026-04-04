@@ -1213,9 +1213,16 @@ export type Database = {
           id: string
           max_members_per_group: number
           name: string
+          notify_admin: boolean
+          notify_phone: string
           slug: string
           updated_at: string
           user_id: string
+          welcome_flow_id: string | null
+          welcome_instance_id: string | null
+          welcome_message: string
+          welcome_template_id: string | null
+          welcome_type: string
         }
         Insert: {
           active?: boolean
@@ -1223,9 +1230,16 @@ export type Database = {
           id?: string
           max_members_per_group?: number
           name: string
+          notify_admin?: boolean
+          notify_phone?: string
           slug: string
           updated_at?: string
           user_id: string
+          welcome_flow_id?: string | null
+          welcome_instance_id?: string | null
+          welcome_message?: string
+          welcome_template_id?: string | null
+          welcome_type?: string
         }
         Update: {
           active?: boolean
@@ -1233,9 +1247,16 @@ export type Database = {
           id?: string
           max_members_per_group?: number
           name?: string
+          notify_admin?: boolean
+          notify_phone?: string
           slug?: string
           updated_at?: string
           user_id?: string
+          welcome_flow_id?: string | null
+          welcome_instance_id?: string | null
+          welcome_message?: string
+          welcome_template_id?: string | null
+          welcome_type?: string
         }
         Relationships: []
       }
