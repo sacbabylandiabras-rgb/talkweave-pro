@@ -1422,6 +1422,47 @@ export default function FluxoVisual() {
                   </>
                 )}
 
+                {selectedNode.data.contentType === "video" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">👁</span>
+                        <div>
+                          <Label className="text-sm font-medium cursor-pointer">Visualização Única</Label>
+                          <p className="text-[10px] text-muted-foreground">Vídeo que só pode ser visto uma vez</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.viewOnce || false}
+                        onCheckedChange={(v) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, viewOnce: v, isPtv: v ? false : selectedNode.data.isPtv },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-primary" />
+                        <div>
+                          <Label className="text-sm font-medium cursor-pointer">Vídeo Instantâneo (PTV)</Label>
+                          <p className="text-[10px] text-muted-foreground">Vídeo circular instantâneo</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.isPtv || false}
+                        onCheckedChange={(v) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, isPtv: v, viewOnce: v ? false : selectedNode.data.viewOnce },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <Label>
                     {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}
