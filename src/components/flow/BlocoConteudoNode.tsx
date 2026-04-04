@@ -134,7 +134,7 @@ export function BlocoConteudoNode({ data }: any) {
 
             return (
               <div key={btn.id || idx} className="bg-white dark:bg-card border border-border rounded-md px-2 py-1.5">
-                <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
+                <div className="text-[10px] text-card-foreground flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
                 </div>
