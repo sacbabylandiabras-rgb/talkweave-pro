@@ -42,19 +42,19 @@
 
     --border: 226 232 240;
     --input: 226 232 240;
-    --ring: 239 68 68;
+    --ring: 255 77 46;
 
     --radius: 0.25rem;
 
     /* Sidebar */
     --sidebar-background: 255 255 255;
     --sidebar-foreground: 15 23 42;
-    --sidebar-primary: 239 68 68;
+    --sidebar-primary: 255 77 46;
     --sidebar-primary-foreground: 255 255 255;
     --sidebar-accent: 248 250 252;
     --sidebar-accent-foreground: 15 23 42;
     --sidebar-border: 226 232 240;
-    --sidebar-ring: 239 68 68;
+    --sidebar-ring: 255 77 46;
   }
 
   .dark {
