@@ -828,7 +828,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 
 /* ============= TAB: Links Rotativos ============= */
 function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, refetch } = useRedirectLinks();
+  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
   const { groups } = useWhatsAppGroups();
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
