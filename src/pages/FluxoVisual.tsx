@@ -797,7 +797,7 @@ export default function FluxoVisual() {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "video" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '' });
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(nodeData.viewOnce ? { viewOnce: true } : {}), ...(nodeData.isPtv ? { isPtv: true } : {}) });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "audio" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' });
