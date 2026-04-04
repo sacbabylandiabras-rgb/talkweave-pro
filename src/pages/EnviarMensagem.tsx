@@ -1187,6 +1187,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
