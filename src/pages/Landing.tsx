@@ -4,6 +4,11 @@ import logoImage from "@/assets/logo.png";
 import screen0 from "@/assets/screen-0.jpg";
 import screen1 from "@/assets/screen-1.jpg";
 import screen2 from "@/assets/screen-2.jpg";
+import logoKiwify from "@/assets/logo-kiwify.jpg";
+import logoHotmart from "@/assets/logo-hotmart.jpg";
+import logoDevzapp from "@/assets/logo-devzapp.jpg";
+import logoSendflow from "@/assets/logo-sendflow.png";
+import logoManychat from "@/assets/logo-manychat.webp";
 import "./Landing.css";
 
 const screens = [screen0, screen1, screen2];
@@ -152,6 +157,21 @@ function HeroSection() {
   }, []);
 
   useEffect(() => {
+    // Pre-load logo images
+    const logoSources: Record<string, string> = {
+      Kiwify: logoKiwify,
+      Hotmart: logoHotmart,
+      DevZapp: logoDevzapp,
+      SendFlow: logoSendflow,
+      ManyChat: logoManychat,
+    };
+    const logoImages: Record<string, HTMLImageElement> = {};
+    Object.entries(logoSources).forEach(([name, src]) => {
+      const img = new Image();
+      img.src = src;
+      logoImages[name] = img;
+    });
+
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const sr = screensRef.current;
@@ -211,81 +231,18 @@ function HeroSection() {
     function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
       ctx.save();
       ctx.globalAlpha = alpha;
+
       const clip = new Path2D();
       clip.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.save();
       ctx.clip(clip);
 
-      if (name === "Kiwify") {
-        ctx.fillStyle = "#22a01a";
+      const img = logoImages[name];
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+      } else {
+        ctx.fillStyle = "#333";
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = r * 0.22;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.arc(cx, cy + r * 0.06, r * 0.54, Math.PI * 0.72, Math.PI * 2.28);
-        ctx.stroke();
-        ctx.fillStyle = "#fff";
-        const seeds = [[-0.18, 0.05], [0, 0.12], [0.18, 0.05], [-0.1, -0.1], [0.1, -0.1]];
-        seeds.forEach(([sx, sy]) => {
-          ctx.beginPath();
-          ctx.ellipse(cx + r * sx, cy + r * sy, r * 0.04, r * 0.07, 0, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      } else if (name === "Hotmart") {
-        // Fundo circular vermelho Hotmart
-        ctx.fillStyle = "#f04e23";
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        // Letra "H" branca estilizada
-        ctx.fillStyle = "#fff";
-        const lw = r * 0.16;
-        const hh = r * 0.7;
-        // Pilar esquerdo
-        ctx.fillRect(cx - r * 0.32, cy - hh * 0.5, lw, hh);
-        // Pilar direito
-        ctx.fillRect(cx + r * 0.16, cy - hh * 0.5, lw, hh);
-        // Barra horizontal
-        ctx.fillRect(cx - r * 0.32, cy - lw * 0.5, r * 0.64, lw);
-        // Chama/ponta no topo do pilar direito
-        ctx.beginPath();
-        ctx.moveTo(cx + r * 0.24, cy - hh * 0.5);
-        ctx.quadraticCurveTo(cx + r * 0.24, cy - hh * 0.5 - r * 0.28, cx + r * 0.38, cy - hh * 0.5 - r * 0.18);
-        ctx.quadraticCurveTo(cx + r * 0.32, cy - hh * 0.5 - r * 0.06, cx + r * 0.32, cy - hh * 0.5);
-        ctx.fill();
-      } else if (name === "DevZapp") {
-        ctx.fillStyle = "#1a5c3a";
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#e8e8d8";
-        ctx.font = `bold ${r * 0.38}px Arial, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("dev", cx, cy - r * 0.12);
-        ctx.fillText("zapp", cx, cy + r * 0.28);
-      } else if (name === "SendFlow") {
-        ctx.fillStyle = "#111111";
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#f5c518";
-        ctx.lineWidth = r * 0.14;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(cx - r * 0.26, cy - r * 0.31);
-        ctx.lineTo(cx + r * 0.08, cy - r * 0.05);
-        ctx.lineTo(cx - r * 0.26, cy + r * 0.1);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - r * 0.31);
-        ctx.lineTo(cx + r * 0.31, cy - r * 0.05);
-        ctx.lineTo(cx, cy + r * 0.1);
-        ctx.stroke();
-      } else if (name === "ManyChat") {
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#111111";
-        ctx.font = `900 ${r * 0.9}px Georgia, serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("m", cx, cy + r * 0.08);
       }
 
       ctx.restore();
