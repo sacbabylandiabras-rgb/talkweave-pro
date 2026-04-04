@@ -300,7 +300,7 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
