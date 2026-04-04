@@ -432,6 +432,15 @@ serve(async (req) => {
           await supabase.from('campaign_sends').delete().eq('id', failedOrPending.id);
         }
 
+        const currentInstanceStatus = await fetchDeviceStatusSnapshot(currentInstance);
+        if (!currentInstanceStatus.ok && currentBatch[i].sourceInstanceId) {
+          throw new Error(`Falha ao validar a instância ${currentInstance.instanceName} antes do envio para o grupo`);
+        }
+
+        if (currentInstanceStatus.explicitlyDisconnected || !currentInstanceStatus.connected) {
+          throw new Error(`Instância ${currentInstance.instanceName} desconectada para o grupo ${contact.name || contact.phone}`);
+        }
+
         console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
 
         let messageContent = campaign.template.content;
