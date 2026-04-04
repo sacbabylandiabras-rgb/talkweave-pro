@@ -1431,8 +1431,13 @@ serve(async (req) => {
 
         if (value.endsWith('@g.us')) {
           candidates.add(value.replace(/@g\.us$/i, ''))
+          candidates.add(value.replace(/@g\.us$/i, '-group'))
+        } else if (value.endsWith('-group')) {
+          candidates.add(value.replace(/-group$/i, '@g.us'))
+          candidates.add(value.replace(/-group$/i, ''))
         } else if (/^\d+$/.test(value)) {
           candidates.add(`${value}@g.us`)
+          candidates.add(`${value}-group`)
         }
 
         return Array.from(candidates)
