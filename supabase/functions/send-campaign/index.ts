@@ -9,6 +9,8 @@ interface SendCampaignRequest {
     phone: string;
     name?: string;
     variables?: Record<string, string>;
+    sourceInstanceId?: string | null;
+    sourceInstanceName?: string | null;
   }>;
   instanceId?: string;
   rotationOffset?: number;
@@ -35,6 +37,33 @@ interface ResolvedInstance {
   zapiClientToken: string;
   instanceName: string;
 }
+
+const resolveContactInstance = async (
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  sourceInstanceId?: string | null,
+): Promise<ResolvedInstance | null> => {
+  if (!sourceInstanceId) return null;
+
+  const { data: instance } = await supabase
+    .from('zapi_instances')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .eq('user_id', userId)
+    .eq('zapi_instance_id', sourceInstanceId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
+    return null;
+  }
+
+  return {
+    zapiInstanceId: instance.zapi_instance_id,
+    zapiToken: instance.zapi_token,
+    zapiClientToken: instance.zapi_client_token,
+    instanceName: instance.instance_name || 'Instância',
+  };
+};
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -370,7 +399,8 @@ serve(async (req) => {
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-      const currentInstance = getInstanceForIndex(i);
+      const contactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+      const currentInstance = contactInstance || getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
 
       try {
