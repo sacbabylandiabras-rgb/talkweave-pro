@@ -392,6 +392,8 @@ serve(async (req) => {
         const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
         const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
         const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
+        const campaignViewOnce = campaign.target_audience?.viewOnce === true;
+        const campaignIsPtv = campaign.target_audience?.isPtv === true;
 
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
@@ -434,9 +436,15 @@ serve(async (req) => {
           continue;
 
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
-          const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-          const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaign.template.media_url }) });
-          if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
+          if (campaignIsPtv) {
+            const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaign.template.media_url }) });
+            if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
+          } else {
+            const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaign.template.media_url, ...(campaignViewOnce ? { viewOnce: true } : {}) }) });
+            if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
+          }
 
           await sleep(Math.max(delayMs / 2, 1000));
 
@@ -476,8 +484,13 @@ serve(async (req) => {
 
         } else if (templateType === 'video') {
           if (!hasMedia) throw new Error('Template tipo "video" requer um vídeo');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-          requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage };
+          if (campaignIsPtv) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            requestBody = { phone: contact.phone, ptv: campaign.template.media_url };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
+          }
 
         } else if (templateType === 'audio') {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');

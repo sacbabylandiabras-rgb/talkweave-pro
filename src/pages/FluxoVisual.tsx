@@ -797,7 +797,7 @@ export default function FluxoVisual() {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "video" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '' });
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } else if (contentType === "audio" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' });
@@ -839,7 +839,7 @@ export default function FluxoVisual() {
               break;
             case "video":
               if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '' });
+              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) });
               break;
             case "audio":
               if (!mediaUrl) continue;
@@ -1420,6 +1420,47 @@ export default function FluxoVisual() {
                       </div>
                     </div>
                   </>
+                )}
+
+                {selectedNode.data.contentType === "video" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">👁</span>
+                        <div>
+                          <Label className="text-sm font-medium cursor-pointer">Visualização Única</Label>
+                          <p className="text-[10px] text-muted-foreground">Vídeo que só pode ser visto uma vez</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.viewOnce || false}
+                        onCheckedChange={(v) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, viewOnce: v, isPtv: v ? false : selectedNode.data.isPtv },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-primary" />
+                        <div>
+                          <Label className="text-sm font-medium cursor-pointer">Vídeo Instantâneo (PTV)</Label>
+                          <p className="text-[10px] text-muted-foreground">Vídeo circular instantâneo</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.isPtv || false}
+                        onCheckedChange={(v) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, isPtv: v, viewOnce: v ? false : selectedNode.data.viewOnce },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
                 )}
 
                 <div>

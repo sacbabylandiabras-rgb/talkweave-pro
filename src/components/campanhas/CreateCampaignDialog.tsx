@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users, Upload, UserPlus, Eye } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video } from "lucide-react";
 import Papa from "papaparse";
 import { CarouselPreview } from "./CarouselPreview";
 
@@ -37,6 +38,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   });
 
   const [importedContacts, setImportedContacts] = useState<Array<{ phone: string; name: string }>>([]);
+  const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
@@ -89,7 +92,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         schedule_type: formData.schedule_type,
         scheduled_at: formData.scheduled_at || null,
         recurrence_pattern: formData.recurrence_pattern || null,
-        target_audience: { contacts: targetContacts },
+        target_audience: { contacts: targetContacts, ...(viewOnce ? { viewOnce: true } : {}), ...(isPtv ? { isPtv: true } : {}) },
         status: formData.schedule_type === "immediate" ? "active" : "draft",
         delay_seconds: formData.delay_seconds,
       } as any);
@@ -112,6 +115,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         delay_seconds: 2,
       });
       setImportedContacts([]);
+      setViewOnce(false);
+      setIsPtv(false);
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -253,6 +258,41 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               );
             }
             return null;
+          })()}
+
+          {/* Opções de Vídeo */}
+          {formData.template_id && (() => {
+            const selectedTemplate = templates.find(t => t.id === formData.template_id);
+            const isVideoTemplate = selectedTemplate?.type === 'video' || selectedTemplate?.type === 'video_botoes';
+            if (!isVideoTemplate) return null;
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Opções de Vídeo</h3>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">👁</span>
+                    <div>
+                      <Label className="text-sm font-medium">Visualização Única</Label>
+                      <p className="text-[10px] text-muted-foreground">Vídeo que só pode ser visto uma vez</p>
+                    </div>
+                  </div>
+                  <Switch checked={viewOnce} onCheckedChange={(v) => { setViewOnce(v); if (v) setIsPtv(false); }} />
+                </div>
+                <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-primary" />
+                    <div>
+                      <Label className="text-sm font-medium">Vídeo Instantâneo (PTV)</Label>
+                      <p className="text-[10px] text-muted-foreground">Vídeo circular instantâneo</p>
+                    </div>
+                  </div>
+                  <Switch checked={isPtv} onCheckedChange={(v) => { setIsPtv(v); if (v) setViewOnce(false); }} />
+                </div>
+              </div>
+            );
           })()}
 
           {/* Agendamento */}
