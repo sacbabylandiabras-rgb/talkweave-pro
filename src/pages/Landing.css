@@ -94,6 +94,7 @@
   height: 460px;
   overflow: hidden;
   background: #0d0f1a;
+  clip-path: inset(0);
 }
 .lp-stage::after {
   content: '';
