@@ -142,7 +142,7 @@ export function BlocoConteudoNode({ data }: any) {
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
+                        className="h-full bg-orange-500 rounded-full transition-all"
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       />
                     </div>
