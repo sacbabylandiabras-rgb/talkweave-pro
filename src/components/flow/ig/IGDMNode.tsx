@@ -5,12 +5,12 @@ export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-blue-500 bg-card min-w-[220px] max-w-[300px]">
-      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-blue-500" />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-blue-500" />
+    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[220px] max-w-[300px]">
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
       <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded bg-blue-500/10">
-          <Send className="h-4 w-4 text-blue-500" />
+        <div className="p-1.5 rounded bg-orange-500/10">
+          <Send className="h-4 w-4 text-orange-500" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-card-foreground">
@@ -33,11 +33,11 @@ export function IGDMNode({ data }: any) {
         {buttons.length > 0 ? (
           buttons.map((btn: any, idx: number) => (
             <div key={idx} className="relative">
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-md px-2.5 py-1.5 pr-6 flex items-center gap-1.5">
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-md px-2.5 py-1.5 pr-6 flex items-center gap-1.5">
                 {btn.type === "reply" ? (
-                  <MessageCircle className="h-3 w-3 text-blue-500 shrink-0" />
+                  <MessageCircle className="h-3 w-3 text-orange-500 shrink-0" />
                 ) : (
-                  <Link2 className="h-3 w-3 text-blue-500 shrink-0" />
+                  <Link2 className="h-3 w-3 text-orange-500 shrink-0" />
                 )}
                 <span className="text-xs text-card-foreground font-medium truncate">
                   {btn.title || `Botão ${idx + 1}`}
@@ -48,15 +48,15 @@ export function IGDMNode({ data }: any) {
                 type="source"
                 position={Position.Right}
                 id={`btn-${idx}`}
-                className="w-2.5 h-2.5 !bg-blue-400 !border-2 !border-blue-600 !right-[-5px]"
+                className="w-2.5 h-2.5 !bg-orange-400 !border-2 !border-orange-600 !right-[-5px]"
                 style={{ top: "50%", transform: "translateY(-50%)" }}
               />
             </div>
           ))
         ) : (
-          <div className="border border-dashed border-blue-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5">
-            <Plus className="h-3 w-3 text-blue-500/50" />
-            <span className="text-[10px] text-blue-500/50 font-medium">
+          <div className="border border-dashed border-orange-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5">
+            <Plus className="h-3 w-3 text-orange-500/50" />
+            <span className="text-[10px] text-orange-500/50 font-medium">
               Clique para adicionar botões
             </span>
           </div>
@@ -69,7 +69,7 @@ export function IGDMNode({ data }: any) {
       </div>
 
       {/* Default output handle (for flow without button branching) */}
-      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-blue-500" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
     </div>
   );
 }
