@@ -224,7 +224,7 @@ function HeroSection() {
         sr.style.transform = "";
         sr.style.opacity = "";
       }
-      if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+      if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
     }
     initPositions();
 
@@ -338,7 +338,7 @@ function HeroSection() {
         if (doneTimer === 55 && sr) {
           sr.classList.add("lp-fly-in");
           let si = 0;
-          if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+          if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
           const advanceSlide = () => {
             si = (si + 1) % 3;
             showScreen(si);
@@ -357,7 +357,7 @@ function HeroSection() {
               sr.style.transition = "";
               sr.style.transform = "";
               sr.style.opacity = "";
-              if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+              if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
               showScreen(0);
               setTimeout(() => initPositions(), 200);
             }, 800);
@@ -397,7 +397,7 @@ function HeroSection() {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", onResize);
-      if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+      if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
     };
   }, [showScreen]);
 
