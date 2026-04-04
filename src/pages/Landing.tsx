@@ -1,615 +1,596 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
-import { Bot, Rocket, BarChart3, Settings, Users, Brain, Link, CreditCard, Flame, Cherry, Gem, ClipboardList, ArrowDown, ShoppingCart, Phone, Sparkles, Check, Shield, Zap, DollarSign, Store, MessageSquare, Globe, Lock, TrendingUp, Wallet } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import logoImage from "@/assets/logo.png";
-import dashboardMockup from "@/assets/dashboard-new.png";
-import PhoneMockup from "@/components/landing/PhoneMockup";
+import screen0 from "@/assets/screen-0.jpg";
+import screen1 from "@/assets/screen-1.jpg";
+import screen2 from "@/assets/screen-2.jpg";
+import "./Landing.css";
+
+const screens = [screen0, screen1, screen2];
 
 const Landing = () => {
   const navigate = useNavigate();
+  const goSignup = () => navigate("/auth?signup=true");
+  const goLogin = () => navigate("/auth");
 
   return (
-    <div className="min-h-screen landing-bg text-foreground relative">
-      <MouseFollowEffect />
-
-      {/* Header */}
-      <header className="w-[90%] max-w-[1200px] mx-auto flex justify-between items-center py-6">
-        <img src={logoImage} alt="ZapLynx Logo" className="h-14" />
-        <button
-          onClick={() => navigate("/auth?signup=true")}
-          className="landing-btn"
-        >
-          Começar Agora
-        </button>
-      </header>
-
-      {/* Hero */}
-      <section className="w-[90%] max-w-[1200px] mx-auto text-center py-20 md:py-24">
-        <h1 className="text-3xl md:text-[42px] font-extrabold leading-tight text-foreground mb-5">
-          <span className="text-primary">Gateway de Pagamentos</span> +{" "}
-          Sistema de Gestão <span className="text-primary">WhatsApp</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-[650px] mx-auto mb-8">
-          Receba pagamentos via Pix, gerencie checkouts personalizados e automatize
-          toda sua comunicação no WhatsApp — tudo em uma única plataforma.
-        </p>
-        <button
-          onClick={() => navigate("/auth?signup=true")}
-          className="landing-btn mt-8"
-        >
-          Criar Conta Grátis
-        </button>
-      </section>
-
-      {/* Números / Destaques */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: <DollarSign className="w-6 h-6 text-primary" />, title: "Gateway Pix Integrado", desc: "Receba pagamentos instantâneos com checkout próprio." },
-            { icon: <MessageSquare className="w-6 h-6 text-primary" />, title: "Automação WhatsApp", desc: "Envios em massa, IA, fluxos visuais e boas-vindas." },
-            { icon: <Shield className="w-6 h-6 text-primary" />, title: "KYC e Segurança", desc: "Verificação de identidade e antifraude integrados." },
-            { icon: <TrendingUp className="w-6 h-6 text-primary" />, title: "Relatórios em Tempo Real", desc: "Acompanhe vendas, conversões e métricas ao vivo." },
-          ].map((card, i) => (
-            <div
-              key={i}
-              className="bg-card border border-border rounded-xl p-6 transition-transform hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {card.icon}
-                <h3 className="text-foreground font-semibold">{card.title}</h3>
-              </div>
-              <p className="text-muted-foreground text-[15px]">{card.desc}</p>
-            </div>
-          ))}
+    <div className="lp-root">
+      {/* NAV */}
+      <nav className="lp-nav">
+        <div className="lp-logo">Zap<span>Lynx</span></div>
+        <div className="lp-nav-right">
+          <button className="lp-btn-ghost" onClick={goLogin}>Entrar</button>
+          <button className="lp-btn-accent" onClick={goSignup}>Começar Agora</button>
         </div>
-      </section>
+      </nav>
 
-      {/* Gateway de Pagamentos */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Gateway de Pagamentos Completo
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Crie checkouts personalizados, receba via Pix instantâneo, acompanhe transações 
-              em tempo real e gerencie saques — tudo com sua marca e sem intermediários.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Checkout customizável com 6+ templates profissionais",
-                "Pagamento via Pix com confirmação instantânea",
-                "Gestão de produtos físicos e digitais",
-                "Painel de transações com filtros avançados",
-                "Saques automáticos para sua conta",
-                "Pixels de rastreamento (Facebook, Google, TikTok)",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Criar Meu Checkout
-            </button>
-          </div>
-          <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Store className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">ZapLynxPay</h4>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Vendas Hoje</p>
-                  <span className="text-primary text-xs font-bold">R$ 12.847,00</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Transações</p>
-                  <span className="text-primary text-xs font-bold">148</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Taxa de Conversão</p>
-                  <span className="text-primary text-xs font-bold">73.4%</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <p className="text-foreground text-sm font-medium">Checkout Ativo</p>
-                  </div>
-                  <span className="text-primary text-xs font-bold">Online</span>
-                </div>
-              </div>
-              <div className="text-center pt-2">
-                <span className="text-muted-foreground text-xs">Pix instantâneo · Sem mensalidade</span>
-              </div>
-            </div>
-          </div>
+      {/* HERO: PAC-MAN */}
+      <HeroSection />
+
+      {/* HERO COPY */}
+      <div className="lp-hero">
+        <div className="lp-hero-glow" />
+        <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão<br />WhatsApp &amp; Instagram</h1>
+        <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
+        <button className="lp-btn-cta" onClick={goSignup}>Criar Conta Grátis →</button>
+      </div>
+
+      {/* FEATURE CARDS */}
+      <div className="lp-cards-row">
+        <FeatureCard icon="gateway" title="Gateway Pix" desc="Checkout próprio com confirmação instantânea." />
+        <FeatureCard icon="chat" title="Automação WhatsApp" desc="Envios em massa, IA e fluxos visuais." />
+        <FeatureCard icon="instagram" title="Automação Instagram" desc="Responde comentários e envia DM automaticamente." ig />
+        <FeatureCard icon="shield" title="KYC e Segurança" desc="Verificação de identidade e antifraude." />
+        <FeatureCard icon="chart" title="Relatórios" desc="Métricas e conversões em tempo real." />
+      </div>
+
+      <div className="lp-divider" />
+
+      {/* SEÇÃO: Gateway */}
+      <div className="lp-section">
+        <div>
+          <div className="lp-section-tag">Pagamentos</div>
+          <div className="lp-section-title">Gateway de Pagamentos Completo</div>
+          <div className="lp-section-desc">Crie checkouts personalizados, receba via Pix instantâneo e gerencie saques — tudo com sua marca e sem intermediários.</div>
+          <CheckList items={[
+            "Checkout customizável com 6+ templates",
+            "Pagamento via Pix com confirmação instantânea",
+            "Painel de transações com filtros avançados",
+            "Pixels de rastreamento (Facebook, Google, TikTok)",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Criar Meu Checkout →</button>
         </div>
-      </section>
+        <GatewayMock />
+      </div>
 
-      {/* Checkout Personalizado */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1 flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <ShoppingCart className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">Templates de Checkout</h4>
-              </div>
-              {[
-                { name: "Alto Impacto", desc: "Urgência + escassez", tag: "Popular" },
-                { name: "Minimalista", desc: "Clean e direto", tag: "Novo" },
-                { name: "Confiança", desc: "Selos + garantia", tag: "Pro" },
-                { name: "TikTok Style", desc: "Visual moderno", tag: "Trend" },
-              ].map((tpl, i) => (
-                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <div>
-                    <p className="text-foreground text-sm font-medium">{tpl.name}</p>
-                    <p className="text-muted-foreground text-xs">{tpl.desc}</p>
-                  </div>
-                  <span className="text-primary text-xs font-bold">{tpl.tag}</span>
-                </div>
-              ))}
-              <div className="text-center pt-2">
-                <span className="text-muted-foreground text-xs">6+ layouts profissionais disponíveis</span>
-              </div>
-            </div>
-          </div>
-          <div className="order-1 md:order-2 space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Checkouts que Convertem
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Escolha entre templates otimizados para conversão ou personalize cada detalhe 
-              do seu checkout. Cores, textos, selos de segurança, timer de urgência e muito mais.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "6+ templates prontos e otimizados",
-                "Personalização completa de cores e textos",
-                "Timer de urgência e contador de vendas",
-                "Selos de segurança e garantia",
-                "CPF obrigatório para validação",
-                "Responsivo para mobile e desktop",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Montar Meu Checkout
-            </button>
-          </div>
+      <div className="lp-divider" />
+
+      {/* SEÇÃO: Instagram */}
+      <div className="lp-section lp-section-reverse lp-section-surface">
+        <div>
+          <div className="lp-section-tag lp-ig">Novo — Instagram</div>
+          <div className="lp-section-title">Automação de Comentários no Instagram</div>
+          <div className="lp-section-desc">Quando alguém comenta em seu post, o sistema detecta a palavra-chave e envia um DM automático com o link de checkout — convertendo engajamento em venda.</div>
+          <CheckList ig items={[
+            "Detecta comentários por palavra-chave",
+            "Envia DM automático com link de checkout",
+            "Responde comentários publicamente",
+            "Dashboard com métricas de conversão",
+            "Integrado à API oficial do Instagram (Meta)",
+          ]} />
+          <button className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</button>
         </div>
-      </section>
+        <InstagramMock />
+      </div>
 
-      {/* Envios em Massa WhatsApp */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-          <div className="flex justify-center">
-            <PhoneMockup />
-          </div>
-          <div className="space-y-5">
-            <h3 className="text-2xl font-extrabold text-foreground">
-              Envios em Massa com Controle Total
-            </h3>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Dispare mensagens para milhares de contatos com intervalos inteligentes, 
-              revezamento automático entre instâncias e acompanhamento em tempo real.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Envio segmentado por grupos e listas",
-                "Delay configurável entre mensagens",
-                "Relatório detalhado de entregas",
-                "Suporte a texto, imagem, áudio e vídeo",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div className="lp-divider" />
+
+      {/* SEÇÃO: Agente IA */}
+      <div className="lp-section">
+        <div>
+          <div className="lp-section-tag">Inteligência Artificial</div>
+          <div className="lp-section-title">Agente de IA que Vende por Você 24h</div>
+          <div className="lp-section-desc">Treine um agente com o conhecimento do seu negócio. Ele responde clientes, envia links de checkout e conduz a venda automaticamente.</div>
+          <CheckList items={[
+            "Treinável com FAQ, documentos e sites",
+            "Envia links de checkout automaticamente",
+            "Funciona 24 horas por dia, 7 dias por semana",
+            "Integrado ao gateway de pagamentos",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
         </div>
-      </section>
+        <ChatMock />
+      </div>
 
-      {/* Integração Webhooks + Automação pós-venda */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Automação Pós-Venda via WhatsApp
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Quando um pagamento é confirmado, o ZapLynx envia automaticamente mensagens 
-              no WhatsApp do cliente. Funciona com qualquer plataforma de checkout via webhook.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Disparo automático por evento (aprovado, cancelado, reembolso)",
-                "Compatível com PerfectPay, Hotmart, Kiwify, Stripe e mais",
-                "Mensagens personalizadas por tipo de evento",
-                "Funis de recuperação de vendas abandonadas",
-                "Histórico completo de eventos e entregas",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Automatizar Pós-Venda
-            </button>
-          </div>
-          <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Zap className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">Automação Ativa</h4>
-              </div>
-              {[
-                { event: "Pagamento Aprovado", action: "Enviar acesso + boas-vindas", status: "Ativo" },
-                { event: "Boleto Gerado", action: "Lembrete de pagamento", status: "Ativo" },
-                { event: "Carrinho Abandonado", action: "Recuperação em 30min", status: "Ativo" },
-                { event: "Reembolso", action: "Pesquisa de satisfação", status: "Ativo" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <div>
-                    <p className="text-foreground text-sm font-medium">{item.event}</p>
-                    <p className="text-muted-foreground text-xs">{item.action}</p>
-                  </div>
-                  <span className="text-primary text-xs font-bold">{item.status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="lp-divider" />
+
+      {/* SEÇÃO: Fluxos Visuais */}
+      <div className="lp-section lp-section-reverse">
+        <div>
+          <div className="lp-section-tag">Automação Visual</div>
+          <div className="lp-section-title">Fluxos Visuais de Automação</div>
+          <div className="lp-section-desc">Monte jornadas completas arrastando blocos visuais. Gatilhos por palavra-chave, condições inteligentes e ações automáticas — sem código.</div>
+          <CheckList items={[
+            "Editor visual drag-and-drop",
+            "Gatilhos por palavra-chave ou evento",
+            "Condições e ramificações inteligentes",
+            "Integração com webhooks e APIs",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</button>
         </div>
-      </section>
+        <FlowMock />
+      </div>
 
-      {/* Agente de IA */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1 flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Brain className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">Agente Inteligente</h4>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <div className="bg-primary/10 text-foreground text-sm rounded-xl rounded-br-sm px-4 py-2 max-w-[80%]">
-                    Oi, vocês têm esse produto disponível?
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
-                    Olá! Sim, temos disponível 😊 Posso te enviar o link de pagamento?
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="bg-primary/10 text-foreground text-sm rounded-xl rounded-br-sm px-4 py-2 max-w-[80%]">
-                    Sim, por favor!
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-secondary text-foreground text-sm rounded-xl rounded-bl-sm px-4 py-2 max-w-[80%]">
-                    Aqui está seu checkout: zaplynx.pay/produto ✅
-                  </div>
-                </div>
-              </div>
-              <div className="text-center pt-2">
-                <span className="text-muted-foreground text-xs">Resposta automática via IA · 2s</span>
-              </div>
-            </div>
-          </div>
-          <div className="order-1 md:order-2 space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Agente de IA que Vende por Você 24h
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Treine um agente inteligente com o conhecimento do seu negócio. 
-              Ele responde clientes, envia links de checkout e conduz a venda automaticamente.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Treinável com FAQ, documentos e sites",
-                "Envia links de checkout automaticamente",
-                "Funciona 24 horas por dia, 7 dias por semana",
-                "Integrado ao gateway de pagamentos",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Ativar Agente de IA
-            </button>
-          </div>
-        </div>
-      </section>
+      <div className="lp-divider" />
 
-      {/* Meta API Oficial */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              API Oficial do WhatsApp (Meta)
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Integre via API Oficial da Meta para disparos com alta taxa de entrega, 
-              templates aprovados e perfil Business profissional.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Conexão via OAuth automática",
-                "Templates aprovados pela Meta",
-                "Alta taxa de entrega (99%+)",
-                "WhatsApp Business API v21.0",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Conectar Meta API
-            </button>
-          </div>
-          <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Phone className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">Meta WhatsApp API</h4>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <p className="text-foreground text-sm font-medium">Conta Conectada</p>
-                  </div>
-                  <span className="text-primary text-xs font-bold">Ativa</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Templates Aprovados</p>
-                  <span className="text-primary text-xs font-bold">12</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Mensagens Hoje</p>
-                  <span className="text-primary text-xs font-bold">1.847</span>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <p className="text-foreground text-sm font-medium">Taxa de Entrega</p>
-                  <span className="text-primary text-xs font-bold">99.2%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* CTA FINAL */}
+      <div className="lp-cta-final">
+        <h2>Venda mais com Gateway + WhatsApp + Instagram</h2>
+        <p>Receba pagamentos e automatize toda sua comunicação em uma única plataforma.</p>
+        <button className="lp-btn-cta" onClick={goSignup}>Começar Agora →</button>
+      </div>
 
-      {/* Gestão de Grupos */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1 flex justify-center">
-            <div className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-primary/15 px-4 py-3 flex items-center gap-3 border-b border-border">
-                <Link className="w-6 h-6 text-primary" />
-                <div>
-                  <p className="text-foreground text-sm font-semibold">Link Rotativo: Clientes VIP</p>
-                  <p className="text-muted-foreground text-[10px]">zaplynx.app/vip · 2.340 acessos</p>
-                </div>
-              </div>
-              <div className="px-4 py-4 space-y-3">
-                {[
-                  { name: "Clientes VIP #1", members: "248/250", pct: 99, full: true },
-                  { name: "Clientes VIP #2", members: "189/250", pct: 76, full: false },
-                  { name: "Clientes VIP #3", members: "45/250", pct: 18, full: false },
-                ].map((g, i) => (
-                  <div key={i} className="bg-secondary/50 rounded-lg px-3 py-2.5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                          #{i + 1}
-                        </div>
-                        <div>
-                          <p className="text-foreground text-xs font-medium">{g.name}</p>
-                          <p className="text-muted-foreground text-[10px]">{g.members}</p>
-                        </div>
-                      </div>
-                      {g.full ? (
-                        <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">Lotado</span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Ativo</span>
-                      )}
-                    </div>
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${g.full ? 'bg-destructive' : 'bg-primary'}`}
-                        style={{ width: `${g.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="order-1 md:order-2 space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Gestão Completa de Grupos WhatsApp
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Crie grupos, extraia leads, configure boas-vindas automáticas e use links 
-              rotativos para distribuir membros entre vários grupos automaticamente.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Criar grupos e adicionar participantes em massa",
-                "Extração de leads de grupos e comunidades",
-                "Boas-vindas automáticas personalizadas",
-                "Links rotativos com distribuição inteligente",
-                "Gerenciamento centralizado multi-instância",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Gerenciar Grupos
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Fluxos Visuais */}
-      <section className="w-[90%] max-w-[1200px] mx-auto py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h2 className="text-[32px] font-extrabold text-foreground leading-tight">
-              Fluxos Visuais de Automação
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Monte jornadas completas arrastando blocos visuais. Gatilhos por palavra-chave, 
-              condições inteligentes e ações automáticas — sem código.
-            </p>
-            <ul className="space-y-3">
-              {[
-                "Editor visual drag-and-drop",
-                "Gatilhos por palavra-chave ou evento de pagamento",
-                "Condições e ramificações inteligentes",
-                "Integração com webhooks e APIs externas",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/auth?signup=true")}
-              className="landing-btn"
-            >
-              Criar Meus Fluxos
-            </button>
-          </div>
-          <div className="flex justify-center">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="w-7 h-7 text-primary" />
-                <h4 className="text-foreground font-bold text-lg">Fluxo Ativo</h4>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { step: "1", label: "Gatilho: 'quero comprar'", color: "bg-primary/20 text-primary" },
-                  { step: "2", label: "Enviar catálogo de produtos", color: "bg-blue-500/20 text-blue-400" },
-                  { step: "3", label: "Aguardar resposta (30s)", color: "bg-amber-500/20 text-amber-400" },
-                  { step: "4", label: "Enviar link de checkout", color: "bg-green-500/20 text-green-400" },
-                  { step: "5", label: "Confirmar pagamento via webhook", color: "bg-purple-500/20 text-purple-400" },
-                ].map((s, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${s.color}`}>
-                      {s.step}
-                    </div>
-                    <p className="text-foreground text-sm">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center pt-2">
-                <span className="text-muted-foreground text-xs">Fluxo de venda completo · Automático</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Final */}
-      <section className="bg-secondary/50 text-center py-20 px-5">
-        <h2 className="text-[30px] font-extrabold text-foreground mb-4">
-          Venda mais com Gateway + WhatsApp integrados
-        </h2>
-        <p className="text-muted-foreground mb-6">
-          Receba pagamentos e automatize sua comunicação em uma única plataforma.
-        </p>
-        <button
-          onClick={() => navigate("/auth?signup=true")}
-          className="landing-btn"
-        >
-          Começar Agora
-        </button>
-      </section>
-
-      {/* Footer */}
-      <footer className="text-center py-6 border-t border-border text-sm text-muted-foreground">
-        © 2026 ZapLynx - Todos os direitos reservados
+      {/* FOOTER */}
+      <footer className="lp-footer">
+        <div className="lp-f-logo">Zap<span>Lynx</span></div>
+        <div className="lp-f-copy">© 2026 ZapLynx · Todos os direitos reservados</div>
       </footer>
     </div>
   );
 };
 
-/* ===== Mouse Follow Effect ===== */
-function MouseFollowEffect() {
-  const ref = useRef<HTMLDivElement>(null);
+/* ===== HERO with Pac-Man Canvas ===== */
+function HeroSection() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const screensRef = useRef<HTMLDivElement>(null);
+  const [activeScreen, setActiveScreen] = useState(0);
+  const slideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const move = (x: number, y: number) => {
-      el.style.left = x + "px";
-      el.style.top = y + "px";
-    };
-
-    const onMouse = (e: MouseEvent) => move(e.clientX, e.clientY);
-    const onTouch = (e: TouchEvent) => {
-      const t = e.touches[0];
-      move(t.clientX, t.clientY);
-    };
-
-    document.addEventListener("mousemove", onMouse);
-    document.addEventListener("touchmove", onTouch);
-    return () => {
-      document.removeEventListener("mousemove", onMouse);
-      document.removeEventListener("touchmove", onTouch);
-    };
+  const showScreen = useCallback((idx: number) => {
+    setActiveScreen(idx);
   }, []);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const stage = stageRef.current;
+    const sr = screensRef.current;
+    if (!canvas || !stage) return;
+    const ctx = canvas.getContext("2d")!;
+    let H = stage.offsetHeight || 460;
+    const W = () => canvas.width;
+
+    function resize() {
+      H = stage.offsetHeight || 460;
+      canvas.width = stage.offsetWidth;
+      canvas.height = H;
+    }
+    resize();
+
+    type LogoObj = { name: string; x: number; y: number; radius: number; eaten: boolean; opacity: number; scale: number };
+    let objs: LogoObj[] = [];
+    let pacX = 0, pacY = 0, pacAngle = 0, mouthOpen = 0.25, mouthDir = 1;
+    let currentTarget = 0;
+    let phase: "eating" | "done" = "eating";
+    let doneTimer = 0;
+    let animId: number;
+
+    const tagline = stage.querySelector("#lp-tagline") as HTMLElement;
+    const sub = stage.querySelector("#lp-sub") as HTMLElement;
+
+    function initPositions() {
+      const w = W();
+      pacX = w * 0.06;
+      pacY = H / 2 - 10;
+      const names = ["Kiwify", "Hotmart", "DevZapp", "SendFlow", "ManyChat"];
+      const spacing = (w * 0.76) / names.length;
+      objs = names.map((name, i) => ({
+        name,
+        x: w * 0.20 + i * spacing,
+        y: H / 2 - 10 + Math.sin(i * 1.4) * 28,
+        radius: 26,
+        eaten: false,
+        opacity: 1,
+        scale: 1,
+      }));
+      currentTarget = 0;
+      phase = "eating";
+      doneTimer = 0;
+      if (tagline) tagline.style.opacity = "0";
+      if (sub) sub.style.opacity = "0";
+      if (sr) {
+        sr.classList.remove("lp-fly-in");
+        sr.style.transition = "";
+        sr.style.transform = "";
+        sr.style.opacity = "";
+      }
+      if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+    }
+    initPositions();
+
+    function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const clip = new Path2D();
+      clip.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.save();
+      ctx.clip(clip);
+
+      if (name === "Kiwify") {
+        ctx.fillStyle = "#22a01a";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = r * 0.22;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.arc(cx, cy + r * 0.06, r * 0.54, Math.PI * 0.72, Math.PI * 2.28);
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        const seeds = [[-0.18, 0.05], [0, 0.12], [0.18, 0.05], [-0.1, -0.1], [0.1, -0.1]];
+        seeds.forEach(([sx, sy]) => {
+          ctx.beginPath();
+          ctx.ellipse(cx + r * sx, cy + r * sy, r * 0.04, r * 0.07, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else if (name === "Hotmart") {
+        ctx.fillStyle = "#e8432a";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.2, cy - r * 0.05);
+        ctx.quadraticCurveTo(cx, cy - r * 0.72, cx + r * 0.2, cy - r * 0.05);
+        ctx.fill();
+      } else if (name === "DevZapp") {
+        ctx.fillStyle = "#1a5c3a";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e8e8d8";
+        ctx.font = `bold ${r * 0.38}px Arial, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("dev", cx, cy - r * 0.12);
+        ctx.fillText("zapp", cx, cy + r * 0.28);
+      } else if (name === "SendFlow") {
+        ctx.fillStyle = "#111111";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#f5c518";
+        ctx.lineWidth = r * 0.14;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.26, cy - r * 0.31);
+        ctx.lineTo(cx + r * 0.08, cy - r * 0.05);
+        ctx.lineTo(cx - r * 0.26, cy + r * 0.1);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r * 0.31);
+        ctx.lineTo(cx + r * 0.31, cy - r * 0.05);
+        ctx.lineTo(cx, cy + r * 0.1);
+        ctx.stroke();
+      } else if (name === "ManyChat") {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#111111";
+        ctx.font = `900 ${r * 0.9}px Georgia, serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("m", cx, cy + r * 0.08);
+      }
+
+      ctx.restore();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `bold ${r * 0.36}px Plus Jakarta Sans, sans-serif`;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(name, cx, cy + r + 4);
+      ctx.restore();
+    }
+
+    function drawPacman(x: number, y: number, r: number, angle: number, mouth: number) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.shadowColor = "#f05a28";
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, mouth * Math.PI, (2 - mouth) * Math.PI);
+      ctx.closePath();
+      ctx.fillStyle = "#f5c518";
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(r * 0.2, -r * 0.38, r * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = "#0d0f1a";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawDots() {
+      ctx.fillStyle = "rgba(245,197,24,0.18)";
+      for (let i = 0; i < 12; i++) {
+        const px = W() * 0.08 + i * (W() * 0.077);
+        if (px < pacX - 24) continue;
+        let skip = false;
+        objs.forEach(o => { if (Math.abs(px - o.x) < 24 && o.eaten) skip = true; });
+        if (skip) continue;
+        ctx.beginPath();
+        ctx.arc(px, H / 2 - 10, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawScore() {
+      const eaten = objs.filter(o => o.eaten).length;
+      if (!eaten) return;
+      ctx.font = "bold 11px Plus Jakarta Sans, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.textAlign = "left";
+      ctx.fillText(`+${eaten} concorrente${eaten > 1 ? "s" : ""} engolido${eaten > 1 ? "s" : ""}`, 16, 26);
+    }
+
+    function drawGrid() {
+      ctx.fillStyle = "rgba(255,255,255,0.025)";
+      for (let gx = 0; gx < W(); gx += 36)
+        for (let gy = 0; gy < H; gy += 36) {
+          ctx.beginPath(); ctx.arc(gx, gy, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function update() {
+      if (phase === "eating") {
+        const t = objs[currentTarget];
+        if (!t) { phase = "done"; return; }
+        const dx = t.x - pacX, dy = t.y - pacY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        pacAngle = Math.atan2(dy, dx);
+        if (dist > t.radius + 16) {
+          pacX += (dx / dist) * 2.5;
+          pacY += (dy / dist) * 2.5;
+        } else {
+          t.scale = Math.max(0, t.scale - 0.08);
+          t.opacity = Math.max(0, t.opacity - 0.08);
+          if (t.opacity <= 0) { t.eaten = true; currentTarget++; }
+        }
+        mouthOpen += 0.05 * mouthDir;
+        if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
+      } else {
+        doneTimer++;
+        mouthOpen = Math.max(0.05, mouthOpen - 0.01);
+        pacX = Math.min(W() * 0.82, pacX + 0.6);
+        pacAngle = 0;
+        if (doneTimer === 30) {
+          if (tagline) tagline.style.opacity = "1";
+          if (sub) sub.style.opacity = "1";
+        }
+        if (doneTimer === 55 && sr) {
+          sr.classList.add("lp-fly-in");
+          let si = 0;
+          if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+          slideIntervalRef.current = setInterval(() => {
+            si = (si + 1) % 3;
+            showScreen(si);
+          }, 3200);
+        }
+        if (doneTimer === 440) {
+          if (sr) {
+            sr.style.transition = "opacity 0.5s ease, transform 0.8s cubic-bezier(.8,0,.85,1)";
+            sr.style.transform = "translate(-50%, -50%) translateX(-120%)";
+            sr.style.opacity = "0";
+            setTimeout(() => {
+              sr.classList.remove("lp-fly-in");
+              sr.style.transition = "";
+              sr.style.transform = "";
+              sr.style.opacity = "";
+              if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+              showScreen(0);
+              setTimeout(() => initPositions(), 200);
+            }, 800);
+          } else {
+            setTimeout(() => initPositions(), 800);
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W(), H);
+      drawGrid();
+      drawDots();
+      objs.forEach(o => {
+        if (o.eaten && o.opacity <= 0) return;
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.scale(o.scale, o.scale);
+        ctx.translate(-o.x, -o.y);
+        drawLogo(o.name, o.x, o.y, o.radius, o.opacity);
+        ctx.restore();
+      });
+      drawPacman(pacX, pacY, 30, pacAngle, mouthOpen);
+      drawScore();
+    }
+
+    function loop() {
+      update();
+      draw();
+      animId = requestAnimationFrame(loop);
+    }
+    loop();
+
+    const onResize = () => { resize(); initPositions(); };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", onResize);
+      if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+    };
+  }, [showScreen]);
+
   return (
-    <div
-      ref={ref}
-      className="fixed w-[140px] h-[140px] rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2 z-[99999]"
-      style={{
-        background:
-          "radial-gradient(circle, rgba(239,68,68,0.35) 0%, rgba(239,68,68,0.15) 40%, transparent 70%)",
-      }}
-    />
+    <div id="lp-hero-section">
+      <div className="lp-stage" ref={stageRef}>
+        <canvas ref={canvasRef} className="lp-canvas" />
+        <div className="lp-overlay">
+          <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
+          <div id="lp-sub">Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
+        </div>
+        <div className="lp-screens-reveal" ref={screensRef}>
+          <div className="lp-screen-wrap">
+            {screens.map((src, i) => (
+              <div key={i} className={`lp-screen-slide ${activeScreen === i ? "active" : ""}`}>
+                <img src={src} alt={`Screenshot ${i + 1}`} />
+              </div>
+            ))}
+          </div>
+          <div className="lp-screen-dots">
+            {screens.map((_, i) => (
+              <span key={i} className={`lp-screen-dot ${activeScreen === i ? "active" : ""}`} onClick={() => showScreen(i)} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== Subcomponents ===== */
+
+function FeatureCard({ icon, title, desc, ig }: { icon: string; title: string; desc: string; ig?: boolean }) {
+  const svgMap: Record<string, JSX.Element> = {
+    gateway: <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>,
+    chat: <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
+    instagram: <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>,
+    shield: <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
+    chart: <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+  };
+  return (
+    <div className={`lp-fcard${ig ? " lp-ig-gradient-border" : ""}`}>
+      <div className={`lp-fcard-icon${ig ? " ig" : ""}`}>{svgMap[icon]}</div>
+      <div className="lp-fcard-title">{title}</div>
+      <div className="lp-fcard-desc">{desc}</div>
+    </div>
+  );
+}
+
+function CheckList({ items, ig }: { items: string[]; ig?: boolean }) {
+  return (
+    <div className="lp-check-list">
+      {items.map((item, i) => (
+        <div key={i} className={`lp-check-item${ig ? " ig" : ""}`}>
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+          {item}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GatewayMock() {
+  return (
+    <div className="lp-mock">
+      <div className="lp-mock-header">
+        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg></div>
+        <div className="lp-mock-title">ZapLynxPay</div>
+        <div className="lp-mock-sub">ao vivo</div>
+      </div>
+      <div className="lp-mock-body">
+        <div className="lp-mock-row"><div className="lp-mock-label">Vendas Hoje</div><div className="lp-mock-val accent">R$ 12.847,00</div></div>
+        <div className="lp-mock-row"><div className="lp-mock-label">Transações</div><div className="lp-mock-val">148</div></div>
+        <div className="lp-mock-row"><div className="lp-mock-label">Taxa de Conversão</div><div className="lp-mock-val">73,4%</div></div>
+        <div className="lp-mock-row"><div className="lp-mock-label">Checkout Ativo</div><div className="lp-pill-green">Online</div></div>
+        <div style={{ marginTop: 12, fontSize: 10, color: "var(--lp-muted2)", textAlign: "center" }}>Pix instantâneo · Sem mensalidade</div>
+      </div>
+    </div>
+  );
+}
+
+function InstagramMock() {
+  const events = [
+    { initials: "MF", bg: "linear-gradient(135deg,#833ab4,#fd1d1d)", user: "@mariano_freitas_zz", msg: "fala comigo! mandei no direct", time: "13:26" },
+    { initials: "ZL", bg: "linear-gradient(135deg,#f05a28,#fbbf24)", user: "@zap_lynx_pro", msg: "Seu presente chegou! basta res...", time: "13:26" },
+    { initials: "GE", bg: "linear-gradient(135deg,#0ea5e9,#6366f1)", user: "@gomez_ecom", msg: "Catuaba", time: "13:26" },
+  ];
+  return (
+    <div className="lp-ig-dash lp-ig-gradient-border">
+      <div className="lp-ig-dash-header">
+        <div className="lp-mock-icon ig">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#e1306c" stroke="none" /></svg>
+        </div>
+        <div>
+          <div className="lp-ig-dash-title">Dashboard Instagram</div>
+          <div className="lp-ig-dash-sub">Métricas e performance da automação</div>
+        </div>
+      </div>
+      <div className="lp-ig-kpis">
+        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">Comentários</div><div className="lp-ig-kpi-val">26</div></div>
+        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">Conversão DM</div><div className="lp-ig-kpi-val pink">53,8%</div></div>
+        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">DMs Enviados</div><div className="lp-ig-kpi-val">14</div></div>
+      </div>
+      <div className="lp-ig-events">
+        <div className="lp-ig-events-title">Últimos eventos</div>
+        {events.map((e, i) => (
+          <div key={i} className="lp-ig-event">
+            <div className="lp-ig-avatar" style={{ background: e.bg }}>{e.initials}</div>
+            <div>
+              <div className="lp-ig-event-user">{e.user} <span className="lp-ig-dm-badge">DM</span></div>
+              <div className="lp-ig-event-msg">{e.msg}</div>
+            </div>
+            <div className="lp-ig-event-time">{e.time}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatMock() {
+  return (
+    <div className="lp-chat-mock">
+      <div className="lp-chat-header">
+        <div className="lp-chat-dot" />
+        <div>
+          <div className="lp-chat-name">Agente Inteligente</div>
+          <div className="lp-chat-status">Resposta automática via IA · 2s</div>
+        </div>
+      </div>
+      <div className="lp-bubble-user">Oi, vocês têm esse produto disponível?</div>
+      <div className="lp-bubble-bot">Olá! Sim, temos disponível. Posso te enviar o link de pagamento?</div>
+      <div className="lp-bubble-user">Sim, por favor!</div>
+      <div className="lp-bubble-link">Aqui está seu checkout: zaplynx.pay/produto</div>
+      <div className="lp-auto-note">Resposta automática via IA · 2s</div>
+    </div>
+  );
+}
+
+function FlowMock() {
+  const steps = [
+    { num: "1", text: 'Gatilho: "quero comprar"' },
+    { num: "2", text: "Enviar catálogo de produtos" },
+    { num: "3", text: "Aguardar resposta (30s)" },
+    { num: "4", text: "Enviar link de checkout" },
+    { num: "5", text: "Confirmar pagamento via webhook" },
+  ];
+  return (
+    <div className="lp-mock">
+      <div className="lp-mock-header">
+        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></div>
+        <div className="lp-mock-title">Fluxo Ativo</div>
+        <div className="lp-mock-sub">drag-and-drop</div>
+      </div>
+      <div className="lp-mock-body">
+        <div className="lp-step-list">
+          {steps.map((s, i) => (
+            <div key={i} className="lp-step-item">
+              <div className="lp-step-num">{s.num}</div>
+              <div className="lp-step-text">{s.text}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
