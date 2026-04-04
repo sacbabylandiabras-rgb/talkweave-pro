@@ -36,6 +36,8 @@ const MediaModelSection = ({
   modelosDisponiveis,
   viewOnce,
   setViewOnce,
+  isPtv,
+  setIsPtv,
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
