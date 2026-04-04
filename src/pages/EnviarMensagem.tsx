@@ -906,6 +906,8 @@ const EnviarMensagem = () => {
                     setModeloSelecionado={setModeloSelecionado}
                     aplicarModelo={aplicarModelo}
                     modelosDisponiveis={modelosDisponiveis}
+                    viewOnce={viewOnce}
+                    setViewOnce={setViewOnce}
                   />
                   
                   <div>
