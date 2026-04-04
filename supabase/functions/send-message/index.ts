@@ -70,7 +70,7 @@ serve(async (req) => {
       isPtv,
     } = await req.json()
 
-    console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}`);
+    console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
 
     const hasInteractivePayload =
       (Array.isArray(buttonActions) && buttonActions.length > 0) ||
