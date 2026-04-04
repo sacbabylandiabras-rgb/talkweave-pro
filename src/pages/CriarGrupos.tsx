@@ -1705,6 +1705,96 @@ function LinksRotativosTab() {
                   )}
 
 
+                  {/* Group message section */}
+                  <div className="pt-2 border-t border-border space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Mensagem no Grupo
+                      </label>
+                      <Select
+                        value={link.group_message_type || 'none'}
+                        onValueChange={(v) => handleSaveAutomation(link.id, { group_message_type: v, group_message_enabled: v !== 'none' })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Desativada</SelectItem>
+                          <SelectItem value="text">Texto</SelectItem>
+                          <SelectItem value="template">Modelo</SelectItem>
+                          <SelectItem value="flow">Fluxo Visual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {link.group_message_type === 'text' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Mensagem</label>
+                        <Textarea
+                          defaultValue={link.group_message_text || ''}
+                          onBlur={(e) => handleSaveAutomation(link.id, { group_message_text: e.target.value })}
+                          placeholder="Bem-vindo ao grupo, {{nome}}! 🎉"
+                          rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">Variáveis: {'{{nome}}'}, {'{{telefone}}'}, {'{{grupo}}'}</p>
+                      </div>
+                    )}
+
+                    {link.group_message_type === 'template' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Modelo</label>
+                        <Select
+                          value={link.group_message_template_id || ''}
+                          onValueChange={(v) => handleSaveAutomation(link.id, { group_message_template_id: v || null })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                          <SelectContent>
+                            {templates.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {link.group_message_type === 'flow' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Fluxo Visual</label>
+                        <Select
+                          value={link.group_message_flow_id || ''}
+                          onValueChange={(v) => handleSaveAutomation(link.id, { group_message_flow_id: v || null })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione um fluxo" /></SelectTrigger>
+                          <SelectContent>
+                            {flows.map((f) => (
+                              <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {link.group_message_type && link.group_message_type !== 'none' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" />
+                          Instância de envio (grupo)
+                        </label>
+                        <Select
+                          value={link.group_message_instance_id || 'auto'}
+                          onValueChange={(v) => handleSaveAutomation(link.id, { group_message_instance_id: v === 'auto' ? null : v })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">Automática (instância do grupo)</SelectItem>
+                            {instances.map((inst) => (
+                              <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Admin notification */}
                   <div className="pt-2 border-t border-border space-y-3">
                     <div className="flex items-center justify-between">
