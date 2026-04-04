@@ -18,6 +18,13 @@ export interface RedirectLink {
   max_members_per_group: number;
   active: boolean;
   created_at: string;
+  welcome_type: string;
+  welcome_message: string;
+  welcome_template_id: string | null;
+  welcome_flow_id: string | null;
+  welcome_instance_id: string | null;
+  notify_admin: boolean;
+  notify_phone: string;
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];
