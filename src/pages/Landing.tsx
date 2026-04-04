@@ -418,6 +418,11 @@ function HeroSection() {
           </div>
         </div>
       </div>
+      {/* Tagline below stage so it doesn't overlap */}
+      <div style={{ textAlign: "center", padding: "18px 16px 0" }}>
+        <div id="lp-tagline" style={{ opacity: 1 }}>ZapLynx <em>engole</em> a concorrência</div>
+        <div id="lp-sub" style={{ opacity: 1 }}>Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
+      </div>
     </div>
   );
 }
