@@ -93,7 +93,10 @@ export function BlocoConteudoNode({ data }: any) {
   const flowButtons = buttons.filter((b: any) => b.type === "flow" || b.type === "reply");
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[280px]">
+    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[280px]">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded">
+        Conteúdo
+      </span>
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
       <div className="flex items-center gap-2">
@@ -130,7 +133,7 @@ export function BlocoConteudoNode({ data }: any) {
             const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
 
             return (
-              <div key={btn.id || idx} className="bg-muted/50 rounded-md px-2 py-1.5">
+              <div key={btn.id || idx} className="bg-white dark:bg-card border border-border rounded-md px-2 py-1.5">
                 <div className="text-[10px] text-primary flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
