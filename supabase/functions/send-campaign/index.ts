@@ -161,13 +161,48 @@ serve(async (req) => {
         .eq('is_active', true)
         .order('created_at', { ascending: true });
 
-      rotatePool = (allActiveInstances || []).map((instance) => ({
+      const rawRotatePool = (allActiveInstances || []).map((instance) => ({
         zapiInstanceId: instance.zapi_instance_id,
         zapiToken: instance.zapi_token,
         zapiClientToken: instance.zapi_client_token,
         instanceName: instance.instance_name,
       }));
-      console.log(`🔄 Rotate mode: ${rotatePool.length} instances loaded`);
+
+      const rotateStatuses = await Promise.all(
+        rawRotatePool.map(async (instance) => ({
+          instance,
+          status: await fetchDeviceStatusSnapshot(instance),
+        })),
+      );
+
+      rotatePool = rotateStatuses
+        .filter(({ status }) => status.connected)
+        .map(({ instance }) => instance);
+
+      const unavailableInstances = rotateStatuses
+        .filter(({ status }) => !status.connected)
+        .map(({ instance, status }) => `${instance.instanceName} (${status.ok ? 'desconectada' : 'status indisponível'})`);
+
+      console.log(`🔄 Rotate mode: ${rawRotatePool.length} instances loaded, ${rotatePool.length} connected`);
+
+      if (unavailableInstances.length > 0) {
+        console.log(`⚠️ Rotate mode ignoring unavailable instances: ${unavailableInstances.join(', ')}`);
+      }
+
+      if (rotatePool.length === 0) {
+        await supabase
+          .from('campaigns')
+          .update({ status: 'paused', updated_at: new Date().toISOString() })
+          .eq('id', campaignId);
+
+        return new Response(JSON.stringify({
+          error: 'Nenhuma instância conectada disponível no modo rotativo. A campanha foi pausada.',
+          stopped: true,
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
     } else if (requestedInstanceId) {
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
@@ -676,12 +711,18 @@ serve(async (req) => {
       }
     }
 
+    const sentCount = results.filter((result) => result.success).length;
+    const failedCount = results.filter((result) => !result.success).length;
+
     return new Response(JSON.stringify({
-      success: true,
+      success: failedCount === 0,
+      partial: sentCount > 0 && failedCount > 0,
       message: 'Batch processed',
       campaignId,
       processed: currentBatch.length,
       remaining: remainingContacts.length,
+      sentCount,
+      failedCount,
       results,
     }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
 
