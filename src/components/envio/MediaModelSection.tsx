@@ -31,10 +31,14 @@ const MediaModelSection = ({
   modeloSelecionado,
   setModeloSelecionado,
   aplicarModelo,
-  modelosDisponiveis
+  modelosDisponiveis,
+  viewOnce,
+  setViewOnce,
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  
+  const isVideoFile = arquivoMidia?.type?.startsWith('video/') || false;
   
   const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado);
 
