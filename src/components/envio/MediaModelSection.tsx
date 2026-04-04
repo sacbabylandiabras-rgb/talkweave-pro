@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Paperclip, FileText, Eye, Check, Phone, Wifi } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 
@@ -17,6 +19,8 @@ interface MediaModelSectionProps {
   setModeloSelecionado: (value: string) => void;
   aplicarModelo: (modeloId: string) => void;
   modelosDisponiveis: MessageTemplate[];
+  viewOnce?: boolean;
+  setViewOnce?: (value: boolean) => void;
 }
 
 const MediaModelSection = ({
