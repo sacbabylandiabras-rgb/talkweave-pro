@@ -41,7 +41,8 @@ const Campanhas = () => {
     cancelCampaign, 
     deleteCampaign, 
     duplicateCampaign,
-    sendCampaign
+    sendCampaign,
+    refetch: refetchCampaigns
   } = useCampaigns();
   
   const { toast } = useToast();
@@ -395,12 +396,18 @@ const Campanhas = () => {
 
       <CreateCampaignDialog 
         open={showCreateDialog} 
-        onOpenChange={setShowCreateDialog} 
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) refetchCampaigns();
+        }} 
       />
 
       <CreateGroupCampaignDialog
         open={showCreateGroupDialog}
-        onOpenChange={setShowCreateGroupDialog}
+        onOpenChange={(open) => {
+          setShowCreateGroupDialog(open);
+          if (!open) refetchCampaigns();
+        }}
       />
 
       <EditCampaignDialog 
