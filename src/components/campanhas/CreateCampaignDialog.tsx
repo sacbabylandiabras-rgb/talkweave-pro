@@ -92,7 +92,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         schedule_type: formData.schedule_type,
         scheduled_at: formData.scheduled_at || null,
         recurrence_pattern: formData.recurrence_pattern || null,
-        target_audience: { contacts: targetContacts },
+        target_audience: { contacts: targetContacts, ...(viewOnce ? { viewOnce: true } : {}), ...(isPtv ? { isPtv: true } : {}) },
         status: formData.schedule_type === "immediate" ? "active" : "draft",
         delay_seconds: formData.delay_seconds,
       } as any);
