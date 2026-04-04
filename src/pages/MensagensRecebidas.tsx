@@ -879,8 +879,8 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
-            await sendMessage(phone, message, mediaUrl, mediaType);
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType, viewOnce) => {
+            await sendMessage(phone, message, mediaUrl, mediaType, viewOnce);
             toast({ title: "Mensagem enviada", description: "Mensagem aceita pela Z-API." });
           }} />
         )}
