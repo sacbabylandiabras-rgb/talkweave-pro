@@ -67,6 +67,7 @@ serve(async (req) => {
       buttonList,
       optionList,
       viewOnce,
+      isPtv,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}`);
