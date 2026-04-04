@@ -243,6 +243,7 @@ function GerenciarGrupoTab() {
       });
       if (error) throw error;
       if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+      if (data?.success === false) { toast.error("Erro Z-API: " + (data.message || "Falha ao criar grupo")); return; }
 
       const groupId = data?.phone || data?.groupId || data?.id;
       if (groupId && createDescription.trim()) {
