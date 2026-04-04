@@ -95,14 +95,14 @@ export function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-background">
       <Sidebar activeItem={getActiveItem()} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onNavigate={(item) => {
           if (item === "painel") navigate("/dashboard");
           else navigate(`/${item}`);
         }} />
-        <main className="flex-1 overflow-auto p-6 bg-muted/30">
+        <main className="flex-1 overflow-auto p-6 bg-background">
           <Outlet />
         </main>
       </div>

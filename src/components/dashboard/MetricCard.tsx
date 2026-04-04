@@ -50,14 +50,14 @@ export function MetricCard({
 
   return (
     <div className={cn(
-      "group relative flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card",
+      "group relative flex items-center gap-4 p-4 rounded border border-border/60 bg-card",
       "hover:shadow-md hover:border-border hover:-translate-y-0.5",
       "transition-all duration-300 ease-out",
       "border-l-[3px]",
       styles.accent,
       className
     )}>
-      <div className={cn("p-2.5 rounded-lg", styles.bg)}>
+      <div className={cn("p-2.5 rounded", styles.bg)}>
         <Icon className={cn("w-5 h-5", styles.icon)} />
       </div>
       <div className="min-w-0 flex-1">
