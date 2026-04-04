@@ -339,10 +339,13 @@ function HeroSection() {
           sr.classList.add("lp-fly-in");
           let si = 0;
           if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
-          slideIntervalRef.current = setInterval(() => {
+          const advanceSlide = () => {
             si = (si + 1) % 3;
             showScreen(si);
-          }, 3200);
+            const delay = si === 2 ? 5500 : 3200;
+            slideIntervalRef.current = setTimeout(advanceSlide, delay);
+          };
+          slideIntervalRef.current = setTimeout(advanceSlide, 3200);
         }
         if (doneTimer === 440) {
           if (sr) {
