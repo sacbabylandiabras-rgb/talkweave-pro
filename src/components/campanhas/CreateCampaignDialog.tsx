@@ -38,6 +38,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   });
 
   const [importedContacts, setImportedContacts] = useState<Array<{ phone: string; name: string }>>([]);
+  const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
