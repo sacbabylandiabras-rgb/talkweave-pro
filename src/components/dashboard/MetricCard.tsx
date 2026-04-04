@@ -57,7 +57,7 @@ export function MetricCard({
       styles.accent,
       className
     )}>
-      <div className={cn("p-2.5 rounded-lg", styles.bg)}>
+      <div className={cn("p-2.5 rounded", styles.bg)}>
         <Icon className={cn("w-5 h-5", styles.icon)} />
       </div>
       <div className="min-w-0 flex-1">
