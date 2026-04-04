@@ -95,7 +95,7 @@ export function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-background">
       <Sidebar activeItem={getActiveItem()} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onNavigate={(item) => {
