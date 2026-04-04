@@ -727,7 +727,7 @@ const Campanhas = () => {
                           </Button>
                         )}
                         {campaign.status === 'completed' && (
-                          <Button variant="outline" size="sm" onClick={() => handleForceStopQueue(campaign.id)}>
+                          <Button variant="outline" size="sm" onClick={() => handleResumeCampaign(campaign.id)}>
                             <RefreshCw className="w-4 h-4 mr-1" />
                             Retomar de onde parou
                           </Button>
