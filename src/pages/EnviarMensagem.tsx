@@ -59,6 +59,7 @@ const EnviarMensagem = () => {
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [delay, setDelay] = useState(2);
   const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
