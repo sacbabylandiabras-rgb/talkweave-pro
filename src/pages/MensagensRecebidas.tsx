@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -300,7 +300,7 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
@@ -309,6 +309,7 @@ const ChatView = ({
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<{ file: File; previewUrl: string; mediaType: string } | null>(null);
+  const [viewOnce, setViewOnce] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -335,8 +336,9 @@ const ChatView = ({
         const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType);
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, attachedFile.mediaType === 'video' ? viewOnce : undefined);
         setAttachedFile(null);
+        setViewOnce(false);
       } else {
         await onSendMessage(conversation.phone, newMessage.trim());
       }
@@ -597,7 +599,22 @@ const ChatView = ({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setAttachedFile(null)}>
+            {attachedFile.mediaType === 'video' && (
+              <button
+                type="button"
+                onClick={() => setViewOnce(!viewOnce)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0",
+                  viewOnce
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                )}
+              >
+                <Video className="w-3.5 h-3.5" />
+                Instantâneo
+              </button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -862,8 +879,8 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType) => {
-            await sendMessage(phone, message, mediaUrl, mediaType);
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType, viewOnce) => {
+            await sendMessage(phone, message, mediaUrl, mediaType, viewOnce);
             toast({ title: "Mensagem enviada", description: "Mensagem aceita pela Z-API." });
           }} />
         )}
