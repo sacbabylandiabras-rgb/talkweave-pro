@@ -17,6 +17,7 @@ import {
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3, Workflow, Smartphone
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { LinkAutomationDialog } from "@/components/grupos/LinkAutomationDialog";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
