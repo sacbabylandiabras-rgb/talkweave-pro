@@ -1773,6 +1773,18 @@ function LinksRotativosTab() {
         links={links}
         onClose={() => setAnalyticsLinkId(null)}
       />
+      <LinkAutomationDialog
+        link={automationDialogLink ? links.find(l => l.id === automationDialogLink.id) || automationDialogLink : null}
+        open={!!automationDialogLink}
+        onOpenChange={(open) => !open && setAutomationDialogLink(null)}
+        onSave={async (linkId, updates) => {
+          await handleSaveAutomation(linkId, updates);
+        }}
+        templates={templates}
+        flows={flows}
+        instances={instances}
+        saving={savingAutomation === automationDialogLink?.id}
+      />
     </div>
   );
 }
