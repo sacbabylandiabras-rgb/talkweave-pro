@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Loader2, Search, MessageSquare, Link2 } from "lucide-react";
 
@@ -23,6 +24,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const { createCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
   const { groups, loading: loadingGroups } = useWhatsAppGroups();
+  const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Fetch rotative links with their groups
   const [rotativeLinks, setRotativeLinks] = useState<Array<{ id: string; name: string; slug: string; groups: Array<{ group_id: string; group_name: string }> }>>([]);
@@ -51,6 +53,16 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     };
     fetchLinks();
   }, [open]);
+
+  useEffect(() => {
+    if (!open || loadingGroups || groups.length === 0) return;
+
+    groups
+      .filter(group => group.membros <= 0)
+      .forEach(group => {
+        void fetchMemberCount(group.id, group.sourceInstanceId || null, group.participantes || []);
+      });
+  }, [open, loadingGroups, groups, fetchMemberCount]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -275,6 +287,11 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
                         </div>
                       )}
                       {filteredGroups.map(group => (
+                        (() => {
+                          const memberCount = getMemberCount(group.id, group.membros);
+                          const isCountingMembers = isMemberCountLoading(group.id);
+
+                          return (
                         <label
                           key={group.id}
                           className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
@@ -293,10 +310,23 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
                             )}
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">{group.nome}</p>
-                              <p className="text-[10px] text-muted-foreground">{group.membros} membros</p>
+                               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                 {isCountingMembers ? (
+                                   <>
+                                     <Loader2 className="w-3 h-3 animate-spin" />
+                                     verificando membros...
+                                   </>
+                                 ) : memberCount > 0 ? (
+                                   <>{memberCount} membros</>
+                                 ) : (
+                                   <>membros indisponíveis</>
+                                 )}
+                               </p>
                             </div>
                           </div>
                         </label>
+                          );
+                        })()
                       ))}
                     </div>
                   )}
