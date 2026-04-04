@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import logoImage from "@/assets/logo.png";
-import screen0 from "@/assets/screen-0.jpg";
-import screen1 from "@/assets/screen-1.jpg";
-import screen2 from "@/assets/screen-2.jpg";
+import screen0 from "@/assets/screen-0.png";
+import screen1 from "@/assets/screen-1.png";
+import screen2 from "@/assets/screen-2.png";
 import logoKiwify from "@/assets/logo-kiwify.jpg";
 import logoHotmart from "@/assets/logo-hotmart.jpg";
 import logoDevzapp from "@/assets/logo-devzapp.jpg";
