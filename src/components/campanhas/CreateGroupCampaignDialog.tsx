@@ -24,6 +24,34 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const { templates } = useMessageTemplates();
   const { groups, loading: loadingGroups } = useWhatsAppGroups();
 
+  // Fetch rotative links with their groups
+  const [rotativeLinks, setRotativeLinks] = useState<Array<{ id: string; name: string; slug: string; groups: Array<{ group_id: string; group_name: string }> }>>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const fetchLinks = async () => {
+      setLoadingLinks(true);
+      try {
+        const { data: links } = await supabase.from('redirect_links').select('id, name, slug');
+        if (!links) { setLoadingLinks(false); return; }
+        const { data: linkGroups } = await supabase.from('redirect_link_groups').select('redirect_link_id, group_id, group_name');
+        const mapped = links.map(l => ({
+          id: l.id,
+          name: l.name,
+          slug: l.slug,
+          groups: (linkGroups || []).filter(g => g.redirect_link_id === l.id).map(g => ({ group_id: g.group_id, group_name: g.group_name })),
+        })).filter(l => l.groups.length > 0);
+        setRotativeLinks(mapped);
+      } catch (e) {
+        console.error('Error fetching rotative links:', e);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+    fetchLinks();
+  }, [open]);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
