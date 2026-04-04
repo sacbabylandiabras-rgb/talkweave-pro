@@ -565,7 +565,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
   })();
 
-  const sendMessage = useCallback(async (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean) => {
+  const sendMessage = useCallback(async (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated');
 
@@ -573,6 +573,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     if (mediaUrl) body.mediaUrl = mediaUrl;
     if (mediaType) body.mediaType = mediaType;
     if (viewOnce) body.viewOnce = true;
+    if (isPtv) body.isPtv = true;
     if (filterInstanceId) body.instanceId = filterInstanceId;
 
     const { data, error } = await supabase.functions.invoke('send-message', { body });
