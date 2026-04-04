@@ -18,20 +18,36 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceS
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 
-  // Always select all instances by default
+  // Restore saved selection from localStorage, fallback to all
   useEffect(() => {
     if (!initialized && instances.length > 0) {
-      const allIds = instances.map(i => i.id);
-      setSelectedIds(new Set(allIds));
-      setInitialized(true);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allIds));
-      if (allIds.length > 1) {
-        onInstanceChange?.(ROTATE_ALL);
-        onMultiInstanceChange?.(allIds);
+      const saved = localStorage.getItem(STORAGE_KEY);
+      let idsToSelect: string[];
+
+      if (saved) {
+        try {
+          const parsed: string[] = JSON.parse(saved);
+          // Filter to only valid instance IDs that still exist
+          const valid = parsed.filter(id => instances.some(i => i.id === id));
+          idsToSelect = valid.length > 0 ? valid : instances.map(i => i.id);
+        } catch {
+          idsToSelect = instances.map(i => i.id);
+        }
       } else {
-        selectInstance(allIds[0]);
-        onInstanceChange?.(allIds[0]);
-        onMultiInstanceChange?.(allIds);
+        idsToSelect = instances.map(i => i.id);
+      }
+
+      setSelectedIds(new Set(idsToSelect));
+      setInitialized(true);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSelect));
+
+      if (idsToSelect.length > 1) {
+        onInstanceChange?.(ROTATE_ALL);
+        onMultiInstanceChange?.(idsToSelect);
+      } else {
+        selectInstance(idsToSelect[0]);
+        onInstanceChange?.(idsToSelect[0]);
+        onMultiInstanceChange?.(idsToSelect);
       }
     }
   }, [instances, initialized]);
