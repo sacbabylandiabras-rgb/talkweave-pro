@@ -66,6 +66,7 @@ serve(async (req) => {
       buttonActions,
       buttonList,
       optionList,
+      viewOnce,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}`);
