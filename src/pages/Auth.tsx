@@ -127,7 +127,7 @@ const Auth = () => {
         <div style={{
           background: "var(--lp-surface)",
           border: "1px solid var(--lp-border)",
-          borderRadius: 16,
+          borderRadius: 4,
           padding: "40px 32px",
           boxShadow: "0 20px 60px rgba(0,0,0,0.4)"
         }}>
@@ -145,7 +145,7 @@ const Auth = () => {
           <div style={{
             display: "flex",
             background: "var(--lp-surface2)",
-            borderRadius: 10,
+            borderRadius: 4,
             padding: 4,
             marginBottom: 28,
             gap: 4
@@ -157,7 +157,7 @@ const Auth = () => {
                 style={{
                   flex: 1,
                   padding: "10px 0",
-                  borderRadius: 8,
+                  borderRadius: 4,
                   border: "none",
                   cursor: "pointer",
                   fontSize: 14,
@@ -207,7 +207,7 @@ function InputField({ icon, type, placeholder, value, onChange, disabled }: {
     <div style={{
       display: "flex", alignItems: "center", gap: 12,
       background: "var(--lp-surface2)", border: "1px solid var(--lp-border)",
-      borderRadius: 10, padding: "0 14px", transition: "border-color 0.2s",
+      borderRadius: 4, padding: "0 14px", transition: "border-color 0.2s",
     }}>
       <span style={{ color: "var(--lp-muted)", flexShrink: 0 }}>{icon}</span>
       <input
@@ -233,7 +233,7 @@ function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; labe
       type="submit"
       disabled={loading}
       style={{
-        width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+        width: "100%", padding: "13px 0", borderRadius: 4, border: "none",
         background: loading ? "var(--lp-muted2)" : "var(--lp-accent)",
         color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
