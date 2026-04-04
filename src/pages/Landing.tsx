@@ -157,6 +157,21 @@ function HeroSection() {
   }, []);
 
   useEffect(() => {
+    // Pre-load logo images
+    const logoSources: Record<string, string> = {
+      Kiwify: logoKiwify,
+      Hotmart: logoHotmart,
+      DevZapp: logoDevzapp,
+      SendFlow: logoSendflow,
+      ManyChat: logoManychat,
+    };
+    const logoImages: Record<string, HTMLImageElement> = {};
+    Object.entries(logoSources).forEach(([name, src]) => {
+      const img = new Image();
+      img.src = src;
+      logoImages[name] = img;
+    });
+
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const sr = screensRef.current;
@@ -214,11 +229,9 @@ function HeroSection() {
     initPositions();
 
     function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
-    function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
       ctx.save();
       ctx.globalAlpha = alpha;
 
-      // Draw circular clipped logo image
       const clip = new Path2D();
       clip.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.save();
@@ -228,7 +241,6 @@ function HeroSection() {
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
       } else {
-        // Fallback circle
         ctx.fillStyle = "#333";
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
       }
