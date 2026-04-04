@@ -5,7 +5,10 @@ export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
 
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[220px] max-w-[300px]">
+    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[220px] max-w-[300px]">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded">
+        Enviar DM
+      </span>
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
       <div className="flex items-center gap-2">
@@ -43,7 +46,6 @@ export function IGDMNode({ data }: any) {
                   {btn.title || `Botão ${idx + 1}`}
                 </span>
               </div>
-              {/* Individual handle for each button */}
               <Handle
                 type="source"
                 position={Position.Right}
@@ -68,7 +70,6 @@ export function IGDMNode({ data }: any) {
         )}
       </div>
 
-      {/* Default output handle (for flow without button branching) */}
       <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
     </div>
   );

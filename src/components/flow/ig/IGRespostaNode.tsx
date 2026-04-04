@@ -3,7 +3,10 @@ import { Reply } from "lucide-react";
 
 export function IGRespostaNode({ data }: any) {
   return (
-    <div className="px-4 py-3 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[260px]">
+    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[260px]">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded">
+        Resposta
+      </span>
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
       <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
       <div className="flex items-center gap-2">
