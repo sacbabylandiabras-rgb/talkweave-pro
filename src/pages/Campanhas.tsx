@@ -417,23 +417,14 @@ const Campanhas = () => {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-2">
-          <TabsTrigger value="contatos" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Contatos
-          </TabsTrigger>
-          <TabsTrigger value="grupos" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Grupos
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="contatos" className="mt-4">
-
       <CreateCampaignDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
+      />
+
+      <CreateGroupCampaignDialog
+        open={showCreateGroupDialog}
+        onOpenChange={setShowCreateGroupDialog}
       />
 
       <EditCampaignDialog 
@@ -459,6 +450,20 @@ const Campanhas = () => {
           }
         }}
       />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="contatos" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Contatos
+          </TabsTrigger>
+          <TabsTrigger value="grupos" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Grupos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="contatos" className="mt-4">
 
       <div className="grid gap-4">
         {(() => {
