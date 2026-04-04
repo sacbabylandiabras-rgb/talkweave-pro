@@ -603,21 +603,37 @@ const ChatView = ({
               </div>
             </div>
             {attachedFile.mediaType === 'video' && (
-              <button
-                type="button"
-                onClick={() => setViewOnce(!viewOnce)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0",
-                  viewOnce
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                )}
-              >
-                <Video className="w-3.5 h-3.5" />
-                Instantâneo
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setViewOnce(!viewOnce); if (!viewOnce) setIsPtv(false); }}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors",
+                    viewOnce
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                  )}
+                  title="Vídeo que só pode ser visto uma vez"
+                >
+                  👁 Única vez
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsPtv(!isPtv); if (!isPtv) setViewOnce(false); }}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors",
+                    isPtv
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                  )}
+                  title="Vídeo circular instantâneo (PTV)"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  Instantâneo
+                </button>
+              </div>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); }}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); setIsPtv(false); }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
