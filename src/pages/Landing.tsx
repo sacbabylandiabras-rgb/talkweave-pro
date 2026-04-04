@@ -195,9 +195,8 @@ function HeroSection() {
     let doneTimer = 0;
     let animId: number;
 
-    const heroSection = stage.closest("#lp-hero-section");
-    const tagline = heroSection?.querySelector("#lp-tagline") as HTMLElement;
-    const sub = heroSection?.querySelector("#lp-sub") as HTMLElement;
+    const tagline = stage.querySelector("#lp-tagline") as HTMLElement;
+    const sub = stage.querySelector("#lp-sub") as HTMLElement;
 
     function initPositions() {
       const w = W();
