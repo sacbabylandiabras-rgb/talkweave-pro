@@ -2033,6 +2033,7 @@ function ParticipantesTab() {
       instances={instances}
       saving={savingAutomation === automationDialogLink?.id}
     />
+    </>
   );
 }
 
