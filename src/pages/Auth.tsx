@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Lock, User, Phone } from "lucide-react";
 import { z } from "zod";
+import "./Landing.css";
 
 const authSchema = z.object({
   email: z.string().email("Email inválido").max(255),
@@ -32,102 +28,50 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [activeTab, setActiveTab] = useState(searchParams.get("signup") ? "signup" : "login");
-  
+  const [activeTab, setActiveTab] = useState<"login" | "signup">(searchParams.get("signup") ? "signup" : "login");
 
   useEffect(() => {
-    // Verificar se usuário já está logado
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/gateway-checkout/dashboard");
-      }
+      if (session) navigate("/gateway-checkout/dashboard");
     };
     checkUser();
 
-    // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate("/gateway-checkout/dashboard");
-      }
-      
-      // Quando o usuário confirma o email
+      if (event === 'SIGNED_IN' && session) navigate("/gateway-checkout/dashboard");
       if (event === 'USER_UPDATED') {
-        toast({
-          title: "✅ Email confirmado!",
-          description: "Agora você pode fazer login com suas credenciais.",
-        });
+        toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Validar inputs
       authSchema.parse({ email: email.trim(), password });
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Erro ao entrar",
-            description: "Email ou senha incorretos",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Erro ao entrar",
-            description: error.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Erro ao entrar",
+          description: error.message.includes("Invalid login credentials") ? "Email ou senha incorretos" : error.message,
+          variant: "destructive"
+        });
         return;
       }
-
-      // Verificar se o usuário está ativo
       if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("is_active")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Erro ao verificar perfil:", profileError);
-        }
-
+        const { data: profile } = await supabase.from("profiles").select("is_active").eq("id", data.user.id).single();
         if (profile && !profile.is_active) {
           await supabase.auth.signOut();
-          toast({
-            title: "Conta desativada",
-            description: "Sua conta foi desativada. Entre em contato com o suporte.",
-            variant: "destructive"
-          });
+          toast({ title: "Conta desativada", description: "Sua conta foi desativada. Entre em contato com o suporte.", variant: "destructive" });
           return;
         }
       }
-
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta"
-      });
+      toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Dados inválidos",
-          description: error.errors[0].message,
-          variant: "destructive"
-        });
+        toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -137,58 +81,29 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Validar inputs
       signupSchema.parse({ email: email.trim(), password, fullName: fullName.trim(), whatsapp: whatsapp.trim() });
-
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           emailRedirectTo: 'https://talkweave-pro.lovable.app/gateway-checkout/dashboard',
-          data: {
-            full_name: fullName.trim(),
-            whatsapp: whatsapp.trim()
-          }
+          data: { full_name: fullName.trim(), whatsapp: whatsapp.trim() }
         }
       });
-
       if (error) {
-        if (error.message.includes("User already registered")) {
-          toast({
-            title: "Erro ao criar conta",
-            description: "Este email já está cadastrado. Faça login ou recupere sua senha.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Erro ao criar conta",
-            description: error.message,
-            variant: "destructive"
-          });
-        }
-        return;
-      }
-
-      toast({
-        title: "✅ Conta criada com sucesso!",
-        description: "📧 Verifique sua caixa de entrada (e spam) e clique no link de confirmação do email antes de fazer login.",
-        duration: 10000
-      });
-      
-      // Limpar campos
-      setEmail("");
-      setPassword("");
-      setFullName("");
-      setWhatsapp("");
-    } catch (error) {
-      if (error instanceof z.ZodError) {
         toast({
-          title: "Dados inválidos",
-          description: error.errors[0].message,
+          title: "Erro ao criar conta",
+          description: error.message.includes("User already registered") ? "Este email já está cadastrado." : error.message,
           variant: "destructive"
         });
+        return;
+      }
+      toast({ title: "✅ Conta criada!", description: "📧 Verifique sua caixa de entrada e confirme o email.", duration: 10000 });
+      setEmail(""); setPassword(""); setFullName(""); setWhatsapp("");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -196,141 +111,139 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 p-4">
-      <div className="w-full max-w-md">
-        <Button
-          variant="ghost"
+    <div className="lp-root" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+        {/* Back button */}
+        <button
           onClick={() => navigate("/")}
-          className="mb-4"
+          className="lp-btn-ghost"
+          style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft size={16} />
           Voltar
-        </Button>
+        </button>
 
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">ZapLynx</CardTitle>
-            <CardDescription>
-              Gerencie suas mensagens de forma profissional
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Criar Conta</TabsTrigger>
-              </TabsList>
+        {/* Card */}
+        <div style={{
+          background: "var(--lp-surface)",
+          border: "1px solid var(--lp-border)",
+          borderRadius: 16,
+          padding: "40px 32px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.4)"
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
+              Zap<span style={{ color: "var(--lp-accent)" }}>Lynx</span>
+            </h1>
+            <p style={{ color: "var(--lp-muted)", fontSize: 14, marginTop: 8 }}>
+              {activeTab === "login" ? "Entre na sua conta" : "Crie sua conta grátis"}
+            </p>
+          </div>
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Entrando...
-                      </>
-                    ) : (
-                      "Entrar"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
+          {/* Tab switcher */}
+          <div style={{
+            display: "flex",
+            background: "var(--lp-surface2)",
+            borderRadius: 10,
+            padding: 4,
+            marginBottom: 28,
+            gap: 4
+          }}>
+            {(["login", "signup"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                  background: activeTab === tab ? "var(--lp-accent)" : "transparent",
+                  color: activeTab === tab ? "#fff" : "var(--lp-muted)",
+                }}
+              >
+                {tab === "login" ? "Entrar" : "Criar Conta"}
+              </button>
+            ))}
+          </div>
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-whatsapp">WhatsApp</Label>
-                    <Input
-                      id="signup-whatsapp"
-                      type="text"
-                      placeholder="+5511999999999"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Criando conta...
-                      </>
-                    ) : (
-                      "Criar Conta Grátis"
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Após criar sua conta, confirme seu email para acessar a plataforma.
-                  </p>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          {/* Forms */}
+          {activeTab === "login" ? (
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={email} onChange={setEmail} disabled={loading} />
+              <InputField icon={<Lock size={16} />} type="password" placeholder="••••••••" value={password} onChange={setPassword} disabled={loading} />
+              <SubmitButton loading={loading} label="Entrar" loadingLabel="Entrando..." />
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <InputField icon={<User size={16} />} type="text" placeholder="Seu nome completo" value={fullName} onChange={setFullName} disabled={loading} />
+              <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={email} onChange={setEmail} disabled={loading} />
+              <InputField icon={<Phone size={16} />} type="text" placeholder="+5511999999999" value={whatsapp} onChange={setWhatsapp} disabled={loading} />
+              <InputField icon={<Lock size={16} />} type="password" placeholder="••••••••" value={password} onChange={setPassword} disabled={loading} />
+              <SubmitButton loading={loading} label="Criar Conta Grátis" loadingLabel="Criando conta..." />
+              <p style={{ fontSize: 12, color: "var(--lp-muted)", textAlign: "center", margin: 0 }}>
+                Após criar sua conta, confirme seu email para acessar.
+              </p>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+/* ── Reusable sub-components ── */
+
+function InputField({ icon, type, placeholder, value, onChange, disabled }: {
+  icon: React.ReactNode; type: string; placeholder: string; value: string;
+  onChange: (v: string) => void; disabled: boolean;
+}) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      background: "var(--lp-surface2)", border: "1px solid var(--lp-border)",
+      borderRadius: 10, padding: "0 14px", transition: "border-color 0.2s",
+    }}>
+      <span style={{ color: "var(--lp-muted)", flexShrink: 0 }}>{icon}</span>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        disabled={disabled}
+        style={{
+          flex: 1, background: "transparent", border: "none", outline: "none",
+          color: "var(--lp-text)", fontSize: 14, padding: "12px 0",
+          fontFamily: "inherit",
+        }}
+      />
+    </div>
+  );
+}
+
+function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; label: string; loadingLabel: string }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      style={{
+        width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+        background: loading ? "var(--lp-muted2)" : "var(--lp-accent)",
+        color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        transition: "all 0.2s", marginTop: 4,
+      }}
+    >
+      {loading && <Loader2 size={16} className="animate-spin" />}
+      {loading ? loadingLabel : label}
+    </button>
+  );
+}
 
 export default Auth;
