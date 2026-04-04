@@ -368,7 +368,7 @@ export default function FluxoVisual() {
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : "Ação"}`,
           content: "",
         },
       };
