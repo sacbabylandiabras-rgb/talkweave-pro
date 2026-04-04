@@ -392,6 +392,8 @@ serve(async (req) => {
         const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
         const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
         const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
+        const campaignViewOnce = campaign.target_audience?.viewOnce === true;
+        const campaignIsPtv = campaign.target_audience?.isPtv === true;
 
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
