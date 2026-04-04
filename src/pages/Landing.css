@@ -14,13 +14,13 @@
   --lp-green: #22c55e;
   --lp-pink: #e1306c;
 
-  background: var(--lp-bg);
+  background: #0d0f1a !important;
   color: var(--lp-text);
   font-family: 'Plus Jakarta Sans', 'Poppins', sans-serif;
   font-size: 14px;
   line-height: 1.6;
   background-image: radial-gradient(ellipse 60% 40% at 80% 10%, rgba(240, 90, 40, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(240, 90, 40, 0.05) 0%, transparent 60%);
+    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(240, 90, 40, 0.05) 0%, transparent 60%) !important;
   min-height: 100vh;
 }
 
