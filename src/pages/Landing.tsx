@@ -402,10 +402,6 @@ function HeroSection() {
     <div id="lp-hero-section">
       <div className="lp-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="lp-canvas" />
-        <div className="lp-overlay">
-          <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
-          <div id="lp-sub">Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
-        </div>
         <div className="lp-screens-reveal" ref={screensRef}>
           <div className="lp-screen-wrap">
             {screens.map((src, i) => (
@@ -420,6 +416,10 @@ function HeroSection() {
             ))}
           </div>
         </div>
+      </div>
+      <div className="lp-hero-tagline-block">
+        <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
+        <div id="lp-sub">Gateway · WhatsApp · Instagram · IA — tudo em um só lugar</div>
       </div>
     </div>
   );

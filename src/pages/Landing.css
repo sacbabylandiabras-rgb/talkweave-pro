@@ -229,11 +229,11 @@
 /* HERO COPY */
 .lp-hero {
   text-align: center;
-  padding: 0 48px 50px;
+  padding: 12px 48px 50px;
   position: relative;
-  margin-top: -60px;
+  margin-top: 0;
   z-index: 10;
-  background: linear-gradient(to bottom, transparent 0%, #0d0f1a 40px);
+  background: transparent;
 }
 .lp-hero-glow {
   position: absolute;
