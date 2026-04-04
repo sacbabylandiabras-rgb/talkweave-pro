@@ -21,6 +21,8 @@ interface MediaModelSectionProps {
   modelosDisponiveis: MessageTemplate[];
   viewOnce?: boolean;
   setViewOnce?: (value: boolean) => void;
+  isPtv?: boolean;
+  setIsPtv?: (value: boolean) => void;
 }
 
 const MediaModelSection = ({
