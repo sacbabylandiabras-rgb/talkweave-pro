@@ -393,30 +393,6 @@ const Campanhas = () => {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-4">
-          <InstanceSelector
-            onInstanceChange={(id) => {
-              if (id === ROTATE_ALL) {
-                setInstanceSelectionMode('rotate');
-              } else {
-                const inst = instances.find(i => i.id === id);
-                if (inst) {
-                  setInstanceSelectionMode('single');
-                  setZapiInstanceOverride(inst);
-                }
-              }
-            }}
-            onMultiInstanceChange={(ids) => {
-              if (ids.length > 1) {
-                const selected = instances.filter(i => ids.includes(i.id));
-                setZapiRotateMode(selected);
-              }
-            }}
-          />
-        </CardContent>
-      </Card>
-
       <CreateCampaignDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
@@ -813,6 +789,27 @@ const Campanhas = () => {
               Deseja realmente retomar esta campanha? A campanha continuará de onde parou e iniciará o envio de mensagens.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-2">
+            <InstanceSelector
+              onInstanceChange={(id) => {
+                if (id === ROTATE_ALL) {
+                  setInstanceSelectionMode('rotate');
+                } else {
+                  const inst = instances.find(i => i.id === id);
+                  if (inst) {
+                    setInstanceSelectionMode('single');
+                    setZapiInstanceOverride(inst);
+                  }
+                }
+              }}
+              onMultiInstanceChange={(ids) => {
+                if (ids.length > 1) {
+                  const selected = instances.filter(i => ids.includes(i.id));
+                  setZapiRotateMode(selected);
+                }
+              }}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmResumeCampaign}>
@@ -840,6 +837,27 @@ const Campanhas = () => {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-2">
+            <InstanceSelector
+              onInstanceChange={(id) => {
+                if (id === ROTATE_ALL) {
+                  setInstanceSelectionMode('rotate');
+                } else {
+                  const inst = instances.find(i => i.id === id);
+                  if (inst) {
+                    setInstanceSelectionMode('single');
+                    setZapiInstanceOverride(inst);
+                  }
+                }
+              }}
+              onMultiInstanceChange={(ids) => {
+                if (ids.length > 1) {
+                  const selected = instances.filter(i => ids.includes(i.id));
+                  setZapiRotateMode(selected);
+                }
+              }}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmSendCampaign}>
