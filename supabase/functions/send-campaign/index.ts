@@ -75,6 +75,7 @@ const isZapiConfirmed = (payload: any) => {
   const result = String(payload?.result || '').toUpperCase();
   return Boolean(ackId || ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result));
 };
+const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
 
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
@@ -433,11 +434,12 @@ serve(async (req) => {
         }
 
         const currentInstanceStatus = await fetchDeviceStatusSnapshot(currentInstance);
-        if (!currentInstanceStatus.ok && currentBatch[i].sourceInstanceId) {
-          throw new Error(`Falha ao validar a instância ${currentInstance.instanceName} antes do envio para o grupo`);
-        }
-
-        if (currentInstanceStatus.explicitlyDisconnected || !currentInstanceStatus.connected) {
+        if (!currentInstanceStatus.ok) {
+          console.warn(`⚠️ Could not validate instance ${currentInstance.instanceName} before sending to ${contact.phone}:`, currentInstanceStatus.raw);
+          if (currentBatch[i].sourceInstanceId) {
+            throw new Error(`Falha ao validar a instância ${currentInstance.instanceName} antes do envio para o grupo`);
+          }
+        } else if (currentInstanceStatus.explicitlyDisconnected || !currentInstanceStatus.connected) {
           throw new Error(`Instância ${currentInstance.instanceName} desconectada para o grupo ${contact.name || contact.phone}`);
         }
 
@@ -509,8 +511,11 @@ serve(async (req) => {
           const carouselText = await carouselResponse.text();
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
-          campaignSend.status = 'sent';
-          campaignSend.sent_at = new Date().toISOString();
+          const awaitingGroupCallback = isGroupDestination(contact.phone);
+          campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+          if (!awaitingGroupCallback) {
+            campaignSend.sent_at = new Date().toISOString();
+          }
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await supabase.from('campaign_sends').insert([campaignSend]);
@@ -621,10 +626,15 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
-            campaignSend.status = 'sent';
-            campaignSend.sent_at = new Date().toISOString();
+            const awaitingGroupCallback = isGroupDestination(contact.phone);
+            campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+            if (!awaitingGroupCallback) {
+              campaignSend.sent_at = new Date().toISOString();
+            }
             results.push({ phone: contact.phone, success: true, messageId: getZapiAckId(zapiResult) });
-            console.log(`✅ Sent to ${contact.phone}`);
+            console.log(awaitingGroupCallback
+              ? `⏳ Accepted by Z-API for ${contact.phone}; waiting callback to mark as sent/delivered`
+              : `✅ Sent to ${contact.phone}`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
