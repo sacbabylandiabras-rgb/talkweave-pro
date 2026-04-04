@@ -1210,6 +1210,8 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          group_message_enabled: boolean
+          group_message_text: string
           id: string
           max_members_per_group: number
           name: string
@@ -1227,6 +1229,8 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          group_message_enabled?: boolean
+          group_message_text?: string
           id?: string
           max_members_per_group?: number
           name: string
@@ -1244,6 +1248,8 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          group_message_enabled?: boolean
+          group_message_text?: string
           id?: string
           max_members_per_group?: number
           name?: string
