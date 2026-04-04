@@ -94,6 +94,7 @@
   height: 460px;
   overflow: hidden;
   background: #0d0f1a;
+  contain: paint;
 }
 .lp-stage::after {
   content: '';
