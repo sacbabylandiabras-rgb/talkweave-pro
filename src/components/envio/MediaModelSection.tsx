@@ -21,6 +21,8 @@ interface MediaModelSectionProps {
   modelosDisponiveis: MessageTemplate[];
   viewOnce?: boolean;
   setViewOnce?: (value: boolean) => void;
+  isPtv?: boolean;
+  setIsPtv?: (value: boolean) => void;
 }
 
 const MediaModelSection = ({
@@ -34,6 +36,8 @@ const MediaModelSection = ({
   modelosDisponiveis,
   viewOnce,
   setViewOnce,
+  isPtv,
+  setIsPtv,
 }: MediaModelSectionProps) => {
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
@@ -110,24 +114,48 @@ const MediaModelSection = ({
                     className="w-full"
                   />
                 )}
-                {isVideoFile && setViewOnce && (
-                  <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 text-primary" />
-                      <div>
-                        <Label className="text-sm font-medium cursor-pointer" htmlFor="viewOnce-toggle">
-                          Vídeo Instantâneo
-                        </Label>
-                        <p className="text-[10px] text-muted-foreground">
-                          Vídeo circular que só pode ser visto uma vez
-                        </p>
+                {isVideoFile && (setViewOnce || setIsPtv) && (
+                  <div className="space-y-2">
+                    {setViewOnce && (
+                      <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">👁</span>
+                          <div>
+                            <Label className="text-sm font-medium cursor-pointer" htmlFor="viewOnce-toggle">
+                              Visualização Única
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground">
+                              Vídeo que só pode ser visto uma vez
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          id="viewOnce-toggle"
+                          checked={viewOnce || false}
+                          onCheckedChange={(v) => { setViewOnce(v); if (v && setIsPtv) setIsPtv(false); }}
+                        />
                       </div>
-                    </div>
-                    <Switch
-                      id="viewOnce-toggle"
-                      checked={viewOnce || false}
-                      onCheckedChange={setViewOnce}
-                    />
+                    )}
+                    {setIsPtv && (
+                      <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-4 h-4 text-primary" />
+                          <div>
+                            <Label className="text-sm font-medium cursor-pointer" htmlFor="ptv-toggle">
+                              Vídeo Instantâneo (PTV)
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground">
+                              Vídeo circular instantâneo
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          id="ptv-toggle"
+                          checked={isPtv || false}
+                          onCheckedChange={(v) => { setIsPtv(v); if (v && setViewOnce) setViewOnce(false); }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 {!arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (

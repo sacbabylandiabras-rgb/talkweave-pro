@@ -300,7 +300,7 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
@@ -310,6 +310,7 @@ const ChatView = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<{ file: File; previewUrl: string; mediaType: string } | null>(null);
   const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -336,9 +337,11 @@ const ChatView = ({
         const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, attachedFile.mediaType === 'video' ? viewOnce : undefined);
+        const isVideo = attachedFile.mediaType === 'video';
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, isVideo ? viewOnce : undefined, isVideo ? isPtv : undefined);
         setAttachedFile(null);
         setViewOnce(false);
+        setIsPtv(false);
       } else {
         await onSendMessage(conversation.phone, newMessage.trim());
       }
@@ -600,21 +603,37 @@ const ChatView = ({
               </div>
             </div>
             {attachedFile.mediaType === 'video' && (
-              <button
-                type="button"
-                onClick={() => setViewOnce(!viewOnce)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0",
-                  viewOnce
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                )}
-              >
-                <Video className="w-3.5 h-3.5" />
-                Instantâneo
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setViewOnce(!viewOnce); if (!viewOnce) setIsPtv(false); }}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors",
+                    viewOnce
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                  )}
+                  title="Vídeo que só pode ser visto uma vez"
+                >
+                  👁 Única vez
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsPtv(!isPtv); if (!isPtv) setViewOnce(false); }}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors",
+                    isPtv
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                  )}
+                  title="Vídeo circular instantâneo (PTV)"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  Instantâneo
+                </button>
+              </div>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); }}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setAttachedFile(null); setViewOnce(false); setIsPtv(false); }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -879,8 +898,8 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType, viewOnce) => {
-            await sendMessage(phone, message, mediaUrl, mediaType, viewOnce);
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType, viewOnce, isPtv) => {
+            await sendMessage(phone, message, mediaUrl, mediaType, viewOnce, isPtv);
             toast({ title: "Mensagem enviada", description: "Mensagem aceita pela Z-API." });
           }} />
         )}

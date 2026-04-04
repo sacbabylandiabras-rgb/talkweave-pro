@@ -59,6 +59,7 @@ const EnviarMensagem = () => {
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [delay, setDelay] = useState(2);
   const [viewOnce, setViewOnce] = useState(false);
+  const [isPtv, setIsPtv] = useState(false);
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
@@ -188,7 +189,7 @@ const EnviarMensagem = () => {
           if (isImage) {
             await sendImage(validatedData.phone, base64File, legenda || '');
           } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce);
+            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce, isPtv);
           } else if (isAudio) {
             await sendAudio(validatedData.phone, base64File, legenda || '');
           } else {
@@ -282,7 +283,7 @@ const EnviarMensagem = () => {
           if (isImage) {
             await sendImage(validatedData.phone, base64File, legenda || '');
           } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce);
+            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce, isPtv);
           } else if (isAudio) {
             await sendAudio(validatedData.phone, base64File, legenda || '');
           } else {
@@ -598,7 +599,7 @@ const EnviarMensagem = () => {
             if (isImage) {
               await sendImage(contato.telefone, base64File, legenda || '');
             } else if (isVideo) {
-              await sendVideo(contato.telefone, base64File, legenda || '', viewOnce);
+              await sendVideo(contato.telefone, base64File, legenda || '', viewOnce, isPtv);
             } else if (isAudio) {
               await sendAudio(contato.telefone, base64File, legenda || '');
             } else {
@@ -794,7 +795,7 @@ const EnviarMensagem = () => {
       if (isImage) {
         await sendImage(validatedData.phone, base64File, legenda || mensagem);
       } else if (isVideo) {
-        await sendVideo(validatedData.phone, base64File, legenda || mensagem, viewOnce);
+        await sendVideo(validatedData.phone, base64File, legenda || mensagem, viewOnce, isPtv);
       } else if (isAudio) {
         await sendAudio(validatedData.phone, base64File, legenda || mensagem);
       } else {
@@ -908,6 +909,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   
                   <div>
@@ -988,6 +991,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   
                   <div>
@@ -1189,6 +1194,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   <div>
                     <Label htmlFor="numero-lista">Número do WhatsApp</Label>
@@ -1319,6 +1326,8 @@ const EnviarMensagem = () => {
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
+                    isPtv={isPtv}
+                    setIsPtv={setIsPtv}
                   />
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Como usar o envio em massa:</h4>
