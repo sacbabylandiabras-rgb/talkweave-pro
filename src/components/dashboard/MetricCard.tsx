@@ -50,11 +50,9 @@ export function MetricCard({
 
   return (
     <div className={cn(
-      "group relative flex items-center gap-4 p-4 rounded border border-border/60 bg-card",
-      "hover:shadow-md hover:border-border hover:-translate-y-0.5",
+      "group relative flex items-center gap-4 p-4 rounded border border-[#FF4D2E]/40 bg-card",
+      "hover:shadow-md hover:border-[#FF4D2E]/70 hover:-translate-y-0.5",
       "transition-all duration-300 ease-out",
-      "border-l-[3px]",
-      styles.accent,
       className
     )}>
       <div className={cn("p-2.5 rounded", styles.bg)}>
