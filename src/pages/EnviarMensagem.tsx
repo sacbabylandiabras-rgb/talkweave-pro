@@ -57,7 +57,8 @@ const EnviarMensagem = () => {
   const [arquivoMidia, setArquivoMidia] = useState<File | null>(null);
   const [legenda, setLegenda] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
-  const [delay, setDelay] = useState(2); // Delay em segundos entre mensagens
+  const [delay, setDelay] = useState(2);
+  const [viewOnce, setViewOnce] = useState(false);
   const [enviandoEmMassa, setEnviandoEmMassa] = useState(false);
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
