@@ -794,7 +794,7 @@ const EnviarMensagem = () => {
       if (isImage) {
         await sendImage(validatedData.phone, base64File, legenda || mensagem);
       } else if (isVideo) {
-        await sendVideo(validatedData.phone, base64File, legenda || mensagem);
+        await sendVideo(validatedData.phone, base64File, legenda || mensagem, viewOnce);
       } else if (isAudio) {
         await sendAudio(validatedData.phone, base64File, legenda || mensagem);
       } else {
