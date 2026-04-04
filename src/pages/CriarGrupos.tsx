@@ -1701,30 +1701,6 @@ function LinksRotativosTab() {
                     </div>
                   )}
 
-                  {/* Group message (send inside the group) */}
-                  <div className="pt-2 border-t border-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Mensagem no grupo
-                      </label>
-                      <Switch
-                        checked={link.group_message_enabled || false}
-                        onCheckedChange={(v) => handleSaveAutomation(link.id, { group_message_enabled: v })}
-                      />
-                    </div>
-                    {link.group_message_enabled && (
-                      <div className="space-y-1">
-                        <Textarea
-                          placeholder="Bem-vindo ao grupo, {{nome}}! 🎉"
-                          defaultValue={link.group_message_text || ''}
-                          onBlur={(e) => handleSaveAutomation(link.id, { group_message_text: e.target.value })}
-                          rows={3}
-                        />
-                        <p className="text-xs text-muted-foreground">Esta mensagem será enviada dentro do grupo. Variáveis: {'{{nome}}'}, {'{{telefone}}'}</p>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Admin notification */}
                   <div className="pt-2 border-t border-border space-y-3">
