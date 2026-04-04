@@ -258,6 +258,41 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             return null;
           })()}
 
+          {/* Opções de Vídeo */}
+          {formData.template_id && (() => {
+            const selectedTemplate = templates.find(t => t.id === formData.template_id);
+            const isVideoTemplate = selectedTemplate?.type === 'video' || selectedTemplate?.type === 'video_botoes';
+            if (!isVideoTemplate) return null;
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Opções de Vídeo</h3>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">👁</span>
+                    <div>
+                      <Label className="text-sm font-medium">Visualização Única</Label>
+                      <p className="text-[10px] text-muted-foreground">Vídeo que só pode ser visto uma vez</p>
+                    </div>
+                  </div>
+                  <Switch checked={viewOnce} onCheckedChange={(v) => { setViewOnce(v); if (v) setIsPtv(false); }} />
+                </div>
+                <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-primary" />
+                    <div>
+                      <Label className="text-sm font-medium">Vídeo Instantâneo (PTV)</Label>
+                      <p className="text-[10px] text-muted-foreground">Vídeo circular instantâneo</p>
+                    </div>
+                  </div>
+                  <Switch checked={isPtv} onCheckedChange={(v) => { setIsPtv(v); if (v) setViewOnce(false); }} />
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Agendamento */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
