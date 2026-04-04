@@ -123,6 +123,12 @@ const blocosDisponiveis = [
     icon: Key,
     description: "Palavra-chave que dispara o fluxo",
   },
+  {
+    type: "blocoAgendamento",
+    label: "Agendamento",
+    icon: CalendarClock,
+    description: "Agendar envio para data/hora específica",
+  },
 ];
 
 interface FlowAutomation {
