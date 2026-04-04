@@ -94,7 +94,6 @@
   height: 460px;
   overflow: hidden;
   background: #0d0f1a;
-  contain: paint;
 }
 .lp-stage::after {
   content: '';
@@ -114,17 +113,14 @@
 }
 .lp-overlay {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
   padding-bottom: 22px;
   pointer-events: none;
-  z-index: 5;
+  z-index: 25;
+  text-align: center;
+  background: linear-gradient(to top, rgba(13,15,26,0.95) 40%, transparent 100%);
 }
 #lp-tagline {
   font-size: clamp(18px, 3vw, 26px);
