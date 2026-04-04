@@ -484,8 +484,13 @@ serve(async (req) => {
 
         } else if (templateType === 'video') {
           if (!hasMedia) throw new Error('Template tipo "video" requer um vídeo');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-          requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage };
+          if (campaignIsPtv) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            requestBody = { phone: contact.phone, ptv: campaign.template.media_url };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
+          }
 
         } else if (templateType === 'audio') {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');
