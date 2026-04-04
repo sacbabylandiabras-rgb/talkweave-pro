@@ -1601,7 +1601,10 @@ function LinksRotativosTab() {
                       <Workflow className="w-4 h-4" />
                       Automação do Link
                       {(link.welcome_type && link.welcome_type !== 'none') && (
-                        <Badge variant="secondary" className="text-[10px]">Ativa</Badge>
+                        <Badge variant="secondary" className="text-[10px]">Privado</Badge>
+                      )}
+                      {(link.group_message_type && link.group_message_type !== 'none') && (
+                        <Badge variant="secondary" className="text-[10px]">Grupo</Badge>
                       )}
                       {link.notify_admin && (
                         <Badge variant="secondary" className="text-[10px]">Notificação</Badge>
