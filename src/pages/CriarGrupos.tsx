@@ -1873,7 +1873,7 @@ function ParticipantesTab() {
   });
 
   return (
-    <><div className="space-y-4">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
