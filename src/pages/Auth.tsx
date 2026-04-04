@@ -127,7 +127,7 @@ const Auth = () => {
         <div style={{
           background: "var(--lp-surface)",
           border: "1px solid var(--lp-border)",
-          borderRadius: 16,
+          borderRadius: 4,
           padding: "40px 32px",
           boxShadow: "0 20px 60px rgba(0,0,0,0.4)"
         }}>
