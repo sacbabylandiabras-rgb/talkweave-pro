@@ -25,6 +25,8 @@ export interface RedirectLink {
   welcome_instance_id: string | null;
   notify_admin: boolean;
   notify_phone: string;
+  group_message_enabled: boolean;
+  group_message_text: string;
   groups?: RedirectLinkGroup[];
   click_count?: number;
   clicks_by_day?: { date: string; clicks: number }[];
