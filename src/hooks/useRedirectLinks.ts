@@ -182,6 +182,12 @@ export function useRedirectLinks() {
     await fetchLinks();
   };
 
+  const updateLink = async (id: string, updates: Partial<RedirectLink>) => {
+    const { error } = await (supabase as any).from("redirect_links").update(updates).eq("id", id);
+    if (error) throw error;
+    await fetchLinks();
+  };
+
   useEffect(() => {
     fetchLinks();
   }, [fetchLinks]);
