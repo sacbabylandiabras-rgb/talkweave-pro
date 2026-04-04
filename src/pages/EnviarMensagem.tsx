@@ -598,7 +598,7 @@ const EnviarMensagem = () => {
             if (isImage) {
               await sendImage(contato.telefone, base64File, legenda || '');
             } else if (isVideo) {
-              await sendVideo(contato.telefone, base64File, legenda || '');
+              await sendVideo(contato.telefone, base64File, legenda || '', viewOnce);
             } else if (isAudio) {
               await sendAudio(contato.telefone, base64File, legenda || '');
             } else {
