@@ -4,6 +4,11 @@ import logoImage from "@/assets/logo.png";
 import screen0 from "@/assets/screen-0.jpg";
 import screen1 from "@/assets/screen-1.jpg";
 import screen2 from "@/assets/screen-2.jpg";
+import logoKiwify from "@/assets/logo-kiwify.jpg";
+import logoHotmart from "@/assets/logo-hotmart.jpg";
+import logoDevzapp from "@/assets/logo-devzapp.jpg";
+import logoSendflow from "@/assets/logo-sendflow.png";
+import logoManychat from "@/assets/logo-manychat.webp";
 import "./Landing.css";
 
 const screens = [screen0, screen1, screen2];
