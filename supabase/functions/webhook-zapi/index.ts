@@ -798,6 +798,195 @@ serve(async (req) => {
               instance_id: instData.zapi_instance_id,
             })
             console.log(`📝 Logged group join: ${joinedPhone} → ${normalizedGroupId}`)
+
+            // === REDIRECT LINK AUTOMATION ===
+            // If no per-group welcome was sent, check if the redirect link has automation
+            try {
+              const { data: rlgData } = await supabase
+                .from('redirect_link_groups')
+                .select('redirect_link_id, group_name')
+                .eq('group_id', normalizedGroupId)
+                .limit(1)
+                .maybeSingle()
+
+              if (rlgData) {
+                const { data: redirectLink } = await supabase
+                  .from('redirect_links')
+                  .select('*')
+                  .eq('id', rlgData.redirect_link_id)
+                  .eq('active', true)
+                  .maybeSingle()
+
+                if (redirectLink) {
+                  const rlWelcomeType = redirectLink.welcome_type || 'none'
+                  const groupName = rlgData.group_name || 'grupo'
+
+                  // Check if per-group welcome already sent (dedup)
+                  const dedupeWindow2 = new Date(Date.now() - 60 * 1000).toISOString()
+                  const { data: alreadySent } = await supabase
+                    .from('message_logs')
+                    .select('id')
+                    .eq('user_id', instData.user_id)
+                    .eq('phone', joinedPhone)
+                    .eq('keyword_matched', '__group_welcome__')
+                    .gte('created_at', dedupeWindow2)
+                    .limit(1)
+                    .maybeSingle()
+
+                  if (!alreadySent && rlWelcomeType !== 'none') {
+                    console.log(`🔗 Redirect link automation: type=${rlWelcomeType} for ${joinedPhone}`)
+
+                    // Resolve instance
+                    let rlInstData = instData
+                    if (redirectLink.welcome_instance_id) {
+                      const { data: overrideInst } = await supabase
+                        .from('zapi_instances')
+                        .select('zapi_instance_id, zapi_token, zapi_client_token')
+                        .eq('user_id', instData.user_id)
+                        .eq('id', redirectLink.welcome_instance_id)
+                        .eq('is_active', true)
+                        .maybeSingle()
+                      if (overrideInst) {
+                        rlInstData = { ...instData, ...overrideInst }
+                      }
+                    }
+
+                    const rlBaseUrl = `https://api.z-api.io/instances/${rlInstData.zapi_instance_id}/token/${rlInstData.zapi_token}`
+                    const rlHeaders = { 'Content-Type': 'application/json', 'Client-Token': rlInstData.zapi_client_token }
+
+                    if (rlWelcomeType === 'text' && redirectLink.welcome_message) {
+                      const msg = (redirectLink.welcome_message || '')
+                        .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                        .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                        .replace(/\{\{grupo\}\}/gi, groupName)
+
+                      await fetch(`${rlBaseUrl}/send-text`, {
+                        method: 'POST', headers: rlHeaders,
+                        body: JSON.stringify({ phone: joinedPhone, message: msg }),
+                      })
+                      console.log(`📤 Redirect link welcome text sent to ${joinedPhone}`)
+
+                      await supabase.from('message_logs').insert({
+                        phone: joinedPhone, message_received: null, response_sent: msg,
+                        keyword_matched: '__group_welcome__', timestamp: new Date().toISOString(),
+                        user_id: instData.user_id, instance_id: rlInstData.zapi_instance_id,
+                      })
+                    } else if (rlWelcomeType === 'template' && redirectLink.welcome_template_id) {
+                      // Re-use webhook-zapi self-invocation pattern or send template inline
+                      const { data: tpl } = await supabase
+                        .from('message_templates')
+                        .select('content, media_url, type, buttons, header, footer, name')
+                        .eq('id', redirectLink.welcome_template_id)
+                        .maybeSingle()
+
+                      if (tpl) {
+                        let tplMsg = (tpl.content || '')
+                          .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                          .replace(/\{\{telefone\}\}/gi, joinedPhone)
+                          .replace(/\{\{grupo\}\}/gi, groupName)
+
+                        if (tpl.media_url && (tpl.type === 'imagem' || tpl.type === 'image')) {
+                          await fetch(`${rlBaseUrl}/send-image`, {
+                            method: 'POST', headers: rlHeaders,
+                            body: JSON.stringify({ phone: joinedPhone, image: tpl.media_url, caption: tplMsg }),
+                          })
+                        } else if (tpl.media_url && (tpl.type === 'video' || tpl.type === 'vídeo')) {
+                          await fetch(`${rlBaseUrl}/send-video`, {
+                            method: 'POST', headers: rlHeaders,
+                            body: JSON.stringify({ phone: joinedPhone, video: tpl.media_url, caption: tplMsg }),
+                          })
+                        } else if (tpl.media_url && (tpl.type === 'audio' || tpl.type === 'áudio')) {
+                          await fetch(`${rlBaseUrl}/send-audio`, {
+                            method: 'POST', headers: rlHeaders,
+                            body: JSON.stringify({ phone: joinedPhone, audio: tpl.media_url }),
+                          })
+                          if (tplMsg) {
+                            await fetch(`${rlBaseUrl}/send-text`, {
+                              method: 'POST', headers: rlHeaders,
+                              body: JSON.stringify({ phone: joinedPhone, message: tplMsg }),
+                            })
+                          }
+                        } else {
+                          await fetch(`${rlBaseUrl}/send-text`, {
+                            method: 'POST', headers: rlHeaders,
+                            body: JSON.stringify({ phone: joinedPhone, message: tplMsg }),
+                          })
+                        }
+
+                        console.log(`📤 Redirect link welcome template sent to ${joinedPhone}`)
+                        await supabase.from('message_logs').insert({
+                          phone: joinedPhone, message_received: null,
+                          response_sent: `[rl-tpl:${tpl.name || redirectLink.welcome_template_id}] ${tplMsg}`,
+                          keyword_matched: '__group_welcome__', timestamp: new Date().toISOString(),
+                          user_id: instData.user_id, instance_id: rlInstData.zapi_instance_id,
+                        })
+                      }
+                    } else if (rlWelcomeType === 'flow' && redirectLink.welcome_flow_id) {
+                      const { data: flowData } = await supabase
+                        .from('flow_automations')
+                        .select('keyword')
+                        .eq('id', redirectLink.welcome_flow_id)
+                        .eq('user_id', instData.user_id)
+                        .eq('active', true)
+                        .maybeSingle()
+
+                      if (flowData?.keyword) {
+                        const selfUrl = Deno.env.get('SUPABASE_URL') + '/functions/v1/webhook-zapi'
+                        await fetch(selfUrl, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            phone: joinedPhone,
+                            message: { text: flowData.keyword, fromMe: false },
+                            instanceId: rlInstData.zapi_instance_id,
+                            senderName: joinedName,
+                            __manual_flow_trigger__: true,
+                          }),
+                        })
+                        console.log(`🔄 Redirect link flow triggered: ${flowData.keyword} → ${joinedPhone}`)
+                      }
+
+                      await supabase.from('message_logs').insert({
+                        phone: joinedPhone, message_received: null,
+                        response_sent: `[rl-fluxo:${redirectLink.welcome_flow_id}]`,
+                        keyword_matched: '__group_welcome__', timestamp: new Date().toISOString(),
+                        user_id: instData.user_id, instance_id: rlInstData.zapi_instance_id,
+                      })
+                    }
+                  }
+
+                  // === ADMIN NOTIFICATION ===
+                  if (redirectLink.notify_admin && redirectLink.notify_phone) {
+                    const notifyMsg = `🔔 *Novo membro no link rotativo*\n\n👤 ${joinedName || 'Desconhecido'}\n📱 ${joinedPhone}\n📋 Grupo: ${groupName}\n🔗 Link: ${redirectLink.name}`
+
+                    // Use same instance resolution
+                    let notifyInstData = rlWelcomeType !== 'none' ? (instData as any) : instData
+                    if (redirectLink.welcome_instance_id) {
+                      const { data: overrideInst } = await supabase
+                        .from('zapi_instances')
+                        .select('zapi_instance_id, zapi_token, zapi_client_token')
+                        .eq('user_id', instData.user_id)
+                        .eq('id', redirectLink.welcome_instance_id)
+                        .eq('is_active', true)
+                        .maybeSingle()
+                      if (overrideInst) {
+                        notifyInstData = { ...instData, ...overrideInst }
+                      }
+                    }
+
+                    const notifyBase = `https://api.z-api.io/instances/${notifyInstData.zapi_instance_id}/token/${notifyInstData.zapi_token}`
+                    await fetch(`${notifyBase}/send-text`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Client-Token': notifyInstData.zapi_client_token },
+                      body: JSON.stringify({ phone: redirectLink.notify_phone, message: notifyMsg }),
+                    })
+                    console.log(`🔔 Admin notification sent to ${redirectLink.notify_phone}`)
+                  }
+                }
+              }
+            } catch (rlAutoErr) {
+              console.error('❌ Redirect link automation error:', rlAutoErr)
+            }
           }
 
           // === REDIRECT LINK: Update member count and auto-create group if full ===
