@@ -262,7 +262,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '' }),
+          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '', ...(viewOnce ? { viewOnce: true } : {}) }),
         });
         logMessage = logMessage || '🎥 Vídeo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');

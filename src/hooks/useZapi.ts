@@ -415,11 +415,11 @@ export const useZapi = () => {
     }
   };
 
-  const sendVideo = async (phone: string, video: string, caption?: string) => {
+  const sendVideo = async (phone: string, video: string, caption?: string, viewOnce?: boolean) => {
     setLoading(true);
     
     try {
-      const data = await invokeSendMessageEdge({ phone, mediaUrl: video, mediaType: 'video', message: caption || '' }, 'Erro ao enviar vídeo');
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: video, mediaType: 'video', message: caption || '', ...(viewOnce ? { viewOnce: true } : {}) }, 'Erro ao enviar vídeo');
 
       toast({
         title: "Vídeo enviado!",
