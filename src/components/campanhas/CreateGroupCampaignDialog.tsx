@@ -103,8 +103,15 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     try {
       const groupContacts = selectedGroups.map(groupId => {
         const group = groups.find(g => g.id === groupId);
+        // Normalize group ID: remove "-group" suffix before @g.us for Z-API compatibility
+        let normalizedId = groupId;
+        if (normalizedId.includes("-group@g.us")) {
+          normalizedId = normalizedId.replace("-group@g.us", "@g.us");
+        } else if (!normalizedId.includes("@g.us")) {
+          normalizedId = `${normalizedId}@g.us`;
+        }
         return {
-          phone: groupId.includes("@g.us") ? groupId : `${groupId}@g.us`,
+          phone: normalizedId,
           name: group?.nome || "Grupo",
         };
       });
