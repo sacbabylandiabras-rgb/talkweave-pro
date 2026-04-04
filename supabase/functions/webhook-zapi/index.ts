@@ -955,6 +955,36 @@ serve(async (req) => {
                     }
                   }
 
+                  // === GROUP MESSAGE (send inside the group) ===
+                  if (redirectLink.group_message_enabled && redirectLink.group_message_text) {
+                    const groupMsg = (redirectLink.group_message_text || '')
+                      .replace(/\{\{nome\}\}/gi, joinedName || 'novo membro')
+                      .replace(/\{\{telefone\}\}/gi, joinedPhone)
+
+                    // Send to group using @g.us format
+                    const groupChatId = normalizedGroupId.replace(/-group$/i, '@g.us')
+
+                    let gmInstData = instData
+                    if (redirectLink.welcome_instance_id) {
+                      const { data: overrideInst } = await supabase
+                        .from('zapi_instances')
+                        .select('zapi_instance_id, zapi_token, zapi_client_token')
+                        .eq('user_id', instData.user_id)
+                        .eq('id', redirectLink.welcome_instance_id)
+                        .eq('is_active', true)
+                        .maybeSingle()
+                      if (overrideInst) gmInstData = { ...instData, ...overrideInst }
+                    }
+
+                    const gmBaseUrl = `https://api.z-api.io/instances/${gmInstData.zapi_instance_id}/token/${gmInstData.zapi_token}`
+                    await fetch(`${gmBaseUrl}/send-text`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Client-Token': gmInstData.zapi_client_token },
+                      body: JSON.stringify({ phone: groupChatId, message: groupMsg }),
+                    })
+                    console.log(`📢 Group message sent to ${groupChatId}`)
+                  }
+
                   // === ADMIN NOTIFICATION ===
                   if (redirectLink.notify_admin && redirectLink.notify_phone) {
                     const notifyMsg = `🔔 *Novo membro no link rotativo*\n\n👤 ${joinedName || 'Desconhecido'}\n📱 ${joinedPhone}\n📋 Grupo: ${groupName}\n🔗 Link: ${redirectLink.name}`
