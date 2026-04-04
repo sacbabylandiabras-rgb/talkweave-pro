@@ -86,14 +86,14 @@
 
 /* HERO PAC-MAN */
 #lp-hero-section {
-  background: #0d0f1a;
+  background: transparent;
 }
 .lp-stage {
   position: relative;
   width: 100%;
   height: 460px;
   overflow: hidden;
-  background: #0d0f1a;
+  background: transparent;
 }
 .lp-stage::after {
   content: '';
