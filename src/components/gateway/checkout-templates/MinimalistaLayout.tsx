@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShieldCheck, Lock, Package, CreditCard, Truck, ShoppingBag, User, Check } from "lucide-react";
+import { ShieldCheck, Lock, Package, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
@@ -57,9 +57,9 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
   const steps = [
-    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
+    { num: 1, label: "Identificação" },
+    { num: 2, label: "Conferência" },
+    { num: 3, label: "Pagamento" },
   ];
 
   return (
@@ -89,25 +89,31 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
         <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-6" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.5rem" } : undefined}>
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-3 rounded-[28px] px-4 py-2.5" style={{ background: s.cardBg }}>
               {steps.map((st, i) => (
-                <div key={st.num} className="flex items-center gap-2">
+                <div key={st.num} className="flex items-center gap-3">
                   <button
                     onClick={() => setStep(st.num as 1 | 2 | 3)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-all"
                     style={{
-                      borderRadius: s.stepRadius,
-                      background: step === st.num ? `${s.stepBg}15` : "transparent",
-                      color: step === st.num ? s.stepBg : s.cardLabel,
-                      border: step === st.num ? `1.5px solid ${s.stepBg}` : "1.5px solid transparent",
+                      borderRadius: "16px",
+                      background: step === st.num ? `${s.stepBg}12` : "transparent",
+                      color: step === st.num ? s.stepBg : s.cardText,
+                      border: step === st.num ? `1px solid ${s.stepBg}` : `1px solid transparent`,
                     }}
                   >
-                    <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
+                    <div
+                      className="flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-bold leading-none"
+                      style={{
+                        background: step === st.num || step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#E5E7EB",
+                        color: step === st.num || step > st.num ? "#FFFFFF" : s.cardDesc,
+                      }}
+                    >
                       {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                     </div>
                     <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{st.label}</span>
                   </button>
-                  {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
+                  {i < steps.length - 1 && <div className="h-px w-7 rounded-full" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
                 </div>
               ))}
             </div>
