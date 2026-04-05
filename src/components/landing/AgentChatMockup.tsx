@@ -178,9 +178,9 @@ export default function AgentChatMockup() {
 
             {/* Chat area */}
             <div ref={chatRef} style={{
-              background: "#0d1117", padding: "12px 10px", minHeight: 320,
+              background: "#0d1117", padding: "12px 10px", minHeight: 420,
               display: "flex", flexDirection: "column", gap: 6,
-              overflowY: "auto", maxHeight: 360,
+              overflowY: "auto", maxHeight: 460,
             }}>
               {messages.map((msg) => {
                 const visible = visibleMsgs.has(msg.id);
