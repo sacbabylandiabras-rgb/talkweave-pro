@@ -388,12 +388,12 @@ serve(async (req) => {
       console.error('Device check error:', e);
     }
 
-    // Normalize group phone IDs: remove "-group" suffix before @g.us
+    // Normalize group phone IDs to use "-group" suffix (required by Z-API)
     const normalizeGroupPhone = (phone: string): string => {
-      if (phone.includes('-group@g.us')) {
-        return phone.replace('-group@g.us', '@g.us');
-      }
-      return phone;
+      const isGroup = phone.includes('@g.us') || phone.includes('-group');
+      if (!isGroup) return phone;
+      const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+      return numericId ? `${numericId}-group` : phone;
     };
 
     // Process current batch
