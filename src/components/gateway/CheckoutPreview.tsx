@@ -369,36 +369,6 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           </div>
         )}
 
-        {/* Step Indicators - 3 steps */}
-        {!isOneStep && <div className="flex items-center justify-center gap-3 py-2">
-          {stepLabels.map((sl, i) => (
-            <div key={sl.num} className="flex items-center gap-3">
-              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{
-                    background: step >= sl.num ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
-                    border: step === sl.num ? `2px solid ${s.primary}` : step > sl.num ? `2px solid ${s.primary}80` : "2px solid transparent",
-                    borderRadius: s.stepRadius,
-                  }}
-                >
-                  {step > sl.num ? (
-                    <Check className="w-5 h-5" style={{ color: s.primary }} />
-                  ) : (
-                    <span style={{ color: step === sl.num ? s.primary : s.cardDesc }}>{sl.icon}</span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.primary : s.cardDesc }}>
-                  {sl.label}
-                </span>
-              </button>
-              {i < stepLabels.length - 1 && (
-                <div className="w-8 h-[2px] rounded mb-5" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
-              )}
-            </div>
-          ))}
-        </div>}
-
         {/* Order Summary Card - visible on all steps */}
         <div className="rounded-xl border p-4 space-y-4" style={cardStyle(s)}>
           <div className="flex items-center justify-between">
@@ -461,6 +431,36 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
             </div>
           </div>
         </div>
+
+        {/* Step Indicators - 3 steps */}
+        {!isOneStep && <div className="flex items-center justify-center gap-3 py-2">
+          {stepLabels.map((sl, i) => (
+            <div key={sl.num} className="flex items-center gap-3">
+              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    background: step >= sl.num ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
+                    border: step === sl.num ? `2px solid ${s.primary}` : step > sl.num ? `2px solid ${s.primary}80` : "2px solid transparent",
+                    borderRadius: s.stepRadius,
+                  }}
+                >
+                  {step > sl.num ? (
+                    <Check className="w-5 h-5" style={{ color: s.primary }} />
+                  ) : (
+                    <span style={{ color: step === sl.num ? s.primary : s.cardDesc }}>{sl.icon}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.primary : s.cardDesc }}>
+                  {sl.label}
+                </span>
+              </button>
+              {i < stepLabels.length - 1 && (
+                <div className="w-8 h-[2px] rounded mb-5" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
+              )}
+            </div>
+          ))}
+        </div>}
 
         {/* ───── STEP 1: Identification ───── */}
         {(step === 1 || isOneStep) && (
