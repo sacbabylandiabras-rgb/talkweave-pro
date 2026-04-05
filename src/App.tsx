@@ -149,8 +149,8 @@ const App = () => (
               <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
               <Route path="/termos-servico" element={<TermosServico />} />
               <Route path="*" element={<NotFound />} />
-              <WhatsAppFloatingButton />
             </Routes>
+            <WhatsAppFloatingButton />
           </BrowserRouter>
         </WorkspaceProvider>
       </TooltipProvider>
