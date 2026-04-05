@@ -135,9 +135,13 @@ export function WorkspaceSelector() {
                     : "hover:bg-muted/60"
                 )}
               >
-                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
-                  <Icon className={cn("w-4 h-4", ws.color)} />
-                </div>
+                {ws.useLogo ? (
+                  <LogoImage className="w-8 h-8 object-contain" />
+                ) : (
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
+                    <Icon className={cn("w-4 h-4", ws.color)} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground">{ws.label}</p>
                   <p className="text-[10px] text-muted-foreground">{ws.description}</p>
