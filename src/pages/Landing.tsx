@@ -104,7 +104,7 @@ const Landing = () => {
           ]} />
           <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
         </div>
-        <ChatMock />
+        <AgentChatMockup />
       </div>
 
       <div className="lp-divider" />
