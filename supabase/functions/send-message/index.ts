@@ -215,10 +215,10 @@ serve(async (req) => {
     }
 
     let resolvedPhone = phone;
-    // Z-API expects the raw numeric group ID for send-message endpoints
+    // Z-API expects group IDs with @g.us suffix for group message delivery
     if (isGroupPhone && !phone.includes('@lid')) {
       const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-      resolvedPhone = numericId || phone;
+      resolvedPhone = numericId ? `${numericId}@g.us` : phone;
       if (resolvedPhone !== phone) {
         console.log(`📌 Normalized group phone: ${phone} → ${resolvedPhone}`);
       }
