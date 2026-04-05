@@ -840,23 +840,149 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
 
       {element.type === "sales" && (
         <>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[10px]">Contagem inicial</Label>
-              <Input type="number" value={c.count || 0} onChange={e => update("count", parseInt(e.target.value))} className="mt-1 text-xs" />
-            </div>
-            <div>
-              <Label className="text-[10px]">Intervalo (seg)</Label>
-              <Input type="number" value={c.interval || 30} onChange={e => update("interval", parseInt(e.target.value))} className="mt-1 text-xs" />
-            </div>
+          <p className="text-[10px] font-semibold text-muted-foreground">Configuração de Vendas</p>
+          <div>
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Atenção" />
           </div>
           <div>
-            <Label className="text-[10px]">Texto (use {"{count}"})</Label>
-            <Input value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" />
+            <Label className="text-[10px]">Descrição</Label>
+            <Input value={c.description || ""} onChange={e => update("description", e.target.value)} className="mt-1 text-xs" placeholder="Não perca essa oportunidade!" />
           </div>
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px]">Animação de incremento</Label>
-            <Switch checked={c.showAnimation || false} onCheckedChange={v => update("showAnimation", v)} />
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Valores</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Valor Inicial</Label>
+                <Input type="number" value={c.count || 50} onChange={e => update("count", parseInt(e.target.value))} className="mt-1 text-xs" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Valor Mínimo</Label>
+                <Input type="number" value={c.minValue || 600} onChange={e => update("minValue", parseInt(e.target.value))} className="mt-1 text-xs" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Valor Máximo</Label>
+                <Input type="number" value={c.maxValue || 1000} onChange={e => update("maxValue", parseInt(e.target.value))} className="mt-1 text-xs" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Incremento</Label>
+                <Input type="number" value={c.increment || 1} onChange={e => update("increment", parseInt(e.target.value))} className="mt-1 text-xs" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-[10px]">Incremento Aleatório</Label>
+                <p className="text-[9px] text-muted-foreground">Usar valores aleatórios para incremento</p>
+              </div>
+              <Switch checked={c.randomIncrement || false} onCheckedChange={v => update("randomIncrement", v)} />
+            </div>
+            {c.randomIncrement && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">Incremento Mínimo</Label>
+                  <Input type="number" value={c.incrementMin || 1} onChange={e => update("incrementMin", parseInt(e.target.value))} className="mt-1 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Incremento Máximo</Label>
+                  <Input type="number" value={c.incrementMax || 5} onChange={e => update("incrementMax", parseInt(e.target.value))} className="mt-1 text-xs" />
+                </div>
+              </div>
+            )}
+            <div>
+              <Label className="text-[10px]">Intervalo (ms)</Label>
+              <Input type="number" value={c.interval || 800} onChange={e => update("interval", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Configurações</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-[10px]">Mostrar Ícone</Label>
+                <p className="text-[9px] text-muted-foreground">Exibir ícone de vendas</p>
+              </div>
+              <Switch checked={c.showIcon !== false} onCheckedChange={v => update("showIcon", v)} />
+            </div>
+            {c.showIcon !== false && (
+              <div>
+                <Label className="text-[10px]">Posição do Ícone</Label>
+                <Select value={c.iconPosition || "left"} onValueChange={v => update("iconPosition", v)}>
+                  <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Esquerda</SelectItem>
+                    <SelectItem value="right">Direita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label className="text-[10px]">Formato</Label>
+              <Select value={c.format || "default"} onValueChange={v => update("format", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Padrão</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {c.format === "custom" && (
+              <div>
+                <Label className="text-[10px]">Formato Personalizado</Label>
+                <Input value={c.customFormat || "{value} Compras"} onChange={e => update("customFormat", e.target.value)} className="mt-1 text-xs" placeholder="{value} Compras" />
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-[10px]">Animação</Label>
+                <p className="text-[9px] text-muted-foreground">Animar mudanças de valor</p>
+              </div>
+              <Switch checked={c.showAnimation || false} onCheckedChange={v => update("showAnimation", v)} />
+            </div>
+            {c.showAnimation && (
+              <div>
+                <Label className="text-[10px]">Duração da Animação (ms)</Label>
+                <Input type="number" value={c.animationDuration || 1000} onChange={e => update("animationDuration", parseInt(e.target.value))} className="mt-1 text-xs" />
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Tipografia</p>
+            <div>
+              <Label className="text-[10px]">Tamanho do Título</Label>
+              <Input type="number" value={c.titleSize || 18} onChange={e => update("titleSize", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Tamanho da Descrição</Label>
+              <Input type="number" value={c.descSize || 14} onChange={e => update("descSize", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Tamanho do Valor</Label>
+              <Input type="number" value={c.valueSize || 30} onChange={e => update("valueSize", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div>
+              <Label className="text-[10px]">Cor do Valor</Label>
+              <Input type="color" value={c.valueColor || "#16A34A"} onChange={e => update("valueColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Ícone</Label>
+              <Input type="color" value={c.iconColor || "#16A34A"} onChange={e => update("iconColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Texto</Label>
+              <Input type="color" value={c.textColor || "#333333"} onChange={e => update("textColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
           </div>
         </>
       )}
