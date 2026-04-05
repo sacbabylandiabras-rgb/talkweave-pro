@@ -943,9 +943,14 @@
     if (use2Col) {
       // 2-column layout
       var mainH = '';
+      // Elements: top
+      mainH += renderElementsAt('top');
       // Step indicators in main column
       if (tid === 'streamline') mainH += stepTabsHTML();
       else mainH += stepsHTML();
+
+      // Elements: above-form
+      mainH += renderElementsAt('above-form');
 
       if (step === 1) {
         if (tid === 'minimalista') mainH += step1Minimalista();
@@ -957,43 +962,70 @@
       } else if (step === 2) mainH += step2HTML();
       else mainH += step3HTML();
 
+      // Elements: below-form
+      mainH += renderElementsAt('below-form');
+
       // Sidebar
       var sideH = '';
       if (tid === 'confianca') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true});
       else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
       else sideH += sidebarSummaryHTML({});
 
-      // Elements are now added by the user via the builder, not hardcoded
+      // Elements: sidebar
+      sideH += renderElementsAt('sidebar');
+      sideH += footerHTML();
+      // Elements: sidebar-bottom
+      sideH += renderElementsAt('sidebar-bottom');
 
-      co.innerHTML = '<div class="col-main">'+mainH+'</div><div class="col-side">'+sideH+footerHTML()+'</div>';
+      co.innerHTML = '<div class="col-main">'+mainH+'</div><div class="col-side">'+sideH+'</div>';
       co.className = 'layout-2col';
     } else if (tid === 'tiktok') {
       // TokLynx: 2-col on desktop, single on mobile
-      var mainH2 = stepsHTML();
+      var mainH2 = renderElementsAt('top');
+      mainH2 += stepsHTML();
+      mainH2 += renderElementsAt('above-form');
       if (step === 1) mainH2 += step1TokLynx();
       else if (step === 2) mainH2 += step2HTML();
       else mainH2 += step3HTML();
+      mainH2 += renderElementsAt('below-form');
 
       var sideH2 = sidebarSummaryHTML({});
+      sideH2 += renderElementsAt('sidebar');
       sideH2 += footerHTML();
+      sideH2 += renderElementsAt('sidebar-bottom');
 
       co.innerHTML = '<div class="col-main">'+mainH2+'</div><div class="col-side">'+sideH2+'</div>';
       co.className = 'layout-2col';
     } else {
       // Default single-column
-      var h = stepsHTML();
+      var h = renderElementsAt('top');
+      h += stepsHTML();
       // Summary (always visible)
       h += defaultSummaryHTML();
+      h += renderElementsAt('above-form');
       if (step === 1) h += step1Default();
       else if (step === 2) h += step2HTML();
       else h += step3HTML();
-      // guarantee removed from default - must be added via builder
+      h += renderElementsAt('below-form');
       h += footerHTML();
+      h += renderElementsAt('footer');
       co.innerHTML = h;
       co.className = 'co';
     }
 
+    // Footer elements for 2col layouts
+    if (use2Col || tid === 'tiktok') {
+      var footerEls = renderElementsAt('footer');
+      if (footerEls) {
+        var fDiv = document.createElement('div');
+        fDiv.innerHTML = footerEls;
+        co.appendChild(fDiv);
+      }
+    }
+
     bind();
+    bindElementEvents();
+    startElementTimers();
   }
 
   function defaultSummaryHTML() {
