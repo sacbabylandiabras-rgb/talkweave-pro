@@ -329,3 +329,50 @@ function SalesElement({ content, primaryColor, textColor, cardBg, cardBorder, wr
     </div>
   );
 }
+
+const BENEFIT_ICONS: Record<string, any> = {
+  Truck, Shield, Clock, Star, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, CheckCircle, ThumbsUp,
+};
+
+function BenefitsElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const layout = content.layout || "grid";
+  const gap = content.gap || 24;
+  const align = content.align || "left";
+  const titleSize = content.titleSize || 16;
+  const descSize = content.descSize || 14;
+  const elTextColor = content.textColor || textColor;
+  const elBgColor = content.bgColor || "transparent";
+
+  const gridStyle: React.CSSProperties = layout === "grid"
+    ? { display: "grid", gridTemplateColumns: `repeat(${Math.min((content.items || []).length, 3)}, 1fr)`, gap: `${gap}px` }
+    : { display: "flex", flexDirection: "column", gap: `${gap}px` };
+
+  return (
+    <div
+      style={{ ...wrapperStyle, background: elBgColor, borderRadius: "12px", padding: "24px 16px" }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div style={gridStyle}>
+        {(content.items || []).map((item: any, i: number) => {
+          const IconComp = BENEFIT_ICONS[item.icon] || CheckCircle;
+          return (
+            <div key={i} className="flex flex-col" style={{ textAlign: align as any }}>
+              <div className="mb-2" style={{ textAlign: align as any }}>
+                <IconComp className="w-6 h-6" style={{ color: elTextColor + "80", display: align === "center" ? "inline-block" : "block" }} />
+              </div>
+              <h5 className="font-semibold mb-1" style={{ color: elTextColor, fontSize: `${titleSize}px`, lineHeight: "1.3" }}>
+                {item.title || item.text || "Benefício"}
+              </h5>
+              {item.description && (
+                <p style={{ color: elTextColor + "99", fontSize: `${descSize}px`, lineHeight: "1.4" }}>
+                  {item.description}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

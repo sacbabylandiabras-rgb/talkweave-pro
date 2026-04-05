@@ -174,19 +174,92 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
       {element.type === "benefits" && (
         <>
           <div>
-            <Label className="text-[10px]">Título</Label>
+            <Label className="text-[10px]">Título (não exibido, apenas referência)</Label>
             <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" />
           </div>
+
+          <p className="text-[10px] font-semibold text-muted-foreground mt-2">Lista de Benefícios</p>
+          <Button variant="outline" size="sm" className="text-xs mb-2" onClick={() => update("items", [...(c.items || []), { icon: "CheckCircle", title: "Novo Benefício", description: "" }])}>
+            <Plus className="w-3 h-3 mr-1" /> Adicionar Benefício
+          </Button>
+
           {(c.items || []).map((item: any, i: number) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input value={item.icon} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], icon: e.target.value }; update("items", items); }} className="w-12 text-xs text-center" />
-              <Input value={item.text} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], text: e.target.value }; update("items", items); }} className="flex-1 text-xs" />
-              <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
+            <div key={i} className="space-y-2 p-3 rounded-lg border border-border bg-background">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold">Benefício {i + 1}</span>
+                <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">Ícone</Label>
+                  <Select value={item.icon || "CheckCircle"} onValueChange={v => { const items = [...(c.items || [])]; items[i] = { ...items[i], icon: v }; update("items", items); }}>
+                    <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Truck","Shield","Clock","Star","Package","CreditCard","Heart","Award","Zap","Gift","ShoppingCart","RefreshCw","Headphones","CheckCircle","ThumbsUp"].map(ic => (
+                        <SelectItem key={ic} value={ic}>{ic === "Truck" ? "Caminhão" : ic === "Shield" ? "Escudo" : ic === "Clock" ? "Relógio" : ic === "Star" ? "Estrela" : ic === "Package" ? "Pacote" : ic === "CreditCard" ? "Cartão" : ic === "Heart" ? "Coração" : ic === "Award" ? "Prêmio" : ic === "Zap" ? "Raio" : ic === "Gift" ? "Presente" : ic === "ShoppingCart" ? "Carrinho" : ic === "RefreshCw" ? "Troca" : ic === "Headphones" ? "Suporte" : ic === "CheckCircle" ? "Check" : "Positivo"}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px]">Título</Label>
+                  <Input value={item.title || item.text || ""} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], title: e.target.value }; update("items", items); }} className="mt-1 text-xs" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[10px]">Descrição</Label>
+                <Textarea value={item.description || ""} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], description: e.target.value }; update("items", items); }} className="mt-1 text-xs" rows={2} />
+              </div>
             </div>
           ))}
-          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { icon: "✅", text: "" }])}>
-            <Plus className="w-3 h-3 mr-1" /> Adicionar item
-          </Button>
+
+          <div className="border-t border-border pt-3 mt-3 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Tamanho do Título</p>
+            <Input type="number" value={c.titleSize || 16} onChange={e => update("titleSize", Number(e.target.value))} className="text-xs" />
+
+            <p className="text-[10px] font-semibold text-muted-foreground">Tamanho da Descrição</p>
+            <Input type="number" value={c.descSize || 14} onChange={e => update("descSize", Number(e.target.value))} className="text-xs" />
+          </div>
+
+          <div className="border-t border-border pt-3 mt-1 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Layout e Espaçamento</p>
+            <div>
+              <Label className="text-[10px]">Tipo de Layout</Label>
+              <Select value={c.layout || "grid"} onValueChange={v => update("layout", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grid">Grade (Grid)</SelectItem>
+                  <SelectItem value="list">Lista (Vertical)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px]">Espaçamento (Gap)</Label>
+              <Input type="number" value={c.gap || 24} onChange={e => update("gap", Number(e.target.value))} className="mt-1 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Alinhamento</Label>
+              <Select value={c.align || "left"} onValueChange={v => update("align", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Esquerda</SelectItem>
+                  <SelectItem value="center">Centro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-1 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Aparência</p>
+            <div>
+              <Label className="text-[10px]">Cor do Texto</Label>
+              <Input type="color" value={c.textColor || "#000000"} onChange={e => update("textColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+          </div>
         </>
       )}
 
