@@ -238,7 +238,11 @@ const Campanhas = () => {
 
   // Status da lista é sincronizado localmente pelo hook; o diálogo cuida dos envios em tempo real.
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, campaign?: Campaign) => {
+    // Check if it's a scheduled draft
+    if (status === 'draft' && campaign?.schedule_type === 'scheduled' && campaign?.scheduled_at) {
+      return <Badge className="bg-purple-500 text-white"><ClockIcon className="w-3 h-3 mr-1" />Agendada</Badge>;
+    }
     switch (status) {
       case 'active':
         return <Badge className="bg-green-500">Ativa</Badge>;
