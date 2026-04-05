@@ -139,7 +139,20 @@ export const ELEMENT_DEFINITIONS: ElementDefinition[] = [
     label: "Garantia",
     icon: "Clock",
     category: "trust",
-    defaultContent: { days: 7, text: "Garantia incondicional de {days} dias. Se não gostar, devolvemos seu dinheiro.", style: "card" },
+    defaultContent: {
+      title: "Garantia de Satisfação",
+      text: "Se não ficar satisfeito, devolvemos seu dinheiro em até 30 dias.",
+      days: 30,
+      showIcon: true,
+      iconType: "shield",
+      titleColor: "",
+      descColor: "",
+      iconColor: "#16A34A",
+      bgColor: "",
+      paddingTop: 0,
+      paddingBottom: 0,
+      sectionBgColor: "",
+    },
   },
   // Elementos de Conversão
   {

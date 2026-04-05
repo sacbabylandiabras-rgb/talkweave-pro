@@ -160,21 +160,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       return <ReviewsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "guarantee":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `2px dashed ${primaryColor}40`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
-              <Clock className="w-6 h-6" style={{ color: primaryColor }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold" style={{ color: textColor }}>Garantia de {c.days || 7} dias</p>
-              <p className="text-xs mt-0.5" style={{ color: textColor + "99" }}>
-                {(c.text || "Garantia incondicional de {days} dias.").replace("{days}", String(c.days || 7))}
-              </p>
-            </div>
-          </div>
-        </div>
-      );
+      return <GuaranteeElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "countdown":
       return <CountdownElement content={c} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
@@ -424,6 +410,45 @@ function ReviewsElement({ content, primaryColor, textColor, cardBg, cardBorder, 
         {/* Total */}
         <p style={{ color: elTextColor + "80", fontSize: `${reviewTextPx}px` }}>
           {c.total || 0} reviews
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const GUARANTEE_ICONS: Record<string, any> = { shield: Shield, clock: Clock, check: CheckCircle, award: Award, heart: Heart };
+
+function GuaranteeElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const c = content;
+  const elTitleColor = c.titleColor || textColor;
+  const elDescColor = c.descColor || textColor + "99";
+  const elIconColor = c.iconColor || "#16A34A";
+  const elBgColor = c.bgColor || "transparent";
+  const sectionBg = c.sectionBgColor || "transparent";
+  const IconComp = GUARANTEE_ICONS[c.iconType || "shield"] || Shield;
+
+  return (
+    <div
+      style={{
+        ...wrapperStyle,
+        background: sectionBg,
+        paddingTop: `${c.paddingTop || 0}px`,
+        paddingBottom: `${c.paddingBottom || 0}px`,
+      }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center text-center py-6 px-4" style={{ background: elBgColor, borderRadius: "12px" }}>
+        {c.showIcon !== false && (
+          <div className="mb-3">
+            <IconComp className="w-10 h-10" style={{ color: elIconColor }} />
+          </div>
+        )}
+        <h4 className="text-lg font-bold mb-1" style={{ color: elTitleColor }}>
+          {c.title || `Garantia de ${c.days || 30} dias`}
+        </h4>
+        <p className="text-sm" style={{ color: elDescColor }}>
+          {(c.text || "").replace("{days}", String(c.days || 30))}
         </p>
       </div>
     </div>

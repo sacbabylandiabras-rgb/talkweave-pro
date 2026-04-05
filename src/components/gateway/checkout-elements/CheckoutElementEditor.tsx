@@ -494,12 +494,73 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
       {element.type === "guarantee" && (
         <>
           <div>
-            <Label className="text-[10px]">Dias de garantia</Label>
-            <Input type="number" value={c.days || 7} onChange={e => update("days", parseInt(e.target.value))} className="mt-1 text-xs" />
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Garantia de Satisfação" />
           </div>
           <div>
-            <Label className="text-[10px]">Texto (use {"{days}"} para o número)</Label>
-            <Textarea value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" rows={2} />
+            <Label className="text-[10px]">Descrição</Label>
+            <Textarea value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" rows={3} />
+          </div>
+          <div>
+            <Label className="text-[10px]">Dias de Garantia</Label>
+            <Input type="number" value={c.days || 30} onChange={e => update("days", parseInt(e.target.value))} className="mt-1 text-xs" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px]">Mostrar Ícone</Label>
+            <Switch checked={c.showIcon !== false} onCheckedChange={v => update("showIcon", v)} />
+          </div>
+          {c.showIcon !== false && (
+            <div>
+              <Label className="text-[10px]">Tipo de Ícone</Label>
+              <Select value={c.iconType || "shield"} onValueChange={v => update("iconType", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shield">Escudo</SelectItem>
+                  <SelectItem value="clock">Relógio</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="award">Prêmio</SelectItem>
+                  <SelectItem value="heart">Coração</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Cor do Título</Label>
+                <Input type="color" value={c.titleColor || "#000000"} onChange={e => update("titleColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor da Descrição</Label>
+                <Input type="color" value={c.descColor || "#666666"} onChange={e => update("descColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do Ícone</Label>
+                <Input type="color" value={c.iconColor || "#16A34A"} onChange={e => update("iconColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do Fundo</Label>
+                <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Espaçamento e Fundo da Seção</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Espaçamento Superior</Label>
+                <Input type="number" value={c.paddingTop || 0} onChange={e => update("paddingTop", parseInt(e.target.value))} className="mt-1 text-xs" placeholder="0px" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Espaçamento Inferior</Label>
+                <Input type="number" value={c.paddingBottom || 0} onChange={e => update("paddingBottom", parseInt(e.target.value))} className="mt-1 text-xs" placeholder="0px" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor de Fundo da Seção</Label>
+              <Input type="color" value={c.sectionBgColor || "#ffffff"} onChange={e => update("sectionBgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
           </div>
         </>
       )}
