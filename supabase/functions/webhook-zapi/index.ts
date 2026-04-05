@@ -97,6 +97,14 @@ const normalizePhoneCandidate = (value: unknown) => {
     .replace(/\D/g, '')
 }
 
+const normalizeGroupCampaignPhone = (value: unknown) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.includes('-group@g.us')) return raw.replace(/-group@g\.us$/i, '@g.us')
+  if (raw.endsWith('-group')) return raw.replace(/-group$/i, '@g.us')
+  return raw
+}
+
 const normalizeInstanceIdentifier = (value: unknown) => {
   return String(value || '')
     .trim()
@@ -119,9 +127,7 @@ const resolveWebhookPhone = (webhook: any) => {
   const isGroupMessage = webhook?.isGroup === true
 
   if (isGroupMessage) {
-    if (rawPhone.includes('@g.us')) return rawPhone.replace('@g.us', '-group')
-    if (rawPhone.includes('-group')) return rawPhone
-    return rawPhone ? `${rawPhone}-group` : ''
+    return normalizeGroupCampaignPhone(rawPhone)
   }
 
   if (senderPhone && !senderPhone.includes('@lid')) return senderPhone
@@ -1427,17 +1433,22 @@ serve(async (req) => {
       const expandCampaignCallbackPhones = (value?: string | null) => {
         if (!value) return []
 
-        const candidates = new Set<string>([value])
+        const normalizedValue = normalizeGroupCampaignPhone(value)
 
-        if (value.endsWith('@g.us')) {
-          candidates.add(value.replace(/@g\.us$/i, ''))
-          candidates.add(value.replace(/@g\.us$/i, '-group'))
-        } else if (value.endsWith('-group')) {
-          candidates.add(value.replace(/-group$/i, '@g.us'))
-          candidates.add(value.replace(/-group$/i, ''))
-        } else if (/^\d+$/.test(value)) {
-          candidates.add(`${value}@g.us`)
-          candidates.add(`${value}-group`)
+        const candidates = new Set<string>([value, normalizedValue].filter(Boolean))
+
+        if (normalizedValue.endsWith('@g.us')) {
+          candidates.add(normalizedValue.replace(/@g\.us$/i, ''))
+          candidates.add(normalizedValue.replace(/@g\.us$/i, '-group'))
+          candidates.add(normalizedValue.replace(/@g\.us$/i, '-group@g.us'))
+        } else if (normalizedValue.endsWith('-group')) {
+          candidates.add(normalizedValue.replace(/-group$/i, '@g.us'))
+          candidates.add(normalizedValue.replace(/-group$/i, ''))
+          candidates.add(`${normalizedValue}@g.us`)
+        } else if (/^\d+$/.test(normalizedValue)) {
+          candidates.add(`${normalizedValue}@g.us`)
+          candidates.add(`${normalizedValue}-group`)
+          candidates.add(`${normalizedValue}-group@g.us`)
         }
 
         return Array.from(candidates)
