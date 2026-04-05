@@ -61,7 +61,7 @@ export const CardBrandsRow = ({ size = 28 }: { size?: number }) => (
 );
 
 /** Footer with all payment method icons */
-export const PaymentFooter = () => (
+export const PaymentFooter = ({ companyName, cnpj }: { companyName?: string; cnpj?: string } = {}) => (
   <div className="py-4 space-y-2">
     <p className="text-center text-[10px] text-[#9CA3AF] font-medium">Formas de Pagamento</p>
     <div className="flex items-center justify-center gap-2">
@@ -73,7 +73,12 @@ export const PaymentFooter = () => (
       <div className="text-[#6B7280]"><BoletoIcon size={18} /></div>
     </div>
     <p className="text-center text-[10px] text-[#9CA3AF]">
-      Pagamento processado com segurança por ZapLynxPay
+      Pagamento processado com segurança por {companyName || "ZapLynxPay"}
     </p>
+    {cnpj && (
+      <p className="text-center text-[10px] text-[#9CA3AF]">
+        CNPJ: {cnpj}
+      </p>
+    )}
   </div>
 );
