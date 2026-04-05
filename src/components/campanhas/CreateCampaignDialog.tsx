@@ -29,7 +29,9 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    content_type: "template" as "template" | "flow",
     template_id: "",
+    flow_id: "",
     schedule_type: "immediate",
     scheduled_at: "",
     recurrence_pattern: "",
@@ -38,10 +40,23 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     delay_seconds: 2,
   });
 
+  const [flows, setFlows] = useState<Array<{ id: string; name: string; keyword: string }>>([]);
   const [importedContacts, setImportedContacts] = useState<Array<{ phone: string; name: string }>>([]);
   const [viewOnce, setViewOnce] = useState(false);
   const [isPtv, setIsPtv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from('flow_automations')
+      .select('id, name, keyword')
+      .eq('active', true)
+      .order('name')
+      .then(({ data }) => {
+        if (data) setFlows(data);
+      });
+  }, [open]);
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.template_id) {
