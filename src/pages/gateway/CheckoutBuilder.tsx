@@ -1226,17 +1226,23 @@ export default function CheckoutBuilder() {
             </CardHeader>
             <CardContent
               ref={previewPaneRef}
-              className="flex items-start justify-center overflow-auto p-4"
-              style={{ height: "calc(100vh - 280px)", background: "hsl(var(--muted))" }}
+              className={`flex items-start justify-center overflow-auto ${previewMode === "mobile" ? "p-4" : "p-0"}`}
+              style={{ height: "calc(100vh - 280px)", background: previewMode === "mobile" ? "hsl(var(--muted))" : "transparent" }}
             >
               <div
-                style={{
-                  width: previewViewportWidth,
+                style={previewMode === "mobile" ? {
+                  width: 390,
                   maxWidth: "none",
                   transformOrigin: "top center",
                   transform: `scale(${previewScale})`,
                   margin: "0 auto",
                   flexShrink: 0,
+                  borderRadius: "32px",
+                  overflow: "hidden",
+                  boxShadow: "0 0 40px rgba(0,0,0,0.15)",
+                  border: "8px solid #222",
+                } : {
+                  width: "100%",
                 }}
               >
                 <CheckoutPreview 
