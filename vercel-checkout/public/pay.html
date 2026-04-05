@@ -485,10 +485,11 @@
 
   function renderElementsAt(position) {
     var h = '';
-    elems.filter(function(el) { return el.position === position && el.visible; })
-      .sort(function(a,b) { return (a.order||0)-(b.order||0); })
-      .forEach(function(el) { h += renderElement(el); });
-    return h;
+    var filtered = elems.filter(function(el) { return el.position === position && el.visible; })
+      .sort(function(a,b) { return (a.order||0)-(b.order||0); });
+    if (!filtered.length) return '';
+    filtered.forEach(function(el) { h += '<div style="margin-bottom:12px">'+renderElement(el)+'</div>'; });
+    return '<div style="margin-top:8px">'+h+'</div>';
   }
 
   function bindElementEvents() {
