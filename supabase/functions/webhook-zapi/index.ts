@@ -2345,9 +2345,19 @@ async function sendNodeContent(
 
     if (hasButtons) {
       if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
-        const mediaEndpoint = contentType === 'image' ? '/send-image' : '/send-video'
+        let mediaEndpoint: string
         const mediaBody: any = { phone }
-        mediaBody[contentType] = mediaUrl
+        if (contentType === 'video' && targetNode.data?.isPtv) {
+          mediaEndpoint = '/send-ptv'
+          mediaBody.ptv = mediaUrl
+        } else if (contentType === 'video') {
+          mediaEndpoint = '/send-video'
+          mediaBody.video = mediaUrl
+          if (targetNode.data?.viewOnce) mediaBody.viewOnce = true
+        } else {
+          mediaEndpoint = '/send-image'
+          mediaBody.image = mediaUrl
+        }
         const mediaRes = await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
         await parseZapiResponse(mediaRes, `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`)
         await new Promise(resolve => setTimeout(resolve, 1500))
@@ -2424,9 +2434,15 @@ async function sendNodeContent(
           body.caption = content
           break
         case 'video':
-          endpoint = '/send-video'
-          body.video = mediaUrl
-          body.caption = content
+          if (targetNode.data?.isPtv) {
+            endpoint = '/send-ptv'
+            body.ptv = mediaUrl
+          } else {
+            endpoint = '/send-video'
+            body.video = mediaUrl
+            body.caption = content
+            if (targetNode.data?.viewOnce) body.viewOnce = true
+          }
           break
         case 'audio':
           endpoint = '/send-audio'
