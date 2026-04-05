@@ -1,6 +1,10 @@
+import { useLocation } from "react-router-dom";
+
 export default function WhatsAppFloatingButton() {
+  const location = useLocation();
+
   // Hide on public checkout pages
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/pay/')) {
+  if (location.pathname.startsWith('/pay/')) {
     return null;
   }
 
