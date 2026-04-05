@@ -830,29 +830,66 @@ function CheckoutMock() {
 }
 
 function FlowMock() {
-  const steps = [
-    { num: "1", text: 'Gatilho: "quero comprar"' },
-    { num: "2", text: "Enviar catálogo de produtos" },
-    { num: "3", text: "Aguardar resposta (30s)" },
-    { num: "4", text: "Enviar link de checkout" },
-    { num: "5", text: "Confirmar pagamento via webhook" },
-  ];
   return (
-    <div className="lp-mock">
-      <div className="lp-mock-header">
-        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></div>
-        <div className="lp-mock-title">Fluxo Ativo</div>
-        <div className="lp-mock-sub">drag-and-drop</div>
-      </div>
-      <div className="lp-mock-body">
-        <div className="lp-step-list">
-          {steps.map((s, i) => (
-            <div key={i} className="lp-step-item">
-              <div className="lp-step-num">{s.num}</div>
-              <div className="lp-step-text">{s.text}</div>
+    <div className="lp-flow-devices">
+      {/* NOTEBOOK */}
+      <div className="lp-flow-laptop">
+        <div className="lp-flow-lid">
+          <div className="lp-flow-browser-bar">
+            <div className="lp-flow-bdots">
+              <span className="lp-flow-bd r" /><span className="lp-flow-bd y" /><span className="lp-flow-bd g" />
             </div>
-          ))}
+            <div style={{width:28}} />
+            <div className="lp-flow-burl">
+              <svg className="lp-flow-lock" width="10" height="11" viewBox="0 0 12 13" fill="none">
+                <rect x="1" y="5" width="10" height="7" rx="1.5" stroke="#28c840" strokeWidth="1.2"/>
+                <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#28c840" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              zaplynx.pro/fluxo-visual
+            </div>
+            <div style={{width:48}} />
+          </div>
+          <img className="lp-flow-screen-img" src="/images/flow-editor-screenshot.jpg" alt="Editor de Fluxo Visual ZapLynx" />
         </div>
+        <div className="lp-flow-hinge" />
+        <div className="lp-flow-palm"><div className="lp-flow-trackpad" /></div>
+        <div className="lp-flow-nb-shadow" />
+      </div>
+
+      {/* PHONE */}
+      <div className="lp-flow-phone-wrap">
+        <div className="lp-flow-phone">
+          <div className="lp-flow-btn-m" />
+          <div className="lp-flow-btn-vu" />
+          <div className="lp-flow-btn-vd" />
+          <div className="lp-flow-btn-pw" />
+          <div className="lp-flow-p-screen">
+            <div className="lp-flow-island" />
+            <div className="lp-flow-sbar">
+              <span>9:41</span>
+              <div className="lp-flow-sicons">
+                <div className="lp-flow-sbars">
+                  <span style={{height:4}} /><span style={{height:6}} /><span style={{height:9}} /><span style={{height:11}} />
+                </div>
+                <svg width="13" height="10" viewBox="0 0 14 11" fill="none">
+                  <path d="M7 2.5C9 2.5 10.8 3.3 12.1 4.6L13.5 3.1C11.8 1.5 9.5 0.5 7 0.5C4.5 0.5 2.2 1.5 0.5 3.1L1.9 4.6C3.2 3.3 5 2.5 7 2.5Z" fill="#111"/>
+                  <path d="M7 5.5C8.3 5.5 9.5 6 10.4 6.9L11.8 5.4C10.5 4.2 8.8 3.5 7 3.5C5.2 3.5 3.5 4.2 2.2 5.4L3.6 6.9C4.5 6 5.7 5.5 7 5.5Z" fill="#111"/>
+                  <circle cx="7" cy="9.5" r="1.5" fill="#111"/>
+                </svg>
+                <svg width="24" height="11" viewBox="0 0 26 12" fill="none">
+                  <rect x="0.5" y="0.5" width="22" height="11" rx="3" stroke="#111" strokeOpacity="0.35"/>
+                  <rect x="2" y="2" width="18" height="8" rx="2" fill="#111"/>
+                  <path d="M24 4C25 4.4 25.5 5 25.5 6C25.5 7 25 7.6 24 8V4Z" fill="#111" fillOpacity="0.4"/>
+                </svg>
+              </div>
+            </div>
+            <video autoPlay muted loop playsInline>
+              <source src="/images/flow-phone-demo.mp4" type="video/mp4" />
+            </video>
+            <div className="lp-flow-hbar"><div className="lp-flow-hind" /></div>
+          </div>
+        </div>
+        <div className="lp-flow-ph-shadow" />
       </div>
     </div>
   );
