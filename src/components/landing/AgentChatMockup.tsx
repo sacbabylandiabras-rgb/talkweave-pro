@@ -14,14 +14,15 @@ interface Message {
   text?: string;
   audioSecs?: number;
   audioBars?: number[];
+  audioSrc?: string;
 }
 
 const messages: Message[] = [
   { id: "m1", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Boa tarde, Pedro! Tudo certinho? 😊" },
   { id: "m2", side: "L", badge: "cl", badgeLabel: "Cliente", type: "text", text: "Oi, tudo ótimo!" },
   { id: "m3", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Aqui é o assistente da ZapLynx.\nVocê acabou de se cadastrar no nosso site, né?" },
-  { id: "m4", side: "L", badge: "cl", badgeLabel: "Cliente", type: "audio", audioSecs: 6, audioBars: [8, 12, 18, 24, 20, 14, 10, 16, 22, 18, 12, 8, 14, 20, 24, 18, 12, 8, 10, 16, 20, 14, 8] },
-  { id: "m5", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "audio", audioSecs: 5, audioBars: [10, 16, 22, 18, 12, 8, 14, 20, 18, 12, 8, 10, 16, 22, 20, 14, 10, 8, 12, 18, 14, 10, 8] },
+  { id: "m4", side: "L", badge: "cl", badgeLabel: "Cliente", type: "audio", audioSecs: 6, audioBars: [8, 12, 18, 24, 20, 14, 10, 16, 22, 18, 12, 8, 14, 20, 24, 18, 12, 8, 10, 16, 20, 14, 8], audioSrc: "/audio/client-audio.mp3" },
+  { id: "m5", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "audio", audioSecs: 5, audioBars: [10, 16, 22, 18, 12, 8, 14, 20, 18, 12, 8, 10, 16, 22, 20, 14, 10, 8, 12, 18, 14, 10, 8], audioSrc: "/audio/agent-audio.mp3" },
   { id: "m6", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Essas são as informações que preciso:" },
   { id: "m7", side: "R", badge: "bt", badgeLabel: "Chatbot", type: "text", text: "Quantos funcionários tem sua empresa?" },
 ];
@@ -38,8 +39,37 @@ const sequence = [
   { show: "m7", delay: 6800 },
 ];
 
-function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side: "L" | "R" }) {
+function AudioBubble({ bars, secs, side, audioSrc }: { bars: number[]; secs: number; side: "L" | "R"; audioSrc?: string }) {
   const isAgent = side === "R";
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const animRef = useRef<number>(0);
+
+  const togglePlay = () => {
+    if (!audioRef.current || !audioSrc) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      cancelAnimationFrame(animRef.current);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+      const tick = () => {
+        if (audioRef.current) {
+          setProgress(audioRef.current.currentTime / (audioRef.current.duration || 1));
+        }
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setProgress(0);
+    cancelAnimationFrame(animRef.current);
+  };
 
   return (
     <div style={{
@@ -52,7 +82,10 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
       background: isAgent ? "#2a5f45" : "#1e2530",
       borderBottomRightRadius: isAgent ? 4 : 14,
       borderBottomLeftRadius: isAgent ? 14 : 4,
-    }}>
+      cursor: audioSrc ? "pointer" : "default",
+    }} onClick={togglePlay}>
+      {audioSrc && <audio ref={audioRef} src={audioSrc} preload="metadata" onEnded={handleEnded} />}
+
       <div style={{
         width: 30,
         height: 30,
@@ -63,19 +96,30 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
         justifyContent: "center",
         flexShrink: 0,
       }}>
-        <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff"><polygon points="2,1 11,6 2,11" /></svg>
+        {isPlaying ? (
+          <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff">
+            <rect x="2" y="1" width="3" height="10" rx="1" />
+            <rect x="7" y="1" width="3" height="10" rx="1" />
+          </svg>
+        ) : (
+          <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff"><polygon points="2,1 11,6 2,11" /></svg>
+        )}
       </div>
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 2, height: 28 }}>
-        {bars.map((h, i) => (
-          <div key={i} style={{
-            width: 3,
-            borderRadius: 2,
-            height: h,
-            background: "rgba(255,255,255,0.22)",
-            flexShrink: 0,
-          }} />
-        ))}
+        {bars.map((h, i) => {
+          const barProgress = i / bars.length;
+          return (
+            <div key={i} style={{
+              width: 3,
+              borderRadius: 2,
+              height: h,
+              background: barProgress < progress ? "#25d366" : "rgba(255,255,255,0.22)",
+              flexShrink: 0,
+              transition: "background 0.1s",
+            }} />
+          );
+        })}
       </div>
 
       <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", fontFamily: "sans-serif" }}>
@@ -288,7 +332,7 @@ export default function AgentChatMockup() {
                         {msg.text}
                       </div>
                     ) : (
-                      <AudioBubble bars={msg.audioBars!} secs={msg.audioSecs!} side={msg.side} />
+                      <AudioBubble bars={msg.audioBars!} secs={msg.audioSecs!} side={msg.side} audioSrc={msg.audioSrc} />
                     )}
 
                     <span style={{
