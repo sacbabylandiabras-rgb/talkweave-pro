@@ -215,6 +215,15 @@ serve(async (req) => {
     }
 
     let resolvedPhone = phone;
+    // Normalize group phone to @g.us format for Z-API
+    if (isGroupPhone && !phone.includes('@lid')) {
+      const numericId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
+      resolvedPhone = `${numericId}@g.us`;
+      if (resolvedPhone !== phone) {
+        console.log(`📌 Normalized group phone: ${phone} → ${resolvedPhone}`);
+      }
+    }
+
     if (phone.includes('@lid')) {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
