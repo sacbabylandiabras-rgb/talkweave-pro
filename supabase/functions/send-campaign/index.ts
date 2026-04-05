@@ -198,12 +198,10 @@ const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
   }
 };
 
-const clearInstanceQueue = async (instance: ResolvedInstance) => {
-  const clearQueueUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/queue`;
-  await fetch(clearQueueUrl, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapiClientToken },
-  });
+const clearInstanceQueue = async (_instance: ResolvedInstance) => {
+  // Intentionally disabled for campaigns: Z-API queue deletion removes messages
+  // that are still waiting to be processed, which can drop group sends.
+  return;
 };
 
 serve(async (req) => {
@@ -463,10 +461,6 @@ serve(async (req) => {
       if (await shouldPause()) {
         console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        try {
-          if (isRotateMode) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-          else await clearInstanceQueue(firstInstance);
-        } catch {}
         return new Response(JSON.stringify({ error: 'Device disconnected, campaign paused', stopped: true }),
           { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
@@ -498,10 +492,6 @@ serve(async (req) => {
         const { data: statusCheck } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (statusCheck?.status === 'paused' || statusCheck?.status === 'cancelled' || statusCheck?.status === 'completed') {
           console.log(`🛑 Campaign ${campaignId} is ${statusCheck?.status} before contact ${i + 1}/${currentBatch.length}. Stopping immediately.`);
-          try {
-            if (isRotateMode && rotatePool.length > 0) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-            else await clearInstanceQueue(currentInstance);
-          } catch {}
           return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${statusCheck?.status}` }),
             { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         }
@@ -835,10 +825,6 @@ serve(async (req) => {
       if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
         await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
         console.log(`✅ Campaign ${campaignId} completed!`);
-        try {
-          if (isRotateMode && rotatePool.length > 0) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-          else await clearInstanceQueue(getInstanceForIndex(0));
-        } catch {}
       }
     }
 
