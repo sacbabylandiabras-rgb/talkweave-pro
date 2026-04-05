@@ -786,6 +786,138 @@
   color: var(--lp-muted2);
 }
 
+/* CHECKOUT SIDE-BY-SIDE MOCKUP */
+.lp-checkout-sidebyside {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 30px;
+}
+.lp-laptop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 480px;
+}
+.lp-lid {
+  background: #1c1c1e;
+  border-radius: 14px 14px 0 0;
+  border: 8px solid #2a2a2c;
+  border-bottom: 0;
+  overflow: hidden;
+  width: 100%;
+}
+.lp-browser-bar {
+  background: #2d2d2f;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lp-bdots { display: flex; gap: 4px; }
+.lp-bd { width: 8px; height: 8px; border-radius: 50%; }
+.lp-bd-r { background: #ff5f57; }
+.lp-bd-y { background: #febc2e; }
+.lp-bd-g { background: #28c840; }
+.lp-burl {
+  flex: 1;
+  background: #1c1c1e;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 10px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.lp-screen-img { display: block; width: 100%; }
+.lp-hinge { height: 5px; background: #3a3a3c; margin: 0 16px; border-radius: 0 0 2px 2px; }
+.lp-palm {
+  background: #2a2a2c;
+  border-radius: 0 0 10px 10px;
+  height: 16px;
+  position: relative;
+  width: 100%;
+}
+.lp-trackpad {
+  width: 90px;
+  height: 50px;
+  background: #242426;
+  border: 1px solid #3a3a3c;
+  border-radius: 5px;
+  margin: 3px auto 0;
+}
+.lp-laptop-shadow {
+  width: 90%;
+  height: 12px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 50%;
+  margin: 3px auto 0;
+  filter: blur(6px);
+}
+.lp-phone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.lp-phone-device {
+  width: 160px;
+  background: #111;
+  border-radius: 36px;
+  padding: 9px;
+  box-shadow: 0 0 0 2px #2a2a2a, 0 0 0 4px #1a1a1a, 0 20px 40px rgba(0,0,0,0.25);
+  position: relative;
+}
+.lp-btn-mute { position: absolute; left: -3px; top: 65px; width: 3px; height: 14px; background: #2a2a2a; border-radius: 2px 0 0 2px; }
+.lp-btn-vup { position: absolute; left: -3px; top: 86px; width: 3px; height: 22px; background: #2a2a2a; border-radius: 2px 0 0 2px; }
+.lp-btn-vdn { position: absolute; left: -3px; top: 113px; width: 3px; height: 22px; background: #2a2a2a; border-radius: 2px 0 0 2px; }
+.lp-btn-pwr { position: absolute; right: -3px; top: 92px; width: 3px; height: 32px; background: #2a2a2a; border-radius: 0 2px 2px 0; }
+.lp-p-screen {
+  background: #000;
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+}
+.lp-island {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 16px;
+  background: #111;
+  border-radius: 14px;
+  z-index: 10;
+}
+.lp-sbar {
+  background: #fff;
+  padding: 8px 12px 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #111;
+  position: relative;
+  z-index: 5;
+}
+.lp-sicons { display: flex; align-items: center; gap: 3px; }
+.lp-sbars { display: flex; gap: 1px; align-items: flex-end; }
+.lp-sbars span { width: 2.5px; background: #111; border-radius: 1px; }
+.lp-phone-video { width: 100%; display: block; }
+.lp-hbar { background: #fff; padding: 4px; display: flex; justify-content: center; }
+.lp-hind { width: 60px; height: 3px; background: #111; border-radius: 3px; }
+.lp-phone-shadow {
+  width: 80%;
+  height: 10px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 50%;
+  margin: 3px auto 0;
+  filter: blur(6px);
+}
+
 /* RESPONSIVE */
 @media (max-width: 480px) {
   .lp-stage { height: 320px; }
@@ -834,4 +966,13 @@
     gap: 8px;
     text-align: center;
   }
+  .lp-checkout-sidebyside {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .lp-laptop { max-width: 100%; }
+  .lp-phone-device { width: 140px; border-radius: 30px; padding: 8px; }
+  .lp-p-screen { border-radius: 24px; }
+  .lp-island { width: 50px; height: 14px; top: 6px; }
 }

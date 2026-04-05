@@ -558,59 +558,59 @@ function ChatMock() {
 
 function CheckoutMock() {
   return (
-    <div className="lp-mock" style={{ maxWidth: 320 }}>
-      <div className="lp-mock-header">
-        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg></div>
-        <div className="lp-mock-title">Checkout Preview</div>
-        <div className="lp-mock-sub">ao vivo</div>
-      </div>
-      <div className="lp-mock-body" style={{ padding: "14px 16px" }}>
-        {/* Product */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "center" }}>
-          <div style={{ width: 52, height: 52, borderRadius: 10, background: "linear-gradient(135deg, #f05a28, #fbbf24)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Curso Marketing Pro</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Acesso vitalício</div>
-          </div>
-        </div>
-
-        {/* Price */}
-        <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1 }}>Total</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#25d366" }}>R$ 197,00</div>
-          </div>
-          <div style={{ fontSize: 9, color: "#25d366", background: "rgba(37,211,102,0.15)", padding: "3px 8px", borderRadius: 20, fontWeight: 600 }}>PIX</div>
-        </div>
-
-        {/* Timer */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
-          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#f05a28" strokeWidth={2}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-          <span style={{ fontSize: 11, color: "#f05a28", fontWeight: 600 }}>Oferta expira em 14:59</span>
-        </div>
-
-        {/* Form fields */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-          {["Nome completo", "CPF", "E-mail", "WhatsApp"].map((label) => (
-            <div key={label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-              {label}
+    <div className="lp-checkout-sidebyside">
+      {/* NOTEBOOK */}
+      <div className="lp-laptop">
+        <div className="lp-lid">
+          <div className="lp-browser-bar">
+            <div className="lp-bdots">
+              <div className="lp-bd lp-bd-r" />
+              <div className="lp-bd lp-bd-y" />
+              <div className="lp-bd lp-bd-g" />
             </div>
-          ))}
+            <div style={{ width: 28 }} />
+            <div className="lp-burl">
+              <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+                <rect x="1" y="3" width="10" height="7" rx="1.5" stroke="#28c840" strokeWidth="1.2" />
+                <path d="M4 3V2.5a2 2 0 0 1 4 0V3" stroke="#28c840" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+              pay.zaplynxpro.online/pay/wenpink
+            </div>
+            <div style={{ width: 50 }} />
+          </div>
+          <img className="lp-screen-img" src="/checkout-mock-0.jpg" alt="Checkout desktop preview" />
         </div>
+        <div className="lp-hinge" />
+        <div className="lp-palm">
+          <div className="lp-trackpad" />
+        </div>
+        <div className="lp-laptop-shadow" />
+      </div>
 
-        {/* CTA Button */}
-        <div style={{ background: "linear-gradient(135deg, #25d366, #128c3e)", borderRadius: 10, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer", boxShadow: "0 4px 16px rgba(37,211,102,0.3)" }}>
-          Pagar com Pix →
+      {/* PHONE */}
+      <div className="lp-phone-wrap">
+        <div className="lp-phone-device">
+          <div className="lp-btn-mute" />
+          <div className="lp-btn-vup" />
+          <div className="lp-btn-vdn" />
+          <div className="lp-btn-pwr" />
+          <div className="lp-p-screen">
+            <div className="lp-island" />
+            <div className="lp-sbar">
+              <span>9:41</span>
+              <div className="lp-sicons">
+                <div className="lp-sbars">
+                  <span style={{ height: 4 }} /><span style={{ height: 6 }} /><span style={{ height: 8 }} /><span style={{ height: 10 }} />
+                </div>
+                <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth={2.5}><path d="M1 6.2C4.1 2.4 7.8.5 12 .5s7.9 1.9 11 5.7M5 10.5c2-2 4.4-3 7-3s5 1 7 3M9 14.8c1.7-1.5 3.5-2 5-1.5" /></svg>
+                <svg width={14} height={10} viewBox="0 0 25 12" fill="#111"><rect x="0" y="1" width="21" height="10" rx="2" /><rect x="1" y="2" width="16" height="8" rx="1" fill="#34c759" /><rect x="22" y="4" width="2.5" height="4" rx="1" /></svg>
+              </div>
+            </div>
+            <video className="lp-phone-video" src="/checkout-mock-0.mp4" autoPlay muted loop playsInline />
+            <div className="lp-hbar"><div className="lp-hind" /></div>
+          </div>
         </div>
-
-        {/* Trust badges */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 10 }}>
-          {["🔒 Seguro", "⚡ Instantâneo", "✅ Garantia"].map((badge) => (
-            <span key={badge} style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{badge}</span>
-          ))}
-        </div>
+        <div className="lp-phone-shadow" />
       </div>
     </div>
   );
