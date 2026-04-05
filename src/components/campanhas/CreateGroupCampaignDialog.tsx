@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +13,7 @@ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Loader2, Search, MessageSquare, Link2 } from "lucide-react";
+import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar } from "lucide-react";
 
 interface CreateGroupCampaignDialogProps {
   open: boolean;
@@ -69,6 +70,8 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     description: "",
     template_id: "",
     delay_seconds: 2,
+    schedule_type: "immediate" as "immediate" | "scheduled",
+    scheduled_at: "",
   });
 
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
@@ -119,6 +122,10 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       toast({ title: "Erro", description: "Selecione pelo menos um grupo", variant: "destructive" });
       return;
     }
+    if (formData.schedule_type === 'scheduled' && !formData.scheduled_at) {
+      toast({ title: "Erro", description: "Selecione data e hora do agendamento", variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -143,11 +150,15 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
           groupIds: selectedGroups,
         },
         delay_seconds: formData.delay_seconds,
+        schedule_type: formData.schedule_type,
+        scheduled_at: formData.schedule_type === 'scheduled' ? formData.scheduled_at : undefined,
       });
 
-      toast({ title: "Campanha criada", description: `Campanha "${formData.name}" criada com ${selectedGroups.length} grupo(s)` });
+      toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 
+        ? `Campanha "${formData.name}" agendada para ${new Date(formData.scheduled_at).toLocaleString('pt-BR')}`
+        : `Campanha "${formData.name}" criada com ${selectedGroups.length} grupo(s)` });
       onOpenChange(false);
-      setFormData({ name: "", description: "", template_id: "", delay_seconds: 2 });
+      setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedGroups([]);
     } catch (error) {
       console.error("Error creating group campaign:", error);
@@ -203,6 +214,41 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
               <p className="text-sm whitespace-pre-wrap">{selectedTemplate.content}</p>
             </div>
           )}
+
+          {/* Agendamento */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <Label className="text-sm font-semibold">Tipo de Envio</Label>
+            </div>
+            <RadioGroup
+              value={formData.schedule_type}
+              onValueChange={(val: "immediate" | "scheduled") => setFormData(prev => ({ ...prev, schedule_type: val }))}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="immediate" id="schedule-now" />
+                <Label htmlFor="schedule-now" className="cursor-pointer text-sm">Enviar agora</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="scheduled" id="schedule-later" />
+                <Label htmlFor="schedule-later" className="cursor-pointer text-sm">Agendar horário</Label>
+              </div>
+            </RadioGroup>
+
+            {formData.schedule_type === "scheduled" && (
+              <div className="flex items-center gap-2 pl-1">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="datetime-local"
+                  value={formData.scheduled_at}
+                  onChange={e => setFormData(prev => ({ ...prev, scheduled_at: e.target.value }))}
+                  className="flex-1"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Delay */}
           <div>
@@ -344,8 +390,8 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-            Criar Campanha
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : formData.schedule_type === 'scheduled' ? <Clock className="w-4 h-4 mr-1" /> : null}
+            {formData.schedule_type === 'scheduled' ? 'Agendar Campanha' : 'Criar Campanha'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -238,7 +238,11 @@ const Campanhas = () => {
 
   // Status da lista é sincronizado localmente pelo hook; o diálogo cuida dos envios em tempo real.
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, campaign?: Campaign) => {
+    // Check if it's a scheduled draft
+    if (status === 'draft' && campaign?.schedule_type === 'scheduled' && campaign?.scheduled_at) {
+      return <Badge className="bg-purple-500 text-white"><ClockIcon className="w-3 h-3 mr-1" />Agendada</Badge>;
+    }
     switch (status) {
       case 'active':
         return <Badge className="bg-green-500">Ativa</Badge>;
@@ -486,11 +490,13 @@ const Campanhas = () => {
                     <div>
                       <CardTitle className="text-lg">{campaign.name}</CardTitle>
                       <CardDescription className="flex items-center gap-2">
-                        {getStatusBadge(campaign.status)}
+                        {getStatusBadge(campaign.status, campaign)}
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                          {campaign.schedule_type === 'scheduled' && campaign.scheduled_at
+                            ? `Agendada: ${format(new Date(campaign.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                            : format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                         </span>
                       </CardDescription>
                     </div>
@@ -701,11 +707,13 @@ const Campanhas = () => {
                         <div>
                           <CardTitle className="text-lg">{campaign.name}</CardTitle>
                           <CardDescription className="flex items-center gap-2">
-                            {getStatusBadge(campaign.status)}
+                            {getStatusBadge(campaign.status, campaign)}
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                              {campaign.schedule_type === 'scheduled' && campaign.scheduled_at
+                                ? `Agendada: ${format(new Date(campaign.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                                : format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                             </span>
                           </CardDescription>
                         </div>
