@@ -41,7 +41,7 @@
     .layout-2col .col-main { flex: 1; display: flex; flex-direction: column; gap: 16px; }
     .layout-2col .col-side { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
     @media (max-width: 768px) {
-      .layout-2col { flex-direction: column; padding: 16px 12px; }
+      .layout-2col { flex-direction: column-reverse; padding: 16px 12px; }
       .layout-2col .col-side { width: 100%; }
     }
 
@@ -256,7 +256,33 @@
     minus: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     plus: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     shoppingBag: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+    checkCircle: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    clock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    award: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
+    heart: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
   };
+
+  function svgIcon(name, size, color) {
+    var ICONS = {
+      Truck:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+      Shield:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      Clock:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      Star:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+      Package:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+      CreditCard:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+      Heart:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+      Award:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
+      Zap:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      Gift:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
+      ShoppingCart:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>',
+      RefreshCw:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+      Headphones:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+      CheckCircle:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      ThumbsUp:'<svg width="S" height="S" viewBox="0 0 24 24" fill="none" stroke="C" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+    };
+    var svg = ICONS[name] || ICONS.CheckCircle;
+    return svg.replace(/S/g, size||20).replace(/C/g, color||'currentColor');
+  }
 
   var BANKS = [
     { n:'Nubank', d:'Abrir app Nubank', logo:'/banks/nubank.png' },
@@ -349,11 +375,11 @@
     return url;
   }
 
-  function starsHTML(rating) {
-    var h = '';
+  function starsHTML(rating, color, size) {
+    var h = '', sc = color||'#FACC15', sz = size||14;
     for (var j=0;j<5;j++) {
-      var fill = j < (rating||5) ? '#FACC15' : '#D1D5DB';
-      h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="'+fill+'" stroke="'+fill+'" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+      var fill = j < (rating||5) ? sc : '#D1D5DB';
+      h += '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" fill="'+fill+'" stroke="'+fill+'" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
     }
     return h;
   }
@@ -363,6 +389,8 @@
     var c = el.content || {};
     var pc = cfg.primaryColor||'#EF4444';
     var tc = cfg.textColor||(cfg.theme==='dark'?'#F3F4F6':'#1F2937');
+    var cardBg = cfg.cardBgColor||(cfg.theme==='dark'?'#1A1A1A':'#FFFFFF');
+    var cardBorder = cfg.cardBorderColor||(cfg.theme==='dark'?'#333':'#E5E7EB');
 
     switch (el.type) {
       case 'text':
@@ -395,89 +423,209 @@
         fh += '</div>';
         return fh;
 
-      case 'benefits':
-        var bh = '<div class="c"><h4 style="font-size:.875rem;font-weight:700;color:var(--card-title);margin-bottom:12px">'+(c.title||'Por que escolher?')+'</h4>';
-        (c.items||[]).forEach(function(item) {
-          bh += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:1rem">'+(item.icon||'✅')+'</span><span style="font-size:.875rem;color:var(--card-text)">'+item.text+'</span></div>';
+      case 'benefits': {
+        var bTitleSize = c.titleSize||16, bDescSize = c.descSize||14;
+        var bTextColor = c.textColor||tc, bBgColor = c.bgColor||'transparent';
+        var bLayout = c.layout||'grid', bGap = c.gap||24, bAlign = c.align||'left';
+        var items = c.items||[];
+        var gridCols = bLayout==='grid' ? Math.min(items.length, 3) : 1;
+        var bh = '<div style="background:'+bBgColor+';border-radius:12px;padding:24px 16px">';
+        if (c.title) bh += '<h4 style="font-size:'+bTitleSize+'px;font-weight:700;color:'+bTextColor+';margin-bottom:16px;text-align:'+bAlign+'">'+(c.title)+'</h4>';
+        bh += '<div style="display:grid;grid-template-columns:repeat('+gridCols+',1fr);gap:'+bGap+'px">';
+        items.forEach(function(item) {
+          bh += '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">';
+          bh += '<div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:'+pc+'15">'+svgIcon(item.icon||'CheckCircle',20,pc)+'</div>';
+          bh += '<div><p style="font-size:'+bDescSize+'px;font-weight:700;color:'+bTextColor+'">'+(item.title||'')+'</p>';
+          if (item.description) bh += '<p style="font-size:'+(bDescSize-2)+'px;color:'+bTextColor+'99;margin-top:2px">'+item.description+'</p>';
+          bh += '</div></div>';
         });
-        bh += '</div>';
+        bh += '</div></div>';
         return bh;
+      }
 
-      case 'seal':
-        return '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:12px;background:'+pc+'10;border:1px solid '+pc+'30">'+I.shieldSm+'<span style="font-size:.875rem;font-weight:600;color:'+pc+'">'+(c.text||'Compra 100% Segura')+'</span></div>';
-
-      case 'testimonial':
+      case 'testimonial': {
         var th = '';
+        var tNameColor = c.nameColor||tc, tTextColor = c.textColor||tc+'CC', tStarColor = c.starColor||'#FACC15';
+        var tBgColor = c.bgColor||cardBg, tBorderColor = c.borderColor||cardBorder, tTimeColor = c.timeColor||tc+'80';
         (c.items||[]).forEach(function(t) {
-          th += '<div class="testimonial-card" style="margin-bottom:12px"><div style="display:flex;align-items:flex-start;gap:12px">';
+          th += '<div style="border:1px solid '+tBorderColor+';border-radius:12px;background:'+tBgColor+';padding:16px;margin-bottom:12px">';
+          th += '<div style="display:flex;align-items:flex-start;gap:12px">';
           th += '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:'+pc+'20;display:flex;align-items:center;justify-content:center">';
           if (t.avatar) th += '<img src="'+t.avatar+'" style="width:100%;height:100%;object-fit:cover" />';
           else th += '<span style="font-size:.875rem;font-weight:700;color:'+pc+'">'+(t.name?t.name[0]:'?')+'</span>';
           th += '</div><div style="flex:1;min-width:0">';
-          th += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><span style="font-size:.875rem;font-weight:600;color:var(--card-title)">'+(t.name||'Anônimo')+'</span>';
-          if (t.timeAgo) th += '<span style="font-size:10px;color:var(--card-desc)">'+t.timeAgo+'</span>';
+          th += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><span style="font-size:.875rem;font-weight:600;color:'+tNameColor+'">'+(t.name||'Anônimo')+'</span>';
+          if (t.timeAgo) th += '<span style="font-size:10px;color:'+tTimeColor+'">'+t.timeAgo+'</span>';
           th += '</div>';
-          th += '<div style="display:flex;gap:2px;margin-bottom:8px">'+starsHTML(t.rating)+'</div>';
-          th += '<p style="font-size:.75rem;line-height:1.5;color:var(--card-desc)">'+t.text+'</p>';
+          th += '<div style="display:flex;gap:2px;margin-bottom:8px">'+starsHTML(t.rating, tStarColor)+'</div>';
+          th += '<p style="font-size:.75rem;line-height:1.5;color:'+tTextColor+'">'+t.text+'</p>';
           th += '</div></div></div>';
         });
         return th;
+      }
 
-      case 'reviews':
-        var rh = '<div class="c"><div style="display:flex;align-items:center;gap:16px">';
-        rh += '<div style="text-align:center"><p style="font-size:1.875rem;font-weight:700;color:var(--card-title)">'+(c.average||4.8)+'</p>';
-        rh += '<div style="display:flex;gap:2px;margin-top:4px">'+starsHTML(5)+'</div>';
-        rh += '<p style="font-size:10px;margin-top:4px;color:var(--card-desc)">'+(c.total||0)+' avaliações</p></div>';
-        rh += '<div style="flex:1">';
+      case 'reviews': {
+        var rStyle = c.style||'card_avatars';
+        var rAvg = c.average||4.8, rTotal = c.total||1247;
+        var rStarColor = c.starColor||'#FACC15', rTextColor = c.textColor||tc, rBgColor = c.bgColor||cardBg;
+        var rTitleSize = c.titleSize||'md', rStarSize = c.starSize||'md';
+        var starPx = rStarSize==='sm'?12:rStarSize==='lg'?18:14;
+        var titlePx = rTitleSize==='sm'?12:rTitleSize==='lg'?18:14;
+
+        if (rStyle === 'card_avatars') {
+          var rh = '<div style="background:'+rBgColor+';border-radius:12px;padding:16px;text-align:center">';
+          // Avatars
+          if (c.avatars && c.avatars.length) {
+            rh += '<div style="display:flex;justify-content:center;margin-bottom:8px">';
+            c.avatars.forEach(function(av,i) {
+              rh += '<img src="'+av+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid '+rBgColor+';margin-left:'+(i>0?'-8px':'0')+'px;position:relative;z-index:'+(10-i)+'" />';
+            });
+            rh += '</div>';
+          }
+          rh += '<h4 style="font-size:'+titlePx+'px;font-weight:700;color:'+rTextColor+'">'+(c.title||'Avaliação dos Clientes')+'</h4>';
+          rh += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">';
+          rh += '<span style="font-size:1.5rem;font-weight:700;color:'+rTextColor+'">'+rAvg+'</span>';
+          rh += '<div style="display:flex;gap:2px">'+starsHTML(5, rStarColor, starPx)+'</div></div>';
+          rh += '<p style="font-size:11px;color:'+rStarColor+';margin-top:4px">'+rTotal+' reviews</p>';
+          rh += '</div>';
+          return rh;
+        }
+        // Classic bar style
+        var rh2 = '<div class="c"><div style="display:flex;align-items:center;gap:16px">';
+        rh2 += '<div style="text-align:center"><p style="font-size:1.875rem;font-weight:700;color:var(--card-title)">'+rAvg+'</p>';
+        rh2 += '<div style="display:flex;gap:2px;margin-top:4px">'+starsHTML(5, rStarColor)+'</div>';
+        rh2 += '<p style="font-size:10px;margin-top:4px;color:var(--card-desc)">'+rTotal+' avaliações</p></div>';
+        rh2 += '<div style="flex:1">';
         (c.distribution||[85,10,3,1,1]).forEach(function(pct,i) {
-          rh += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-          rh += '<span style="font-size:10px;width:12px;color:var(--card-desc)">'+(5-i)+'</span>';
-          rh += '<div style="flex:1;height:8px;border-radius:9999px;overflow:hidden;background:var(--border)"><div style="height:100%;border-radius:9999px;width:'+pct+'%;background:#FACC15"></div></div>';
-          rh += '<span style="font-size:10px;width:28px;text-align:right;color:var(--card-desc)">'+pct+'%</span></div>';
+          rh2 += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+          rh2 += '<span style="font-size:10px;width:12px;color:var(--card-desc)">'+(5-i)+'</span>';
+          rh2 += '<div style="flex:1;height:8px;border-radius:9999px;overflow:hidden;background:var(--border)"><div style="height:100%;border-radius:9999px;width:'+pct+'%;background:'+rStarColor+'"></div></div>';
+          rh2 += '<span style="font-size:10px;width:28px;text-align:right;color:var(--card-desc)">'+pct+'%</span></div>';
         });
-        rh += '</div></div></div>';
-        return rh;
+        rh2 += '</div></div></div>';
+        return rh2;
+      }
 
-      case 'guarantee':
-        return '<div style="background:var(--card-bg);border:2px dashed '+pc+'40;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">'
-          +'<div style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:'+pc+'15"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+pc+'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
-          +'<div><p style="font-size:.875rem;font-weight:700;color:var(--card-title)">Garantia de '+(c.days||7)+' dias</p>'
-          +'<p style="font-size:.75rem;margin-top:2px;color:var(--card-desc)">'+(c.text||'Garantia incondicional de {days} dias.').replace('{days}',String(c.days||7))+'</p></div></div>';
+      case 'guarantee': {
+        var gTitle = c.title||'Garantia de Satisfação';
+        var gText = c.text||'Se não ficar satisfeito, devolvemos seu dinheiro em até '+(c.days||30)+' dias.';
+        var gIconColor = c.iconColor||'#16A34A', gTitleColor = c.titleColor||tc, gDescColor = c.descColor||tc+'99';
+        var gBgColor = c.bgColor||'transparent', gSectionBgColor = c.sectionBgColor||'transparent';
+        var gShowIcon = c.showIcon !== false;
+        var gIconType = c.iconType||'shield';
+        var iconMap = {shield:'Shield',clock:'Clock',checkCircle:'CheckCircle',award:'Award',heart:'Heart'};
+        var gPt = c.paddingTop||0, gPb = c.paddingBottom||0;
+        var gh = '<div style="background:'+gSectionBgColor+';padding-top:'+gPt+'px;padding-bottom:'+gPb+'px">';
+        gh += '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px;background:'+gBgColor+';border-radius:12px">';
+        if (gShowIcon) gh += '<div style="margin-bottom:8px">'+svgIcon(iconMap[gIconType]||'Shield',40,gIconColor)+'</div>';
+        gh += '<h4 style="font-size:1.125rem;font-weight:700;color:'+gTitleColor+'">'+gTitle+'</h4>';
+        gh += '<p style="font-size:.875rem;color:'+gDescColor+';margin-top:4px;max-width:320px">'+gText+'</p>';
+        gh += '</div></div>';
+        return gh;
+      }
 
-      case 'countdown':
+      case 'countdown': {
         var cdId = 'cd-'+el.id;
         if (!elCountdowns[el.id]) {
-          elCountdowns[el.id] = { total: (c.minutes||15)*60 };
+          elCountdowns[el.id] = { total: (c.minutes||10)*60 };
         }
-        var ct = elCountdowns[el.id];
-        var cm = Math.floor(ct.total/60), cs = ct.total%60;
-        return '<div style="background:'+(c.bgColor||'#EF4444')+';border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:8px;color:'+(c.textColor||'#fff')+'">'
-          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-          +'<span style="font-size:.875rem;font-weight:500">'+(c.text||'Oferta expira em:')+'</span>'
-          +'<span id="'+cdId+'" style="font-size:.875rem;font-weight:700;font-family:monospace">'+String(cm).padStart(2,'0')+':'+String(cs).padStart(2,'0')+'</span></div>';
+        var ct2 = elCountdowns[el.id];
+        var ch = Math.floor(ct2.total/3600), cm = Math.floor((ct2.total%3600)/60), cs = ct2.total%60;
+        var cdStyle = c.style||'cards';
+        var cdTitleColor = c.titleColor||'#333', cdNumberColor = c.numberColor||'#111';
+        var cdNumberBgColor = c.numberBgColor||'#F3F4F6', cdLabelColor = c.labelColor||'#999';
+        var cdAccentColor = c.accentColor||'#E5E7EB', cdBgColor = c.bgColor||'transparent';
+        var cdTitleSize = c.titleSize||14, cdNumberSize = c.numberSize||24;
 
-      case 'list':
-        var lh = '<div class="c"><h4 style="font-size:.875rem;font-weight:700;color:var(--card-title);margin-bottom:12px">'+(c.title||'O que você vai receber:')+'</h4>';
+        if (cdStyle === 'banner') {
+          return '<div id="'+cdId+'" style="background:'+(cdBgColor||'#EF4444')+';border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:8px;color:'+(cdNumberColor||'#fff')+'">'
+            +I.clock
+            +'<span style="font-size:'+cdTitleSize+'px;font-weight:500">'+(c.text||'Oferta termina em:')+'</span>'
+            +'<span class="cd-time" style="font-size:'+cdNumberSize+'px;font-weight:700;font-family:monospace">'+String(ch).padStart(2,'0')+':'+String(cm).padStart(2,'0')+':'+String(cs).padStart(2,'0')+'</span></div>';
+        }
+        // Cards style
+        var cdh = '<div id="'+cdId+'" style="background:'+cdBgColor+';border-radius:12px;padding:16px">';
+        cdh += '<p style="text-align:center;font-weight:500;margin-bottom:12px;color:'+cdTitleColor+';font-size:'+cdTitleSize+'px">'+(c.text||'Oferta termina em:')+'</p>';
+        cdh += '<div style="display:flex;align-items:center;justify-content:center;gap:12px">';
+        [{v:ch,l:'Horas'},{v:cm,l:'Minutos'},{v:cs,l:'Segundos'}].forEach(function(u) {
+          cdh += '<div style="display:flex;flex-direction:column;align-items:center">';
+          cdh += '<div class="cd-unit" data-label="'+u.l+'" style="font-weight:700;font-family:monospace;border-radius:8px;padding:8px 16px;background:'+cdNumberBgColor+';color:'+cdNumberColor+';font-size:'+cdNumberSize+'px;border:1px solid '+cdAccentColor+'">'+String(u.v).padStart(2,'0')+'</div>';
+          cdh += '<span style="font-size:10px;margin-top:4px;color:'+cdLabelColor+'">'+u.l+'</span>';
+          cdh += '</div>';
+        });
+        cdh += '</div></div>';
+        return cdh;
+      }
+
+      case 'list': {
+        var lTitleColor = c.titleColor||tc, lItemColor = c.itemColor||tc, lIconColor = c.iconColor||'#16A34A';
+        var lBgColor = c.bgColor||cardBg, lBorderColor = c.borderColor||cardBorder;
+        var lTitleSize = c.titleSize||16, lItemSize = c.itemSize||14;
+        var lIconStyle = c.iconStyle||'check';
+        var lh = '<div style="background:'+lBgColor+';border:1px solid '+lBorderColor+';border-radius:12px;padding:16px">';
+        if (c.title) lh += '<h4 style="font-weight:700;margin-bottom:12px;color:'+lTitleColor+';font-size:'+lTitleSize+'px">'+c.title+'</h4>';
         (c.items||[]).forEach(function(item) {
-          lh += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:1rem">'+(item.icon||'✅')+'</span><span style="font-size:.875rem;color:var(--card-text)">'+item.text+'</span></div>';
+          lh += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">';
+          if (lIconStyle === 'check') {
+            lh += '<span style="flex-shrink:0;margin-top:2px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+lIconColor+'" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>';
+          } else if (lIconStyle === 'circle-check') {
+            lh += '<span style="flex-shrink:0;margin-top:2px">'+svgIcon('CheckCircle',20,lIconColor)+'</span>';
+          } else {
+            lh += '<span style="font-size:1rem;flex-shrink:0">'+(item.icon||'✅')+'</span>';
+          }
+          lh += '<span style="color:'+lItemColor+';font-size:'+lItemSize+'px">'+item.text+'</span>';
+          lh += '</div>';
         });
         lh += '</div>';
         return lh;
+      }
 
-      case 'progress':
-        var pColor = c.color||pc;
-        return '<div class="c"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-          +'<span style="font-size:.75rem;font-weight:500;color:var(--card-text)">'+(c.text||'').replace('{count}',String(c.percentage||73))+'</span>'
-          +'<span style="font-size:.75rem;font-weight:700;color:'+pColor+'">'+(c.percentage||73)+'%</span></div>'
-          +'<div style="width:100%;height:12px;border-radius:9999px;overflow:hidden;background:var(--border)"><div style="height:100%;border-radius:9999px;width:'+(c.percentage||73)+'%;background:'+pColor+'"></div></div></div>';
+      case 'progress': {
+        var pValue = c.percentage||40, pMax = c.maxValue||100;
+        var pPercent = Math.min(100, Math.round((pValue/pMax)*100));
+        var pBarColor = c.color||pc, pTextColor2 = c.textColor||tc, pBgColor2 = c.bgColor||'transparent';
+        var pTrackColor = c.trackColor||cardBorder;
+        var pBarHeight = c.barHeight==='sm'?'8px':c.barHeight==='lg'?'24px':'16px';
+        var pBarStyle = c.barStyle||'solid';
+        var pShowValue = c.showValue||false;
+        var barBg = pBarStyle==='gradient'?'linear-gradient(90deg,'+pBarColor+','+pBarColor+'CC)':pBarColor;
+        var ph = '<div style="background:'+pBgColor2+';border-radius:12px;padding:16px">';
+        if (c.title) {
+          ph += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+          ph += '<span style="font-size:.875rem;font-weight:500;color:'+pTextColor2+'">'+c.title+'</span>';
+          if (pShowValue) ph += '<span style="font-size:.875rem;font-weight:700;color:'+pBarColor+'">'+pValue+'%</span>';
+          ph += '</div>';
+        }
+        if (c.description) ph += '<p style="font-size:.75rem;color:'+pTextColor2+'99;margin-bottom:8px">'+c.description+'</p>';
+        ph += '<div style="width:100%;border-radius:9999px;overflow:hidden;background:'+pTrackColor+';height:'+pBarHeight+'">';
+        ph += '<div style="height:100%;border-radius:9999px;width:'+pPercent+'%;background:'+barBg+'"></div>';
+        ph += '</div></div>';
+        return ph;
+      }
 
-      case 'sales':
+      case 'sales': {
         var sId = 'sales-'+el.id;
-        if (!elSalesCounts[el.id]) elSalesCounts[el.id] = c.count||1847;
-        return '<div class="c" style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px">'
-          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+pc+'" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
-          +'<span id="'+sId+'" style="font-size:.875rem;font-weight:500;color:var(--card-text)">'+(c.text||'{count} pessoas já compraram').replace('{count}',String(elSalesCounts[el.id]))+'</span>'
-          +'</div></div>';
+        if (!elSalesCounts[el.id]) elSalesCounts[el.id] = c.count||50;
+        var sValueColor = c.valueColor||pc, sIconColor2 = c.iconColor||pc;
+        var sTextColor = c.textColor||tc, sBgColor = c.bgColor||'transparent';
+        var sTitleSize = c.titleSize||18, sDescSize = c.descSize||14, sValueSize = c.valueSize||30;
+        var sShowIcon = c.showIcon!==false, sIconPos = c.iconPosition||'left';
+        var sFormat = c.format||'default', sCustomFmt = c.customFormat||'{value} Compras';
+        var sBorderColor = c.borderColor ? 'border:1px solid '+c.borderColor+';' : '';
+        var curVal = elSalesCounts[el.id];
+        var displayText = sFormat==='custom' ? sCustomFmt.replace('{value}',String(curVal)) : String(curVal);
+        var sh2 = '<div id="'+sId+'" style="background:'+sBgColor+';border-radius:12px;padding:16px;text-align:center;'+sBorderColor+'">';
+        if (c.title) sh2 += '<h4 style="font-weight:700;margin-bottom:4px;color:'+sTextColor+';font-size:'+sTitleSize+'px">'+c.title+'</h4>';
+        if (c.description) sh2 += '<p style="margin-bottom:8px;color:'+sTextColor+'99;font-size:'+sDescSize+'px">'+c.description+'</p>';
+        sh2 += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:'+sValueSize+'px;font-weight:700;color:'+sValueColor+'">';
+        if (sShowIcon && sIconPos==='left') sh2 += '<span>'+svgIcon('CheckCircle',Math.round(sValueSize*0.7),sIconColor2)+'</span>';
+        sh2 += '<span class="sales-val">'+displayText+'</span>';
+        if (sShowIcon && sIconPos==='right') sh2 += '<span>'+svgIcon('CheckCircle',Math.round(sValueSize*0.7),sIconColor2)+'</span>';
+        sh2 += '</div>';
+        if (sFormat!=='custom') sh2 += '<p style="margin-top:4px;color:'+sTextColor+'99;font-size:'+sDescSize+'px">'+(c.text||'{count} pessoas já compraram').replace('{count}',String(curVal))+'</p>';
+        sh2 += '</div>';
+        return sh2;
+      }
 
       default: return '';
     }
@@ -493,7 +641,6 @@
   }
 
   function bindElementEvents() {
-    // FAQ toggles
     document.querySelectorAll('[data-faq-el]').forEach(function(btn) {
       btn.onclick = function() {
         var id = btn.getAttribute('data-faq-el');
@@ -508,11 +655,24 @@
     Object.keys(elCountdowns).forEach(function(id) {
       var ct = elCountdowns[id];
       if (ct.interval) return;
+      var el2 = elems.find(function(e){return e.id===id});
+      var ec = el2 && el2.content || {};
       ct.interval = setInterval(function() {
-        if (ct.total <= 0) return;
+        if (ct.total <= 0) {
+          if ((ec.timerType||'fixed')==='fixed') ct.total = (ec.minutes||10)*60;
+          else return;
+        }
         ct.total--;
-        var el = document.getElementById('cd-'+id);
-        if (el) el.textContent = String(Math.floor(ct.total/60)).padStart(2,'0')+':'+String(ct.total%60).padStart(2,'0');
+        var cdEl = document.getElementById('cd-'+id);
+        if (!cdEl) return;
+        var h2 = Math.floor(ct.total/3600), m2 = Math.floor((ct.total%3600)/60), s2 = ct.total%60;
+        var timeStr = String(h2).padStart(2,'0')+':'+String(m2).padStart(2,'0')+':'+String(s2).padStart(2,'0');
+        // Banner style: update the .cd-time span
+        var timeSpan = cdEl.querySelector('.cd-time');
+        if (timeSpan) { timeSpan.textContent = timeStr; return; }
+        // Cards style: update each .cd-unit
+        var units = cdEl.querySelectorAll('.cd-unit');
+        if (units.length===3) { units[0].textContent = String(h2).padStart(2,'0'); units[1].textContent = String(m2).padStart(2,'0'); units[2].textContent = String(s2).padStart(2,'0'); }
       }, 1000);
     });
     // Sales counters
@@ -520,11 +680,23 @@
       var c = el.content||{};
       if (!c.showAnimation) return;
       if (el._salesInterval) return;
+      var intervalMs = c.interval||800;
       el._salesInterval = setInterval(function() {
-        elSalesCounts[el.id] = (elSalesCounts[el.id]||0) + Math.floor(Math.random()*3)+1;
+        var max = c.maxValue||1000, min = c.minValue||0;
+        var cur = elSalesCounts[el.id]||0;
+        if (cur >= max) { elSalesCounts[el.id] = min; cur = min; }
+        var inc = c.randomIncrement
+          ? Math.floor(Math.random()*((c.incrementMax||5)-(c.incrementMin||1)+1))+(c.incrementMin||1)
+          : (c.increment||1);
+        elSalesCounts[el.id] = Math.min(cur+inc, max);
         var se = document.getElementById('sales-'+el.id);
-        if (se) se.textContent = (c.text||'{count} pessoas já compraram').replace('{count}',String(elSalesCounts[el.id]));
-      }, (c.interval||30)*1000);
+        if (!se) return;
+        var valSpan = se.querySelector('.sales-val');
+        if (valSpan) {
+          var fmt2 = c.format||'default', customFmt = c.customFormat||'{value} Compras';
+          valSpan.textContent = fmt2==='custom' ? customFmt.replace('{value}',String(elSalesCounts[el.id])) : String(elSalesCounts[el.id]);
+        }
+      }, intervalMs);
     });
   }
 
