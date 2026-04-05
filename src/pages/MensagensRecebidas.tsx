@@ -123,6 +123,7 @@ const parseMediaFromContent = (content: string): { mediaType: string | null; med
 
 // Resolve [modelo:UUID] references to template name
 const resolveTemplateRef = (content: string, templates: MessageTemplate[]): string => {
+  if (!content) return '';
   return content.replace(/\[modelo:([a-f0-9-]+)\]/gi, (_match, id) => {
     const tpl = templates.find(t => t.id === id);
     if (tpl) {
