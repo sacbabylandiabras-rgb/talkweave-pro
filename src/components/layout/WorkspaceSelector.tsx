@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, Zap, Globe, ShoppingCart } from "lucide-react";
+import { Check, ChevronDown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import { LogoImage } from "./LogoImage";
 import { cn } from "@/lib/utils";
 
 const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
