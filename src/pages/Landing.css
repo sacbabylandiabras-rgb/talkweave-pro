@@ -976,3 +976,84 @@
   .lp-p-screen { border-radius: 24px; }
   .lp-island { width: 50px; height: 14px; top: 6px; }
 }
+
+/* ========================================
+   Gateway Dashboard Mock
+   ======================================== */
+.lp-gw-card {
+  background: #0f1623;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.07);
+  overflow: hidden;
+  width: 100%;
+  max-width: 560px;
+}
+.lp-gw-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.lp-gw-brand { display: flex; align-items: center; gap: 8px; }
+.lp-gw-brand-icon {
+  width: 28px; height: 28px; border-radius: 8px; background: #f05a28;
+  display: flex; align-items: center; justify-content: center;
+}
+.lp-gw-brand-icon svg { width: 14px; height: 14px; }
+.lp-gw-brand-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+.lp-gw-live {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(240,90,40,0.1); border: 1px solid rgba(240,90,40,0.2);
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 10px; font-weight: 600; color: #f05a28; letter-spacing: 0.3px; text-transform: uppercase;
+}
+.lp-gw-live-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: #f05a28;
+  animation: lp-gw-blink 1.4s infinite;
+}
+@keyframes lp-gw-blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+.lp-gw-kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lp-gw-kpi {
+  padding: 14px 16px;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.lp-gw-kpi-last { border-right: none; }
+.lp-gw-kpi-label { font-size: 10px; color: #4e637d; font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 5px; }
+.lp-gw-kpi-val { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+.lp-gw-kpi-val.accent { color: #f05a28; }
+.lp-gw-kpi-sub { font-size: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.lp-gw-up { color: #22c55e; font-weight: 700; }
+.lp-gw-neutral { color: #4e637d; }
+.lp-gw-chart-area { padding: 16px 20px 6px; }
+.lp-gw-chart-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.lp-gw-chart-title { font-size: 11px; color: #4e637d; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; }
+.lp-gw-tabs { display: flex; gap: 2px; }
+.lp-gw-tab {
+  font-size: 10px; font-weight: 600; color: #4e637d;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid transparent; background: transparent; transition: all .2s;
+}
+.lp-gw-tab.active { color: #f05a28; background: rgba(240,90,40,0.1); border-color: rgba(240,90,40,0.2); }
+.lp-gw-chart-wrap { position: relative; height: 140px; width: 100%; }
+.lp-gw-xlabels {
+  display: flex; justify-content: space-between;
+  padding: 4px 2px 0; font-size: 9px; color: #2d4057; font-weight: 500;
+}
+.lp-gw-footer {
+  padding: 10px 20px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.lp-gw-fstat { text-align: center; }
+.lp-gw-fstat-val { font-size: 11px; font-weight: 700; color: #6b8299; }
+.lp-gw-fstat-label { font-size: 9px; color: #2d4057; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.3px; }
+.lp-gw-fdiv { width: 1px; height: 28px; background: rgba(255,255,255,0.05); }
+
+@media (max-width: 600px) {
+  .lp-gw-kpis { grid-template-columns: repeat(2, 1fr); }
+  .lp-gw-kpi:nth-child(2) { border-right: none; }
+  .lp-gw-footer { flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .lp-gw-fdiv { display: none; }
+}
