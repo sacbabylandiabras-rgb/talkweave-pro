@@ -572,9 +572,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
         const groupName = isGroup ? (groupNames.get(phone) || null) : null;
-        const preferredInstanceId = isGroup
-          ? (groupSourceInstances.get(phone) || latestInboundLog?.instance_id || null)
-          : (latestInboundLog?.instance_id || null);
+        const preferredInstanceId = filterInstanceId && filterInstanceId !== 'all'
+          ? filterInstanceId
+          : latestInboundLog?.instance_id || groupSourceInstances.get(phone) || null;
 
         return {
           phone,
