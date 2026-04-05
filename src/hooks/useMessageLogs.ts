@@ -140,6 +140,10 @@ const isLikelyTechnicalIdentifier = (phone: string): boolean => {
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
 };
 
+const isGroupPhone = (phone: string): boolean => {
+  return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone);
+};
+
 export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
@@ -309,6 +313,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       !fetchedPhotosRef.current.has(p) && 
       !savedContacts.get(p)?.profile_picture_url &&
       !p.includes('@') &&
+      !isGroupPhone(p) &&
       !isLikelyTechnicalIdentifier(p)
     ).slice(0, 5); // Limit to 5 at a time to avoid rate limits
 
@@ -396,8 +401,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
   // Fetch group names when we detect group conversations
   useEffect(() => {
-    if (loading || messageLogs.length === 0 || fetchedGroupNamesRef.current) return;
-    const groupPhones = [...new Set(messageLogs.map(m => m.phone).filter(p => p.includes('-group') || p.includes('@g.us')))];
+    if (loading || fetchedGroupNamesRef.current) return;
+    const groupPhones = [...new Set([
+      ...messageLogs.map((m) => m.phone),
+      ...campaignSends.map((s) => s.phone),
+    ].filter(isGroupPhone))];
     if (groupPhones.length === 0) return;
     
     fetchedGroupNamesRef.current = true;
@@ -417,7 +425,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         setGroupNames(map);
       } catch { /* ignore */ }
     })();
-  }, [loading, messageLogs.length]);
+  }, [loading, messageLogs.length, campaignSends.length]);
 
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
@@ -525,11 +533,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       groupedLogs.set(log.phone, existing);
     });
 
-    // Filter out any group conversations — they belong in the Groups page, not here
-    const isGroupPhone = (p: string) => p.includes('-group') || p.includes('@g.us') || /^12036\d{13,}$/.test(p);
-
     return Array.from(grouped.entries())
-      .filter(([phone]) => !isGroupPhone(phone))
       .map(([phone, msgs]) => {
         const sorted = msgs.sort((a, b) => {
           const timeDiff = toMillis(a.timestamp) - toMillis(b.timestamp);
@@ -549,7 +553,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
         // Get group name if it's a group conversation
-        const isGroup = phone.includes('-group') || phone.includes('@g.us');
+        const isGroup = isGroupPhone(phone);
         const groupName = isGroup ? (groupNames.get(phone) || null) : null;
         return {
           phone,
