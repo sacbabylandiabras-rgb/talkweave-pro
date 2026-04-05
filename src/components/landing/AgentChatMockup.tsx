@@ -21,8 +21,8 @@ const messages: Message[] = [
   { id: "m1", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Boa tarde, Pedro! Tudo certinho? 😊" },
   { id: "m2", side: "L", badge: "cl", badgeLabel: "Cliente", type: "text", text: "Oi, tudo ótimo!" },
   { id: "m3", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Aqui é o assistente da ZapLynx.\nVocê acabou de se cadastrar no nosso site, né?" },
-  { id: "m4", side: "L", badge: "cl", badgeLabel: "Cliente", type: "audio", audioSecs: 6, audioBars: [8, 12, 18, 24, 20, 14, 10, 16, 22, 18, 12, 8, 14, 20, 24, 18, 12, 8, 10, 16, 20, 14, 8] },
-  { id: "m5", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "audio", audioSecs: 5, audioBars: [10, 16, 22, 18, 12, 8, 14, 20, 18, 12, 8, 10, 16, 22, 20, 14, 10, 8, 12, 18, 14, 10, 8] },
+  { id: "m4", side: "L", badge: "cl", badgeLabel: "Cliente", type: "audio", audioSecs: 6, audioBars: [8, 12, 18, 24, 20, 14, 10, 16, 22, 18, 12, 8, 14, 20, 24, 18, 12, 8, 10, 16, 20, 14, 8], audioSrc: "/audio/client-audio.mp3" },
+  { id: "m5", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "audio", audioSecs: 5, audioBars: [10, 16, 22, 18, 12, 8, 14, 20, 18, 12, 8, 10, 16, 22, 20, 14, 10, 8, 12, 18, 14, 10, 8], audioSrc: "/audio/agent-audio.mp3" },
   { id: "m6", side: "R", badge: "ag", badgeLabel: "Agente IA", type: "text", text: "Essas são as informações que preciso:" },
   { id: "m7", side: "R", badge: "bt", badgeLabel: "Chatbot", type: "text", text: "Quantos funcionários tem sua empresa?" },
 ];
