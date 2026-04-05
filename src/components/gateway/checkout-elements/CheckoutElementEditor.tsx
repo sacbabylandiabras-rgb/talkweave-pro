@@ -983,6 +983,10 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
               <Label className="text-[10px]">Cor do Fundo</Label>
               <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
             </div>
+            <div>
+              <Label className="text-[10px]">Cor da Borda</Label>
+              <Input type="color" value={c.borderColor || "#E5E7EB"} onChange={e => update("borderColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
           </div>
         </>
       )}
