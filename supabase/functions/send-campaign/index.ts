@@ -405,7 +405,11 @@ serve(async (req) => {
       await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
     }
 
-    if (!campaign.template) throw new Error('Campaign template not found');
+    // Determine if this is a flow-based campaign
+    const isFlowCampaign = campaign.target_audience?.campaign_type === 'flow' && campaign.target_audience?.flow_id;
+    const flowId = campaign.target_audience?.flow_id;
+
+    if (!isFlowCampaign && !campaign.template) throw new Error('Campaign template not found');
 
     const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
       ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
