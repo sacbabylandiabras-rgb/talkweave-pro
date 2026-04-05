@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +13,7 @@ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Loader2, Search, MessageSquare, Link2 } from "lucide-react";
+import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar } from "lucide-react";
 
 interface CreateGroupCampaignDialogProps {
   open: boolean;
@@ -69,6 +70,8 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     description: "",
     template_id: "",
     delay_seconds: 2,
+    schedule_type: "immediate" as "immediate" | "scheduled",
+    scheduled_at: "",
   });
 
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
