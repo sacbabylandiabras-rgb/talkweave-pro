@@ -332,7 +332,7 @@ export default function AgentChatMockup() {
                         {msg.text}
                       </div>
                     ) : (
-                      <AudioBubble bars={msg.audioBars!} secs={msg.audioSecs!} side={msg.side} />
+                      <AudioBubble bars={msg.audioBars!} secs={msg.audioSecs!} side={msg.side} audioSrc={msg.audioSrc} />
                     )}
 
                     <span style={{
