@@ -215,6 +215,41 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
             </div>
           )}
 
+          {/* Agendamento */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <Label className="text-sm font-semibold">Tipo de Envio</Label>
+            </div>
+            <RadioGroup
+              value={formData.schedule_type}
+              onValueChange={(val: "immediate" | "scheduled") => setFormData(prev => ({ ...prev, schedule_type: val }))}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="immediate" id="schedule-now" />
+                <Label htmlFor="schedule-now" className="cursor-pointer text-sm">Enviar agora</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="scheduled" id="schedule-later" />
+                <Label htmlFor="schedule-later" className="cursor-pointer text-sm">Agendar horário</Label>
+              </div>
+            </RadioGroup>
+
+            {formData.schedule_type === "scheduled" && (
+              <div className="flex items-center gap-2 pl-1">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="datetime-local"
+                  value={formData.scheduled_at}
+                  onChange={e => setFormData(prev => ({ ...prev, scheduled_at: e.target.value }))}
+                  className="flex-1"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+            )}
+          </div>
+
           {/* Delay */}
           <div>
             <Label>Intervalo entre envios (segundos)</Label>
