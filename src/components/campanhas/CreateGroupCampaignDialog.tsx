@@ -122,6 +122,10 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       toast({ title: "Erro", description: "Selecione pelo menos um grupo", variant: "destructive" });
       return;
     }
+    if (formData.schedule_type === 'scheduled' && !formData.scheduled_at) {
+      toast({ title: "Erro", description: "Selecione data e hora do agendamento", variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     try {
