@@ -300,7 +300,7 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean) => Promise<void>;
+  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean, preferredInstanceId?: string | null) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
@@ -338,12 +338,12 @@ const ChatView = ({
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
         const isVideo = attachedFile.mediaType === 'video';
-        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, isVideo ? viewOnce : undefined, isVideo ? isPtv : undefined);
+        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, isVideo ? viewOnce : undefined, isVideo ? isPtv : undefined, conversation.preferredInstanceId);
         setAttachedFile(null);
         setViewOnce(false);
         setIsPtv(false);
       } else {
-        await onSendMessage(conversation.phone, newMessage.trim());
+        await onSendMessage(conversation.phone, newMessage.trim(), undefined, undefined, undefined, undefined, conversation.preferredInstanceId);
       }
       setNewMessage("");
     } catch (e: any) {
@@ -394,7 +394,7 @@ const ChatView = ({
           const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-          await onSendMessage(conversation.phone, '', publicUrl, 'audio');
+          await onSendMessage(conversation.phone, '', publicUrl, 'audio', undefined, undefined, conversation.preferredInstanceId);
         } catch (e) {
           toast({ title: "Erro", description: "Falha ao enviar áudio.", variant: "destructive" });
         } finally {
