@@ -351,6 +351,36 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
           <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { name: "", text: "", rating: 5, avatar: "", timeAgo: "há 3 dias" }])}>
             <Plus className="w-3 h-3 mr-1" /> Adicionar depoimento
           </Button>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Cor do Nome</Label>
+                <Input type="color" value={c.nameColor || "#000000"} onChange={e => update("nameColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do Texto</Label>
+                <Input type="color" value={c.textColor || "#666666"} onChange={e => update("textColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor das Estrelas</Label>
+                <Input type="color" value={c.starColor || "#FACC15"} onChange={e => update("starColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do Fundo</Label>
+                <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor da Borda</Label>
+                <Input type="color" value={c.borderColor || "#e5e7eb"} onChange={e => update("borderColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do Tempo</Label>
+                <Input type="color" value={c.timeColor || "#999999"} onChange={e => update("timeColor", e.target.value)} className="mt-1 h-8 w-full" />
+              </div>
+            </div>
+          </div>
         </>
       )}
 
