@@ -151,9 +151,9 @@ export default function CheckoutBuilder() {
     toast.success(`${label} copiado!`);
   };
 
-  const previewViewportWidth = previewMode === "mobile" ? 390 : 1180;
-  const previewScale = previewPaneWidth
-    ? Math.min(1, (previewPaneWidth - (previewMode === "mobile" ? 24 : 40)) / previewViewportWidth)
+  const previewViewportWidth = previewMode === "mobile" ? 390 : undefined;
+  const previewScale = previewMode === "mobile" && previewPaneWidth
+    ? Math.min(1, (previewPaneWidth - 24) / 390)
     : 1;
 
   const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
