@@ -1205,14 +1205,14 @@
       co.className = 'co';
     }
 
-    // Footer elements for 2col layouts
+    // Footer for all layouts (below the columns)
     if (use2Col || tid === 'tiktok') {
-      var footerEls = renderElementsAt('footer');
-      if (footerEls) {
-        var fDiv = document.createElement('div');
-        fDiv.innerHTML = footerEls;
-        co.appendChild(fDiv);
-      }
+      var footerWrap = document.createElement('div');
+      footerWrap.style.maxWidth = '56rem';
+      footerWrap.style.margin = '0 auto';
+      footerWrap.style.padding = '0 16px';
+      footerWrap.innerHTML = footerHTML() + renderElementsAt('footer');
+      co.parentNode.insertBefore(footerWrap, co.nextSibling);
     }
 
     bind();
