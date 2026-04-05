@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
-import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
+import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, Check, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
 
 function getVideoEmbedUrl(url: string): string {
   if (!url) return "";
