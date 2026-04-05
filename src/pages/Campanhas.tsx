@@ -80,6 +80,13 @@ const Campanhas = () => {
     return phone.replace(/@lid$/i, '').replace(/\D/g, '');
   };
 
+  const normalizeGroupDisplayPhone = (phone?: string | null) => {
+    if (!phone) return '';
+    if (phone.includes('-group@g.us')) return phone.replace(/-group@g\.us$/i, '@g.us');
+    if (phone.endsWith('-group')) return phone.replace(/-group$/i, '@g.us');
+    return phone;
+  };
+
   const [lidMap, setLidMap] = useState<Map<string, string>>(new Map());
 
   const resolvePhoneKey = (phone?: string | null) => {
@@ -90,7 +97,8 @@ const Campanhas = () => {
 
   const resolveDisplayPhone = (phone?: string | null) => {
     if (!phone) return '';
-    return phone.includes('@lid') ? lidMap.get(phone) || phone : phone;
+    const resolved = phone.includes('@lid') ? lidMap.get(phone) || phone : phone;
+    return normalizeGroupDisplayPhone(resolved);
   };
 
   useEffect(() => {

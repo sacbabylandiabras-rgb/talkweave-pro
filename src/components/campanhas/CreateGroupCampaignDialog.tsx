@@ -75,6 +75,15 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const [searchQuery, setSearchQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const normalizeGroupTargetPhone = (groupId: string) => {
+    const trimmed = groupId.trim();
+    if (!trimmed) return trimmed;
+    if (trimmed.includes("-group@g.us")) return trimmed.replace("-group@g.us", "@g.us");
+    if (trimmed.endsWith("-group")) return trimmed.replace(/-group$/i, "@g.us");
+    if (trimmed.includes("@g.us")) return trimmed;
+    return `${trimmed}@g.us`;
+  };
+
   const selectedTemplate = templates.find(t => t.id === formData.template_id);
 
   const filteredGroups = groups.filter(g =>
@@ -116,15 +125,8 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       const groupContacts = selectedGroups.map(groupId => {
         const group = groups.find(g => g.id === groupId);
         const linkGroup = rotativeLinks.flatMap(link => link.groups).find(g => g.group_id === groupId);
-        // Normalize group ID: remove "-group" suffix before @g.us for Z-API compatibility
-        let normalizedId = groupId;
-        if (normalizedId.includes("-group@g.us")) {
-          normalizedId = normalizedId.replace("-group@g.us", "@g.us");
-        } else if (!normalizedId.includes("@g.us")) {
-          normalizedId = `${normalizedId}@g.us`;
-        }
         return {
-          phone: normalizedId,
+          phone: normalizeGroupTargetPhone(groupId),
           name: group?.nome || linkGroup?.group_name || "Grupo",
           sourceInstanceId: group?.sourceInstanceId || linkGroup?.instance_id || null,
           sourceInstanceName: group?.sourceInstanceName || null,
