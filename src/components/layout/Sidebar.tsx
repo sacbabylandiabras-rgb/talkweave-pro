@@ -31,6 +31,7 @@ import {
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
+import logoPayImage from "@/assets/logo-pay.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDeviceType } from "@/hooks/useDeviceType";
