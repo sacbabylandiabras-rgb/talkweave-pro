@@ -14,6 +14,7 @@ interface Message {
   text?: string;
   audioSecs?: number;
   audioBars?: number[];
+  audioSrc?: string;
 }
 
 const messages: Message[] = [
