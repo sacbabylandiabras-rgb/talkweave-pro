@@ -1409,6 +1409,8 @@
       cardBorderRadius: sv.cardBorderRadius||'', buttonBorderRadius: sv.buttonBorderRadius||'',
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
       shippingEnabled: isTruthyBoolean(sv.shippingEnabled), shippingPrice: toCents(sv.shippingPrice),
+      stepIndicatorStyle: sv.stepIndicatorStyle||'circles',
+      footerCompanyName: sv.footerCompanyName||'', footerCnpj: sv.footerCnpj||'',
     };
     // Load builder elements
     elems = Array.isArray(sv.elements) ? sv.elements : [];
