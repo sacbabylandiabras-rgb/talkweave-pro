@@ -167,9 +167,9 @@ export default function AgentChatMockup() {
             }}>
               <div style={{
                 width: 36, height: 36, borderRadius: "50%", overflow: "hidden",
-                flexShrink: 0, background: "#333", display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0, background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <img src={AVATAR_AGENT} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                <img src={AVATAR_AGENT} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} />
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>ZapLynx IA</div>
