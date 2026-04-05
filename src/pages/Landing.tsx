@@ -71,6 +71,24 @@ const Landing = () => {
 
       <div className="lp-divider" />
 
+      {/* SEÇÃO: Checkout */}
+      <div className="lp-section lp-section-reverse lp-section-surface">
+        <div>
+          <div className="lp-section-tag">Checkout</div>
+          <div className="lp-section-title">Checkout que Converte de Verdade</div>
+          <div className="lp-section-desc">Crie páginas de pagamento profissionais com sua identidade visual. Templates prontos, timer de urgência, selos de confiança e integração com pixels — tudo para maximizar suas conversões.</div>
+          <CheckList items={[
+            "6 templates prontos e personalizáveis",
+            "Editor drag-and-drop de elementos",
+            "Timer de escassez e selos de confiança",
+            "Validação de CPF/CNPJ em tempo real",
+            "Integração com pixels e UTM tracking",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Montar Meu Checkout →</button>
+        </div>
+        <CheckoutMock />
+      </div>
+
       {/* SEÇÃO: Instagram */}
       <div className="lp-section lp-section-reverse lp-section-surface">
         <div>
