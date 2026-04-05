@@ -693,20 +693,80 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
 
       {element.type === "list" && (
         <>
+          <p className="text-[10px] font-semibold text-muted-foreground">Configuração da Lista</p>
           <div>
             <Label className="text-[10px]">Título</Label>
-            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" />
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Principais Benefícios" />
           </div>
-          {(c.items || []).map((item: any, i: number) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input value={item.icon} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], icon: e.target.value }; update("items", items); }} className="w-12 text-xs text-center" />
-              <Input value={item.text} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], text: e.target.value }; update("items", items); }} className="flex-1 text-xs" />
-              <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
+          <div>
+            <Label className="text-[10px]">Estilo do ícone</Label>
+            <Select value={c.iconStyle || "check"} onValueChange={v => update("iconStyle", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="check">✓ Check simples</SelectItem>
+                <SelectItem value="circle-check">☑ Check circular</SelectItem>
+                <SelectItem value="emoji">😀 Emoji personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground">Itens</p>
+            {(c.items || []).map((item: any, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                {(c.iconStyle || "check") === "emoji" && (
+                  <Input value={item.icon} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], icon: e.target.value }; update("items", items); }} className="w-12 text-xs text-center" />
+                )}
+                <Input value={item.text} onChange={e => { const items = [...(c.items || [])]; items[i] = { ...items[i], text: e.target.value }; update("items", items); }} className="flex-1 text-xs" />
+                <button onClick={() => { const items = [...(c.items || [])]; items.splice(i, 1); update("items", items); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { icon: "✅", text: "" }])}>
+              <Plus className="w-3 h-3 mr-1" /> Adicionar item
+            </Button>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Tipografia</p>
+            <div>
+              <Label className="text-[10px]">Tamanho do título</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={c.titleSize || 16} onChange={e => update("titleSize", parseInt(e.target.value))} className="text-xs flex-1" />
+                <span className="text-[10px] text-muted-foreground">px</span>
+              </div>
             </div>
-          ))}
-          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("items", [...(c.items || []), { icon: "✅", text: "" }])}>
-            <Plus className="w-3 h-3 mr-1" /> Adicionar item
-          </Button>
+            <div>
+              <Label className="text-[10px]">Tamanho dos itens</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={c.itemSize || 14} onChange={e => update("itemSize", parseInt(e.target.value))} className="text-xs flex-1" />
+                <span className="text-[10px] text-muted-foreground">px</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div>
+              <Label className="text-[10px]">Cor do Título</Label>
+              <Input type="color" value={c.titleColor || "#333333"} onChange={e => update("titleColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor dos Itens</Label>
+              <Input type="color" value={c.itemColor || "#333333"} onChange={e => update("itemColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Ícone</Label>
+              <Input type="color" value={c.iconColor || "#16A34A"} onChange={e => update("iconColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor da Borda</Label>
+              <Input type="color" value={c.borderColor || "#E5E7EB"} onChange={e => update("borderColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+          </div>
         </>
       )}
 
