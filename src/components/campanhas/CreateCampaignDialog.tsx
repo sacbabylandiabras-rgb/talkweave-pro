@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow } from "lucide-react";
 import Papa from "papaparse";
 import { CarouselPreview } from "./CarouselPreview";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateCampaignDialogProps {
   open: boolean;
