@@ -157,32 +157,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       );
 
     case "reviews":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold" style={{ color: textColor }}>{c.average || 4.8}</p>
-              <div className="flex gap-0.5 mt-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-[10px] mt-1" style={{ color: textColor + "80" }}>{c.total || 0} avaliações</p>
-            </div>
-            <div className="flex-1 space-y-1">
-              {(c.distribution || [85, 10, 3, 1, 1]).map((pct: number, i: number) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-[10px] w-3" style={{ color: textColor + "80" }}>{5 - i}</span>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: cardBorder }}>
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "#FACC15" }} />
-                  </div>
-                  <span className="text-[10px] w-7 text-right" style={{ color: textColor + "80" }}>{pct}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
+      return <ReviewsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "guarantee":
       return (
@@ -372,6 +347,84 @@ function BenefitsElement({ content, primaryColor, textColor, cardBg, cardBorder,
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+const SIZE_MAP: Record<string, number> = { xs: 12, sm: 14, md: 18, lg: 24 };
+const RATING_SIZE_MAP: Record<string, number> = { sm: 20, md: 30, lg: 40 };
+const STAR_SIZE_MAP: Record<string, number> = { sm: 14, md: 18, lg: 24 };
+
+function ReviewsElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const c = content;
+  const elTextColor = c.textColor || textColor;
+  const elBgColor = c.bgColor || "transparent";
+  const starColor = c.starColor || "#FACC15";
+  const titlePx = SIZE_MAP[c.titleSize || "md"] || 18;
+  const ratingPx = RATING_SIZE_MAP[c.ratingSize || "md"] || 30;
+  const starPx = STAR_SIZE_MAP[c.starSize || "md"] || 18;
+  const reviewTextPx = SIZE_MAP[c.reviewTextSize || "sm"] || 14;
+  const avatars: string[] = c.avatars || [];
+  const showAvatars = (c.style || "card_avatars") === "card_avatars" && avatars.length > 0;
+
+  return (
+    <div
+      style={{ ...wrapperStyle, background: elBgColor, borderRadius: "12px", padding: "24px 16px" }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center text-center">
+        {/* Avatares sobrepostos */}
+        {showAvatars && (
+          <div className="flex items-center mb-2" style={{ marginLeft: `${Math.min(avatars.length - 1, 4) * 8}px` }}>
+            {avatars.slice(0, 5).map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                className="rounded-full border-2 border-white object-cover"
+                style={{
+                  width: 36,
+                  height: 36,
+                  marginLeft: i === 0 ? 0 : -12,
+                  zIndex: avatars.length - i,
+                  position: "relative",
+                }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Título */}
+        <h4 className="font-semibold mb-1" style={{ color: elTextColor, fontSize: `${titlePx}px` }}>
+          {c.title || "Avaliação dos Clientes"}
+        </h4>
+
+        {/* Nota + Estrelas */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-bold" style={{ color: elTextColor, fontSize: `${ratingPx}px` }}>
+            {c.average || 4.8}
+          </span>
+          <div className="flex gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => {
+              const filled = i < Math.floor(c.average || 4.8);
+              const half = !filled && i < (c.average || 4.8);
+              return (
+                <Star
+                  key={i}
+                  style={{ width: starPx, height: starPx, color: starColor, fill: filled ? starColor : half ? `${starColor}80` : "transparent" }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Total */}
+        <p style={{ color: elTextColor + "80", fontSize: `${reviewTextPx}px` }}>
+          {c.total || 0} reviews
+        </p>
       </div>
     </div>
   );
