@@ -480,19 +480,150 @@ function CheckList({ items, ig }: { items: string[]; ig?: boolean }) {
 }
 
 function GatewayMock() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [animated, setAnimated] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const raw = [980,1240,1100,1580,1420,2100,1880,2450,2200,2980,2700,3350,3100,3800,3500,4300,3900,5100,4600,5900,5300,6700,6100,7500,6900,8600,8100,10200,11400,12847];
+  const today = new Date();
+  const labels = raw.map((_, i) => { const d = new Date(today); d.setDate(d.getDate() - 29 + i); return d.getDate() + '/' + (d.getMonth() + 1); });
+  const xlabels = [0, 7, 14, 22, 29].map(i => labels[Math.min(i, 29)]);
+
+  const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  const ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const ep = ease(progress);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting && !animated) { setAnimated(true); } }, { threshold: 0.3 });
+    if (containerRef.current) obs.observe(containerRef.current);
+    return () => obs.disconnect();
+  }, [animated]);
+
+  useEffect(() => {
+    if (!animated) return;
+    let start: number | null = null;
+    const dur = 1800;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / dur, 1);
+      setProgress(p);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [animated]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width = canvas.offsetWidth * 2;
+    const h = canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+    const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
+    ctx.clearRect(0, 0, cw, ch);
+
+    const count = Math.round(ep * 30);
+    if (count < 2) return;
+    const data = raw.slice(0, count);
+    const maxVal = Math.max(...raw) * 1.1;
+    const padL = 0, padR = 4, padT = 4, padB = 0;
+    const plotW = cw - padL - padR, plotH = ch - padT - padB;
+
+    const pts = data.map((v, i) => ({
+      x: padL + (i / (29)) * plotW,
+      y: padT + plotH - (v / maxVal) * plotH,
+    }));
+
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 4; i++) {
+      const y = padT + (plotH / 3) * i;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(cw - padR, y); ctx.stroke();
+    }
+
+    // gradient fill
+    const grad = ctx.createLinearGradient(0, 0, 0, ch);
+    grad.addColorStop(0, 'rgba(240,90,40,0.28)');
+    grad.addColorStop(0.7, 'rgba(240,90,40,0.06)');
+    grad.addColorStop(1, 'rgba(240,90,40,0)');
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = (pts[i - 1].x + pts[i].x) / 2;
+      ctx.bezierCurveTo(cp1x, pts[i - 1].y, cp1x, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, padT + plotH);
+    ctx.lineTo(pts[0].x, padT + plotH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = (pts[i - 1].x + pts[i].x) / 2;
+      ctx.bezierCurveTo(cp1x, pts[i - 1].y, cp1x, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = '#f05a28';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }, [ep]);
+
   return (
-    <div className="lp-mock">
-      <div className="lp-mock-header">
-        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg></div>
-        <div className="lp-mock-title">ZapLynxPay</div>
-        <div className="lp-mock-sub">ao vivo</div>
+    <div ref={containerRef} className="lp-gw-card">
+      <div className="lp-gw-header">
+        <div className="lp-gw-brand">
+          <div className="lp-gw-brand-icon"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,10 6,5 10,8 14,3"/></svg></div>
+          <span className="lp-gw-brand-name">ZapLynxPay</span>
+        </div>
+        <div className="lp-gw-live"><div className="lp-gw-live-dot" />ao vivo</div>
       </div>
-      <div className="lp-mock-body">
-        <div className="lp-mock-row"><div className="lp-mock-label">Vendas Hoje</div><div className="lp-mock-val accent">R$ 12.847,00</div></div>
-        <div className="lp-mock-row"><div className="lp-mock-label">Transações</div><div className="lp-mock-val">148</div></div>
-        <div className="lp-mock-row"><div className="lp-mock-label">Taxa de Conversão</div><div className="lp-mock-val">73,4%</div></div>
-        <div className="lp-mock-row"><div className="lp-mock-label">Checkout Ativo</div><div className="lp-pill-green">Online</div></div>
-        <div style={{ marginTop: 12, fontSize: 10, color: "var(--lp-muted2)", textAlign: "center" }}>Pix instantâneo · Sem mensalidade</div>
+      <div className="lp-gw-kpis">
+        <div className="lp-gw-kpi">
+          <div className="lp-gw-kpi-label">Vendas hoje</div>
+          <div className="lp-gw-kpi-val accent">R$&nbsp;{progress >= 1 ? '12.847' : fmt(Math.round(ep * 12847))}</div>
+          <div className="lp-gw-kpi-sub"><span className="lp-gw-up">↑ {Math.round(ep * 34)}%</span> <span className="lp-gw-neutral">vs ontem</span></div>
+        </div>
+        <div className="lp-gw-kpi">
+          <div className="lp-gw-kpi-label">Transações</div>
+          <div className="lp-gw-kpi-val">{Math.round(ep * 148)}</div>
+          <div className="lp-gw-kpi-sub"><span className="lp-gw-up">↑ {Math.round(ep * 22)}%</span> <span className="lp-gw-neutral">vs ontem</span></div>
+        </div>
+        <div className="lp-gw-kpi">
+          <div className="lp-gw-kpi-label">Conversão</div>
+          <div className="lp-gw-kpi-val">{progress >= 1 ? '73,4%' : (ep * 73.4).toFixed(1) + '%'}</div>
+          <div className="lp-gw-kpi-sub"><span className="lp-gw-up">↑ {(ep * 8.2).toFixed(1)}%</span> <span className="lp-gw-neutral">vs ontem</span></div>
+        </div>
+        <div className="lp-gw-kpi lp-gw-kpi-last">
+          <div className="lp-gw-kpi-label">Ticket médio</div>
+          <div className="lp-gw-kpi-val">{progress >= 1 ? 'R$ 86,80' : 'R$ ' + fmt(Math.round(ep * 86))}</div>
+          <div className="lp-gw-kpi-sub"><span className="lp-gw-neutral">Últimas 24h</span></div>
+        </div>
+      </div>
+      <div className="lp-gw-chart-area">
+        <div className="lp-gw-chart-top">
+          <div className="lp-gw-chart-title">Volume de vendas — 30 dias</div>
+          <div className="lp-gw-tabs">
+            <button className="lp-gw-tab">7d</button>
+            <button className="lp-gw-tab active">30d</button>
+            <button className="lp-gw-tab">90d</button>
+          </div>
+        </div>
+        <div className="lp-gw-chart-wrap"><canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} /></div>
+        <div className="lp-gw-xlabels">{xlabels.map((l, i) => <span key={i}>{l}</span>)}</div>
+      </div>
+      <div className="lp-gw-footer">
+        <div className="lp-gw-fstat"><div className="lp-gw-fstat-val">R$ {fmt(Math.round(ep * 980))}</div><div className="lp-gw-fstat-label">Menor dia</div></div>
+        <div className="lp-gw-fdiv" />
+        <div className="lp-gw-fstat"><div className="lp-gw-fstat-val">R$ {fmt(Math.round(ep * 12847))}</div><div className="lp-gw-fstat-label">Maior dia</div></div>
+        <div className="lp-gw-fdiv" />
+        <div className="lp-gw-fstat"><div className="lp-gw-fstat-val">R$ {fmt(Math.round(ep * 4280))}</div><div className="lp-gw-fstat-label">Média diária</div></div>
+        <div className="lp-gw-fdiv" />
+        <div className="lp-gw-fstat"><div className="lp-gw-fstat-val">R$ {fmt(Math.round(ep * 128400))}</div><div className="lp-gw-fstat-label">Total 30d</div></div>
       </div>
     </div>
   );
