@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
-import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
+import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, Check, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
 
 function getVideoEmbedUrl(url: string): string {
   if (!url) return "";
@@ -173,20 +173,35 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
     case "countdown":
       return <CountdownElement content={c} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
-    case "list":
+    case "list": {
+      const titleColor = c.titleColor || textColor;
+      const itemColor = c.itemColor || textColor;
+      const iconColor = c.iconColor || "#16A34A";
+      const bgColor = c.bgColor || cardBg;
+      const borderColor = c.borderColor || cardBorder;
+      const titleSize = c.titleSize || 16;
+      const itemSize = c.itemSize || 14;
+      const iconStyle = c.iconStyle || "check";
       return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{c.title || "O que você vai receber:"}</h4>
+        <div style={{ ...wrapperStyle, background: bgColor, border: `1px solid ${borderColor}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          {c.title && <h4 className="font-bold mb-3" style={{ color: titleColor, fontSize: `${titleSize}px` }}>{c.title}</h4>}
           <div className="space-y-2.5">
             {(c.items || []).map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <span className="text-base">{item.icon || "✅"}</span>
-                <span className="text-sm" style={{ color: textColor }}>{item.text}</span>
+              <div key={i} className="flex items-start gap-2.5">
+                {iconStyle === "check" ? (
+                  <Check className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: iconColor }} />
+                ) : iconStyle === "circle-check" ? (
+                  <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: iconColor }} />
+                ) : (
+                  <span className="text-base flex-shrink-0">{item.icon || "✅"}</span>
+                )}
+                <span style={{ color: itemColor, fontSize: `${itemSize}px` }}>{item.text}</span>
               </div>
             ))}
           </div>
         </div>
       );
+    }
 
     case "progress":
       return (
