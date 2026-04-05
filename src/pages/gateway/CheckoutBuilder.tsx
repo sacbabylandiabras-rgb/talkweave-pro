@@ -151,9 +151,9 @@ export default function CheckoutBuilder() {
     toast.success(`${label} copiado!`);
   };
 
-  const previewViewportWidth = previewMode === "mobile" ? 390 : undefined;
-  const previewScale = previewMode === "mobile" && previewPaneWidth
-    ? Math.min(1, (previewPaneWidth - 24) / 390)
+  const previewViewportWidth = previewMode === "mobile" ? 390 : 800;
+  const previewScale = previewPaneWidth
+    ? Math.min(1, (previewPaneWidth - (previewMode === "mobile" ? 24 : 0)) / previewViewportWidth)
     : 1;
 
   const applyTemplate = (settings: Record<string, any>, templateName: string, templateId: string) => {
@@ -1227,7 +1227,7 @@ export default function CheckoutBuilder() {
             <CardContent
               ref={previewPaneRef}
               className={`flex items-start justify-center overflow-auto ${previewMode === "mobile" ? "p-4" : "p-0"}`}
-              style={{ height: "calc(100vh - 280px)", background: previewMode === "mobile" ? "hsl(var(--muted))" : "transparent" }}
+              style={{ height: "calc(100vh - 280px)", background: previewMode === "mobile" ? "#1a1a2e" : "transparent" }}
             >
               <div
                 style={previewMode === "mobile" ? {
@@ -1239,10 +1239,15 @@ export default function CheckoutBuilder() {
                   flexShrink: 0,
                   borderRadius: "32px",
                   overflow: "hidden",
-                  boxShadow: "0 0 40px rgba(0,0,0,0.15)",
-                  border: "8px solid #222",
+                  boxShadow: "0 0 40px rgba(0,0,0,0.3)",
+                  border: "8px solid #333",
                 } : {
-                  width: "100%",
+                  width: previewViewportWidth,
+                  maxWidth: "none",
+                  transformOrigin: "top center",
+                  transform: `scale(${previewScale})`,
+                  margin: "0 auto",
+                  flexShrink: 0,
                 }}
               >
                 <CheckoutPreview 
