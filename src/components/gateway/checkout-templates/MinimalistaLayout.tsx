@@ -64,16 +64,17 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b" style={{ background: s.cardBg, borderColor: s.cardBorder }}>
-        <span className="text-sm font-bold" style={{ color: s.cardTitle }}>
-          {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-6 object-contain" /> : "Minha Loja"}
-        </span>
-        <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "#16A34A" }}>
-          <Lock className="w-3 h-3" />
-          PAGAMENTO 100% SEGURO
-        </span>
-      </div>
+      {config.showLogo !== false && (
+        <div className="flex items-center justify-between px-6 py-3 border-b" style={{ background: s.cardBg, borderColor: s.cardBorder }}>
+          <span className="text-sm font-bold" style={{ color: s.cardTitle }}>
+            {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-6 object-contain" /> : "Minha Loja"}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "#16A34A" }}>
+            <Lock className="w-3 h-3" />
+            PAGAMENTO 100% SEGURO
+          </span>
+        </div>
+      )}
 
       {config.showTimer && (
         <div className="w-full text-center py-2.5 text-sm font-medium" style={{ background: s.primary, color: "#FFFFFF" }}>
