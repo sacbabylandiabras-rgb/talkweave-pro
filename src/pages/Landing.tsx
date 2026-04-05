@@ -9,6 +9,7 @@ import logoHotmart from "@/assets/logo-hotmart.jpg";
 import logoDevzapp from "@/assets/logo-devzapp.jpg";
 import logoSendflow from "@/assets/logo-sendflow.png";
 import logoManychat from "@/assets/logo-manychat.webp";
+import AgentChatMockup from "@/components/landing/AgentChatMockup";
 import "./Landing.css";
 
 const screens = [screen0, screen1, screen2];
