@@ -31,6 +31,7 @@ import {
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogoImage } from "./LogoImage";
+import logoPayImage from "@/assets/logo-pay.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -184,7 +185,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         collapsed && "justify-center px-2"
       )}>
         {activeWorkspace === "gateway" ? (
-          <LogoImage className="w-8 h-8 object-contain shrink-0" />
+          <img src={logoPayImage} alt="ZaplynxPay" className="w-8 h-8 object-contain shrink-0" />
         ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
