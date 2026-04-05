@@ -151,7 +151,7 @@ export default function CheckoutBuilder() {
     toast.success(`${label} copiado!`);
   };
 
-  const previewViewportWidth = previewMode === "mobile" ? 390 : 800;
+  const previewViewportWidth = previewMode === "mobile" ? 320 : 800;
   const previewScale = previewPaneWidth
     ? Math.min(1, (previewPaneWidth - (previewMode === "mobile" ? 24 : 0)) / previewViewportWidth)
     : 1;
@@ -1231,16 +1231,16 @@ export default function CheckoutBuilder() {
             >
               <div
                 style={previewMode === "mobile" ? {
-                  width: 390,
+                  width: 320,
                   maxWidth: "none",
                   transformOrigin: "top center",
                   transform: `scale(${previewScale})`,
                   margin: "0 auto",
                   flexShrink: 0,
-                  borderRadius: "32px",
+                  borderRadius: "28px",
                   overflow: "hidden",
-                  boxShadow: "0 0 40px rgba(0,0,0,0.3)",
-                  border: "8px solid #333",
+                  boxShadow: "0 0 32px rgba(0,0,0,0.3)",
+                  border: "6px solid #333",
                 } : {
                   width: previewViewportWidth,
                   maxWidth: "none",
