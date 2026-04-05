@@ -149,12 +149,12 @@ export default function AgentChatMockup() {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
-        background: "linear-gradient(135deg, #5b3fa0 0%, #7c4dbd 50%, #6a3fa6 100%)",
-        borderRadius: 4, minHeight: 460, position: "relative", overflow: "hidden",
+        background: "transparent",
+        borderRadius: 4, minHeight: 540, position: "relative", overflow: "hidden",
       }}>
         <div style={{
           width: 300, background: "#111", borderRadius: 32,
-          padding: 3, boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+          padding: 3, boxShadow: "0 24px 60px rgba(0,0,0,.3)",
           position: "relative", zIndex: 2,
         }}>
           <div style={{ background: "#0a0a0a", borderRadius: 30, overflow: "hidden" }}>
@@ -178,9 +178,9 @@ export default function AgentChatMockup() {
 
             {/* Chat area */}
             <div ref={chatRef} style={{
-              background: "#0d1117", padding: "12px 10px", minHeight: 320,
+              background: "#0d1117", padding: "12px 10px", minHeight: 420,
               display: "flex", flexDirection: "column", gap: 6,
-              overflowY: "auto", maxHeight: 360,
+              overflowY: "auto", maxHeight: 460,
             }}>
               {messages.map((msg) => {
                 const visible = visibleMsgs.has(msg.id);
