@@ -87,6 +87,9 @@ serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
 
+    // Detect group phones
+    const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
+
     if (requestedInstanceId && requestedInstanceId !== instanceId) {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       
@@ -121,6 +124,75 @@ serve(async (req) => {
       }
     }
 
+    // SERVER-SIDE GROUP INSTANCE RESOLUTION
+    // For group phones, verify the correct instance by checking which instance
+    // actually receives messages from this group. Z-API returns 200 even when
+    // sending from an instance that doesn't have the group, causing silent failures.
+    if (isGroupPhone) {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      // Normalize group ID to find matches in message_logs
+      const numericGroupId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
+      const groupVariants = [
+        `${numericGroupId}-group`,
+        `${numericGroupId}@g.us`,
+        numericGroupId,
+      ];
+
+      // Find the instance that has RECEIVED messages from this group (inbound = real ownership)
+      const { data: groupLogs } = await adminClient
+        .from('message_logs')
+        .select('instance_id')
+        .in('phone', groupVariants)
+        .not('instance_id', 'is', null)
+        .is('keyword_matched', null)  // null keyword = organic inbound, not manual/flow
+        .eq('user_id', credentials.userId)
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      // Fallback: also check for any inbound message (non-manual) from the group
+      let resolvedGroupInstanceId = groupLogs?.[0]?.instance_id || null;
+
+      if (!resolvedGroupInstanceId) {
+        const { data: groupLogs2 } = await adminClient
+          .from('message_logs')
+          .select('instance_id, keyword_matched')
+          .in('phone', groupVariants)
+          .not('instance_id', 'is', null)
+          .not('message_received', 'is', null)
+          .eq('user_id', credentials.userId)
+          .order('timestamp', { ascending: false })
+          .limit(5);
+
+        // Pick the first log that isn't a manual send
+        const inboundLog = groupLogs2?.find(l => l.keyword_matched !== '__manual_send__');
+        resolvedGroupInstanceId = inboundLog?.instance_id || null;
+      }
+
+      if (resolvedGroupInstanceId && resolvedGroupInstanceId !== instanceId) {
+        // Switch to the correct instance
+        const { data: correctInstance } = await adminClient
+          .from('zapi_instances')
+          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .eq('zapi_instance_id', resolvedGroupInstanceId)
+          .eq('user_id', credentials.userId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (correctInstance) {
+          console.log(`🔄 GROUP INSTANCE OVERRIDE: switching from ${instanceId} to ${correctInstance.zapi_instance_id} (verified from inbound logs)`);
+          instanceId = correctInstance.zapi_instance_id;
+          token = correctInstance.zapi_token;
+          clientToken = correctInstance.zapi_client_token;
+        } else {
+          console.log(`⚠️ Group instance ${resolvedGroupInstanceId} found in logs but not active, keeping ${instanceId}`);
+        }
+      } else if (resolvedGroupInstanceId) {
+        console.log(`✅ Group instance confirmed: ${instanceId} matches inbound logs`);
+      } else {
+        console.log(`⚠️ No inbound logs found for group ${numericGroupId}, using instance ${instanceId} as-is`);
+      }
+    }
+
     const deviceStatus = await assertZapiDeviceConnected(instanceId, token, clientToken);
     if (deviceStatus.explicitlyDisconnected && !deviceStatus.connected) {
       return new Response(
@@ -143,6 +215,15 @@ serve(async (req) => {
     }
 
     let resolvedPhone = phone;
+    // Normalize group phone to @g.us format for Z-API
+    if (isGroupPhone && !phone.includes('@lid')) {
+      const numericId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
+      resolvedPhone = `${numericId}@g.us`;
+      if (resolvedPhone !== phone) {
+        console.log(`📌 Normalized group phone: ${phone} → ${resolvedPhone}`);
+      }
+    }
+
     if (phone.includes('@lid')) {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
