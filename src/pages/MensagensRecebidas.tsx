@@ -42,17 +42,27 @@ const formatPhone = (phone: string) => {
   return phone;
 };
 
+const getSafeDate = (value?: string | null) => {
+  const date = value ? new Date(value) : new Date('');
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const formatTimestamp = (ts: string) => {
-  const date = new Date(ts);
+  const date = getSafeDate(ts);
+  if (!date) return '--:--';
   if (isToday(date)) return format(date, "HH:mm");
   if (isYesterday(date)) return "Ontem";
   return format(date, "dd/MM/yyyy", { locale: ptBR });
 };
 
-const formatMessageTime = (ts: string) => format(new Date(ts), "HH:mm");
+const formatMessageTime = (ts: string) => {
+  const date = getSafeDate(ts);
+  return date ? format(date, "HH:mm") : '--:--';
+};
 
 const formatDateSeparator = (ts: string) => {
-  const date = new Date(ts);
+  const date = getSafeDate(ts);
+  if (!date) return 'Data inválida';
   if (isToday(date)) return "Hoje";
   if (isYesterday(date)) return "Ontem";
   return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -851,7 +861,7 @@ const MensagensRecebidas = () => {
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
-    return conv.phone.includes(term) || conv.lastMessage.toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
+    return conv.phone.includes(term) || (conv.lastMessage || '').toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
   });
 
   const selectedConversation = conversations.find((c) => c.phone === selectedPhone) || null;
