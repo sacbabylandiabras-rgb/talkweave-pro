@@ -59,10 +59,11 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   }, [open]);
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.template_id) {
+    const isFlow = formData.content_type === "flow";
+    if (!formData.name || (!isFlow && !formData.template_id) || (isFlow && !formData.flow_id)) {
       toast({
         title: "Erro",
-        description: "Nome da campanha e modelo são obrigatórios",
+        description: isFlow ? "Nome da campanha e fluxo são obrigatórios" : "Nome da campanha e modelo são obrigatórios",
         variant: "destructive",
       });
       return;
