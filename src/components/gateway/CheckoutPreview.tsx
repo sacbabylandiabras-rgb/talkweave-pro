@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CreditCard, QrCode, FileText, Lock, ShieldCheck, Clock, Gift, User, CreditCard as CardIcon, Check, ShoppingCart, X, Minus, Plus, Copy, Smartphone, Zap, AlertTriangle, Loader2, Upload } from "lucide-react";
 import { PixIcon, CardBrandsRow, BoletoIcon, PaymentFooter } from "./checkout-templates/PaymentIcons";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "./checkout-elements/types";
@@ -91,6 +92,7 @@ interface Props {
 }
 
 export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
@@ -371,7 +373,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           </div>
         )}
 
-        {/* Order Summary Card - visible on all steps */}
+        {/* Order Summary Card - hidden on mobile for public checkout */}
+        {!(isPublicCheckout && isMobile) && (
         <div className="rounded-xl border p-4 space-y-4" style={cardStyle(s)}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Resumo do pedido</h3>
@@ -433,9 +436,10 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
             </div>
           </div>
         </div>
+        )}
 
-        {/* Step Indicators - 3 steps */}
-        {!isOneStep && <div className="flex items-center justify-center gap-3 py-2">
+        {/* Step Indicators - hidden on mobile for public checkout */}
+        {!isOneStep && !(isPublicCheckout && isMobile) && <div className="flex items-center justify-center gap-3 py-2">
           {stepLabels.map((sl, i) => (
             <div key={sl.num} className="flex items-center gap-3">
               <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
