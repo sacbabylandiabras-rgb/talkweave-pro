@@ -390,8 +390,8 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-            Criar Campanha
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : formData.schedule_type === 'scheduled' ? <Clock className="w-4 h-4 mr-1" /> : null}
+            {formData.schedule_type === 'scheduled' ? 'Agendar Campanha' : 'Criar Campanha'}
           </Button>
         </DialogFooter>
       </DialogContent>
