@@ -388,7 +388,7 @@ function SalesElement({ content, primaryColor, textColor, cardBg, cardBorder, wr
     : `${count} pessoas já compraram`;
 
   return (
-    <div style={{ ...wrapperStyle, background: bgColor, borderRadius: "12px", padding: "16px", textAlign: "center" }} className={hoverClass} onClick={onClick}>
+    <div style={{ ...wrapperStyle, background: bgColor, borderRadius: "12px", padding: "16px", textAlign: "center", border: content.borderColor ? `1px solid ${content.borderColor}` : undefined }} className={hoverClass} onClick={onClick}>
       {content.title && <h4 className="font-bold mb-1" style={{ color: elTextColor, fontSize: `${titleSize}px` }}>{content.title}</h4>}
       {content.description && <p className="mb-2" style={{ color: elTextColor + "99", fontSize: `${descSize}px` }}>{content.description}</p>}
       <div className="flex items-center justify-center gap-2" style={{ fontSize: `${valueSize}px`, fontWeight: 700, color: valueColor }}>
