@@ -469,7 +469,15 @@ const ChatView = ({
         else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
         else if (template.type === 'audio') mediaType = 'audio';
         
-        await onSendMessage(conversation.phone, template.content, template.mediaUrl, mediaType);
+        await onSendMessage(
+          conversation.phone,
+          template.content,
+          template.mediaUrl,
+          mediaType,
+          undefined,
+          undefined,
+          conversation.preferredInstanceId,
+        );
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
