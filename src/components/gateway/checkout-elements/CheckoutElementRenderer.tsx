@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
-import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle } from "lucide-react";
+import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
 
 function getVideoEmbedUrl(url: string): string {
   if (!url) return "";
@@ -111,19 +111,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       return <FaqElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "benefits":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{c.title || "Por que escolher?"}</h4>
-          <div className="space-y-2">
-            {(c.items || []).map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-base">{item.icon || "✅"}</span>
-                <span className="text-sm" style={{ color: textColor }}>{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
+      return <BenefitsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "seal":
       return (
