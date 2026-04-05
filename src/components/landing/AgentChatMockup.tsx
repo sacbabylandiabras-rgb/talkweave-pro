@@ -211,9 +211,12 @@ export default function AgentChatMockup() {
               borderBottom: "1px solid rgba(255,255,255,.06)",
             }}>
               <div style={{
-                width: 48,
-                height: 18,
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                overflow: "hidden",
                 flexShrink: 0,
+                background: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
