@@ -964,7 +964,7 @@ serve(async (req) => {
                   // === GROUP MESSAGE (send inside the group) ===
                   const gmType = redirectLink.group_message_type || 'none'
                   if (gmType !== 'none') {
-                    const groupChatId = normalizedGroupId.replace(/-group$/i, '@g.us')
+                    const groupChatId = normalizedGroupId.endsWith('-group') ? normalizedGroupId : normalizedGroupId.replace(/@g\.us$/i, '') + '-group'
 
                     let gmInstData = instData
                     if (redirectLink.group_message_instance_id) {
