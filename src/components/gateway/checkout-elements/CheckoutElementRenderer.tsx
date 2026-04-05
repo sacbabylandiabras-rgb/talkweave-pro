@@ -160,21 +160,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       return <ReviewsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "guarantee":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `2px dashed ${primaryColor}40`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
-              <Clock className="w-6 h-6" style={{ color: primaryColor }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold" style={{ color: textColor }}>Garantia de {c.days || 7} dias</p>
-              <p className="text-xs mt-0.5" style={{ color: textColor + "99" }}>
-                {(c.text || "Garantia incondicional de {days} dias.").replace("{days}", String(c.days || 7))}
-              </p>
-            </div>
-          </div>
-        </div>
-      );
+      return <GuaranteeElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "countdown":
       return <CountdownElement content={c} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
