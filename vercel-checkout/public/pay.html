@@ -485,10 +485,11 @@
 
   function renderElementsAt(position) {
     var h = '';
-    elems.filter(function(el) { return el.position === position && el.visible; })
-      .sort(function(a,b) { return (a.order||0)-(b.order||0); })
-      .forEach(function(el) { h += renderElement(el); });
-    return h;
+    var filtered = elems.filter(function(el) { return el.position === position && el.visible; })
+      .sort(function(a,b) { return (a.order||0)-(b.order||0); });
+    if (!filtered.length) return '';
+    filtered.forEach(function(el) { h += '<div style="margin-bottom:12px">'+renderElement(el)+'</div>'; });
+    return '<div style="margin-top:8px">'+h+'</div>';
   }
 
   function bindElementEvents() {
@@ -1219,8 +1220,8 @@
       shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
       // Banner
       if (cfg.productImage) {
-        shell += '<div class="banner-area" style="background:'+(cfg.bgColor||'#C8E832')+'">';
-        shell += '<img src="'+cfg.productImage+'" alt="" style="max-height:160px;object-fit:contain;border-radius:var(--card-radius)" />';
+        shell += '<div class="banner-area" style="background:'+(cfg.bgColor||'#C8E832')+';margin-top:16px">';
+        shell += '<img src="'+cfg.productImage+'" alt="" style="max-height:200px;object-fit:contain;border-radius:var(--card-radius)" />';
         shell += '</div>';
       }
       // Step indicators bar
