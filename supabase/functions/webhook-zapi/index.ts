@@ -1536,8 +1536,16 @@ serve(async (req) => {
       }
     }
 
-    const messageRaw = extractMessageText(webhook)
+    const isManualFlowTriggerEarly = webhook?.__manual_flow_trigger__ === true
+    let messageRaw = extractMessageText(webhook)
     const audioUrl = extractAudioUrl(webhook)
+    
+    // For manual flow triggers from campaigns, inject a synthetic message text
+    if (!messageRaw && isManualFlowTriggerEarly && webhook?.flowId) {
+      messageRaw = `__flow_trigger_${webhook.flowId}__`
+      console.log('🔄 Manual flow trigger detected, injecting synthetic message:', messageRaw)
+    }
+    
     let messageText = messageRaw.toLowerCase()
     let normalizedMessage = normalizeForMatch(messageRaw)
     let audioTranscription = ''
@@ -1625,7 +1633,7 @@ serve(async (req) => {
 
     let instanceId = webhook?.instanceId || webhook?.instance_id
     const normalizedInstanceId = normalizeInstanceIdentifier(instanceId)
-    const isManualFlowTrigger = webhook?.__manual_flow_trigger__ === true
+    const isManualFlowTrigger = isManualFlowTriggerEarly
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
     console.log('🔎 Instance recebido no webhook:', {
