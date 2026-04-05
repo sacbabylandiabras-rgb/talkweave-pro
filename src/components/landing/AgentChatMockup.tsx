@@ -84,9 +84,12 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
 
       {isAgent ? (
         <div style={{
-          width: 34,
-          height: 16,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          overflow: "hidden",
           flexShrink: 0,
+          background: "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -211,9 +214,12 @@ export default function AgentChatMockup() {
               borderBottom: "1px solid rgba(255,255,255,.06)",
             }}>
               <div style={{
-                width: 48,
-                height: 18,
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                overflow: "hidden",
                 flexShrink: 0,
+                background: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
