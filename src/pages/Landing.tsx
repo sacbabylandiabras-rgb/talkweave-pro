@@ -494,13 +494,13 @@ function GatewayMock() {
   const ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   const ep = ease(progress);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting && !animated) { setAnimated(true); } }, { threshold: 0.3 });
     if (containerRef.current) obs.observe(containerRef.current);
     return () => obs.disconnect();
   }, [animated]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!animated) return;
     let start: number | null = null;
     const dur = 1800;
@@ -513,7 +513,7 @@ function GatewayMock() {
     requestAnimationFrame(step);
   }, [animated]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
