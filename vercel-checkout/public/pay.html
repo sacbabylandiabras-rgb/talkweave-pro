@@ -1111,6 +1111,9 @@
   function render() {
     var co = document.getElementById('co');
     if (!co) return;
+    // Clean up previous footer wrapper
+    var oldFooterWrap = document.getElementById('footer-wrap');
+    if (oldFooterWrap) oldFooterWrap.remove();
     var tid = cfg.templateId;
     var use2Col = (tid === 'minimalista' || tid === 'alto-impacto' || tid === 'streamline' || tid === 'lynxfy' || tid === 'confianca');
 
@@ -1208,6 +1211,7 @@
     // Footer for all layouts (below the columns)
     if (use2Col || tid === 'tiktok') {
       var footerWrap = document.createElement('div');
+      footerWrap.id = 'footer-wrap';
       footerWrap.style.maxWidth = '56rem';
       footerWrap.style.margin = '0 auto';
       footerWrap.style.padding = '0 16px';
