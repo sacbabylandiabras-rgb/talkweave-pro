@@ -1173,15 +1173,6 @@ export default function CheckoutBuilder() {
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Arraste ou clique para adicionar elementos ao checkout</p>
 
-                {/* Element editor for selected element */}
-                {selectedElementId && elements.find(e => e.id === selectedElementId) && (
-                  <CheckoutElementEditor
-                    element={elements.find(e => e.id === selectedElementId)!}
-                    onUpdate={updateElementContent}
-                    onUpdatePosition={updateElementPosition}
-                  />
-                )}
-
                 <CheckoutElementsSidebar
                   elements={elements}
                   onAddElement={addElement}
@@ -1192,6 +1183,17 @@ export default function CheckoutBuilder() {
                   selectedElementId={selectedElementId}
                   onDragStart={handleDragStart}
                 />
+
+                {/* Element editor for selected element — below the list so it's visible after click */}
+                {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+                  <div ref={(node) => { if (node) node.scrollIntoView({ behavior: "smooth", block: "nearest" }); }}>
+                    <CheckoutElementEditor
+                      element={elements.find(e => e.id === selectedElementId)!}
+                      onUpdate={updateElementContent}
+                      onUpdatePosition={updateElementPosition}
+                    />
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
