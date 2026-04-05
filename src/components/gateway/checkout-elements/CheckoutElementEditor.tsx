@@ -355,16 +355,140 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
       )}
 
       {element.type === "reviews" && (
-        <div className="grid grid-cols-2 gap-2">
+        <>
           <div>
-            <Label className="text-[10px]">Média</Label>
-            <Input type="number" step="0.1" value={c.average || 4.8} onChange={e => update("average", parseFloat(e.target.value))} className="mt-1 text-xs" />
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Avaliação dos Clientes" />
           </div>
           <div>
-            <Label className="text-[10px]">Total avaliações</Label>
-            <Input type="number" value={c.total || 0} onChange={e => update("total", parseInt(e.target.value))} className="mt-1 text-xs" />
+            <Label className="text-[10px]">Estilo</Label>
+            <Select value={c.style || "card_avatars"} onValueChange={v => update("style", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="card_avatars">Card com Avatares</SelectItem>
+                <SelectItem value="simple">Simples (sem avatares)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Nota Média</Label>
+              <Select value={String(c.average || 4.8)} onValueChange={v => update("average", parseFloat(v))}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[5.0, 4.9, 4.8, 4.7, 4.6, 4.5, 4.0, 3.5, 3.0].map(v => (
+                    <SelectItem key={v} value={String(v)}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px]">Total de Avaliações</Label>
+              <Input type="number" value={c.total || 0} onChange={e => update("total", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-[10px]">Tamanho das Estrelas</Label>
+            <Select value={c.starSize || "md"} onValueChange={v => update("starSize", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sm">Pequeno (14px)</SelectItem>
+                <SelectItem value="md">Médio (18px)</SelectItem>
+                <SelectItem value="lg">Grande (24px)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px]">Tamanho do Título</Label>
+            <Select value={c.titleSize || "md"} onValueChange={v => update("titleSize", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sm">Pequeno (14px)</SelectItem>
+                <SelectItem value="md">Médio (18px)</SelectItem>
+                <SelectItem value="lg">Grande (24px)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px]">Tamanho da Nota</Label>
+            <Select value={c.ratingSize || "md"} onValueChange={v => update("ratingSize", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sm">Pequeno (20px)</SelectItem>
+                <SelectItem value="md">Médio (30px)</SelectItem>
+                <SelectItem value="lg">Grande (40px)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px]">Tamanho do Texto de Reviews</Label>
+            <Select value={c.reviewTextSize || "sm"} onValueChange={v => update("reviewTextSize", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="xs">Pequeno (12px)</SelectItem>
+                <SelectItem value="sm">Normal (14px)</SelectItem>
+                <SelectItem value="md">Médio (16px)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(c.style || "card_avatars") === "card_avatars" && (
+            <>
+              <p className="text-[10px] font-semibold text-muted-foreground mt-2">Avatares</p>
+              <p className="text-[10px] text-muted-foreground">Use URLs ou faça upload das fotos dos clientes.</p>
+              {(c.avatars || []).map((url: string, i: number) => (
+                <div key={i} className="space-y-1 p-2 rounded-lg border border-border bg-background">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold">Avatar {i + 1}</span>
+                    <button onClick={() => { const avatars = [...(c.avatars || [])]; avatars.splice(i, 1); update("avatars", avatars); }} className="text-red-500"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <img src={url} alt="" className="w-8 h-8 rounded-full object-cover border" onError={(e) => { (e.target as HTMLImageElement).src = ""; }} />
+                    <div className="flex-1 flex items-center gap-1">
+                      <Input value={url} onChange={e => { const avatars = [...(c.avatars || [])]; avatars[i] = e.target.value; update("avatars", avatars); }} className="text-[10px] flex-1" placeholder="URL da imagem" />
+                      <label className="shrink-0 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) { toast.error("Máximo 2MB"); return; }
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) return;
+                          const fileName = `${user.id}/avatar-${Date.now()}.${file.name.split('.').pop()}`;
+                          const { error } = await supabase.storage.from("product-images").upload(fileName, file, { upsert: true });
+                          if (error) { toast.error("Erro: " + error.message); return; }
+                          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+                          const avatars = [...(c.avatars || [])]; avatars[i] = urlData.publicUrl; update("avatars", avatars);
+                          toast.success("Avatar enviado!");
+                        }} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => update("avatars", [...(c.avatars || []), ""])}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar Avatar
+              </Button>
+            </>
+          )}
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div>
+              <Label className="text-[10px]">Cor das Estrelas</Label>
+              <Input type="color" value={c.starColor || "#FACC15"} onChange={e => update("starColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Texto</Label>
+              <Input type="color" value={c.textColor || "#000000"} onChange={e => update("textColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+          </div>
+        </>
       )}
 
       {element.type === "guarantee" && (

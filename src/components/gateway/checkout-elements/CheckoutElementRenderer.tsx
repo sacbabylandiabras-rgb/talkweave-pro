@@ -157,32 +157,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       );
 
     case "reviews":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold" style={{ color: textColor }}>{c.average || 4.8}</p>
-              <div className="flex gap-0.5 mt-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-[10px] mt-1" style={{ color: textColor + "80" }}>{c.total || 0} avaliações</p>
-            </div>
-            <div className="flex-1 space-y-1">
-              {(c.distribution || [85, 10, 3, 1, 1]).map((pct: number, i: number) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-[10px] w-3" style={{ color: textColor + "80" }}>{5 - i}</span>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: cardBorder }}>
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "#FACC15" }} />
-                  </div>
-                  <span className="text-[10px] w-7 text-right" style={{ color: textColor + "80" }}>{pct}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
+      return <ReviewsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "guarantee":
       return (
