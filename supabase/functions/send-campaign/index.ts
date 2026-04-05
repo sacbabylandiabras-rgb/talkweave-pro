@@ -405,7 +405,11 @@ serve(async (req) => {
       await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
     }
 
-    if (!campaign.template) throw new Error('Campaign template not found');
+    // Determine if this is a flow-based campaign
+    const isFlowCampaign = campaign.target_audience?.campaign_type === 'flow' && campaign.target_audience?.flow_id;
+    const flowId = campaign.target_audience?.flow_id;
+
+    if (!isFlowCampaign && !campaign.template) throw new Error('Campaign template not found');
 
     const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
       ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
@@ -515,8 +519,64 @@ serve(async (req) => {
         // Device connectivity is checked once at batch level (above), not per-contact
         // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
 
-        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
+        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}${isFlowCampaign ? ' [FLOW]' : ''}`);
 
+        // === FLOW-BASED CAMPAIGN ===
+        if (isFlowCampaign && flowId) {
+          campaignSend = {
+            campaign_id: campaignId,
+            phone: contact.phone,
+            contact_name: contact.name,
+            message_content: `[Fluxo: ${flowId}]`,
+            status: 'pending',
+            user_id: credentials.userId,
+            instance_name: currentInstance.instanceName,
+          };
+
+          try {
+            // Trigger flow via webhook-zapi with __manual_flow_trigger__
+            const webhookPayload = {
+              phone: contact.phone,
+              instanceId: currentInstance.zapiInstanceId,
+              __manual_flow_trigger__: true,
+              flowId: flowId,
+              body: { message: { text: { body: `__flow_trigger_${flowId}__` } } },
+              fromMe: false,
+            };
+
+            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify(webhookPayload),
+            });
+
+            if (flowResponse.ok) {
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              results.push({ phone: contact.phone, success: true, messageId: 'flow-triggered' });
+              console.log(`✅ Flow triggered for ${contact.phone}`);
+            } else {
+              const errorText = await flowResponse.text();
+              campaignSend.status = 'failed';
+              campaignSend.error_message = `Flow trigger failed: ${errorText}`;
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+              console.log(`❌ Flow trigger failed for ${contact.phone}: ${errorText}`);
+            }
+          } catch (flowError) {
+            campaignSend.status = 'failed';
+            campaignSend.error_message = flowError instanceof Error ? flowError.message : 'Unknown flow error';
+            results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+          }
+
+          await supabase.from('campaign_sends').insert([campaignSend]);
+          if (i < currentBatch.length - 1) await sleep(delayMs);
+          continue;
+        }
+
+        // === TEMPLATE-BASED CAMPAIGN ===
         let messageContent = campaign.template.content;
         messageContent = messageContent.replace(/{nome}/g, contact.name || 'Cliente');
         messageContent = messageContent.replace(/{empresa}/g, 'Nossa Empresa');
