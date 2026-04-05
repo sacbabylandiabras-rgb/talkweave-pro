@@ -99,13 +99,6 @@ export const ELEMENT_DEFINITIONS: ElementDefinition[] = [
     },
   },
   {
-    type: "seal",
-    label: "Selo",
-    icon: "Shield",
-    category: "trust",
-    defaultContent: { text: "Compra 100% Segura", icon: "shield", style: "badge" },
-  },
-  {
     type: "testimonial",
     label: "Depoimento",
     icon: "Star",
