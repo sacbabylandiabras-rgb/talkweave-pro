@@ -353,23 +353,50 @@ function CountdownElement({ content, wrapperStyle, hoverClass, onClick }: any) {
 }
 
 function SalesElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
-  const [count, setCount] = useState(content.count || 1847);
+  const [count, setCount] = useState(content.count || 50);
+  useEffect(() => { setCount(content.count || 50); }, [content.count]);
   useEffect(() => {
     if (!content.showAnimation) return;
+    const intervalMs = content.interval || 800;
     const interval = setInterval(() => {
-      setCount((prev: number) => prev + Math.floor(Math.random() * 3) + 1);
-    }, (content.interval || 30) * 1000);
+      setCount((prev: number) => {
+        const max = content.maxValue || 1000;
+        if (prev >= max) return content.minValue || prev;
+        const inc = content.randomIncrement
+          ? Math.floor(Math.random() * ((content.incrementMax || 5) - (content.incrementMin || 1) + 1)) + (content.incrementMin || 1)
+          : (content.increment || 1);
+        return Math.min(prev + inc, max);
+      });
+    }, intervalMs);
     return () => clearInterval(interval);
-  }, [content.showAnimation, content.interval]);
+  }, [content.showAnimation, content.interval, content.increment, content.randomIncrement, content.incrementMin, content.incrementMax, content.maxValue, content.minValue]);
+
+  const valueColor = content.valueColor || primaryColor;
+  const iconColor = content.iconColor || primaryColor;
+  const elTextColor = content.textColor || textColor;
+  const bgColor = content.bgColor || "transparent";
+  const titleSize = content.titleSize || 18;
+  const descSize = content.descSize || 14;
+  const valueSize = content.valueSize || 30;
+  const showIcon = content.showIcon !== false;
+  const iconPosition = content.iconPosition || "left";
+  const format = content.format || "default";
+  const customFormat = content.customFormat || "{value} Compras";
+
+  const formattedValue = format === "custom"
+    ? customFormat.replace("{value}", String(count))
+    : `${count} pessoas já compraram`;
 
   return (
-    <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "12px 16px" }} className={hoverClass} onClick={onClick}>
-      <div className="flex items-center gap-2">
-        <TrendingUp className="w-4 h-4" style={{ color: primaryColor }} />
-        <span className="text-sm font-medium" style={{ color: textColor }}>
-          {(content.text || "{count} pessoas já compraram").replace("{count}", String(count))}
-        </span>
+    <div style={{ ...wrapperStyle, background: bgColor, borderRadius: "12px", padding: "16px", textAlign: "center" }} className={hoverClass} onClick={onClick}>
+      {content.title && <h4 className="font-bold mb-1" style={{ color: elTextColor, fontSize: `${titleSize}px` }}>{content.title}</h4>}
+      {content.description && <p className="mb-2" style={{ color: elTextColor + "99", fontSize: `${descSize}px` }}>{content.description}</p>}
+      <div className="flex items-center justify-center gap-2" style={{ fontSize: `${valueSize}px`, fontWeight: 700, color: valueColor }}>
+        {showIcon && iconPosition === "left" && <CheckCircle className="flex-shrink-0" style={{ color: iconColor, width: `${valueSize * 0.7}px`, height: `${valueSize * 0.7}px` }} />}
+        <span>{format === "custom" ? formattedValue : count}</span>
+        {showIcon && iconPosition === "right" && <CheckCircle className="flex-shrink-0" style={{ color: iconColor, width: `${valueSize * 0.7}px`, height: `${valueSize * 0.7}px` }} />}
       </div>
+      {format !== "custom" && <p className="mt-1" style={{ color: elTextColor + "99", fontSize: `${descSize}px` }}>{(content.text || "{count} pessoas já compraram").replace("{count}", String(count))}</p>}
     </div>
   );
 }
