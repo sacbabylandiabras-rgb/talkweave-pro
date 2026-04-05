@@ -875,7 +875,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           onDrop={onDropElement} label="Solte aqui (Rodapé)"
         />
 
-        <PaymentFooter />
+        <PaymentFooter companyName={config.footerCompanyName} cnpj={config.footerCnpj} />
       </div>
     </div>
   );

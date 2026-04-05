@@ -192,7 +192,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
         <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
       </div>
 
-      <PaymentFooter />
+      <PaymentFooter companyName={config.footerCompanyName} cnpj={config.footerCnpj} />
     </div>
   );
 }

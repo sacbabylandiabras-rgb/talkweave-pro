@@ -334,7 +334,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
           <CheckoutDropZone position="sidebar-bottom" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Sidebar Inferior)" />
           {/* DROP ZONE: Footer (mobile) */}
           <CheckoutDropZone position="footer" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Rodapé)" />
-          <PaymentFooter />
+          <PaymentFooter companyName={config.footerCompanyName} cnpj={config.footerCnpj} />
         </div>
       </div>
     </div>
