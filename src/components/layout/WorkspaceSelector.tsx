@@ -7,6 +7,7 @@ import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { LogoImage } from "./LogoImage";
+import logoPayImage from "@/assets/logo-pay.png";
 import { cn } from "@/lib/utils";
 
 const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
