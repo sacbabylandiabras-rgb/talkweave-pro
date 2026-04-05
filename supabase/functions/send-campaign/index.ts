@@ -486,8 +486,11 @@ serve(async (req) => {
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-      const contactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-      const currentInstance = contactInstance || getInstanceForIndex(i);
+      const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+      const inferredGroupInstance = !explicitContactInstance
+        ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+        : null;
+      const currentInstance = explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
 
       try {
