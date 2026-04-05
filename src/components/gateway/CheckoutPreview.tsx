@@ -645,13 +645,6 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
               </div>
             </div>
 
-            {/* Beneficiary Info */}
-            <div className="rounded-xl border p-4" style={cardStyle(s)}>
-              <p className="text-xs" style={{ color: s.cardDesc }}>
-                <ShieldCheck className="w-3.5 h-3.5 inline mr-1 text-green-500" />
-                O beneficiário do Pix é o <strong style={{ color: s.cardTitle }}>INTERMEDIADOR (AKASEG)</strong>, a empresa que gerencia nossos pagamentos de forma segura.
-              </p>
-            </div>
 
             {/* QR Code Section */}
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
