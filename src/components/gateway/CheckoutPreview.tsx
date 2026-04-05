@@ -75,6 +75,8 @@ interface CheckoutConfig {
   templateName?: string;
   shippingEnabled?: boolean;
   shippingPrice?: number;
+  footerCompanyName?: string;
+  footerCnpj?: string;
 }
 
 interface Props {
