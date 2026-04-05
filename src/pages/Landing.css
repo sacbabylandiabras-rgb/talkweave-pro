@@ -671,7 +671,7 @@
 .lp-flow-devices {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
   gap: 40px;
   flex-wrap: wrap;
   width: 100%;
