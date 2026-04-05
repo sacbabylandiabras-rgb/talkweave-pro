@@ -415,3 +415,42 @@ function ReviewsElement({ content, primaryColor, textColor, cardBg, cardBorder, 
     </div>
   );
 }
+
+const GUARANTEE_ICONS: Record<string, any> = { shield: Shield, clock: Clock, check: CheckCircle, award: Award, heart: Heart };
+
+function GuaranteeElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const c = content;
+  const elTitleColor = c.titleColor || textColor;
+  const elDescColor = c.descColor || textColor + "99";
+  const elIconColor = c.iconColor || "#16A34A";
+  const elBgColor = c.bgColor || "transparent";
+  const sectionBg = c.sectionBgColor || "transparent";
+  const IconComp = GUARANTEE_ICONS[c.iconType || "shield"] || Shield;
+
+  return (
+    <div
+      style={{
+        ...wrapperStyle,
+        background: sectionBg,
+        paddingTop: `${c.paddingTop || 0}px`,
+        paddingBottom: `${c.paddingBottom || 0}px`,
+      }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center text-center py-6 px-4" style={{ background: elBgColor, borderRadius: "12px" }}>
+        {c.showIcon !== false && (
+          <div className="mb-3">
+            <IconComp className="w-10 h-10" style={{ color: elIconColor }} />
+          </div>
+        )}
+        <h4 className="text-lg font-bold mb-1" style={{ color: elTitleColor }}>
+          {c.title || `Garantia de ${c.days || 30} dias`}
+        </h4>
+        <p className="text-sm" style={{ color: elDescColor }}>
+          {(c.text || "").replace("{days}", String(c.days || 30))}
+        </p>
+      </div>
+    </div>
+  );
+}
