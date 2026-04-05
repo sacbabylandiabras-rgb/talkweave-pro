@@ -107,7 +107,9 @@ export function WorkspaceSelector() {
             size="sm"
             className="h-8 px-3 text-xs font-medium gap-2 rounded-lg"
           >
-            {current.useLogo ? (
+            {current.id === "gateway" ? (
+              <img src={logoPayImage} alt="ZaplynxPay" className="w-5 h-5 object-contain" />
+            ) : current.useLogo ? (
               <LogoImage className="w-5 h-5 object-contain" />
             ) : (
               <div className={cn("w-5 h-5 rounded flex items-center justify-center", current.bg)}>
@@ -136,7 +138,9 @@ export function WorkspaceSelector() {
                     : "hover:bg-muted/60"
                 )}
               >
-                {ws.useLogo ? (
+                {ws.id === "gateway" ? (
+                  <img src={logoPayImage} alt="ZaplynxPay" className="w-8 h-8 object-contain" />
+                ) : ws.useLogo ? (
                   <LogoImage className="w-8 h-8 object-contain" />
                 ) : (
                   <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
