@@ -84,9 +84,12 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
 
       {isAgent ? (
         <div style={{
-          width: 34,
-          height: 16,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          overflow: "hidden",
           flexShrink: 0,
+          background: "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
