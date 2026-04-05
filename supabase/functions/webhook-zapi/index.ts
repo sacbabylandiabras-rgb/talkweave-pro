@@ -1399,134 +1399,141 @@ serve(async (req) => {
     if (campaignSendStatus) {
       const instanceId = webhook?.instanceId || webhook?.instance_id
       const phone = resolveWebhookPhone(webhook)
+      const isGroupFromMeWithText = fromMe && (phone?.includes('@g.us') || phone?.includes('-group'))
 
       if (!instanceId || !phone) {
         console.log('⚠️ Status callback sem instanceId/phone suficiente para atualizar campaign_sends')
-        return new Response('status_callback_missing_data', { status: 200, headers: corsHeaders })
-      }
-
-      const normalizedCbInstanceId = normalizeInstanceIdentifier(instanceId)
-      const { data: cbInstances } = await supabase
-        .from('zapi_instances')
-        .select('user_id, instance_name, zapi_instance_id')
-        .eq('is_active', true)
-
-      const instanceData = (cbInstances || []).find((item: any) =>
-        normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId
-      )
-
-      const userId = instanceData?.user_id
-      const instanceName = instanceData?.instance_name
-      if (!userId) {
-        console.log(`⚠️ Status callback sem user encontrado para instance ${instanceId}`)
-        return new Response('status_callback_user_not_found', { status: 200, headers: corsHeaders })
-      }
-
-      let resolvedPhone = phone
-      if (resolvedPhone.includes('@lid')) {
-        const { data: mapping } = await supabase
-          .from('message_logs')
-          .select('phone')
-          .eq('keyword_matched', '__lid_map__')
-          .eq('message_received', resolvedPhone)
-          .eq('user_id', userId)
-          .limit(1)
-          .maybeSingle()
-
-        if (mapping?.phone) {
-          resolvedPhone = mapping.phone
+        if (!isGroupFromMeWithText) {
+          return new Response('status_callback_missing_data', { status: 200, headers: corsHeaders })
         }
-      }
-
-      const nowIso = new Date().toISOString()
-      const expandCampaignCallbackPhones = (value?: string | null) => {
-        if (!value) return []
-
-        const normalizedValue = normalizeGroupCampaignPhone(value)
-
-        const candidates = new Set<string>([value, normalizedValue].filter(Boolean))
-
-        if (normalizedValue.endsWith('@g.us')) {
-          candidates.add(normalizedValue.replace(/@g\.us$/i, ''))
-          candidates.add(normalizedValue.replace(/@g\.us$/i, '-group'))
-          candidates.add(normalizedValue.replace(/@g\.us$/i, '-group@g.us'))
-        } else if (normalizedValue.endsWith('-group')) {
-          candidates.add(normalizedValue.replace(/-group$/i, '@g.us'))
-          candidates.add(normalizedValue.replace(/-group$/i, ''))
-          candidates.add(`${normalizedValue}@g.us`)
-        } else if (/^\d+$/.test(normalizedValue)) {
-          candidates.add(`${normalizedValue}@g.us`)
-          candidates.add(`${normalizedValue}-group`)
-          candidates.add(`${normalizedValue}-group@g.us`)
-        }
-
-        return Array.from(candidates)
-      }
-
-      const candidatePhones = Array.from(
-        new Set([
-          ...expandCampaignCallbackPhones(phone),
-          ...expandCampaignCallbackPhones(resolvedPhone),
-        ].filter(Boolean))
-      )
-
-      let campaignSendQuery = supabase
-        .from('campaign_sends')
-        .select('id, status, phone, sent_at, delivered_at, instance_name')
-        .eq('user_id', userId)
-        .in('phone', candidatePhones)
-
-      if (instanceName) {
-        campaignSendQuery = campaignSendQuery.eq('instance_name', instanceName)
-      }
-
-      const { data: campaignSendRows, error: campaignSendLookupError } = await campaignSendQuery
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (campaignSendLookupError) {
-        console.error('❌ Erro buscando campaign_sends para callback:', campaignSendLookupError)
-        return new Response('status_callback_lookup_error', { status: 200, headers: corsHeaders })
-      }
-
-      const campaignSend = campaignSendRows?.find((row) => row.status === 'pending') || campaignSendRows?.[0]
-
-      if (!campaignSend) {
-        console.log(`⚠️ Nenhum campaign_send encontrado para callback ${campaignSendStatus} no telefone ${resolvedPhone}`)
-        return new Response('status_callback_send_not_found', { status: 200, headers: corsHeaders })
-      }
-
-      const nextStatus = campaignSendStatus === 'delivered' || campaignSend.status === 'delivered'
-        ? 'delivered'
-        : 'sent'
-
-      const updatePayload: Record<string, string> = {
-        status: nextStatus,
-      }
-
-      if (!campaignSend.sent_at) {
-        updatePayload.sent_at = nowIso
-      }
-
-      if (nextStatus === 'delivered') {
-        updatePayload.delivered_at = nowIso
-        if (!campaignSend.sent_at) {
-          updatePayload.sent_at = nowIso
-        }
-      }
-
-      const { error: campaignSendUpdateError } = await supabase
-        .from('campaign_sends')
-        .update(updatePayload)
-        .eq('id', campaignSend.id)
-
-      if (campaignSendUpdateError) {
-        console.error('❌ Erro atualizando campaign_send via callback:', campaignSendUpdateError)
       } else {
-        console.log(`✅ campaign_send atualizado via callback: ${campaignSend.id} -> ${nextStatus} (${campaignSend.phone})`)
+        const normalizedCbInstanceId = normalizeInstanceIdentifier(instanceId)
+        const { data: cbInstances } = await supabase
+          .from('zapi_instances')
+          .select('user_id, instance_name, zapi_instance_id')
+          .eq('is_active', true)
+
+        const instanceData = (cbInstances || []).find((item: any) =>
+          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId
+        )
+
+        const userId = instanceData?.user_id
+        const instanceName = instanceData?.instance_name
+        if (!userId) {
+          console.log(`⚠️ Status callback sem user encontrado para instance ${instanceId}`)
+          if (!isGroupFromMeWithText) {
+            return new Response('status_callback_user_not_found', { status: 200, headers: corsHeaders })
+          }
+        } else {
+          let resolvedPhone = phone
+          if (resolvedPhone.includes('@lid')) {
+            const { data: mapping } = await supabase
+              .from('message_logs')
+              .select('phone')
+              .eq('keyword_matched', '__lid_map__')
+              .eq('message_received', resolvedPhone)
+              .eq('user_id', userId)
+              .limit(1)
+              .maybeSingle()
+
+            if (mapping?.phone) {
+              resolvedPhone = mapping.phone
+            }
+          }
+
+          const nowIso = new Date().toISOString()
+          const expandCampaignCallbackPhones = (value?: string | null) => {
+            if (!value) return []
+
+            const normalizedValue = normalizeGroupCampaignPhone(value)
+
+            const candidates = new Set<string>([value, normalizedValue].filter(Boolean))
+
+            if (normalizedValue.endsWith('@g.us')) {
+              candidates.add(normalizedValue.replace(/@g\.us$/i, ''))
+              candidates.add(normalizedValue.replace(/@g\.us$/i, '-group'))
+              candidates.add(normalizedValue.replace(/@g\.us$/i, '-group@g.us'))
+            } else if (normalizedValue.endsWith('-group')) {
+              candidates.add(normalizedValue.replace(/-group$/i, '@g.us'))
+              candidates.add(normalizedValue.replace(/-group$/i, ''))
+              candidates.add(`${normalizedValue}@g.us`)
+            } else if (/^\d+$/.test(normalizedValue)) {
+              candidates.add(`${normalizedValue}@g.us`)
+              candidates.add(`${normalizedValue}-group`)
+              candidates.add(`${normalizedValue}-group@g.us`)
+            }
+
+            return Array.from(candidates)
+          }
+
+          const candidatePhones = Array.from(
+            new Set([
+              ...expandCampaignCallbackPhones(phone),
+              ...expandCampaignCallbackPhones(resolvedPhone),
+            ].filter(Boolean))
+          )
+
+          let campaignSendQuery = supabase
+            .from('campaign_sends')
+            .select('id, status, phone, sent_at, delivered_at, instance_name')
+            .eq('user_id', userId)
+            .in('phone', candidatePhones)
+
+          if (instanceName) {
+            campaignSendQuery = campaignSendQuery.eq('instance_name', instanceName)
+          }
+
+          const { data: campaignSendRows, error: campaignSendLookupError } = await campaignSendQuery
+            .order('created_at', { ascending: false })
+            .limit(5)
+
+          if (campaignSendLookupError) {
+            console.error('❌ Erro buscando campaign_sends para callback:', campaignSendLookupError)
+          } else {
+            const campaignSend = campaignSendRows?.find((row) => row.status === 'pending') || campaignSendRows?.[0]
+
+            if (!campaignSend) {
+              console.log(`⚠️ Nenhum campaign_send encontrado para callback ${campaignSendStatus} no telefone ${resolvedPhone}`)
+            } else {
+              const nextStatus = campaignSendStatus === 'delivered' || campaignSend.status === 'delivered'
+                ? 'delivered'
+                : 'sent'
+
+              const updatePayload: Record<string, string> = {
+                status: nextStatus,
+              }
+
+              if (!campaignSend.sent_at) {
+                updatePayload.sent_at = nowIso
+              }
+
+              if (nextStatus === 'delivered') {
+                updatePayload.delivered_at = nowIso
+                if (!campaignSend.sent_at) {
+                  updatePayload.sent_at = nowIso
+                }
+              }
+
+              const { error: campaignSendUpdateError } = await supabase
+                .from('campaign_sends')
+                .update(updatePayload)
+                .eq('id', campaignSend.id)
+
+              if (campaignSendUpdateError) {
+                console.error('❌ Erro atualizando campaign_send via callback:', campaignSendUpdateError)
+              } else {
+                console.log(`✅ campaign_send atualizado via callback: ${campaignSend.id} -> ${nextStatus} (${campaignSend.phone})`)
+              }
+            }
+          }
+        }
       }
 
-      return new Response('status_callback_processed', { status: 200, headers: corsHeaders })
+      // For group fromMe messages with text, continue processing normally (don't return early)
+      // so the message gets logged in message_logs for the chat
+      if (!isGroupFromMeWithText) {
+        return new Response('status_callback_processed', { status: 200, headers: corsHeaders })
+      }
     }
 
     const messageRaw = extractMessageText(webhook)
