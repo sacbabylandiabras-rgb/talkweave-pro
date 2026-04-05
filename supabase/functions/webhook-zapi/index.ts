@@ -1633,7 +1633,7 @@ serve(async (req) => {
 
     let instanceId = webhook?.instanceId || webhook?.instance_id
     const normalizedInstanceId = normalizeInstanceIdentifier(instanceId)
-    const isManualFlowTrigger = webhook?.__manual_flow_trigger__ === true
+    const isManualFlowTrigger = isManualFlowTriggerEarly
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
     console.log('🔎 Instance recebido no webhook:', {
