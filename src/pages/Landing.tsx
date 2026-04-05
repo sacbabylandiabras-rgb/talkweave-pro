@@ -556,6 +556,66 @@ function ChatMock() {
   );
 }
 
+function CheckoutMock() {
+  return (
+    <div className="lp-mock" style={{ maxWidth: 320 }}>
+      <div className="lp-mock-header">
+        <div className="lp-mock-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg></div>
+        <div className="lp-mock-title">Checkout Preview</div>
+        <div className="lp-mock-sub">ao vivo</div>
+      </div>
+      <div className="lp-mock-body" style={{ padding: "14px 16px" }}>
+        {/* Product */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 10, background: "linear-gradient(135deg, #f05a28, #fbbf24)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Curso Marketing Pro</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Acesso vitalício</div>
+          </div>
+        </div>
+
+        {/* Price */}
+        <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1 }}>Total</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#25d366" }}>R$ 197,00</div>
+          </div>
+          <div style={{ fontSize: 9, color: "#25d366", background: "rgba(37,211,102,0.15)", padding: "3px 8px", borderRadius: 20, fontWeight: 600 }}>PIX</div>
+        </div>
+
+        {/* Timer */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#f05a28" strokeWidth={2}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+          <span style={{ fontSize: 11, color: "#f05a28", fontWeight: 600 }}>Oferta expira em 14:59</span>
+        </div>
+
+        {/* Form fields */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          {["Nome completo", "CPF", "E-mail", "WhatsApp"].map((label) => (
+            <div key={label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* CTA Button */}
+        <div style={{ background: "linear-gradient(135deg, #25d366, #128c3e)", borderRadius: 10, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer", boxShadow: "0 4px 16px rgba(37,211,102,0.3)" }}>
+          Pagar com Pix →
+        </div>
+
+        {/* Trust badges */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 10 }}>
+          {["🔒 Seguro", "⚡ Instantâneo", "✅ Garantia"].map((badge) => (
+            <span key={badge} style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{badge}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FlowMock() {
   const steps = [
     { num: "1", text: 'Gatilho: "quero comprar"' },
