@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckoutElement, ELEMENT_DEFINITIONS } from "./types";
-import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle } from "lucide-react";
+import { Shield, Clock, Star, ThumbsUp, ChevronDown, ChevronUp, TrendingUp, BarChart3, CheckCircle, Truck, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, icons } from "lucide-react";
 
 function getVideoEmbedUrl(url: string): string {
   if (!url) return "";
@@ -111,19 +111,7 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       return <FaqElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "benefits":
-      return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <h4 className="text-sm font-bold mb-3" style={{ color: textColor }}>{c.title || "Por que escolher?"}</h4>
-          <div className="space-y-2">
-            {(c.items || []).map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-base">{item.icon || "✅"}</span>
-                <span className="text-sm" style={{ color: textColor }}>{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
+      return <BenefitsElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
     case "seal":
       return (
@@ -337,6 +325,53 @@ function SalesElement({ content, primaryColor, textColor, cardBg, cardBorder, wr
         <span className="text-sm font-medium" style={{ color: textColor }}>
           {(content.text || "{count} pessoas já compraram").replace("{count}", String(count))}
         </span>
+      </div>
+    </div>
+  );
+}
+
+const BENEFIT_ICONS: Record<string, any> = {
+  Truck, Shield, Clock, Star, Package, CreditCard, Heart, Award, Zap, Gift, ShoppingCart, RefreshCw, Headphones, CheckCircle, ThumbsUp,
+};
+
+function BenefitsElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const layout = content.layout || "grid";
+  const gap = content.gap || 24;
+  const align = content.align || "left";
+  const titleSize = content.titleSize || 16;
+  const descSize = content.descSize || 14;
+  const elTextColor = content.textColor || textColor;
+  const elBgColor = content.bgColor || "transparent";
+
+  const gridStyle: React.CSSProperties = layout === "grid"
+    ? { display: "grid", gridTemplateColumns: `repeat(${Math.min((content.items || []).length, 3)}, 1fr)`, gap: `${gap}px` }
+    : { display: "flex", flexDirection: "column", gap: `${gap}px` };
+
+  return (
+    <div
+      style={{ ...wrapperStyle, background: elBgColor, borderRadius: "12px", padding: "24px 16px" }}
+      className={hoverClass}
+      onClick={onClick}
+    >
+      <div style={gridStyle}>
+        {(content.items || []).map((item: any, i: number) => {
+          const IconComp = BENEFIT_ICONS[item.icon] || CheckCircle;
+          return (
+            <div key={i} className="flex flex-col" style={{ textAlign: align as any }}>
+              <div className="mb-2" style={{ textAlign: align as any }}>
+                <IconComp className="w-6 h-6" style={{ color: elTextColor + "80", display: align === "center" ? "inline-block" : "block" }} />
+              </div>
+              <h5 className="font-semibold mb-1" style={{ color: elTextColor, fontSize: `${titleSize}px`, lineHeight: "1.3" }}>
+                {item.title || item.text || "Benefício"}
+              </h5>
+              {item.description && (
+                <p style={{ color: elTextColor + "99", fontSize: `${descSize}px`, lineHeight: "1.4" }}>
+                  {item.description}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
