@@ -630,39 +630,121 @@ function GatewayMock() {
 }
 
 function InstagramMock() {
-  const events = [
-    { initials: "MF", bg: "linear-gradient(135deg,#833ab4,#fd1d1d)", user: "@mariano_freitas_zz", msg: "fala comigo! mandei no direct", time: "13:26" },
-    { initials: "ZL", bg: "linear-gradient(135deg,#f05a28,#fbbf24)", user: "@zap_lynx_pro", msg: "Seu presente chegou! basta res...", time: "13:26" },
-    { initials: "GE", bg: "linear-gradient(135deg,#0ea5e9,#6366f1)", user: "@gomez_ecom", msg: "Catuaba", time: "13:26" },
-  ];
+  const idsRef = useRef<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const loopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const IDS = ['ig-tc','ig-nb','ig-ai','ig-al','ig-c1','ig-c2','ig-c3','ig-c4','ig-d0','ig-d1','ig-d2','ig-d3','ig-d4','ig-dtyp'];
+    idsRef.current = IDS;
+
+    const show = (id: string, delay: number) => setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('show');
+    }, delay);
+
+    const hide = (id: string, delay: number) => setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('show');
+    }, delay);
+
+    function runLoop() {
+      IDS.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
+      const ah = document.getElementById('ig-ah'); if (ah) ah.classList.remove('active');
+      const af = document.getElementById('ig-af'); if (af) af.style.height = '0%';
+
+      show('ig-tc', 400);
+      hide('ig-tc', 1200);
+      show('ig-c1', 1300);
+      show('ig-c2', 1900);
+      show('ig-c3', 2500);
+      show('ig-c4', 3100);
+      show('ig-nb', 3500);
+      show('ig-ai', 3900);
+      setTimeout(() => { const a = document.getElementById('ig-af'); if (a) a.style.height = '100%'; }, 4300);
+      setTimeout(() => { const a = document.getElementById('ig-ah'); if (a) a.classList.add('active'); }, 4900);
+      show('ig-al', 5000);
+      show('ig-d0', 5300);
+      show('ig-dtyp', 5900);
+      hide('ig-dtyp', 6900);
+      show('ig-d1', 7000);
+      show('ig-d2', 7700);
+      show('ig-d3', 8400);
+      show('ig-d4', 9300);
+
+      loopRef.current = setTimeout(runLoop, 13000);
+    }
+
+    loopRef.current = setTimeout(runLoop, 500);
+    return () => { if (loopRef.current) clearTimeout(loopRef.current); };
+  }, []);
+
   return (
-    <div className="lp-ig-dash lp-ig-gradient-border">
-      <div className="lp-ig-dash-header">
-        <div className="lp-mock-icon ig">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#e1306c" stroke="none" /></svg>
+    <div className="lp-ig-scene" ref={containerRef}>
+      {/* POST */}
+      <div className="lp-ig-post-card">
+        <div className="lp-ig-post-header">
+          <div className="lp-ig-post-av"><div className="lp-ig-post-av-inner">ZL</div></div>
+          <div><div className="lp-ig-post-user">zaplynxpro</div><div className="lp-ig-post-handle">ZapLynx</div></div>
         </div>
-        <div>
-          <div className="lp-ig-dash-title">Dashboard Instagram</div>
-          <div className="lp-ig-dash-sub">Métricas e performance da automação</div>
-        </div>
-      </div>
-      <div className="lp-ig-kpis">
-        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">Comentários</div><div className="lp-ig-kpi-val">26</div></div>
-        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">Conversão DM</div><div className="lp-ig-kpi-val pink">53,8%</div></div>
-        <div className="lp-ig-kpi"><div className="lp-ig-kpi-label">DMs Enviados</div><div className="lp-ig-kpi-val">14</div></div>
-      </div>
-      <div className="lp-ig-events">
-        <div className="lp-ig-events-title">Últimos eventos</div>
-        {events.map((e, i) => (
-          <div key={i} className="lp-ig-event">
-            <div className="lp-ig-avatar" style={{ background: e.bg }}>{e.initials}</div>
-            <div>
-              <div className="lp-ig-event-user">{e.user} <span className="lp-ig-dm-badge">DM</span></div>
-              <div className="lp-ig-event-msg">{e.msg}</div>
-            </div>
-            <div className="lp-ig-event-time">{e.time}</div>
+        <div className="lp-ig-post-img">
+          <div className="lp-ig-crown">👑</div>
+          <div className="lp-ig-post-img-text">
+            <div className="lp-ig-big">2.7</div>
+            <div className="lp-ig-sub">BIRTHDAY EDITION</div>
           </div>
-        ))}
+        </div>
+        <div className="lp-ig-post-actions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#262626" strokeWidth="2" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#262626" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#262626" strokeWidth="2" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <div className="lp-ig-post-caption"><strong>zaplynxpro</strong> Perfume lançamento Virginia Fonseca 2.7 Birthday Edition 👑 Comente <strong>"QUERO"</strong> e receba no direct!</div>
+        <div className="lp-ig-typing-comment" id="ig-tc">
+          <div className="lp-ig-tc-av"></div>
+          <div className="lp-ig-tc-dots"><div className="lp-ig-tc-dot"></div><div className="lp-ig-tc-dot"></div><div className="lp-ig-tc-dot"></div></div>
+        </div>
+        <div className="lp-ig-comments-label">Comentários</div>
+        <div className="lp-ig-comments-list">
+          <div className="lp-ig-comment" id="ig-c1"><div className="lp-ig-c-av" style={{background:'#833ab4'}}>M</div><div className="lp-ig-c-bubble"><strong>mari_souza</strong> QUERO 👑</div></div>
+          <div className="lp-ig-comment" id="ig-c2"><div className="lp-ig-c-av" style={{background:'#0095f6'}}>J</div><div className="lp-ig-c-bubble"><strong>ju.freitas</strong> QUERO sim! ❤️</div></div>
+          <div className="lp-ig-comment" id="ig-c3"><div className="lp-ig-c-av" style={{background:'#e1306c'}}>A</div><div className="lp-ig-c-bubble"><strong>ana_vf_lover</strong> QUERO 💙</div></div>
+          <div className="lp-ig-comment" id="ig-c4"><div className="lp-ig-c-av" style={{background:'#fd1d1d'}}>P</div><div className="lp-ig-c-bubble"><strong>pedra.lima</strong> QUERO!! muito 😍</div></div>
+        </div>
+      </div>
+
+      {/* SETA */}
+      <div className="lp-ig-arrow-wrap">
+        <div className="lp-ig-notif-badge" id="ig-nb"><div className="lp-ig-notif-dot"></div>IA detectou</div>
+        <div className="lp-ig-arrow-icon" id="ig-ai">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div className="lp-ig-arrow-line"><div className="lp-ig-arrow-fill" id="ig-af"></div></div>
+        <div className="lp-ig-arrow-head" id="ig-ah"></div>
+        <div className="lp-ig-arrow-label" id="ig-al">DM automático</div>
+      </div>
+
+      {/* DM */}
+      <div className="lp-ig-dm-card">
+        <div className="lp-ig-dm-header">
+          <div className="lp-ig-dm-av" style={{background:'linear-gradient(135deg,#833ab4,#fd1d1d)'}}>M</div>
+          <div className="lp-ig-dm-info"><div className="lp-ig-dm-user">mari_souza</div><div className="lp-ig-dm-sub">Instagram Direct</div></div>
+          <div className="lp-ig-dm-online"></div>
+        </div>
+        <div className="lp-ig-dm-body">
+          <div className="lp-ig-dm-msg recv" id="ig-d0"><div className="lp-ig-dm-bubble">Oi! Vi seu post e comentei QUERO 👑</div><div className="lp-ig-dm-time">agora</div></div>
+          <div className="lp-ig-dm-typing" id="ig-dtyp">
+            <div className="lp-ig-dt-dots"><div className="lp-ig-dt-dot"></div><div className="lp-ig-dt-dot"></div><div className="lp-ig-dt-dot"></div></div>
+          </div>
+          <div className="lp-ig-dm-msg sent" id="ig-d1"><div className="lp-ig-dm-bubble">Oi, Mari! 👋 Vi seu comentário e já separei o link exclusivo para você 😉</div><div className="lp-ig-dm-time">ZapLynx IA</div></div>
+          <div className="lp-ig-dm-msg sent" id="ig-d2"><div className="lp-ig-dm-bubble">🎁 <strong>Virginia Fonseca 2.7 Birthday Edition</strong><br/>💵 R$ 197,00 — Frete grátis<br/>🔗 pay.zaplynxpro.online/pay/wenpink</div><div className="lp-ig-dm-time">ZapLynx IA</div></div>
+          <div className="lp-ig-dm-msg sent" id="ig-d3"><div className="lp-ig-dm-bubble">Aproveite! Estoque limitado ⏳</div><div className="lp-ig-dm-time">ZapLynx IA</div></div>
+          <div className="lp-ig-dm-msg recv" id="ig-d4"><div className="lp-ig-dm-bubble">Amei!! Vou comprar agora 💙💙</div><div className="lp-ig-dm-time">agora</div></div>
+        </div>
+        <div className="lp-ig-dm-input-row">
+          <input className="lp-ig-dm-input" placeholder="Mensagem..." readOnly/>
+          <button className="lp-ig-dm-send"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
       </div>
     </div>
   );
