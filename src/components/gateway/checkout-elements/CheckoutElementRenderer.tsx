@@ -203,18 +203,38 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
       );
     }
 
-    case "progress":
+    case "progress": {
+      const pValue = c.percentage || 40;
+      const pMax = c.maxValue || 100;
+      const pPercent = Math.min(100, Math.round((pValue / pMax) * 100));
+      const barColor = c.color || primaryColor;
+      const pTextColor = c.textColor || textColor;
+      const pBgColor = c.bgColor || "transparent";
+      const trackColor = c.trackColor || cardBorder;
+      const barHeight = c.barHeight === "sm" ? "8px" : c.barHeight === "lg" ? "24px" : "16px";
+      const barStyle = c.barStyle || "solid";
+      const showValue = c.showValue !== false ? c.showValue : false;
       return (
-        <div style={{ ...wrapperStyle, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium" style={{ color: textColor }}>{(c.text || "").replace("{count}", String(c.percentage || 73))}</span>
-            <span className="text-xs font-bold" style={{ color: c.color || primaryColor }}>{c.percentage || 73}%</span>
-          </div>
-          <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: cardBorder }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${c.percentage || 73}%`, background: c.color || primaryColor }} />
+        <div style={{ ...wrapperStyle, background: pBgColor, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+          {c.title && (
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium" style={{ color: pTextColor }}>{c.title}</span>
+              {showValue && <span className="text-sm font-bold" style={{ color: barColor }}>{pValue}%</span>}
+            </div>
+          )}
+          {c.description && <p className="text-xs mb-2" style={{ color: pTextColor + "99" }}>{c.description}</p>}
+          <div className="w-full rounded-full overflow-hidden" style={{ background: trackColor, height: barHeight }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${pPercent}%`,
+                background: barStyle === "gradient" ? `linear-gradient(90deg, ${barColor}, ${barColor}CC)` : barColor,
+              }}
+            />
           </div>
         </div>
       );
+    }
 
     case "sales":
       return <SalesElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;

@@ -772,19 +772,67 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
 
       {element.type === "progress" && (
         <>
-          <div>
-            <Label className="text-[10px]">Porcentagem</Label>
-            <Input type="number" value={c.percentage || 73} onChange={e => update("percentage", parseInt(e.target.value))} className="mt-1 text-xs" />
+          <p className="text-[10px] font-semibold text-muted-foreground">Configuração do Progresso</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Valor Atual</Label>
+              <Input type="number" value={c.percentage || 40} onChange={e => update("percentage", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Valor Máximo</Label>
+              <Input type="number" value={c.maxValue || 100} onChange={e => update("maxValue", parseInt(e.target.value))} className="mt-1 text-xs" />
+            </div>
           </div>
           <div>
-            <Label className="text-[10px]">Texto</Label>
-            <Input value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" />
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Etapas do Processo" />
           </div>
           <div>
-            <Label className="text-[10px]">Cor da barra</Label>
-            <div className="flex items-center gap-1 mt-1">
-              <input type="color" value={c.color || "#EF4444"} onChange={e => update("color", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
-              <Input value={c.color || ""} onChange={e => update("color", e.target.value)} className="text-[10px] font-mono" />
+            <Label className="text-[10px]">Descrição</Label>
+            <Input value={c.description || ""} onChange={e => update("description", e.target.value)} className="mt-1 text-xs" placeholder="Ex: Complete os dados para prosseguir" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-[10px]">Mostrar Valor</Label>
+              <p className="text-[9px] text-muted-foreground">Exibir o valor atual</p>
+            </div>
+            <Switch checked={c.showValue || false} onCheckedChange={v => update("showValue", v)} />
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Aparência</p>
+            <div>
+              <Label className="text-[10px]">Altura</Label>
+              <Select value={c.barHeight || "md"} onValueChange={v => update("barHeight", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sm">Pequena (8px)</SelectItem>
+                  <SelectItem value="md">Média (16px)</SelectItem>
+                  <SelectItem value="lg">Grande (24px)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px]">Estilo da Barra</Label>
+              <Select value={c.barStyle || "solid"} onValueChange={v => update("barStyle", v)}>
+                <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="solid">Sólido</SelectItem>
+                  <SelectItem value="gradient">Gradiente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor da Barra</Label>
+              <Input type="color" value={c.color || "#3B82F6"} onChange={e => update("color", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Texto</Label>
+              <Input type="color" value={c.textColor || "#333333"} onChange={e => update("textColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
             </div>
           </div>
         </>
