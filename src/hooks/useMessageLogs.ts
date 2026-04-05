@@ -144,6 +144,12 @@ const isGroupPhone = (phone: string): boolean => {
   return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone);
 };
 
+const normalizeConversationPhone = (phone: string): string => {
+  if (!isGroupPhone(phone)) return phone;
+  const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+  return numericId ? `${numericId}-group` : phone;
+};
+
 export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
@@ -457,7 +463,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       if (log.message_received) {
         allMessages.push({
           id: `log-recv-${log.id}`,
-          phone: log.phone,
+          phone: normalizeConversationPhone(log.phone),
           type: 'received',
           content: log.message_received,
           // Use created_at for received messages because timestamp may be updated by flow processing.
@@ -500,7 +506,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
         allMessages.push({
           id: `log-sent-${log.id}`,
-          phone: log.phone,
+          phone: normalizeConversationPhone(log.phone),
           type: 'sent',
           content: log.response_sent,
           timestamp: log.timestamp || log.created_at,
@@ -518,7 +524,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
         id: `camp-${send.id}`,
-        phone: send.phone,
+        phone: normalizeConversationPhone(send.phone),
         type: 'sent',
         content: send.message_content,
         timestamp: send.sent_at || send.created_at,
@@ -536,9 +542,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     });
 
     filteredLogs.forEach(log => {
-      const existing = groupedLogs.get(log.phone) || [];
+      const conversationPhone = normalizeConversationPhone(log.phone);
+      const existing = groupedLogs.get(conversationPhone) || [];
       existing.push(log);
-      groupedLogs.set(log.phone, existing);
+      groupedLogs.set(conversationPhone, existing);
     });
 
     return Array.from(grouped.entries())
@@ -559,7 +566,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
         const saved = savedContacts.get(phone);
         // Get name from campaign_sends if no saved contact
-        const campaignName = !saved?.name ? campaignSends.find(s => s.phone === phone && s.contact_name)?.contact_name : null;
+        const campaignName = !saved?.name
+          ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
+          : null;
         // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
         const groupName = isGroup ? (groupNames.get(phone) || null) : null;
