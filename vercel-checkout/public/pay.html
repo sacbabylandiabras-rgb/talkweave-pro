@@ -703,9 +703,45 @@
 
 
 
-  // Step indicators (pill style - used by most templates)
+  // Step indicators — supports circles (default), pills, progress
   function stepsHTML() {
     var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+    var style = cfg.stepIndicatorStyle || 'circles';
+
+    if (style === 'progress') {
+      var h = '<div style="padding:8px 0">';
+      h += '<div style="display:flex;gap:4px">';
+      labels.forEach(function(s) {
+        h += '<div style="flex:1;height:8px;border-radius:9999px;background:'+(step >= s.n ? 'var(--primary)' : 'var(--border)')+'"></div>';
+      });
+      h += '</div>';
+      var cur = labels.find(function(s){return s.n===step});
+      h += '<p style="text-align:center;font-size:11px;font-weight:500;color:var(--primary);margin-top:6px">Etapa '+step+' de 3 — '+(cur?cur.l:'')+'</p>';
+      h += '</div>';
+      return h;
+    }
+
+    if (style === 'pills') {
+      var h = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0">';
+      labels.forEach(function(s,i) {
+        var active = step===s.n, done = step > s.n;
+        var bg = active ? 'rgba(239,68,68,.07)' : 'transparent';
+        var bdr = active ? '1.5px solid rgba(239,68,68,.3)' : '1.5px solid var(--border)';
+        var col = (active||done) ? 'var(--primary)' : 'var(--card-desc)';
+        var badgeBg = (active||done) ? 'var(--primary)' : '#D1D5DB';
+        h += '<div style="display:flex;align-items:center;gap:8px">';
+        h += '<button onclick="goStep('+s.n+')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:'+bg+';border:'+bdr+';cursor:pointer;color:'+col+'">';
+        h += '<div style="width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;background:'+badgeBg+';color:#fff;font-size:10px">'+(done?I.checkSm:I[s.i])+'</div>';
+        h += '<span style="font-size:11px;font-weight:500">'+s.l+'</span>';
+        h += '</button>';
+        if (i < labels.length-1) h += '<div style="width:24px;height:1px;background:'+(step > s.n ? 'var(--primary)' : 'var(--border)')+'"></div>';
+        h += '</div>';
+      });
+      h += '</div>';
+      return h;
+    }
+
+    // Default: circles
     var h = '<div class="steps">';
     labels.forEach(function(s,i) {
       var active = step===s.n, done = step > s.n;
@@ -880,7 +916,7 @@
     h += '<span style="font-size:.875rem;font-weight:500;color:var(--card-desc)">Valor do pedido</span>';
     h += '<span style="font-size:1.25rem;font-weight:700;color:var(--card-title)">'+fmt(pp)+'</span>';
     h += '</div></div>';
-    h += '<div class="c" style="padding:16px"><p class="benef">'+I.shieldSm+' O beneficiário do Pix é o <strong>INTERMEDIADOR (AKASEG)</strong>, a empresa que gerencia nossos pagamentos de forma segura.</p></div>';
+    
     h += '<div class="c">';
     if (pixData) {
       h += '<p style="font-size:.75rem;font-weight:500;color:var(--card-label);text-align:center">'+I.phone+' aponte a câmera do seu celular</p>';
