@@ -773,7 +773,7 @@
     // Coupon
     if (step === 1) {
       h += '<div style="display:flex;gap:8px;margin-top:12px">';
-      h += '<input style="flex:1;padding:6px 10px;font-size:.75rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Cupom de desconto" />';
+      h += '<input style="flex:1;padding:6px 10px;font-size:.75rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Código do cupom" />';
       h += '<button style="padding:6px 12px;font-size:.75rem;font-weight:600;border:none;border-radius:var(--btn-radius);background:var(--btn-color);color:#fff;cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
@@ -1111,6 +1111,9 @@
   function render() {
     var co = document.getElementById('co');
     if (!co) return;
+    // Clean up previous footer wrapper
+    var oldFooterWrap = document.getElementById('footer-wrap');
+    if (oldFooterWrap) oldFooterWrap.remove();
     var tid = cfg.templateId;
     var use2Col = (tid === 'minimalista' || tid === 'alto-impacto' || tid === 'streamline' || tid === 'lynxfy' || tid === 'confianca');
 
@@ -1141,13 +1144,32 @@
 
       // Sidebar
       var sideH = '';
-      if (tid === 'confianca') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true});
+      if (tid === 'confianca') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
       else if (tid === 'lynxfy') sideH += sidebarSummaryHTML({showQuantity:true,useQuantity:true,showCount:true});
-      else sideH += sidebarSummaryHTML({});
+      else sideH += sidebarSummaryHTML({showCount:true});
+
+      // Order bump in sidebar
+      if (cfg.showOrderBump) {
+        sideH += '<div class="c" style="border:2px dashed var(--primary)">';
+        sideH += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--primary)" /><span style="font-size:.75rem;font-weight:700;color:var(--primary)">🎁 OFERTA ESPECIAL!</span></div>';
+        sideH += '<p style="font-size:.75rem;color:var(--card-desc)">'+(cfg.orderBumpText||'Adicione este produto por apenas')+' <strong style="color:var(--primary)">'+fmt(cfg.orderBumpPrice)+'</strong></p>';
+        sideH += '</div>';
+      }
+
+      // Product card in sidebar (logo + name + price)
+      if (cfg.productImage || cfg.logoUrl) {
+        sideH += '<div class="c" style="display:flex;align-items:center;gap:12px;padding:12px">';
+        var sideImg = cfg.logoUrl || cfg.productImage;
+        sideH += '<div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#F3F4F6;display:flex;align-items:center;justify-content:center">';
+        sideH += '<img src="'+sideImg+'" style="width:100%;height:100%;object-fit:cover" />';
+        sideH += '</div>';
+        sideH += '<div><p style="font-size:.75rem;font-weight:600;color:var(--card-title)">'+(cfg.offerName||cfg.productName||'')+'</p>';
+        sideH += '<p style="font-size:.75rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</p></div>';
+        sideH += '</div>';
+      }
 
       // Elements: sidebar
       sideH += renderElementsAt('sidebar');
-      sideH += footerHTML();
       // Elements: sidebar-bottom
       sideH += renderElementsAt('sidebar-bottom');
 
@@ -1163,9 +1185,8 @@
       else mainH2 += step3HTML();
       mainH2 += renderElementsAt('below-form');
 
-      var sideH2 = sidebarSummaryHTML({});
+      var sideH2 = sidebarSummaryHTML({showCount:true});
       sideH2 += renderElementsAt('sidebar');
-      sideH2 += footerHTML();
       sideH2 += renderElementsAt('sidebar-bottom');
 
       co.innerHTML = '<div class="col-main">'+mainH2+'</div><div class="col-side">'+sideH2+'</div>';
@@ -1187,14 +1208,15 @@
       co.className = 'co';
     }
 
-    // Footer elements for 2col layouts
+    // Footer for all layouts (below the columns)
     if (use2Col || tid === 'tiktok') {
-      var footerEls = renderElementsAt('footer');
-      if (footerEls) {
-        var fDiv = document.createElement('div');
-        fDiv.innerHTML = footerEls;
-        co.appendChild(fDiv);
-      }
+      var footerWrap = document.createElement('div');
+      footerWrap.id = 'footer-wrap';
+      footerWrap.style.maxWidth = '56rem';
+      footerWrap.style.margin = '0 auto';
+      footerWrap.style.padding = '0 16px';
+      footerWrap.innerHTML = footerHTML() + renderElementsAt('footer');
+      co.parentNode.insertBefore(footerWrap, co.nextSibling);
     }
 
     bind();
@@ -1217,7 +1239,7 @@
     h += '</div></div>';
     if (step === 1) {
       h += '<div style="display:flex;gap:8px;margin-top:12px">';
-      h += '<input style="flex:1;padding:8px 12px;font-size:.875rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Cupom de desconto" />';
+      h += '<input style="flex:1;padding:8px 12px;font-size:.875rem;border:1px solid var(--input-border);border-radius:var(--field-radius);outline:none;background:var(--input-bg);color:var(--card-text)" placeholder="Código do cupom" />';
       h += '<button style="padding:8px 16px;font-size:.875rem;font-weight:500;border:1px solid var(--input-border);border-radius:var(--field-radius);background:var(--input-bg);color:var(--card-text);cursor:pointer">Aplicar</button>';
       h += '</div>';
     }
