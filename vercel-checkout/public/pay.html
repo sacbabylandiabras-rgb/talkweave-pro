@@ -198,6 +198,7 @@
   var SB = 'https://yodgjxdekuraxquxkxhx.supabase.co';
   var AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
   var app = document.getElementById('app');
+  var elems = []; // checkout builder elements
   var step = 1, fd = { name:'', email:'', cpf:'', phone:'' }, pixData = null, cfg = null, tenant = null;
 
   function validateCPF(v){var d=v.replace(/\D/g,'');if(d.length!==11)return false;if(/^(\d)\1{10}$/.test(d))return false;var s=0;for(var i=0;i<9;i++)s+=parseInt(d[i])*(10-i);var r=(s*10)%11;if(r===10)r=0;if(r!==parseInt(d[9]))return false;s=0;for(var i=0;i<10;i++)s+=parseInt(d[i])*(11-i);r=(s*10)%11;if(r===10)r=0;return r===parseInt(d[10]);}
