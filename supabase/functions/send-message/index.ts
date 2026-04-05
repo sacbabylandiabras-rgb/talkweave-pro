@@ -173,7 +173,7 @@ serve(async (req) => {
         const { data: correctInstance } = await adminClient
           .from('zapi_instances')
           .select('zapi_instance_id, zapi_token, zapi_client_token')
-          .eq('zapi_instance_id', resolvedGroupInstanceId)
+          .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
           .eq('user_id', credentials.userId)
           .eq('is_active', true)
           .maybeSingle();
@@ -215,10 +215,10 @@ serve(async (req) => {
     }
 
     let resolvedPhone = phone;
-    // Normalize group phone to @g.us format for Z-API
+    // Z-API expects the raw numeric group ID for send-message endpoints
     if (isGroupPhone && !phone.includes('@lid')) {
-      const numericId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
-      resolvedPhone = `${numericId}@g.us`;
+      const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+      resolvedPhone = numericId || phone;
       if (resolvedPhone !== phone) {
         console.log(`📌 Normalized group phone: ${phone} → ${resolvedPhone}`);
       }
