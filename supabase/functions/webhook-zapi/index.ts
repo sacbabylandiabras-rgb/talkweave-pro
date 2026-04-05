@@ -194,9 +194,18 @@ const mapCampaignSendStatusFromWebhook = (webhook: any): 'sent' | 'delivered' | 
     if (webhookStatus === 'SENT') return 'sent'
     if (webhookStatus === 'RECEIVED' || webhookStatus === 'DELIVERED') return 'delivered'
   }
-  // Only treat fromMe ReceivedCallbacks as campaign status updates if they DON'T have text content
-  // (i.e. they are pure status callbacks, not actual outgoing messages with text)
+  // For ReceivedCallback with fromMe: treat as delivery confirmation
+  // For groups, fromMe callbacks WITH text are the normal delivery pattern
+  // For contacts, only treat as status update if no text content (pure status callback)
   if (webhookType === 'ReceivedCallback' && fromMe) {
+    const phone = resolveWebhookPhone(webhook)
+    const isGroup = phone?.includes('@g.us') || phone?.includes('-group')
+    
+    if (isGroup) {
+      // Group fromMe callbacks (with or without text) = delivery confirmation
+      return 'delivered'
+    }
+    
     const hasTextContent = Boolean(
       webhook?.text?.message || webhook?.text || webhook?.body ||
       webhook?.message?.text || webhook?.message?.conversation ||
