@@ -1357,7 +1357,8 @@
       showAddress: sv.showAddress||false, showOrderBump: sv.showOrderBump||false,
       orderBumpText: sv.orderBumpText||'', orderBumpPrice: sv.orderBumpPrice||0,
       productImage: sv.productImage||(pr&&pr.image_url)||'',
-      logoUrl: sv.logoUrl||(tenant&&tenant.logo_url)||'',
+      logoUrl: sv.showLogo !== false ? (sv.logoUrl||(tenant&&tenant.logo_url)||'') : '',
+      showLogo: sv.showLogo !== false,
       faviconUrl: sv.faviconUrl||'',
       pageTitle: sv.pageTitle||'',
       theme: sv.theme||'light',
@@ -1391,11 +1392,11 @@
     var shell = '';
     // Confianca has a banner area instead of standard header
     if (cfg.templateId === 'confianca') {
-      // Header
-      shell += '<div class="logo-header">';
-      if (cfg.logoUrl) shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
-      else shell += '<span style="font-size:.875rem;font-weight:700;color:var(--card-title)">Minha Loja</span>';
-      shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+      if (cfg.showLogo && cfg.logoUrl) {
+        shell += '<div class="logo-header">';
+        shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
+        shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+      }
       // Banner
       if (cfg.productImage) {
         shell += '<div class="banner-area" style="background:'+(cfg.bgColor||'#C8E832')+';margin-top:16px">';
@@ -1406,10 +1407,11 @@
       shell += '<div id="confianca-steps" style="background:var(--card-bg);border-bottom:1px solid var(--border)"></div>';
     } else {
       if (cfg.showTimer) shell += '<div class="timer-banner">Oferta termina em: <b id="timer-val">00h : '+String(cfg.timerMinutes).padStart(2,'0')+'m : 00s</b></div>';
-      shell += '<div class="logo-header">';
-      if (cfg.logoUrl) shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
-      else shell += '<span style="font-size:.875rem;font-weight:700;color:var(--card-title)">Minha Loja</span>';
-      shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+      if (cfg.showLogo && cfg.logoUrl) {
+        shell += '<div class="logo-header">';
+        shell += '<img src="'+cfg.logoUrl+'" alt="Logo" />';
+        shell += '<span class="safe">'+I.shieldSm+' Pagamento 100% seguro</span></div>';
+      }
     }
     // Streamline: product image banner
     if (cfg.templateId === 'streamline' && cfg.productImage) {
