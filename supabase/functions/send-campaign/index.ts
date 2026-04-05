@@ -45,13 +45,34 @@ const resolveContactInstance = async (
 ): Promise<ResolvedInstance | null> => {
   if (!sourceInstanceId) return null;
 
-  const { data: instance } = await supabase
+  let instance: {
+    zapi_instance_id: string;
+    zapi_token: string;
+    zapi_client_token: string;
+    instance_name: string | null;
+  } | null = null;
+
+  const { data: byZapiInstanceId } = await supabase
     .from('zapi_instances')
     .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
     .eq('user_id', userId)
     .eq('zapi_instance_id', sourceInstanceId)
     .eq('is_active', true)
     .maybeSingle();
+
+  instance = byZapiInstanceId;
+
+  if (!instance) {
+    const { data: byTableId } = await supabase
+      .from('zapi_instances')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+      .eq('user_id', userId)
+      .eq('id', sourceInstanceId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    instance = byTableId;
+  }
 
   if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
     return null;
@@ -62,6 +83,71 @@ const resolveContactInstance = async (
     zapiToken: instance.zapi_token,
     zapiClientToken: instance.zapi_client_token,
     instanceName: instance.instance_name || 'Instância',
+  };
+};
+
+const resolveGroupInstanceFromInboundLogs = async (
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  phone: string,
+): Promise<ResolvedInstance | null> => {
+  if (!isGroupDestination(phone)) return null;
+
+  const numericGroupId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
+  if (!numericGroupId) return null;
+
+  const groupVariants = [
+    `${numericGroupId}-group`,
+    `${numericGroupId}@g.us`,
+    numericGroupId,
+  ];
+
+  const { data: groupLogs } = await supabase
+    .from('message_logs')
+    .select('instance_id')
+    .in('phone', groupVariants)
+    .not('instance_id', 'is', null)
+    .is('keyword_matched', null)
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false })
+    .limit(1);
+
+  let resolvedGroupInstanceId = groupLogs?.[0]?.instance_id || null;
+
+  if (!resolvedGroupInstanceId) {
+    const { data: groupLogsFallback } = await supabase
+      .from('message_logs')
+      .select('instance_id, keyword_matched')
+      .in('phone', groupVariants)
+      .not('instance_id', 'is', null)
+      .not('message_received', 'is', null)
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false })
+      .limit(5);
+
+    const inboundLog = groupLogsFallback?.find((log) => log.keyword_matched !== '__manual_send__');
+    resolvedGroupInstanceId = inboundLog?.instance_id || null;
+  }
+
+  if (!resolvedGroupInstanceId) return null;
+
+  const { data: correctInstance } = await supabase
+    .from('zapi_instances')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!correctInstance?.zapi_instance_id || !correctInstance?.zapi_token || !correctInstance?.zapi_client_token) {
+    return null;
+  }
+
+  return {
+    zapiInstanceId: correctInstance.zapi_instance_id,
+    zapiToken: correctInstance.zapi_token,
+    zapiClientToken: correctInstance.zapi_client_token,
+    instanceName: correctInstance.instance_name || 'Instância',
   };
 };
 
@@ -400,8 +486,11 @@ serve(async (req) => {
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-      const contactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-      const currentInstance = contactInstance || getInstanceForIndex(i);
+      const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+      const inferredGroupInstance = !explicitContactInstance
+        ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+        : null;
+      const currentInstance = explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
 
       try {
