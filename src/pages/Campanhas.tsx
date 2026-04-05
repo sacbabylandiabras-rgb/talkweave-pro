@@ -490,7 +490,7 @@ const Campanhas = () => {
                     <div>
                       <CardTitle className="text-lg">{campaign.name}</CardTitle>
                       <CardDescription className="flex items-center gap-2">
-                        {getStatusBadge(campaign.status)}
+                        {getStatusBadge(campaign.status, campaign)}
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
@@ -705,7 +705,7 @@ const Campanhas = () => {
                         <div>
                           <CardTitle className="text-lg">{campaign.name}</CardTitle>
                           <CardDescription className="flex items-center gap-2">
-                            {getStatusBadge(campaign.status)}
+                            {getStatusBadge(campaign.status, campaign)}
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
