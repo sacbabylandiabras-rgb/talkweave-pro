@@ -39,8 +39,37 @@ const sequence = [
   { show: "m7", delay: 6800 },
 ];
 
-function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side: "L" | "R" }) {
+function AudioBubble({ bars, secs, side, audioSrc }: { bars: number[]; secs: number; side: "L" | "R"; audioSrc?: string }) {
   const isAgent = side === "R";
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const animRef = useRef<number>(0);
+
+  const togglePlay = () => {
+    if (!audioRef.current || !audioSrc) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      cancelAnimationFrame(animRef.current);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+      const tick = () => {
+        if (audioRef.current) {
+          setProgress(audioRef.current.currentTime / (audioRef.current.duration || 1));
+        }
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setProgress(0);
+    cancelAnimationFrame(animRef.current);
+  };
 
   return (
     <div style={{
@@ -53,7 +82,10 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
       background: isAgent ? "#2a5f45" : "#1e2530",
       borderBottomRightRadius: isAgent ? 4 : 14,
       borderBottomLeftRadius: isAgent ? 14 : 4,
-    }}>
+      cursor: audioSrc ? "pointer" : "default",
+    }} onClick={togglePlay}>
+      {audioSrc && <audio ref={audioRef} src={audioSrc} preload="metadata" onEnded={handleEnded} />}
+
       <div style={{
         width: 30,
         height: 30,
@@ -64,19 +96,30 @@ function AudioBubble({ bars, secs, side }: { bars: number[]; secs: number; side:
         justifyContent: "center",
         flexShrink: 0,
       }}>
-        <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff"><polygon points="2,1 11,6 2,11" /></svg>
+        {isPlaying ? (
+          <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff">
+            <rect x="2" y="1" width="3" height="10" rx="1" />
+            <rect x="7" y="1" width="3" height="10" rx="1" />
+          </svg>
+        ) : (
+          <svg width={11} height={11} viewBox="0 0 12 12" fill="#fff"><polygon points="2,1 11,6 2,11" /></svg>
+        )}
       </div>
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 2, height: 28 }}>
-        {bars.map((h, i) => (
-          <div key={i} style={{
-            width: 3,
-            borderRadius: 2,
-            height: h,
-            background: "rgba(255,255,255,0.22)",
-            flexShrink: 0,
-          }} />
-        ))}
+        {bars.map((h, i) => {
+          const barProgress = i / bars.length;
+          return (
+            <div key={i} style={{
+              width: 3,
+              borderRadius: 2,
+              height: h,
+              background: barProgress < progress ? "#25d366" : "rgba(255,255,255,0.22)",
+              flexShrink: 0,
+              transition: "background 0.1s",
+            }} />
+          );
+        })}
       </div>
 
       <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", fontFamily: "sans-serif" }}>
