@@ -2424,9 +2424,15 @@ async function sendNodeContent(
           body.caption = content
           break
         case 'video':
-          endpoint = '/send-video'
-          body.video = mediaUrl
-          body.caption = content
+          if (targetNode.data?.isPtv) {
+            endpoint = '/send-ptv'
+            body.ptv = mediaUrl
+          } else {
+            endpoint = '/send-video'
+            body.video = mediaUrl
+            body.caption = content
+            if (targetNode.data?.viewOnce) body.viewOnce = true
+          }
           break
         case 'audio':
           endpoint = '/send-audio'
