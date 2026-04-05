@@ -84,6 +84,7 @@ const defaultConfig = {
   thankYouMessage: "Obrigado pela sua compra! Os detalhes de acesso serão enviados para o seu e-mail ou WhatsApp em instantes.",
   footerCompanyName: "",
   footerCnpj: "",
+  stepIndicatorStyle: "circles" as "circles" | "pills" | "progress",
 };
 
 const formatOptions = [
@@ -456,6 +457,54 @@ export default function CheckoutBuilder() {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <CheckoutTemplateGallery onApply={applyTemplate} activeTemplateId={activeTemplateId} />
+
+                {/* Step Indicator Style */}
+                {(config.format === "multi_step") && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Estilo dos Steps</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: "circles", label: "Círculos", preview: (
+                          <div className="flex items-center justify-center gap-1">
+                            <div className="w-5 h-5 rounded-full border-2 border-[#FF4D2E] flex items-center justify-center text-[8px] font-bold text-[#FF4D2E]">1</div>
+                            <div className="w-3 h-px bg-border" />
+                            <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center text-[8px] text-muted-foreground">2</div>
+                            <div className="w-3 h-px bg-border" />
+                            <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center text-[8px] text-muted-foreground">3</div>
+                          </div>
+                        )},
+                        { value: "pills", label: "Pills", preview: (
+                          <div className="flex items-center justify-center gap-1">
+                            <div className="px-2 py-0.5 rounded-full bg-[#FF4D2E]/10 border border-[#FF4D2E]/40 text-[7px] font-medium text-[#FF4D2E]">1</div>
+                            <div className="px-2 py-0.5 rounded-full border border-border text-[7px] text-muted-foreground">2</div>
+                            <div className="px-2 py-0.5 rounded-full border border-border text-[7px] text-muted-foreground">3</div>
+                          </div>
+                        )},
+                        { value: "progress", label: "Barra", preview: (
+                          <div className="flex items-center gap-0.5 w-full px-1">
+                            <div className="h-1.5 flex-1 rounded-full bg-[#FF4D2E]" />
+                            <div className="h-1.5 flex-1 rounded-full bg-border" />
+                            <div className="h-1.5 flex-1 rounded-full bg-border" />
+                          </div>
+                        )},
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateConfig("stepIndicatorStyle", opt.value)}
+                          className="flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all"
+                          style={{
+                            borderColor: (config.stepIndicatorStyle || "circles") === opt.value ? "#FF4D2E" : "hsl(var(--border))",
+                            background: (config.stepIndicatorStyle || "circles") === opt.value ? "rgba(255,77,46,0.08)" : "transparent",
+                          }}
+                        >
+                          {opt.preview}
+                          <span className="text-[10px] font-medium">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 gap-2">
                   {formatOptions.map(opt => (
                     <button
