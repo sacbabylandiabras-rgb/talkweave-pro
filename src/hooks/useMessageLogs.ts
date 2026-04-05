@@ -149,6 +149,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
+  const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
   const channelRef2 = useRef<any>(null);
@@ -414,15 +415,22 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
         if (error || !data?.groups) return;
         const map = new Map<string, string>();
+        const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
           if (g.id && g.nome) {
             map.set(g.id, g.nome);
             // Also try without @g.us suffix for matching
             const cleanId = g.id.replace('@g.us', '');
             map.set(cleanId + '-group', g.nome);
+
+            if (g.sourceInstanceId) {
+              instanceMap.set(g.id, g.sourceInstanceId);
+              instanceMap.set(cleanId + '-group', g.sourceInstanceId);
+            }
           }
         }
         setGroupNames(map);
+        setGroupSourceInstances(instanceMap);
       } catch { /* ignore */ }
     })();
   }, [loading, messageLogs.length, campaignSends.length]);
@@ -555,6 +563,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
         const groupName = isGroup ? (groupNames.get(phone) || null) : null;
+        const preferredInstanceId = isGroup
+          ? (groupSourceInstances.get(phone) || latestInboundLog?.instance_id || null)
+          : (latestInboundLog?.instance_id || null);
+
         return {
           phone,
           contactName: saved?.name || campaignName || groupName || null,
@@ -563,7 +575,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           lastTimestamp: last.timestamp,
           unreadCount: 0,
           messages: sorted,
-          preferredInstanceId: latestInboundLog?.instance_id || null,
+          preferredInstanceId,
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
@@ -578,10 +590,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     if (mediaType) body.mediaType = mediaType;
     if (viewOnce) body.viewOnce = true;
     if (isPtv) body.isPtv = true;
-    if (filterInstanceId && filterInstanceId !== 'all') {
-      body.instanceId = filterInstanceId;
-    } else if (preferredInstanceId) {
+    if (preferredInstanceId) {
       body.instanceId = preferredInstanceId;
+    } else if (filterInstanceId && filterInstanceId !== 'all') {
+      body.instanceId = filterInstanceId;
     }
 
     const { data, error } = await supabase.functions.invoke('send-message', { body });
