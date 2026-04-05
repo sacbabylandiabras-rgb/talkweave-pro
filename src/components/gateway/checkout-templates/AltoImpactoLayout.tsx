@@ -103,7 +103,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
           ))}
         </div>
 
-        <div className={!previewMode ? "flex flex-col md:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.25rem" } : undefined}>
+        <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.25rem" } : undefined}>
           <div className="flex-1 space-y-4">
             {/* Step 1 */}
             {step === 1 && (
