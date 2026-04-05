@@ -105,11 +105,16 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       await createCampaign({
         name: formData.name,
         description: formData.description,
-        template_id: formData.template_id,
+        template_id: isFlow ? undefined : formData.template_id,
         schedule_type: formData.schedule_type,
         scheduled_at: formData.scheduled_at || null,
         recurrence_pattern: formData.recurrence_pattern || null,
-        target_audience: { contacts: targetContacts, ...(viewOnce ? { viewOnce: true } : {}), ...(isPtv ? { isPtv: true } : {}) },
+        target_audience: {
+          contacts: targetContacts,
+          ...(isFlow ? { flow_id: formData.flow_id, campaign_type: 'flow' } : {}),
+          ...(viewOnce ? { viewOnce: true } : {}),
+          ...(isPtv ? { isPtv: true } : {}),
+        },
         status: formData.schedule_type === "immediate" ? "active" : "draft",
         delay_seconds: formData.delay_seconds,
       } as any);
@@ -123,7 +128,9 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       setFormData({
         name: "",
         description: "",
+        content_type: "template",
         template_id: "",
+        flow_id: "",
         schedule_type: "immediate",
         scheduled_at: "",
         recurrence_pattern: "",
