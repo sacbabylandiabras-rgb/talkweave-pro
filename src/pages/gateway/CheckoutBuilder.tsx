@@ -82,6 +82,8 @@ const defaultConfig = {
   thankYouUrl: "",
   thankYouTitle: "Pagamento Confirmado!",
   thankYouMessage: "Obrigado pela sua compra! Os detalhes de acesso serão enviados para o seu e-mail ou WhatsApp em instantes.",
+  footerCompanyName: "",
+  footerCnpj: "",
 };
 
 const formatOptions = [
@@ -580,6 +582,30 @@ export default function CheckoutBuilder() {
                     className="mt-1"
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">Texto exibido na aba do navegador. Se vazio, mostra "Checkout".</p>
+                </div>
+
+                {/* Footer Company Name */}
+                <div>
+                  <Label className="text-xs">Nome da Empresa (Rodapé)</Label>
+                  <Input
+                    value={config.footerCompanyName}
+                    onChange={e => updateConfig("footerCompanyName", e.target.value)}
+                    placeholder="Ex: Minha Empresa LTDA"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Nome exibido no rodapé do checkout. Se vazio, mostra "ZapLynxPay".</p>
+                </div>
+
+                {/* Footer CNPJ */}
+                <div>
+                  <Label className="text-xs">CNPJ (Rodapé)</Label>
+                  <Input
+                    value={config.footerCnpj}
+                    onChange={e => updateConfig("footerCnpj", e.target.value)}
+                    placeholder="Ex: 12.345.678/0001-90"
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">CNPJ exibido no rodapé. Opcional.</p>
                 </div>
 
                 <p className="text-[10px] text-muted-foreground">Defina as cores que serão usadas nos elementos do checkout</p>

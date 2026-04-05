@@ -75,6 +75,8 @@ interface CheckoutConfig {
   templateName?: string;
   shippingEnabled?: boolean;
   shippingPrice?: number;
+  footerCompanyName?: string;
+  footerCnpj?: string;
 }
 
 interface Props {
@@ -875,7 +877,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           onDrop={onDropElement} label="Solte aqui (Rodapé)"
         />
 
-        <PaymentFooter />
+        <PaymentFooter companyName={config.footerCompanyName} cnpj={config.footerCnpj} />
       </div>
     </div>
   );

@@ -824,7 +824,8 @@
       +'<img src="/banks/elo.jpg" alt="Elo" style="height:17px;object-fit:contain">'
       +'<img src="/banks/amex.png" alt="Amex" style="height:17px;object-fit:contain;border-radius:3px">'
       +'</div>'
-      +'<p style="font-size:10px;color:#9CA3AF;margin-top:8px">Pagamento processado com segurança por ZapLynxPay</p>'
+      +'<p style="font-size:10px;color:#9CA3AF;margin-top:8px">Pagamento processado com segurança por '+(cfg.footerCompanyName||'ZapLynxPay')+'</p>'
+      +(cfg.footerCnpj ? '<p style="font-size:10px;color:#9CA3AF;margin-top:2px">CNPJ: '+cfg.footerCnpj+'</p>' : '')
       +'</div>';
   }
 
