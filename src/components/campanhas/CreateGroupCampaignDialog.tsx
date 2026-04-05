@@ -146,11 +146,15 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
           groupIds: selectedGroups,
         },
         delay_seconds: formData.delay_seconds,
+        schedule_type: formData.schedule_type,
+        scheduled_at: formData.schedule_type === 'scheduled' ? formData.scheduled_at : undefined,
       });
 
-      toast({ title: "Campanha criada", description: `Campanha "${formData.name}" criada com ${selectedGroups.length} grupo(s)` });
+      toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 
+        ? `Campanha "${formData.name}" agendada para ${new Date(formData.scheduled_at).toLocaleString('pt-BR')}`
+        : `Campanha "${formData.name}" criada com ${selectedGroups.length} grupo(s)` });
       onOpenChange(false);
-      setFormData({ name: "", description: "", template_id: "", delay_seconds: 2 });
+      setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedGroups([]);
     } catch (error) {
       console.error("Error creating group campaign:", error);
