@@ -494,10 +494,6 @@ serve(async (req) => {
         const { data: statusCheck } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (statusCheck?.status === 'paused' || statusCheck?.status === 'cancelled' || statusCheck?.status === 'completed') {
           console.log(`🛑 Campaign ${campaignId} is ${statusCheck?.status} before contact ${i + 1}/${currentBatch.length}. Stopping immediately.`);
-          try {
-            if (isRotateMode && rotatePool.length > 0) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-            else await clearInstanceQueue(currentInstance);
-          } catch {}
           return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${statusCheck?.status}` }),
             { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         }
@@ -831,10 +827,6 @@ serve(async (req) => {
       if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
         await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
         console.log(`✅ Campaign ${campaignId} completed!`);
-        try {
-          if (isRotateMode && rotatePool.length > 0) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-          else await clearInstanceQueue(getInstanceForIndex(0));
-        } catch {}
       }
     }
 
