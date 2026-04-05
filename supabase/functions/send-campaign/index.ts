@@ -198,12 +198,10 @@ const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
   }
 };
 
-const clearInstanceQueue = async (instance: ResolvedInstance) => {
-  const clearQueueUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/queue`;
-  await fetch(clearQueueUrl, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapiClientToken },
-  });
+const clearInstanceQueue = async (_instance: ResolvedInstance) => {
+  // Intentionally disabled for campaigns: Z-API queue deletion removes messages
+  // that are still waiting to be processed, which can drop group sends.
+  return;
 };
 
 serve(async (req) => {
