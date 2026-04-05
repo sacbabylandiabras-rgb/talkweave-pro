@@ -597,30 +597,95 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
 
       {element.type === "countdown" && (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="text-[10px] font-semibold text-muted-foreground">Configuração do Cronômetro</p>
+          <div>
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" placeholder="Oferta termina em:" />
+          </div>
+          <div>
+            <Label className="text-[10px]">Tipo de Cronômetro</Label>
+            <Select value={c.timerType || "fixed"} onValueChange={v => update("timerType", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixed">Tempo Fixo (Reinicia sempre)</SelectItem>
+                <SelectItem value="once">Contagem única</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px]">Tempo Fixo (minutos)</Label>
+            <Select value={String(c.minutes || 10)} onValueChange={v => update("minutes", parseInt(v))}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[5, 10, 15, 20, 30, 45, 60].map(v => (
+                  <SelectItem key={v} value={String(v)}>{v} minutos</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(c.timerType || "fixed") === "fixed" && (
+              <p className="text-[10px] text-muted-foreground mt-1">O cronômetro reiniciará sempre que a página for carregada.</p>
+            )}
+          </div>
+          <div>
+            <Label className="text-[10px]">Estilo do Timer</Label>
+            <Select value={c.style || "cards"} onValueChange={v => update("style", v)}>
+              <SelectTrigger className="mt-1 text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cards">Padrão (Cards)</SelectItem>
+                <SelectItem value="banner">Banner (Linha)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Tipografia</p>
             <div>
-              <Label className="text-[10px]">Minutos</Label>
-              <Input type="number" value={c.minutes || 15} onChange={e => update("minutes", parseInt(e.target.value))} className="mt-1 text-xs" />
+              <Label className="text-[10px]">Tamanho do título</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={c.titleSize || 14} onChange={e => update("titleSize", parseInt(e.target.value))} className="text-xs flex-1" />
+                <span className="text-[10px] text-muted-foreground">px</span>
+              </div>
             </div>
             <div>
-              <Label className="text-[10px]">Texto</Label>
-              <Input value={c.text || ""} onChange={e => update("text", e.target.value)} className="mt-1 text-xs" />
+              <Label className="text-[10px]">Tamanho dos números</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={c.numberSize || 24} onChange={e => update("numberSize", parseInt(e.target.value))} className="text-xs flex-1" />
+                <span className="text-[10px] text-muted-foreground">px</span>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+
+          <div className="border-t border-border pt-3 mt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Aparência</p>
             <div>
-              <Label className="text-[10px]">Cor de fundo</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <input type="color" value={c.bgColor || "#EF4444"} onChange={e => update("bgColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
-                <Input value={c.bgColor || "#EF4444"} onChange={e => update("bgColor", e.target.value)} className="text-[10px] font-mono" />
-              </div>
+              <Label className="text-[10px]">Cor do Título</Label>
+              <p className="text-[9px] text-muted-foreground">Cor do texto &quot;Oferta termina em:&quot;</p>
+              <Input type="color" value={c.titleColor || "#333333"} onChange={e => update("titleColor", e.target.value)} className="mt-1 h-8 w-full" />
             </div>
             <div>
-              <Label className="text-[10px]">Cor do texto</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <input type="color" value={c.textColor || "#FFFFFF"} onChange={e => update("textColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
-                <Input value={c.textColor || "#FFFFFF"} onChange={e => update("textColor", e.target.value)} className="text-[10px] font-mono" />
-              </div>
+              <Label className="text-[10px]">Cor dos Números</Label>
+              <p className="text-[9px] text-muted-foreground">Cor dos números do cronômetro</p>
+              <Input type="color" value={c.numberColor || "#111111"} onChange={e => update("numberColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Fundo dos Números</Label>
+              <p className="text-[9px] text-muted-foreground">Cor de fundo dos blocos/cápsulas dos números</p>
+              <Input type="color" value={c.numberBgColor || "#F3F4F6"} onChange={e => update("numberBgColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor dos Rótulos</Label>
+              <p className="text-[9px] text-muted-foreground">Cor dos textos &quot;Horas&quot;, &quot;Minutos&quot; e &quot;Segundos&quot;</p>
+              <Input type="color" value={c.labelColor || "#999999"} onChange={e => update("labelColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor de Destaque</Label>
+              <p className="text-[9px] text-muted-foreground">Usada em bordas, separadores e detalhes visuais</p>
+              <Input type="color" value={c.accentColor || "#E5E7EB"} onChange={e => update("accentColor", e.target.value)} className="mt-1 h-8 w-full" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor do Fundo</Label>
+              <p className="text-[9px] text-muted-foreground">Cor de fundo do cronômetro</p>
+              <Input type="color" value={c.bgColor || "#ffffff"} onChange={e => update("bgColor", e.target.value)} className="mt-1 h-8 w-full" />
             </div>
           </div>
         </>
