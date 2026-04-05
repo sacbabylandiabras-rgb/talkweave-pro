@@ -671,7 +671,7 @@
 .lp-flow-devices {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   gap: 40px;
   flex-wrap: wrap;
   width: 100%;
@@ -766,7 +766,7 @@
   flex-shrink: 0;
 }
 .lp-flow-phone {
-  width: 200px;
+  width: 160px;
   background: #111;
   border-radius: 46px;
   padding: 11px;
