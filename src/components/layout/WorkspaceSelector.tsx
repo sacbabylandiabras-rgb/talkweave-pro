@@ -17,7 +17,7 @@ const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
 const workspaces = [
   {
     id: "gateway" as WorkspaceType,
-    label: "Gateway e Checkout",
+    label: "ZaplynxPay",
     description: "Integrações e pagamentos",
     icon: ShoppingCart,
     color: "text-emerald-500",
