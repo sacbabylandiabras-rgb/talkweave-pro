@@ -329,8 +329,205 @@
   }
 
   /* ══════════════════════════════════
-     SHARED COMPONENTS
+     BUILDER ELEMENTS RENDERER
      ══════════════════════════════════ */
+  var elCountdowns = {};
+  var elSalesCounts = {};
+
+  function getVideoEmbed(url) {
+    if (!url) return '';
+    var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) return 'https://www.youtube.com/embed/'+yt[1]+'?rel=0';
+    if (url.indexOf('vturb.com')!==-1) {
+      if (url.indexOf('/embed/')!==-1||url.indexOf('player.vturb')!==-1) return url;
+      var vt = url.match(/vturb\.com(?:\.br)?\/(?:v|video)\/([a-zA-Z0-9]+)/);
+      if (vt) return 'https://player.vturb.com.br/embed/'+vt[1];
+      return url;
+    }
+    var vim = url.match(/vimeo\.com\/(\d+)/);
+    if (vim) return 'https://player.vimeo.com/video/'+vim[1];
+    return url;
+  }
+
+  function starsHTML(rating) {
+    var h = '';
+    for (var j=0;j<5;j++) {
+      var fill = j < (rating||5) ? '#FACC15' : '#D1D5DB';
+      h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="'+fill+'" stroke="'+fill+'" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    }
+    return h;
+  }
+
+  function renderElement(el) {
+    if (!el || !el.visible) return '';
+    var c = el.content || {};
+    var pc = cfg.primaryColor||'#EF4444';
+    var tc = cfg.textColor||(cfg.theme==='dark'?'#F3F4F6':'#1F2937');
+
+    switch (el.type) {
+      case 'text':
+        return '<div style="padding:8px 0"><p style="font-size:'+(c.fontSize||14)+'px;font-weight:'+(c.fontWeight||'normal')+';text-align:'+(c.textAlign||'left')+';color:'+(c.color||tc)+'">'+(c.text||'')+'</p></div>';
+
+      case 'image':
+        if (!c.url) return '';
+        return '<div><img src="'+c.url+'" alt="'+(c.alt||'')+'" style="width:'+(c.width||'100%')+';border-radius:'+(c.borderRadius||8)+'px;display:block" /></div>';
+
+      case 'video':
+        if (!c.url) return '';
+        return '<div style="position:relative;width:100%;padding-bottom:56.25%;border-radius:12px;overflow:hidden"><iframe src="'+getVideoEmbed(c.url)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>';
+
+      case 'gallery':
+        if (!c.images||!c.images.length) return '';
+        var gh = '<div style="display:grid;grid-template-columns:repeat('+(c.columns||2)+',1fr);gap:8px">';
+        c.images.forEach(function(img) {
+          gh += '<div style="aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:1px solid var(--border)"><img src="'+img+'" style="width:100%;height:100%;object-fit:cover" /></div>';
+        });
+        gh += '</div>';
+        return gh;
+
+      case 'faq':
+        var fh = '<div class="c"><h4 style="font-size:.875rem;font-weight:700;color:var(--card-title);margin-bottom:4px">'+(c.title||'FAQ')+'</h4>';
+        if (c.description) fh += '<p style="font-size:.75rem;color:var(--card-desc);margin-bottom:12px">'+c.description+'</p>';
+        (c.items||[]).forEach(function(item,i) {
+          fh += '<div class="faq-item"><button class="faq-q" data-faq-el="'+el.id+'_'+i+'">'+item.question+' '+I.chevDown+'</button>';
+          fh += '<div class="faq-a" id="faq-el-'+el.id+'_'+i+'" style="display:none">'+item.answer+'</div></div>';
+        });
+        fh += '</div>';
+        return fh;
+
+      case 'benefits':
+        var bh = '<div class="c"><h4 style="font-size:.875rem;font-weight:700;color:var(--card-title);margin-bottom:12px">'+(c.title||'Por que escolher?')+'</h4>';
+        (c.items||[]).forEach(function(item) {
+          bh += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:1rem">'+(item.icon||'✅')+'</span><span style="font-size:.875rem;color:var(--card-text)">'+item.text+'</span></div>';
+        });
+        bh += '</div>';
+        return bh;
+
+      case 'seal':
+        return '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:12px;background:'+pc+'10;border:1px solid '+pc+'30">'+I.shieldSm+'<span style="font-size:.875rem;font-weight:600;color:'+pc+'">'+(c.text||'Compra 100% Segura')+'</span></div>';
+
+      case 'testimonial':
+        var th = '';
+        (c.items||[]).forEach(function(t) {
+          th += '<div class="testimonial-card" style="margin-bottom:12px"><div style="display:flex;align-items:flex-start;gap:12px">';
+          th += '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:'+pc+'20;display:flex;align-items:center;justify-content:center">';
+          if (t.avatar) th += '<img src="'+t.avatar+'" style="width:100%;height:100%;object-fit:cover" />';
+          else th += '<span style="font-size:.875rem;font-weight:700;color:'+pc+'">'+(t.name?t.name[0]:'?')+'</span>';
+          th += '</div><div style="flex:1;min-width:0">';
+          th += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><span style="font-size:.875rem;font-weight:600;color:var(--card-title)">'+(t.name||'Anônimo')+'</span>';
+          if (t.timeAgo) th += '<span style="font-size:10px;color:var(--card-desc)">'+t.timeAgo+'</span>';
+          th += '</div>';
+          th += '<div style="display:flex;gap:2px;margin-bottom:8px">'+starsHTML(t.rating)+'</div>';
+          th += '<p style="font-size:.75rem;line-height:1.5;color:var(--card-desc)">'+t.text+'</p>';
+          th += '</div></div></div>';
+        });
+        return th;
+
+      case 'reviews':
+        var rh = '<div class="c"><div style="display:flex;align-items:center;gap:16px">';
+        rh += '<div style="text-align:center"><p style="font-size:1.875rem;font-weight:700;color:var(--card-title)">'+(c.average||4.8)+'</p>';
+        rh += '<div style="display:flex;gap:2px;margin-top:4px">'+starsHTML(5)+'</div>';
+        rh += '<p style="font-size:10px;margin-top:4px;color:var(--card-desc)">'+(c.total||0)+' avaliações</p></div>';
+        rh += '<div style="flex:1">';
+        (c.distribution||[85,10,3,1,1]).forEach(function(pct,i) {
+          rh += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+          rh += '<span style="font-size:10px;width:12px;color:var(--card-desc)">'+(5-i)+'</span>';
+          rh += '<div style="flex:1;height:8px;border-radius:9999px;overflow:hidden;background:var(--border)"><div style="height:100%;border-radius:9999px;width:'+pct+'%;background:#FACC15"></div></div>';
+          rh += '<span style="font-size:10px;width:28px;text-align:right;color:var(--card-desc)">'+pct+'%</span></div>';
+        });
+        rh += '</div></div></div>';
+        return rh;
+
+      case 'guarantee':
+        return '<div style="background:var(--card-bg);border:2px dashed '+pc+'40;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">'
+          +'<div style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:'+pc+'15"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+pc+'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
+          +'<div><p style="font-size:.875rem;font-weight:700;color:var(--card-title)">Garantia de '+(c.days||7)+' dias</p>'
+          +'<p style="font-size:.75rem;margin-top:2px;color:var(--card-desc)">'+(c.text||'Garantia incondicional de {days} dias.').replace('{days}',String(c.days||7))+'</p></div></div>';
+
+      case 'countdown':
+        var cdId = 'cd-'+el.id;
+        if (!elCountdowns[el.id]) {
+          elCountdowns[el.id] = { total: (c.minutes||15)*60 };
+        }
+        var ct = elCountdowns[el.id];
+        var cm = Math.floor(ct.total/60), cs = ct.total%60;
+        return '<div style="background:'+(c.bgColor||'#EF4444')+';border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:8px;color:'+(c.textColor||'#fff')+'">'
+          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+          +'<span style="font-size:.875rem;font-weight:500">'+(c.text||'Oferta expira em:')+'</span>'
+          +'<span id="'+cdId+'" style="font-size:.875rem;font-weight:700;font-family:monospace">'+String(cm).padStart(2,'0')+':'+String(cs).padStart(2,'0')+'</span></div>';
+
+      case 'list':
+        var lh = '<div class="c"><h4 style="font-size:.875rem;font-weight:700;color:var(--card-title);margin-bottom:12px">'+(c.title||'O que você vai receber:')+'</h4>';
+        (c.items||[]).forEach(function(item) {
+          lh += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:1rem">'+(item.icon||'✅')+'</span><span style="font-size:.875rem;color:var(--card-text)">'+item.text+'</span></div>';
+        });
+        lh += '</div>';
+        return lh;
+
+      case 'progress':
+        var pColor = c.color||pc;
+        return '<div class="c"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+          +'<span style="font-size:.75rem;font-weight:500;color:var(--card-text)">'+(c.text||'').replace('{count}',String(c.percentage||73))+'</span>'
+          +'<span style="font-size:.75rem;font-weight:700;color:'+pColor+'">'+(c.percentage||73)+'%</span></div>'
+          +'<div style="width:100%;height:12px;border-radius:9999px;overflow:hidden;background:var(--border)"><div style="height:100%;border-radius:9999px;width:'+(c.percentage||73)+'%;background:'+pColor+'"></div></div></div>';
+
+      case 'sales':
+        var sId = 'sales-'+el.id;
+        if (!elSalesCounts[el.id]) elSalesCounts[el.id] = c.count||1847;
+        return '<div class="c" style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px">'
+          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+pc+'" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
+          +'<span id="'+sId+'" style="font-size:.875rem;font-weight:500;color:var(--card-text)">'+(c.text||'{count} pessoas já compraram').replace('{count}',String(elSalesCounts[el.id]))+'</span>'
+          +'</div></div>';
+
+      default: return '';
+    }
+  }
+
+  function renderElementsAt(position) {
+    var h = '';
+    elems.filter(function(el) { return el.position === position && el.visible; })
+      .sort(function(a,b) { return (a.order||0)-(b.order||0); })
+      .forEach(function(el) { h += renderElement(el); });
+    return h;
+  }
+
+  function bindElementEvents() {
+    // FAQ toggles
+    document.querySelectorAll('[data-faq-el]').forEach(function(btn) {
+      btn.onclick = function() {
+        var id = btn.getAttribute('data-faq-el');
+        var ans = document.getElementById('faq-el-'+id);
+        if (ans) ans.style.display = ans.style.display === 'none' ? '' : 'none';
+      };
+    });
+  }
+
+  function startElementTimers() {
+    // Countdown timers
+    Object.keys(elCountdowns).forEach(function(id) {
+      var ct = elCountdowns[id];
+      if (ct.interval) return;
+      ct.interval = setInterval(function() {
+        if (ct.total <= 0) return;
+        ct.total--;
+        var el = document.getElementById('cd-'+id);
+        if (el) el.textContent = String(Math.floor(ct.total/60)).padStart(2,'0')+':'+String(ct.total%60).padStart(2,'0');
+      }, 1000);
+    });
+    // Sales counters
+    elems.filter(function(e){return e.type==='sales'&&e.visible}).forEach(function(el) {
+      var c = el.content||{};
+      if (!c.showAnimation) return;
+      if (el._salesInterval) return;
+      el._salesInterval = setInterval(function() {
+        elSalesCounts[el.id] = (elSalesCounts[el.id]||0) + Math.floor(Math.random()*3)+1;
+        var se = document.getElementById('sales-'+el.id);
+        if (se) se.textContent = (c.text||'{count} pessoas já compraram').replace('{count}',String(elSalesCounts[el.id]));
+      }, (c.interval||30)*1000);
+    });
+  }
+
+
 
   // Step indicators (pill style - used by most templates)
   function stepsHTML() {
