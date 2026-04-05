@@ -120,7 +120,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
 
   const menuItems = isNative ? allMenuItems.filter(i => dashboardIds.includes(i.id)) : allMenuItems;
   const bottomItems = isNative ? [] : allBottomItems;
-  const brandLabel = activeWorkspace === "gateway" ? "Gateway" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
+  const brandLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean; external?: boolean }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
@@ -184,9 +184,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         collapsed && "justify-center px-2"
       )}>
         {activeWorkspace === "gateway" ? (
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <ShoppingCart className="w-4.5 h-4.5 text-emerald-500" />
-          </div>
+          <LogoImage className="w-8 h-8 object-contain shrink-0" />
         ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
