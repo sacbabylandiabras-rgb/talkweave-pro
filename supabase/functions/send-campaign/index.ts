@@ -522,15 +522,8 @@ serve(async (req) => {
           await supabase.from('campaign_sends').delete().eq('id', failedOrPending.id);
         }
 
-        const currentInstanceStatus = await fetchDeviceStatusSnapshot(currentInstance);
-        if (!currentInstanceStatus.ok) {
-          console.warn(`⚠️ Could not validate instance ${currentInstance.instanceName} before sending to ${contact.phone}:`, currentInstanceStatus.raw);
-          if (currentBatch[i].sourceInstanceId) {
-            throw new Error(`Falha ao validar a instância ${currentInstance.instanceName} antes do envio para o grupo`);
-          }
-        } else if (currentInstanceStatus.explicitlyDisconnected || !currentInstanceStatus.connected) {
-          throw new Error(`Instância ${currentInstance.instanceName} desconectada para o grupo ${contact.name || contact.phone}`);
-        }
+        // Device connectivity is checked once at batch level (above), not per-contact
+        // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
 
         console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
 
