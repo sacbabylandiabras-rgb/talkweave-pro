@@ -438,35 +438,39 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         </div>
         )}
 
-        {/* Step Indicators - hidden on mobile for public checkout */}
-        {!isOneStep && !(isPublicCheckout && isMobile) && <div className="flex items-center justify-center gap-3 py-2">
-          {stepLabels.map((sl, i) => (
-            <div key={sl.num} className="flex items-center gap-3">
-              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1.5 transition-all">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
+        {/* Step Indicators - pill style matching Vercel */}
+        {!isOneStep && !(isPublicCheckout && isMobile) && (
+          <div className="flex items-center justify-center gap-2 py-3">
+            {stepLabels.map((sl, i) => (
+              <div key={sl.num} className="flex items-center gap-2">
+                <button
+                  onClick={() => setStep(sl.num as 1 | 2 | 3)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all"
                   style={{
-                    background: step >= sl.num ? `${s.primary}20` : s.isDark ? "#333" : "#E5E7EB",
-                    border: step === sl.num ? `2px solid ${s.primary}` : step > sl.num ? `2px solid ${s.primary}80` : "2px solid transparent",
-                    borderRadius: s.stepRadius,
+                    borderRadius: "999px",
+                    border: step === sl.num ? `2px solid ${s.primary}` : `1px solid ${s.cardBorder}`,
+                    background: step === sl.num ? `${s.primary}10` : "transparent",
+                    color: step === sl.num ? s.primary : s.cardDesc,
                   }}
                 >
-                  {step > sl.num ? (
-                    <Check className="w-5 h-5" style={{ color: s.primary }} />
-                  ) : (
-                    <span style={{ color: step === sl.num ? s.primary : s.cardDesc }}>{sl.icon}</span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.primary : s.cardDesc }}>
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{
+                      background: step > sl.num ? s.primary : step === sl.num ? s.primary : s.isDark ? "#444" : "#E5E7EB",
+                      color: step >= sl.num ? "#fff" : s.cardDesc,
+                    }}
+                  >
+                    {step > sl.num ? "✓" : sl.num}
+                  </span>
                   {sl.label}
-                </span>
-              </button>
-              {i < stepLabels.length - 1 && (
-                <div className="w-8 h-[2px] rounded mb-5" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
-              )}
-            </div>
-          ))}
-        </div>}
+                </button>
+                {i < stepLabels.length - 1 && (
+                  <div className="w-6 h-[2px]" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ───── STEP 1: Identification ───── */}
         {(step === 1 || isOneStep) && (
