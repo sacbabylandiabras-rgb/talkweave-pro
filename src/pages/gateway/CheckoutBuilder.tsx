@@ -84,6 +84,7 @@ const defaultConfig = {
   thankYouMessage: "Obrigado pela sua compra! Os detalhes de acesso serão enviados para o seu e-mail ou WhatsApp em instantes.",
   footerCompanyName: "",
   footerCnpj: "",
+  stepIndicatorStyle: "circles" as "circles" | "pills" | "progress",
 };
 
 const formatOptions = [
