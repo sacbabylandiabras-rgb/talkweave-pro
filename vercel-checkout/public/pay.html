@@ -1162,6 +1162,8 @@
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
       shippingEnabled: isTruthyBoolean(sv.shippingEnabled), shippingPrice: toCents(sv.shippingPrice),
     };
+    // Load builder elements
+    elems = Array.isArray(sv.elements) ? sv.elements : [];
     applyCSS(cfg);
 
     // Dynamic favicon
