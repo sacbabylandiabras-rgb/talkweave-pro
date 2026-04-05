@@ -31,7 +31,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const formatPhone = (phone: string) => {
+const formatPhone = (phone?: string | null) => {
+  if (!phone) return '';
   const clean = phone.replace(/\D/g, '');
   if (clean.length === 13 && clean.startsWith('55')) {
     const ddd = clean.slice(2, 4);
@@ -68,9 +69,9 @@ const formatDateSeparator = (ts: string) => {
   return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 };
 
-const getInitials = (name: string | null, phone: string) => {
+const getInitials = (name: string | null, phone?: string | null) => {
   if (name) return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return phone.replace(/\D/g, '').slice(-2);
+  return (phone || '').replace(/\D/g, '').slice(-2) || '??';
 };
 
 const getSourceIcon = (source: string) => {
