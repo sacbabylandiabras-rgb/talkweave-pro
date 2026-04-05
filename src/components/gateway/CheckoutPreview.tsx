@@ -437,7 +437,6 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           </div>
         </div>
         )}
-        </div>
 
         {/* Step Indicators - hidden on mobile for public checkout */}
         {!isOneStep && !(isPublicCheckout && isMobile) && <div className="flex items-center justify-center gap-3 py-2">
