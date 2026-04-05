@@ -463,10 +463,6 @@ serve(async (req) => {
       if (await shouldPause()) {
         console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        try {
-          if (isRotateMode) await Promise.all(rotatePool.map(inst => clearInstanceQueue(inst)));
-          else await clearInstanceQueue(firstInstance);
-        } catch {}
         return new Response(JSON.stringify({ error: 'Device disconnected, campaign paused', stopped: true }),
           { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
