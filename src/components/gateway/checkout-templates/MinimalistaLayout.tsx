@@ -86,7 +86,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
         {/* DROP ZONE: Top */}
         <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
 
-        <div className={!previewMode ? "flex flex-col md:flex-row gap-6" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column" : "row", gap: "1.5rem" } : undefined}>
+        <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-6" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.5rem" } : undefined}>
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
             <div className="flex items-center justify-center gap-2">
