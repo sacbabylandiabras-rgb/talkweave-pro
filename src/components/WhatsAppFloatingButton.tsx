@@ -1,4 +1,9 @@
 export default function WhatsAppFloatingButton() {
+  // Hide on public checkout pages
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/pay/')) {
+    return null;
+  }
+
   return (
     <a
       href="https://wa.me/5511964216015"
