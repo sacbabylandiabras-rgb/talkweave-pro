@@ -89,31 +89,32 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
         <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-6" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.5rem" } : undefined}>
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
-            <div className="flex items-center justify-center gap-3 rounded-[28px] px-4 py-2.5" style={{ background: s.cardBg }}>
+            <div className="flex items-center justify-center gap-1 py-2.5">
               {steps.map((st, i) => (
-                <div key={st.num} className="flex items-center gap-3">
+                <div key={st.num} className="flex items-center gap-1">
                   <button
                     onClick={() => setStep(st.num as 1 | 2 | 3)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-all"
+                    className="flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium transition-all"
                     style={{
-                      borderRadius: "16px",
-                      background: step === st.num ? `${s.stepBg}12` : "transparent",
-                      color: step === st.num ? s.stepBg : s.cardText,
-                      border: step === st.num ? `1px solid ${s.stepBg}` : `1px solid transparent`,
+                      borderRadius: "999px",
+                      background: step === st.num ? `${s.primary}08` : "transparent",
+                      color: step === st.num ? s.primary : s.cardDesc,
+                      border: step === st.num ? `1.5px solid ${s.primary}40` : `1.5px solid transparent`,
                     }}
                   >
                     <div
-                      className="flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-bold leading-none"
+                      className="flex h-[18px] min-w-[18px] items-center justify-center rounded text-[10px] font-bold leading-none"
                       style={{
-                        background: step === st.num || step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#E5E7EB",
-                        color: step === st.num || step > st.num ? "#FFFFFF" : s.cardDesc,
+                        background: step === st.num ? s.primary : step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB",
+                        color: step >= st.num ? "#FFFFFF" : s.isDark ? "#A1A1AA" : "#6B7280",
+                        borderRadius: "4px",
                       }}
                     >
                       {step > st.num ? <Check className="w-3 h-3" /> : st.num}
                     </div>
                     <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{st.label}</span>
                   </button>
-                  {i < steps.length - 1 && <div className="h-px w-7 rounded-full" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
+                  {i < steps.length - 1 && <div className="h-px w-10" style={{ background: step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB", opacity: 0.5 }} />}
                 </div>
               ))}
             </div>
