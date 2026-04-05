@@ -43,6 +43,7 @@
     @media (max-width: 768px) {
       .layout-2col { flex-direction: column-reverse; padding: 16px 12px; }
       .layout-2col .col-side { width: 100%; }
+      .steps, .step-tabs { display: none !important; }
     }
 
     /* Steps */
@@ -1156,17 +1157,6 @@
         sideH += '</div>';
       }
 
-      // Product card in sidebar (logo + name + price)
-      if (cfg.productImage || cfg.logoUrl) {
-        sideH += '<div class="c" style="display:flex;align-items:center;gap:12px;padding:12px">';
-        var sideImg = cfg.logoUrl || cfg.productImage;
-        sideH += '<div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#F3F4F6;display:flex;align-items:center;justify-content:center">';
-        sideH += '<img src="'+sideImg+'" style="width:100%;height:100%;object-fit:cover" />';
-        sideH += '</div>';
-        sideH += '<div><p style="font-size:.75rem;font-weight:600;color:var(--card-title)">'+(cfg.offerName||cfg.productName||'')+'</p>';
-        sideH += '<p style="font-size:.75rem;font-weight:700;color:var(--primary)">'+fmt(cfg.price)+'</p></div>';
-        sideH += '</div>';
-      }
 
       // Elements: sidebar
       sideH += renderElementsAt('sidebar');
