@@ -480,10 +480,10 @@ function CheckList({ items, ig }: { items: string[]; ig?: boolean }) {
 }
 
 function GatewayMock() {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [animated, setAnimated] = React.useState(false);
-  const [progress, setProgress] = React.useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [animated, setAnimated] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const raw = [980,1240,1100,1580,1420,2100,1880,2450,2200,2980,2700,3350,3100,3800,3500,4300,3900,5100,4600,5900,5300,6700,6100,7500,6900,8600,8100,10200,11400,12847];
   const today = new Date();
