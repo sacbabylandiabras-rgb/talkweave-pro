@@ -1182,9 +1182,8 @@
       else mainH2 += step3HTML();
       mainH2 += renderElementsAt('below-form');
 
-      var sideH2 = sidebarSummaryHTML({});
+      var sideH2 = sidebarSummaryHTML({showCount:true});
       sideH2 += renderElementsAt('sidebar');
-      sideH2 += footerHTML();
       sideH2 += renderElementsAt('sidebar-bottom');
 
       co.innerHTML = '<div class="col-main">'+mainH2+'</div><div class="col-side">'+sideH2+'</div>';
