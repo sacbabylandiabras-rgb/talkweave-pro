@@ -27,7 +27,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("active_workspace", activeWorkspace);
   }, [activeWorkspace]);
 
-  const workspaceLabel = activeWorkspace === "gateway" ? "Gateway e Checkout" : activeWorkspace === "meta" ? "Meta API Oficial" : "ZapLynx";
+  const workspaceLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API Oficial" : "ZapLynx";
 
   return (
     <WorkspaceContext.Provider value={{ activeWorkspace, setActiveWorkspace, workspaceLabel }}>
