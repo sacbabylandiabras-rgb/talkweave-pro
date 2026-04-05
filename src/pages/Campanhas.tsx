@@ -711,7 +711,9 @@ const Campanhas = () => {
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                              {campaign.schedule_type === 'scheduled' && campaign.scheduled_at
+                                ? `Agendada: ${format(new Date(campaign.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                                : format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                             </span>
                           </CardDescription>
                         </div>
