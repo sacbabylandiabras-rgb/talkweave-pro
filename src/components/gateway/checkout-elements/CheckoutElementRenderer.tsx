@@ -248,30 +248,70 @@ function FaqElement({ content, primaryColor, textColor, cardBg, cardBorder, wrap
 }
 
 function CountdownElement({ content, wrapperStyle, hoverClass, onClick }: any) {
-  const [time, setTime] = useState({ m: content.minutes || 15, s: 0 });
+  const totalSeconds = (content.minutes || 10) * 60;
+  const [remaining, setRemaining] = useState(totalSeconds);
+  useEffect(() => {
+    setRemaining((content.minutes || 10) * 60);
+  }, [content.minutes]);
   useEffect(() => {
     const interval = setInterval(() => {
-      setTime(prev => {
-        if (prev.m === 0 && prev.s === 0) return prev;
-        if (prev.s === 0) return { m: prev.m - 1, s: 59 };
-        return { ...prev, s: prev.s - 1 };
+      setRemaining(prev => {
+        if (prev <= 0) return content.timerType === "fixed" ? (content.minutes || 10) * 60 : 0;
+        return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [content.timerType, content.minutes]);
+
+  const h = Math.floor(remaining / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
+  const s = remaining % 60;
+
+  const style = content.style || "cards";
+  const titleColor = content.titleColor || "#333";
+  const numberColor = content.numberColor || "#111";
+  const numberBgColor = content.numberBgColor || "#F3F4F6";
+  const labelColor = content.labelColor || "#999";
+  const accentColor = content.accentColor || "#E5E7EB";
+  const bgColor = content.bgColor || "transparent";
+  const titleSize = content.titleSize || 14;
+  const numberSize = content.numberSize || 24;
+
+  if (style === "banner") {
+    return (
+      <div style={{ ...wrapperStyle, background: bgColor || "#EF4444", borderRadius: "12px", padding: "12px 16px" }} className={hoverClass} onClick={onClick}>
+        <div className="flex items-center justify-center gap-2" style={{ color: numberColor || "#FFFFFF" }}>
+          <Clock className="w-4 h-4" />
+          <span className="font-medium" style={{ fontSize: `${titleSize}px` }}>{content.text || "Oferta expira em:"}</span>
+          <span className="font-bold font-mono" style={{ fontSize: `${numberSize}px` }}>
+            {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Cards style (default)
+  const units = [
+    { value: h, label: "Horas" },
+    { value: m, label: "Minutos" },
+    { value: s, label: "Segundos" },
+  ];
 
   return (
-    <div
-      style={{ ...wrapperStyle, background: content.bgColor || "#EF4444", borderRadius: "12px", padding: "12px 16px" }}
-      className={hoverClass}
-      onClick={onClick}
-    >
-      <div className="flex items-center justify-center gap-2" style={{ color: content.textColor || "#FFFFFF" }}>
-        <Clock className="w-4 h-4" />
-        <span className="text-sm font-medium">{content.text || "Oferta expira em:"}</span>
-        <span className="text-sm font-bold font-mono">
-          {String(time.m).padStart(2, "0")}:{String(time.s).padStart(2, "0")}
-        </span>
+    <div style={{ ...wrapperStyle, background: bgColor, borderRadius: "12px", padding: "16px" }} className={hoverClass} onClick={onClick}>
+      <p className="text-center font-medium mb-3" style={{ color: titleColor, fontSize: `${titleSize}px` }}>
+        {content.text || "Oferta termina em:"}
+      </p>
+      <div className="flex items-center justify-center gap-3">
+        {units.map((u, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <div className="font-bold font-mono rounded-lg px-4 py-2" style={{ background: numberBgColor, color: numberColor, fontSize: `${numberSize}px`, border: `1px solid ${accentColor}` }}>
+              {String(u.value).padStart(2, "0")}
+            </div>
+            <span className="text-[10px] mt-1" style={{ color: labelColor }}>{u.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
