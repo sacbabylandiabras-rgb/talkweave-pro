@@ -432,7 +432,7 @@ export default function FluxoVisual() {
   };
 
   const handleSaveFluxo = async () => {
-    if (savingFluxo) return;
+    if (savingFluxo) return false;
     setSavingFluxo(true);
 
     try {
@@ -440,13 +440,16 @@ export default function FluxoVisual() {
       if (authError || !user) {
         toast.error("Faça login para salvar fluxos");
         console.error("Auth error:", authError);
-        return;
+        return false;
       }
 
       const normalizedName = nomeFluxo.trim() || "Novo Fluxo";
+      const nodesToPersist = selectedNode
+        ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
+        : nodes;
 
       // Serialize nodes/edges to plain JSON to avoid non-serializable data
-      const serializedNodes = JSON.parse(JSON.stringify(nodes));
+      const serializedNodes = JSON.parse(JSON.stringify(nodesToPersist));
       const serializedEdges = JSON.parse(JSON.stringify(edges));
 
       const fluxoData = {
@@ -469,10 +472,9 @@ export default function FluxoVisual() {
         if (error) {
           console.error("Erro ao atualizar fluxo:", error);
           toast.error(`Erro ao atualizar: ${error.message}`);
-          return;
+          return false;
         }
 
-        // If nothing was updated (stale id or row not found), create a new one
         if (!updatedRows || updatedRows.length === 0) {
           const { data: createdFlow, error: insertError } = await (supabase as any)
             .from('flow_automations')
@@ -483,7 +485,7 @@ export default function FluxoVisual() {
           if (insertError) {
             console.error("Erro ao recriar fluxo:", insertError);
             toast.error(`Erro ao salvar: ${insertError.message}`);
-            return;
+            return false;
           }
 
           setCurrentFluxoId(createdFlow.id);
@@ -498,18 +500,21 @@ export default function FluxoVisual() {
         if (error) {
           console.error("Erro ao inserir fluxo:", error);
           toast.error(`Erro ao salvar: ${error.message}`);
-          return;
+          return false;
         }
 
         setCurrentFluxoId(data.id);
       }
 
+      setNodes(nodesToPersist);
       setNomeFluxo(normalizedName);
       await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
+      return true;
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
       toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
+      return false;
     } finally {
       setSavingFluxo(false);
     }
