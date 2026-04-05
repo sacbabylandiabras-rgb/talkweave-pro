@@ -241,23 +241,73 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             </div>
 
             <div>
-              <Label htmlFor="template">Modelo de Mensagem *</Label>
+              <Label>Tipo de Conteúdo *</Label>
               <Select
-                value={formData.template_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, template_id: value }))}
+                value={formData.content_type}
+                onValueChange={(value: "template" | "flow") => setFormData(prev => ({ ...prev, content_type: value, template_id: "", flow_id: "" }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um modelo" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name} - {template.category}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="template">📝 Modelo de Mensagem</SelectItem>
+                  <SelectItem value="flow">
+                    <div className="flex items-center gap-2">
+                      <Workflow className="w-4 h-4" />
+                      Fluxo Visual
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.content_type === "template" && (
+              <div>
+                <Label htmlFor="template">Modelo de Mensagem *</Label>
+                <Select
+                  value={formData.template_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, template_id: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um modelo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name} - {template.category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {formData.content_type === "flow" && (
+              <div>
+                <Label htmlFor="flow">Fluxo Visual *</Label>
+                <Select
+                  value={formData.flow_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, flow_id: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um fluxo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {flows.map((flow) => (
+                      <SelectItem key={flow.id} value={flow.id}>
+                        <div className="flex items-center gap-2">
+                          <Workflow className="w-3 h-3" />
+                          {flow.name} {flow.keyword ? `(${flow.keyword})` : ''}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O fluxo será executado para cada contato da campanha
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Preview do Carrossel */}
