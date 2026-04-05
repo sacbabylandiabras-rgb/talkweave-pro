@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShieldCheck, Lock, Package, Check } from "lucide-react";
+import { ShieldCheck, Lock, Package, Check, User, CreditCard } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
@@ -57,9 +57,9 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
   const steps = [
-    { num: 1, label: "Identificação" },
-    { num: 2, label: "Conferência" },
-    { num: 3, label: "Pagamento" },
+    { num: 1, label: "Identificação", icon: <User className="w-3 h-3" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-3 h-3" /> },
+    { num: 3, label: "Pagamento", icon: <CreditCard className="w-3 h-3" /> },
   ];
 
   return (
@@ -110,7 +110,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                         borderRadius: "4px",
                       }}
                     >
-                      {step > st.num ? <Check className="w-3 h-3" /> : st.num}
+                      {step > st.num ? <Check className="w-3 h-3" /> : st.icon}
                     </div>
                     <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{st.label}</span>
                   </button>
