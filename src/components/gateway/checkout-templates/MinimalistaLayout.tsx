@@ -89,34 +89,73 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
         <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-6" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.5rem" } : undefined}>
           <div className="flex-1 space-y-5">
             {/* Step indicators */}
-            <div className="flex items-center justify-center py-4">
-              {steps.map((st, i) => (
-                <div key={st.num} className="flex items-center">
-                  <button
-                    onClick={() => setStep(st.num as 1 | 2 | 3)}
-                    className="flex flex-col items-center gap-1.5"
-                  >
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all"
+            {config.stepIndicatorStyle === "progress" ? (
+              <div className="px-2 py-4 space-y-2">
+                <div className="flex items-center gap-1">
+                  {steps.map((st) => (
+                    <div key={st.num} className="flex-1 h-2 rounded-full transition-all" style={{ background: step >= st.num ? s.primary : s.isDark ? "#3F3F46" : "#E5E7EB" }} />
+                  ))}
+                </div>
+                <p className="text-center text-[11px] font-medium" style={{ color: s.primary }}>
+                  Etapa {step} de 3 — {steps.find(st => st.num === step)?.label}
+                </p>
+              </div>
+            ) : config.stepIndicatorStyle === "pills" ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                {steps.map((st, i) => (
+                  <div key={st.num} className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStep(st.num as 1 | 2 | 3)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
                       style={{
-                        borderColor: step === st.num ? s.primary : step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#E5E7EB",
-                        background: step > st.num ? `${s.primary}15` : "transparent",
+                        borderRadius: "999px",
+                        background: step === st.num ? `${s.primary}12` : "transparent",
+                        border: step === st.num ? `1.5px solid ${s.primary}50` : `1.5px solid ${s.isDark ? "#3F3F46" : "#E5E7EB"}`,
                         color: step === st.num ? s.primary : step > st.num ? s.primary : s.isDark ? "#71717A" : "#9CA3AF",
                       }}
                     >
-                      {step > st.num ? <Check className="w-5 h-5" /> : st.icon}
-                    </div>
-                    <span
-                      className="text-[11px] font-medium"
-                      style={{ color: step === st.num ? s.primary : s.isDark ? "#71717A" : "#9CA3AF" }}
+                      <div className="w-5 h-5 rounded flex items-center justify-center text-[10px]" style={{
+                        background: step >= st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB",
+                        color: "#fff", borderRadius: "4px",
+                      }}>
+                        {step > st.num ? <Check className="w-3 h-3" /> : st.icon}
+                      </div>
+                      <span className="text-[11px] font-medium">{st.label}</span>
+                    </button>
+                    {i < steps.length - 1 && <div className="h-px w-6" style={{ background: step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB" }} />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                {steps.map((st, i) => (
+                  <div key={st.num} className="flex items-center">
+                    <button
+                      onClick={() => setStep(st.num as 1 | 2 | 3)}
+                      className="flex flex-col items-center gap-1.5"
                     >
-                      {st.label}
-                    </span>
-                  </button>
-                  {i < steps.length - 1 && <div className="h-px w-14 mb-5" style={{ background: step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB" }} />}
-                </div>
-              ))}
-            </div>
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all"
+                        style={{
+                          borderColor: step === st.num ? s.primary : step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#E5E7EB",
+                          background: step > st.num ? `${s.primary}15` : "transparent",
+                          color: step === st.num ? s.primary : step > st.num ? s.primary : s.isDark ? "#71717A" : "#9CA3AF",
+                        }}
+                      >
+                        {step > st.num ? <Check className="w-5 h-5" /> : st.icon}
+                      </div>
+                      <span
+                        className="text-[11px] font-medium"
+                        style={{ color: step === st.num ? s.primary : s.isDark ? "#71717A" : "#9CA3AF" }}
+                      >
+                        {st.label}
+                      </span>
+                    </button>
+                    {i < steps.length - 1 && <div className="h-px w-14 mb-5" style={{ background: step > st.num ? s.primary : s.isDark ? "#3F3F46" : "#D1D5DB" }} />}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Step 1: Identificação */}
             {step === 1 && (
