@@ -1081,10 +1081,18 @@
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
   /* Flow mockup */
-  .lp-flow-devices { gap: 20px; }
-  .lp-flow-laptop { max-width: 100%; min-width: unset; }
-  .lp-flow-phone-wrap { order: -1; }
-  .lp-flow-phone { width: 160px; border-radius: 38px; padding: 9px; }
+  .lp-flow-devices {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .lp-flow-laptop { max-width: 58%; min-width: 0; flex: unset; }
+  .lp-flow-phone-wrap { max-width: 32%; min-width: 0; order: 0; }
+  .lp-flow-phone { width: 120px; border-radius: 28px; padding: 7px; }
 
   /* Gateway mock */
   .lp-gw-card { max-width: 100%; }
