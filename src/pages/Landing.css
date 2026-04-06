@@ -1071,9 +1071,13 @@
     gap: 8px;
     text-align: center;
   }
-  .lp-checkout-carousel-wrapper {
-    overflow: hidden;
-    width: 100%;
+  .lp-checkout-desktop { display: none; }
+  .lp-checkout-mobile { display: block; }
+  .lp-checkout-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
   }
   .lp-checkout-sidebyside {
     display: flex;
