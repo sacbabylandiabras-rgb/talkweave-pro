@@ -773,7 +773,7 @@ function CheckoutMock() {
   const [activeSlide, setActiveSlide] = useState(0);
   return (
     <div className="lp-checkout-carousel-wrapper">
-      <div className="lp-checkout-sidebyside" style={{ transform: `translateX(-${activeSlide * 100}%)`, transition: 'transform 0.4s ease' }}>
+      <div className="lp-checkout-sidebyside" style={{ transform: `translateX(-${activeSlide * 100}%)` }}>
         <div className="lp-checkout-slide">
           {/* NOTEBOOK */}
           <div className="lp-laptop">
