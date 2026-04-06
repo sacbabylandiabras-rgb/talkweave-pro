@@ -1110,9 +1110,9 @@
   .lp-checkout-dot.active {
     background: #22c55e;
   }
-  .lp-laptop { max-width: 70%; flex: unset; min-width: 0; }
-  .lp-phone-wrap { flex-shrink: 0; min-width: 0; max-width: 50%; }
-  .lp-phone-device { width: 100%; max-width: 160px; border-radius: 28px; padding: 7px; }
+  .lp-laptop { max-width: 260px; flex: unset; min-width: 0; margin: 0 auto; }
+  .lp-phone-wrap { flex-shrink: 0; min-width: 0; max-width: 200px; margin: 0 auto; }
+  .lp-phone-device { width: 100%; max-width: 160px; border-radius: 28px; padding: 7px; margin: 0 auto; }
   .lp-p-screen { border-radius: 22px; }
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
