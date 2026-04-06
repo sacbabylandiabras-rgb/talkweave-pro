@@ -1158,8 +1158,8 @@
     min-height: 210px;
   }
   .lp-flow-mobile .lp-flow-laptop {
-    width: 170px;
-    max-width: 170px;
+    width: 240px;
+    max-width: 240px;
     flex: none;
     min-width: 0;
     margin: 0 auto;
