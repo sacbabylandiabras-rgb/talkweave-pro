@@ -1157,7 +1157,7 @@
     align-items: center;
   }
   .lp-flow-mobile .lp-flow-laptop {
-    width: min(68vw, 228px);
+    width: min(55vw, 200px);
     max-width: none;
     flex: none;
     min-width: 0;
@@ -1165,13 +1165,13 @@
   }
   .lp-flow-mobile .lp-flow-phone-wrap {
     position: static;
-    max-width: 170px;
+    max-width: 140px;
     margin: 0 auto;
   }
   .lp-flow-mobile .lp-flow-phone {
-    width: 148px;
-    border-radius: 28px;
-    padding: 7px;
+    width: 120px;
+    border-radius: 24px;
+    padding: 6px;
     margin: 0 auto;
   }
   .lp-flow-devices {
