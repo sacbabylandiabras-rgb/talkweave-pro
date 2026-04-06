@@ -185,7 +185,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         collapsed && "justify-center px-2"
       )}>
         {activeWorkspace === "gateway" ? (
-          <img src={logoPayImage} alt="ZaplynxPay" className="w-8 h-8 object-contain shrink-0" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <CreditCard className="w-4.5 h-4.5 text-emerald-500" />
+          </div>
         ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
