@@ -1067,17 +1067,50 @@
     gap: 8px;
     text-align: center;
   }
-  .lp-checkout-sidebyside {
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-    justify-content: center;
+  .lp-checkout-carousel-wrapper {
     overflow: hidden;
-    max-width: 100%;
+    width: 100%;
+  }
+  .lp-checkout-sidebyside {
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    gap: 0;
+    transition: none;
+  }
+  .lp-checkout-slide {
+    min-width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.4s ease;
+  }
+  .lp-checkout-sidebyside:has(.lp-checkout-slide:first-child) {
+    /* controlled via inline transform */
+  }
+  .lp-checkout-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .lp-checkout-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+  }
+  .lp-checkout-dot.active {
+    background: #22c55e;
   }
   .lp-laptop { max-width: 90%; flex: unset; min-width: 0; }
-  .lp-phone-wrap { flex-shrink: 0; min-width: 0; max-width: 50%; }
-  .lp-phone-device { width: 100%; max-width: 160px; border-radius: 28px; padding: 7px; }
+  .lp-phone-wrap { flex-shrink: 0; min-width: 0; max-width: 60%; }
+  .lp-phone-device { width: 100%; max-width: 180px; border-radius: 28px; padding: 7px; }
   .lp-p-screen { border-radius: 22px; }
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
