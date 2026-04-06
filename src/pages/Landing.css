@@ -668,6 +668,8 @@
 }
 
 /* FLOW DEVICES MOCKUP */
+.lp-flow-desktop { display: block; }
+.lp-flow-mobile { display: none; }
 .lp-flow-devices {
   display: flex;
   justify-content: center;
@@ -1144,6 +1146,34 @@
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
   /* Flow mockup */
+  .lp-flow-desktop { display: none; }
+  .lp-flow-mobile {
+    display: block;
+    width: 100%;
+  }
+  .lp-flow-mobile-stage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .lp-flow-mobile .lp-flow-laptop {
+    width: min(68vw, 228px);
+    max-width: none;
+    flex: none;
+    min-width: 0;
+    margin: 0 auto;
+  }
+  .lp-flow-mobile .lp-flow-phone-wrap {
+    position: static;
+    max-width: 170px;
+    margin: 0 auto;
+  }
+  .lp-flow-mobile .lp-flow-phone {
+    width: 148px;
+    border-radius: 28px;
+    padding: 7px;
+    margin: 0 auto;
+  }
   .lp-flow-devices {
     flex-direction: row;
     flex-wrap: nowrap;
