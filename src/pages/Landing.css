@@ -1051,8 +1051,6 @@
     gap: 24px;
     padding: 36px 16px;
     direction: ltr;
-    overflow-x: hidden;
-    overflow-y: visible;
   }
   .lp-section.lp-section-reverse > * {
     direction: ltr;
