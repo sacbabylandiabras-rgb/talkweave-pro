@@ -1068,13 +1068,13 @@
   .lp-checkout-sidebyside {
     flex-direction: row;
     align-items: flex-end;
-    gap: 12px;
+    gap: 10px;
     justify-content: center;
   }
-  .lp-laptop { max-width: 100%; }
-  .lp-phone-device { width: 140px; border-radius: 30px; padding: 8px; }
-  .lp-p-screen { border-radius: 24px; }
-  .lp-island { width: 50px; height: 14px; top: 6px; }
+  .lp-laptop { max-width: 60%; flex: unset; }
+  .lp-phone-device { width: 120px; border-radius: 28px; padding: 7px; }
+  .lp-p-screen { border-radius: 22px; }
+  .lp-island { width: 44px; height: 12px; top: 5px; }
 
   /* Flow mockup */
   .lp-flow-devices { gap: 20px; }
