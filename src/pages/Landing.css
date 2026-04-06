@@ -1090,9 +1090,9 @@
   .lp-gw-card { max-width: 100%; }
 
   /* Instagram mock */
-  .lp-ig-scene { flex-direction: column; align-items: center; gap: 16px; }
-  .lp-ig-post-card { width: 100%; max-width: 300px; }
-  .lp-ig-dm-card { width: 100%; max-width: 280px; }
+  .lp-ig-scene { flex-direction: column; align-items: center; gap: 12px; transform: scale(0.85); transform-origin: top center; }
+  .lp-ig-post-card { width: 100%; max-width: 280px; }
+  .lp-ig-dm-card { width: 100%; max-width: 260px; }
   .lp-ig-arrow-wrap { flex-direction: row; padding-top: 0; gap: 8px; }
 
   /* Chat mock */
