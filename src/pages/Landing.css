@@ -1081,20 +1081,9 @@
   }
   .lp-checkout-sidebyside {
     display: flex;
-    flex-direction: row;
-    gap: 0;
-    transition: transform 0.4s ease;
-  }
-  .lp-checkout-slide {
-    min-width: 100%;
-    flex-shrink: 0;
-    display: flex;
     justify-content: center;
-    align-items: center;
-    transition: transform 0.4s ease;
-  }
-  .lp-checkout-sidebyside:has(.lp-checkout-slide:first-child) {
-    /* controlled via inline transform */
+    align-items: flex-end;
+    gap: 0;
   }
   .lp-checkout-dots {
     display: flex;
