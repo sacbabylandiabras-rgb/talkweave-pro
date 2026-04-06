@@ -871,6 +871,9 @@
 }
 
 /* CHECKOUT SIDE-BY-SIDE MOCKUP */
+.lp-checkout-carousel-wrapper { width: 100%; }
+.lp-checkout-dots { display: none; }
+.lp-checkout-slide { display: flex; justify-content: center; align-items: center; }
 .lp-checkout-sidebyside {
   display: flex;
   justify-content: center;
