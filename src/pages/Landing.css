@@ -1047,6 +1047,7 @@
     gap: 24px;
     padding: 36px 16px;
     direction: ltr;
+    overflow: hidden;
   }
   .lp-section.lp-section-reverse > * {
     direction: ltr;
@@ -1070,9 +1071,12 @@
     align-items: flex-end;
     gap: 10px;
     justify-content: center;
+    overflow: hidden;
+    max-width: 100%;
   }
-  .lp-laptop { max-width: 60%; flex: unset; }
-  .lp-phone-device { width: 120px; border-radius: 28px; padding: 7px; }
+  .lp-laptop { max-width: 55%; flex: unset; min-width: 0; }
+  .lp-phone-wrap { flex-shrink: 1; min-width: 0; max-width: 35%; }
+  .lp-phone-device { width: 100%; max-width: 120px; border-radius: 28px; padding: 7px; }
   .lp-p-screen { border-radius: 22px; }
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
