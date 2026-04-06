@@ -825,8 +825,10 @@ function CheckoutMock() {
       </div>
       {/* Mobile: one at a time */}
       <div className="lp-checkout-mobile">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {activeSlide === 0 ? notebook : phone}
+        <div className="lp-checkout-mobile-stage">
+          <div className={`lp-checkout-mobile-panel ${activeSlide === 0 ? "is-notebook" : "is-phone"}`}>
+            {activeSlide === 0 ? notebook : phone}
+          </div>
         </div>
         <div className="lp-checkout-dots">
           <button className={`lp-checkout-dot ${activeSlide === 0 ? "active" : ""}`} onClick={() => setActiveSlide(0)} aria-label="Ver notebook" />
