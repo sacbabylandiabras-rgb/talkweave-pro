@@ -871,6 +871,8 @@
 }
 
 /* CHECKOUT SIDE-BY-SIDE MOCKUP */
+.lp-checkout-desktop { display: block; }
+.lp-checkout-mobile { display: none; }
 .lp-checkout-carousel-wrapper { width: 100%; }
 .lp-checkout-dots { display: none; }
 .lp-checkout-slide { display: flex; justify-content: center; align-items: center; }
