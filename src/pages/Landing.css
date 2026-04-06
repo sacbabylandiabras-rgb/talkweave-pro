@@ -675,6 +675,7 @@
   gap: 40px;
   flex-wrap: wrap;
   width: 100%;
+  position: relative;
 }
 .lp-flow-laptop {
   display: flex;
@@ -1084,15 +1085,24 @@
   .lp-flow-devices {
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 10px;
-    align-items: flex-end;
+    gap: 0;
+    align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
     max-width: 100%;
+    position: relative;
   }
-  .lp-flow-laptop { max-width: 58%; min-width: 0; flex: unset; }
-  .lp-flow-phone-wrap { max-width: 32%; min-width: 0; order: 0; }
-  .lp-flow-phone { width: 120px; border-radius: 28px; padding: 7px; }
+  .lp-flow-laptop { max-width: 85%; min-width: 0; flex: unset; }
+  .lp-flow-phone-wrap {
+    position: absolute;
+    right: -5%;
+    bottom: 5%;
+    max-width: none;
+    min-width: 0;
+    order: 0;
+    z-index: 2;
+  }
+  .lp-flow-phone { width: 130px; border-radius: 28px; padding: 7px; }
 
   /* Gateway mock */
   .lp-gw-card { max-width: 100%; }
