@@ -821,11 +821,6 @@
   filter: blur(6px);
 }
 
-@media (max-width: 700px) {
-  .lp-flow-devices { gap: 24px; }
-  .lp-flow-phone { width: 160px; border-radius: 38px; padding: 9px; }
-  .lp-flow-phone-wrap { order: -1; }
-}
 
 
 /* DIVIDER */
