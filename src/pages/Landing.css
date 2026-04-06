@@ -1077,9 +1077,8 @@
   .lp-checkout-sidebyside {
     display: flex;
     flex-direction: row;
-    overflow: hidden;
     gap: 0;
-    transition: none;
+    transition: transform 0.4s ease;
   }
   .lp-checkout-slide {
     min-width: 100%;
