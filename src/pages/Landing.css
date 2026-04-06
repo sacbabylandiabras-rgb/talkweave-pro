@@ -1072,12 +1072,21 @@
     text-align: center;
   }
   .lp-checkout-desktop { display: none; }
-  .lp-checkout-mobile { display: block; }
-  .lp-checkout-dots {
+  .lp-checkout-mobile {
+    display: block;
+    width: 100%;
+  }
+  .lp-checkout-mobile-stage {
+    width: 100%;
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-top: 16px;
+    align-items: center;
+  }
+  .lp-checkout-mobile-panel {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   .lp-checkout-sidebyside {
     display: flex;
@@ -1104,9 +1113,33 @@
   .lp-checkout-dot.active {
     background: #22c55e;
   }
-  .lp-laptop { max-width: 260px; flex: unset; min-width: 0; margin: 0 auto; }
-  .lp-phone-wrap { flex-shrink: 0; min-width: 0; max-width: 200px; margin: 0 auto; }
-  .lp-phone-device { width: 100%; max-width: 160px; border-radius: 28px; padding: 7px; margin: 0 auto; }
+  .lp-laptop {
+    width: min(68vw, 228px);
+    max-width: none;
+    flex: none;
+    min-width: 0;
+    margin: 0 auto;
+  }
+  .lp-phone-wrap {
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 170px;
+    margin: 0 auto;
+  }
+  .lp-phone-device {
+    width: 100%;
+    max-width: 148px;
+    border-radius: 28px;
+    padding: 7px;
+    margin: 0 auto;
+  }
+  .lp-checkout-mobile-panel.is-notebook .lp-laptop {
+    transform: translateX(-4px);
+  }
+  .lp-checkout-mobile-panel.is-notebook .lp-trackpad {
+    width: 74px;
+    height: 40px;
+  }
   .lp-p-screen { border-radius: 22px; }
   .lp-island { width: 44px; height: 12px; top: 5px; }
 
