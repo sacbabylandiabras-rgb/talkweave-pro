@@ -772,6 +772,15 @@ function ChatMock() {
 function CheckoutMock() {
   const [activeSlide, setActiveSlide] = useState(0);
 
+  useEffect(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+    const interval = setInterval(() => {
+      setActiveSlide(prev => (prev === 0 ? 1 : 0));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   const notebook = (
     <div className="lp-laptop">
       <div className="lp-lid">
