@@ -850,7 +850,6 @@ function CheckoutMock() {
     </div>
   );
 }
-}
 
 function FlowMock() {
   return (
