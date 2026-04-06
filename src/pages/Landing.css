@@ -675,6 +675,7 @@
   gap: 40px;
   flex-wrap: wrap;
   width: 100%;
+  position: relative;
 }
 .lp-flow-laptop {
   display: flex;
