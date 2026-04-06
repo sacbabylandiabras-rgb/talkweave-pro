@@ -1174,27 +1174,6 @@
     padding: 6px;
     margin: 0 auto;
   }
-  .lp-flow-devices {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 0;
-    align-items: center;
-    justify-content: center;
-    overflow: visible;
-    max-width: 100%;
-    position: relative;
-  }
-  .lp-flow-laptop { max-width: 78%; min-width: 0; flex: unset; }
-  .lp-flow-phone-wrap {
-    position: absolute;
-    right: 5%;
-    bottom: 15%;
-    max-width: none;
-    min-width: 0;
-    order: 0;
-    z-index: 2;
-  }
-  .lp-flow-phone { width: 120px; border-radius: 22px; padding: 5px; }
 
   /* Gateway mock */
   .lp-gw-card { max-width: 100%; }
