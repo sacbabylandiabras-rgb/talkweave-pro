@@ -1155,24 +1155,75 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    min-height: 210px;
   }
   .lp-flow-mobile .lp-flow-laptop {
-    width: min(55vw, 200px);
-    max-width: none;
+    width: 170px;
+    max-width: 170px;
     flex: none;
     min-width: 0;
     margin: 0 auto;
   }
+  .lp-flow-mobile .lp-flow-lid {
+    border-width: 7px;
+    border-radius: 10px 10px 0 0;
+  }
+  .lp-flow-mobile .lp-flow-browser-bar {
+    padding: 5px 8px;
+    gap: 5px;
+  }
+  .lp-flow-mobile .lp-flow-bd {
+    width: 7px;
+    height: 7px;
+  }
+  .lp-flow-mobile .lp-flow-burl {
+    padding: 3px 6px;
+    font-size: 8px;
+    gap: 4px;
+  }
+  .lp-flow-mobile .lp-flow-hinge {
+    height: 4px;
+    margin: 0 12px;
+  }
+  .lp-flow-mobile .lp-flow-palm {
+    height: 14px;
+    border-radius: 0 0 10px 10px;
+  }
+  .lp-flow-mobile .lp-flow-trackpad {
+    width: 64px;
+    height: 34px;
+    margin-top: 3px;
+    border-radius: 5px;
+  }
   .lp-flow-mobile .lp-flow-phone-wrap {
     position: static;
-    max-width: 140px;
+    max-width: 120px;
     margin: 0 auto;
   }
   .lp-flow-mobile .lp-flow-phone {
-    width: 120px;
-    border-radius: 24px;
-    padding: 6px;
+    width: 102px;
+    border-radius: 20px;
+    padding: 5px;
     margin: 0 auto;
+  }
+  .lp-flow-mobile .lp-flow-p-screen {
+    border-radius: 16px;
+  }
+  .lp-flow-mobile .lp-flow-island {
+    width: 38px;
+    height: 10px;
+    top: 5px;
+  }
+  .lp-flow-mobile .lp-flow-sbar {
+    padding: 7px 9px 3px;
+    font-size: 8px;
+  }
+  .lp-flow-mobile .lp-flow-sbars span {
+    width: 2px;
+  }
+  .lp-flow-mobile .lp-flow-hind {
+    width: 44px;
+    height: 3px;
   }
 
   /* Gateway mock */
