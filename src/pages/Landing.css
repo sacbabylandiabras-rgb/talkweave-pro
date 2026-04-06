@@ -668,6 +668,8 @@
 }
 
 /* FLOW DEVICES MOCKUP */
+.lp-flow-desktop { display: block; }
+.lp-flow-mobile { display: none; }
 .lp-flow-devices {
   display: flex;
   justify-content: center;
