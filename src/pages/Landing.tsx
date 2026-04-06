@@ -36,7 +36,7 @@ const Landing = () => {
       {/* HERO COPY */}
       <div className="lp-hero">
         <div className="lp-hero-glow" />
-        <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão<br />WhatsApp &amp; Instagram</h1>
+        <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão {" "}<br />WhatsApp &amp; Instagram</h1>
         <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
         <button className="lp-btn-cta" onClick={goSignup}>Criar Conta Grátis →</button>
       </div>
