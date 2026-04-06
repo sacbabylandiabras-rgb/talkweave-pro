@@ -90,7 +90,7 @@ const Landing = () => {
       </div>
 
       {/* SEÇÃO: Instagram */}
-      <div className="lp-section lp-section-reverse lp-section-surface">
+      <div className="lp-section lp-section-surface">
         <div>
           <div className="lp-section-tag lp-ig">Novo — Instagram</div>
           <div className="lp-section-title">Automação de Comentários no Instagram</div>
