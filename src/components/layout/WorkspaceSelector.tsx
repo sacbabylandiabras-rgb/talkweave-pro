@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, Globe } from "lucide-react";
+import { Check, ChevronDown, Globe, Zap, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
-import { LogoImage } from "./LogoImage";
-import logoPayImage from "@/assets/logo-pay.png";
 import { cn } from "@/lib/utils";
 
 const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
@@ -21,8 +19,7 @@ const workspaces = [
     id: "gateway" as WorkspaceType,
     label: "ZaplynxPay",
     description: "Integrações e pagamentos",
-    useLogo: true,
-    icon: Globe,
+    icon: CreditCard,
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
@@ -30,8 +27,7 @@ const workspaces = [
     id: "zapi" as WorkspaceType,
     label: "ZapLynx",
     description: "Mensagens e Automações",
-    useLogo: true,
-    icon: Globe,
+    icon: Zap,
     color: "text-primary",
     bg: "bg-primary/10",
   },
@@ -39,7 +35,6 @@ const workspaces = [
     id: "meta" as WorkspaceType,
     label: "Meta API Oficial",
     description: "WhatsApp Business Platform",
-    useLogo: false,
     icon: Globe,
     color: "text-[#0668E1]",
     bg: "bg-[#0668E1]/10",
@@ -107,15 +102,9 @@ export function WorkspaceSelector() {
             size="sm"
             className="h-8 px-3 text-xs font-medium gap-2 rounded-lg"
           >
-            {current.id === "gateway" ? (
-              <img src={logoPayImage} alt="ZaplynxPay" className="w-5 h-5 object-contain" />
-            ) : current.useLogo ? (
-              <LogoImage className="w-5 h-5 object-contain" />
-            ) : (
-              <div className={cn("w-5 h-5 rounded flex items-center justify-center", current.bg)}>
-                <CurrentIcon className={cn("w-3 h-3", current.color)} />
-              </div>
-            )}
+            <div className={cn("w-5 h-5 rounded flex items-center justify-center", current.bg)}>
+              <CurrentIcon className={cn("w-3 h-3", current.color)} />
+            </div>
             <span className="hidden sm:inline">{current.label}</span>
             <ChevronDown className="w-3 h-3 text-muted-foreground" />
           </Button>
@@ -138,15 +127,9 @@ export function WorkspaceSelector() {
                     : "hover:bg-muted/60"
                 )}
               >
-                {ws.id === "gateway" ? (
-                  <img src={logoPayImage} alt="ZaplynxPay" className="w-8 h-8 object-contain" />
-                ) : ws.useLogo ? (
-                  <LogoImage className="w-8 h-8 object-contain" />
-                ) : (
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
-                    <Icon className={cn("w-4 h-4", ws.color)} />
-                  </div>
-                )}
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
+                  <Icon className={cn("w-4 h-4", ws.color)} />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground">{ws.label}</p>
                   <p className="text-[10px] text-muted-foreground">{ws.description}</p>
