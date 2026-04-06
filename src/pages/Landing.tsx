@@ -771,23 +771,15 @@ function ChatMock() {
 
 function CheckoutMock() {
   const [activeSlide, setActiveSlide] = useState(0);
-  const isMobile = window.innerWidth <= 768;
 
   const notebook = (
     <div className="lp-laptop">
       <div className="lp-lid">
         <div className="lp-browser-bar">
-          <div className="lp-bdots">
-            <div className="lp-bd lp-bd-r" />
-            <div className="lp-bd lp-bd-y" />
-            <div className="lp-bd lp-bd-g" />
-          </div>
+          <div className="lp-bdots"><div className="lp-bd lp-bd-r" /><div className="lp-bd lp-bd-y" /><div className="lp-bd lp-bd-g" /></div>
           <div style={{ width: 28 }} />
           <div className="lp-burl">
-            <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="3" width="10" height="7" rx="1.5" stroke="#28c840" strokeWidth="1.2" />
-              <path d="M4 3V2.5a2 2 0 0 1 4 0V3" stroke="#28c840" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
+            <svg width={10} height={10} viewBox="0 0 12 12" fill="none"><rect x="1" y="3" width="10" height="7" rx="1.5" stroke="#28c840" strokeWidth="1.2" /><path d="M4 3V2.5a2 2 0 0 1 4 0V3" stroke="#28c840" strokeWidth="1.2" strokeLinecap="round" /></svg>
             pay.zaplynxpro.online/pay/wenpink
           </div>
           <div style={{ width: 50 }} />
@@ -795,9 +787,7 @@ function CheckoutMock() {
         <img className="lp-screen-img" src="/checkout-mock-0.jpg" alt="Checkout desktop preview" />
       </div>
       <div className="lp-hinge" />
-      <div className="lp-palm">
-        <div className="lp-trackpad" />
-      </div>
+      <div className="lp-palm"><div className="lp-trackpad" /></div>
       <div className="lp-laptop-shadow" />
     </div>
   );
@@ -805,18 +795,13 @@ function CheckoutMock() {
   const phone = (
     <div className="lp-phone-wrap">
       <div className="lp-phone-device">
-        <div className="lp-btn-mute" />
-        <div className="lp-btn-vup" />
-        <div className="lp-btn-vdn" />
-        <div className="lp-btn-pwr" />
+        <div className="lp-btn-mute" /><div className="lp-btn-vup" /><div className="lp-btn-vdn" /><div className="lp-btn-pwr" />
         <div className="lp-p-screen">
           <div className="lp-island" />
           <div className="lp-sbar">
             <span>9:41</span>
             <div className="lp-sicons">
-              <div className="lp-sbars">
-                <span style={{ height: 4 }} /><span style={{ height: 6 }} /><span style={{ height: 8 }} /><span style={{ height: 10 }} />
-              </div>
+              <div className="lp-sbars"><span style={{ height: 4 }} /><span style={{ height: 6 }} /><span style={{ height: 8 }} /><span style={{ height: 10 }} /></div>
               <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth={2.5}><path d="M1 6.2C4.1 2.4 7.8.5 12 .5s7.9 1.9 11 5.7M5 10.5c2-2 4.4-3 7-3s5 1 7 3M9 14.8c1.7-1.5 3.5-2 5-1.5" /></svg>
               <svg width={14} height={10} viewBox="0 0 25 12" fill="#111"><rect x="0" y="1" width="21" height="10" rx="2" /><rect x="1" y="2" width="16" height="8" rx="1" fill="#34c759" /><rect x="22" y="4" width="2.5" height="4" rx="1" /></svg>
             </div>
@@ -829,10 +814,18 @@ function CheckoutMock() {
     </div>
   );
 
-  if (isMobile) {
-    return (
-      <div className="lp-checkout-carousel-wrapper">
+  return (
+    <>
+      {/* Desktop: side by side */}
+      <div className="lp-checkout-desktop">
         <div className="lp-checkout-sidebyside">
+          {notebook}
+          {phone}
+        </div>
+      </div>
+      {/* Mobile: one at a time */}
+      <div className="lp-checkout-mobile">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           {activeSlide === 0 ? notebook : phone}
         </div>
         <div className="lp-checkout-dots">
@@ -840,14 +833,7 @@ function CheckoutMock() {
           <button className={`lp-checkout-dot ${activeSlide === 1 ? "active" : ""}`} onClick={() => setActiveSlide(1)} aria-label="Ver celular" />
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="lp-checkout-sidebyside">
-      {notebook}
-      {phone}
-    </div>
+    </>
   );
 }
 
