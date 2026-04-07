@@ -241,13 +241,29 @@ serve(async (req) => {
                           const dmText = replaceVars(d.message || "");
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
 
+                          // Wrap URL buttons with click tracker
+                          const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!;
+                          const wrapUrl = (originalUrl: string, btnTitle: string) => {
+                            const trackBase = `${SUPABASE_URL_BASE}/functions/v1/track-flow-click`;
+                            const params = new URLSearchParams({
+                              url: originalUrl,
+                              flow: auto.name,
+                              btn: btnTitle,
+                              uid: userId,
+                              ph: fromUsername,
+                              src: "ig",
+                            });
+                            return `${trackBase}?${params.toString()}`;
+                          };
+
                           // Build Button Template payload (postback + web_url, max 3)
                           const buildButtonPayload = (text: string, buttons: any[]) => {
                             const templateBtns = buttons.slice(0, 3).map((b: any) => {
                               if (b.type === "reply") {
                                 return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
                               }
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
                             });
                             if (templateBtns.length > 0) {
                               return { attachment: { type: "template", payload: { template_type: "button", text: text || "Selecione uma opção:", buttons: templateBtns } } };
@@ -333,6 +349,17 @@ serve(async (req) => {
                               username: fromUsername, media_id: mediaId, comment_text: dmText,
                               payload: dmData, processed: true,
                             });
+
+                            // Log flow send for metrics tracking
+                            await supabase.from("message_logs").insert({
+                              user_id: userId,
+                              phone: fromUsername,
+                              message_received: `[IG DM] ${dmText.slice(0, 100)}`,
+                              keyword_matched: `__ig_flow_send__:${auto.name}`,
+                              response_sent: `[IG-Fluxo: ${auto.name}]`,
+                              timestamp: new Date().toISOString(),
+                            });
+                            console.log(`📊 IG flow send logged for "${auto.name}" → @${fromUsername}`);
                           }
                         } catch (e) { console.error("❌ DM failed:", e); }
                       }
