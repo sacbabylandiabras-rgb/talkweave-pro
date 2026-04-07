@@ -809,79 +809,77 @@ export default function AutomacaoComentarios() {
       </div>
 
       {/* Leads Table Panel */}
-      {editId && (
-        <div className="shrink-0 border-t border-border bg-card">
-          <button
-            onClick={() => setShowLeads(!showLeads)}
-            className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <TableIcon className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Dados Coletados</span>
-              <Badge variant="secondary" className="text-xs">
-                {collectedLeads.length}
-              </Badge>
-            </div>
-            {showLeads ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
-          </button>
+      <div className="shrink-0 border-t border-border bg-card">
+        <button
+          onClick={() => setShowLeads(!showLeads)}
+          className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <TableIcon className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Dados Coletados</span>
+            <Badge variant="secondary" className="text-xs">
+              {collectedLeads.length}
+            </Badge>
+          </div>
+          {showLeads ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
+        </button>
 
-          {showLeads && (
-            <div className="max-h-[35vh] overflow-auto">
-              {collectedLeads.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">@ Usuário</TableHead>
-                      <TableHead className="text-xs">Tipo</TableHead>
-                      <TableHead className="text-xs">Dado Coletado</TableHead>
-                      <TableHead className="text-xs">Automação</TableHead>
-                      <TableHead className="text-xs">Horário</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {collectedLeads.map((lead: any) => {
-                      const payload = lead.payload as any;
-                      const isWa = lead.event_type === "lead_whatsapp";
-                      return (
-                        <TableRow key={lead.id}>
-                          <TableCell className="text-xs font-medium">
-                            @{lead.username || lead.ig_user_id || "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
-                              {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                              {isWa ? "WhatsApp" : "Email"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-mono">
-                            {payload?.collected_value || lead.comment_text || "—"}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {payload?.automation_name || "—"}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(lead.created_at).toLocaleString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        {showLeads && (
+          <div className="max-h-[35vh] overflow-auto">
+            {collectedLeads.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">@ Usuário</TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">Dado Coletado</TableHead>
+                    <TableHead className="text-xs">Automação</TableHead>
+                    <TableHead className="text-xs">Horário</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collectedLeads.map((lead: any) => {
+                    const payload = lead.payload as any;
+                    const isWa = lead.event_type === "lead_whatsapp";
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell className="text-xs font-medium">
+                          @{lead.username || lead.ig_user_id || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
+                            {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                            {isWa ? "WhatsApp" : "Email"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {payload?.collected_value || lead.comment_text || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {payload?.automation_name || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(lead.created_at).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Edit Node Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
