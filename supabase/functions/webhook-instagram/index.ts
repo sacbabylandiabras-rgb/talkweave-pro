@@ -554,6 +554,10 @@ serve(async (req) => {
                         }
                       }
 
+                      if (node.type === "igWhatsApp") {
+                        await executeIgWhatsAppNode(d, null, userId, fromId, fromUsername, supabase);
+                      }
+
                       // Traverse children — if DM has buttons or collection, STOP (don't follow those paths)
                       // Button paths (btn-0, btn-1...) are only followed when user clicks a button
                       // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
