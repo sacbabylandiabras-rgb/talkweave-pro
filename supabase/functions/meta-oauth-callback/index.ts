@@ -23,25 +23,25 @@ serve(async (req) => {
   try {
     let userId = state;
     let appOrigin: string | null = null;
+    let isInstagramFlow = url.searchParams.get("ig_flow") === "1";
 
     try {
       const decodedState = JSON.parse(atob(decodeURIComponent(state)));
       if (decodedState?.userId) userId = decodedState.userId;
       if (decodedState?.origin && /^https?:\/\//.test(decodedState.origin)) appOrigin = decodedState.origin;
+      if (decodedState?.ig_flow) isInstagramFlow = true;
     } catch {
-      // Try without decodeURIComponent for backward compat
       try {
         const decodedState = JSON.parse(atob(state));
         if (decodedState?.userId) userId = decodedState.userId;
         if (decodedState?.origin && /^https?:\/\//.test(decodedState.origin)) appOrigin = decodedState.origin;
+        if (decodedState?.ig_flow) isInstagramFlow = true;
       } catch {
         // state is just userId
       }
     }
 
-    console.log("OAuth callback - userId:", userId, "origin:", appOrigin, "ig_flow:", url.searchParams.get("ig_flow"));
-
-    const isInstagramFlow = url.searchParams.get("ig_flow") === "1";
+    console.log("OAuth callback - userId:", userId, "origin:", appOrigin, "ig_flow:", isInstagramFlow);
 
     if (isInstagramFlow) {
       const igAppId = "1277301917708506";
@@ -56,7 +56,7 @@ serve(async (req) => {
         });
       }
 
-      const redirectUri = `${SUPABASE_URL}/functions/v1/meta-oauth-callback?ig_flow=1`;
+      const redirectUri = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
       console.log("Instagram token exchange - redirect_uri:", redirectUri);
 
       const tokenBody = new URLSearchParams({
