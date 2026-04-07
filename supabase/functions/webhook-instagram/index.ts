@@ -123,18 +123,28 @@ const executeIgWhatsAppNode = async (
       }
     }
   } else if (sendType === "flow" && nodeData.flowId) {
-    // For flow, fetch the flow keyword and send it as a message to trigger the WA flow
+    // Execute the flow nodes directly instead of sending keyword as text
     const { data: flow } = await supabase
       .from("flow_automations")
-      .select("keyword, name")
+      .select("id, name, keyword, nodes, edges")
       .eq("id", nodeData.flowId)
       .maybeSingle();
-    if (flow?.keyword) {
-      // Send the keyword so the webhook-zapi picks it up and runs the full flow
-      message = flow.keyword;
-      console.log(`🔄 igWhatsApp: Triggering WA flow "${flow.name}" with keyword "${flow.keyword}"`);
+    if (flow?.nodes) {
+      console.log(`🔄 igWhatsApp: Executing WA flow "${flow.name}" directly`);
+      const flowNodes: any[] = flow.nodes || [];
+      const flowEdges: any[] = flow.edges || [];
+      const initialNode = flowNodes.find((n: any) => n.type === "blocoInicial");
+      if (initialNode) {
+        const visited = new Set<string>();
+        await executeWhatsAppFlow(initialNode.id, flowNodes, flowEdges, cleanPhone, zapiCreds, visited, supabase, userId, flow.name);
+        // Log already handled inside executeWhatsAppFlow
+        return;
+      } else {
+        console.log("⚠️ igWhatsApp: Flow has no initial node");
+        return;
+      }
     } else {
-      console.log("⚠️ igWhatsApp: Flow not found or no keyword");
+      console.log("⚠️ igWhatsApp: Flow not found");
       return;
     }
   }
