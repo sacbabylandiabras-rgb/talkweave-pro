@@ -344,6 +344,7 @@ export default function AutomacaoComentarios() {
         igResposta: "Responder Comentário",
         igDM: "Enviar DM",
         igDelay: "Espera",
+        igWhatsApp: "Enviar WhatsApp",
       };
 
       const newNode: Node = {
