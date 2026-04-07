@@ -60,6 +60,7 @@ serve(async (req) => {
     const body = await req.json();
     const { action, override_phone_number_id } = body;
     const effectivePhoneId = override_phone_number_id || creds.phone_number_id;
+    console.log(`[send-meta-message] action=${action}, override=${override_phone_number_id || 'none'}, default=${creds.phone_number_id}, effective=${effectivePhoneId}`);
 
     switch (action) {
       case "send_template":
