@@ -9,6 +9,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Shared URL tracker wrapper for click metrics
+const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
+  const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!;
+  return (originalUrl: string, btnTitle: string) => {
+    const trackBase = `${SUPABASE_URL_BASE}/functions/v1/track-flow-click`;
+    const params = new URLSearchParams({
+      url: originalUrl,
+      flow: autoName,
+      btn: btnTitle,
+      uid: userId,
+      ph: fromUsername,
+      src: "ig",
+    });
+    return `${trackBase}?${params.toString()}`;
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -576,6 +593,7 @@ serve(async (req) => {
                         txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
                            .replace(/\{\{comentario\}\}/g, title);
 
+                      const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
                       const visited = new Set<string>();
                       const executeNode = async (n: any) => {
                         if (visited.has(n.id)) return;
@@ -589,7 +607,8 @@ serve(async (req) => {
                           if (dmButtons.length > 0) {
                             const templateBtns = dmButtons.slice(0, 3).map((b: any) => {
                               if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
                             });
                             messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
                           } else if (dmText) {
@@ -681,6 +700,7 @@ serve(async (req) => {
                         txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
                            .replace(/\{\{comentario\}\}/g, title);
 
+                      const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
                       const visited = new Set<string>();
                       const executeNode = async (n: any) => {
                         if (visited.has(n.id)) return;
@@ -694,7 +714,8 @@ serve(async (req) => {
                           if (dmBtns.length > 0) {
                             const templateBtns = dmBtns.slice(0, 3).map((b: any) => {
                               if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
+                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
                             });
                             mp = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
                           } else if (dmText) {
@@ -805,6 +826,7 @@ serve(async (req) => {
                             txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
                                .replace(/\{\{comentario\}\}/g, dmText);
 
+                          const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
                           const visited = new Set<string>();
                           const executeNode = async (n: any) => {
                             if (visited.has(n.id)) return;
@@ -818,7 +840,8 @@ serve(async (req) => {
                               if (btns.length > 0) {
                                 const templateBtns = btns.slice(0, 3).map((b: any) => {
                                   if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                                  return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                                  const trackedUrl = wrapUrl(b.url, b.title || "Link");
+                                  return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
                                 });
                                 mp = { attachment: { type: "template", payload: { template_type: "button", text: msg || "Selecione:", buttons: templateBtns } } };
                               } else if (msg) {
