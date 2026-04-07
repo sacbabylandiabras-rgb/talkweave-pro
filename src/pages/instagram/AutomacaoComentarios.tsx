@@ -45,6 +45,8 @@ import {
   Link2,
   X,
   Variable,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
