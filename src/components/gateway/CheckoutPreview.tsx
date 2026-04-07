@@ -12,6 +12,7 @@ import TikTokLayout from "@/components/gateway/checkout-templates/TikTokLayout";
 import StreamlineLayout from "@/components/gateway/checkout-templates/StreamlineLayout";
 import LynxFyLayout from "@/components/gateway/checkout-templates/LynxFyLayout";
 import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLayout";
+import CheckoutStepIndicators from "@/components/gateway/checkout-templates/CheckoutStepIndicators";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
 import { resolveCheckoutFormat } from "@/components/gateway/checkout-templates/checkout-format-helpers";
 import nubankLogo from "@/assets/banks/nubank.png";
@@ -438,38 +439,15 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         </div>
         )}
 
-        {/* Step Indicators - pill style matching Vercel */}
+        {/* Step Indicators */}
         {!isOneStep && !(isPublicCheckout && isMobile) && (
-          <div className="flex items-center justify-center gap-2 py-3">
-            {stepLabels.map((sl, i) => (
-              <div key={sl.num} className="flex items-center gap-2">
-                <button
-                  onClick={() => setStep(sl.num as 1 | 2 | 3)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all"
-                  style={{
-                    borderRadius: "999px",
-                    border: step === sl.num ? `2px solid ${s.primary}` : `1px solid ${s.cardBorder}`,
-                    background: step === sl.num ? `${s.primary}10` : "transparent",
-                    color: step === sl.num ? s.primary : s.cardDesc,
-                  }}
-                >
-                  <span
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{
-                      background: step > sl.num ? s.primary : step === sl.num ? s.primary : s.isDark ? "#444" : "#E5E7EB",
-                      color: step >= sl.num ? "#fff" : s.cardDesc,
-                    }}
-                  >
-                    {step > sl.num ? "✓" : sl.num}
-                  </span>
-                  {sl.label}
-                </button>
-                {i < stepLabels.length - 1 && (
-                  <div className="w-6 h-[2px]" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />
-                )}
-              </div>
-            ))}
-          </div>
+          <CheckoutStepIndicators
+            config={config}
+            steps={stepLabels}
+            step={step}
+            onStepChange={setStep}
+            previewMode={previewMode}
+          />
         )}
 
         {/* ───── STEP 1: Identification ───── */}

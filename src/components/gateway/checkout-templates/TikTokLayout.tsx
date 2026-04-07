@@ -14,6 +14,7 @@ import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from 
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -178,23 +179,14 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
   // Step indicators for desktop
   const StepIndicators = () => (
-    <div className={!previewMode ? "mb-5 hidden items-center justify-center gap-5 md:flex" : "mb-5 items-center justify-center gap-5"} style={previewMode ? { display: previewMode === "mobile" ? "none" : "flex" } : undefined}>
-      {stepLabels.map((sl, i) => (
-        <div key={sl.num} className="flex items-center gap-5">
-          <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center border-2" style={{
-              borderColor: step === sl.num ? s.stepBg : step > sl.num ? s.stepBg : s.cardBorder,
-              color: step >= sl.num ? s.stepBg : s.cardLabel,
-              borderRadius: s.stepRadius,
-              background: step > sl.num ? `${s.stepBg}20` : "transparent",
-            }}>
-              {step > sl.num ? <Check className="h-4 w-4" /> : sl.icon}
-            </div>
-            <span className="text-xs font-semibold" style={{ color: step === sl.num ? s.stepBg : s.cardLabel }}>{sl.label}</span>
-          </button>
-          {i < stepLabels.length - 1 && <div className="h-px w-12" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
-        </div>
-      ))}
+    <div className={!previewMode ? "mb-5 hidden md:block" : "mb-5"} style={previewMode ? { display: previewMode === "mobile" ? "none" : "block" } : undefined}>
+      <CheckoutStepIndicators
+        config={config}
+        steps={stepLabels}
+        step={step}
+        onStepChange={setStep}
+        previewMode={previewMode}
+      />
     </div>
   );
 
