@@ -166,6 +166,7 @@ export default function PayReports() {
                       <TableHead>ID</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Cliente</TableHead>
+                      <TableHead>CPF/CNPJ</TableHead>
                       <TableHead>Contato</TableHead>
                       <TableHead>Checkout</TableHead>
                       <TableHead>Código PIX</TableHead>
