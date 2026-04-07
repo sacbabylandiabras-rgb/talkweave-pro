@@ -44,7 +44,7 @@ serve(async (req) => {
     const isInstagramFlow = url.searchParams.get("ig_flow") === "1";
 
     if (isInstagramFlow) {
-      const igAppId = "831998069944962";
+      const igAppId = "1277301917708506";
       const igAppSecret = INSTAGRAM_APP_SECRET;
 
       if (!igAppSecret) {
