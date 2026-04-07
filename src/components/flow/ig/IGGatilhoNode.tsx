@@ -1,9 +1,18 @@
 import { Handle, Position } from "reactflow";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Image } from "lucide-react";
 
 export function IGGatilhoNode({ data }: any) {
+  // Extract Instagram post ID from URL for embed
+  const getPostShortcode = (url: string) => {
+    if (!url) return null;
+    const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+    return match ? match[1] : null;
+  };
+
+  const shortcode = getPostShortcode(data.postUrl || "");
+
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px]">
+    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[280px]">
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded">
         Gatilho
       </span>
@@ -17,6 +26,28 @@ export function IGGatilhoNode({ data }: any) {
           </div>
         </div>
       </div>
+
+      {/* Post preview */}
+      {shortcode ? (
+        <div className="mt-2 rounded overflow-hidden border border-border bg-black/5">
+          <iframe
+            src={`https://www.instagram.com/p/${shortcode}/embed/`}
+            width="100%"
+            height="240"
+            frameBorder="0"
+            scrolling="no"
+            allowTransparency
+            className="pointer-events-none"
+            style={{ border: "none" }}
+          />
+        </div>
+      ) : data.postUrl ? (
+        <div className="mt-2 p-2 bg-muted/40 rounded text-xs text-muted-foreground truncate flex items-center gap-1">
+          <Image className="w-3 h-3 shrink-0" />
+          {data.postUrl}
+        </div>
+      ) : null}
+
       {data.keywords ? (
         <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/40 rounded whitespace-pre-wrap break-words">
           🔑 {data.keywords}

@@ -338,8 +338,40 @@ export default function AutomacaoComentarios() {
     const { type } = selectedNode;
 
     if (type === "igGatilho") {
+      const shortcode = (() => {
+        const url = selectedNode.data.postUrl || "";
+        const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+        return match ? match[1] : null;
+      })();
+
       return (
         <div className="space-y-4">
+          <div>
+            <Label>Link do Post / Reel</Label>
+            <Input
+              value={selectedNode.data.postUrl || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postUrl: e.target.value } })
+              }
+              placeholder="https://www.instagram.com/p/ABC123..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">Cole o link do post que receberá os comentários</p>
+          </div>
+
+          {shortcode && (
+            <div className="rounded overflow-hidden border border-border">
+              <iframe
+                src={`https://www.instagram.com/p/${shortcode}/embed/`}
+                width="100%"
+                height="400"
+                frameBorder="0"
+                scrolling="no"
+                allowTransparency
+                style={{ border: "none" }}
+              />
+            </div>
+          )}
+
           <div>
             <Label>Palavras-chave (separadas por vírgula)</Label>
             <Input
