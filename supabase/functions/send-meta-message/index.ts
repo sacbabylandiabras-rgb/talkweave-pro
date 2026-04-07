@@ -10,7 +10,37 @@ const corsHeaders = {
 
 const API_VERSION = "v21.0";
 const WHATSAPP_META_APP_ID = "831998069944962";
-...
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Não autorizado" }, 401);
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return jsonResponse({ error: "Sessão inválida" }, 401);
+    }
+
+    const userId = user.id;
+
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const { data: creds, error: credsError } = await serviceClient
       .from("meta_credentials")
       .select("access_token, phone_number_id, waba_id, business_account_id")
@@ -97,7 +127,6 @@ async function metaFetch(url: string, token: string, options?: RequestInit) {
   return { data, ok: true };
 }
 
-// ── Send Template ──
 async function sendTemplateMessage(
   creds: { access_token: string; phone_number_id: string },
   body: { phone: string; template_name: string; language?: string; variables?: string[] }
@@ -132,7 +161,6 @@ async function sendTemplateMessage(
   return jsonResponse({ success: true, data: result.data });
 }
 
-// ── Send Text ──
 async function sendTextMessage(
   creds: { access_token: string; phone_number_id: string },
   body: { phone: string; message: string }
@@ -160,7 +188,6 @@ async function sendTextMessage(
   return jsonResponse({ success: true, data: result.data });
 }
 
-// ── List Templates ──
 async function listTemplates(creds: { access_token: string; waba_id?: string | null }) {
   if (!creds.waba_id) {
     return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
@@ -174,7 +201,6 @@ async function listTemplates(creds: { access_token: string; waba_id?: string | n
   return jsonResponse({ templates: result.data.data || [] });
 }
 
-// ── Create Template ──
 async function createTemplate(
   creds: { access_token: string; waba_id?: string | null },
   body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string; buttons?: { type: string; text: string; url?: string; phone_number?: string }[] }
@@ -198,18 +224,23 @@ async function createTemplate(
     components.push({ type: "FOOTER", text: body.footer_text });
   }
 
-  if (body.buttons && body.buttons.length > 0) {
-    const btns = body.buttons.map((b) => {
-      if (b.type === "URL") return { type: "URL", text: b.text, url: b.url };
-      if (b.type === "PHONE_NUMBER") return { type: "PHONE_NUMBER", text: b.text, phone_number: b.phone_number };
-      return { type: "QUICK_REPLY", text: b.text };
+  if (Array.isArray(body.buttons) && body.buttons.length > 0) {
+    const buttons = body.buttons.map((button) => {
+      if (button.type === "URL") {
+        return { type: "URL", text: button.text, url: button.url };
+      }
+      if (button.type === "PHONE_NUMBER") {
+        return { type: "PHONE_NUMBER", text: button.text, phone_number: button.phone_number };
+      }
+      return { type: "QUICK_REPLY", text: button.text };
     });
-    components.push({ type: "BUTTONS", buttons: btns });
+
+    components.push({ type: "BUTTONS", buttons });
   }
 
   const payload = {
     name: body.name,
-    category: body.category || "MARKETING",
+    category: body.category,
     language: body.language || "pt_BR",
     components,
   };
@@ -217,10 +248,14 @@ async function createTemplate(
   const result = await metaFetch(
     `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/message_templates`,
     creds.access_token,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
   );
   if (result instanceof Response) return result;
-  return jsonResponse({ success: true, template: result.data });
+  return jsonResponse({ success: true, data: result.data });
 }
 
 async function getBusinessProfile(creds: { access_token: string; phone_number_id: string }) {
@@ -229,53 +264,38 @@ async function getBusinessProfile(creds: { access_token: string; phone_number_id
     creds.access_token
   );
   if (result instanceof Response) return result;
-
-  // Also get the phone number details
-  const phoneResult = await metaFetch(
-    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,name_status`,
-    creds.access_token
-  );
-  if (phoneResult instanceof Response) return phoneResult;
-
-  return jsonResponse({
-    profile: result.data.data?.[0] || {},
-    phone_info: phoneResult.data || {},
-  });
+  return jsonResponse({ profile: result.data.data?.[0] || null });
 }
 
-// ── Update Profile Name (about) ──
 async function updateProfileName(
   creds: { access_token: string; phone_number_id: string },
-  body: { about?: string; description?: string; address?: string; email?: string; websites?: string[] }
+  body: { display_name: string }
 ) {
-  const updateData: any = { messaging_product: "whatsapp" };
-  if (body.about !== undefined) updateData.about = body.about;
-  if (body.description !== undefined) updateData.description = body.description;
-  if (body.address !== undefined) updateData.address = body.address;
-  if (body.email !== undefined) updateData.email = body.email;
-  if (body.websites !== undefined) updateData.websites = body.websites;
+  if (!body.display_name) {
+    return jsonResponse({ error: "Nome é obrigatório" }, 400);
+  }
 
   const result = await metaFetch(
     `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile`,
     creds.access_token,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updateData) }
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", name: body.display_name }),
+    }
   );
   if (result instanceof Response) return result;
-  return jsonResponse({ success: true });
+  return jsonResponse({ success: true, data: result.data });
 }
 
-// ── Update Profile Photo ──
 async function updateProfilePhoto(
   creds: { access_token: string; phone_number_id: string },
-  body: { photo_url: string }
+  body: { profile_picture_handle: string }
 ) {
-  if (!body.photo_url) {
-    return jsonResponse({ error: "URL da foto é obrigatória" }, 400);
+  if (!body.profile_picture_handle) {
+    return jsonResponse({ error: "Handle da foto é obrigatório" }, 400);
   }
 
-  console.log("Updating profile photo via profile_picture_url");
-
-  // Use the WhatsApp Business Profile API with profile_picture_url
   const result = await metaFetch(
     `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/whatsapp_business_profile`,
     creds.access_token,
@@ -284,19 +304,15 @@ async function updateProfilePhoto(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messaging_product: "whatsapp",
-        profile_picture_url: body.photo_url,
+        profile_picture_handle: body.profile_picture_handle,
       }),
     }
   );
   if (result instanceof Response) return result;
-  return jsonResponse({ success: true });
+  return jsonResponse({ success: true, data: result.data });
 }
 
-// ── Get Phone Numbers ──
 async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
-  const phoneNumbers = await listAccessiblePhoneNumbers(creds, API_VERSION);
-  return jsonResponse({
-    current_phone_number_id: creds.phone_number_id || null,
-    phone_numbers: phoneNumbers,
-  });
+  const phoneNumbers = await listAccessiblePhoneNumbers(creds);
+  return jsonResponse({ phone_numbers: phoneNumbers });
 }

@@ -24,11 +24,10 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
   const [disconnecting, setDisconnecting] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const queryClient = useQueryClient();
-  const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials();
+  const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials(META_APP_ID);
 
   const isConnected = metaCreds?.connected === true;
 
-  // Listen for postMessage (legacy) or URL param on focus
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === "META_OAUTH_SUCCESS") {
@@ -38,22 +37,20 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
       }
     };
     window.addEventListener("message", handler);
-    
-    // Check URL params when window regains focus (redirect flow)
+
     const focusHandler = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("connected") === "1") {
         setConnecting(false);
         toast.success("Conta conectada com sucesso!");
         queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
-        // Clean URL
         const url = new URL(window.location.href);
         url.searchParams.delete("connected");
         window.history.replaceState({}, "", url.pathname);
       }
     };
     window.addEventListener("focus", focusHandler);
-    
+
     return () => {
       window.removeEventListener("message", handler);
       window.removeEventListener("focus", focusHandler);
@@ -110,7 +107,8 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
           fb_user_id: null,
           fb_user_name: null,
         } as any)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("app_id", META_APP_ID);
 
       if (error) throw error;
 
