@@ -23,8 +23,10 @@ interface MetaPhoneNumber {
   code_verification_status?: string;
 }
 
+const WHATSAPP_META_APP_ID = "831998069944962";
+
 export default function ConfiguracaoMeta() {
-  const { data: creds, isLoading } = useMetaCredentials();
+  const { data: creds, isLoading } = useMetaCredentials(WHATSAPP_META_APP_ID);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
@@ -33,69 +35,7 @@ export default function ConfiguracaoMeta() {
   const [loadingPhones, setLoadingPhones] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-
-  // Detect OAuth redirect with ?connected=1
-  useEffect(() => {
-    if (searchParams.get("connected") === "1") {
-      toast.success("Conta Meta conectada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
-      setSearchParams({}, { replace: true });
-    } else if (searchParams.get("error") === "1") {
-      toast.error("Erro ao conectar conta Meta. Tente novamente.");
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams, queryClient]);
-
-  // Manual config fields
-  const [manualToken, setManualToken] = useState("");
-  const [manualPhoneId, setManualPhoneId] = useState("");
-  const [manualWabaId, setManualWabaId] = useState("");
-
-  const isConnected = creds?.connected === true;
-
-  const fetchPhoneNumbers = async (showError = false) => {
-    if (!isConnected) {
-      setPhoneNumbers([]);
-      return;
-    }
-
-    setLoadingPhones(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-meta-message", {
-        body: { action: "get_phone_numbers" },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
-    } catch (err) {
-      console.error("Error fetching Meta phone numbers:", err);
-      setPhoneNumbers([]);
-      if (showError) {
-        toast.error("Erro ao buscar os números da conta conectada");
-      }
-    } finally {
-      setLoadingPhones(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isConnected) {
-      void fetchPhoneNumbers();
-    } else {
-      setPhoneNumbers([]);
-    }
-  }, [isConnected, creds?.access_token, creds?.waba_id]);
-
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta`;
-  const verifyToken = "zaplynx_whatsapp_verify_2024";
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copiado para a área de transferência");
-  };
-
+...
   const handleDisconnect = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -113,7 +53,8 @@ export default function ConfiguracaoMeta() {
           fb_user_id: null,
           fb_user_name: null,
         } as any)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("app_id", WHATSAPP_META_APP_ID);
 
       if (error) throw error;
 
@@ -126,37 +67,23 @@ export default function ConfiguracaoMeta() {
       setDisconnecting(false);
     }
   };
-
-  const handleManualSave = async () => {
-    if (!manualToken || !manualPhoneId || !manualWabaId) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Faça login primeiro");
-      return;
-    }
-
-    setSaving(true);
-    try {
+...
       const payload = {
         user_id: user.id,
         access_token: manualToken.trim(),
         phone_number_id: manualPhoneId.trim(),
         waba_id: manualWabaId.trim(),
-        app_id: "831998069944962",
+        app_id: WHATSAPP_META_APP_ID,
         connected: true,
         fb_user_name: "Configuração Manual",
         updated_at: new Date().toISOString(),
       };
 
-      // Check if row exists
       const { data: existing } = await supabase
         .from("meta_credentials" as any)
         .select("id")
         .eq("user_id", user.id)
+        .eq("app_id", WHATSAPP_META_APP_ID)
         .maybeSingle();
 
       let error;
@@ -164,7 +91,7 @@ export default function ConfiguracaoMeta() {
         ({ error } = await supabase
           .from("meta_credentials" as any)
           .update(payload as any)
-          .eq("user_id", user.id));
+          .eq("id", existing.id));
       } else {
         ({ error } = await supabase
           .from("meta_credentials" as any)

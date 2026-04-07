@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export function useMetaCredentials() {
+const WHATSAPP_META_APP_ID = "831998069944962";
+
+export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
   return useQuery({
-    queryKey: ["meta-credentials"],
+    queryKey: ["meta-credentials", appId],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -12,6 +14,7 @@ export function useMetaCredentials() {
         .from("meta_credentials" as any)
         .select("*")
         .eq("user_id", user.id)
+        .eq("app_id", appId)
         .maybeSingle();
 
       if (error) {

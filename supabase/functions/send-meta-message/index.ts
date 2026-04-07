@@ -9,41 +9,13 @@ const corsHeaders = {
 };
 
 const API_VERSION = "v21.0";
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ error: "Não autorizado" }, 401);
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return jsonResponse({ error: "Sessão inválida" }, 401);
-    }
-
-    const userId = user.id;
-
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+const WHATSAPP_META_APP_ID = "831998069944962";
+...
     const { data: creds, error: credsError } = await serviceClient
       .from("meta_credentials")
       .select("access_token, phone_number_id, waba_id, business_account_id")
       .eq("user_id", userId)
+      .eq("app_id", WHATSAPP_META_APP_ID)
       .eq("connected", true)
       .maybeSingle();
 
