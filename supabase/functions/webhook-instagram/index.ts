@@ -349,6 +349,17 @@ serve(async (req) => {
                               username: fromUsername, media_id: mediaId, comment_text: dmText,
                               payload: dmData, processed: true,
                             });
+
+                            // Log flow send for metrics tracking
+                            await supabase.from("message_logs").insert({
+                              user_id: userId,
+                              phone: fromUsername,
+                              message_received: `[IG DM] ${dmText.slice(0, 100)}`,
+                              keyword_matched: `__ig_flow_send__:${auto.name}`,
+                              response_sent: `[IG-Fluxo: ${auto.name}]`,
+                              timestamp: new Date().toISOString(),
+                            });
+                            console.log(`📊 IG flow send logged for "${auto.name}" → @${fromUsername}`);
                           }
                         } catch (e) { console.error("❌ DM failed:", e); }
                       }
