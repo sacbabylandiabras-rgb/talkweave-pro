@@ -61,6 +61,7 @@ export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const [sendType, setSendType] = useState<"template" | "text">("template");
   const [phone, setPhone] = useState("");
+  const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState("");
   const [message, setMessage] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [variables, setVariables] = useState<string[]>([]);
