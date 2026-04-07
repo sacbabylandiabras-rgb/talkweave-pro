@@ -145,27 +145,13 @@ serve(async (req) => {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
       // First try to find by user_id + app_id
-      let existing: any = null;
-      const { data: exactMatch } = await supabase
+      // Only look for exact match by user_id + app_id to avoid overwriting WhatsApp credentials
+      const { data: existing } = await supabase
         .from("meta_credentials")
         .select("id")
         .eq("user_id", userId)
         .eq("app_id", igAppId)
         .maybeSingle();
-
-      if (exactMatch) {
-        existing = exactMatch;
-      } else {
-        // Check if there's any record for this user (unique constraint on user_id)
-        const { data: anyMatch } = await supabase
-          .from("meta_credentials")
-          .select("id, app_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (anyMatch) {
-          existing = anyMatch;
-        }
-      }
 
       const credData = {
         user_id: userId,
