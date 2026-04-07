@@ -261,8 +261,6 @@ export default function ConfiguracaoInstagram() {
           <p>• <strong>instagram_business_basic</strong> — Acesso ao perfil da conta profissional</p>
           <p>• <strong>instagram_business_manage_comments</strong> — Ler e responder comentários</p>
           <p>• <strong>instagram_business_manage_messages</strong> — Enviar e ler Direct Messages</p>
-          <p>• <strong>pages_show_list</strong> — Listar páginas conectadas</p>
-          <p>• <strong>pages_read_engagement</strong> — Métricas de engajamento</p>
         </CardContent>
       </Card>
     </div>
