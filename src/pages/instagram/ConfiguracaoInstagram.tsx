@@ -167,6 +167,7 @@ export default function ConfiguracaoInstagram() {
 
       setIsConnected(false);
       setAccountName("");
+      setProfilePicUrl("");
       toast.info("Instagram desconectado");
     } catch (err) {
       toast.error("Erro ao desconectar");
