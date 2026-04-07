@@ -14,7 +14,7 @@ interface FacebookConnectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const META_APP_ID = "1485715796604849";
+const META_APP_ID = "831998069944962";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 const SCOPES = "whatsapp_business_management,whatsapp_business_messaging,business_management";
