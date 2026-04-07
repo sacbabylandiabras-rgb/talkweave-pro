@@ -17,6 +17,8 @@ import "reactflow/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -47,6 +49,9 @@ import {
   Variable,
   Phone,
   Mail,
+  ChevronUp,
+  ChevronDown,
+  TableIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -132,6 +137,30 @@ export default function AutomacaoComentarios() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+  const [collectedLeads, setCollectedLeads] = useState<any[]>([]);
+  const [showLeads, setShowLeads] = useState(false);
+
+  // Fetch collected leads for this automation
+  const fetchCollectedLeads = useCallback(async (automationId: string) => {
+    try {
+      const { data } = await supabase
+        .from("instagram_events")
+        .select("*")
+        .in("event_type", ["lead_whatsapp", "lead_email"])
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const allLeads = (data || [])
+        .filter((l: any) => {
+          const payload = l.payload as any;
+          return payload?.automation_id === automationId;
+        });
+
+      setCollectedLeads(allLeads);
+    } catch (e) {
+      console.error("Error fetching leads:", e);
+    }
+  }, []);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (automationName: string) => {
@@ -177,6 +206,7 @@ export default function AutomacaoComentarios() {
       setFlowName(existing.name);
       setIsActive(existing.active);
       fetchButtonStats(existing.name);
+      fetchCollectedLeads(existing.id);
 
       // Check if dm_message contains flow data
       let flowData: any = null;
@@ -749,7 +779,7 @@ export default function AutomacaoComentarios() {
       </div>
 
       {/* Canvas */}
-      <div ref={reactFlowWrapper} className="flex-1">
+      <div ref={reactFlowWrapper} className={showLeads ? "flex-1 min-h-0" : "flex-1"} style={showLeads ? { height: "55%" } : undefined}>
         <ReactFlow
           nodes={nodes.map(n => n.type === 'igDM' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
           edges={edges}
@@ -774,6 +804,81 @@ export default function AutomacaoComentarios() {
           />
         </ReactFlow>
       </div>
+
+      {/* Leads Table Panel */}
+      {editId && (
+        <div className="shrink-0 border-t border-border bg-card">
+          <button
+            onClick={() => setShowLeads(!showLeads)}
+            className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <TableIcon className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Dados Coletados</span>
+              <Badge variant="secondary" className="text-xs">
+                {collectedLeads.length}
+              </Badge>
+            </div>
+            {showLeads ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
+          </button>
+
+          {showLeads && (
+            <div className="max-h-[35vh] overflow-auto">
+              {collectedLeads.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">@ Usuário</TableHead>
+                      <TableHead className="text-xs">Tipo</TableHead>
+                      <TableHead className="text-xs">Dado Coletado</TableHead>
+                      <TableHead className="text-xs">Automação</TableHead>
+                      <TableHead className="text-xs">Horário</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collectedLeads.map((lead: any) => {
+                      const payload = lead.payload as any;
+                      const isWa = lead.event_type === "lead_whatsapp";
+                      return (
+                        <TableRow key={lead.id}>
+                          <TableCell className="text-xs font-medium">
+                            @{lead.username || lead.ig_user_id || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
+                              {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                              {isWa ? "WhatsApp" : "Email"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs font-mono">
+                            {payload?.collected_value || lead.comment_text || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {payload?.automation_name || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(lead.created_at).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Edit Node Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

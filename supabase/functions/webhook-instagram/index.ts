@@ -781,10 +781,22 @@ serve(async (req) => {
                             console.log(`✅ Follow-up sent for ${handleId}`);
                           }
 
-                          // Save collected data to instagram_contacts
-                          const updateData: any = {};
-                          if (collectsWa) updateData.full_name = `wa:${dmText.replace(/\D/g, "")}`;
-                          // For email we store in source field as metadata
+                          // Save collected lead to instagram_events
+                          await supabase.from("instagram_events").insert({
+                            user_id: userId,
+                            event_type: collectsWa ? "lead_whatsapp" : "lead_email",
+                            ig_user_id: senderId,
+                            username: event.sender?.username || "",
+                            comment_text: dmText.trim(),
+                            payload: {
+                              automation_id: auto.id,
+                              automation_name: auto.name,
+                              collected_value: dmText.trim(),
+                              collected_type: collectsWa ? "whatsapp" : "email",
+                            },
+                            processed: true,
+                          });
+                          console.log(`💾 Lead saved: ${collectsWa ? "whatsapp" : "email"} = ${dmText.trim()}`);
                           
                           // Follow the collection handle edges
                           const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
