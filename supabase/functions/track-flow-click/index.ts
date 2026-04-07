@@ -8,6 +8,7 @@ serve(async (req) => {
   const btnText = url.searchParams.get('btn')
   const userId = url.searchParams.get('uid')
   const phone = url.searchParams.get('ph') || 'unknown'
+  const source = url.searchParams.get('src') || 'wa'
 
   if (!destUrl) {
     return new Response('Missing url parameter', { status: 400 })
