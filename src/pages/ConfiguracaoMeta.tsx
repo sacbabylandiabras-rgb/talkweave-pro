@@ -164,7 +164,7 @@ export default function ConfiguracaoMeta() {
         ({ error } = await supabase
           .from("meta_credentials" as any)
           .update(payload as any)
-          .eq("id", existing.id));
+          .eq("id", (existing as any).id));
       } else {
         ({ error } = await supabase
           .from("meta_credentials" as any)
