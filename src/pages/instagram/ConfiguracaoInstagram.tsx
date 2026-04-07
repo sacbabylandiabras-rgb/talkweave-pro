@@ -73,15 +73,13 @@ export default function ConfiguracaoInstagram() {
       "instagram_business_basic",
       "instagram_business_manage_comments",
       "instagram_business_manage_messages",
-      "pages_show_list",
-      "pages_read_engagement",
     ].join(",");
 
     const statePayload = encodeURIComponent(
       btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
     );
 
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${statePayload}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${statePayload}`;
 
     const popup = window.open(authUrl, "instagram_login", "width=600,height=700,scrollbars=yes");
 
