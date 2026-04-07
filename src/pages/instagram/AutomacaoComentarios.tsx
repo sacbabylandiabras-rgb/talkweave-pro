@@ -58,6 +58,7 @@ import {
   ChevronUp,
   ChevronDown,
   TableIcon,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -833,12 +834,49 @@ export default function AutomacaoComentarios() {
       <Sheet open={showLeads} onOpenChange={setShowLeads}>
         <SheetContent side="right" className="w-[92vw] sm:max-w-[92vw] lg:w-[1100px] lg:max-w-[1100px] p-0">
           <SheetHeader className="px-4 py-3 border-b border-border">
-            <SheetTitle className="flex items-center gap-2 text-base">
-              <TableIcon className="w-4 h-4" />
-              Dados Coletados
-              <Badge variant="secondary" className="text-xs">
-                {collectedLeads.length}
-              </Badge>
+            <SheetTitle className="flex items-center justify-between text-base">
+              <div className="flex items-center gap-2">
+                <TableIcon className="w-4 h-4" />
+                Dados Coletados
+                <Badge variant="secondary" className="text-xs">
+                  {collectedLeads.length}
+                </Badge>
+              </div>
+              {collectedLeads.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => {
+                    const headers = ["@ Post", "@ Comentário", "Tipo", "Dado Coletado", "Data", "Hora"];
+                    const rows = collectedLeads.map((lead: any) => {
+                      const payload = lead.payload as any;
+                      const isWa = lead.event_type === "lead_whatsapp";
+                      const d = new Date(lead.created_at);
+                      return [
+                        `@${payload?.post_owner || ""}`,
+                        `@${lead.username || lead.ig_user_id || ""}`,
+                        isWa ? "WhatsApp" : "Email",
+                        payload?.collected_value || lead.comment_text || "",
+                        d.toLocaleDateString("pt-BR"),
+                        d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+                    });
+                    const csv = [headers.join(","), ...rows].join("\n");
+                    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("CSV exportado!");
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Exportar CSV
+                </Button>
+              )}
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-60px)] w-full">
