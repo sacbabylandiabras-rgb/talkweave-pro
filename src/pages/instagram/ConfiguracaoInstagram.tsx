@@ -15,6 +15,7 @@ export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [accountName, setAccountName] = useState("");
+  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
@@ -41,6 +42,19 @@ export default function ConfiguracaoInstagram() {
       if (data?.connected && data?.access_token) {
         setIsConnected(true);
         setAccountName(data.fb_user_name ? `@${data.fb_user_name}` : "Instagram conectado");
+
+        // Fetch profile picture from Instagram Graph API
+        try {
+          const picRes = await fetch(
+            `https://graph.instagram.com/v21.0/me?fields=profile_picture_url&access_token=${encodeURIComponent(data.access_token)}`
+          );
+          const picData = await picRes.json();
+          if (picData?.profile_picture_url) {
+            setProfilePicUrl(picData.profile_picture_url);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch profile picture:", e);
+        }
       }
     } catch (err) {
       console.error("Error checking Instagram connection:", err);
@@ -153,6 +167,7 @@ export default function ConfiguracaoInstagram() {
 
       setIsConnected(false);
       setAccountName("");
+      setProfilePicUrl("");
       toast.info("Instagram desconectado");
     } catch (err) {
       toast.error("Erro ao desconectar");
@@ -183,8 +198,10 @@ export default function ConfiguracaoInstagram() {
       <Card className="border-border">
         <CardContent className="pt-6 pb-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isConnected ? "bg-primary/10" : "bg-muted/30"}`}>
-              {isConnected ? (
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center overflow-hidden ${isConnected ? "bg-primary/10" : "bg-muted/30"}`}>
+              {isConnected && profilePicUrl ? (
+                <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : isConnected ? (
                 <CheckCircle2 className="w-8 h-8 text-primary" />
               ) : (
                 <Instagram className="w-8 h-8 text-muted-foreground" />
