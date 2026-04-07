@@ -120,7 +120,8 @@ export default function ConfiguracaoInstagram() {
       await supabase
         .from("meta_credentials")
         .update({ connected: false, access_token: null })
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("app_id", INSTAGRAM_APP_ID);
 
       setIsConnected(false);
       setAccountName("");
