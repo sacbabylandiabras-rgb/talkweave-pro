@@ -15,6 +15,7 @@ export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [accountName, setAccountName] = useState("");
+  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
