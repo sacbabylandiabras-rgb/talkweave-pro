@@ -68,6 +68,7 @@ import { IGGatilhoNode } from "@/components/flow/ig/IGGatilhoNode";
 import { IGRespostaNode } from "@/components/flow/ig/IGRespostaNode";
 import { IGDMNode } from "@/components/flow/ig/IGDMNode";
 import { IGDelayNode } from "@/components/flow/ig/IGDelayNode";
+import { IGWhatsAppNode } from "@/components/flow/ig/IGWhatsAppNode";
 import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes: NodeTypes = {
@@ -75,6 +76,7 @@ const nodeTypes: NodeTypes = {
   igResposta: IGRespostaNode,
   igDM: IGDMNode,
   igDelay: IGDelayNode,
+  igWhatsApp: IGWhatsAppNode,
 };
 
 const defaultNodes: Node[] = [
