@@ -780,6 +780,21 @@ export default function AutomacaoComentarios() {
             );
           })}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowLeads(true)}
+          >
+            <TableIcon className="w-3.5 h-3.5" />
+            Leads
+            {collectedLeads.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0">
+                {collectedLeads.length}
+              </Badge>
+            )}
+          </Button>
+
           <Button onClick={handleSaveFlow} disabled={saving} size="sm" className="gap-1.5 ml-2">
             <Save className="w-3.5 h-3.5" />
             {saving ? "Salvando..." : "Salvar"}
