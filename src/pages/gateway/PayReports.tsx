@@ -187,6 +187,7 @@ export default function PayReports() {
                           <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(tx.created_at).toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{tx.customer_name || "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{(tx as any).metadata?.document || "—"}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {tx.customer_phone && <div>{tx.customer_phone}</div>}
                             {tx.customer_email && <div>{tx.customer_email}</div>}
