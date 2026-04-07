@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
-const IG_APP_ID = "829722106116857";
+const IG_APP_ID = "831998069944962";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
