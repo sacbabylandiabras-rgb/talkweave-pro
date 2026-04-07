@@ -736,8 +736,120 @@ serve(async (req) => {
                     }
                   } catch { /* not flow JSON */ }
                 }
-              } else if (event.message && !event.message.quick_reply) {
-                console.log(`📨 DM from ${senderId}: ${event.message.text || "(media)"}`);
+              } else if (event.message && !event.message.quick_reply && !event.message.is_echo) {
+                const dmText = event.message.text || "";
+                console.log(`📨 DM from ${senderId}: ${dmText || "(media)"}`);
+
+                // Check if this is a WhatsApp/Email collection response
+                if (dmText && senderId && accessToken) {
+                  const isPhone = /\d{8,15}/.test(dmText.replace(/\D/g, ""));
+                  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dmText.trim());
+
+                  if (isPhone || isEmail) {
+                    const { data: automations } = await supabase
+                      .from("instagram_automations")
+                      .select("*")
+                      .eq("user_id", userId)
+                      .eq("active", true);
+
+                    for (const auto of (automations || [])) {
+                      try {
+                        const parsed = JSON.parse(auto.dm_message || "");
+                        if (!parsed.__flow__ || !parsed.nodes?.length) continue;
+
+                        const fNodes = parsed.nodes;
+                        const fEdges = parsed.edges || [];
+
+                        // Find DM nodes that collect WhatsApp or Email
+                        for (const node of fNodes) {
+                          if (node.type !== "igDM") continue;
+                          const collectsWa = node.data?.collectWhatsapp && isPhone;
+                          const collectsEm = node.data?.collectEmail && isEmail;
+                          if (!collectsWa && !collectsEm) continue;
+
+                          const handleId = collectsWa ? "collect-whatsapp" : "collect-email";
+                          console.log(`📱 Collection match: ${handleId} in node ${node.id} with value "${dmText}"`);
+
+                          // Send follow-up message if configured
+                          const followUp = collectsWa ? node.data?.whatsappFollowUp : node.data?.emailFollowUp;
+                          if (followUp) {
+                            await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                              body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
+                            });
+                            console.log(`✅ Follow-up sent for ${handleId}`);
+                          }
+
+                          // Save collected data to instagram_contacts
+                          const updateData: any = {};
+                          if (collectsWa) updateData.full_name = `wa:${dmText.replace(/\D/g, "")}`;
+                          // For email we store in source field as metadata
+                          
+                          // Follow the collection handle edges
+                          const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
+
+                          const replaceVars = (txt: string) =>
+                            txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
+                               .replace(/\{\{comentario\}\}/g, dmText);
+
+                          const visited = new Set<string>();
+                          const executeNode = async (n: any) => {
+                            if (visited.has(n.id)) return;
+                            visited.add(n.id);
+                            const d = n.data || {};
+
+                            if (n.type === "igDM" && accessToken) {
+                              const msg = replaceVars(d.message || "");
+                              const btns = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+                              let mp: any;
+                              if (btns.length > 0) {
+                                const templateBtns = btns.slice(0, 3).map((b: any) => {
+                                  if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
+                                  return { type: "web_url", title: (b.title || "").slice(0, 20), url: b.url };
+                                });
+                                mp = { attachment: { type: "template", payload: { template_type: "button", text: msg || "Selecione:", buttons: templateBtns } } };
+                              } else if (msg) {
+                                mp = { text: msg };
+                              }
+                              if (mp) {
+                                const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+                                  body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
+                                });
+                                const rd = await res.json();
+                                if (res.ok && !rd.error) console.log(`✅ Collection branch DM sent to ${senderId}`);
+                                else console.error("❌ Collection branch DM error:", JSON.stringify(rd));
+                              }
+                            }
+
+                            if (n.type === "igDelay") {
+                              const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
+                              if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                            }
+
+                            const btnC = (n.data?.buttons || []).filter((b: any) => b.title).length;
+                            const hasC = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
+                            if (n.type === "igDM" && (btnC > 0 || hasC)) {
+                              const defE = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
+                              for (const e of defE) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
+                            } else {
+                              const nxtE = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"));
+                              for (const e of nxtE) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
+                            }
+                          };
+
+                          for (const edge of branchEdges) {
+                            const target = fNodes.find((fn: any) => fn.id === edge.target);
+                            if (target) await executeNode(target);
+                          }
+                          break;
+                        }
+                      } catch { /* not flow */ }
+                    }
+                  }
+                }
               }
             }
           }
