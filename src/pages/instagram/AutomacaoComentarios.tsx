@@ -53,6 +53,7 @@ import { IGGatilhoNode } from "@/components/flow/ig/IGGatilhoNode";
 import { IGRespostaNode } from "@/components/flow/ig/IGRespostaNode";
 import { IGDMNode } from "@/components/flow/ig/IGDMNode";
 import { IGDelayNode } from "@/components/flow/ig/IGDelayNode";
+import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes: NodeTypes = {
   igGatilho: IGGatilhoNode,
