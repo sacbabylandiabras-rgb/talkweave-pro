@@ -9,6 +9,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Shared URL tracker wrapper for click metrics
+const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
+  const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!;
+  return (originalUrl: string, btnTitle: string) => {
+    const trackBase = `${SUPABASE_URL_BASE}/functions/v1/track-flow-click`;
+    const params = new URLSearchParams({
+      url: originalUrl,
+      flow: autoName,
+      btn: btnTitle,
+      uid: userId,
+      ph: fromUsername,
+      src: "ig",
+    });
+    return `${trackBase}?${params.toString()}`;
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
