@@ -3,9 +3,10 @@ import { Lock, CreditCard, Package, Minus, Plus, User, Check } from "lucide-reac
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
-import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -63,9 +64,9 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
 
   const stepLabels = [
-    { num: 1, label: "Identificação" },
-    { num: 2, label: "Conferência" },
-    { num: 3, label: "Pagamento" },
+    { num: 1, label: "Identificação", icon: <User className="w-3 h-3" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-3 h-3" /> },
+    { num: 3, label: "Pagamento", icon: <CreditCard className="w-3 h-3" /> },
   ];
 
   return (
@@ -77,26 +78,14 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
       )}
 
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "960px" }}>
-        {/* Step indicators */}
-        <div className="flex items-center justify-center gap-3 mb-5">
-          {stepLabels.map((sl, i) => (
-            <div key={sl.num} className="flex items-center gap-3">
-              <button onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium"
-                style={{
-                  borderRadius: s.stepRadius,
-                  background: step === sl.num ? `${s.stepBg}15` : "transparent",
-                  color: step === sl.num ? s.stepBg : s.cardLabel,
-                  border: step === sl.num ? `1.5px solid ${s.stepBg}` : "1.5px solid transparent",
-                }}>
-                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === sl.num)}>
-                  {step > sl.num ? <Check className="w-3 h-3" /> : sl.num}
-                </div>
-                <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{sl.label}</span>
-              </button>
-              {i < stepLabels.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > sl.num ? s.primary : s.cardBorder }} />}
-            </div>
-          ))}
-        </div>
+        <CheckoutStepIndicators
+          config={config}
+          steps={stepLabels}
+          step={step}
+          onStepChange={setStep}
+          previewMode={previewMode}
+          hideLabelsOnMobilePreview
+        />
 
         <div className={!previewMode ? "flex flex-col-reverse lg:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.25rem" } : undefined}>
           <div className="flex-1 space-y-4">

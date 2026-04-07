@@ -6,6 +6,7 @@ import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -66,21 +67,20 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
   const stepLabels = [
-    { num: 1, label: "Identificação", icon: User },
-    { num: 2, label: "Conferência", icon: Check },
-    { num: 3, label: "Pagamento", icon: CreditCard },
+    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
+    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
   ];
 
   const StepTabs = () => (
-    <div className={!previewMode ? "hidden md:flex items-center border overflow-hidden" : "items-center border overflow-hidden"} style={previewMode ? { ...cardStyle(s), display: previewMode === "mobile" ? "none" : "flex" } : cardStyle(s)}>
-      {stepLabels.map((st) => (
-        <button key={st.num} onClick={() => setStep(st.num as 1 | 2 | 3)} className="flex-1 flex items-center gap-2 px-5 py-3" style={{ borderRight: `1px solid ${s.cardBorder}`, background: step === st.num ? `${s.stepBg}10` : "transparent" }}>
-          <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
-            {step > st.num ? <Check className="w-3 h-3" /> : st.num}
-          </div>
-          <span className="text-xs font-semibold" style={{ color: step === st.num ? s.stepBg : s.cardText }}>{st.label}</span>
-        </button>
-      ))}
+    <div className={!previewMode ? "hidden md:block" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : "block" } : undefined}>
+      <CheckoutStepIndicators
+        config={config}
+        steps={stepLabels}
+        step={step}
+        onStepChange={setStep}
+        previewMode={previewMode}
+      />
     </div>
   );
 

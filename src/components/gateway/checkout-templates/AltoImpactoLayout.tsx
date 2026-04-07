@@ -3,9 +3,10 @@ import { Lock, ShieldCheck, CreditCard, Package, ShoppingBag, User, Check } from
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
-import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -82,25 +83,15 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
       <div className="mx-auto px-3 py-6" style={{ maxWidth: "900px" }}>
         {/* DROP ZONE: Top */}
         <CheckoutDropZone position="top" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Topo)" />
-        {/* Step indicators */}
-        <div className="flex items-center justify-center gap-3 mb-5">
-          {steps.map((st, i) => (
-            <div key={st.num} className="flex items-center gap-3">
-              <button onClick={() => setStep(st.num as 1 | 2 | 3)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all"
-                style={{
-                  borderRadius: s.stepRadius,
-                  background: step === st.num ? `${s.stepBg}15` : "transparent",
-                  color: step === st.num ? s.stepBg : s.cardLabel,
-                  border: step === st.num ? `1.5px solid ${s.stepBg}` : "1.5px solid transparent",
-                }}>
-                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-bold" style={stepStyle(s, step === st.num)}>
-                  {step > st.num ? <Check className="w-3 h-3" /> : st.num}
-                </div>
-                <span className={!previewMode ? "hidden sm:inline" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : undefined } : undefined}>{st.label}</span>
-              </button>
-              {i < steps.length - 1 && <div className="w-6 h-[1.5px] rounded" style={{ background: step > st.num ? s.primary : s.cardBorder }} />}
-            </div>
-          ))}
+        <div className="mb-1">
+          <CheckoutStepIndicators
+            config={config}
+            steps={steps}
+            step={step}
+            onStepChange={setStep}
+            previewMode={previewMode}
+            hideLabelsOnMobilePreview
+          />
         </div>
 
         <div className={!previewMode ? "flex flex-col-reverse md:flex-row gap-5" : ""} style={previewMode ? { display: "flex", flexDirection: previewMode === "mobile" ? "column-reverse" : "row", gap: "1.25rem" } : undefined}>

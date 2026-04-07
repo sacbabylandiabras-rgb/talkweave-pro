@@ -3,9 +3,10 @@ import { ShieldCheck, CreditCard, Package, User, Minus, Plus, Trash2, Check } fr
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
-import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -40,9 +41,9 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
 
   const stepLabels = [
-    { num: 1, label: "Identificação", icon: User },
-    { num: 2, label: "Conferência", icon: Check },
-    { num: 3, label: "Pagamento", icon: CreditCard },
+    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
+    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
+    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
   ];
 
   return (
@@ -73,21 +74,15 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
         )}
       </div>
 
-      {/* Step indicators */}
       <div style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
-        <div className="flex items-center justify-center gap-10 py-3 mx-auto" style={{ maxWidth: "700px" }}>
-          {stepLabels.map((sl, i) => (
-            <button key={i} onClick={() => setStep(sl.num as 1 | 2 | 3)} className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 flex items-center justify-center" style={{
-                borderRadius: s.stepRadius,
-                background: step === sl.num ? `${s.stepBg}20` : step > sl.num ? `${s.stepBg}20` : (s.isDark ? "#333" : "#F3F4F6"),
-                border: step === sl.num ? `2px solid ${s.stepBg}` : step > sl.num ? `2px solid ${s.stepBg}80` : "2px solid transparent",
-              }}>
-                {step > sl.num ? <Check className="w-4 h-4" style={{ color: s.stepBg }} /> : <sl.icon className="w-4 h-4" style={{ color: step === sl.num ? s.stepBg : s.cardLabel }} />}
-              </div>
-              <span className="text-[10px] font-semibold" style={{ color: step === sl.num ? s.stepBg : s.cardLabel }}>{sl.label}</span>
-            </button>
-          ))}
+        <div className="mx-auto" style={{ maxWidth: "700px" }}>
+          <CheckoutStepIndicators
+            config={config}
+            steps={stepLabels}
+            step={step}
+            onStepChange={setStep}
+            previewMode={previewMode}
+          />
         </div>
       </div>
 
