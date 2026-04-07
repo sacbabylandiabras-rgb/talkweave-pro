@@ -150,6 +150,26 @@ export default function AutomacaoComentarios() {
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
   const [collectedLeads, setCollectedLeads] = useState<any[]>([]);
   const [showLeads, setShowLeads] = useState(false);
+  const [waTemplates, setWaTemplates] = useState<any[]>([]);
+  const [waFlows, setWaFlows] = useState<any[]>([]);
+  const [waInstances, setWaInstances] = useState<any[]>([]);
+
+  // Fetch WhatsApp resources for the igWhatsApp node
+  useEffect(() => {
+    const fetchWaResources = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: tpl }, { data: flows }, { data: inst }] = await Promise.all([
+        supabase.from("message_templates").select("id, name, category, type, content").eq("user_id", user.id).eq("active", true).order("name"),
+        supabase.from("flow_automations").select("id, name, keyword").eq("user_id", user.id).eq("active", true).order("name"),
+        (supabase as any).from("zapi_instances").select("id, instance_name, api_provider, is_default").eq("user_id", user.id).eq("is_active", true).order("instance_name"),
+      ]);
+      setWaTemplates(tpl || []);
+      setWaFlows(flows || []);
+      setWaInstances(inst || []);
+    };
+    fetchWaResources();
+  }, []);
 
   // Fetch collected leads for this automation
   const fetchCollectedLeads = useCallback(async (automationId?: string) => {
