@@ -49,13 +49,35 @@ export default function ConfiguracaoInstagram() {
     }
   };
 
-  // Listen for OAuth callback redirect
+  // Handle OAuth redirect in both normal tab and popup flows
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const igConnected = params.get("ig_connected");
-    if (igConnected === "1") {
+    const isPopup = params.get("popup") === "1";
+    const isConnected = params.get("connected") === "1" || params.get("ig_connected") === "1";
+    const hasError = params.get("error") === "1";
+    const errorMessage = params.get("message");
+
+    if (isPopup && window.opener) {
+      if (isConnected) {
+        window.opener.postMessage({ type: "META_OAUTH_SUCCESS", provider: "instagram" }, window.location.origin);
+      } else if (hasError) {
+        window.opener.postMessage({
+          type: "META_OAUTH_ERROR",
+          provider: "instagram",
+          message: errorMessage || "Erro ao conectar Instagram.",
+        }, window.location.origin);
+      }
+
+      window.close();
+      return;
+    }
+
+    if (isConnected) {
       checkConnection();
-      // Clean URL
+      toast.success("Instagram conectado com sucesso!");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (hasError) {
+      toast.error(errorMessage || "Erro ao conectar Instagram.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -95,6 +117,12 @@ export default function ConfiguracaoInstagram() {
         setConnecting(false);
         checkConnection();
         toast.success("Instagram conectado com sucesso!");
+        window.removeEventListener("message", handleMessage);
+      }
+
+      if (event.data?.type === "META_OAUTH_ERROR") {
+        setConnecting(false);
+        toast.error(event.data?.message || "Erro ao conectar Instagram.");
         window.removeEventListener("message", handleMessage);
       }
     };
