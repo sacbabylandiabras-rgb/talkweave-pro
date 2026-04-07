@@ -197,8 +197,10 @@ export default function ConfiguracaoInstagram() {
       <Card className="border-border">
         <CardContent className="pt-6 pb-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isConnected ? "bg-primary/10" : "bg-muted/30"}`}>
-              {isConnected ? (
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center overflow-hidden ${isConnected ? "bg-primary/10" : "bg-muted/30"}`}>
+              {isConnected && profilePicUrl ? (
+                <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : isConnected ? (
                 <CheckCircle2 className="w-8 h-8 text-primary" />
               ) : (
                 <Instagram className="w-8 h-8 text-muted-foreground" />
