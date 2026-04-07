@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { getCheckoutStyles } from "./checkout-style-helpers";
 
 interface StepItem {
-  num: 1 | 2 | 3;
+  num: number;
   label: string;
   icon: ReactNode;
 }
@@ -59,7 +59,7 @@ export default function CheckoutStepIndicators({
             <div key={item.num} className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => onStepChange(item.num)}
+                onClick={() => onStepChange(item.num as 1 | 2 | 3)}
                 className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
                 style={{
                   borderRadius: "999px",
@@ -100,7 +100,7 @@ export default function CheckoutStepIndicators({
           <div key={item.num} className="flex items-center">
             <button
               type="button"
-              onClick={() => onStepChange(item.num)}
+              onClick={() => onStepChange(item.num as 1 | 2 | 3)}
               className="flex flex-col items-center gap-1.5"
             >
               <div
