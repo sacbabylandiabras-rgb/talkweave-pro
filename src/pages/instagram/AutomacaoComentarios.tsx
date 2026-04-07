@@ -58,6 +58,7 @@ import {
   ChevronUp,
   ChevronDown,
   TableIcon,
+  MessageSquare,
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
