@@ -146,7 +146,7 @@ export default function ConfiguracaoMeta() {
         access_token: manualToken.trim(),
         phone_number_id: manualPhoneId.trim(),
         waba_id: manualWabaId.trim(),
-        app_id: "1485715796604849",
+        app_id: "831998069944962",
         connected: true,
         fb_user_name: "Configuração Manual",
         updated_at: new Date().toISOString(),
@@ -259,7 +259,7 @@ export default function ConfiguracaoMeta() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Cole os dados do painel{" "}
                   <a
-                    href="https://developers.facebook.com/apps/1485715796604849/use_cases/customize/wa-dev-console/"
+                    href="https://developers.facebook.com/apps/831998069944962/use_cases/customize/wa-dev-console/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline"
@@ -365,7 +365,7 @@ export default function ConfiguracaoMeta() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">App ID</Label>
-                <Input value={creds?.app_id || "1485715796604849"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Input value={creds?.app_id || "831998069944962"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">WABA ID</Label>
