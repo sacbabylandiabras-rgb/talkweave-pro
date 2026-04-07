@@ -831,7 +831,7 @@ export default function AutomacaoComentarios() {
 
       {/* Leads Side Sheet */}
       <Sheet open={showLeads} onOpenChange={setShowLeads}>
-        <SheetContent side="right" className="w-[420px] sm:w-[480px] p-0">
+        <SheetContent side="right" className="w-[560px] sm:w-[640px] p-0">
           <SheetHeader className="px-4 py-3 border-b border-border">
             <SheetTitle className="flex items-center gap-2 text-base">
               <TableIcon className="w-4 h-4" />
@@ -847,27 +847,38 @@ export default function AutomacaoComentarios() {
                 Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
               </div>
             ) : (
-              <div className="divide-y divide-border">
-                {collectedLeads.map((lead: any) => {
-                  const payload = lead.payload as any;
-                  const isWa = lead.event_type === "lead_whatsapp";
-                  return (
-                    <div key={lead.id} className="px-4 py-3 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[11px] px-3">@ Post</TableHead>
+                    <TableHead className="text-[11px] px-3">@ Comentário</TableHead>
+                    <TableHead className="text-[11px] px-3">Tipo</TableHead>
+                    <TableHead className="text-[11px] px-3">Dado Coletado</TableHead>
+                    <TableHead className="text-[11px] px-3">Data/Hora</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collectedLeads.map((lead: any) => {
+                    const payload = lead.payload as any;
+                    const isWa = lead.event_type === "lead_whatsapp";
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
+                          @{payload?.post_owner || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
                           @{lead.username || lead.ig_user_id || "—"}
-                        </span>
-                        <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
-                          {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                          {isWa ? "WhatsApp" : "Email"}
-                        </Badge>
-                      </div>
-                      <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-                        {payload?.collected_value || lead.comment_text || "—"}
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>{payload?.automation_name || "—"}</span>
-                        <span>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1 whitespace-nowrap">
+                            {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                            {isWa ? "WhatsApp" : "Email"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs px-3 py-2 font-mono">
+                          {payload?.collected_value || lead.comment_text || "—"}
+                        </TableCell>
+                        <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
                           {new Date(lead.created_at).toLocaleString("pt-BR", {
                             day: "2-digit",
                             month: "2-digit",
@@ -875,12 +886,12 @@ export default function AutomacaoComentarios() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             )}
           </ScrollArea>
         </SheetContent>
