@@ -21,15 +21,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     if (flowName && btnText && userId) {
+      const flowLabel = source === 'ig' ? `[IG-Fluxo: ${flowName}]` : `[Fluxo: ${flowName}]`;
       await supabase.from('message_logs').insert({
         user_id: userId,
         phone,
         message_received: `[URL Click] ${btnText}`,
         keyword_matched: `[Botão: ${btnText}]`,
-        response_sent: `[Fluxo: ${flowName}]`,
+        response_sent: flowLabel,
         timestamp: new Date().toISOString(),
       })
-      console.log(`✅ URL click tracked: flow="${flowName}", btn="${btnText}", phone=${phone}`)
+      console.log(`✅ URL click tracked: flow="${flowName}", btn="${btnText}", phone=${phone}, src=${source}`)
     }
   } catch (e) {
     console.error('Error logging click:', e)
