@@ -42,6 +42,19 @@ export default function ConfiguracaoInstagram() {
       if (data?.connected && data?.access_token) {
         setIsConnected(true);
         setAccountName(data.fb_user_name ? `@${data.fb_user_name}` : "Instagram conectado");
+
+        // Fetch profile picture from Instagram Graph API
+        try {
+          const picRes = await fetch(
+            `https://graph.instagram.com/v21.0/me?fields=profile_picture_url&access_token=${encodeURIComponent(data.access_token)}`
+          );
+          const picData = await picRes.json();
+          if (picData?.profile_picture_url) {
+            setProfilePicUrl(picData.profile_picture_url);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch profile picture:", e);
+        }
       }
     } catch (err) {
       console.error("Error checking Instagram connection:", err);
