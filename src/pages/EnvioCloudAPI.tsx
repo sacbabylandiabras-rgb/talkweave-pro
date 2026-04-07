@@ -251,7 +251,16 @@ export default function EnvioCloudAPI() {
         ) : (
           <div className="space-y-2">
             {phoneNumbers.map((pn) => (
-              <div key={pn.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+              <button
+                key={pn.id}
+                type="button"
+                onClick={() => setSelectedPhoneNumberId(pn.id === selectedPhoneNumberId ? "" : pn.id)}
+                className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors text-left ${
+                  selectedPhoneNumberId === pn.id
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-primary" />
                   <div>
@@ -266,9 +275,15 @@ export default function EnvioCloudAPI() {
                   <Badge variant="outline" className="text-[9px]">
                     {pn.name_status || "N/A"}
                   </Badge>
+                  {selectedPhoneNumberId === pn.id && (
+                    <Badge className="text-[9px] bg-primary text-primary-foreground">Selecionado</Badge>
+                  )}
                 </div>
-              </div>
+              </button>
             ))}
+            <p className="text-[10px] text-muted-foreground">
+              Clique em um número para usá-lo como remetente. Sem seleção, usa o número padrão.
+            </p>
           </div>
         )}
       </Card>
