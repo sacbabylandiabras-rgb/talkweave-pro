@@ -26,6 +26,167 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+// Helper: execute igWhatsApp node — sends WhatsApp message via Z-API
+const executeIgWhatsAppNode = async (
+  nodeData: any,
+  collectedPhone: string | null,
+  userId: string,
+  igUserId: string,
+  fromUsername: string,
+  supabase: any,
+) => {
+  let phone = collectedPhone;
+
+  // If no phone passed, look up from collected leads
+  if (!phone) {
+    const { data: leadEvent } = await supabase
+      .from("instagram_events")
+      .select("comment_text")
+      .eq("user_id", userId)
+      .eq("event_type", "lead_whatsapp")
+      .eq("ig_user_id", igUserId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    phone = leadEvent?.comment_text || null;
+  }
+
+  if (!phone) {
+    console.log("⚠️ igWhatsApp: No WhatsApp number available, skipping");
+    return;
+  }
+
+  const cleanPhone = phone.replace(/\D/g, "");
+  if (cleanPhone.length < 8) {
+    console.log(`⚠️ igWhatsApp: Invalid phone "${phone}", skipping`);
+    return;
+  }
+
+  // Resolve Z-API credentials
+  const wantedInstance = nodeData.instanceId || null;
+  let zapiCreds: any = null;
+
+  if (wantedInstance) {
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select("zapi_instance_id, zapi_token, zapi_client_token")
+      .or(`id.eq.${wantedInstance},zapi_instance_id.eq.${wantedInstance}`)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+    zapiCreds = data;
+  }
+  if (!zapiCreds) {
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select("zapi_instance_id, zapi_token, zapi_client_token")
+      .eq("user_id", userId)
+      .eq("is_default", true)
+      .maybeSingle();
+    zapiCreds = data;
+  }
+  if (!zapiCreds) {
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select("zapi_instance_id, zapi_token, zapi_client_token")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    zapiCreds = data;
+  }
+  if (!zapiCreds) {
+    console.log("⚠️ igWhatsApp: No Z-API credentials found");
+    return;
+  }
+
+  const baseUrl = `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}`;
+  const sendType = nodeData.sendType || "text";
+  let message = "";
+  let mediaUrl = "";
+  let mediaType = "";
+
+  if (sendType === "text") {
+    message = (nodeData.message || "").replace(/\{\{nome_usuario\}\}/g, fromUsername);
+  } else if (sendType === "template" && nodeData.templateId) {
+    const { data: tpl } = await supabase
+      .from("message_templates")
+      .select("*")
+      .eq("id", nodeData.templateId)
+      .maybeSingle();
+    if (tpl) {
+      message = (tpl.content || "").replace(/\{\{nome_usuario\}\}/g, fromUsername);
+      if (tpl.media_url) {
+        mediaUrl = tpl.media_url;
+        const t = tpl.type || "";
+        mediaType = t === "imagem" ? "image" : t === "video" ? "video" : t === "audio" ? "audio" : t === "documento" ? "document" : "";
+      }
+    }
+  } else if (sendType === "flow" && nodeData.flowId) {
+    // For flow, fetch the flow keyword and send it as a message to trigger the WA flow
+    const { data: flow } = await supabase
+      .from("flow_automations")
+      .select("keyword, name")
+      .eq("id", nodeData.flowId)
+      .maybeSingle();
+    if (flow?.keyword) {
+      // Send the keyword so the webhook-zapi picks it up and runs the full flow
+      message = flow.keyword;
+      console.log(`🔄 igWhatsApp: Triggering WA flow "${flow.name}" with keyword "${flow.keyword}"`);
+    } else {
+      console.log("⚠️ igWhatsApp: Flow not found or no keyword");
+      return;
+    }
+  }
+
+  if (!message && !mediaUrl) {
+    console.log("⚠️ igWhatsApp: No content to send, skipping");
+    return;
+  }
+
+  try {
+    let endpoint = "send-text";
+    let body: any = { phone: cleanPhone, message };
+
+    if (mediaUrl && mediaType === "image") {
+      endpoint = "send-image";
+      body = { phone: cleanPhone, image: mediaUrl, caption: message || "" };
+    } else if (mediaUrl && mediaType === "video") {
+      endpoint = "send-video";
+      body = { phone: cleanPhone, video: mediaUrl, caption: message || "" };
+    } else if (mediaUrl && mediaType === "audio") {
+      endpoint = "send-audio";
+      body = { phone: cleanPhone, audio: mediaUrl };
+    } else if (mediaUrl) {
+      endpoint = "send-document/pdf";
+      body = { phone: cleanPhone, document: mediaUrl, fileName: "arquivo" };
+    }
+
+    const res = await fetch(`${baseUrl}/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Client-Token": zapiCreds.zapi_client_token },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      console.log(`✅ igWhatsApp: Sent to ${cleanPhone} via ${endpoint}`);
+    } else {
+      console.error(`❌ igWhatsApp: Failed:`, JSON.stringify(data));
+    }
+
+    await supabase.from("message_logs").insert({
+      user_id: userId,
+      phone: cleanPhone,
+      response_sent: message || `[media:${mediaType}]`,
+      keyword_matched: "__ig_whatsapp_send__",
+      timestamp: new Date().toISOString(),
+      instance_id: zapiCreds.zapi_instance_id,
+    });
+  } catch (e) {
+    console.error(`❌ igWhatsApp: Error:`, e);
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -393,6 +554,10 @@ serve(async (req) => {
                         }
                       }
 
+                      if (node.type === "igWhatsApp") {
+                        await executeIgWhatsAppNode(d, null, userId, fromId, fromUsername, supabase);
+                      }
+
                       // Traverse children — if DM has buttons or collection, STOP (don't follow those paths)
                       // Button paths (btn-0, btn-1...) are only followed when user clicks a button
                       // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
@@ -631,6 +796,10 @@ serve(async (req) => {
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
                         }
 
+                        if (n.type === "igWhatsApp") {
+                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
+                        }
+
                         // Continue traversal (stop at button/collection nodes)
                         const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
                         const hasCol = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
@@ -736,6 +905,10 @@ serve(async (req) => {
                         if (n.type === "igDelay") {
                           const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                        }
+
+                        if (n.type === "igWhatsApp") {
+                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
                         }
 
                         const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
@@ -862,6 +1035,11 @@ serve(async (req) => {
                             if (n.type === "igDelay") {
                               const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
                               if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                            }
+
+                            if (n.type === "igWhatsApp") {
+                              const collectedPhone = isPhone ? dmText.trim() : null;
+                              await executeIgWhatsAppNode(d, collectedPhone, userId, senderId, event.sender?.username || "", supabase);
                             }
 
                             const btnC = (n.data?.buttons || []).filter((b: any) => b.title).length;
