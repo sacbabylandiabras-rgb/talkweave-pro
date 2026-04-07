@@ -441,7 +441,7 @@ export default function EnvioCloudAPI() {
           <p className="text-[11px] font-medium text-foreground">Informações</p>
           <ul className="text-[10px] text-muted-foreground space-y-0.5">
             <li>• Mensagens enviadas via Graph API v21.0</li>
-            <li>• Phone Number ID: {creds?.phone_number_id || "não detectado"}</li>
+            <li>• Phone Number ID: {selectedPhoneNumberId || creds?.phone_number_id || "não detectado"}</li>
             {sendType === "template" ? (
               <li>• Templates aprovados podem iniciar conversas a qualquer momento</li>
             ) : (
