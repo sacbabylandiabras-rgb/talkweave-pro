@@ -717,12 +717,13 @@ serve(async (req) => {
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
                         }
 
-                        const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        if (n.type === "igDM" && btnCount > 0) {
+                        const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
+                        const hasCol2 = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && (btnCount2 > 0 || hasCol2)) {
                           const defEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
                         } else {
-                          const nextEdges = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-"));
+                          const nextEdges = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"));
                           for (const e of nextEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
                         }
                       };
