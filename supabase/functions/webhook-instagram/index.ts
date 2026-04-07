@@ -26,6 +26,145 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+// Helper: execute WhatsApp flow nodes directly (mirrors webhook-zapi logic)
+const sendFlowNodeContent = async (
+  node: any,
+  phone: string,
+  zapiCreds: any,
+  supabase: any,
+  userId: string,
+  flowName: string,
+) => {
+  if (node.type !== "blocoConteudo") return false;
+
+  const contentType = node.data?.contentType || "text";
+  const content = node.data?.content || "";
+  const mediaUrl = node.data?.mediaUrl || "";
+  const buttons: any[] = node.data?.buttons || [];
+  const baseUrl = `https://api.z-api.io/instances/${zapiCreds.zapi_instance_id}/token/${zapiCreds.zapi_token}`;
+  const headers = { "Content-Type": "application/json", "Client-Token": zapiCreds.zapi_client_token };
+
+  const sendableButtons = buttons.filter((b: any) => b.type !== "flow");
+  const flowButtons = buttons.filter((b: any) => b.type === "flow");
+  const allButtons = [...sendableButtons, ...flowButtons.map((b: any) => ({ ...b, type: "reply" }))];
+  const hasButtons = allButtons.length > 0;
+
+  try {
+    if (hasButtons) {
+      // Send media first if present with buttons
+      if ((contentType === "image" || contentType === "video") && mediaUrl) {
+        const mediaBody: any = { phone };
+        let mediaEndpoint = "";
+        if (contentType === "video" && node.data?.isPtv) {
+          mediaEndpoint = "/send-ptv";
+          mediaBody.ptv = mediaUrl;
+        } else if (contentType === "video") {
+          mediaEndpoint = "/send-video";
+          mediaBody.video = mediaUrl;
+        } else {
+          mediaEndpoint = "/send-image";
+          mediaBody.image = mediaUrl;
+        }
+        await fetch(`${baseUrl}${mediaEndpoint}`, { method: "POST", headers, body: JSON.stringify(mediaBody) });
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      const replyButtons = allButtons.filter((b: any) => b.type === "reply" || b.type === "flow").slice(0, 3).map((b: any) => ({ label: (b.text || "").trim() || "Botão" }));
+      const urlCallParts: string[] = [];
+      for (const btn of allButtons) {
+        if (btn.type === "url" && btn.value) urlCallParts.push(`🔗 ${(btn.text || "").trim()}: ${btn.value}`);
+        else if (btn.type === "call" && btn.value) urlCallParts.push(`📞 ${(btn.text || "").trim()}: ${btn.value}`);
+      }
+      const fullMessage = (content || "") + (urlCallParts.length > 0 ? "\n\n" + urlCallParts.join("\n") : "");
+
+      if (replyButtons.length > 0) {
+        await fetch(`${baseUrl}/send-button-list`, { method: "POST", headers, body: JSON.stringify({ phone, message: fullMessage, buttonList: { buttons: replyButtons } }) });
+      } else {
+        await fetch(`${baseUrl}/send-text`, { method: "POST", headers, body: JSON.stringify({ phone, message: fullMessage }) });
+      }
+    } else {
+      let endpoint = "";
+      const body: any = { phone };
+      switch (contentType) {
+        case "text": endpoint = "/send-text"; body.message = content; break;
+        case "image": endpoint = "/send-image"; body.image = mediaUrl; body.caption = content; break;
+        case "video":
+          if (node.data?.isPtv) { endpoint = "/send-ptv"; body.ptv = mediaUrl; }
+          else { endpoint = "/send-video"; body.video = mediaUrl; body.caption = content; }
+          break;
+        case "audio": endpoint = "/send-audio"; body.audio = mediaUrl; break;
+        case "document": endpoint = "/send-document-url"; body.document = mediaUrl; body.fileName = "documento"; body.caption = content; break;
+        default: endpoint = "/send-text"; body.message = content;
+      }
+      if (endpoint) {
+        await fetch(`${baseUrl}${endpoint}`, { method: "POST", headers, body: JSON.stringify(body) });
+      }
+    }
+    await new Promise(r => setTimeout(r, 1500));
+    console.log(`✅ igWhatsApp flow: Sent node ${node.id} (${contentType})`);
+
+    // Log
+    await supabase.from("message_logs").insert({
+      user_id: userId, phone,
+      response_sent: content || `[media:${contentType}]`,
+      keyword_matched: `__ig_flow_send__:${flowName}`,
+      timestamp: new Date().toISOString(),
+      instance_id: zapiCreds.zapi_instance_id,
+    });
+  } catch (e) {
+    console.error(`❌ igWhatsApp flow: Error sending node ${node.id}:`, e);
+  }
+
+  // Check if node has button-based branching edges
+  const hasButtonEdges = buttons.some((_: any, idx: number) => {
+    return false; // For IG-triggered flows, we don't handle button branching (no WA reply loop)
+  });
+  return hasButtonEdges;
+};
+
+const executeWhatsAppFlow = async (
+  nodeId: string,
+  nodes: any[],
+  edges: any[],
+  phone: string,
+  zapiCreds: any,
+  visited: Set<string>,
+  supabase: any,
+  userId: string,
+  flowName: string,
+) => {
+  if (visited.has(nodeId)) return;
+  visited.add(nodeId);
+
+  const currentNode = nodes.find((n: any) => n.id === nodeId);
+  if (!currentNode) return;
+
+  if (currentNode.type === "blocoConteudo") {
+    await sendFlowNodeContent(currentNode, phone, zapiCreds, supabase, userId, flowName);
+  }
+
+  // Follow default outgoing edges (not button-specific)
+  const isDefaultHandle = (h: string | null | undefined) => {
+    if (!h) return true;
+    if (h === "default") return true;
+    if (h.startsWith("source-") || h.startsWith("target-")) return true;
+    if (["right", "bottom", "left", "top", "a", "b"].includes(h)) return true;
+    return false;
+  };
+
+  const outgoing = edges
+    .filter((e: any) => e.source === nodeId && !e.sourceHandle?.startsWith("button-") && isDefaultHandle(e.sourceHandle))
+    .sort((a: any, b: any) => {
+      const aNode = nodes.find((n: any) => n.id === a.target);
+      const bNode = nodes.find((n: any) => n.id === b.target);
+      return (aNode?.position?.y ?? 0) - (bNode?.position?.y ?? 0);
+    });
+
+  for (const edge of outgoing) {
+    await executeWhatsAppFlow(edge.target, nodes, edges, phone, zapiCreds, visited, supabase, userId, flowName);
+  }
+};
+
 // Helper: execute igWhatsApp node — sends WhatsApp message via Z-API
 const executeIgWhatsAppNode = async (
   nodeData: any,
