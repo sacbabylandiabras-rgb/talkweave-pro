@@ -1,8 +1,10 @@
 import { Handle, Position } from "reactflow";
-import { Send, Link2, MessageCircle, Plus } from "lucide-react";
+import { Send, Link2, MessageCircle, Plus, Phone, Mail } from "lucide-react";
 
 export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
+  const collectWhatsapp = data.collectWhatsapp || false;
+  const collectEmail = data.collectEmail || false;
 
   return (
     <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[220px] max-w-[300px]">
@@ -28,6 +30,22 @@ export function IGDMNode({ data }: any) {
       ) : (
         <div className="text-xs text-muted-foreground/50 mt-2 p-2 bg-muted/20 rounded italic">
           Clique para editar a mensagem
+        </div>
+      )}
+
+      {/* Collection indicators */}
+      {(collectWhatsapp || collectEmail) && (
+        <div className="mt-2 flex gap-1.5">
+          {collectWhatsapp && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] text-emerald-600 font-medium">
+              <Phone className="w-3 h-3" /> WhatsApp
+            </div>
+          )}
+          {collectEmail && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-600 font-medium">
+              <Mail className="w-3 h-3" /> Email
+            </div>
+          )}
         </div>
       )}
 
