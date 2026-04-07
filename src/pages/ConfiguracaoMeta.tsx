@@ -23,8 +23,10 @@ interface MetaPhoneNumber {
   code_verification_status?: string;
 }
 
+const WHATSAPP_META_APP_ID = "831998069944962";
+
 export default function ConfiguracaoMeta() {
-  const { data: creds, isLoading } = useMetaCredentials();
+  const { data: creds, isLoading } = useMetaCredentials(WHATSAPP_META_APP_ID);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
@@ -32,9 +34,13 @@ export default function ConfiguracaoMeta() {
   const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>([]);
   const [loadingPhones, setLoadingPhones] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [manualToken, setManualToken] = useState("");
+  const [manualPhoneId, setManualPhoneId] = useState("");
+  const [manualWabaId, setManualWabaId] = useState("");
   const queryClient = useQueryClient();
 
-  // Detect OAuth redirect with ?connected=1
+  const isConnected = creds?.connected === true;
+
   useEffect(() => {
     if (searchParams.get("connected") === "1") {
       toast.success("Conta Meta conectada com sucesso!");
@@ -45,13 +51,6 @@ export default function ConfiguracaoMeta() {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams, queryClient]);
-
-  // Manual config fields
-  const [manualToken, setManualToken] = useState("");
-  const [manualPhoneId, setManualPhoneId] = useState("");
-  const [manualWabaId, setManualWabaId] = useState("");
-
-  const isConnected = creds?.connected === true;
 
   const fetchPhoneNumbers = async (showError = false) => {
     if (!isConnected) {
@@ -113,7 +112,8 @@ export default function ConfiguracaoMeta() {
           fb_user_id: null,
           fb_user_name: null,
         } as any)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("app_id", WHATSAPP_META_APP_ID);
 
       if (error) throw error;
 
@@ -146,17 +146,17 @@ export default function ConfiguracaoMeta() {
         access_token: manualToken.trim(),
         phone_number_id: manualPhoneId.trim(),
         waba_id: manualWabaId.trim(),
-        app_id: "831998069944962",
+        app_id: WHATSAPP_META_APP_ID,
         connected: true,
         fb_user_name: "Configuração Manual",
         updated_at: new Date().toISOString(),
       };
 
-      // Check if row exists
       const { data: existing } = await supabase
         .from("meta_credentials" as any)
         .select("id")
         .eq("user_id", user.id)
+        .eq("app_id", WHATSAPP_META_APP_ID)
         .maybeSingle();
 
       let error;
@@ -164,7 +164,7 @@ export default function ConfiguracaoMeta() {
         ({ error } = await supabase
           .from("meta_credentials" as any)
           .update(payload as any)
-          .eq("user_id", user.id));
+          .eq("id", existing.id));
       } else {
         ({ error } = await supabase
           .from("meta_credentials" as any)
@@ -207,7 +207,6 @@ export default function ConfiguracaoMeta() {
         </p>
       </div>
 
-      {/* Status card */}
       {isConnected ? (
         <Card className="p-4 flex items-center gap-3 border-primary/20 bg-primary/5">
           <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
@@ -224,21 +223,20 @@ export default function ConfiguracaoMeta() {
           </Badge>
         </Card>
       ) : (
-        <Card className="p-4 flex items-center gap-3 border-amber-500/20 bg-amber-500/5">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+        <Card className="p-4 flex items-center gap-3 border-border bg-muted/40">
+          <AlertCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           <div className="flex-1">
             <p className="text-xs font-medium text-foreground">Nenhuma conta conectada</p>
             <p className="text-[10px] text-muted-foreground">
               Conecte via Facebook ou configure manualmente com o token da Meta
             </p>
           </div>
-          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">
+          <Badge variant="outline" className="text-[10px]">
             Pendente
           </Badge>
         </Card>
       )}
 
-      {/* Connect methods */}
       {!isConnected ? (
         <Tabs defaultValue="manual" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
@@ -331,23 +329,16 @@ export default function ConfiguracaoMeta() {
           <TabsContent value="oauth">
             <Card className="p-6 space-y-4">
               <div className="text-center space-y-2">
-                <div className="w-14 h-14 rounded-xl bg-[#1877F2]/10 flex items-center justify-center mx-auto">
-                  <svg viewBox="0 0 24 24" className="w-7 h-7 text-[#1877F2]" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Globe className="w-7 h-7 text-primary" />
                 </div>
                 <p className="text-sm font-semibold text-foreground">Conecte via OAuth</p>
                 <p className="text-xs text-muted-foreground">
-                  Preenche automaticamente via Facebook Login (pode não detectar Phone Number ID)
+                  Preenche automaticamente via Facebook Login
                 </p>
               </div>
-              <Button
-                className="w-full gap-2.5 h-11 bg-[#1877F2] hover:bg-[#166FE5] text-white"
-                onClick={() => setFbDialogOpen(true)}
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
+              <Button className="w-full gap-2.5 h-11" onClick={() => setFbDialogOpen(true)}>
+                <Globe className="w-5 h-5" />
                 Conectar com Facebook
               </Button>
             </Card>
@@ -355,7 +346,6 @@ export default function ConfiguracaoMeta() {
         </Tabs>
       ) : (
         <>
-          {/* Credentials display */}
           <Card className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">Credenciais da API</p>
@@ -365,7 +355,7 @@ export default function ConfiguracaoMeta() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">App ID</Label>
-                <Input value={creds?.app_id || "831998069944962"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+                <Input value={creds?.app_id || WHATSAPP_META_APP_ID} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">WABA ID</Label>
@@ -478,7 +468,6 @@ export default function ConfiguracaoMeta() {
             )}
           </Card>
 
-          {/* Webhook config */}
           <Card className="p-4 space-y-3">
             <Label className="text-xs font-medium flex items-center gap-2">
               <Shield className="w-3.5 h-3.5 text-primary" />
@@ -516,7 +505,6 @@ export default function ConfiguracaoMeta() {
             </div>
           </Card>
 
-          {/* Actions */}
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
