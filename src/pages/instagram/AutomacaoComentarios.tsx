@@ -848,16 +848,28 @@ export default function AutomacaoComentarios() {
                   size="sm"
                   className="gap-1.5 text-xs"
                   onClick={() => {
-                    const headers = ["@ Post", "@ Comentário", "Tipo", "Dado Coletado", "Data", "Hora"];
-                    const rows = collectedLeads.map((lead: any) => {
+                    const headers = ["@ Post", "@ Comentário", "WhatsApp", "Email", "Data", "Hora"];
+                    const grouped = new Map<string, any>();
+                    collectedLeads.forEach((lead: any) => {
                       const payload = lead.payload as any;
-                      const isWa = lead.event_type === "lead_whatsapp";
-                      const d = new Date(lead.created_at);
+                      const key = lead.username || lead.ig_user_id || "unknown";
+                      if (!grouped.has(key)) {
+                        grouped.set(key, { postOwner: payload?.post_owner || "", username: key, whatsapp: "", email: "", created_at: lead.created_at });
+                      }
+                      const g = grouped.get(key)!;
+                      const val = payload?.collected_value || lead.comment_text || "";
+                      if (lead.event_type === "lead_whatsapp" && val) g.whatsapp = val;
+                      if (lead.event_type === "lead_email" && val) g.email = val;
+                      if (new Date(lead.created_at) > new Date(g.created_at)) g.created_at = lead.created_at;
+                      if (payload?.post_owner) g.postOwner = payload.post_owner;
+                    });
+                    const rows = Array.from(grouped.values()).map((g: any) => {
+                      const d = new Date(g.created_at);
                       return [
-                        `@${payload?.post_owner || ""}`,
-                        `@${lead.username || lead.ig_user_id || ""}`,
-                        isWa ? "WhatsApp" : "Email",
-                        payload?.collected_value || lead.comment_text || "",
+                        `@${g.postOwner}`,
+                        `@${g.username}`,
+                        g.whatsapp,
+                        g.email,
                         d.toLocaleDateString("pt-BR"),
                         d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
                       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
@@ -886,53 +898,74 @@ export default function AutomacaoComentarios() {
               </div>
             ) : (
               <div className="w-full overflow-x-auto">
-                <Table className="min-w-[980px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Post</TableHead>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Comentário</TableHead>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Tipo</TableHead>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Dado Coletado</TableHead>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Data</TableHead>
-                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Hora</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {collectedLeads.map((lead: any) => {
-                      const payload = lead.payload as any;
-                      const isWa = lead.event_type === "lead_whatsapp";
-                      const leadDate = new Date(lead.created_at);
-                      return (
-                        <TableRow key={lead.id}>
-                          <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
-                            @{payload?.post_owner || "—"}
-                          </TableCell>
-                          <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
-                            @{lead.username || lead.ig_user_id || "—"}
-                          </TableCell>
-                          <TableCell className="px-3 py-2 whitespace-nowrap">
-                            <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1 whitespace-nowrap">
-                              {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                              {isWa ? "WhatsApp" : "Email"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs px-3 py-2 font-mono whitespace-nowrap">
-                            {payload?.collected_value || lead.comment_text || "—"}
-                          </TableCell>
-                          <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
-                            {leadDate.toLocaleDateString("pt-BR")}
-                          </TableCell>
-                          <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
-                            {leadDate.toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </TableCell>
+                {(() => {
+                  const grouped = new Map<string, any>();
+                  collectedLeads.forEach((lead: any) => {
+                    const payload = lead.payload as any;
+                    const key = lead.username || lead.ig_user_id || "unknown";
+                    if (!grouped.has(key)) {
+                      grouped.set(key, { postOwner: payload?.post_owner || "", username: key, whatsapp: "", email: "", created_at: lead.created_at });
+                    }
+                    const g = grouped.get(key)!;
+                    const val = payload?.collected_value || lead.comment_text || "";
+                    if (lead.event_type === "lead_whatsapp" && val) g.whatsapp = val;
+                    if (lead.event_type === "lead_email" && val) g.email = val;
+                    if (new Date(lead.created_at) > new Date(g.created_at)) g.created_at = lead.created_at;
+                    if (payload?.post_owner) g.postOwner = payload.post_owner;
+                  });
+                  const groupedLeads = Array.from(grouped.values());
+                  return (
+                    <Table className="min-w-[780px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Post</TableHead>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Comentário</TableHead>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">WhatsApp</TableHead>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">Email</TableHead>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">Data</TableHead>
+                          <TableHead className="text-[11px] px-3 whitespace-nowrap">Hora</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {groupedLeads.map((g: any, i: number) => {
+                          const d = new Date(g.created_at);
+                          return (
+                            <TableRow key={g.username + i}>
+                              <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
+                                @{g.postOwner || "—"}
+                              </TableCell>
+                              <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
+                                @{g.username}
+                              </TableCell>
+                              <TableCell className="text-xs px-3 py-2 font-mono whitespace-nowrap">
+                                {g.whatsapp ? (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3 text-green-500" />
+                                    {g.whatsapp}
+                                  </span>
+                                ) : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell className="text-xs px-3 py-2 font-mono whitespace-nowrap">
+                                {g.email ? (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3 text-blue-500" />
+                                    {g.email}
+                                  </span>
+                                ) : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                {d.toLocaleDateString("pt-BR")}
+                              </TableCell>
+                              <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                {d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
               </div>
             )}
           </ScrollArea>
