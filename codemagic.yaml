@@ -1,0 +1,63 @@
+workflows:
+  ios-release:
+    name: Zaplynx Pay - iOS Release
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.zaplynxpay.app
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        APP_NAME: "Zaplynx Pay"
+      node: 20.11.0
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+
+      - name: Install Capacitor CLI
+        script: |
+          npm install -g @capacitor/cli
+
+      - name: Build web app
+        script: |
+          npm run build
+
+      - name: Add iOS platform (if not exists)
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+
+      - name: Set app name
+        script: |
+          cd ios/App
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName '$APP_NAME'" App/Info.plist
+
+      - name: Install CocoaPods
+        script: |
+          cd ios/App && pod install
+
+      - name: Build iOS app
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false  # mude para true quando quiser publicar direto
