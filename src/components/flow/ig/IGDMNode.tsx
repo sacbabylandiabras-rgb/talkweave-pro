@@ -33,17 +33,35 @@ export function IGDMNode({ data }: any) {
         </div>
       )}
 
-      {/* Collection indicators */}
+      {/* Collection indicators with handles */}
       {(collectWhatsapp || collectEmail) && (
-        <div className="mt-2 flex gap-1.5">
+        <div className="mt-2 space-y-1.5">
           {collectWhatsapp && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] text-emerald-600 font-medium">
-              <Phone className="w-3 h-3" /> WhatsApp
+            <div className="relative">
+              <div className="flex items-center gap-1 px-2 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[10px] text-emerald-600 font-medium pr-6">
+                <Phone className="w-3 h-3" /> WhatsApp
+              </div>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="collect-whatsapp"
+                className="w-2.5 h-2.5 !bg-emerald-500 !border-2 !border-emerald-700 !right-[-5px]"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              />
             </div>
           )}
           {collectEmail && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-600 font-medium">
-              <Mail className="w-3 h-3" /> Email
+            <div className="relative">
+              <div className="flex items-center gap-1 px-2 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[10px] text-blue-600 font-medium pr-6">
+                <Mail className="w-3 h-3" /> Email
+              </div>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="collect-email"
+                className="w-2.5 h-2.5 !bg-blue-500 !border-2 !border-blue-700 !right-[-5px]"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              />
             </div>
           )}
         </div>
