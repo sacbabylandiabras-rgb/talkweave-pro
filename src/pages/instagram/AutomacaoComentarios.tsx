@@ -34,6 +34,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Save,
@@ -774,6 +780,21 @@ export default function AutomacaoComentarios() {
             );
           })}
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowLeads(true)}
+          >
+            <TableIcon className="w-3.5 h-3.5" />
+            Leads
+            {collectedLeads.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0">
+                {collectedLeads.length}
+              </Badge>
+            )}
+          </Button>
+
           <Button onClick={handleSaveFlow} disabled={saving} size="sm" className="gap-1.5 ml-2">
             <Save className="w-3.5 h-3.5" />
             {saving ? "Salvando..." : "Salvar"}
@@ -782,7 +803,7 @@ export default function AutomacaoComentarios() {
       </div>
 
       {/* Canvas */}
-      <div ref={reactFlowWrapper} className={showLeads ? "flex-1 min-h-0" : "flex-1"} style={showLeads ? { height: "55%" } : undefined}>
+      <div ref={reactFlowWrapper} className="flex-1">
         <ReactFlow
           nodes={nodes.map(n => n.type === 'igDM' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
           edges={edges}
@@ -808,61 +829,45 @@ export default function AutomacaoComentarios() {
         </ReactFlow>
       </div>
 
-      {/* Leads Table Panel */}
-      <div className="shrink-0 border-t border-border bg-card">
-        <button
-          onClick={() => setShowLeads(!showLeads)}
-          className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <TableIcon className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Dados Coletados</span>
-            <Badge variant="secondary" className="text-xs">
-              {collectedLeads.length}
-            </Badge>
-          </div>
-          {showLeads ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
-        </button>
-
-        {showLeads && (
-          <div className="max-h-[35vh] overflow-auto">
+      {/* Leads Side Sheet */}
+      <Sheet open={showLeads} onOpenChange={setShowLeads}>
+        <SheetContent side="right" className="w-[420px] sm:w-[480px] p-0">
+          <SheetHeader className="px-4 py-3 border-b border-border">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <TableIcon className="w-4 h-4" />
+              Dados Coletados
+              <Badge variant="secondary" className="text-xs">
+                {collectedLeads.length}
+              </Badge>
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-60px)]">
             {collectedLeads.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
+              <div className="text-center py-16 text-muted-foreground text-sm px-4">
                 Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">@ Usuário</TableHead>
-                    <TableHead className="text-xs">Tipo</TableHead>
-                    <TableHead className="text-xs">Dado Coletado</TableHead>
-                    <TableHead className="text-xs">Automação</TableHead>
-                    <TableHead className="text-xs">Horário</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {collectedLeads.map((lead: any) => {
-                    const payload = lead.payload as any;
-                    const isWa = lead.event_type === "lead_whatsapp";
-                    return (
-                      <TableRow key={lead.id}>
-                        <TableCell className="text-xs font-medium">
+              <div className="divide-y divide-border">
+                {collectedLeads.map((lead: any) => {
+                  const payload = lead.payload as any;
+                  const isWa = lead.event_type === "lead_whatsapp";
+                  return (
+                    <div key={lead.id} className="px-4 py-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
                           @{lead.username || lead.ig_user_id || "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
-                            {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                            {isWa ? "WhatsApp" : "Email"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {payload?.collected_value || lead.comment_text || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {payload?.automation_name || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        </span>
+                        <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1">
+                          {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                          {isWa ? "WhatsApp" : "Email"}
+                        </Badge>
+                      </div>
+                      <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+                        {payload?.collected_value || lead.comment_text || "—"}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>{payload?.automation_name || "—"}</span>
+                        <span>
                           {new Date(lead.created_at).toLocaleString("pt-BR", {
                             day: "2-digit",
                             month: "2-digit",
@@ -870,16 +875,16 @@ export default function AutomacaoComentarios() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          </div>
-        )}
-      </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* Edit Node Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
