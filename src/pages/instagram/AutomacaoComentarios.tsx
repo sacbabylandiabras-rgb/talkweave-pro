@@ -206,6 +206,7 @@ export default function AutomacaoComentarios() {
       setFlowName(existing.name);
       setIsActive(existing.active);
       fetchButtonStats(existing.name);
+      fetchCollectedLeads(existing.id);
 
       // Check if dm_message contains flow data
       let flowData: any = null;
