@@ -498,6 +498,64 @@ export default function AutomacaoComentarios() {
             </div>
           </div>
 
+          {/* WhatsApp Collection Container */}
+          <div className="p-3 border border-emerald-500/30 rounded-lg bg-emerald-500/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-500" />
+                <Label className="text-sm font-medium">Capturar WhatsApp</Label>
+              </div>
+              <Switch
+                checked={selectedNode.data.collectWhatsapp || false}
+                onCheckedChange={(checked) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectWhatsapp: checked } })
+                }
+              />
+            </div>
+            {selectedNode.data.collectWhatsapp && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Mensagem de solicitação</Label>
+                <Input
+                  value={selectedNode.data.whatsappPrompt || ""}
+                  onChange={(e) =>
+                    setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, whatsappPrompt: e.target.value } })
+                  }
+                  placeholder="Qual seu número de WhatsApp? 📱"
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Email Collection Container */}
+          <div className="p-3 border border-blue-500/30 rounded-lg bg-blue-500/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-blue-500" />
+                <Label className="text-sm font-medium">Capturar Email</Label>
+              </div>
+              <Switch
+                checked={selectedNode.data.collectEmail || false}
+                onCheckedChange={(checked) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectEmail: checked } })
+                }
+              />
+            </div>
+            {selectedNode.data.collectEmail && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Mensagem de solicitação</Label>
+                <Input
+                  value={selectedNode.data.emailPrompt || ""}
+                  onChange={(e) =>
+                    setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailPrompt: e.target.value } })
+                  }
+                  placeholder="Qual seu melhor email? 📧"
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Buttons */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1">
