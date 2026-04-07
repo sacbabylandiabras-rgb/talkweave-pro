@@ -785,6 +785,158 @@ export default function AutomacaoComentarios() {
       );
     }
 
+    if (type === "igWhatsApp") {
+      const sendType = selectedNode.data.sendType || "template";
+      return (
+        <div className="space-y-4">
+          {/* Instance selector */}
+          <div>
+            <Label>Instância WhatsApp</Label>
+            <Select
+              value={selectedNode.data.instanceId || ""}
+              onValueChange={(v) => {
+                const inst = waInstances.find((i: any) => i.id === v);
+                setSelectedNode({
+                  ...selectedNode,
+                  data: { ...selectedNode.data, instanceId: v, instanceName: inst?.instance_name || "" },
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a instância" />
+              </SelectTrigger>
+              <SelectContent>
+                {waInstances.map((inst: any) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    {inst.instance_name} {inst.is_default ? "(padrão)" : ""} — {inst.api_provider}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Send type */}
+          <div>
+            <Label>Tipo de envio</Label>
+            <Select
+              value={sendType}
+              onValueChange={(v) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, sendType: v } })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Texto livre</SelectItem>
+                <SelectItem value="template">Modelo salvo</SelectItem>
+                <SelectItem value="flow">Fluxo visual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Text */}
+          {sendType === "text" && (
+            <div>
+              <Label>Mensagem</Label>
+              <Textarea
+                value={selectedNode.data.message || ""}
+                onChange={(e) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, message: e.target.value } })
+                }
+                placeholder="Olá! Obrigado pelo seu interesse..."
+                rows={4}
+              />
+              <div className="flex gap-1 mt-1">
+                {["nome_usuario"].map((v) => (
+                  <Button
+                    key={v}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-6 gap-1"
+                    onClick={() =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, message: (selectedNode.data.message || "") + `{{${v}}}` },
+                      })
+                    }
+                  >
+                    <Variable className="w-3 h-3" />
+                    {v}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Template */}
+          {sendType === "template" && (
+            <div>
+              <Label>Modelo</Label>
+              <Select
+                value={selectedNode.data.templateId || ""}
+                onValueChange={(v) => {
+                  const tpl = waTemplates.find((t: any) => t.id === v);
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, templateId: v, templateName: tpl?.name || "" },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {waTemplates.map((tpl: any) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name} ({tpl.category})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedNode.data.templateId && (() => {
+                const tpl = waTemplates.find((t: any) => t.id === selectedNode.data.templateId);
+                if (!tpl) return null;
+                return (
+                  <div className="mt-2 p-2 bg-muted/40 rounded text-xs text-muted-foreground whitespace-pre-wrap">
+                    {tpl.content}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Flow */}
+          {sendType === "flow" && (
+            <div>
+              <Label>Fluxo Visual</Label>
+              <Select
+                value={selectedNode.data.flowId || ""}
+                onValueChange={(v) => {
+                  const flow = waFlows.find((f: any) => f.id === v);
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, flowId: v, flowName: flow?.name || "" },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um fluxo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {waFlows.map((flow: any) => (
+                    <SelectItem key={flow.id} value={flow.id}>
+                      {flow.name} {flow.keyword ? `(${flow.keyword})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return null;
   };
 
