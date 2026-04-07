@@ -313,6 +313,6 @@ async function updateProfilePhoto(
 }
 
 async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
-  const phoneNumbers = await listAccessiblePhoneNumbers(creds);
+  const phoneNumbers = await listAccessiblePhoneNumbers(creds, API_VERSION);
   return jsonResponse({ phone_numbers: phoneNumbers });
 }
