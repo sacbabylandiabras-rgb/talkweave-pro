@@ -150,16 +150,35 @@ export default function AutomacaoComentarios() {
   // Fetch collected leads for this automation
   const fetchCollectedLeads = useCallback(async (automationId?: string) => {
     try {
-      const { data } = await supabase
-        .from("instagram_events")
-        .select("*")
-        .in("event_type", ["lead_whatsapp", "lead_email"])
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const [{ data: eventsData }, { data: contactsData }] = await Promise.all([
+        supabase
+          .from("instagram_events")
+          .select("*")
+          .in("event_type", ["lead_whatsapp", "lead_email"])
+          .order("created_at", { ascending: false })
+          .limit(200),
+        supabase
+          .from("instagram_contacts")
+          .select("ig_user_id, username")
+      ]);
+
+      // Build a map of ig_user_id -> username from contacts
+      const contactMap = new Map<string, string>();
+      (contactsData || []).forEach((c: any) => {
+        if (c.ig_user_id && c.username) contactMap.set(c.ig_user_id, c.username);
+      });
+
+      // Enrich leads with username from contacts when missing
+      const enriched = (eventsData || []).map((lead: any) => {
+        if (!lead.username && lead.ig_user_id && contactMap.has(lead.ig_user_id)) {
+          return { ...lead, username: contactMap.get(lead.ig_user_id) };
+        }
+        return lead;
+      });
 
       const allLeads = automationId
-        ? (data || []).filter((l: any) => (l.payload as any)?.automation_id === automationId)
-        : (data || []);
+        ? enriched.filter((l: any) => (l.payload as any)?.automation_id === automationId)
+        : enriched;
 
       setCollectedLeads(allLeads);
     } catch (e) {
