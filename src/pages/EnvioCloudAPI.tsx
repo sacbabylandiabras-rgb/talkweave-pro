@@ -150,6 +150,7 @@ export default function EnvioCloudAPI() {
           template_name: templateName,
           language: selectedTemplate?.language || "pt_BR",
           variables: variables.filter(Boolean),
+          ...(selectedPhoneNumberId && { override_phone_number_id: selectedPhoneNumberId }),
         };
       } else {
         if (!message.trim()) {
@@ -161,6 +162,7 @@ export default function EnvioCloudAPI() {
           action: "send_text",
           phone,
           message,
+          ...(selectedPhoneNumberId && { override_phone_number_id: selectedPhoneNumberId }),
         };
       }
 
