@@ -61,6 +61,7 @@ export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const [sendType, setSendType] = useState<"template" | "text">("template");
   const [phone, setPhone] = useState("");
+  const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState("");
   const [message, setMessage] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [variables, setVariables] = useState<string[]>([]);
@@ -149,6 +150,7 @@ export default function EnvioCloudAPI() {
           template_name: templateName,
           language: selectedTemplate?.language || "pt_BR",
           variables: variables.filter(Boolean),
+          ...(selectedPhoneNumberId && { override_phone_number_id: selectedPhoneNumberId }),
         };
       } else {
         if (!message.trim()) {
@@ -160,6 +162,7 @@ export default function EnvioCloudAPI() {
           action: "send_text",
           phone,
           message,
+          ...(selectedPhoneNumberId && { override_phone_number_id: selectedPhoneNumberId }),
         };
       }
 
@@ -248,7 +251,16 @@ export default function EnvioCloudAPI() {
         ) : (
           <div className="space-y-2">
             {phoneNumbers.map((pn) => (
-              <div key={pn.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+              <button
+                key={pn.id}
+                type="button"
+                onClick={() => setSelectedPhoneNumberId(pn.id === selectedPhoneNumberId ? "" : pn.id)}
+                className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors text-left ${
+                  selectedPhoneNumberId === pn.id
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-primary" />
                   <div>
@@ -263,9 +275,15 @@ export default function EnvioCloudAPI() {
                   <Badge variant="outline" className="text-[9px]">
                     {pn.name_status || "N/A"}
                   </Badge>
+                  {selectedPhoneNumberId === pn.id && (
+                    <Badge className="text-[9px] bg-primary text-primary-foreground">Selecionado</Badge>
+                  )}
                 </div>
-              </div>
+              </button>
             ))}
+            <p className="text-[10px] text-muted-foreground">
+              Clique em um número para usá-lo como remetente. Sem seleção, usa o número padrão.
+            </p>
           </div>
         )}
       </Card>
@@ -423,7 +441,7 @@ export default function EnvioCloudAPI() {
           <p className="text-[11px] font-medium text-foreground">Informações</p>
           <ul className="text-[10px] text-muted-foreground space-y-0.5">
             <li>• Mensagens enviadas via Graph API v21.0</li>
-            <li>• Phone Number ID: {creds?.phone_number_id || "não detectado"}</li>
+            <li>• Phone Number ID: {selectedPhoneNumberId || creds?.phone_number_id || "não detectado"}</li>
             {sendType === "template" ? (
               <li>• Templates aprovados podem iniciar conversas a qualquer momento</li>
             ) : (

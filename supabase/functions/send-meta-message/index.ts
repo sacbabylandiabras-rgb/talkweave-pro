@@ -58,19 +58,20 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action } = body;
+    const { action, override_phone_number_id } = body;
+    const effectivePhoneId = override_phone_number_id || creds.phone_number_id;
 
     switch (action) {
       case "send_template":
-        if (!creds.phone_number_id) {
+        if (!effectivePhoneId) {
           return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
         }
-        return await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
+        return await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
       case "send_text":
-        if (!creds.phone_number_id) {
+        if (!effectivePhoneId) {
           return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
         }
-        return await sendTextMessage({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
+        return await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
       case "list_templates":
         return await listTemplates(creds);
       case "create_template":
