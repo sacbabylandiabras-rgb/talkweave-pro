@@ -376,21 +376,28 @@ serve(async (req) => {
                         }
                       }
 
-                      // Traverse children — if DM has buttons, STOP (don't follow button paths)
+                      // Traverse children — if DM has buttons or collection, STOP (don't follow those paths)
                       // Button paths (btn-0, btn-1...) are only followed when user clicks a button
+                      // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
                       const allButtons = (node.data?.buttons || []);
                       const hasButtons = node.type === "igDM" && allButtons.length > 0;
-                      if (hasButtons) {
-                        // Only follow the default bottom handle, not button-specific handles
+                      const hasCollection = node.type === "igDM" && (node.data?.collectWhatsapp || node.data?.collectEmail);
+                      if (hasButtons || hasCollection) {
+                        // Only follow the default bottom handle, not button/collection-specific handles
                         const defaultChildren = getOutgoing(node.id, "source-bottom");
                         for (const child of defaultChildren) {
                           await executeNode(child);
                         }
-                        console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
+                        if (hasButtons) console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
+                        if (hasCollection) console.log(`⏹ DM node "${node.data?.label}" collecting data — waiting for user response`);
                       } else {
-                        // For non-button nodes, exclude any btn-* handles (safety)
+                        // For non-button/non-collection nodes, exclude special handles
                         const children = flowEdges
-                          .filter((e: any) => e.source === node.id && !(e.sourceHandle || "").startsWith("btn-"))
+                          .filter((e: any) => {
+                            if (e.source !== node.id) return false;
+                            const h = e.sourceHandle || "";
+                            return !h.startsWith("btn-") && !h.startsWith("collect-");
+                          })
                           .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
                           .filter(Boolean);
                         for (const child of children) {
