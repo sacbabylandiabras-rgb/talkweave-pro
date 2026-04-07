@@ -831,7 +831,7 @@ export default function AutomacaoComentarios() {
 
       {/* Leads Side Sheet */}
       <Sheet open={showLeads} onOpenChange={setShowLeads}>
-        <SheetContent side="right" className="w-[560px] sm:w-[640px] p-0">
+        <SheetContent side="right" className="w-[92vw] sm:max-w-[92vw] lg:w-[1100px] lg:max-w-[1100px] p-0">
           <SheetHeader className="px-4 py-3 border-b border-border">
             <SheetTitle className="flex items-center gap-2 text-base">
               <TableIcon className="w-4 h-4" />
@@ -841,57 +841,61 @@ export default function AutomacaoComentarios() {
               </Badge>
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-60px)]">
+          <ScrollArea className="h-[calc(100vh-60px)] w-full">
             {collectedLeads.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground text-sm px-4">
                 Nenhum dado coletado ainda. Quando os usuários enviarem WhatsApp ou Email via DM, aparecerão aqui.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[11px] px-3">@ Post</TableHead>
-                    <TableHead className="text-[11px] px-3">@ Comentário</TableHead>
-                    <TableHead className="text-[11px] px-3">Tipo</TableHead>
-                    <TableHead className="text-[11px] px-3">Dado Coletado</TableHead>
-                    <TableHead className="text-[11px] px-3">Data/Hora</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {collectedLeads.map((lead: any) => {
-                    const payload = lead.payload as any;
-                    const isWa = lead.event_type === "lead_whatsapp";
-                    return (
-                      <TableRow key={lead.id}>
-                        <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
-                          @{payload?.post_owner || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
-                          @{lead.username || lead.ig_user_id || "—"}
-                        </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1 whitespace-nowrap">
-                            {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                            {isWa ? "WhatsApp" : "Email"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs px-3 py-2 font-mono">
-                          {payload?.collected_value || lead.comment_text || "—"}
-                        </TableCell>
-                        <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
-                          {new Date(lead.created_at).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[980px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Post</TableHead>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">@ Comentário</TableHead>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Tipo</TableHead>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Dado Coletado</TableHead>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Data</TableHead>
+                      <TableHead className="text-[11px] px-3 whitespace-nowrap">Hora</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collectedLeads.map((lead: any) => {
+                      const payload = lead.payload as any;
+                      const isWa = lead.event_type === "lead_whatsapp";
+                      const leadDate = new Date(lead.created_at);
+                      return (
+                        <TableRow key={lead.id}>
+                          <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
+                            @{payload?.post_owner || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs px-3 py-2 whitespace-nowrap">
+                            @{lead.username || lead.ig_user_id || "—"}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 whitespace-nowrap">
+                            <Badge variant={isWa ? "default" : "secondary"} className="text-[10px] gap-1 whitespace-nowrap">
+                              {isWa ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                              {isWa ? "WhatsApp" : "Email"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs px-3 py-2 font-mono whitespace-nowrap">
+                            {payload?.collected_value || lead.comment_text || "—"}
+                          </TableCell>
+                          <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
+                            {leadDate.toLocaleDateString("pt-BR")}
+                          </TableCell>
+                          <TableCell className="text-[11px] px-3 py-2 text-muted-foreground whitespace-nowrap">
+                            {leadDate.toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </ScrollArea>
         </SheetContent>
