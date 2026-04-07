@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const INSTAGRAM_APP_ID = "1277301917708506";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback?ig_flow=1`;
+const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 
 export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
@@ -76,7 +76,7 @@ export default function ConfiguracaoInstagram() {
     ].join(",");
 
     const statePayload = encodeURIComponent(
-      btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
+      btoa(JSON.stringify({ userId: user.id, origin: window.location.origin, ig_flow: true }))
     );
 
     const authUrl = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${statePayload}`;
