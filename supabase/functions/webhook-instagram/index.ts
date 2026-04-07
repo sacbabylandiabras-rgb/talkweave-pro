@@ -612,16 +612,21 @@ serve(async (req) => {
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
                         }
 
-                        // Continue traversal (stop at button nodes)
+                        // Continue traversal (stop at button/collection nodes)
                         const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        if (n.type === "igDM" && btnCount > 0) {
+                        const hasCol = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && (btnCount > 0 || hasCol)) {
                           const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defaultEdges) {
                             const next = fNodes.find((fn: any) => fn.id === e.target);
                             if (next) await executeNode(next);
                           }
                         } else {
-                          const nextEdges = fEdges.filter((e: any) => e.source === n.id);
+                          const nextEdges = fEdges.filter((e: any) => {
+                            if (e.source !== n.id) return false;
+                            const h = e.sourceHandle || "";
+                            return !h.startsWith("btn-") && !h.startsWith("collect-");
+                          });
                           for (const e of nextEdges) {
                             const next = fNodes.find((fn: any) => fn.id === e.target);
                             if (next) await executeNode(next);
