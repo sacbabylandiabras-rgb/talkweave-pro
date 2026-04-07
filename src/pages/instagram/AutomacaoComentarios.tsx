@@ -137,6 +137,30 @@ export default function AutomacaoComentarios() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+  const [collectedLeads, setCollectedLeads] = useState<any[]>([]);
+  const [showLeads, setShowLeads] = useState(false);
+
+  // Fetch collected leads for this automation
+  const fetchCollectedLeads = useCallback(async (automationId: string) => {
+    try {
+      const { data } = await supabase
+        .from("instagram_events")
+        .select("*")
+        .in("event_type", ["lead_whatsapp", "lead_email"])
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const allLeads = (data || [])
+        .filter((l: any) => {
+          const payload = l.payload as any;
+          return payload?.automation_id === automationId;
+        });
+
+      setCollectedLeads(allLeads);
+    } catch (e) {
+      console.error("Error fetching leads:", e);
+    }
+  }, []);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (automationName: string) => {
