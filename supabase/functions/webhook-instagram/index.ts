@@ -792,6 +792,10 @@ serve(async (req) => {
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
                         }
 
+                        if (n.type === "igWhatsApp") {
+                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
+                        }
+
                         // Continue traversal (stop at button/collection nodes)
                         const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
                         const hasCol = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
