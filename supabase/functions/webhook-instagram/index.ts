@@ -907,6 +907,10 @@ serve(async (req) => {
                           if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
                         }
 
+                        if (n.type === "igWhatsApp") {
+                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
+                        }
+
                         const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
                         const hasCol2 = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
                         if (n.type === "igDM" && (btnCount2 > 0 || hasCol2)) {
@@ -1031,6 +1035,11 @@ serve(async (req) => {
                             if (n.type === "igDelay") {
                               const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
                               if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+                            }
+
+                            if (n.type === "igWhatsApp") {
+                              const collectedPhone = isPhone ? dmText.trim() : null;
+                              await executeIgWhatsAppNode(d, collectedPhone, userId, senderId, event.sender?.username || "", supabase);
                             }
 
                             const btnC = (n.data?.buttons || []).filter((b: any) => b.title).length;
