@@ -138,7 +138,7 @@ async function processOpenPix(supabase: any, checkout: any, amountCents: number,
     customer_name: customerName || null,
     customer_email: customerEmail || null,
     customer_phone: customerPhone || null,
-    metadata: { provider: 'openpix', openpix_charge_id: charge.id || correlationID, brCode: brCode || null },
+    metadata: { provider: 'openpix', openpix_charge_id: charge.id || correlationID, brCode: brCode || null, document: customerCpf || null },
   })
 
   try {
@@ -254,7 +254,7 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
     customer_name: customerName || null,
     customer_email: customerEmail || null,
     customer_phone: customerPhone || null,
-    metadata: { provider: 'hubpague', hubpague_id: hubData.id || externalId, brCode: brCode || null },
+    metadata: { provider: 'hubpague', hubpague_id: hubData.id || externalId, brCode: brCode || null, document: customerCpf || null },
   })
 
   try {
