@@ -58,6 +58,7 @@ import {
   ChevronUp,
   ChevronDown,
   TableIcon,
+  MessageSquare,
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ import { IGGatilhoNode } from "@/components/flow/ig/IGGatilhoNode";
 import { IGRespostaNode } from "@/components/flow/ig/IGRespostaNode";
 import { IGDMNode } from "@/components/flow/ig/IGDMNode";
 import { IGDelayNode } from "@/components/flow/ig/IGDelayNode";
+import { IGWhatsAppNode } from "@/components/flow/ig/IGWhatsAppNode";
 import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes: NodeTypes = {
@@ -74,6 +76,7 @@ const nodeTypes: NodeTypes = {
   igResposta: IGRespostaNode,
   igDM: IGDMNode,
   igDelay: IGDelayNode,
+  igWhatsApp: IGWhatsAppNode,
 };
 
 const defaultNodes: Node[] = [
@@ -125,6 +128,7 @@ const blocosDisponiveis = [
   { type: "igResposta", label: "Resposta", icon: Reply, description: "Responder comentário publicamente" },
   { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta com botões" },
   { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar antes do próximo passo" },
+  { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar mensagem no WhatsApp" },
 ];
 
 export default function AutomacaoComentarios() {
@@ -146,6 +150,26 @@ export default function AutomacaoComentarios() {
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
   const [collectedLeads, setCollectedLeads] = useState<any[]>([]);
   const [showLeads, setShowLeads] = useState(false);
+  const [waTemplates, setWaTemplates] = useState<any[]>([]);
+  const [waFlows, setWaFlows] = useState<any[]>([]);
+  const [waInstances, setWaInstances] = useState<any[]>([]);
+
+  // Fetch WhatsApp resources for the igWhatsApp node
+  useEffect(() => {
+    const fetchWaResources = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: tpl }, { data: flows }, { data: inst }] = await Promise.all([
+        supabase.from("message_templates").select("id, name, category, type, content").eq("user_id", user.id).eq("active", true).order("name"),
+        supabase.from("flow_automations").select("id, name, keyword").eq("user_id", user.id).eq("active", true).order("name"),
+        (supabase as any).from("zapi_instances").select("id, instance_name, api_provider, is_default").eq("user_id", user.id).eq("is_active", true).order("instance_name"),
+      ]);
+      setWaTemplates(tpl || []);
+      setWaFlows(flows || []);
+      setWaInstances(inst || []);
+    };
+    fetchWaResources();
+  }, []);
 
   // Fetch collected leads for this automation
   const fetchCollectedLeads = useCallback(async (automationId?: string) => {
@@ -340,6 +364,7 @@ export default function AutomacaoComentarios() {
         igResposta: "Responder Comentário",
         igDM: "Enviar DM",
         igDelay: "Espera",
+        igWhatsApp: "Enviar WhatsApp",
       };
 
       const newNode: Node = {
@@ -756,6 +781,158 @@ export default function AutomacaoComentarios() {
               </Select>
             </div>
           </div>
+        </div>
+      );
+    }
+
+    if (type === "igWhatsApp") {
+      const sendType = selectedNode.data.sendType || "template";
+      return (
+        <div className="space-y-4">
+          {/* Instance selector */}
+          <div>
+            <Label>Instância WhatsApp</Label>
+            <Select
+              value={selectedNode.data.instanceId || ""}
+              onValueChange={(v) => {
+                const inst = waInstances.find((i: any) => i.id === v);
+                setSelectedNode({
+                  ...selectedNode,
+                  data: { ...selectedNode.data, instanceId: v, instanceName: inst?.instance_name || "" },
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a instância" />
+              </SelectTrigger>
+              <SelectContent>
+                {waInstances.map((inst: any) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    {inst.instance_name} {inst.is_default ? "(padrão)" : ""} — {inst.api_provider}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Send type */}
+          <div>
+            <Label>Tipo de envio</Label>
+            <Select
+              value={sendType}
+              onValueChange={(v) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, sendType: v } })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Texto livre</SelectItem>
+                <SelectItem value="template">Modelo salvo</SelectItem>
+                <SelectItem value="flow">Fluxo visual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Text */}
+          {sendType === "text" && (
+            <div>
+              <Label>Mensagem</Label>
+              <Textarea
+                value={selectedNode.data.message || ""}
+                onChange={(e) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, message: e.target.value } })
+                }
+                placeholder="Olá! Obrigado pelo seu interesse..."
+                rows={4}
+              />
+              <div className="flex gap-1 mt-1">
+                {["nome_usuario"].map((v) => (
+                  <Button
+                    key={v}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-6 gap-1"
+                    onClick={() =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, message: (selectedNode.data.message || "") + `{{${v}}}` },
+                      })
+                    }
+                  >
+                    <Variable className="w-3 h-3" />
+                    {v}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Template */}
+          {sendType === "template" && (
+            <div>
+              <Label>Modelo</Label>
+              <Select
+                value={selectedNode.data.templateId || ""}
+                onValueChange={(v) => {
+                  const tpl = waTemplates.find((t: any) => t.id === v);
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, templateId: v, templateName: tpl?.name || "" },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {waTemplates.map((tpl: any) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name} ({tpl.category})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedNode.data.templateId && (() => {
+                const tpl = waTemplates.find((t: any) => t.id === selectedNode.data.templateId);
+                if (!tpl) return null;
+                return (
+                  <div className="mt-2 p-2 bg-muted/40 rounded text-xs text-muted-foreground whitespace-pre-wrap">
+                    {tpl.content}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Flow */}
+          {sendType === "flow" && (
+            <div>
+              <Label>Fluxo Visual</Label>
+              <Select
+                value={selectedNode.data.flowId || ""}
+                onValueChange={(v) => {
+                  const flow = waFlows.find((f: any) => f.id === v);
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, flowId: v, flowName: flow?.name || "" },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um fluxo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {waFlows.map((flow: any) => (
+                    <SelectItem key={flow.id} value={flow.id}>
+                      {flow.name} {flow.keyword ? `(${flow.keyword})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       );
     }
