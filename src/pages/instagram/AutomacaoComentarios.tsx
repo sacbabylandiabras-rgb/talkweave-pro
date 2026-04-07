@@ -127,6 +127,43 @@ export default function AutomacaoComentarios() {
   const [saving, setSaving] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
+  const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+
+  // Fetch button click stats for the current flow
+  const fetchButtonStats = useCallback(async (automationName: string) => {
+    try {
+      const { data: buttonClicks } = await supabase
+        .from('message_logs')
+        .select('keyword_matched, message_received')
+        .like('keyword_matched', '[Botão:%')
+        .eq('response_sent', `[IG-Fluxo: ${automationName}]`);
+
+      if (!buttonClicks) return;
+
+      const stats: Record<string, number> = {};
+      buttonClicks.forEach((log: any) => {
+        const match = log.keyword_matched?.match(/\[Botão:\s*(.+?)\]/i);
+        if (match) {
+          const btnText = match[1].trim();
+          stats[btnText] = (stats[btnText] || 0) + 1;
+        }
+      });
+      setButtonStats(stats);
+
+      const { data: flowSends } = await supabase
+        .from('message_logs')
+        .select('phone')
+        .eq('keyword_matched', `__ig_flow_send__:${automationName}`);
+
+      if (flowSends) {
+        const uniquePhones = new Set(flowSends.map((s: any) => s.phone));
+        setTotalFlowRecipients(uniquePhones.size);
+      }
+    } catch (e) {
+      console.error('Error fetching IG button stats:', e);
+    }
+  }, []);
 
   // Load existing automation
   useEffect(() => {
