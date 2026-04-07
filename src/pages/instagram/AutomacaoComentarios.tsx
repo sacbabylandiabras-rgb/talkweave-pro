@@ -558,16 +558,30 @@ export default function AutomacaoComentarios() {
               />
             </div>
             {selectedNode.data.collectEmail && (
-              <div>
-                <Label className="text-xs text-muted-foreground">Mensagem de solicitação</Label>
-                <Input
-                  value={selectedNode.data.emailPrompt || ""}
-                  onChange={(e) =>
-                    setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailPrompt: e.target.value } })
-                  }
-                  placeholder="Qual seu melhor email? 📧"
-                  className="h-8 text-xs mt-1"
-                />
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Mensagem de solicitação</Label>
+                  <Input
+                    value={selectedNode.data.emailPrompt || ""}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailPrompt: e.target.value } })
+                    }
+                    placeholder="Qual seu melhor email? 📧"
+                    className="h-8 text-xs mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Mensagem após receber o Email</Label>
+                  <Textarea
+                    value={selectedNode.data.emailFollowUp || ""}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailFollowUp: e.target.value } })
+                    }
+                    placeholder="Perfeito! Enviamos as informações para seu email 📧"
+                    rows={2}
+                    className="text-xs mt-1"
+                  />
+                </div>
               </div>
             )}
           </div>
