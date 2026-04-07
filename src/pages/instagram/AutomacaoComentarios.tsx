@@ -803,7 +803,7 @@ export default function AutomacaoComentarios() {
       </div>
 
       {/* Canvas */}
-      <div ref={reactFlowWrapper} className={showLeads ? "flex-1 min-h-0" : "flex-1"} style={showLeads ? { height: "55%" } : undefined}>
+      <div ref={reactFlowWrapper} className="flex-1">
         <ReactFlow
           nodes={nodes.map(n => n.type === 'igDM' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
           edges={edges}
