@@ -141,7 +141,7 @@ export default function AutomacaoComentarios() {
   const [showLeads, setShowLeads] = useState(false);
 
   // Fetch collected leads for this automation
-  const fetchCollectedLeads = useCallback(async (automationId: string) => {
+  const fetchCollectedLeads = useCallback(async (automationId?: string) => {
     try {
       const { data } = await supabase
         .from("instagram_events")
@@ -150,17 +150,20 @@ export default function AutomacaoComentarios() {
         .order("created_at", { ascending: false })
         .limit(200);
 
-      const allLeads = (data || [])
-        .filter((l: any) => {
-          const payload = l.payload as any;
-          return payload?.automation_id === automationId;
-        });
+      const allLeads = automationId
+        ? (data || []).filter((l: any) => (l.payload as any)?.automation_id === automationId)
+        : (data || []);
 
       setCollectedLeads(allLeads);
     } catch (e) {
       console.error("Error fetching leads:", e);
     }
   }, []);
+
+  // Fetch leads on mount (for new flows, show all; for existing, filtered)
+  useEffect(() => {
+    fetchCollectedLeads(editId || undefined);
+  }, [editId, fetchCollectedLeads]);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (automationName: string) => {
