@@ -31,30 +31,55 @@ export function IGDMNode({ data }: any) {
         </div>
       )}
 
-      {/* Buttons with individual output handles */}
+      {/* Buttons with click metrics */}
       <div className="mt-2 space-y-1.5">
         {buttons.length > 0 ? (
-          buttons.map((btn: any, idx: number) => (
-            <div key={idx} className="relative">
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-md px-2.5 py-1.5 pr-6 flex items-center gap-1.5">
-                {btn.type === "reply" ? (
-                  <MessageCircle className="h-3 w-3 text-orange-500 shrink-0" />
-                ) : (
-                  <Link2 className="h-3 w-3 text-orange-500 shrink-0" />
-                )}
-                <span className="text-xs text-card-foreground font-medium truncate">
-                  {btn.title || `Botão ${idx + 1}`}
-                </span>
+          buttons.map((btn: any, idx: number) => {
+            const btnTitle = btn.title || `Botão ${idx + 1}`;
+            const stats = data.buttonStats || {};
+            const totalRecipients = data.totalFlowRecipients || 0;
+            const clickCount = stats[btnTitle] || 0;
+            const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
+
+            return (
+              <div key={idx} className="relative">
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-md px-2.5 py-1.5 pr-6">
+                  <div className="flex items-center gap-1.5">
+                    {btn.type === "reply" ? (
+                      <MessageCircle className="h-3 w-3 text-orange-500 shrink-0" />
+                    ) : (
+                      <Link2 className="h-3 w-3 text-orange-500 shrink-0" />
+                    )}
+                    <span className="text-xs text-card-foreground font-medium truncate">
+                      {btnTitle}
+                    </span>
+                  </div>
+                  {btn.type === "url" && btn.url && (
+                    <div className="mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-orange-500 rounded-full transition-all"
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
+                          {clickCount} ({percentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={`btn-${idx}`}
+                  className="w-2.5 h-2.5 !bg-orange-400 !border-2 !border-orange-600 !right-[-5px]"
+                  style={{ top: "50%", transform: "translateY(-50%)" }}
+                />
               </div>
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={`btn-${idx}`}
-                className="w-2.5 h-2.5 !bg-orange-400 !border-2 !border-orange-600 !right-[-5px]"
-                style={{ top: "50%", transform: "translateY(-50%)" }}
-              />
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="border border-dashed border-orange-500/30 rounded-md px-2.5 py-2 flex items-center justify-center gap-1.5">
             <Plus className="h-3 w-3 text-orange-500/50" />
