@@ -128,6 +128,7 @@ const blocosDisponiveis = [
   { type: "igResposta", label: "Resposta", icon: Reply, description: "Responder comentário publicamente" },
   { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta com botões" },
   { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar antes do próximo passo" },
+  { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar mensagem no WhatsApp" },
 ];
 
 export default function AutomacaoComentarios() {
