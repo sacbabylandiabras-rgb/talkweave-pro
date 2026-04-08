@@ -91,11 +91,9 @@ export default function PayDashboard() {
     const nextIdx = Math.min(currentIdx + 1, milestones.length - 1);
     const from = milestones[currentIdx].value;
     const to = milestones[nextIdx].value;
-    const segmentProgress = to > from ? ((vol - from) / (to - from)) * 100 : 100;
-    // Overall percentage across all segments (4 segments)
-    const overallPct = ((currentIdx / (milestones.length - 1)) + (segmentProgress / 100) / (milestones.length - 1)) * 100;
+    const segmentPct = Math.min(to > from ? ((vol - from) / (to - from)) * 100 : 100, 100);
     return {
-      pct: Math.min(overallPct, 100),
+      segmentPct,
       currentLabel: milestones[currentIdx].label,
       nextLabel: milestones[nextIdx].label,
       volumeFormatted: formatCurrency(vol),
@@ -123,33 +121,23 @@ export default function PayDashboard() {
           </p>
         </div>
         {/* Sales Milestone Progress Bar - Top Right */}
-        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[320px] lg:min-w-[400px]">
+        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
           <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
           <div className="flex-1 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">Meta de Vendas</span>
+              <span className="text-xs font-medium text-foreground">
+                {progressInfo.currentLabel} → {progressInfo.nextLabel}
+              </span>
               <span className="text-[10px] text-muted-foreground">{progressInfo.volumeFormatted}</span>
             </div>
             <div className="relative w-full h-2 rounded-full bg-muted/50 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700 ease-out"
                 style={{
-                  width: `${progressInfo.pct}%`,
+                  width: `${progressInfo.segmentPct}%`,
                   background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
                 }}
               />
-            </div>
-            <div className="flex justify-between">
-              {milestones.map((m) => (
-                <span
-                  key={m.label}
-                  className={`text-[8px] font-medium ${
-                    totalVolume >= m.value ? "text-[#FF4D2E]" : "text-muted-foreground"
-                  }`}
-                >
-                  {m.label}
-                </span>
-              ))}
             </div>
           </div>
         </div>
