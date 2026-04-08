@@ -10,7 +10,7 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_NAME: "Zaplynx Pay"
-      node: 20.11.0
+      node: 22.0.0
     scripts:
       - name: Install certificate and profile
         script: |
