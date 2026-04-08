@@ -7,8 +7,6 @@ workflows:
       groups:
         - app_store
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.zaplynxpay.app
         provisioning_profiles:
           - $CM_PROVISIONING_PROFILE
       vars:
