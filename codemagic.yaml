@@ -9,8 +9,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.zaplynxpay.app
-        apple_id: sac.babylandiabras@gmail.com
-        api_key: zaplynx
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
