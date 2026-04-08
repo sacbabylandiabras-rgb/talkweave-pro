@@ -350,3 +350,8 @@
     width: min(100%, 300px);
   }
 }
+
+/* Safe area for native apps (iOS notch/home indicator) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

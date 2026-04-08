@@ -8,6 +8,8 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import NativeAppLayout from "./components/layout/NativeAppLayout";
+import { Capacitor } from "@capacitor/core";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -70,6 +72,8 @@ import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 
 const queryClient = new QueryClient();
 
+const isNative = Capacitor.isNativePlatform();
+
 function AppContent() {
   usePushNotifications();
   return null;
@@ -84,73 +88,82 @@ const App = () => (
           <Sonner />
           <AppContent />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/gateway-checkout/dashboard" element={<GatewayKycGate><PayDashboard /></GatewayKycGate>} />
-                <Route path="/perfil" element={<Perfil />} />
-                <Route path="/campanhas" element={<Campanhas />} />
-                <Route path="/contatos" element={<Contatos />} />
-                <Route path="/relatorio" element={<Relatorio />} />
-                <Route path="/gateway" element={<GatewayIntegracoes />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/dispositivos" element={<Dispositivos />} />
-                <Route path="/modelos" element={<Modelos />} />
-                <Route path="/fluxo-visual" element={<FluxoVisual />} />
-                <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
-                <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
-                <Route path="/mensagens" element={<MensagensRecebidas />} />
-                <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
-                <Route path="/criar-grupos" element={<CriarGrupos />} />
-                <Route path="/agente-ia" element={<AgenteIA />} />
-                <Route path="/meta/dashboard" element={<DashboardMeta />} />
-                <Route path="/meta/templates" element={<TemplatesAprovados />} />
-                <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
-                <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
-                <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
-                <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
-                <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
-                <Route path="/instagram/contatos" element={<ContatosInstagram />} />
-                <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
-                <Route path="/gateway-checkout/products" element={<GatewayKycGate><PayProducts /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/checkouts" element={<GatewayKycGate><PayCheckouts /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/checkouts/new" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/checkouts/edit/:id" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/reports" element={<GatewayKycGate><PayReports /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/pixels" element={<GatewayKycGate><PayPixels /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/withdrawals" element={<GatewayKycGate><PayWithdrawals /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/fees" element={<GatewayKycGate><AdminFees /></GatewayKycGate>} />
-                <Route path="/gateway-checkout/docs" element={<PayDocs />} />
-                <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
-                <Route path="/gateway-checkout/admin/companies" element={<AdminCompanies />} />
-                <Route path="/gateway-checkout/admin/acquirers" element={<AdminAcquirers />} />
-                <Route path="/gateway-checkout/admin/fees" element={<AdminFees />} />
-                <Route path="/gateway-checkout/admin/users" element={<AdminPayUsers />} />
-                <Route path="/gateway-checkout/admin/kyc" element={<AdminKYC />} />
-                <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
-                <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
-                <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
-                <Route path="/gateway-checkout/admin/withdrawals" element={<AdminWithdrawals />} />
-                <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
-                <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
-                <Route path="/gateway-checkout/manager/commissions" element={<ManagerCommissions />} />
-                <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
-              </Route>
-              <Route path="/invite/:slug" element={<InvitePage />} />
-              <Route path="/pay/:slug" element={<PublicCheckout />} />
-              <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
-              <Route path="/checkout/:slug" element={<PublicCheckout />} />
-              <Route path="/checkout/:slug/obrigado" element={<ThankYou />} />
-              <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-              <Route path="/termos-servico" element={<TermosServico />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <WhatsAppFloatingButton />
+            {isNative ? (
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/termos-servico" element={<TermosServico />} />
+                <Route path="*" element={<NativeAppLayout />} />
+              </Routes>
+            ) : (
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/gateway-checkout/dashboard" element={<GatewayKycGate><PayDashboard /></GatewayKycGate>} />
+                  <Route path="/perfil" element={<Perfil />} />
+                  <Route path="/campanhas" element={<Campanhas />} />
+                  <Route path="/contatos" element={<Contatos />} />
+                  <Route path="/relatorio" element={<Relatorio />} />
+                  <Route path="/gateway" element={<GatewayIntegracoes />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/dispositivos" element={<Dispositivos />} />
+                  <Route path="/modelos" element={<Modelos />} />
+                  <Route path="/fluxo-visual" element={<FluxoVisual />} />
+                  <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
+                  <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
+                  <Route path="/mensagens" element={<MensagensRecebidas />} />
+                  <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
+                  <Route path="/criar-grupos" element={<CriarGrupos />} />
+                  <Route path="/agente-ia" element={<AgenteIA />} />
+                  <Route path="/meta/dashboard" element={<DashboardMeta />} />
+                  <Route path="/meta/templates" element={<TemplatesAprovados />} />
+                  <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
+                  <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                  <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
+                  <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
+                  <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
+                  <Route path="/instagram/contatos" element={<ContatosInstagram />} />
+                  <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
+                  <Route path="/gateway-checkout/products" element={<GatewayKycGate><PayProducts /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/checkouts" element={<GatewayKycGate><PayCheckouts /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/checkouts/new" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/checkouts/edit/:id" element={<GatewayKycGate><CheckoutBuilder /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/reports" element={<GatewayKycGate><PayReports /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/pixels" element={<GatewayKycGate><PayPixels /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/integrations" element={<GatewayKycGate><PayIntegrations /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/settings" element={<GatewayKycGate><PaySettings /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/withdrawals" element={<GatewayKycGate><PayWithdrawals /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/fees" element={<GatewayKycGate><AdminFees /></GatewayKycGate>} />
+                  <Route path="/gateway-checkout/docs" element={<PayDocs />} />
+                  <Route path="/gateway-checkout/admin/dashboard" element={<AdminPayDashboard />} />
+                  <Route path="/gateway-checkout/admin/companies" element={<AdminCompanies />} />
+                  <Route path="/gateway-checkout/admin/acquirers" element={<AdminAcquirers />} />
+                  <Route path="/gateway-checkout/admin/fees" element={<AdminFees />} />
+                  <Route path="/gateway-checkout/admin/users" element={<AdminPayUsers />} />
+                  <Route path="/gateway-checkout/admin/kyc" element={<AdminKYC />} />
+                  <Route path="/gateway-checkout/admin/reports" element={<AdminPayReports />} />
+                  <Route path="/gateway-checkout/admin/transactions" element={<AdminTransactions />} />
+                  <Route path="/gateway-checkout/admin/managers" element={<AdminManagers />} />
+                  <Route path="/gateway-checkout/admin/withdrawals" element={<AdminWithdrawals />} />
+                  <Route path="/gateway-checkout/manager/dashboard" element={<ManagerDashboard />} />
+                  <Route path="/gateway-checkout/manager/clients" element={<ManagerClients />} />
+                  <Route path="/gateway-checkout/manager/commissions" element={<ManagerCommissions />} />
+                  <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
+                </Route>
+                <Route path="/invite/:slug" element={<InvitePage />} />
+                <Route path="/pay/:slug" element={<PublicCheckout />} />
+                <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
+                <Route path="/checkout/:slug" element={<PublicCheckout />} />
+                <Route path="/checkout/:slug/obrigado" element={<ThankYou />} />
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/termos-servico" element={<TermosServico />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            )}
+            {!isNative && <WhatsAppFloatingButton />}
           </BrowserRouter>
         </WorkspaceProvider>
       </TooltipProvider>
