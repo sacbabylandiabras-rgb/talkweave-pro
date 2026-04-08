@@ -8,6 +8,8 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import NativeAppLayout from "./components/layout/NativeAppLayout";
+import { Capacitor } from "@capacitor/core";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
