@@ -355,7 +355,7 @@ export function SelectContactsDialog({
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue placeholder="Selecione o número" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[9999]" position="popper" side="top">
                       {metaPhoneNumbers.map((pn) => (
                         <SelectItem key={pn.id} value={pn.id}>
                           {pn.display_phone_number} — {pn.verified_name}
