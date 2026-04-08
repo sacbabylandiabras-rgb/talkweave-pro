@@ -334,41 +334,6 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            {activeWorkspace !== "meta" && (
-              <>
-                <Label className="text-xs font-medium">Provedor de envio</Label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSendProvider("zapi")}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                      effectiveProvider === "zapi"
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:bg-accent"
-                    }`}
-                  >
-                    <Smartphone className="h-3.5 w-3.5" />
-                    Z-API
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => isMetaConnected && setSendProvider("meta")}
-                    disabled={!isMetaConnected}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                      effectiveProvider === "meta"
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : !isMetaConnected
-                        ? "bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed"
-                        : "bg-background text-muted-foreground border-border hover:bg-accent"
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Meta API Oficial
-                  </button>
-                </div>
-              </>
-            )}
-
             {effectiveProvider === "zapi" && (
               <InstanceSelector
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
@@ -377,7 +342,7 @@ export function SelectContactsDialog({
 
             {effectiveProvider === "meta" && (
               <div className="space-y-2">
-                <Label className="text-xs">Número remetente {activeWorkspace === "meta" ? "" : "(Meta)"}</Label>
+                <Label className="text-xs">Número remetente</Label>
                 {loadingMetaPhones ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
