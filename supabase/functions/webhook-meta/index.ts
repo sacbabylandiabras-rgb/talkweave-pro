@@ -31,6 +31,11 @@ interface FlowEdge {
   sourceHandle?: string
 }
 
+interface MetaReplyButton {
+  id: string
+  title: string
+}
+
 interface MetaCredentialRow {
   user_id: string
   access_token: string
@@ -303,7 +308,7 @@ async function metaSendMedia(accessToken: string, phoneNumberId: string, to: str
   return data
 }
 
-async function metaSendInteractive(accessToken: string, phoneNumberId: string, to: string, message: string, buttons: Array<{ id: string; title: string }>) {
+async function metaSendInteractive(accessToken: string, phoneNumberId: string, to: string, message: string, buttons: MetaReplyButton[]) {
   const metaButtons = buttons.slice(0, 3).map(btn => ({
     type: 'reply',
     reply: { id: btn.id, title: btn.title.slice(0, 20) },
@@ -370,13 +375,7 @@ async function sendNodeContentMeta(
       }
 
       // Send interactive buttons (only reply buttons, Meta doesn't support URL/Call as interactive)
-      const replyButtons = allSendButtons
-        .filter(b => b.type === 'reply' || b.type === 'flow')
-        .slice(0, 3)
-        .map((btn, idx) => ({
-          id: String(idx + 1),
-          title: (btn.text || `Botão ${idx + 1}`).slice(0, 20),
-        }))
+      const replyButtons = buildMetaReplyButtons(targetNode.id, allSendButtons)
 
       if (replyButtons.length > 0) {
         // Build message with URL/Call suffixes
@@ -563,6 +562,12 @@ function findButtonEdgeMatch(
 ): { flow: any; targetNodeId: string; buttonText: string; flowName: string } | null {
   const normalizedRaw = normalizeForMatch(rawMessage)
   const normalizedButtonTitle = buttonReplyTitle ? normalizeForMatch(buttonReplyTitle) : ''
+  const normalizedReplyId = buttonReplyId ? normalizeForMatch(buttonReplyId) : ''
+
+  if (normalizedReplyId.startsWith('node:')) {
+    const directMatch = findButtonEdgeMatchByReplyId(flows, normalizedReplyId)
+    if (directMatch) return directMatch
+  }
 
   const candidates = new Set(
     [rawMessage, normalizedMessage, buttonReplyTitle, buttonReplyId]
@@ -622,6 +627,54 @@ function findButtonEdgeMatch(
           }
         }
       }
+    }
+  }
+
+  return null
+}
+
+function buildMetaReplyButtons(
+  nodeId: string,
+  buttons: Array<{ text: string; type: string; value: string }>
+): MetaReplyButton[] {
+  return buttons
+    .filter(b => b.type === 'reply' || b.type === 'flow')
+    .slice(0, 3)
+    .map((btn, idx) => ({
+      id: `node:${nodeId}:button:${idx}`,
+      title: (btn.text || `Botão ${idx + 1}`).slice(0, 20),
+    }))
+}
+
+function findButtonEdgeMatchByReplyId(
+  flows: any[],
+  normalizedReplyId: string
+): { flow: any; targetNodeId: string; buttonText: string; flowName: string } | null {
+  const match = normalizedReplyId.match(/^node:([^:]+):button:(\d+)$/)
+  if (!match) return null
+
+  const [, nodeId, buttonIndexRaw] = match
+  const buttonIndex = Number(buttonIndexRaw)
+  if (!Number.isFinite(buttonIndex)) return null
+
+  for (const flow of flows) {
+    const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+    const edges = Array.isArray(flow?.edges) ? flow.edges : []
+    const node = nodes.find((candidate: any) => candidate?.id === nodeId && candidate?.type === 'blocoConteudo')
+    if (!node) continue
+
+    const buttons = Array.isArray(node?.data?.buttons) ? node.data.buttons : []
+    const button = buttons[buttonIndex]
+    if (!button) return null
+
+    const buttonEdge = edges.find((e: any) => e.source === nodeId && e.sourceHandle === `button-${buttonIndex}`)
+    if (!buttonEdge) return null
+
+    return {
+      flow,
+      targetNodeId: buttonEdge.target,
+      buttonText: button.text || `Botão ${buttonIndex + 1}`,
+      flowName: flow.name,
     }
   }
 
