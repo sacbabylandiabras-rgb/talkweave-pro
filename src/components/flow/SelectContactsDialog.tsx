@@ -16,11 +16,24 @@ import { useContacts } from "@/hooks/useContacts";
 import { Search, Users, Loader2, Plus, X, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Globe, Smartphone } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+
+export type FlowSendProvider = "zapi" | "meta";
+
+interface MetaPhoneOption {
+  id: string;
+  display_phone_number: string;
+  verified_name: string;
+}
 
 interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selectedContacts: string[], instanceIds?: string[]) => void;
+  onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
 }
 
 export function SelectContactsDialog({ 
@@ -35,6 +48,30 @@ export function SelectContactsDialog({
   const [manualPhones, setManualPhones] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
+  const [metaPhoneNumbers, setMetaPhoneNumbers] = useState<MetaPhoneOption[]>([]);
+  const [selectedMetaPhoneId, setSelectedMetaPhoneId] = useState("");
+  const [loadingMetaPhones, setLoadingMetaPhones] = useState(false);
+  const { data: metaCreds } = useMetaCredentials();
+  const isMetaConnected = metaCreds?.connected === true;
+
+  const fetchMetaPhones = async () => {
+    setLoadingMetaPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+      if (error) throw error;
+      setMetaPhoneNumbers(data?.phone_numbers || []);
+      if (data?.phone_numbers?.length > 0 && !selectedMetaPhoneId) {
+        setSelectedMetaPhoneId(data.phone_numbers[0].id);
+      }
+    } catch {
+      setMetaPhoneNumbers([]);
+    } finally {
+      setLoadingMetaPhones(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -43,8 +80,17 @@ export function SelectContactsDialog({
       setManualPhone("");
       setManualPhones([]);
       setActiveTab("contacts");
+      setSendProvider("zapi");
+      setSelectedMetaPhoneId("");
+      setMetaPhoneNumbers([]);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (sendProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
+      fetchMetaPhones();
+    }
+  }, [sendProvider, isMetaConnected]);
 
   const filteredContacts = contacts.filter(contact => {
     const query = searchQuery.toLowerCase();
@@ -93,7 +139,12 @@ export function SelectContactsDialog({
   const handleConfirm = () => {
     const allPhones = [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-    onConfirm(allPhones, selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined);
+    onConfirm(
+      allPhones,
+      sendProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
+      sendProvider,
+      sendProvider === "meta" ? selectedMetaPhoneId : undefined
+    );
     onOpenChange(false);
   };
 
@@ -274,9 +325,74 @@ export function SelectContactsDialog({
         </Tabs>
 
         <div className="border-t pt-4">
-          <InstanceSelector
-            onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
-          />
+          <div className="space-y-3">
+            <Label className="text-xs font-medium">Provedor de envio</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSendProvider("zapi")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  sendProvider === "zapi"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:bg-accent"
+                }`}
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                Z-API
+              </button>
+              <button
+                type="button"
+                onClick={() => isMetaConnected && setSendProvider("meta")}
+                disabled={!isMetaConnected}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  sendProvider === "meta"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : !isMetaConnected
+                    ? "bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed"
+                    : "bg-background text-muted-foreground border-border hover:bg-accent"
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Meta API Oficial
+              </button>
+            </div>
+
+            {sendProvider === "zapi" && (
+              <InstanceSelector
+                onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
+              />
+            )}
+
+            {sendProvider === "meta" && (
+              <div className="space-y-2">
+                <Label className="text-xs">Número remetente (Meta)</Label>
+                {loadingMetaPhones ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Carregando números...
+                  </div>
+                ) : metaPhoneNumbers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum número encontrado na conta Meta.</p>
+                ) : (
+                  <Select value={selectedMetaPhoneId} onValueChange={setSelectedMetaPhoneId}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Selecione o número" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metaPhoneNumbers.map((pn) => (
+                        <SelectItem key={pn.id} value={pn.id}>
+                          {pn.display_phone_number} — {pn.verified_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  ⚠️ Via Meta API, apenas templates aprovados podem iniciar conversas. Texto livre requer janela de 24h.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter>

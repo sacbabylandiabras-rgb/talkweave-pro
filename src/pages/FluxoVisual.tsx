@@ -74,6 +74,7 @@ import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
+import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -699,7 +700,7 @@ export default function FluxoVisual() {
     setShowContactsDialog(true);
   };
 
-  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[]) => {
+  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
     toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
 
     try {
@@ -720,7 +721,7 @@ export default function FluxoVisual() {
         const currentInstanceId = instanceIds && instanceIds.length > 0
           ? instanceIds[sendCounter % instanceIds.length]
           : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId);
+        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId);
         sendCounter++;
       }
 
@@ -733,7 +734,7 @@ export default function FluxoVisual() {
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string) => {
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
@@ -788,8 +789,23 @@ export default function FluxoVisual() {
         ];
 
         const sendWithInstance = async (payload: Record<string, any>) => {
-          const body = instanceId ? { ...payload, instanceId } : payload;
-          await supabase.functions.invoke('send-message', { body });
+          if (provider === "meta") {
+            // Route through Meta Cloud API
+            const metaBody: Record<string, any> = {
+              action: "send_text",
+              phone: payload.phone,
+              message: payload.message || "",
+              ...(metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {}),
+            };
+            // For media, Meta API only supports text in flow for now
+            if (payload.mediaUrl) {
+              metaBody.message = payload.message || `[Mídia: ${payload.mediaUrl}]`;
+            }
+            await supabase.functions.invoke('send-meta-message', { body: metaBody });
+          } else {
+            const body = instanceId ? { ...payload, instanceId } : payload;
+            await supabase.functions.invoke('send-message', { body });
+          }
         };
 
         const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
@@ -876,7 +892,7 @@ export default function FluxoVisual() {
         }
       }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId);
     }
   };
 
