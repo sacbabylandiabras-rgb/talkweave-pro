@@ -170,39 +170,8 @@ export default function PayDashboard() {
         ))}
       </div>
 
-      {/* Sales Milestone Progress Bar */}
-      <Card className="border-[#2A2A2A]">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#FF4D2E]" />
-            Meta de Vendas
-          </CardTitle>
-          <span className="text-xs text-muted-foreground">{progressInfo.volumeFormatted} faturados</span>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="relative w-full h-3 rounded-full bg-[#1A1A1A] overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${progressInfo.pct}%`,
-                background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
-              }}
-            />
-          </div>
-          <div className="flex justify-between">
-            {milestones.map((m, i) => (
-              <span
-                key={m.label}
-                className={`text-[10px] font-medium ${
-                  totalVolume >= m.value ? "text-[#FF4D2E]" : "text-muted-foreground"
-                }`}
-              >
-                {m.label}
-              </span>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
