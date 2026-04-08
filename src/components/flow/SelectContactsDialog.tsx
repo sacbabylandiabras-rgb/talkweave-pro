@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Globe, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export type FlowSendProvider = "zapi" | "meta";
 
@@ -54,6 +55,10 @@ export function SelectContactsDialog({
   const [loadingMetaPhones, setLoadingMetaPhones] = useState(false);
   const { data: metaCreds } = useMetaCredentials();
   const isMetaConnected = metaCreds?.connected === true;
+  const { activeWorkspace } = useWorkspace();
+
+  // Auto-select meta provider when in Meta workspace
+  const effectiveProvider = activeWorkspace === "meta" ? "meta" : sendProvider;
 
   const fetchMetaPhones = async () => {
     setLoadingMetaPhones(true);
@@ -81,16 +86,19 @@ export function SelectContactsDialog({
       setManualPhones([]);
       setActiveTab("contacts");
       setSendProvider("zapi");
+      if (activeWorkspace === "meta") {
+        setSendProvider("meta");
+      }
       setSelectedMetaPhoneId("");
       setMetaPhoneNumbers([]);
     }
   }, [open]);
 
   useEffect(() => {
-    if (sendProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
+    if (effectiveProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
       fetchMetaPhones();
     }
-  }, [sendProvider, isMetaConnected]);
+  }, [effectiveProvider, isMetaConnected]);
 
   const filteredContacts = contacts.filter(contact => {
     const query = searchQuery.toLowerCase();
@@ -141,9 +149,9 @@ export function SelectContactsDialog({
     if (allPhones.length === 0) return;
     onConfirm(
       allPhones,
-      sendProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
-      sendProvider,
-      sendProvider === "meta" ? selectedMetaPhoneId : undefined
+      effectiveProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
+      effectiveProvider,
+      effectiveProvider === "meta" ? selectedMetaPhoneId : undefined
     );
     onOpenChange(false);
   };
@@ -326,46 +334,50 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            <Label className="text-xs font-medium">Provedor de envio</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSendProvider("zapi")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                  sendProvider === "zapi"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:bg-accent"
-                }`}
-              >
-                <Smartphone className="h-3.5 w-3.5" />
-                Z-API
-              </button>
-              <button
-                type="button"
-                onClick={() => isMetaConnected && setSendProvider("meta")}
-                disabled={!isMetaConnected}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                  sendProvider === "meta"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : !isMetaConnected
-                    ? "bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed"
-                    : "bg-background text-muted-foreground border-border hover:bg-accent"
-                }`}
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Meta API Oficial
-              </button>
-            </div>
+            {activeWorkspace !== "meta" && (
+              <>
+                <Label className="text-xs font-medium">Provedor de envio</Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSendProvider("zapi")}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                      effectiveProvider === "zapi"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:bg-accent"
+                    }`}
+                  >
+                    <Smartphone className="h-3.5 w-3.5" />
+                    Z-API
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => isMetaConnected && setSendProvider("meta")}
+                    disabled={!isMetaConnected}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                      effectiveProvider === "meta"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : !isMetaConnected
+                        ? "bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed"
+                        : "bg-background text-muted-foreground border-border hover:bg-accent"
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Meta API Oficial
+                  </button>
+                </div>
+              </>
+            )}
 
-            {sendProvider === "zapi" && (
+            {effectiveProvider === "zapi" && (
               <InstanceSelector
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
               />
             )}
 
-            {sendProvider === "meta" && (
+            {effectiveProvider === "meta" && (
               <div className="space-y-2">
-                <Label className="text-xs">Número remetente (Meta)</Label>
+                <Label className="text-xs">Número remetente {activeWorkspace === "meta" ? "" : "(Meta)"}</Label>
                 {loadingMetaPhones ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
