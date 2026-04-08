@@ -91,11 +91,9 @@ export default function PayDashboard() {
     const nextIdx = Math.min(currentIdx + 1, milestones.length - 1);
     const from = milestones[currentIdx].value;
     const to = milestones[nextIdx].value;
-    const segmentProgress = to > from ? ((vol - from) / (to - from)) * 100 : 100;
-    // Overall percentage across all segments (4 segments)
-    const overallPct = ((currentIdx / (milestones.length - 1)) + (segmentProgress / 100) / (milestones.length - 1)) * 100;
+    const segmentPct = Math.min(to > from ? ((vol - from) / (to - from)) * 100 : 100, 100);
     return {
-      pct: Math.min(overallPct, 100),
+      segmentPct,
       currentLabel: milestones[currentIdx].label,
       nextLabel: milestones[nextIdx].label,
       volumeFormatted: formatCurrency(vol),
