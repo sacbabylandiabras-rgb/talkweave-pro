@@ -115,11 +115,44 @@ export default function PayDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
-        </p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
+          </p>
+        </div>
+        {/* Sales Milestone Progress Bar - Top Right */}
+        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[320px] lg:min-w-[400px]">
+          <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-foreground">Meta de Vendas</span>
+              <span className="text-[10px] text-muted-foreground">{progressInfo.volumeFormatted}</span>
+            </div>
+            <div className="relative w-full h-2 rounded-full bg-muted/50 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{
+                  width: `${progressInfo.pct}%`,
+                  background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
+                }}
+              />
+            </div>
+            <div className="flex justify-between">
+              {milestones.map((m) => (
+                <span
+                  key={m.label}
+                  className={`text-[8px] font-medium ${
+                    totalVolume >= m.value ? "text-[#FF4D2E]" : "text-muted-foreground"
+                  }`}
+                >
+                  {m.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -137,39 +170,8 @@ export default function PayDashboard() {
         ))}
       </div>
 
-      {/* Sales Milestone Progress Bar */}
-      <Card className="border-[#2A2A2A]">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#FF4D2E]" />
-            Meta de Vendas
-          </CardTitle>
-          <span className="text-xs text-muted-foreground">{progressInfo.volumeFormatted} faturados</span>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="relative w-full h-3 rounded-full bg-[#1A1A1A] overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${progressInfo.pct}%`,
-                background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
-              }}
-            />
-          </div>
-          <div className="flex justify-between">
-            {milestones.map((m, i) => (
-              <span
-                key={m.label}
-                className={`text-[10px] font-medium ${
-                  totalVolume >= m.value ? "text-[#FF4D2E]" : "text-muted-foreground"
-                }`}
-              >
-                {m.label}
-              </span>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
