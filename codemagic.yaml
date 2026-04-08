@@ -6,17 +6,23 @@ workflows:
     environment:
       groups:
         - app_store
-      ios_signing:
-        provisioning_profiles:
-          - $CM_PROVISIONING_PROFILE
-        certificates:
-          - $CM_CERTIFICATE
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_NAME: "Zaplynx Pay"
       node: 20.11.0
     scripts:
+      - name: Install certificate and profile
+        script: |
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/distribution.p12
+          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import /tmp/distribution.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Install dependencies
         script: |
           npm install
