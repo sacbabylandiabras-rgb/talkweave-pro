@@ -790,18 +790,53 @@ export default function FluxoVisual() {
 
         const sendWithInstance = async (payload: Record<string, any>) => {
           if (provider === "meta") {
-            // Route through Meta Cloud API
-            const metaBody: Record<string, any> = {
-              action: "send_text",
-              phone: payload.phone,
-              message: payload.message || "",
-              ...(metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {}),
-            };
-            // For media, Meta API only supports text in flow for now
-            if (payload.mediaUrl) {
-              metaBody.message = payload.message || `[Mídia: ${payload.mediaUrl}]`;
+            const overrideHeader = metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {};
+
+            // Interactive buttons via Meta API
+            if (payload.buttonActions && payload.buttonActions.length > 0) {
+              const replyButtons = payload.buttonActions
+                .filter((b: any) => b.type === "REPLY")
+                .slice(0, 3)
+                .map((b: any) => ({ id: b.id, title: b.label.slice(0, 20) }));
+
+              if (replyButtons.length > 0) {
+                await supabase.functions.invoke('send-meta-message', {
+                  body: {
+                    action: "send_interactive",
+                    phone: payload.phone,
+                    message: payload.message || "Escolha uma opção:",
+                    buttons: replyButtons,
+                    ...overrideHeader,
+                  },
+                });
+                return;
+              }
             }
-            await supabase.functions.invoke('send-meta-message', { body: metaBody });
+
+            // Media via Meta API
+            if (payload.mediaUrl && payload.mediaType) {
+              await supabase.functions.invoke('send-meta-message', {
+                body: {
+                  action: "send_media",
+                  phone: payload.phone,
+                  media_url: payload.mediaUrl,
+                  media_type: payload.mediaType,
+                  caption: payload.message || undefined,
+                  ...overrideHeader,
+                },
+              });
+              return;
+            }
+
+            // Text via Meta API
+            await supabase.functions.invoke('send-meta-message', {
+              body: {
+                action: "send_text",
+                phone: payload.phone,
+                message: payload.message || "",
+                ...overrideHeader,
+              },
+            });
           } else {
             const body = instanceId ? { ...payload, instanceId } : payload;
             await supabase.functions.invoke('send-message', { body });
