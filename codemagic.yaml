@@ -9,6 +9,8 @@ workflows:
       ios_signing:
         provisioning_profiles:
           - $CM_PROVISIONING_PROFILE
+        certificates:
+          - $CM_CERTIFICATE
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
