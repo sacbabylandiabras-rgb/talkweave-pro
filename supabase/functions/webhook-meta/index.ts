@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import { listAccessiblePhoneNumbers, type MetaCredentialsForDiscovery } from '../send-meta-message/meta-phone-discovery.ts'
 
 const VERIFY_TOKEN = "zaplynx_whatsapp_verify_2024"
 const WHATSAPP_META_APP_ID = "831998069944962"
@@ -32,8 +31,12 @@ interface FlowEdge {
   sourceHandle?: string
 }
 
-interface MetaCredentialRow extends MetaCredentialsForDiscovery {
+interface MetaCredentialRow {
   user_id: string
+  access_token: string
+  phone_number_id?: string | null
+  waba_id?: string | null
+  business_account_id?: string | null
 }
 
 serve(async (req) => {
@@ -682,7 +685,7 @@ async function resolveMetaCredentialByPhoneNumber(
     })
   )
 
-  const fallbackMatch = matches.find((candidate): candidate is MetaCredentialRow => Boolean(candidate)) ?? null
+  const fallbackMatch = matches.find((c): c is MetaCredentialRow => Boolean(c)) ?? null
 
   if (fallbackMatch) {
     console.log('[webhook-meta] Resolved phone_number_id via accessible WABA lookup:', phoneNumberId, 'user:', fallbackMatch.user_id)
@@ -690,4 +693,46 @@ async function resolveMetaCredentialByPhoneNumber(
 
   cache.set(phoneNumberId, fallbackMatch)
   return fallbackMatch
+}
+
+// =================== INLINE PHONE DISCOVERY ===================
+
+async function safeMetaGet<T>(url: string, accessToken: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+    const payload = await res.json().catch(() => null)
+    if (!res.ok) return null
+    return payload as T
+  } catch { return null }
+}
+
+async function listAccessiblePhoneNumbers(
+  creds: { access_token: string; waba_id?: string | null; business_account_id?: string | null; phone_number_id?: string | null },
+  apiVersion: string
+) {
+  const wabaIds = new Set<string>()
+  if (creds.waba_id) wabaIds.add(creds.waba_id)
+
+  const collectFromBiz = async (bizId: string) => {
+    for (const ep of ['owned_whatsapp_business_accounts', 'client_whatsapp_business_accounts']) {
+      const r = await safeMetaGet<{ data?: { id: string }[] }>(`https://graph.facebook.com/${apiVersion}/${bizId}/${ep}?limit=250`, creds.access_token)
+      for (const a of r?.data || []) { if (a?.id) wabaIds.add(a.id) }
+    }
+  }
+
+  if (creds.business_account_id) await collectFromBiz(creds.business_account_id)
+
+  const biz = await safeMetaGet<{ data?: { id: string }[] }>(`https://graph.facebook.com/${apiVersion}/me/businesses?fields=id&limit=250`, creds.access_token)
+  for (const b of biz?.data || []) { if (b?.id) await collectFromBiz(b.id) }
+
+  const numbers: { id: string; display_phone_number?: string }[] = []
+  const seen = new Set<string>()
+
+  for (const wId of wabaIds) {
+    const r = await safeMetaGet<{ data?: { id: string; display_phone_number?: string }[] }>(
+      `https://graph.facebook.com/${apiVersion}/${wId}/phone_numbers?fields=id,display_phone_number&limit=250`, creds.access_token)
+    for (const n of r?.data || []) { if (n?.id && !seen.has(n.id)) { seen.add(n.id); numbers.push(n) } }
+  }
+
+  return numbers
 }
