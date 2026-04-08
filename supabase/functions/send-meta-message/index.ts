@@ -73,6 +73,16 @@ serve(async (req) => {
           return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
         }
         return await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+      case "send_media":
+        if (!effectivePhoneId) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+      case "send_interactive":
+        if (!effectivePhoneId) {
+          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
+        }
+        return await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
       case "list_templates":
         return await listTemplates(creds);
       case "create_template":
@@ -317,4 +327,80 @@ async function updateProfilePhoto(
 async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
   const phoneNumbers = await listAccessiblePhoneNumbers(creds, API_VERSION);
   return jsonResponse({ phone_numbers: phoneNumbers });
+}
+
+async function sendMediaMessage(
+  creds: { access_token: string; phone_number_id: string },
+  body: { phone: string; media_url: string; media_type: string; caption?: string }
+) {
+  const { phone, media_url, media_type, caption } = body;
+  if (!phone || !media_url || !media_type) {
+    return jsonResponse({ error: "Número, URL da mídia e tipo são obrigatórios" }, 400);
+  }
+
+  const typeMap: Record<string, string> = {
+    image: "image",
+    video: "video",
+    audio: "audio",
+    document: "document",
+  };
+
+  const metaType = typeMap[media_type] || "document";
+  const mediaPayload: Record<string, any> = { link: media_url };
+  if (caption && metaType !== "audio") {
+    mediaPayload.caption = caption;
+  }
+  if (metaType === "document") {
+    mediaPayload.filename = media_url.split("/").pop() || "file";
+  }
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: phone.replace(/\D/g, ""),
+    type: metaType,
+    [metaType]: mediaPayload,
+  };
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/messages`,
+    creds.access_token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true, data: result.data });
+}
+
+async function sendInteractiveMessage(
+  creds: { access_token: string; phone_number_id: string },
+  body: { phone: string; message: string; buttons: { id: string; title: string }[] }
+) {
+  const { phone, message, buttons } = body;
+  if (!phone || !message || !buttons?.length) {
+    return jsonResponse({ error: "Número, mensagem e botões são obrigatórios" }, 400);
+  }
+
+  // Meta allows max 3 buttons per interactive message
+  const metaButtons = buttons.slice(0, 3).map((btn) => ({
+    type: "reply",
+    reply: { id: btn.id, title: btn.title.slice(0, 20) },
+  }));
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: phone.replace(/\D/g, ""),
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: { text: message },
+      action: { buttons: metaButtons },
+    },
+  };
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${creds.phone_number_id}/messages`,
+    creds.access_token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ success: true, data: result.data });
 }
