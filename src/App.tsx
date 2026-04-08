@@ -72,6 +72,8 @@ import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 
 const queryClient = new QueryClient();
 
+const isNative = Capacitor.isNativePlatform();
+
 function AppContent() {
   usePushNotifications();
   return null;
