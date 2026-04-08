@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { listAccessiblePhoneNumbers, type MetaCredentialsForDiscovery } from '../send-meta-message/meta-phone-discovery.ts'
 
 const VERIFY_TOKEN = "zaplynx_whatsapp_verify_2024"
 const WHATSAPP_META_APP_ID = "831998069944962"
@@ -29,6 +30,10 @@ interface FlowEdge {
   source: string
   target: string
   sourceHandle?: string
+}
+
+interface MetaCredentialRow extends MetaCredentialsForDiscovery {
+  user_id: string
 }
 
 serve(async (req) => {
@@ -61,6 +66,7 @@ serve(async (req) => {
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey)
       const entries = body?.entry || []
+      const credentialCache = new Map<string, MetaCredentialRow | null>()
 
       for (const entry of entries) {
         const changes = entry?.changes || []
@@ -76,15 +82,9 @@ serve(async (req) => {
             if (!phoneNumberId) continue
 
             // Try to find user by phone_number_id first, then by any phone in the WABA
-            const { data: cred } = await supabase
-              .from('meta_credentials')
-              .select('user_id, access_token, phone_number_id, waba_id')
-              .eq('phone_number_id', phoneNumberId)
-              .eq('app_id', WHATSAPP_META_APP_ID)
-              .maybeSingle()
+            const cred = await resolveMetaCredentialByPhoneNumber(supabase, phoneNumberId, credentialCache)
 
             if (!cred) {
-              // Fallback: search by any connected credential and match later
               console.log('[webhook-meta] No user found for phone_number_id:', phoneNumberId)
               continue
             }
@@ -623,4 +623,71 @@ function findButtonEdgeMatch(
   }
 
   return null
+}
+
+async function resolveMetaCredentialByPhoneNumber(
+  supabase: any,
+  phoneNumberId: string,
+  cache: Map<string, MetaCredentialRow | null>
+): Promise<MetaCredentialRow | null> {
+  if (cache.has(phoneNumberId)) {
+    return cache.get(phoneNumberId) ?? null
+  }
+
+  const { data: directMatch, error: directError } = await supabase
+    .from('meta_credentials')
+    .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
+    .eq('phone_number_id', phoneNumberId)
+    .eq('app_id', WHATSAPP_META_APP_ID)
+    .eq('connected', true)
+    .maybeSingle()
+
+  if (directError) {
+    console.error('[webhook-meta] Error loading direct Meta credential:', directError)
+  }
+
+  if (directMatch?.access_token) {
+    cache.set(phoneNumberId, directMatch)
+    return directMatch
+  }
+
+  const { data: candidates, error: candidatesError } = await supabase
+    .from('meta_credentials')
+    .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
+    .eq('app_id', WHATSAPP_META_APP_ID)
+    .eq('connected', true)
+    .not('access_token', 'is', null)
+
+  if (candidatesError) {
+    console.error('[webhook-meta] Error loading Meta credential candidates:', candidatesError)
+    cache.set(phoneNumberId, null)
+    return null
+  }
+
+  const matches = await Promise.all(
+    (candidates || []).map(async (candidate: MetaCredentialRow) => {
+      if (!candidate.access_token) return null
+
+      if (candidate.phone_number_id === phoneNumberId) {
+        return candidate
+      }
+
+      try {
+        const numbers = await listAccessiblePhoneNumbers(candidate, API_VERSION)
+        return numbers.some((number) => number.id === phoneNumberId) ? candidate : null
+      } catch (error) {
+        console.warn('[webhook-meta] Failed to inspect accessible phone numbers for credential:', candidate.user_id, error)
+        return null
+      }
+    })
+  )
+
+  const fallbackMatch = matches.find((candidate): candidate is MetaCredentialRow => Boolean(candidate)) ?? null
+
+  if (fallbackMatch) {
+    console.log('[webhook-meta] Resolved phone_number_id via accessible WABA lookup:', phoneNumberId, 'user:', fallbackMatch.user_id)
+  }
+
+  cache.set(phoneNumberId, fallbackMatch)
+  return fallbackMatch
 }
