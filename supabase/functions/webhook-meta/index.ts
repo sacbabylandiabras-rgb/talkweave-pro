@@ -4,8 +4,32 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 const VERIFY_TOKEN = "zaplynx_whatsapp_verify_2024"
 const WHATSAPP_META_APP_ID = "831998069944962"
+const API_VERSION = "v21.0"
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+interface FlowNode {
+  id: string
+  type: string
+  position?: { x?: number; y?: number }
+  data: {
+    content?: string
+    contentType?: string
+    mediaUrl?: string
+    buttons?: Array<{ text: string; type: string; value: string }>
+    condition?: string
+    conditionType?: string
+    isPtv?: boolean
+    viewOnce?: boolean
+  }
+}
+
+interface FlowEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -51,27 +75,52 @@ serve(async (req) => {
 
             if (!phoneNumberId) continue
 
+            // Try to find user by phone_number_id first, then by any phone in the WABA
             const { data: cred } = await supabase
               .from('meta_credentials')
-              .select('user_id')
+              .select('user_id, access_token, phone_number_id, waba_id')
               .eq('phone_number_id', phoneNumberId)
               .eq('app_id', WHATSAPP_META_APP_ID)
               .maybeSingle()
 
             if (!cred) {
+              // Fallback: search by any connected credential and match later
               console.log('[webhook-meta] No user found for phone_number_id:', phoneNumberId)
               continue
             }
 
             const userId = cred.user_id
+            const accessToken = cred.access_token
 
             for (const msg of messages) {
               const fromPhone = msg?.from || ''
-              const msgText = msg?.text?.body || msg?.button?.text || ''
               const contactName = contacts?.find((c: any) => c?.wa_id === fromPhone)?.profile?.name || ''
 
-              console.log(`[webhook-meta] Message from ${fromPhone}: ${msgText.slice(0, 100)} | contact: ${contactName}`)
+              // Extract message text from various Meta message types
+              let msgText = ''
+              let buttonReplyTitle = ''
+              let buttonReplyId = ''
 
+              if (msg?.type === 'text') {
+                msgText = msg?.text?.body || ''
+              } else if (msg?.type === 'interactive') {
+                // Interactive button reply
+                if (msg?.interactive?.type === 'button_reply') {
+                  buttonReplyTitle = msg?.interactive?.button_reply?.title || ''
+                  buttonReplyId = msg?.interactive?.button_reply?.id || ''
+                  msgText = buttonReplyTitle
+                } else if (msg?.interactive?.type === 'list_reply') {
+                  msgText = msg?.interactive?.list_reply?.title || ''
+                }
+              } else if (msg?.type === 'button') {
+                // Template button reply
+                buttonReplyTitle = msg?.button?.text || ''
+                msgText = buttonReplyTitle
+              }
+
+              console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
+
+              // Log the received message
               await supabase.from('message_logs').insert({
                 user_id: userId,
                 phone: fromPhone,
@@ -81,6 +130,82 @@ serve(async (req) => {
                 instance_id: `meta:${phoneNumberId}`,
               })
 
+              if (!msgText || !accessToken) continue
+
+              // === CHECK FLOW AUTOMATIONS ===
+              const { data: flowAutomations } = await supabase
+                .from('flow_automations')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('active', true)
+
+              if (flowAutomations && flowAutomations.length > 0) {
+                const normalizedMessage = normalizeForMatch(msgText)
+
+                // === CHECK BUTTON REPLY MATCH ===
+                const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, msgText, buttonReplyTitle, buttonReplyId)
+                if (buttonMatch) {
+                  console.log(`[webhook-meta] === BOTÃO MATCH === Flow: ${buttonMatch.flowName} | Button: ${buttonMatch.buttonText} | Target: ${buttonMatch.targetNodeId}`)
+
+                  const { flow, targetNodeId } = buttonMatch
+                  const flowNodes: FlowNode[] = flow.nodes || []
+                  const flowEdges: FlowEdge[] = flow.edges || []
+
+                  const targetNode = flowNodes.find(n => n.id === targetNodeId)
+                  if (targetNode) {
+                    const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                    const visited = new Set<string>()
+                    const shouldStop = await sendNodeContentMeta(targetNode, flowNodes, flowEdges, fromPhone, metaCreds, visited, supabase, userId, flow.name)
+                    if (!shouldStop) {
+                      await processFlowNodeMeta(targetNode.id, flowNodes, flowEdges, fromPhone, metaCreds, supabase, visited, userId, flow.name)
+                    }
+                  }
+
+                  // Update the message log
+                  await supabase.from('message_logs').insert({
+                    user_id: userId,
+                    phone: fromPhone,
+                    message_received: null,
+                    keyword_matched: `[Botão: ${buttonMatch.buttonText}]`,
+                    response_sent: `[Fluxo: ${flow.name}]`,
+                    instance_id: `meta:${phoneNumberId}`,
+                  })
+
+                  continue
+                }
+
+                // === CHECK KEYWORD MATCH ===
+                const matchedFlow = flowAutomations.find((flow: any) => {
+                  const keywords = extractFlowKeywords(flow)
+                  return keywords.some((keyword) => isKeywordMatch(normalizedMessage, keyword))
+                })
+
+                if (matchedFlow) {
+                  console.log(`[webhook-meta] Flow matched keyword: ${matchedFlow.keyword}`)
+
+                  const nodes: FlowNode[] = matchedFlow.nodes || []
+                  const edges: FlowEdge[] = matchedFlow.edges || []
+                  const initialNode = nodes.find(n => n.type === 'blocoInicial')
+
+                  if (initialNode) {
+                    const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                    await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, matchedFlow.name)
+
+                    await supabase.from('message_logs').insert({
+                      user_id: userId,
+                      phone: fromPhone,
+                      message_received: null,
+                      keyword_matched: matchedFlow.keyword,
+                      response_sent: `[Fluxo: ${matchedFlow.name}]`,
+                      instance_id: `meta:${phoneNumberId}`,
+                    })
+
+                    continue
+                  }
+                }
+              }
+
+              // === FALLBACK: AUTO RESPONSES ===
               const { data: autoResponses } = await supabase
                 .from('auto_responses')
                 .select('*')
@@ -91,43 +216,18 @@ serve(async (req) => {
                 const normalizedMsg = msgText.toLowerCase().trim()
                 for (const ar of autoResponses) {
                   if (normalizedMsg.includes(ar.keyword.toLowerCase().trim())) {
-                    const { data: fullCred } = await supabase
-                      .from('meta_credentials')
-                      .select('access_token, phone_number_id')
-                      .eq('user_id', userId)
-                      .eq('app_id', WHATSAPP_META_APP_ID)
-                      .maybeSingle()
+                    await metaSendText(accessToken, phoneNumberId, fromPhone, ar.response)
 
-                    if (fullCred?.access_token && fullCred?.phone_number_id) {
-                      const sendRes = await fetch(
-                        `https://graph.facebook.com/v21.0/${fullCred.phone_number_id}/messages`,
-                        {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${fullCred.access_token}`,
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            messaging_product: 'whatsapp',
-                            to: fromPhone,
-                            type: 'text',
-                            text: { body: ar.response },
-                          }),
-                        }
-                      )
+                    console.log(`[webhook-meta] Auto-response sent for keyword "${ar.keyword}"`)
 
-                      const sendResult = await sendRes.json()
-                      console.log(`[webhook-meta] Auto-response sent for keyword "${ar.keyword}":`, sendResult)
-
-                      await supabase.from('message_logs').insert({
-                        user_id: userId,
-                        phone: fromPhone,
-                        message_received: msgText,
-                        keyword_matched: ar.keyword,
-                        response_sent: ar.response,
-                        instance_id: `meta:${phoneNumberId}`,
-                      })
-                    }
+                    await supabase.from('message_logs').insert({
+                      user_id: userId,
+                      phone: fromPhone,
+                      message_received: msgText,
+                      keyword_matched: ar.keyword,
+                      response_sent: ar.response,
+                      instance_id: `meta:${phoneNumberId}`,
+                    })
                     break
                   }
                 }
@@ -135,6 +235,7 @@ serve(async (req) => {
             }
           }
 
+          // Status updates
           if (field === 'messages' && value?.statuses) {
             for (const status of value.statuses) {
               console.log(`[webhook-meta] Status update: ${status?.id} → ${status?.status}`)
@@ -159,3 +260,367 @@ serve(async (req) => {
   return new Response('Method not allowed', { status: 405 })
 })
 
+// =================== META API SEND HELPERS ===================
+
+async function metaSendText(accessToken: string, phoneNumberId: string, to: string, message: string) {
+  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: to.replace(/\D/g, ''),
+      type: 'text',
+      text: { body: message },
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) console.error('[webhook-meta] Send text error:', data)
+  return data
+}
+
+async function metaSendMedia(accessToken: string, phoneNumberId: string, to: string, mediaType: string, mediaUrl: string, caption?: string) {
+  const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' }
+  const metaType = typeMap[mediaType] || 'document'
+  const mediaPayload: Record<string, any> = { link: mediaUrl }
+  if (caption && metaType !== 'audio') mediaPayload.caption = caption
+  if (metaType === 'document') mediaPayload.filename = mediaUrl.split('/').pop() || 'file'
+
+  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: to.replace(/\D/g, ''),
+      type: metaType,
+      [metaType]: mediaPayload,
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) console.error(`[webhook-meta] Send ${metaType} error:`, data)
+  return data
+}
+
+async function metaSendInteractive(accessToken: string, phoneNumberId: string, to: string, message: string, buttons: Array<{ id: string; title: string }>) {
+  const metaButtons = buttons.slice(0, 3).map(btn => ({
+    type: 'reply',
+    reply: { id: btn.id, title: btn.title.slice(0, 20) },
+  }))
+
+  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: to.replace(/\D/g, ''),
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: message },
+        action: { buttons: metaButtons },
+      },
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) console.error('[webhook-meta] Send interactive error:', data)
+  return data
+}
+
+// =================== FLOW EXECUTION (SERVER-SIDE) ===================
+
+async function sendNodeContentMeta(
+  targetNode: FlowNode,
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  phone: string,
+  metaCreds: { access_token: string; phone_number_id: string },
+  visited: Set<string>,
+  supabase: any,
+  userId: string,
+  flowName: string
+): Promise<boolean> {
+  if (visited.has(targetNode.id)) return false
+  visited.add(targetNode.id)
+
+  if (targetNode.type !== 'blocoConteudo') return false
+
+  const contentType = targetNode.data.contentType || 'text'
+  const content = targetNode.data.content || ''
+  const mediaUrl = targetNode.data.mediaUrl || ''
+  const buttons: Array<{ text: string; type: string; value: string }> = targetNode.data.buttons || []
+
+  const sendableButtons = buttons.filter(b => b.type !== 'flow')
+  const flowButtons = buttons.filter(b => b.type === 'flow')
+  const allSendButtons = [
+    ...sendableButtons,
+    ...flowButtons.map(b => ({ ...b, type: 'reply' })),
+  ]
+  const hasButtons = allSendButtons.length > 0
+
+  console.log(`[webhook-meta] >>> Sending node ${targetNode.id} type=${contentType} buttons=${allSendButtons.length}`)
+
+  try {
+    if (hasButtons) {
+      // Send media first if applicable
+      if ((contentType === 'image' || contentType === 'video' || contentType === 'audio' || contentType === 'document') && mediaUrl) {
+        await metaSendMedia(metaCreds.access_token, metaCreds.phone_number_id, phone, contentType, mediaUrl, '')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      }
+
+      // Send interactive buttons (only reply buttons, Meta doesn't support URL/Call as interactive)
+      const replyButtons = allSendButtons
+        .filter(b => b.type === 'reply' || b.type === 'flow')
+        .slice(0, 3)
+        .map((btn, idx) => ({
+          id: String(idx + 1),
+          title: (btn.text || `Botão ${idx + 1}`).slice(0, 20),
+        }))
+
+      if (replyButtons.length > 0) {
+        // Build message with URL/Call suffixes
+        const urlCallParts: string[] = []
+        for (const btn of allSendButtons) {
+          if (btn.type === 'url' && btn.value) urlCallParts.push(`🔗 ${btn.text}: ${btn.value}`)
+          if (btn.type === 'call' && btn.value) urlCallParts.push(`📞 ${btn.text}: ${btn.value}`)
+        }
+        const fullMessage = (content || 'Escolha uma opção:') + (urlCallParts.length > 0 ? '\n\n' + urlCallParts.join('\n') : '')
+        await metaSendInteractive(metaCreds.access_token, metaCreds.phone_number_id, phone, fullMessage, replyButtons)
+      } else {
+        // Only URL/Call buttons — send as text with links
+        const urlCallParts: string[] = []
+        for (const btn of allSendButtons) {
+          if (btn.type === 'url' && btn.value) urlCallParts.push(`🔗 ${btn.text}: ${btn.value}`)
+          if (btn.type === 'call' && btn.value) urlCallParts.push(`📞 ${btn.text}: ${btn.value}`)
+        }
+        const fullMessage = (content || '') + (urlCallParts.length > 0 ? '\n\n' + urlCallParts.join('\n') : '')
+        if (fullMessage) await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, fullMessage)
+      }
+    } else {
+      // No buttons — send content based on type
+      switch (contentType) {
+        case 'text':
+          if (content) await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, content)
+          break
+        case 'image':
+        case 'video':
+        case 'audio':
+        case 'document':
+          if (mediaUrl) await metaSendMedia(metaCreds.access_token, metaCreds.phone_number_id, phone, contentType, mediaUrl, content || undefined)
+          break
+        default:
+          if (content) await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, content)
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // Log the sent message
+    if (supabase && userId) {
+      try {
+        const buttonLabels = allSendButtons.map(b => b.text).filter(Boolean).join(' | ')
+        let logContent = content || ''
+        if (mediaUrl && contentType !== 'text') logContent = `[media:${contentType}:${mediaUrl}]\n${logContent}`
+        if (buttonLabels) logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`
+
+        if (logContent) {
+          await supabase.from('message_logs').insert({
+            phone,
+            message_received: null,
+            response_sent: logContent.trim(),
+            keyword_matched: `__flow_send__:${flowName}`,
+            timestamp: new Date().toISOString(),
+            user_id: userId,
+            instance_id: `meta:${metaCreds.phone_number_id}`,
+          })
+        }
+      } catch (logErr) {
+        console.error('[webhook-meta] Error logging flow message:', logErr)
+      }
+    }
+  } catch (e) {
+    console.error(`[webhook-meta] Error sending node ${targetNode.id}:`, e)
+    throw e
+  }
+
+  // Check if node has button edges (should pause for user response)
+  const hasButtonEdges = buttons.some((_btn, idx) => {
+    return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+  })
+
+  if (hasButtonEdges) {
+    console.log(`[webhook-meta] Node ${targetNode.id} has button edges — waiting for user response`)
+    return true
+  }
+
+  return false
+}
+
+async function processFlowNodeMeta(
+  nodeId: string,
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  phone: string,
+  metaCreds: { access_token: string; phone_number_id: string },
+  supabase: any,
+  visited: Set<string>,
+  userId: string,
+  flowName: string
+) {
+  const currentNode = nodes.find(n => n.id === nodeId)
+
+  const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
+    const nodeMap = new Map(nodes.map(n => [n.id, n]))
+    return [...list].sort((a, b) => {
+      const ay = nodeMap.get(a.target)?.position?.y ?? 0
+      const by = nodeMap.get(b.target)?.position?.y ?? 0
+      if (ay !== by) return ay - by
+      return (nodeMap.get(a.target)?.position?.x ?? 0) - (nodeMap.get(b.target)?.position?.x ?? 0)
+    })
+  }
+
+  const isDefaultHandle = (handle: string | undefined | null) => {
+    if (!handle) return true
+    if (handle === 'default') return true
+    if (handle.startsWith('source-') || handle.startsWith('target-')) return true
+    if (['right', 'bottom', 'left', 'top', 'a', 'b'].includes(handle)) return true
+    return false
+  }
+
+  const defaultOutgoing = edges.filter(
+    e => e.source === nodeId && !e.sourceHandle?.startsWith('button-') && isDefaultHandle(e.sourceHandle)
+  )
+
+  const outgoing =
+    defaultOutgoing.length > 0
+      ? sortEdgesByCanvasPosition(defaultOutgoing)
+      : currentNode?.type === 'blocoCondicao'
+      ? sortEdgesByCanvasPosition(edges.filter(e => e.source === nodeId))
+      : []
+
+  console.log(`[webhook-meta] processFlowNode(${nodeId}): ${outgoing.length} outgoing edges`)
+
+  for (const edge of outgoing) {
+    const targetNode = nodes.find(n => n.id === edge.target)
+    if (!targetNode) continue
+
+    if (targetNode.type === 'blocoConteudo') {
+      const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
+      if (shouldStop) continue
+    }
+
+    await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName)
+  }
+}
+
+// =================== FLOW MATCHING UTILITIES ===================
+
+function normalizeForMatch(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isKeywordMatch(message: string, keyword: string): boolean {
+  const normalizedKeyword = normalizeForMatch(keyword)
+  if (!normalizedKeyword || !message) return false
+  if (message.includes(normalizedKeyword)) return true
+  const words = normalizedKeyword.split(' ').filter(w => w.length >= 3)
+  if (words.length === 0) return false
+  const hits = words.filter(w => message.includes(w)).length
+  return hits / words.length >= 0.7
+}
+
+function extractFlowKeywords(flow: any): string[] {
+  const keywords = new Set<string>()
+  const flowKeyword = (flow?.keyword || '').trim()
+  if (flowKeyword) keywords.add(flowKeyword)
+
+  const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+  for (const node of nodes) {
+    if (node?.type !== 'blocoCondicao') continue
+    const conditionType = (node?.data?.conditionType || 'keyword').toString().toLowerCase()
+    const condition = (node?.data?.condition || '').trim()
+    if ((conditionType === 'keyword' || !conditionType) && condition) {
+      keywords.add(condition)
+    }
+  }
+
+  return Array.from(keywords)
+}
+
+function findButtonEdgeMatch(
+  flows: any[],
+  normalizedMessage: string,
+  rawMessage: string,
+  buttonReplyTitle: string,
+  buttonReplyId: string
+): { flow: any; targetNodeId: string; buttonText: string; flowName: string } | null {
+  const normalizedRaw = normalizeForMatch(rawMessage)
+  const normalizedButtonTitle = buttonReplyTitle ? normalizeForMatch(buttonReplyTitle) : ''
+
+  const candidates = new Set(
+    [rawMessage, normalizedMessage, buttonReplyTitle, buttonReplyId]
+      .filter(v => v && v.trim())
+      .map(v => normalizeForMatch(v))
+      .filter(Boolean)
+  )
+
+  console.log('[webhook-meta] Button reply candidates:', Array.from(candidates))
+
+  for (const flow of flows) {
+    const nodes = Array.isArray(flow?.nodes) ? flow.nodes : []
+    const edges = Array.isArray(flow?.edges) ? flow.edges : []
+
+    for (const node of nodes) {
+      if (node?.type !== 'blocoConteudo') continue
+      const buttons = Array.isArray(node?.data?.buttons) ? node.data.buttons : []
+
+      for (let idx = 0; idx < buttons.length; idx++) {
+        const btn = buttons[idx]
+        if (btn.type !== 'flow' && btn.type !== 'reply') continue
+        const btnText = (btn.text || '').trim()
+        if (!btnText) continue
+
+        const normalizedBtn = normalizeForMatch(btnText)
+        if (!normalizedBtn) continue
+
+        // Match by button text or by button index ID
+        const buttonIndexValues = [
+          String(idx + 1),
+          `button-${idx}`,
+          `button_${idx}`,
+          `btn-${idx + 1}`,
+        ].map(v => normalizeForMatch(v)).filter(Boolean)
+
+        const didMatch =
+          normalizedRaw === normalizedBtn ||
+          normalizedMessage === normalizedBtn ||
+          normalizedButtonTitle === normalizedBtn ||
+          candidates.has(normalizedBtn) ||
+          buttonIndexValues.some(v => candidates.has(v))
+
+        if (didMatch) {
+          const handleId = `button-${idx}`
+          const buttonEdge = edges.find((e: any) => e.source === node.id && e.sourceHandle === handleId)
+
+          if (buttonEdge) {
+            return { flow, targetNodeId: buttonEdge.target, buttonText: btnText, flowName: flow.name }
+          }
+
+          // Fallback: default edge
+          const defaultEdge = edges.find((e: any) =>
+            e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'default' || e.sourceHandle === null)
+          )
+          if (defaultEdge) {
+            return { flow, targetNodeId: defaultEdge.target, buttonText: btnText, flowName: flow.name }
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
