@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, CreditCard, CheckCircle, DollarSign, Loader2, Activity } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { TrendingUp, CreditCard, CheckCircle, DollarSign, Loader2, Activity, Trophy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
