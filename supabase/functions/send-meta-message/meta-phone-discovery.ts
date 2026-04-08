@@ -130,11 +130,18 @@ export async function listAccessiblePhoneNumbers(
   const seenIds = new Set<string>();
   const wabaIds = await discoverAccessibleWabaIds(creds, apiVersion);
 
+  console.log(`[phone-discovery] Found ${wabaIds.length} WABA IDs:`, wabaIds);
+  console.log(`[phone-discovery] Creds: business_account_id=${creds.business_account_id}, waba_id=${creds.waba_id}, phone_number_id=${creds.phone_number_id}`);
+
   for (const wabaId of wabaIds) {
+    const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status&limit=250`;
+    console.log(`[phone-discovery] Fetching phones from WABA ${wabaId}`);
     const response = await safeMetaGet<MetaListResponse<MetaPhoneNumberInfo>>(
-      `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status&limit=250`,
+      url,
       creds.access_token
     );
+
+    console.log(`[phone-discovery] WABA ${wabaId} returned ${response?.data?.length || 0} numbers`);
 
     for (const number of response?.data || []) {
       if (!number?.id || seenIds.has(number.id)) continue;
@@ -144,6 +151,7 @@ export async function listAccessiblePhoneNumbers(
   }
 
   if (numbers.length === 0 && creds.phone_number_id) {
+    console.log(`[phone-discovery] No numbers from WABAs, falling back to single phone_number_id: ${creds.phone_number_id}`);
     const currentNumber = await safeMetaGet<MetaPhoneNumberInfo>(
       `https://graph.facebook.com/${apiVersion}/${creds.phone_number_id}?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status`,
       creds.access_token
@@ -153,6 +161,8 @@ export async function listAccessiblePhoneNumbers(
       numbers.push(currentNumber);
     }
   }
+
+  console.log(`[phone-discovery] Total numbers found: ${numbers.length}`, numbers.map(n => `${n.display_phone_number} (${n.id})`));
 
   return numbers.sort((left, right) =>
     (left.display_phone_number || "").localeCompare(right.display_phone_number || "", "pt-BR")
