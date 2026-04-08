@@ -79,6 +79,26 @@ import { useZapi } from "@/hooks/useZapi";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
+async function getInvokeErrorMessage(error: unknown, fallback: string) {
+  if (!error) return fallback;
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      try {
+        const payload = await context.clone().json();
+        if (payload?.error) return payload.error;
+      } catch {
+        try {
+          const text = await context.clone().text();
+          if (text) return text;
+        } catch {}
+      }
+    }
+  }
+  if (error instanceof Error) return error.message || fallback;
+  return fallback;
+}
+
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
   blocoConteudo: BlocoConteudoNode,
@@ -730,7 +750,7 @@ export default function FluxoVisual() {
       });
     } catch (error) {
       console.error("Erro ao enviar fluxo:", error);
-      toast.error("Erro ao enviar fluxo. Verifique o console.");
+      toast.error(await getInvokeErrorMessage(error, "Erro ao enviar fluxo"));
     }
   };
 
@@ -791,6 +811,14 @@ export default function FluxoVisual() {
         const sendWithInstance = async (payload: Record<string, any>) => {
           if (provider === "meta") {
             const overrideHeader = metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {};
+            const invokeMeta = async (body: Record<string, any>) => {
+              const { data, error } = await supabase.functions.invoke('send-meta-message', {
+                body,
+              });
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
+              return data;
+            };
 
             // Interactive buttons via Meta API
             if (payload.buttonActions && payload.buttonActions.length > 0) {
@@ -800,14 +828,12 @@ export default function FluxoVisual() {
                 .map((b: any) => ({ id: b.id, title: b.label.slice(0, 20) }));
 
               if (replyButtons.length > 0) {
-                await supabase.functions.invoke('send-meta-message', {
-                  body: {
-                    action: "send_interactive",
-                    phone: payload.phone,
-                    message: payload.message || "Escolha uma opção:",
-                    buttons: replyButtons,
-                    ...overrideHeader,
-                  },
+                await invokeMeta({
+                  action: "send_interactive",
+                  phone: payload.phone,
+                  message: payload.message || "Escolha uma opção:",
+                  buttons: replyButtons,
+                  ...overrideHeader,
                 });
                 return;
               }
@@ -815,27 +841,23 @@ export default function FluxoVisual() {
 
             // Media via Meta API
             if (payload.mediaUrl && payload.mediaType) {
-              await supabase.functions.invoke('send-meta-message', {
-                body: {
-                  action: "send_media",
-                  phone: payload.phone,
-                  media_url: payload.mediaUrl,
-                  media_type: payload.mediaType,
-                  caption: payload.message || undefined,
-                  ...overrideHeader,
-                },
+              await invokeMeta({
+                action: "send_media",
+                phone: payload.phone,
+                media_url: payload.mediaUrl,
+                media_type: payload.mediaType,
+                caption: payload.message || undefined,
+                ...overrideHeader,
               });
               return;
             }
 
             // Text via Meta API
-            await supabase.functions.invoke('send-meta-message', {
-              body: {
-                action: "send_text",
-                phone: payload.phone,
-                message: payload.message || "",
-                ...overrideHeader,
-              },
+            await invokeMeta({
+              action: "send_text",
+              phone: payload.phone,
+              message: payload.message || "",
+              ...overrideHeader,
             });
           } else {
             const body = instanceId ? { ...payload, instanceId } : payload;
