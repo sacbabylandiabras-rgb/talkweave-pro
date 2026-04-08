@@ -68,10 +68,39 @@ export default function PayDashboard() {
     fetchData();
   }, []);
 
-  const approvedTx = transactions.filter(t => t.status === "approved");
+  const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
   const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
+
+  // Milestones in cents
+  const milestones = [
+    { label: "R$ 0", value: 0 },
+    { label: "R$ 10k", value: 10_000_00 },
+    { label: "R$ 100k", value: 100_000_00 },
+    { label: "R$ 500k", value: 500_000_00 },
+    { label: "R$ 1M", value: 1_000_000_00 },
+  ];
+
+  const progressInfo = useMemo(() => {
+    const vol = totalVolume;
+    let currentIdx = 0;
+    for (let i = milestones.length - 1; i >= 0; i--) {
+      if (vol >= milestones[i].value) { currentIdx = i; break; }
+    }
+    const nextIdx = Math.min(currentIdx + 1, milestones.length - 1);
+    const from = milestones[currentIdx].value;
+    const to = milestones[nextIdx].value;
+    const segmentProgress = to > from ? ((vol - from) / (to - from)) * 100 : 100;
+    // Overall percentage across all segments (4 segments)
+    const overallPct = ((currentIdx / (milestones.length - 1)) + (segmentProgress / 100) / (milestones.length - 1)) * 100;
+    return {
+      pct: Math.min(overallPct, 100),
+      currentLabel: milestones[currentIdx].label,
+      nextLabel: milestones[nextIdx].label,
+      volumeFormatted: formatCurrency(vol),
+    };
+  }, [totalVolume]);
 
   const metrics = [
     { label: "Vendas Aprovadas Hoje", value: String(approvedToday), icon: Activity, change: "hoje" },
@@ -107,6 +136,40 @@ export default function PayDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Sales Milestone Progress Bar */}
+      <Card className="border-[#2A2A2A]">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-[#FF4D2E]" />
+            Meta de Vendas
+          </CardTitle>
+          <span className="text-xs text-muted-foreground">{progressInfo.volumeFormatted} faturados</span>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative w-full h-3 rounded-full bg-[#1A1A1A] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${progressInfo.pct}%`,
+                background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
+              }}
+            />
+          </div>
+          <div className="flex justify-between">
+            {milestones.map((m, i) => (
+              <span
+                key={m.label}
+                className={`text-[10px] font-medium ${
+                  totalVolume >= m.value ? "text-[#FF4D2E]" : "text-muted-foreground"
+                }`}
+              >
+                {m.label}
+              </span>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
