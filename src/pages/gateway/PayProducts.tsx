@@ -227,6 +227,7 @@ export default function PayProducts() {
         offerName: form.name,
         price: priceInCents,
         productImage: imageUrl || createdProduct.image_url || "",
+        showAddress: form.category === "fisico" ? true : checkoutDefaults.showAddress,
       };
 
       const { error: checkoutError } = await supabase.from("gateway_checkouts" as any).insert({
