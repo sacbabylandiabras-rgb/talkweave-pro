@@ -536,7 +536,15 @@ export default function CheckoutDefaultsTab() {
               </div>
             </div>
             <PreviewFrame previewMode={previewMode}>
-              <CheckoutPreview config={form as any} previewMode={previewMode} elements={elements} />
+              <CheckoutPreview
+                config={form as any}
+                previewMode={previewMode}
+                elements={elements}
+                isBuilder={true}
+                onSelectElement={setSelectedElementId}
+                selectedElementId={selectedElementId}
+                onDropElement={addElement}
+              />
             </PreviewFrame>
           </div>
         </div>
