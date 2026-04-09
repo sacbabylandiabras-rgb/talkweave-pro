@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X, Link, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,9 @@ export default function PayProducts() {
   const [uploading, setUploading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
+
+  const checkoutDomain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online";
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("gateway_products" as any).select("*").order("created_at", { ascending: false });
@@ -62,7 +65,21 @@ export default function PayProducts() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  const fetchCheckouts = async () => {
+    const { data } = await supabase.from("gateway_checkouts" as any).select("id, name, slug, status, product_id").order("created_at", { ascending: false });
+    if (data) {
+      const map: Record<string, { id: string; name: string; slug: string | null; status: boolean }[]> = {};
+      for (const c of data as any[]) {
+        if (c.product_id) {
+          if (!map[c.product_id]) map[c.product_id] = [];
+          map[c.product_id].push({ id: c.id, name: c.name, slug: c.slug, status: c.status });
+        }
+      }
+      setCheckoutsByProduct(map);
+    }
+  };
+
+  useEffect(() => { fetchProducts(); fetchCheckouts(); }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -348,6 +365,34 @@ export default function PayProducts() {
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                   </div>
+                  {/* Checkout Links */}
+                  {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Link className="w-3 h-3" /> Links de Checkout
+                      </span>
+                      {checkoutsByProduct[p.id].map((ck) => {
+                        const url = `https://${checkoutDomain}/pay/${ck.slug || ck.id}`;
+                        return (
+                          <div key={ck.id} className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
+                            <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(url);
+                                toast.success("Link copiado!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                              title={url}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditDialog(p)}>
                       <Edit className="w-3 h-3 mr-1" /> Editar
