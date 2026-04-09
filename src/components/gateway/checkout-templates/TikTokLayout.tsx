@@ -282,7 +282,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
         )}
         <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: s.cardBorder, background: s.cardBg }}>
           <div>
-            {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" /> : <span className="text-base font-semibold" style={{ color: s.cardTitle }}>Minha Loja</span>}
+            {config.showLogo !== false && config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" /> : <span className="text-base font-semibold" style={{ color: s.cardTitle }}>Minha Loja</span>}
           </div>
           <div className="flex items-center gap-1 text-[11px] font-medium" style={{ color: safeGreen }}>
             <ShieldCheck className="h-3.5 w-3.5" /> Pagamento 100% seguro
