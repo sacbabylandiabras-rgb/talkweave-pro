@@ -105,8 +105,66 @@ export default function CheckoutDefaultsTab() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading) setForm(defaults);
+    if (!loading) {
+      setForm(defaults);
+      setElements(defaults.elements || []);
+    }
   }, [loading, defaults]);
+
+  // Sync elements back to form
+  useEffect(() => {
+    setForm(prev => ({ ...prev, elements }));
+  }, [elements]);
+
+  // Element management
+  const addElement = (type: CheckoutElementType, position: ElementPosition) => {
+    const def = ELEMENT_DEFINITIONS.find(d => d.type === type);
+    if (!def) return;
+    const newEl: CheckoutElement = {
+      id: generateElementId(),
+      type,
+      position,
+      order: elements.filter(e => e.position === position).length,
+      content: JSON.parse(JSON.stringify(def.defaultContent)),
+      visible: true,
+    };
+    setElements(prev => [...prev, newEl]);
+    setSelectedElementId(newEl.id);
+  };
+
+  const removeElement = (id: string) => {
+    setElements(prev => prev.filter(e => e.id !== id));
+    if (selectedElementId === id) setSelectedElementId(null);
+  };
+
+  const toggleElement = (id: string) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, visible: !e.visible } : e));
+  };
+
+  const moveElement = (id: string, direction: "up" | "down") => {
+    setElements(prev => {
+      const el = prev.find(e => e.id === id);
+      if (!el) return prev;
+      const posEls = prev.filter(e => e.position === el.position).sort((a, b) => a.order - b.order);
+      const idx = posEls.findIndex(e => e.id === id);
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= posEls.length) return prev;
+      const swapEl = posEls[swapIdx];
+      return prev.map(e => {
+        if (e.id === id) return { ...e, order: swapEl.order };
+        if (e.id === swapEl.id) return { ...e, order: el.order };
+        return e;
+      });
+    });
+  };
+
+  const updateElementContent = (id: string, content: Record<string, any>) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, content } : e));
+  };
+
+  const updateElementPosition = (id: string, position: ElementPosition) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, position, order: prev.filter(x => x.position === position).length } : e));
+  };
 
   const handleImageUpload = async (file: File, field: "logoUrl" | "faviconUrl") => {
     const setUploading = field === "logoUrl" ? setUploadingLogo : setUploadingFavicon;
