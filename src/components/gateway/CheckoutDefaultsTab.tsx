@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload } from "lucide-react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/us
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
+import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
