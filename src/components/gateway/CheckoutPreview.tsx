@@ -141,7 +141,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
   // Auto-generate PIX when entering step 3 (only on public checkout)
   useEffect(() => {
-    if (isPublicCheckout && step === 3 && !pixData && !pixLoading && !pixError) {
+    if (isPublicCheckout && step === getStepNumbers(config).payment && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
   }, [step]);
@@ -565,7 +565,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                 if (!formCpf.trim()) errors.cpf = 'CPF/CNPJ é obrigatório';
                 else if (!validateCpfCnpj(formCpf)) errors.cpf = 'CPF ou CNPJ inválido';
                 setFormErrors(errors);
-                if (Object.keys(errors).length === 0) setStep(2);
+                if (Object.keys(errors).length === 0) setStep(sn.address || sn.review);
               }}
               className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
               style={buttonStyle(s)}
@@ -584,7 +584,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 2: Review / Confirm Data ───── */}
-        {!isOneStep && step === 2 && (
+        {!isOneStep && step === sn.review && (
           <>
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
@@ -621,14 +621,14 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(sn.address || 1)}
                 className="flex-1 py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
                 style={{ borderColor: s.cardBorder, background: s.cardBg, color: s.cardTitle, borderRadius: s.buttonRadius }}
               >
                 Voltar
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(sn.payment)}
                 className="flex-1 py-3.5 font-bold text-sm transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                 style={buttonStyle(s)}
               >
@@ -640,7 +640,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
-        {(step === 3 || isOneStep) && (
+        {(step === sn.payment || isOneStep) && (
           <>
             {/* Header */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
