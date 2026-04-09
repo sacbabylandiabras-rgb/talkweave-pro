@@ -16,7 +16,7 @@ interface Props {
   onSelectElement: (id: string) => void;
   onMoveElement: (id: string, direction: "up" | "down") => void;
   selectedElementId: string | null;
-  onDragStart: (type: CheckoutElementType) => void;
+  onDragStart?: (type: CheckoutElementType) => void;
 }
 
 const CATEGORIES = [
