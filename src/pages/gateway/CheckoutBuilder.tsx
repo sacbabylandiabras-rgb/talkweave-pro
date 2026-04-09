@@ -464,7 +464,26 @@ export default function CheckoutBuilder() {
                 <div className="flex items-center gap-2"><Layout className="w-4 h-4 text-[#FF4D2E]" /> Formato</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
-                <CheckoutTemplateGallery onApply={applyTemplate} activeTemplateId={activeTemplateId} />
+                {/* Format Options First */}
+                <div>
+                  <Label className="text-xs mb-2 block">Etapas do Checkout</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {formatOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => updateConfig("format", opt.value)}
+                        className="text-left p-3 rounded-lg border transition-all"
+                        style={{
+                          borderColor: config.format === opt.value ? "#FF4D2E" : "#2A2A2A",
+                          background: config.format === opt.value ? "rgba(255,77,46,0.08)" : "transparent",
+                        }}
+                      >
+                        <p className="text-xs font-medium" style={{ color: config.format === opt.value ? "#FF4D2E" : undefined }}>{opt.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Step Indicator Style */}
                 {(config.format === "multi_step") && (
@@ -513,22 +532,8 @@ export default function CheckoutBuilder() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-2">
-                  {formatOptions.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => updateConfig("format", opt.value)}
-                      className="text-left p-3 rounded-lg border transition-all"
-                      style={{
-                        borderColor: config.format === opt.value ? "#FF4D2E" : "#2A2A2A",
-                        background: config.format === opt.value ? "rgba(255,77,46,0.08)" : "transparent",
-                      }}
-                    >
-                      <p className="text-xs font-medium" style={{ color: config.format === opt.value ? "#FF4D2E" : undefined }}>{opt.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
-                    </button>
-                  ))}
-                </div>
+                {/* Template Gallery */}
+                <CheckoutTemplateGallery onApply={applyTemplate} activeTemplateId={activeTemplateId} />
               </AccordionContent>
             </AccordionItem>
 
