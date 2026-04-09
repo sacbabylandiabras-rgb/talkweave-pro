@@ -277,7 +277,7 @@ export default function CheckoutDefaultsTab() {
           </div>
           <div className="mt-3">
             <Label className="text-xs">Quantidade de Etapas</Label>
-            <Select value={String(form.checkoutSteps || "3")} onValueChange={v => updateForm("checkoutSteps" as any, v)}>
+            <Select value={String(form.checkoutSteps || "3")} onValueChange={v => updateForm("checkoutSteps", v as any)}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>{STEP_COUNT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
