@@ -8,19 +8,32 @@ interface Props {
   formEmail: string;
   formCpf: string;
   formPhone: string;
+  formCep?: string;
+  formStreet?: string;
+  formNumber?: string;
+  formComplement?: string;
+  formNeighborhood?: string;
+  formCity?: string;
+  formState?: string;
   totalPrice: number;
   onBack: () => void;
   onConfirm: () => void;
 }
 
-export default function CheckoutStep2Review({ config, formName, formEmail, formCpf, formPhone, totalPrice, onBack, onConfirm }: Props) {
+export default function CheckoutStep2Review({ config, formName, formEmail, formCpf, formPhone, formCep, formStreet, formNumber, formComplement, formNeighborhood, formCity, formState, totalPrice, onBack, onConfirm }: Props) {
   const s = getCheckoutStyles(config);
+
+  const addressLine1 = [formStreet, formNumber].filter(Boolean).join(", ");
+  const addressLine2 = [formComplement, formNeighborhood].filter(Boolean).join(" • ");
+  const addressLine3 = [formCity, formState].filter(Boolean).join(" - ");
+  const addressValue = [formCep, addressLine1, addressLine2, addressLine3].filter(Boolean).join(" | ");
 
   const rows = [
     { label: "Nome", value: formName },
     { label: "E-mail", value: formEmail },
     { label: "CPF / CNPJ", value: formCpf },
     ...(config.showPhone ? [{ label: "Celular", value: formPhone }] : []),
+    ...(config.showAddress && addressValue ? [{ label: "Endereço", value: addressValue }] : []),
   ];
 
   return (

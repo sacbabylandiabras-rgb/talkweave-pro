@@ -47,6 +47,13 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [formCep, setFormCep] = useState("");
+  const [formStreet, setFormStreet] = useState("");
+  const [formNumber, setFormNumber] = useState("");
+  const [formComplement, setFormComplement] = useState("");
+  const [formNeighborhood, setFormNeighborhood] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formState, setFormState] = useState("");
   const [cpfError, setCpfError] = useState("");
 
   const handleNext = () => {
@@ -156,16 +163,16 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
   const AddressForm = (
     <div className="space-y-3">
-      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="00000-000" />
+      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="00000-000" value={formCep} onChange={e => setFormCep(e.target.value)} />
       <div className="grid grid-cols-2 gap-2">
-        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Rua *" />
-        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Número *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Rua *" value={formStreet} onChange={e => setFormStreet(e.target.value)} />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Número *" value={formNumber} onChange={e => setFormNumber(e.target.value)} />
       </div>
-      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Complemento" />
+      <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Complemento" value={formComplement} onChange={e => setFormComplement(e.target.value)} />
       <div className="grid grid-cols-3 gap-2">
-        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Bairro *" />
-        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Cidade *" />
-        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="ESTADO/UF *" />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Bairro *" value={formNeighborhood} onChange={e => setFormNeighborhood(e.target.value)} />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="Cidade *" value={formCity} onChange={e => setFormCity(e.target.value)} />
+        <input className="w-full border outline-none placeholder:text-gray-400" style={compactInputStyle} placeholder="ESTADO/UF *" value={formState} onChange={e => setFormState(e.target.value)} />
       </div>
     </div>
   );
@@ -294,8 +301,8 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
             {/* DROP ZONE: Above Form */}
             <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
             {step === 1 && <Step1Desktop />}
-            {sn.address && step === sn.address && <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
-            {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
+            {sn.address && step === sn.address && <CheckoutStep2Address config={config} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} onCepChange={setFormCep} onStreetChange={setFormStreet} onNumberChange={setFormNumber} onComplementChange={setFormComplement} onNeighborhoodChange={setFormNeighborhood} onCityChange={setFormCity} onStateChange={setFormState} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
+            {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
             {step === sn.payment && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
             {/* DROP ZONE: Below Form */}
             <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
@@ -319,8 +326,8 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
           {/* DROP ZONE: Above Form (mobile) */}
           <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
           {step === 1 && <Step1Mobile />}
-          {sn.address && step === sn.address && <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
-          {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
+          {sn.address && step === sn.address && <CheckoutStep2Address config={config} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} onCepChange={setFormCep} onStreetChange={setFormStreet} onNumberChange={setFormNumber} onComplementChange={setFormComplement} onNeighborhoodChange={setFormNeighborhood} onCityChange={setFormCity} onStateChange={setFormState} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
+          {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
           {step === sn.payment && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
           {/* DROP ZONE: Below Form (mobile) */}
           <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
