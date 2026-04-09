@@ -191,11 +191,13 @@ export default function PayProducts() {
       };
       if (imageUrl) insertData.image_url = imageUrl;
 
-      const { data: createdProduct, error: productError } = await supabase
+      const { data: createdProductRaw, error: productError } = await supabase
         .from("gateway_products" as any)
         .insert(insertData as any)
         .select("id, name, price, image_url")
         .single();
+
+      const createdProduct = createdProductRaw as any;
 
       if (productError || !createdProduct) {
         setSaving(false);
