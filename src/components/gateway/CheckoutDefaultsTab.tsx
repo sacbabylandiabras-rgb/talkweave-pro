@@ -45,7 +45,11 @@ function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mob
     const updateScale = () => {
       if (containerRef.current) {
         const availableWidth = containerRef.current.offsetWidth;
-        setScale(availableWidth / baseWidth);
+        let s = availableWidth / baseWidth;
+        if (previewMode === "mobile") {
+          s = Math.min(s, 0.85);
+        }
+        setScale(s);
       }
     };
     updateScale();
@@ -63,7 +67,8 @@ function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mob
       <div style={{
         width: baseWidth,
         transform: `scale(${scale})`,
-        transformOrigin: "top left",
+        transformOrigin: previewMode === "mobile" ? "top center" : "top left",
+        margin: previewMode === "mobile" ? "0 auto" : undefined,
       }}>
         {children}
       </div>
