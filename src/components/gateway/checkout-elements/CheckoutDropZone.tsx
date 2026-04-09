@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "./types";
 import CheckoutElementRenderer from "./CheckoutElementRenderer";
 
@@ -15,6 +16,15 @@ interface Props {
   onDrop?: (type: CheckoutElementType, position: ElementPosition) => void;
   label?: string;
 }
+
+const POSITION_LABELS: Record<ElementPosition, string> = {
+  "top": "Topo",
+  "above-form": "Acima do formulário",
+  "below-form": "Abaixo do formulário",
+  "sidebar": "Sidebar",
+  "sidebar-bottom": "Sidebar inferior",
+  "footer": "Rodapé",
+};
 
 export default function CheckoutDropZone({
   position, elements, primaryColor, textColor, cardBg, cardBorder,
@@ -46,7 +56,7 @@ export default function CheckoutDropZone({
       onDrop={isBuilder ? handleDrop : undefined}
       className="relative"
       style={{
-        minHeight: isBuilder && positionElements.length === 0 ? "48px" : undefined,
+        minHeight: isBuilder && positionElements.length === 0 ? "56px" : undefined,
       }}
     >
       {/* Drop indicator */}
@@ -57,11 +67,18 @@ export default function CheckoutDropZone({
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — visible clickable zone */}
       {isBuilder && positionElements.length === 0 && !dragOver && (
-        <div className="flex items-center justify-center rounded-xl border border-dashed py-3"
-          style={{ borderColor: cardBorder + "80", color: textColor + "40" }}>
-          <span className="text-[10px]">● {label || "Solte aqui"}</span>
+        <div
+          className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 cursor-pointer transition-all hover:border-[#FF4D2E]/60 hover:bg-[#FF4D2E]/5"
+          style={{ borderColor: "#FF4D2E40", color: "#FF4D2E" }}
+          onClick={() => {
+            // Default to adding a "text" element when clicking the empty zone
+            if (onDrop) onDrop("text" as CheckoutElementType, position);
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          <span className="text-xs font-medium">{label || POSITION_LABELS[position] || "Adicionar elemento"}</span>
         </div>
       )}
 
@@ -81,6 +98,20 @@ export default function CheckoutDropZone({
           />
         ))}
       </div>
+
+      {/* Add more button when elements exist */}
+      {isBuilder && positionElements.length > 0 && (
+        <div
+          className="flex items-center justify-center gap-1.5 mt-2 py-1.5 rounded-lg border border-dashed cursor-pointer transition-all hover:border-[#FF4D2E]/60 hover:bg-[#FF4D2E]/5"
+          style={{ borderColor: "#FF4D2E30", color: "#FF4D2E90" }}
+          onClick={() => {
+            if (onDrop) onDrop("text" as CheckoutElementType, position);
+          }}
+        >
+          <Plus className="w-3 h-3" />
+          <span className="text-[10px] font-medium">Adicionar</span>
+        </div>
+      )}
     </div>
   );
 }
