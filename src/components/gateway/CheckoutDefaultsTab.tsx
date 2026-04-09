@@ -158,8 +158,7 @@ export default function CheckoutDefaultsTab() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { key: "pix" as const, label: "PIX" },
-              { key: "creditCard" as const, label: "Cartão de Crédito" },
-              { key: "debitCard" as const, label: "Cartão de Débito" },
+              { key: "creditCard" as const, label: "Cartão de Crédito/Débito" },
               { key: "boleto" as const, label: "Boleto" },
             ].map(method => (
               <div key={method.key} className="flex items-center justify-between border border-border rounded-lg px-3 py-2">
