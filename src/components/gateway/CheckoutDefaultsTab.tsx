@@ -10,7 +10,7 @@ import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/us
 import { toast } from "sonner";
 
 const TEMPLATE_OPTIONS = [
-  { value: "", label: "Nenhum (padrão)" },
+  { value: "none", label: "Nenhum (padrão)" },
   { value: "minimalista", label: "Minimalista" },
   { value: "alto-impacto", label: "Alto Impacto" },
   { value: "tiktok", label: "TokLynx / TikTok" },
@@ -131,7 +131,7 @@ export default function CheckoutDefaultsTab() {
             </div>
             <div>
               <Label className="text-xs">Template Padrão</Label>
-              <Select value={form.templateId} onValueChange={v => updateForm("templateId", v)}>
+              <Select value={form.templateId || "none"} onValueChange={v => updateForm("templateId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{TEMPLATE_OPTIONS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
