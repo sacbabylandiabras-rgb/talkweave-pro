@@ -36,6 +36,13 @@ const STEP_STYLES = [
   { value: "progress", label: "Barra" },
 ];
 
+const FORMAT_OPTIONS = [
+  { value: "multi_step", label: "Multi Etapas" },
+  { value: "one_step", label: "Uma Etapa" },
+  { value: "modal", label: "Modal" },
+  { value: "inline", label: "Inline" },
+];
+
 function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mobile"; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -233,7 +240,7 @@ export default function CheckoutDefaultsTab() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <Label className="text-xs">Fonte</Label>
               <Select value={form.font} onValueChange={v => updateForm("font", v)}>
@@ -253,6 +260,13 @@ export default function CheckoutDefaultsTab() {
               <Select value={form.stepIndicatorStyle} onValueChange={v => updateForm("stepIndicatorStyle", v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{STEP_STYLES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Formato do Checkout</Label>
+              <Select value={form.format} onValueChange={v => updateForm("format", v as any)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{FORMAT_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
