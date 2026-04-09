@@ -1338,7 +1338,8 @@
       if (!fd.cpf.trim()) { if(err) err.textContent='CPF/CNPJ é obrigatório'; return; }
       if (!validateCpfCnpj(fd.cpf)) { if(err) err.textContent='CPF ou CNPJ inválido'; if(c) c.style.borderColor='#EF4444'; return; }
       if(c) c.style.borderColor='';
-      step = 2; render();
+      // If 4 steps, go to address; else go to review
+      step = totalSteps === 4 ? 2 : 2; render();
     };
     var cpfInput = document.getElementById('f-cpf');
     if (cpfInput) {
@@ -1349,10 +1350,15 @@
         cpfInput.style.borderColor='';
       };
     }
+    // Address step buttons (4-step only)
+    var addrNext = document.getElementById('btn-addr-next');
+    if (addrNext) addrNext.onclick = function() { step = getReviewStep(); render(); };
+    var addrBack = document.getElementById('btn-addr-back');
+    if (addrBack) addrBack.onclick = function() { step = 1; render(); };
     var b2 = document.getElementById('btn-s2');
-    if (b2) b2.onclick = function() { step = 3; render(); if (!pixData) genPix(); };
+    if (b2) b2.onclick = function() { step = getPaymentStep(); render(); if (!pixData) genPix(); };
     var bb = document.getElementById('btn-back');
-    if (bb) bb.onclick = function() { step = 1; render(); };
+    if (bb) bb.onclick = function() { step = totalSteps === 4 ? getAddressStep() : 1; render(); };
     var bc = document.getElementById('btn-copy');
     if (bc) bc.onclick = function() {
       var ci = document.getElementById('pix-code');
