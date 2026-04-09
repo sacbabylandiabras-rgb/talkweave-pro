@@ -192,11 +192,17 @@ export default function CheckoutBuilder() {
             }
           }
         }
+      } else if (!defaultsLoading) {
+        // Apply global defaults for new checkouts
+        setConfig(prev => ({ ...prev, ...globalDefaults }));
+        if (globalDefaults.templateId) {
+          setActiveTemplateId(globalDefaults.templateId);
+        }
       }
       setLoading(false);
     };
     init();
-  }, [editId]);
+  }, [editId, defaultsLoading]);
 
   useEffect(() => {
     const element = previewPaneRef.current;
