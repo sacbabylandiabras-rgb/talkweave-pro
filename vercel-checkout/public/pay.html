@@ -703,9 +703,21 @@
 
 
 
+  // Step labels helper
+  function getStepLabels() {
+    if (totalSteps === 4) {
+      return [{n:1,l:'Identificação',i:'user'},{n:2,l:'Endereço',i:'truck'},{n:3,l:'Conferência',i:'check'},{n:4,l:'Pagamento',i:'card'}];
+    }
+    return [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+  }
+  // Map logical step to actual step
+  function getReviewStep() { return totalSteps === 4 ? 3 : 2; }
+  function getPaymentStep() { return totalSteps === 4 ? 4 : 3; }
+  function getAddressStep() { return totalSteps === 4 ? 2 : null; }
+
   // Step indicators — supports circles (default), pills, progress
   function stepsHTML() {
-    var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+    var labels = getStepLabels();
     var style = cfg.stepIndicatorStyle || 'circles';
 
     if (style === 'progress') {
@@ -716,13 +728,13 @@
       });
       h += '</div>';
       var cur = labels.find(function(s){return s.n===step});
-      h += '<p style="text-align:center;font-size:11px;font-weight:500;color:var(--primary);margin-top:6px">Etapa '+step+' de 3 — '+(cur?cur.l:'')+'</p>';
+      h += '<p style="text-align:center;font-size:11px;font-weight:500;color:var(--primary);margin-top:6px">Etapa '+step+' de '+totalSteps+' — '+(cur?cur.l:'')+'</p>';
       h += '</div>';
       return h;
     }
 
     if (style === 'pills') {
-      var h = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0">';
+      var h = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0;flex-wrap:wrap">';
       labels.forEach(function(s,i) {
         var active = step===s.n, done = step > s.n;
         var bg = active ? 'rgba(239,68,68,.07)' : 'transparent';
@@ -742,7 +754,7 @@
     }
 
     // Default: circles
-    var h = '<div class="steps">';
+    var h = '<div class="steps" style="flex-wrap:wrap">';
     labels.forEach(function(s,i) {
       var active = step===s.n, done = step > s.n;
       var bgA = (active||done) ? 'rgba(239,68,68,.08)' : '#E5E7EB';
