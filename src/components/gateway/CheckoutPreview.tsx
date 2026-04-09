@@ -74,6 +74,7 @@ interface CheckoutConfig {
   orderBumpPrice: number;
   productImage?: string;
   logoUrl?: string;
+  showLogo?: boolean;
   templateId?: string;
   templateName?: string;
   shippingEnabled?: boolean;
