@@ -40,17 +40,26 @@ serve(async (req) => {
       })
     }
 
-    // Check active acquirer from platform config
+    // Check per-user acquirer override first, then fall back to platform default
     let activeAcquirer = 'openpix'
     try {
-      const { data: configRow } = await supabase
-        .from('gateway_platform_config')
-        .select('value')
-        .eq('key', 'active_acquirer')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('pix_acquirer')
+        .eq('id', checkout.user_id)
         .single()
-      if (configRow?.value) activeAcquirer = configRow.value
+      if (profile?.pix_acquirer) {
+        activeAcquirer = profile.pix_acquirer
+      } else {
+        const { data: configRow } = await supabase
+          .from('gateway_platform_config')
+          .select('value')
+          .eq('key', 'active_acquirer')
+          .single()
+        if (configRow?.value) activeAcquirer = configRow.value
+      }
     } catch {
-      // Table may not exist yet, default to openpix
+      // default to openpix
     }
 
     console.log('Active acquirer:', activeAcquirer)
