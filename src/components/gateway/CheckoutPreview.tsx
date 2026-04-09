@@ -500,10 +500,45 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                   </div>
                 )}
                 {config.showAddress && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="00000-000" />
-                  </div>
+                  <>
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="00000-000" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Endereço</label>
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Rua, Avenida..." />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="123" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Apto, Bloco..." />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Bairro</label>
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Bairro" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Cidade" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label>
+                        <select className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)}>
+                          <option value="">UF</option>
+                          {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map(uf => (
+                            <option key={uf} value={uf}>{uf}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
