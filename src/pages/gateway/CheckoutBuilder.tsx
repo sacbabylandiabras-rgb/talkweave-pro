@@ -132,13 +132,19 @@ export default function CheckoutBuilder() {
     }
   };
   const [draggingType, setDraggingType] = useState<CheckoutElementType | null>(null);
+  const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
+  const [savedSlug, setSavedSlug] = useState("");
 
+  const platformCheckoutDomain = "pay.zaplynxpro.online";
   const activeTemplateName = config.templateId
     ? TEMPLATE_NAMES[config.templateId] || config.templateName
     : config.templateName;
   const checkoutSlug = checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") : "meu-checkout";
-  const checkoutDomain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online";
-  const checkoutUrl = `https://${checkoutDomain}/pay/${checkoutSlug}`;
+  const effectiveCheckoutSlug = savedSlug || checkoutSlug;
+  const hasCustomCheckoutDomain = Boolean(customCheckoutDomain && customCheckoutDomain !== platformCheckoutDomain);
+  const platformCheckoutUrl = `https://${platformCheckoutDomain}/pay/${effectiveCheckoutSlug}`;
+  const customCheckoutUrl = hasCustomCheckoutDomain ? `https://${customCheckoutDomain}/pay/${effectiveCheckoutSlug}` : "";
+  const checkoutUrl = customCheckoutUrl || platformCheckoutUrl;
   const resolvedFormat = resolveCheckoutFormat(config.format);
   const embedCode = resolvedFormat.shell === "inline"
     ? `<iframe src="${checkoutUrl}" width="100%" height="760" style="border:0;border-radius:24px;overflow:hidden;" loading="lazy"></iframe>`
@@ -172,6 +178,28 @@ export default function CheckoutBuilder() {
       const { data } = await supabase.from("gateway_products" as any).select("*").order("name");
       setProducts((data || []) as any[]);
 
+      const storedDomain = localStorage.getItem("checkout_custom_domain") || "";
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("custom_domain")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          const resolvedDomain = (profile as { custom_domain?: string | null } | null)?.custom_domain || storedDomain;
+          if (resolvedDomain) {
+            localStorage.setItem("checkout_custom_domain", resolvedDomain);
+          }
+          setCustomCheckoutDomain(resolvedDomain);
+        } catch {
+          setCustomCheckoutDomain(storedDomain);
+        }
+      } else {
+        setCustomCheckoutDomain(storedDomain);
+      }
+
       if (editId) {
         const { data: checkout } = await supabase
           .from("gateway_checkouts" as any)
@@ -182,6 +210,7 @@ export default function CheckoutBuilder() {
           const ck = checkout as any;
           setCheckoutName(ck.name || "");
           setSelectedProductId(ck.product_id || "");
+          setSavedSlug(ck.slug || "");
           if (ck.config) {
             setConfig(prev => ({ ...prev, ...ck.config }));
             if (ck.config.templateId) {
@@ -193,6 +222,7 @@ export default function CheckoutBuilder() {
           }
         }
       } else if (!defaultsLoading) {
+        setSavedSlug("");
         // Apply global defaults for new checkouts
         setConfig(prev => ({ ...prev, ...globalDefaults }));
         if (globalDefaults.templateId) {
@@ -1147,15 +1177,15 @@ export default function CheckoutBuilder() {
                   <Label className="text-xs">Domínio do Checkout</Label>
                   <div className="flex gap-2 mt-1">
                     <Input
-                      value={localStorage.getItem("checkout_custom_domain") || ""}
+                      value={customCheckoutDomain}
                       onChange={e => {
                         const val = e.target.value.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+                        setCustomCheckoutDomain(val);
                         if (val) {
                           localStorage.setItem("checkout_custom_domain", val);
                         } else {
                           localStorage.removeItem("checkout_custom_domain");
                         }
-                        // Force re-render
                         updateConfig("_domainTrigger", Date.now());
                       }}
                       placeholder="pay.seusite.com"
@@ -1166,8 +1196,7 @@ export default function CheckoutBuilder() {
                       size="sm"
                       className="rounded-full text-xs shrink-0"
                       onClick={() => {
-                        const d = localStorage.getItem("checkout_custom_domain");
-                        if (d) toast.success(`Domínio "${d}" salvo!`);
+                        if (customCheckoutDomain) toast.success(`Domínio "${customCheckoutDomain}" salvo!`);
                         else toast.info("Nenhum domínio configurado");
                       }}
                     >
@@ -1179,11 +1208,11 @@ export default function CheckoutBuilder() {
                   </p>
                 </div>
 
-                {localStorage.getItem("checkout_custom_domain") && (
+                {customCheckoutDomain && (
                   <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <p className="text-[10px] text-muted-foreground">
-                      Links usarão: <strong className="text-foreground">{localStorage.getItem("checkout_custom_domain")}</strong>
+                      Links usarão: <strong className="text-foreground">{customCheckoutDomain}</strong>
                     </p>
                   </div>
                 )}
@@ -1219,15 +1248,34 @@ export default function CheckoutBuilder() {
                     <TabsTrigger value="embed" className="text-xs flex-1">Embed HTML</TabsTrigger>
                     <TabsTrigger value="js" className="text-xs flex-1">JavaScript</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="link" className="mt-3">
-                    <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">
+                  <TabsContent value="link" className="mt-3 space-y-2">
+                    <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A] space-y-1">
+                      <p className="text-[10px] font-medium text-foreground">Link da plataforma</p>
                       <code className="text-[10px] font-mono text-muted-foreground break-all">
-                        {checkoutUrl}
+                        {platformCheckoutUrl}
                       </code>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2 rounded-full text-xs w-full" onClick={() => copySnippet(checkoutUrl, "Link") }>
-                      Copiar Link
+                    <Button variant="outline" size="sm" className="rounded-full text-xs w-full" onClick={() => copySnippet(platformCheckoutUrl, "Link da plataforma") }>
+                      Copiar Link da Plataforma
                     </Button>
+
+                    {hasCustomCheckoutDomain ? (
+                      <>
+                        <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A] space-y-1">
+                          <p className="text-[10px] font-medium text-foreground">Link personalizado</p>
+                          <code className="text-[10px] font-mono text-muted-foreground break-all">
+                            {customCheckoutUrl}
+                          </code>
+                        </div>
+                        <Button variant="outline" size="sm" className="rounded-full text-xs w-full" onClick={() => copySnippet(customCheckoutUrl, "Link personalizado") }>
+                          Copiar Link Personalizado
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Configure um domínio personalizado para gerar o segundo link.
+                      </p>
+                    )}
                   </TabsContent>
                   <TabsContent value="embed" className="mt-3">
                     <div className="p-3 rounded-lg bg-muted/30 border border-[#2A2A2A]">

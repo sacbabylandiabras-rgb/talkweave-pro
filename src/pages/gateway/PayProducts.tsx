@@ -56,8 +56,8 @@ export default function PayProducts() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
-
-  const checkoutDomain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online";
+  const platformCheckoutDomain = "pay.zaplynxpro.online";
+  const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("gateway_products" as any).select("*").order("created_at", { ascending: false });
@@ -79,7 +79,41 @@ export default function PayProducts() {
     }
   };
 
-  useEffect(() => { fetchProducts(); fetchCheckouts(); }, []);
+  const fetchCustomDomain = async () => {
+    const storedDomain = localStorage.getItem("checkout_custom_domain") || "";
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setCustomCheckoutDomain(storedDomain);
+      return;
+    }
+
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("custom_domain")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const resolvedDomain = (profile as { custom_domain?: string | null } | null)?.custom_domain || storedDomain;
+      if (resolvedDomain) {
+        localStorage.setItem("checkout_custom_domain", resolvedDomain);
+      }
+      setCustomCheckoutDomain(resolvedDomain);
+    } catch {
+      setCustomCheckoutDomain(storedDomain);
+    }
+  };
+
+  const buildCheckoutUrl = (domain: string, slugOrId: string) => `https://${domain}/pay/${slugOrId}`;
+
+  const copyCheckoutUrl = async (url: string, label: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    await navigator.clipboard.writeText(url);
+    toast.success(`${label} copiado!`);
+  };
+
+  useEffect(() => { fetchProducts(); fetchCheckouts(); fetchCustomDomain(); }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -432,22 +466,45 @@ export default function PayProducts() {
                         <Link className="w-3 h-3" /> Links de Checkout
                       </span>
                       {checkoutsByProduct[p.id].map((ck) => {
-                        const url = `https://${checkoutDomain}/pay/${ck.slug || ck.id}`;
+                        const slugOrId = ck.slug || ck.id;
+                        const platformUrl = buildCheckoutUrl(platformCheckoutDomain, slugOrId);
+                        const hasCustomDomain = Boolean(customCheckoutDomain && customCheckoutDomain !== platformCheckoutDomain);
+                        const customUrl = hasCustomDomain ? buildCheckoutUrl(customCheckoutDomain, slugOrId) : "";
+
                         return (
-                          <div key={ck.id} className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
-                            <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigator.clipboard.writeText(url);
-                                toast.success("Link copiado!");
-                              }}
-                              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                              title={url}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
+                          <div key={ck.id} className="space-y-2 bg-muted/50 rounded-md px-2 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
+                              <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
+                            </div>
+
+                            <div className="space-y-1 pl-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-muted-foreground shrink-0">Plataforma</span>
+                                <code className="text-[10px] text-muted-foreground truncate flex-1" title={platformUrl}>{platformUrl}</code>
+                                <button
+                                  onClick={(e) => void copyCheckoutUrl(platformUrl, "Link da plataforma", e)}
+                                  className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                                  title={platformUrl}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              {hasCustomDomain && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-muted-foreground shrink-0">Personalizado</span>
+                                  <code className="text-[10px] text-muted-foreground truncate flex-1" title={customUrl}>{customUrl}</code>
+                                  <button
+                                    onClick={(e) => void copyCheckoutUrl(customUrl, "Link personalizado", e)}
+                                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                                    title={customUrl}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
