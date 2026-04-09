@@ -54,6 +54,7 @@ export const emptyDefaults: CheckoutDefaults = {
   footerCompanyName: "",
   footerCnpj: "",
   stepIndicatorStyle: "circles",
+  format: "multi_step",
 };
 
 const CONFIG_KEY_PREFIX = "checkout_defaults:";
