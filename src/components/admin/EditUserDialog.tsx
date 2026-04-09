@@ -133,8 +133,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Instâncias Z-API ({instances.length}/5)</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 5}>
+                <h3 className="font-semibold">Instâncias Z-API ({instances.length}/20)</h3>
+                <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 20}>
                 <Plus className="w-3 h-3 mr-1" /> Adicionar
               </Button>
             </div>
