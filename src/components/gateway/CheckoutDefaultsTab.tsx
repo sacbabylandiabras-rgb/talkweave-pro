@@ -78,14 +78,9 @@ export default function CheckoutDefaultsTab() {
     else toast.error("Erro ao salvar configurações");
   };
 
-  const handleApplyAll = async () => {
-    setApplying(true);
-    const ok = await saveDefaults(form);
-    if (!ok) { toast.error("Erro ao salvar"); setApplying(false); return; }
-    const count = await applyToAllCheckouts(form);
-    setApplying(false);
-    if (count > 0) toast.success(`Configuração aplicada a ${count} checkout(s)!`);
-    else toast("Nenhum checkout encontrado para atualizar");
+  const handleApplyTemplate = (settings: Record<string, any>, _name: string, templateId: string) => {
+    setForm(prev => ({ ...prev, ...settings, templateId }));
+    toast.success("Modelo aplicado! Salve para confirmar.");
   };
 
   if (loading) {
@@ -98,6 +93,19 @@ export default function CheckoutDefaultsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Modelos */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Layout className="w-4 h-4" /> Modelo de Checkout
+          </CardTitle>
+          <CardDescription className="text-xs">Escolha um modelo visual como base</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CheckoutTemplateGallery onApply={handleApplyTemplate} activeTemplateId={form.templateId} />
+        </CardContent>
+      </Card>
+
       {/* Aparência */}
       <Card className="border-border">
         <CardHeader>
