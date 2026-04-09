@@ -4,8 +4,10 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
@@ -21,7 +23,7 @@ interface Props {
 }
 
 export default function LynxFyLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 10, s: 0 });
   const [quantity, setQuantity] = useState(1);
   const [formName, setFormName] = useState("");
@@ -30,9 +32,10 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
   const [formPhone, setFormPhone] = useState("");
   const [cpfError, setCpfError] = useState("");
 
+  const sn0 = getStepNumbers(config);
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
-    setCpfError(""); setStep(2);
+    setCpfError(""); setStep(sn0.address || sn0.review);
   };
 
   useEffect(() => {
@@ -63,11 +66,8 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
   const timerStr = `${String(countdown.h).padStart(2, "0")}h : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="w-3 h-3" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-3 h-3" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-3 h-3" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
@@ -142,13 +142,15 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
               </>
             )}
 
-            {/* Step 2 */}
-            {step === 2 && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            {sn.address && step === sn.address && (
+              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
-            {/* Step 3 */}
-            {step === 3 && (
+            {step === sn.review && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+            )}
+
+            {step === sn.payment && (
               <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
           </div>
