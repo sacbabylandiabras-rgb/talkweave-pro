@@ -777,7 +777,7 @@
 
   // Step tabs (horizontal - Streamline)
   function stepTabsHTML() {
-    var labels = [{n:1,l:'Identificação'},{n:2,l:'Conferência'},{n:3,l:'Pagamento'}];
+    var labels = getStepLabels();
     var h = '<div class="step-tabs">';
     labels.forEach(function(s) {
       var active = step===s.n, done = step > s.n;
