@@ -200,7 +200,7 @@
   var AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
   var app = document.getElementById('app');
   var elems = []; // checkout builder elements
-  var step = 1, fd = { name:'', email:'', cpf:'', phone:'' }, pixData = null, cfg = null, tenant = null;
+  var step = 1, totalSteps = 3, fd = { name:'', email:'', cpf:'', phone:'' }, pixData = null, cfg = null, tenant = null;
 
   function validateCPF(v){var d=v.replace(/\D/g,'');if(d.length!==11)return false;if(/^(\d)\1{10}$/.test(d))return false;var s=0;for(var i=0;i<9;i++)s+=parseInt(d[i])*(10-i);var r=(s*10)%11;if(r===10)r=0;if(r!==parseInt(d[9]))return false;s=0;for(var i=0;i<10;i++)s+=parseInt(d[i])*(11-i);r=(s*10)%11;if(r===10)r=0;return r===parseInt(d[10]);}
   function validateCNPJ(v){var d=v.replace(/\D/g,'');if(d.length!==14)return false;if(/^(\d)\1{13}$/.test(d))return false;var w1=[5,4,3,2,9,8,7,6,5,4,3,2],s=0;for(var i=0;i<12;i++)s+=parseInt(d[i])*w1[i];var r=s%11,d1=r<2?0:11-r;if(parseInt(d[12])!==d1)return false;var w2=[6,5,4,3,2,9,8,7,6,5,4,3,2];s=0;for(var i=0;i<13;i++)s+=parseInt(d[i])*w2[i];r=s%11;var d2=r<2?0:11-r;return parseInt(d[13])===d2;}
@@ -703,9 +703,21 @@
 
 
 
+  // Step labels helper
+  function getStepLabels() {
+    if (totalSteps === 4) {
+      return [{n:1,l:'Identificação',i:'user'},{n:2,l:'Endereço',i:'truck'},{n:3,l:'Conferência',i:'check'},{n:4,l:'Pagamento',i:'card'}];
+    }
+    return [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+  }
+  // Map logical step to actual step
+  function getReviewStep() { return totalSteps === 4 ? 3 : 2; }
+  function getPaymentStep() { return totalSteps === 4 ? 4 : 3; }
+  function getAddressStep() { return totalSteps === 4 ? 2 : null; }
+
   // Step indicators — supports circles (default), pills, progress
   function stepsHTML() {
-    var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+    var labels = getStepLabels();
     var style = cfg.stepIndicatorStyle || 'circles';
 
     if (style === 'progress') {
@@ -716,13 +728,13 @@
       });
       h += '</div>';
       var cur = labels.find(function(s){return s.n===step});
-      h += '<p style="text-align:center;font-size:11px;font-weight:500;color:var(--primary);margin-top:6px">Etapa '+step+' de 3 — '+(cur?cur.l:'')+'</p>';
+      h += '<p style="text-align:center;font-size:11px;font-weight:500;color:var(--primary);margin-top:6px">Etapa '+step+' de '+totalSteps+' — '+(cur?cur.l:'')+'</p>';
       h += '</div>';
       return h;
     }
 
     if (style === 'pills') {
-      var h = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0">';
+      var h = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0;flex-wrap:wrap">';
       labels.forEach(function(s,i) {
         var active = step===s.n, done = step > s.n;
         var bg = active ? 'rgba(239,68,68,.07)' : 'transparent';
@@ -742,7 +754,7 @@
     }
 
     // Default: circles
-    var h = '<div class="steps">';
+    var h = '<div class="steps" style="flex-wrap:wrap">';
     labels.forEach(function(s,i) {
       var active = step===s.n, done = step > s.n;
       var bgA = (active||done) ? 'rgba(239,68,68,.08)' : '#E5E7EB';
@@ -765,7 +777,7 @@
 
   // Step tabs (horizontal - Streamline)
   function stepTabsHTML() {
-    var labels = [{n:1,l:'Identificação'},{n:2,l:'Conferência'},{n:3,l:'Pagamento'}];
+    var labels = getStepLabels();
     var h = '<div class="step-tabs">';
     labels.forEach(function(s) {
       var active = step===s.n, done = step > s.n;
@@ -881,7 +893,23 @@
   }
 
   /* ══════════════════════════════════
-     SHARED STEP 2: REVIEW
+     STEP: ADDRESS (4-step only)
+     ══════════════════════════════════ */
+  function stepAddressHTML() {
+    var h = '<div class="c">';
+    h += '<h3>Endereço de entrega</h3><p class="desc">Preencha o endereço para o envio do seu pedido.</p>';
+    h += '<div style="margin-top:16px">';
+    h += addressFieldsHTML();
+    h += '</div></div>';
+    h += '<div class="btn-row">';
+    h += '<button class="btn btn-outline" id="btn-addr-back">Voltar</button>';
+    h += '<button class="btn" id="btn-addr-next">Próximo</button>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ══════════════════════════════════
+     SHARED STEP: REVIEW
      ══════════════════════════════════ */
   function step2HTML() {
     var h = '<div class="c">';
@@ -903,7 +931,7 @@
   }
 
   /* ══════════════════════════════════
-     SHARED STEP 3: PAYMENT
+     SHARED STEP: PAYMENT
      ══════════════════════════════════ */
   function step3HTML() {
     var pp = pixPrice();
@@ -1162,7 +1190,16 @@
   /* ══════════════════════════════════
      MAIN RENDER
      ══════════════════════════════════ */
-  function render() {
+  // Resolve which content to show based on step + totalSteps
+  function stepContentHTML(templateStep1Fn) {
+    var reviewStep = getReviewStep(), payStep = getPaymentStep(), addrStep = getAddressStep();
+    if (step === 1) return templateStep1Fn();
+    if (addrStep && step === addrStep) return stepAddressHTML();
+    if (step === reviewStep) return step2HTML();
+    if (step === payStep) return step3HTML();
+    return '';
+  }
+
     var co = document.getElementById('co');
     if (!co) return;
     // Clean up previous footer wrapper
@@ -1183,15 +1220,13 @@
       // Elements: above-form
       mainH += renderElementsAt('above-form');
 
-      if (step === 1) {
-        if (tid === 'minimalista') mainH += step1Minimalista();
-        else if (tid === 'alto-impacto') mainH += step1AltoImpacto();
-        else if (tid === 'streamline') mainH += step1Streamline();
-        else if (tid === 'lynxfy') mainH += step1LynxFy();
-        else if (tid === 'confianca') mainH += step1Confianca();
-        else mainH += step1Default();
-      } else if (step === 2) mainH += step2HTML();
-      else mainH += step3HTML();
+      var step1Fn = tid === 'minimalista' ? step1Minimalista
+        : tid === 'alto-impacto' ? step1AltoImpacto
+        : tid === 'streamline' ? step1Streamline
+        : tid === 'lynxfy' ? step1LynxFy
+        : tid === 'confianca' ? step1Confianca
+        : step1Default;
+      mainH += stepContentHTML(step1Fn);
 
       // Elements: below-form
       mainH += renderElementsAt('below-form');
@@ -1223,9 +1258,7 @@
       var mainH2 = renderElementsAt('top');
       mainH2 += stepsHTML();
       mainH2 += renderElementsAt('above-form');
-      if (step === 1) mainH2 += step1TokLynx();
-      else if (step === 2) mainH2 += step2HTML();
-      else mainH2 += step3HTML();
+      mainH2 += stepContentHTML(step1TokLynx);
       mainH2 += renderElementsAt('below-form');
 
       var sideH2 = sidebarSummaryHTML({showCount:true});
@@ -1241,9 +1274,7 @@
       // Summary (always visible)
       h += defaultSummaryHTML();
       h += renderElementsAt('above-form');
-      if (step === 1) h += step1Default();
-      else if (step === 2) h += step2HTML();
-      else h += step3HTML();
+      h += stepContentHTML(step1Default);
       h += renderElementsAt('below-form');
       h += footerHTML();
       h += renderElementsAt('footer');
@@ -1307,7 +1338,8 @@
       if (!fd.cpf.trim()) { if(err) err.textContent='CPF/CNPJ é obrigatório'; return; }
       if (!validateCpfCnpj(fd.cpf)) { if(err) err.textContent='CPF ou CNPJ inválido'; if(c) c.style.borderColor='#EF4444'; return; }
       if(c) c.style.borderColor='';
-      step = 2; render();
+      // If 4 steps, go to address; else go to review
+      step = totalSteps === 4 ? 2 : 2; render();
     };
     var cpfInput = document.getElementById('f-cpf');
     if (cpfInput) {
@@ -1318,10 +1350,15 @@
         cpfInput.style.borderColor='';
       };
     }
+    // Address step buttons (4-step only)
+    var addrNext = document.getElementById('btn-addr-next');
+    if (addrNext) addrNext.onclick = function() { step = getReviewStep(); render(); };
+    var addrBack = document.getElementById('btn-addr-back');
+    if (addrBack) addrBack.onclick = function() { step = 1; render(); };
     var b2 = document.getElementById('btn-s2');
-    if (b2) b2.onclick = function() { step = 3; render(); if (!pixData) genPix(); };
+    if (b2) b2.onclick = function() { step = getPaymentStep(); render(); if (!pixData) genPix(); };
     var bb = document.getElementById('btn-back');
-    if (bb) bb.onclick = function() { step = 1; render(); };
+    if (bb) bb.onclick = function() { step = totalSteps === 4 ? getAddressStep() : 1; render(); };
     var bc = document.getElementById('btn-copy');
     if (bc) bc.onclick = function() {
       var ci = document.getElementById('pix-code');
@@ -1434,10 +1471,12 @@
       fieldBorderRadius: sv.fieldBorderRadius||'', stepBorderRadius: sv.stepBorderRadius||'',
       shippingEnabled: isTruthyBoolean(sv.shippingEnabled), shippingPrice: toCents(sv.shippingPrice),
       stepIndicatorStyle: sv.stepIndicatorStyle||'circles',
+      checkoutSteps: sv.checkoutSteps||'3',
       footerCompanyName: sv.footerCompanyName||'', footerCnpj: sv.footerCnpj||'',
     };
     // Load builder elements
     elems = Array.isArray(sv.elements) ? sv.elements : [];
+    totalSteps = cfg.checkoutSteps === '4' ? 4 : 3;
     applyCSS(cfg);
 
     // Dynamic favicon
@@ -1490,7 +1529,7 @@
       var csEl = document.getElementById('confianca-steps');
       if (csEl) {
         var renderConfiancaSteps = function() {
-          var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+          var labels = getStepLabels();
           var sh = '<div style="display:flex;align-items:center;justify-content:center;gap:40px;padding:12px;max-width:700px;margin:0 auto">';
           labels.forEach(function(s) {
             var active = step===s.n, done = step > s.n;
