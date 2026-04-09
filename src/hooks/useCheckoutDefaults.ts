@@ -28,6 +28,7 @@ export interface CheckoutDefaults {
   stepIndicatorStyle: "circles" | "pills" | "progress";
   format: "one_step" | "multi_step" | "modal" | "inline";
   checkoutSteps: "3" | "4";
+  elements?: any[];
 }
 
 export const emptyDefaults: CheckoutDefaults = {
@@ -57,6 +58,7 @@ export const emptyDefaults: CheckoutDefaults = {
   stepIndicatorStyle: "circles",
   format: "multi_step",
   checkoutSteps: "3",
+  elements: [],
 };
 
 const CONFIG_KEY_PREFIX = "checkout_defaults:";
