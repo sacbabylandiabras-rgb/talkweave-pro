@@ -330,6 +330,49 @@ export default function CheckoutDefaultsTab() {
       <p className="text-[10px] text-muted-foreground">
         "Salvar Padrão" define os valores iniciais para novos checkouts. "Aplicar a Todos" sobrescreve as configurações em todos os checkouts existentes.
       </p>
+      </div>
+
+      {/* Preview Panel */}
+      {showPreview && (
+        <div className="w-1/2 min-w-0">
+          <div className="sticky top-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Preview</h3>
+              <div className="flex items-center gap-1 border border-border rounded-lg p-0.5">
+                <Button
+                  variant={previewMode === "desktop" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPreviewMode("desktop")}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant={previewMode === "mobile" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPreviewMode("mobile")}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+            <div className="border border-border rounded-xl overflow-hidden bg-muted/30">
+              <div
+                className="origin-top-left"
+                style={{
+                  width: previewMode === "desktop" ? 800 : 320,
+                  transform: `scale(${previewMode === "desktop" ? 0.5 : 0.85})`,
+                  transformOrigin: "top left",
+                  height: "auto",
+                }}
+              >
+                <CheckoutPreview config={form as any} previewMode={previewMode} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
