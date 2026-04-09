@@ -355,9 +355,11 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
       {config.logoUrl && config.showLogo !== false && (
         <div className="flex items-center justify-between py-3 px-4" style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
           <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
-          <span className="text-xs font-medium flex items-center gap-1" style={{ color: "#16A34A" }}>
-            <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
-          </span>
+          {config.showSecurityBadges && (
+            <span className="text-xs font-medium flex items-center gap-1" style={{ color: "#16A34A" }}>
+              <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro
+            </span>
+          )}
         </div>
       )}
 
@@ -810,14 +812,16 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
             </div>
 
             {/* Security notice */}
-            <div className="rounded-xl border p-4 space-y-2" style={{ ...cardStyle(s), borderColor: "#FCD34D", background: s.isDark ? "#1a1800" : "#FFFBEB" }}>
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs" style={{ color: s.isDark ? "#FCD34D" : "#92400E" }}>
-                  Os bancos reforçaram a segurança do Pix e podem exibir alertas preventivos durante o pagamento. Fique tranquilo — sua transação é segura e está totalmente protegida.
-                </p>
+            {config.showSecurityBadges && (
+              <div className="rounded-xl border p-4 space-y-2" style={{ ...cardStyle(s), borderColor: "#FCD34D", background: s.isDark ? "#1a1800" : "#FFFBEB" }}>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs" style={{ color: s.isDark ? "#FCD34D" : "#92400E" }}>
+                    Os bancos reforçaram a segurança do Pix e podem exibir alertas preventivos durante o pagamento. Fique tranquilo — sua transação é segura e está totalmente protegida.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Upload receipt - FUNCTIONAL */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
