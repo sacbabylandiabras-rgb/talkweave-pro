@@ -31,6 +31,7 @@ export interface CheckoutDefaults {
   format: "one_step" | "multi_step" | "modal" | "inline";
   checkoutSteps: "3" | "4";
   elements?: any[];
+  sendEmail: boolean;
 }
 
 export const emptyDefaults: CheckoutDefaults = {
@@ -63,6 +64,7 @@ export const emptyDefaults: CheckoutDefaults = {
   format: "multi_step",
   checkoutSteps: "3",
   elements: [],
+  sendEmail: true,
 };
 
 const CONFIG_KEY_PREFIX = "checkout_defaults:";
