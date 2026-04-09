@@ -15,6 +15,7 @@ import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLa
 import CheckoutStepIndicators from "@/components/gateway/checkout-templates/CheckoutStepIndicators";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
 import { resolveCheckoutFormat } from "@/components/gateway/checkout-templates/checkout-format-helpers";
+import { getCheckoutSteps, getStepNumbers } from "@/components/gateway/checkout-templates/checkout-steps-helpers";
 import nubankLogo from "@/assets/banks/nubank.png";
 import interLogo from "@/assets/banks/inter.png";
 import bradescoLogo from "@/assets/banks/bradesco.png";
