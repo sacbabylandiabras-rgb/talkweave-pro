@@ -365,6 +365,34 @@ export default function PayProducts() {
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                   </div>
+                  {/* Checkout Links */}
+                  {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Link className="w-3 h-3" /> Links de Checkout
+                      </span>
+                      {checkoutsByProduct[p.id].map((ck) => {
+                        const url = `https://${checkoutDomain}/pay/${ck.slug || ck.id}`;
+                        return (
+                          <div key={ck.id} className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
+                            <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(url);
+                                toast.success("Link copiado!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                              title={url}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditDialog(p)}>
                       <Edit className="w-3 h-3 mr-1" /> Editar
