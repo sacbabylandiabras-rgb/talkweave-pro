@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/useCheckoutDefaults";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
