@@ -105,9 +105,9 @@ export default function CheckoutDefaultsTab() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-4">
       {/* Config Panel */}
-      <div className={`space-y-4 ${showPreview ? "w-1/2" : "w-full"} min-w-0`}>
+      <div className={`space-y-4 ${showPreview ? "w-[55%] flex-shrink-0" : "w-full"} min-w-0`}>
         {/* Preview Toggle */}
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowPreview(!showPreview)}>
