@@ -98,8 +98,8 @@ export const useAdminZapiInstances = (userId?: string) => {
     is_default?: boolean;
   }) => {
     try {
-      if (instances.length >= 5) {
-        toast({ title: "Limite atingido", description: "Máximo de 5 instâncias por usuário", variant: "destructive" });
+      if (instances.length >= 20) {
+        toast({ title: "Limite atingido", description: "Máximo de 20 instâncias por usuário", variant: "destructive" });
         return false;
       }
 

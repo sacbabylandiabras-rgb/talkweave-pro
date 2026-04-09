@@ -1346,7 +1346,7 @@ export default function CheckoutBuilder() {
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
                 <span className="text-[10px] text-muted-foreground font-mono ml-2">
-                  {checkoutDomain}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
+                  {platformCheckoutDomain}/pay/{checkoutName ? checkoutName.toLowerCase().replace(/\s+/g, "-") : "preview"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
