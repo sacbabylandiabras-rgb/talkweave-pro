@@ -154,6 +154,7 @@ export function useCheckoutDefaults() {
         stepIndicatorStyle: newDefaults.stepIndicatorStyle,
         format: newDefaults.format,
         checkoutSteps: newDefaults.checkoutSteps,
+        elements: newDefaults.elements || [],
       };
 
       const { error } = await supabase
