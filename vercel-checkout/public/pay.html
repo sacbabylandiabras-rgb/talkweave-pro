@@ -1220,15 +1220,13 @@
       // Elements: above-form
       mainH += renderElementsAt('above-form');
 
-      if (step === 1) {
-        if (tid === 'minimalista') mainH += step1Minimalista();
-        else if (tid === 'alto-impacto') mainH += step1AltoImpacto();
-        else if (tid === 'streamline') mainH += step1Streamline();
-        else if (tid === 'lynxfy') mainH += step1LynxFy();
-        else if (tid === 'confianca') mainH += step1Confianca();
-        else mainH += step1Default();
-      } else if (step === 2) mainH += step2HTML();
-      else mainH += step3HTML();
+      var step1Fn = tid === 'minimalista' ? step1Minimalista
+        : tid === 'alto-impacto' ? step1AltoImpacto
+        : tid === 'streamline' ? step1Streamline
+        : tid === 'lynxfy' ? step1LynxFy
+        : tid === 'confianca' ? step1Confianca
+        : step1Default;
+      mainH += stepContentHTML(step1Fn);
 
       // Elements: below-form
       mainH += renderElementsAt('below-form');
