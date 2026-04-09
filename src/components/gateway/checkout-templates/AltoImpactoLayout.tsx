@@ -127,7 +127,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
                       </div>
                   </div>
                 </div>
-                {config.showAddress && (
+                {config.showAddress && !sn.address && (
                   <div className="border p-4 space-y-2" style={cardStyle(s)}>
                     <label className="text-xs font-bold block" style={{ color: s.cardTitle }}>Endereço de Entrega</label>
                     <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="CEP" />
