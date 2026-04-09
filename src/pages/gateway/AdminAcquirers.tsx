@@ -80,10 +80,30 @@ export default function AdminAcquirers() {
     };
 
     const fetchUsers = async () => {
-      const { data } = await supabase
+      // Try with pix_acquirer first, fall back without it if column doesn't exist yet
+      let result = await supabase
         .from("profiles")
-        .select("id, email, full_name, pix_acquirer" as any) as any;
-      setUsers((data as UserAcquirer[]) || []);
+        .select("id, email, full_name") as any;
+      
+      const profiles = (result.data || []) as Array<{ id: string; email: string | null; full_name: string | null }>;
+      
+      // Try to get pix_acquirer separately (column may not exist yet)
+      let acquirerMap: Record<string, string | null> = {};
+      try {
+        const { data: withAcq } = await supabase
+          .from("profiles")
+          .select("id, pix_acquirer" as any) as any;
+        if (withAcq && Array.isArray(withAcq)) {
+          for (const row of withAcq) {
+            acquirerMap[row.id] = row.pix_acquirer || null;
+          }
+        }
+      } catch {}
+
+      setUsers(profiles.map(p => ({
+        ...p,
+        pix_acquirer: acquirerMap[p.id] ?? null,
+      })));
       setLoadingUsers(false);
     };
 
