@@ -351,7 +351,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
       )}
 
       {/* Logo Header */}
-      {config.logoUrl && (
+      {config.logoUrl && config.showLogo !== false && (
         <div className="flex items-center justify-between py-3 px-4" style={{ background: s.cardBg, borderBottom: `1px solid ${s.cardBorder}` }}>
           <img src={config.logoUrl} alt="Logo" className="h-8 object-contain" />
           <span className="text-xs font-medium flex items-center gap-1" style={{ color: "#16A34A" }}>
