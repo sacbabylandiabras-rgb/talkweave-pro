@@ -97,7 +97,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                   ))}
                 </div>
                 <p className="text-center text-[11px] font-medium" style={{ color: s.primary }}>
-                  Etapa {step} de 3 — {steps.find(st => st.num === step)?.label}
+                  Etapa {step} de {steps.length} — {steps.find(st => st.num === step)?.label}
                 </p>
               </div>
             ) : config.stepIndicatorStyle === "pills" ? (
@@ -105,7 +105,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                 {steps.map((st, i) => (
                   <div key={st.num} className="flex items-center gap-2">
                     <button
-                      onClick={() => setStep(st.num as 1 | 2 | 3)}
+                      onClick={() => setStep(st.num as 1 | 2 | 3 | 4)}
                       className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
                       style={{
                         borderRadius: "999px",
@@ -131,7 +131,7 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                 {steps.map((st, i) => (
                   <div key={st.num} className="flex items-center">
                     <button
-                      onClick={() => setStep(st.num as 1 | 2 | 3)}
+                      onClick={() => setStep(st.num as 1 | 2 | 3 | 4)}
                       className="flex flex-col items-center gap-1.5"
                     >
                       <div
