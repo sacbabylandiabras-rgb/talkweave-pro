@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCheckoutDefaults } from "@/hooks/useCheckoutDefaults";
 import { toast } from "sonner";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
