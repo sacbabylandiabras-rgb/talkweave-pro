@@ -971,6 +971,25 @@
      TEMPLATE-SPECIFIC STEP 1
      ══════════════════════════════════ */
 
+  // Address fields block (reusable)
+  function addressFieldsHTML() {
+    var h = '';
+    h += fieldHTML('f-cep','CEP','00000-000','');
+    h += '<div class="fg"><label>Endereço</label><input placeholder="Rua, Avenida..." style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg-row">';
+    h += '<div class="fg"><label>Número</label><input placeholder="123" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg" style="flex:2"><label>Complemento</label><input placeholder="Apto, Bloco..." style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '</div>';
+    h += '<div class="fg"><label>Bairro</label><input placeholder="Bairro" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg-row">';
+    h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg"><label>Estado</label><select style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)"><option value="">UF</option>';
+    var ufs = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+    for (var i=0;i<ufs.length;i++) h += '<option value="'+ufs[i]+'">'+ufs[i]+'</option>';
+    h += '</select></div></div>';
+    return h;
+  }
+
   // Default / generic
   function step1Default() {
     var h = '<div class="c">';
@@ -980,6 +999,7 @@
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
     h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
     if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '</div></div>';
     if (cfg.showOrderBump) {
       h += '<div class="c" style="border:2px dashed var(--primary)">';
@@ -1001,6 +1021,7 @@
     h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
     if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '</div>';
     h += '<button class="btn" id="btn-s1" style="margin-top:8px">PRÓXIMO</button>';
     h += '</div>';
@@ -1019,6 +1040,7 @@
     h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
     h += '</div>';
     h += '</div></div>';
+    if (cfg.showAddress) { h += '<div class="c"><h3>Endereço de entrega</h3><div style="margin-top:12px">' + addressFieldsHTML() + '</div></div>'; }
     h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
     return h;
   }
@@ -1074,6 +1096,7 @@
       h += '<div class="fg"><label>Celular (WhatsApp)</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="text-transform:uppercase;letter-spacing:.05em">PRÓXIMO</button>';
     h += '</div></div>';
     return h;
@@ -1119,6 +1142,7 @@
     if (cfg.showPhone !== false) {
       h += '<div class="fg"><label>Celular / WhatsApp</label><div class="phone-row"><div class="phone-prefix">+55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
     h += '</div></div>';
     return h;
