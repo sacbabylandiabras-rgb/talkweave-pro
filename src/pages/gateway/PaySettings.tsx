@@ -941,6 +941,10 @@ export default function PaySettings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="checkout" className="mt-4">
+          <CheckoutDefaultsTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
