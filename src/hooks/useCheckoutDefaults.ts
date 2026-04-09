@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface CheckoutDefaults {
   logoUrl: string;
+  showLogo: boolean;
   faviconUrl: string;
   primaryColor: string;
   bgColor: string;
@@ -33,6 +34,7 @@ export interface CheckoutDefaults {
 
 export const emptyDefaults: CheckoutDefaults = {
   logoUrl: "",
+  showLogo: true,
   faviconUrl: "",
   primaryColor: "#EF4444",
   bgColor: "#EFF1F5",
