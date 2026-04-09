@@ -1190,7 +1190,16 @@
   /* ══════════════════════════════════
      MAIN RENDER
      ══════════════════════════════════ */
-  function render() {
+  // Resolve which content to show based on step + totalSteps
+  function stepContentHTML(templateStep1Fn) {
+    var reviewStep = getReviewStep(), payStep = getPaymentStep(), addrStep = getAddressStep();
+    if (step === 1) return templateStep1Fn();
+    if (addrStep && step === addrStep) return stepAddressHTML();
+    if (step === reviewStep) return step2HTML();
+    if (step === payStep) return step3HTML();
+    return '';
+  }
+
     var co = document.getElementById('co');
     if (!co) return;
     // Clean up previous footer wrapper
