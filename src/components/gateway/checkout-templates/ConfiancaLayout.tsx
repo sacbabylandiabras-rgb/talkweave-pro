@@ -4,8 +4,10 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
@@ -21,16 +23,17 @@ interface Props {
 }
 
 export default function ConfiancaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [quantity, setQuantity] = useState(1);
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [cpfError, setCpfError] = useState("");
 
+  const sn0 = getStepNumbers(config);
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
-    setCpfError(""); setStep(2);
+    setCpfError(""); setStep(sn0.address || sn0.review);
   };
   const [formPhone, setFormPhone] = useState("");
 
@@ -40,11 +43,8 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
   const subtotal = unitPrice * quantity;
   const pixPrice = config.pixDiscount > 0 ? Math.round(subtotal * (1 - config.pixDiscount / 100)) : subtotal;
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return (
     <div className="h-full overflow-auto" style={{ fontFamily: s.fontFamily, color: s.textColor }}>
@@ -146,13 +146,18 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
               </>
             )}
 
-            {/* Step 2 */}
-            {step === 2 && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            {/* Address step (4-step flow) */}
+            {sn.address && step === sn.address && (
+              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
-            {/* Step 3 */}
-            {step === 3 && (
+            {/* Review */}
+            {step === sn.review && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+            )}
+
+            {/* Payment */}
+            {step === sn.payment && (
               <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} />
             )}
           </div>

@@ -4,8 +4,10 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
@@ -21,7 +23,7 @@ interface Props {
 }
 
 export default function StreamlineLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [countdown, setCountdown] = useState({ h: 0, m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -29,13 +31,14 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   const [formPhone, setFormPhone] = useState("");
   const [cpfError, setCpfError] = useState("");
 
+  const sn0 = getStepNumbers(config);
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) {
       setCpfError("CPF ou CNPJ inválido");
       return;
     }
     setCpfError("");
-    setStep(2);
+    setStep(sn0.address || sn0.review);
   };
 
   useEffect(() => {
@@ -66,11 +69,8 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
   const timerStr = `${String(countdown.h).padStart(2, "0")} : ${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   const StepTabs = () => (
     <div className={!previewMode ? "hidden md:block" : ""} style={previewMode ? { display: previewMode === "mobile" ? "none" : "block" } : undefined}>
@@ -161,13 +161,15 @@ export default function StreamlineLayout({ config, elements = [], isBuilder, onS
               </>
             )}
 
-            {/* Step 2: Conferência */}
-            {step === 2 && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            {sn.address && step === sn.address && (
+              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
-            {/* Step 3: Pagamento */}
-            {step === 3 && (
+            {step === sn.review && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+            )}
+
+            {step === sn.payment && (
               <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
 

@@ -15,6 +15,7 @@ import ConfiancaLayout from "@/components/gateway/checkout-templates/ConfiancaLa
 import CheckoutStepIndicators from "@/components/gateway/checkout-templates/CheckoutStepIndicators";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "@/components/gateway/checkout-templates/checkout-style-helpers";
 import { resolveCheckoutFormat } from "@/components/gateway/checkout-templates/checkout-format-helpers";
+import { getCheckoutSteps, getStepNumbers } from "@/components/gateway/checkout-templates/checkout-steps-helpers";
 import nubankLogo from "@/assets/banks/nubank.png";
 import interLogo from "@/assets/banks/inter.png";
 import bradescoLogo from "@/assets/banks/bradesco.png";
@@ -94,7 +95,7 @@ interface Props {
 
 export default function CheckoutPreview({ config, templateName, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
   const isMobile = useIsMobile();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [quantity, setQuantity] = useState(1);
   const [pixLoading, setPixLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
@@ -140,7 +141,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
   // Auto-generate PIX when entering step 3 (only on public checkout)
   useEffect(() => {
-    if (isPublicCheckout && step === 3 && !pixData && !pixLoading && !pixError) {
+    if (isPublicCheckout && step === getStepNumbers(config).payment && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
   }, [step]);
@@ -324,11 +325,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     }
   }
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="w-5 h-5" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-5 h-5" /> },
-    { num: 3, label: "Pagamento", icon: <CardIcon className="w-5 h-5" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return wrapBuilderShell(
     <div
@@ -567,7 +565,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                 if (!formCpf.trim()) errors.cpf = 'CPF/CNPJ é obrigatório';
                 else if (!validateCpfCnpj(formCpf)) errors.cpf = 'CPF ou CNPJ inválido';
                 setFormErrors(errors);
-                if (Object.keys(errors).length === 0) setStep(2);
+                if (Object.keys(errors).length === 0) setStep(sn.address || sn.review);
               }}
               className="w-full py-4 font-bold text-base transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
               style={buttonStyle(s)}
@@ -586,7 +584,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 2: Review / Confirm Data ───── */}
-        {!isOneStep && step === 2 && (
+        {!isOneStep && step === sn.review && (
           <>
             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
               <div>
@@ -623,14 +621,14 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(sn.address || 1)}
                 className="flex-1 py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
                 style={{ borderColor: s.cardBorder, background: s.cardBg, color: s.cardTitle, borderRadius: s.buttonRadius }}
               >
                 Voltar
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(sn.payment)}
                 className="flex-1 py-3.5 font-bold text-sm transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                 style={buttonStyle(s)}
               >
@@ -642,7 +640,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
         )}
 
         {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
-        {(step === 3 || isOneStep) && (
+        {(step === sn.payment || isOneStep) && (
           <>
             {/* Header */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
