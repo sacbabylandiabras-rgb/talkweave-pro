@@ -1529,7 +1529,7 @@
       var csEl = document.getElementById('confianca-steps');
       if (csEl) {
         var renderConfiancaSteps = function() {
-          var labels = [{n:1,l:'Identificação',i:'user'},{n:2,l:'Conferência',i:'check'},{n:3,l:'Pagamento',i:'card'}];
+          var labels = getStepLabels();
           var sh = '<div style="display:flex;align-items:center;justify-content:center;gap:40px;padding:12px;max-width:700px;margin:0 auto">';
           labels.forEach(function(s) {
             var active = step===s.n, done = step > s.n;
