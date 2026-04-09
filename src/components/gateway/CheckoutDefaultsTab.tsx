@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/useCheckoutDefaults";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
@@ -87,6 +88,11 @@ export default function CheckoutDefaultsTab() {
     else toast("Nenhum checkout encontrado para atualizar");
   };
 
+  const handleApplyTemplate = (settings: Record<string, any>, _name: string, templateId: string) => {
+    setForm(prev => ({ ...prev, ...settings, templateId }));
+    toast.success("Modelo aplicado! Salve para confirmar.");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -97,6 +103,19 @@ export default function CheckoutDefaultsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Modelos */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Layout className="w-4 h-4" /> Modelo de Checkout
+          </CardTitle>
+          <CardDescription className="text-xs">Escolha um modelo visual como base</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CheckoutTemplateGallery onApply={handleApplyTemplate} activeTemplateId={form.templateId} />
+        </CardContent>
+      </Card>
+
       {/* Aparência */}
       <Card className="border-border">
         <CardHeader>
