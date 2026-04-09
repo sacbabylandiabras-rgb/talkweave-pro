@@ -26,6 +26,7 @@ export interface CheckoutDefaults {
   footerCompanyName: string;
   footerCnpj: string;
   stepIndicatorStyle: "circles" | "pills" | "progress";
+  format: "one_step" | "multi_step" | "modal" | "inline";
 }
 
 export const emptyDefaults: CheckoutDefaults = {
