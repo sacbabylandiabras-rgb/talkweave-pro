@@ -132,6 +132,18 @@ export default function PayProducts() {
     setDialogOpen(true);
   };
 
+  const buildCheckoutSlug = (name: string) => {
+    const base = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 45) || "produto";
+
+    return `${base}-${Date.now().toString().slice(-6)}`;
+  };
+
   const handleSave = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login primeiro"); return; }
@@ -147,14 +159,12 @@ export default function PayProducts() {
         return;
       }
     } else if (imagePreview === null && editingProduct?.image_url) {
-      // User removed the image
       imageUrl = null;
     }
 
     const priceInCents = Math.round(parseFloat(form.price.replace(",", ".")) * 100) || 0;
 
     if (editingProduct) {
-      // UPDATE
       const updateData: any = {
         name: form.name,
         description: form.description || null,
@@ -170,7 +180,6 @@ export default function PayProducts() {
       if (error) { toast.error("Erro: " + error.message); return; }
       toast.success("Produto atualizado!");
     } else {
-      // INSERT
       const insertData: any = {
         user_id: user.id,
         name: form.name,
@@ -182,15 +191,63 @@ export default function PayProducts() {
       };
       if (imageUrl) insertData.image_url = imageUrl;
 
-      const { error } = await supabase.from("gateway_products" as any).insert(insertData as any);
+      const { data: createdProduct, error: productError } = await supabase
+        .from("gateway_products" as any)
+        .insert(insertData as any)
+        .select("id, name, price, image_url")
+        .single();
+
+      if (productError || !createdProduct) {
+        setSaving(false);
+        toast.error("Erro: " + (productError?.message || "não foi possível criar o produto"));
+        return;
+      }
+
+      let checkoutDefaults: Record<string, any> = {};
+      const { data: defaultsRow } = await supabase
+        .from("gateway_platform_config")
+        .select("value")
+        .eq("key", `checkout_defaults:${user.id}`)
+        .maybeSingle();
+
+      if (defaultsRow?.value) {
+        try {
+          checkoutDefaults = JSON.parse(defaultsRow.value);
+        } catch {
+          checkoutDefaults = {};
+        }
+      }
+
+      const slug = buildCheckoutSlug(form.name);
+      const checkoutConfig = {
+        ...checkoutDefaults,
+        productName: form.name,
+        offerName: form.name,
+        price: priceInCents,
+        productImage: imageUrl || createdProduct.image_url || "",
+      };
+
+      const { error: checkoutError } = await supabase.from("gateway_checkouts" as any).insert({
+        user_id: user.id,
+        name: form.name,
+        product_id: createdProduct.id,
+        slug,
+        status: true,
+        config: checkoutConfig,
+      } as any);
+
       setSaving(false);
-      if (error) { toast.error("Erro: " + error.message); return; }
-      toast.success("Produto criado!");
+      if (checkoutError) {
+        toast.error("Produto criado, mas houve erro ao gerar o link: " + checkoutError.message);
+      } else {
+        toast.success("Produto criado com link automático!");
+      }
     }
 
     setDialogOpen(false);
     resetForm();
     fetchProducts();
+    fetchCheckouts();
   };
 
   const resetForm = () => {
