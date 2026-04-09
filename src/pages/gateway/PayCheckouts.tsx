@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
+import { Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -309,7 +309,7 @@ export default function PayCheckouts() {
       {checkouts.length === 0 ? (
         <Card className="border-[#2A2A2A]">
           <CardContent className="flex items-center justify-center py-16">
-            <p className="text-sm text-muted-foreground">Nenhum checkout criado ainda. Clique em "Novo Checkout" para começar.</p>
+            <p className="text-sm text-muted-foreground">Nenhum checkout ainda. Crie um produto na aba "Produtos" para gerar um checkout automaticamente.</p>
           </CardContent>
         </Card>
       ) : (
