@@ -16,7 +16,7 @@ interface Props {
   onSelectElement: (id: string) => void;
   onMoveElement: (id: string, direction: "up" | "down") => void;
   selectedElementId: string | null;
-  onDragStart: (type: CheckoutElementType) => void;
+  onDragStart?: (type: CheckoutElementType) => void;
 }
 
 const CATEGORIES = [
@@ -98,7 +98,7 @@ export default function CheckoutElementsSidebar({
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData("element-type", def.type);
-                      onDragStart(def.type);
+                      onDragStart?.(def.type);
                     }}
                     onClick={() => onAddElement(def.type, "below-form")}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#FF4D2E]/50 hover:bg-[#FF4D2E]/5 transition-all cursor-grab active:cursor-grabbing"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff } from "lucide-react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff, Blocks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
+import CheckoutElementsSidebar from "@/components/gateway/checkout-elements/CheckoutElementsSidebar";
+import CheckoutElementEditor from "@/components/gateway/checkout-elements/CheckoutElementEditor";
+import { CheckoutElement, CheckoutElementType, ElementPosition, ELEMENT_DEFINITIONS, generateElementId } from "@/components/gateway/checkout-elements/types";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
@@ -98,10 +101,70 @@ export default function CheckoutDefaultsTab() {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const [elements, setElements] = useState<CheckoutElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading) setForm(defaults);
+    if (!loading) {
+      setForm(defaults);
+      setElements(defaults.elements || []);
+    }
   }, [loading, defaults]);
+
+  // Sync elements back to form
+  useEffect(() => {
+    setForm(prev => ({ ...prev, elements }));
+  }, [elements]);
+
+  // Element management
+  const addElement = (type: CheckoutElementType, position: ElementPosition) => {
+    const def = ELEMENT_DEFINITIONS.find(d => d.type === type);
+    if (!def) return;
+    const newEl: CheckoutElement = {
+      id: generateElementId(),
+      type,
+      position,
+      order: elements.filter(e => e.position === position).length,
+      content: JSON.parse(JSON.stringify(def.defaultContent)),
+      visible: true,
+    };
+    setElements(prev => [...prev, newEl]);
+    setSelectedElementId(newEl.id);
+  };
+
+  const removeElement = (id: string) => {
+    setElements(prev => prev.filter(e => e.id !== id));
+    if (selectedElementId === id) setSelectedElementId(null);
+  };
+
+  const toggleElement = (id: string) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, visible: !e.visible } : e));
+  };
+
+  const moveElement = (id: string, direction: "up" | "down") => {
+    setElements(prev => {
+      const el = prev.find(e => e.id === id);
+      if (!el) return prev;
+      const posEls = prev.filter(e => e.position === el.position).sort((a, b) => a.order - b.order);
+      const idx = posEls.findIndex(e => e.id === id);
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= posEls.length) return prev;
+      const swapEl = posEls[swapIdx];
+      return prev.map(e => {
+        if (e.id === id) return { ...e, order: swapEl.order };
+        if (e.id === swapEl.id) return { ...e, order: el.order };
+        return e;
+      });
+    });
+  };
+
+  const updateElementContent = (id: string, content: Record<string, any>) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, content } : e));
+  };
+
+  const updateElementPosition = (id: string, position: ElementPosition) => {
+    setElements(prev => prev.map(e => e.id === id ? { ...e, position, order: prev.filter(x => x.position === position).length } : e));
+  };
 
   const handleImageUpload = async (file: File, field: "logoUrl" | "faviconUrl") => {
     const setUploading = field === "logoUrl" ? setUploadingLogo : setUploadingFavicon;
@@ -382,6 +445,35 @@ export default function CheckoutDefaultsTab() {
         </CardContent>
       </Card>
 
+      {/* Elementos Personalizados */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Blocks className="w-4 h-4" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-primary text-primary-foreground rounded-full px-1.5">{elements.length}</span>}
+          </CardTitle>
+          <CardDescription className="text-xs">Adicione elementos personalizados ao checkout (banners, avisos, contadores, etc.)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <CheckoutElementsSidebar
+            elements={elements}
+            onAddElement={addElement}
+            onRemoveElement={removeElement}
+            onToggleElement={toggleElement}
+            onSelectElement={setSelectedElementId}
+            onMoveElement={moveElement}
+            selectedElementId={selectedElementId}
+          />
+
+          {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+            <CheckoutElementEditor
+              element={elements.find(e => e.id === selectedElementId)!}
+              onUpdate={updateElementContent}
+              onUpdatePosition={updateElementPosition}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Actions */}
       <div className="flex items-center gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving} className="gap-2">
@@ -424,7 +516,7 @@ export default function CheckoutDefaultsTab() {
               </div>
             </div>
             <PreviewFrame previewMode={previewMode}>
-              <CheckoutPreview config={form as any} previewMode={previewMode} />
+              <CheckoutPreview config={form as any} previewMode={previewMode} elements={elements} />
             </PreviewFrame>
           </div>
         </div>
