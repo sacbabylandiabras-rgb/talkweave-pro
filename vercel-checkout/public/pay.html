@@ -1476,6 +1476,7 @@
     };
     // Load builder elements
     elems = Array.isArray(sv.elements) ? sv.elements : [];
+    totalSteps = cfg.checkoutSteps === '4' ? 4 : 3;
     applyCSS(cfg);
 
     // Dynamic favicon
