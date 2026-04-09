@@ -255,24 +255,19 @@ export default function PayCheckouts() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Checkouts</h1>
-          <p className="text-sm text-muted-foreground">Crie e gerencie seus checkouts de pagamento</p>
+          <p className="text-sm text-muted-foreground">Gerencie e configure seus checkouts de pagamento</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="rounded-full px-4 gap-2"
-            onClick={() => setDomainOpen(true)}
-          >
-            <Globe className="w-4 h-4" />
-            Domínio
-            {savedDomain && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
-            )}
-          </Button>
-          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
-            <Plus className="w-4 h-4 mr-2" /> Novo Checkout
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="rounded-full px-4 gap-2"
+          onClick={() => setDomainOpen(true)}
+        >
+          <Globe className="w-4 h-4" />
+          Domínio
+          {savedDomain && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
+          )}
+        </Button>
       </div>
 
       {/* Saved domain banner */}
