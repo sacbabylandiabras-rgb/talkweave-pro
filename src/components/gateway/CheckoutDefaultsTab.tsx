@@ -254,13 +254,7 @@ export default function CheckoutDefaultsTab() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs">Logo</Label>
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-muted-foreground">Exibir no checkout</Label>
-                  <Switch checked={form.showLogo !== false} onCheckedChange={v => updateForm("showLogo", v)} />
-                </div>
-              </div>
+              <Label className="text-xs mb-1">Logo</Label>
               <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0], "logoUrl"); }} />
               <div className="flex items-center gap-2 mt-1">
                 {form.logoUrl && <img src={form.logoUrl} alt="Logo" className="w-8 h-8 rounded object-contain border border-border" />}
@@ -269,6 +263,10 @@ export default function CheckoutDefaultsTab() {
                   {form.logoUrl ? "Trocar" : "Enviar"}
                 </Button>
                 {form.logoUrl && <Input value={form.logoUrl} onChange={e => updateForm("logoUrl", e.target.value)} className="flex-1 text-xs" placeholder="URL" />}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Switch checked={form.showLogo !== false} onCheckedChange={v => updateForm("showLogo", v)} />
+                <Label className="text-xs text-muted-foreground">Exibir no checkout</Label>
               </div>
             </div>
             <div>
