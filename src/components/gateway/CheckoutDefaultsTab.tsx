@@ -43,6 +43,11 @@ const FORMAT_OPTIONS = [
   { value: "inline", label: "Inline" },
 ];
 
+const STEP_COUNT_OPTIONS = [
+  { value: "3", label: "3 Etapas (Identificação, Conferência, Pagamento)" },
+  { value: "4", label: "4 Etapas (Identificação, Endereço, Conferência, Pagamento)" },
+];
+
 function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mobile"; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
