@@ -40,6 +40,8 @@ export default function CheckoutDefaultsTab() {
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
