@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Lock, ShieldCheck, CreditCard, Package, ShoppingBag, User, Check } from "lucide-react";
 import { formatCurrency } from "@/pages/gateway/mock-data";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
