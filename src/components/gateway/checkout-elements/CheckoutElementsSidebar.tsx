@@ -1,11 +1,22 @@
-import { Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle, ThumbsUp, Shield, Star, Stars, Clock, Timer, ListOrdered, BarChart3, TrendingUp, GripVertical, Trash2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle, ThumbsUp, Shield, Star, Stars, Clock, Timer, ListOrdered, BarChart3, TrendingUp, GripVertical, Trash2, Eye, EyeOff, ChevronUp, ChevronDown, MapPin } from "lucide-react";
 import { CheckoutElement, ELEMENT_DEFINITIONS, CheckoutElementType, generateElementId, ElementPosition } from "./types";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ICON_MAP: Record<string, any> = {
   Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle,
   ThumbsUp, Shield, Star, Stars, Clock,
   Timer, ListOrdered, BarChart3, TrendingUp,
+};
+
+const POSITION_LABELS: Record<ElementPosition, string> = {
+  "top": "Topo",
+  "above-form": "Acima do form",
+  "below-form": "Abaixo do form",
+  "sidebar": "Sidebar",
+  "sidebar-bottom": "Sidebar inferior",
+  "footer": "Rodapé",
 };
 
 interface Props {
@@ -35,6 +46,8 @@ export default function CheckoutElementsSidebar({
   selectedElementId,
   onDragStart,
 }: Props) {
+  const [selectedPosition, setSelectedPosition] = useState<ElementPosition>("below-form");
+
   return (
     <div className="space-y-4">
       {/* Elementos adicionados */}
@@ -61,7 +74,7 @@ export default function CheckoutElementsSidebar({
                     <GripVertical className="w-3 h-3 text-muted-foreground shrink-0" />
                     <IconComp className="w-3.5 h-3.5 shrink-0" style={{ color: "#FF4D2E" }} />
                     <span className="text-[11px] font-medium flex-1 truncate">{def?.label || el.type}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{el.position}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{POSITION_LABELS[el.position as ElementPosition] || el.position}</span>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={(e) => { e.stopPropagation(); onMoveElement(el.id, "up"); }} className="p-0.5 hover:bg-muted rounded" disabled={idx === 0}>
                         <ChevronUp className="w-3 h-3" />
@@ -83,6 +96,23 @@ export default function CheckoutElementsSidebar({
         </div>
       )}
 
+      {/* Position selector */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+          <MapPin className="w-3 h-3" /> Posição ao adicionar
+        </p>
+        <Select value={selectedPosition} onValueChange={(v) => setSelectedPosition(v as ElementPosition)}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(POSITION_LABELS).map(([key, label]) => (
+              <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Catálogo de elementos */}
       {CATEGORIES.map(cat => {
         const defs = ELEMENT_DEFINITIONS.filter(d => d.category === cat.key);
@@ -100,8 +130,8 @@ export default function CheckoutElementsSidebar({
                       e.dataTransfer.setData("element-type", def.type);
                       onDragStart?.(def.type);
                     }}
-                    onClick={() => onAddElement(def.type, "below-form")}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#FF4D2E]/50 hover:bg-[#FF4D2E]/5 transition-all cursor-grab active:cursor-grabbing"
+                    onClick={() => onAddElement(def.type, selectedPosition)}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#FF4D2E]/50 hover:bg-[#FF4D2E]/5 transition-all cursor-pointer"
                   >
                     <IconComp className="w-5 h-5 text-muted-foreground" />
                     <span className="text-[10px] font-medium">{def.label}</span>
