@@ -23,7 +23,7 @@ interface Props {
 }
 
 export default function AltoImpactoLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 10, s: 0 });
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -59,11 +59,8 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
   const timerStr = `${String(countdown.m).padStart(2, "0")}m : ${String(countdown.s).padStart(2, "0")}s`;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
-  const steps = [
-    { num: 1, label: "Identificação", icon: <User className="w-4 h-4" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-4 h-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-4 h-4" /> },
-  ];
+  const steps = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
@@ -155,13 +152,18 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
               </>
             )}
 
-            {/* Step 2 */}
-            {step === 2 && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />
+            {/* Address step (4-step flow) */}
+            {sn.address && step === sn.address && (
+              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
-            {/* Step 3 */}
-            {step === 3 && (
+            {/* Review */}
+            {step === sn.review && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+            )}
+
+            {/* Payment */}
+            {step === sn.payment && (
               <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
           </div>
