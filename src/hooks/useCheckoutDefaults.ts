@@ -27,6 +27,7 @@ export interface CheckoutDefaults {
   footerCnpj: string;
   stepIndicatorStyle: "circles" | "pills" | "progress";
   format: "one_step" | "multi_step" | "modal" | "inline";
+  checkoutSteps: "3" | "4";
 }
 
 export const emptyDefaults: CheckoutDefaults = {
@@ -55,6 +56,7 @@ export const emptyDefaults: CheckoutDefaults = {
   footerCnpj: "",
   stepIndicatorStyle: "circles",
   format: "multi_step",
+  checkoutSteps: "3",
 };
 
 const CONFIG_KEY_PREFIX = "checkout_defaults:";
@@ -149,6 +151,7 @@ export function useCheckoutDefaults() {
         footerCnpj: newDefaults.footerCnpj,
         stepIndicatorStyle: newDefaults.stepIndicatorStyle,
         format: newDefaults.format,
+        checkoutSteps: newDefaults.checkoutSteps,
       };
 
       const { error } = await supabase
