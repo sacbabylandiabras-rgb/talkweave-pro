@@ -101,6 +101,8 @@ export default function CheckoutDefaultsTab() {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const [elements, setElements] = useState<CheckoutElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading) setForm(defaults);
