@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff, Blocks } from "lucide-react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff, Blocks, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -437,6 +437,13 @@ export default function CheckoutDefaultsTab() {
             <div className="flex items-center justify-between border border-border rounded-lg px-3 py-2">
               <span className="text-sm">Selos de Segurança</span>
               <Switch checked={form.showSecurityBadges} onCheckedChange={v => updateForm("showSecurityBadges", v)} />
+            </div>
+            <div className="flex items-center justify-between border border-border rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">Enviar E-mail</span>
+              </div>
+              <Switch checked={form.sendEmail !== false} onCheckedChange={v => updateForm("sendEmail", v)} />
             </div>
           </div>
           {form.showGuarantee && (
