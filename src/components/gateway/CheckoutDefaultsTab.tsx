@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload } from "lucide-react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/us
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
+import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
@@ -39,6 +40,8 @@ export default function CheckoutDefaultsTab() {
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +105,16 @@ export default function CheckoutDefaultsTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex gap-6">
+      {/* Config Panel */}
+      <div className={`space-y-4 ${showPreview ? "w-1/2" : "w-full"} min-w-0`}>
+        {/* Preview Toggle */}
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowPreview(!showPreview)}>
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showPreview ? "Ocultar Preview" : "Mostrar Preview"}
+          </Button>
+        </div>
       {/* Modelos */}
       <Card className="border-border">
         <CardHeader>
@@ -318,6 +330,49 @@ export default function CheckoutDefaultsTab() {
       <p className="text-[10px] text-muted-foreground">
         "Salvar Padrão" define os valores iniciais para novos checkouts. "Aplicar a Todos" sobrescreve as configurações em todos os checkouts existentes.
       </p>
+      </div>
+
+      {/* Preview Panel */}
+      {showPreview && (
+        <div className="w-1/2 min-w-0">
+          <div className="sticky top-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Preview</h3>
+              <div className="flex items-center gap-1 border border-border rounded-lg p-0.5">
+                <Button
+                  variant={previewMode === "desktop" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPreviewMode("desktop")}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant={previewMode === "mobile" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPreviewMode("mobile")}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+            <div className="border border-border rounded-xl overflow-hidden bg-muted/30">
+              <div
+                className="origin-top-left"
+                style={{
+                  width: previewMode === "desktop" ? 800 : 320,
+                  transform: `scale(${previewMode === "desktop" ? 0.5 : 0.85})`,
+                  transformOrigin: "top left",
+                  height: "auto",
+                }}
+              >
+                <CheckoutPreview config={form as any} previewMode={previewMode} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
