@@ -211,7 +211,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
   // ─── Step 1 content for desktop ───
   const Step1Desktop = () => (
     <div className="space-y-4">
-      {config.showAddress && (
+      {config.showAddress && !sn.address && (
         <div style={shellStyle} className="p-4">
           <h3 className="mb-3 text-[11px] font-semibold" style={{ color: s.cardTitle }}>Endereço de Entrega</h3>
           {AddressForm}
@@ -251,7 +251,7 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
           </MobileSection>
         </>
       )}
-      {config.showAddress && (
+      {config.showAddress && !sn.address && (
         <MobileSection open={mobileSections.address} title="Endereço de Entrega" onToggle={() => setMobileSections(prev => ({ ...prev, address: !prev.address }))}>
           {AddressForm}
         </MobileSection>
