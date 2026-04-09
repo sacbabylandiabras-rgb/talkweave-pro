@@ -13,6 +13,7 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from "./PaymentIcons";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "./checkout-style-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
 import CheckoutStepIndicators from "./CheckoutStepIndicators";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
@@ -37,7 +38,7 @@ function getInitialSections(initialState: string) {
 }
 
 export default function TikTokLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [selectedPayment, setSelectedPayment] = useState<"pix" | "credit" | "boleto">("credit");
   const [mobileSections, setMobileSections] = useState(() => getInitialSections(config.mobileInitialState || "collapsed"));
@@ -49,7 +50,8 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
 
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
-    setCpfError(""); setStep(2);
+    const sn = getStepNumbers(config);
+    setCpfError(""); setStep(sn.address || sn.review);
   };
 
   useEffect(() => {
@@ -84,11 +86,8 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
   const shellStyle = { ...cardStyle(s), border: `1px solid ${s.cardBorder}` } as const;
   const compactInputStyle = { ...inputStyle(s), fontSize: "11px", padding: "10px 12px" } as const;
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="h-4 w-4" /> },
-    { num: 2, label: "Conferência", icon: <Check className="h-4 w-4" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="h-4 w-4" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   const SummaryContent = ({ compact = false }: { compact?: boolean }) => (
     <div style={shellStyle} className="overflow-hidden">
@@ -294,8 +293,9 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
             {/* DROP ZONE: Above Form */}
             <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
             {step === 1 && <Step1Desktop />}
-            {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
-            {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+            {sn.address && step === sn.address && <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
+            {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
+            {step === sn.payment && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
             {/* DROP ZONE: Below Form */}
             <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
           </div>
@@ -318,8 +318,9 @@ export default function TikTokLayout({ config, elements = [], isBuilder, onSelec
           {/* DROP ZONE: Above Form (mobile) */}
           <CheckoutDropZone position="above-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Acima do formulário)" />
           {step === 1 && <Step1Mobile />}
-          {step === 2 && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(1)} onConfirm={() => setStep(3)} />}
-          {step === 3 && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
+          {sn.address && step === sn.address && <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />}
+          {step === sn.review && <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />}
+          {step === sn.payment && <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />}
           {/* DROP ZONE: Below Form (mobile) */}
           <CheckoutDropZone position="below-form" elements={elements} primaryColor={s.primary} textColor={s.textColor} cardBg={s.cardBg} cardBorder={s.cardBorder} isBuilder={isBuilder} onSelectElement={onSelectElement} selectedElementId={selectedElementId} onDrop={onDropElement} label="Solte aqui (Abaixo do formulário)" />
           {/* DROP ZONE: Sidebar Bottom (mobile) */}
