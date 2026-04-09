@@ -1579,7 +1579,7 @@
     }
 
     if (cfg.showTimer) startTimer(cfg.timerMinutes||15);
-    document.title = cfg.productName || 'Checkout';
+    if (!cfg.pageTitle) document.title = cfg.productName || 'Checkout';
     render();
   }
 
