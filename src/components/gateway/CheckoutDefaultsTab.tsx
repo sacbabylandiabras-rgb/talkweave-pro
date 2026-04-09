@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/useCheckoutDefaults";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const TEMPLATE_OPTIONS = [
   { value: "none", label: "Nenhum (padrão)" },
@@ -37,10 +38,34 @@ export default function CheckoutDefaultsTab() {
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading) setForm(defaults);
   }, [loading, defaults]);
+
+  const handleImageUpload = async (file: File, field: "logoUrl" | "faviconUrl") => {
+    const setUploading = field === "logoUrl" ? setUploadingLogo : setUploadingFavicon;
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/${field}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      updateForm(field, urlData.publicUrl);
+      toast.success("Imagem enviada!");
+    } catch (err: any) {
+      toast.error("Erro ao enviar imagem: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const updateForm = (key: keyof CheckoutDefaults, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -83,12 +108,28 @@ export default function CheckoutDefaultsTab() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs">Logo URL</Label>
-              <Input value={form.logoUrl} onChange={e => updateForm("logoUrl", e.target.value)} placeholder="https://..." className="mt-1" />
+              <Label className="text-xs">Logo</Label>
+              <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0], "logoUrl"); }} />
+              <div className="flex items-center gap-2 mt-1">
+                {form.logoUrl && <img src={form.logoUrl} alt="Logo" className="w-8 h-8 rounded object-contain border border-border" />}
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+                  {uploadingLogo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {form.logoUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {form.logoUrl && <Input value={form.logoUrl} onChange={e => updateForm("logoUrl", e.target.value)} className="flex-1 text-xs" placeholder="URL" />}
+              </div>
             </div>
             <div>
-              <Label className="text-xs">Favicon URL</Label>
-              <Input value={form.faviconUrl} onChange={e => updateForm("faviconUrl", e.target.value)} placeholder="https://..." className="mt-1" />
+              <Label className="text-xs">Favicon</Label>
+              <input type="file" accept="image/*" ref={faviconInputRef} className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0], "faviconUrl"); }} />
+              <div className="flex items-center gap-2 mt-1">
+                {form.faviconUrl && <img src={form.faviconUrl} alt="Favicon" className="w-6 h-6 rounded object-contain border border-border" />}
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" disabled={uploadingFavicon} onClick={() => faviconInputRef.current?.click()}>
+                  {uploadingFavicon ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {form.faviconUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {form.faviconUrl && <Input value={form.faviconUrl} onChange={e => updateForm("faviconUrl", e.target.value)} className="flex-1 text-xs" placeholder="URL" />}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
