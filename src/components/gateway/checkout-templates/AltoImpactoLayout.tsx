@@ -31,9 +31,10 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
   const [formPhone, setFormPhone] = useState("");
   const [cpfError, setCpfError] = useState("");
 
+  const sn0 = getStepNumbers(config);
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
-    setCpfError(""); setStep(2);
+    setCpfError(""); setStep(sn0.address || sn0.review);
   };
 
   useEffect(() => {
