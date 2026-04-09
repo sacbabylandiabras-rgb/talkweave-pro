@@ -26,6 +26,15 @@ const POSITION_LABELS: Record<ElementPosition, string> = {
   "footer": "Rodapé",
 };
 
+const POSITION_HELPERS: Record<ElementPosition, string> = {
+  "top": "Clique para adicionar elemento",
+  "above-form": "Clique para adicionar elemento",
+  "below-form": "Clique para adicionar elemento",
+  "sidebar": "Clique para adicionar elemento",
+  "sidebar-bottom": "Clique para adicionar elemento",
+  "footer": "Clique para adicionar elemento",
+};
+
 export default function CheckoutDropZone({
   position, elements, primaryColor, textColor, cardBg, cardBorder,
   isBuilder, onSelectElement, selectedElementId, onDrop, label,
@@ -56,7 +65,7 @@ export default function CheckoutDropZone({
       onDrop={isBuilder ? handleDrop : undefined}
       className="relative"
       style={{
-        minHeight: isBuilder && positionElements.length === 0 ? "56px" : undefined,
+        minHeight: isBuilder && positionElements.length === 0 ? "120px" : undefined,
       }}
     >
       {/* Drop indicator */}
@@ -70,15 +79,20 @@ export default function CheckoutDropZone({
       {/* Empty state — visible clickable zone */}
       {isBuilder && positionElements.length === 0 && !dragOver && (
         <div
-          className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 cursor-pointer transition-all hover:border-[#FF4D2E]/60 hover:bg-[#FF4D2E]/5"
-          style={{ borderColor: "#FF4D2E40", color: "#FF4D2E" }}
+          className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all hover:opacity-90"
+          style={{ borderColor: primaryColor, background: `${primaryColor}08`, color: textColor }}
           onClick={() => {
-            // Default to adding a "text" element when clicking the empty zone
             if (onDrop) onDrop("text" as CheckoutElementType, position);
           }}
         >
-          <Plus className="w-4 h-4" />
-          <span className="text-xs font-medium">{label || POSITION_LABELS[position] || "Adicionar elemento"}</span>
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{ borderColor: primaryColor, color: primaryColor }}
+          >
+            <Plus className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-medium">{POSITION_HELPERS[position]}</span>
+          <span className="text-xs opacity-70">{label || POSITION_LABELS[position] || "Adicionar elemento"}</span>
         </div>
       )}
 
