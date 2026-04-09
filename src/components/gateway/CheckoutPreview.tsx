@@ -110,6 +110,13 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCpf, setFormCpf] = useState("");
+  const [formCep, setFormCep] = useState("");
+  const [formStreet, setFormStreet] = useState("");
+  const [formNumber, setFormNumber] = useState("");
+  const [formComplement, setFormComplement] = useState("");
+  const [formNeighborhood, setFormNeighborhood] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formState, setFormState] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Receipt upload state
@@ -501,34 +508,34 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                   <>
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="00000-000" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="00000-000" value={formCep} onChange={(e) => setFormCep(e.target.value)} />
                     </div>
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Endereço</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Rua, Avenida..." />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Rua, Avenida..." value={formStreet} onChange={(e) => setFormStreet(e.target.value)} />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label>
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="123" />
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="123" value={formNumber} onChange={(e) => setFormNumber(e.target.value)} />
                       </div>
                       <div className="col-span-2">
                         <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label>
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Apto, Bloco..." />
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Apto, Bloco..." value={formComplement} onChange={(e) => setFormComplement(e.target.value)} />
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Bairro</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Bairro" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Bairro" value={formNeighborhood} onChange={(e) => setFormNeighborhood(e.target.value)} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label>
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Cidade" />
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="Cidade" value={formCity} onChange={(e) => setFormCity(e.target.value)} />
                       </div>
                       <div>
                         <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label>
-                        <select className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)}>
+                          <select className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} value={formState} onChange={(e) => setFormState(e.target.value)}>
                           <option value="">UF</option>
                           {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map(uf => (
                             <option key={uf} value={uf}>{uf}</option>
@@ -598,34 +605,34 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP <span style={{ color: '#EF4444' }}>*</span></label>
-                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" />
+                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" value={formCep} onChange={(e) => setFormCep(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua / Avenida</label>
-                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" />
+                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" value={formStreet} onChange={(e) => setFormStreet(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nº</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" value={formNumber} onChange={(e) => setFormNumber(e.target.value)} />
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" value={formComplement} onChange={(e) => setFormComplement(e.target.value)} />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Bairro</label>
-                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" />
+                  <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" value={formNeighborhood} onChange={(e) => setFormNeighborhood(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" value={formCity} onChange={(e) => setFormCity(e.target.value)} />
                   </div>
                   <div>
                     <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label>
-                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" />
+                    <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" value={formState} onChange={(e) => setFormState(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -677,6 +684,14 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: s.cardBorder }}>
                     <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Celular</span>
                     <span className="text-sm font-semibold" style={{ color: s.cardTitle }}>{formPhone || "—"}</span>
+                  </div>
+                )}
+                {config.showAddress && (
+                  <div className="flex justify-between items-center py-2 border-b gap-4" style={{ borderColor: s.cardBorder }}>
+                    <span className="text-xs font-medium" style={{ color: s.cardLabel }}>Endereço</span>
+                    <span className="text-sm font-semibold text-right" style={{ color: s.cardTitle }}>
+                      {[formCep, [formStreet, formNumber].filter(Boolean).join(', '), [formComplement, formNeighborhood].filter(Boolean).join(' • '), [formCity, formState].filter(Boolean).join(' - ')].filter(Boolean).join(' | ') || "—"}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between items-center py-2">

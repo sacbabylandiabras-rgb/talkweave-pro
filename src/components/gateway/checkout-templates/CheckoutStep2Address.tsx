@@ -3,11 +3,43 @@ import { cardStyle, buttonStyle, inputStyle, getCheckoutStyles, stepStyle } from
 
 interface Props {
   config: Record<string, any>;
+  formCep: string;
+  formStreet: string;
+  formNumber: string;
+  formComplement: string;
+  formNeighborhood: string;
+  formCity: string;
+  formState: string;
+  onCepChange: (value: string) => void;
+  onStreetChange: (value: string) => void;
+  onNumberChange: (value: string) => void;
+  onComplementChange: (value: string) => void;
+  onNeighborhoodChange: (value: string) => void;
+  onCityChange: (value: string) => void;
+  onStateChange: (value: string) => void;
   onBack: () => void;
   onNext: () => void;
 }
 
-export default function CheckoutStep2Address({ config, onBack, onNext }: Props) {
+export default function CheckoutStep2Address({
+  config,
+  formCep,
+  formStreet,
+  formNumber,
+  formComplement,
+  formNeighborhood,
+  formCity,
+  formState,
+  onCepChange,
+  onStreetChange,
+  onNumberChange,
+  onComplementChange,
+  onNeighborhoodChange,
+  onCityChange,
+  onStateChange,
+  onBack,
+  onNext,
+}: Props) {
   const s = getCheckoutStyles(config);
 
   return (
@@ -25,34 +57,34 @@ export default function CheckoutStep2Address({ config, onBack, onNext }: Props) 
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP <span style={{ color: '#EF4444' }}>*</span></label>
-            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" />
+            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" value={formCep} onChange={(e) => onCepChange(e.target.value)} />
           </div>
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua / Avenida</label>
-            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" />
+            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" value={formStreet} onChange={(e) => onStreetChange(e.target.value)} />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Nº</label>
-              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" />
+              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" value={formNumber} onChange={(e) => onNumberChange(e.target.value)} />
             </div>
             <div className="col-span-2">
               <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Complemento</label>
-              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" />
+              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" value={formComplement} onChange={(e) => onComplementChange(e.target.value)} />
             </div>
           </div>
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Bairro</label>
-            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" />
+            <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" value={formNeighborhood} onChange={(e) => onNeighborhoodChange(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label>
-              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" />
+              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" value={formCity} onChange={(e) => onCityChange(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label>
-              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" />
+              <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" value={formState} onChange={(e) => onStateChange(e.target.value)} />
             </div>
           </div>
         </div>
