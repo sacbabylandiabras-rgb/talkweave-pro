@@ -893,7 +893,23 @@
   }
 
   /* ══════════════════════════════════
-     SHARED STEP 2: REVIEW
+     STEP: ADDRESS (4-step only)
+     ══════════════════════════════════ */
+  function stepAddressHTML() {
+    var h = '<div class="c">';
+    h += '<h3>Endereço de entrega</h3><p class="desc">Preencha o endereço para o envio do seu pedido.</p>';
+    h += '<div style="margin-top:16px">';
+    h += addressFieldsHTML();
+    h += '</div></div>';
+    h += '<div class="btn-row">';
+    h += '<button class="btn btn-outline" id="btn-addr-back">Voltar</button>';
+    h += '<button class="btn" id="btn-addr-next">Próximo</button>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ══════════════════════════════════
+     SHARED STEP: REVIEW
      ══════════════════════════════════ */
   function step2HTML() {
     var h = '<div class="c">';
@@ -915,7 +931,7 @@
   }
 
   /* ══════════════════════════════════
-     SHARED STEP 3: PAYMENT
+     SHARED STEP: PAYMENT
      ══════════════════════════════════ */
   function step3HTML() {
     var pp = pixPrice();
