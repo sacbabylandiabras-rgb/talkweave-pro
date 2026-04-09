@@ -78,6 +78,16 @@ export default function CheckoutDefaultsTab() {
     else toast.error("Erro ao salvar configurações");
   };
 
+  const handleApplyAll = async () => {
+    setApplying(true);
+    const ok = await saveDefaults(form);
+    if (!ok) { toast.error("Erro ao salvar"); setApplying(false); return; }
+    const count = await applyToAllCheckouts(form);
+    setApplying(false);
+    if (count > 0) toast.success(`Configuração aplicada a ${count} checkout(s)!`);
+    else toast("Nenhum checkout encontrado para atualizar");
+  };
+
   const handleApplyTemplate = (settings: Record<string, any>, _name: string, templateId: string) => {
     setForm(prev => ({ ...prev, ...settings, templateId }));
     toast.success("Modelo aplicado! Salve para confirmar.");
