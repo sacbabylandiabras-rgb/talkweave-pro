@@ -189,6 +189,22 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
                         <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="+55 (00) 00000-0000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
                       </div>
                     )}
+                    {config.showAddress && (
+                      <div className="border p-4 space-y-2" style={cardStyle(s)}>
+                        <label className="text-xs font-bold block" style={{ color: s.cardTitle }}>Endereço de Entrega</label>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="CEP" />
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" />
+                          <input className="col-span-2 w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" />
+                        </div>
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" />
+                          <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" />
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>E-mail</label>
                       <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="seu@email.com" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
