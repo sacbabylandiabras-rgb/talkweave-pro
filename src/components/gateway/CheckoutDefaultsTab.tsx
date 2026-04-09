@@ -445,6 +445,35 @@ export default function CheckoutDefaultsTab() {
         </CardContent>
       </Card>
 
+      {/* Elementos Personalizados */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Blocks className="w-4 h-4" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-primary text-primary-foreground rounded-full px-1.5">{elements.length}</span>}
+          </CardTitle>
+          <CardDescription className="text-xs">Adicione elementos personalizados ao checkout (banners, avisos, contadores, etc.)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <CheckoutElementsSidebar
+            elements={elements}
+            onAddElement={addElement}
+            onRemoveElement={removeElement}
+            onToggleElement={toggleElement}
+            onSelectElement={setSelectedElementId}
+            onMoveElement={moveElement}
+            selectedElementId={selectedElementId}
+          />
+
+          {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+            <CheckoutElementEditor
+              element={elements.find(e => e.id === selectedElementId)!}
+              onUpdate={updateElementContent}
+              onUpdatePosition={updateElementPosition}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Actions */}
       <div className="flex items-center gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving} className="gap-2">
