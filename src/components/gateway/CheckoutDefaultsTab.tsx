@@ -71,6 +71,7 @@ function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mob
   );
 }
 
+export default function CheckoutDefaultsTab() {
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
