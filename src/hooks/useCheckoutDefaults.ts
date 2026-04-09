@@ -131,6 +131,7 @@ export function useCheckoutDefaults() {
       const mergedConfig = {
         ...existingConfig,
         logoUrl: newDefaults.logoUrl,
+        showLogo: newDefaults.showLogo,
         faviconUrl: newDefaults.faviconUrl,
         primaryColor: newDefaults.primaryColor,
         bgColor: newDefaults.bgColor,
