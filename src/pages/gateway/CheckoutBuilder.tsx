@@ -109,6 +109,7 @@ export default function CheckoutBuilder() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id?: string }>();
   const isEditing = !!editId;
+  const { defaults: globalDefaults, loading: defaultsLoading } = useCheckoutDefaults();
   const [config, setConfig] = useState(defaultConfig);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
