@@ -45,7 +45,11 @@ function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mob
     const updateScale = () => {
       if (containerRef.current) {
         const availableWidth = containerRef.current.offsetWidth;
-        setScale(availableWidth / baseWidth);
+        let s = availableWidth / baseWidth;
+        if (previewMode === "mobile") {
+          s = Math.min(s, 0.85);
+        }
+        setScale(s);
       }
     };
     updateScale();
