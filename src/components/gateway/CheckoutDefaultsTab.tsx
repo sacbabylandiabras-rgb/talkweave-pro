@@ -67,7 +67,8 @@ function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mob
       <div style={{
         width: baseWidth,
         transform: `scale(${scale})`,
-        transformOrigin: "top left",
+        transformOrigin: previewMode === "mobile" ? "top center" : "top left",
+        margin: previewMode === "mobile" ? "0 auto" : undefined,
       }}>
         {children}
       </div>
