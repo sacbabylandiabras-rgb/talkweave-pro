@@ -1,13 +1,22 @@
 import { useState, useEffect } from "react";
-import { Settings, TestTube, Loader2, CheckCircle, CreditCard, Power } from "lucide-react";
+import { Settings, TestTube, Loader2, CheckCircle, CreditCard, Power, Users, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrencyReais } from "./mock-data";
 import { toast } from "sonner";
 
 type Acquirer = "openpix" | "hubpague";
+
+interface UserAcquirer {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  pix_acquirer: string | null;
+}
 
 export default function AdminAcquirers() {
   const [volumeMonth, setVolumeMonth] = useState(0);
@@ -23,9 +32,14 @@ export default function AdminAcquirers() {
   const [hubTxCount, setHubTxCount] = useState(0);
   const [hubApprovalRate, setHubApprovalRate] = useState(0);
 
+  // Per-user acquirer state
+  const [users, setUsers] = useState<UserAcquirer[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [savingUser, setSavingUser] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch stats
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
@@ -48,7 +62,6 @@ export default function AdminAcquirers() {
       setHubTxCount(hubTxs.length);
       setHubApprovalRate(hubTxs.length > 0 ? Math.round((hubApproved.length / hubTxs.length) * 100) : 100);
 
-      // Fetch active acquirer
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-config`, {
@@ -65,7 +78,18 @@ export default function AdminAcquirers() {
 
       setLoading(false);
     };
+
+    const fetchUsers = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, pix_acquirer")
+        .order("created_at", { ascending: false });
+      setUsers((data as UserAcquirer[]) || []);
+      setLoadingUsers(false);
+    };
+
     fetchData();
+    fetchUsers();
   }, []);
 
   const handleSwitchAcquirer = async (acquirer: Acquirer) => {
@@ -85,7 +109,7 @@ export default function AdminAcquirers() {
       const data = await res.json();
       if (data?.success) {
         setActiveAcquirer(acquirer);
-        toast.success(`Adquirente ativa alterada para ${acquirer === 'openpix' ? 'Woovi (OpenPix)' : 'HubPague'}`);
+        toast.success(`Adquirente padrão alterada para ${acquirer === 'openpix' ? 'Woovi (OpenPix)' : 'HubPague'}`);
       } else {
         toast.error(data?.error || "Erro ao alterar adquirente");
       }
@@ -94,6 +118,24 @@ export default function AdminAcquirers() {
     } finally {
       setSwitching(false);
     }
+  };
+
+  const handleUserAcquirerChange = async (userId: string, value: string) => {
+    setSavingUser(userId);
+    const acquirerValue = value === "default" ? null : value;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ pix_acquirer: acquirerValue } as any)
+      .eq("id", userId);
+    
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, pix_acquirer: acquirerValue } : u));
+      const label = acquirerValue ? (acquirerValue === 'openpix' ? 'Woovi' : 'HubPague') : 'Padrão da plataforma';
+      toast.success(`Adquirente do usuário alterada para: ${label}`);
+    }
+    setSavingUser(null);
   };
 
   const handleTestWoovi = async () => {
@@ -169,18 +211,24 @@ export default function AdminAcquirers() {
   const isWooviActive = activeAcquirer === "openpix";
   const isHubActive = activeAcquirer === "hubpague";
 
+  const filteredUsers = users.filter(u => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (u.email?.toLowerCase().includes(term) || u.full_name?.toLowerCase().includes(term));
+  });
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Adquirentes</h1>
-        <p className="text-sm text-muted-foreground">Selecione qual adquirente será usada para processar pagamentos PIX</p>
+        <p className="text-sm text-muted-foreground">Gerencie a adquirente padrão e configure por usuário</p>
       </div>
 
       {/* Active acquirer banner */}
       <div className="p-3 rounded-lg border border-[#FF4D2E]/30 bg-[#FF4D2E]/5 flex items-center gap-3">
         <Power className="w-4 h-4 text-[#FF4D2E]" />
         <span className="text-sm">
-          Adquirente ativa: <strong>{isWooviActive ? 'Woovi (OpenPix)' : 'HubPague'}</strong>
+          Adquirente padrão: <strong>{isWooviActive ? 'Woovi (OpenPix)' : 'HubPague'}</strong>
           {switching && <Loader2 className="w-3 h-3 inline ml-2 animate-spin" />}
         </span>
       </div>
@@ -197,7 +245,7 @@ export default function AdminAcquirers() {
                 <div>
                   <h3 className="font-semibold">Woovi (OpenPix)</h3>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] ${isWooviActive ? 'text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground bg-muted'}`}>
-                    {isWooviActive ? 'Ativa' : 'Inativa'}
+                    {isWooviActive ? 'Padrão' : 'Inativa'}
                   </span>
                 </div>
               </div>
@@ -246,7 +294,7 @@ export default function AdminAcquirers() {
                 <div>
                   <h3 className="font-semibold">HubPague</h3>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] ${isHubActive ? 'text-blue-400 bg-blue-500/10' : 'text-muted-foreground bg-muted'}`}>
-                    {isHubActive ? 'Ativa' : 'Inativa'}
+                    {isHubActive ? 'Padrão' : 'Inativa'}
                   </span>
                 </div>
               </div>
@@ -284,6 +332,85 @@ export default function AdminAcquirers() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Per-user acquirer assignment */}
+      <Card className="border-border">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <h3 className="font-semibold text-sm">Adquirente por Usuário</h3>
+                <p className="text-xs text-muted-foreground">Defina qual adquirente cada usuário vai usar. "Padrão" usa a adquirente global.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {loadingUsers ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Usuário</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Email</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Adquirente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(user => (
+                    <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-2.5 font-medium">{user.full_name || "—"}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{user.email || "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={user.pix_acquirer || "default"}
+                            onValueChange={v => handleUserAcquirerChange(user.id, v)}
+                            disabled={savingUser === user.id}
+                          >
+                            <SelectTrigger className="w-44 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">
+                                🔄 Padrão ({isWooviActive ? 'Woovi' : 'HubPague'})
+                              </SelectItem>
+                              <SelectItem value="openpix">🟢 Woovi (OpenPix)</SelectItem>
+                              <SelectItem value="hubpague">🔵 HubPague</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {savingUser === user.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-muted-foreground text-sm">
+                        Nenhum usuário encontrado
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
         <h3 className="text-sm font-semibold mb-2">📌 Webhook do HubPague</h3>
