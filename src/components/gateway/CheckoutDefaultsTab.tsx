@@ -36,7 +36,41 @@ const STEP_STYLES = [
   { value: "progress", label: "Barra" },
 ];
 
-export default function CheckoutDefaultsTab() {
+function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mobile"; children: React.ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const baseWidth = previewMode === "desktop" ? 800 : 375;
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const availableWidth = containerRef.current.offsetWidth;
+        setScale(availableWidth / baseWidth);
+      }
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [baseWidth]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="rounded-xl overflow-auto border border-border bg-muted/20"
+      style={{ height: "calc(100vh - 140px)" }}
+    >
+      <div style={{
+        width: baseWidth,
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
