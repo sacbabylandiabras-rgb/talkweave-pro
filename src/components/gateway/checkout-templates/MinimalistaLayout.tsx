@@ -4,8 +4,10 @@ import { formatCurrency } from "@/pages/gateway/mock-data";
 import { validateCpfCnpj, formatCpfCnpj } from "./cpf-cnpj-validator";
 import { PaymentFooter } from "./PaymentIcons";
 import { getCheckoutStyles, inputStyle, cardStyle, buttonStyle, stepStyle } from "./checkout-style-helpers";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
+import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutDropZone from "../checkout-elements/CheckoutDropZone";
 import { CheckoutElement, CheckoutElementType, ElementPosition } from "../checkout-elements/types";
 
@@ -20,7 +22,7 @@ interface Props {
 }
 
 export default function MinimalistaLayout({ config, elements = [], isBuilder, onSelectElement, selectedElementId, onDropElement, previewMode }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 9, s: 0 });
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -28,9 +30,10 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const [formPhone, setFormPhone] = useState("");
   const [cpfError, setCpfError] = useState("");
 
+  const sn0 = getStepNumbers(config);
   const handleNext = () => {
     if (!validateCpfCnpj(formCpf)) { setCpfError("CPF ou CNPJ inválido"); return; }
-    setCpfError(""); setStep(2);
+    setCpfError(""); setStep(sn0.address || sn0.review);
   };
 
   useEffect(() => {
@@ -56,11 +59,8 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
   const frete = config.shippingEnabled ? (config.shippingPrice || 0) : 0;
   const pixPrice = config.pixDiscount > 0 ? Math.round(unitPrice * (1 - config.pixDiscount / 100)) : unitPrice;
 
-  const steps = [
-    { num: 1, label: "Identificação", icon: <User className="w-3 h-3" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-3 h-3" /> },
-    { num: 3, label: "Pagamento", icon: <CreditCard className="w-3 h-3" /> },
-  ];
+  const steps = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return (
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
