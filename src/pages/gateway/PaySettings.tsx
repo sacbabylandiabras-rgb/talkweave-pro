@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock, Pencil } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock, Pencil, ShoppingBag } from "lucide-react";
+import CheckoutDefaultsTab from "@/components/gateway/CheckoutDefaultsTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -400,6 +401,7 @@ export default function PaySettings() {
           <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
           <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
           <TabsTrigger value="seguranca"><Shield className="w-3.5 h-3.5 mr-1.5" />Segurança</TabsTrigger>
+          <TabsTrigger value="checkout"><ShoppingBag className="w-3.5 h-3.5 mr-1.5" />Checkout Padrão</TabsTrigger>
         </TabsList>
 
         <TabsContent value="empresa" className="mt-4 space-y-4">
