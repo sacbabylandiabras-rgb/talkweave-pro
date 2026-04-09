@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X, Link, Copy } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X, Link, Copy, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,35 +473,51 @@ export default function PayProducts() {
 
                         return (
                           <div key={ck.id} className="space-y-2 bg-muted/50 rounded-md px-2 py-2">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 mb-2">
                               <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
                               <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
                             </div>
 
-                            <div className="space-y-1 pl-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-muted-foreground shrink-0">Plataforma</span>
-                                <code className="text-[10px] text-muted-foreground truncate flex-1" title={platformUrl}>{platformUrl}</code>
-                                <button
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex gap-1.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 text-[10px] h-7"
                                   onClick={(e) => void copyCheckoutUrl(platformUrl, "Link da plataforma", e)}
-                                  className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                                  title={platformUrl}
                                 >
-                                  <Copy className="w-3 h-3" />
-                                </button>
+                                  <Copy className="w-3 h-3 mr-1" /> Plataforma
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => window.open(platformUrl, '_blank')}
+                                  title="Abrir checkout"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </Button>
                               </div>
 
                               {hasCustomDomain && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] text-muted-foreground shrink-0">Personalizado</span>
-                                  <code className="text-[10px] text-muted-foreground truncate flex-1" title={customUrl}>{customUrl}</code>
-                                  <button
+                                <div className="flex gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-[10px] h-7"
                                     onClick={(e) => void copyCheckoutUrl(customUrl, "Link personalizado", e)}
-                                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                                    title={customUrl}
                                   >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
+                                    <Copy className="w-3 h-3 mr-1" /> Personalizado
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => window.open(customUrl, '_blank')}
+                                    title="Abrir checkout"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </Button>
                                 </div>
                               )}
                             </div>
