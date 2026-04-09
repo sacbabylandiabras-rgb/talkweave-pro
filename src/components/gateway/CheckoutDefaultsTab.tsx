@@ -38,10 +38,34 @@ export default function CheckoutDefaultsTab() {
   const { defaults, loading, saving, saveDefaults, applyToAllCheckouts } = useCheckoutDefaults();
   const [form, setForm] = useState<CheckoutDefaults>(emptyDefaults);
   const [applying, setApplying] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading) setForm(defaults);
   }, [loading, defaults]);
+
+  const handleImageUpload = async (file: File, field: "logoUrl" | "faviconUrl") => {
+    const setUploading = field === "logoUrl" ? setUploadingLogo : setUploadingFavicon;
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/${field}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      updateForm(field, urlData.publicUrl);
+      toast.success("Imagem enviada!");
+    } catch (err: any) {
+      toast.error("Erro ao enviar imagem: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const updateForm = (key: keyof CheckoutDefaults, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
