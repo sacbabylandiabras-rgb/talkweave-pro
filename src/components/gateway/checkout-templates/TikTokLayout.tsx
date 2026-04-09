@@ -12,6 +12,7 @@ import {
 import { formatCurrency } from "@/pages/gateway/mock-data";
 import { PixIcon, CardBrandsRow, ApplePayIcon, BoletoIcon, PaymentFooter } from "./PaymentIcons";
 import { buttonStyle, cardStyle, getCheckoutStyles, inputStyle } from "./checkout-style-helpers";
+import { getCheckoutSteps, getStepNumbers } from "./checkout-steps-helpers";
 import CheckoutStep2Review from "./CheckoutStep2Review";
 import CheckoutStep2Address from "./CheckoutStep2Address";
 import CheckoutStep3Payment from "./CheckoutStep3Payment";
