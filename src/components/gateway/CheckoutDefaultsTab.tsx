@@ -357,16 +357,15 @@ export default function CheckoutDefaultsTab() {
                 </Button>
               </div>
             </div>
-            <div className="border border-border rounded-xl overflow-hidden bg-muted/30">
-              <div
-                className="origin-top-left"
-                style={{
-                  width: previewMode === "desktop" ? 800 : 320,
-                  transform: `scale(${previewMode === "desktop" ? 0.5 : 0.85})`,
-                  transformOrigin: "top left",
-                  height: "auto",
-                }}
-              >
+            <div className="border border-border rounded-xl overflow-hidden bg-muted/30" style={{ maxHeight: "75vh", overflow: "auto" }}>
+              <div style={{ 
+                width: previewMode === "desktop" ? 800 : 375,
+                transform: previewMode === "desktop" ? "scale(0.48)" : "scale(0.75)",
+                transformOrigin: "top center",
+                marginLeft: "auto",
+                marginRight: "auto",
+                marginBottom: previewMode === "desktop" ? "-40%" : "-20%",
+              }}>
                 <CheckoutPreview config={form as any} previewMode={previewMode} />
               </div>
             </div>
