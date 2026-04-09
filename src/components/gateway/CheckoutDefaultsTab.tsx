@@ -36,6 +36,13 @@ const STEP_STYLES = [
   { value: "progress", label: "Barra" },
 ];
 
+const FORMAT_OPTIONS = [
+  { value: "multi_step", label: "Multi Etapas" },
+  { value: "one_step", label: "Uma Etapa" },
+  { value: "modal", label: "Modal" },
+  { value: "inline", label: "Inline" },
+];
+
 function PreviewFrame({ previewMode, children }: { previewMode: "desktop" | "mobile"; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);

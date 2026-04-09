@@ -148,6 +148,7 @@ export function useCheckoutDefaults() {
         footerCompanyName: newDefaults.footerCompanyName,
         footerCnpj: newDefaults.footerCnpj,
         stepIndicatorStyle: newDefaults.stepIndicatorStyle,
+        format: newDefaults.format,
       };
 
       const { error } = await supabase
