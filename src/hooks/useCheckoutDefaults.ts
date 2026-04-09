@@ -135,6 +135,7 @@ export function useCheckoutDefaults() {
         logoUrl: newDefaults.logoUrl,
         showLogo: newDefaults.showLogo,
         faviconUrl: newDefaults.faviconUrl,
+        pageTitle: newDefaults.pageTitle,
         primaryColor: newDefaults.primaryColor,
         bgColor: newDefaults.bgColor,
         textColor: newDefaults.textColor,
