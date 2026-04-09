@@ -220,31 +220,16 @@ export default function MinimalistaLayout({ config, elements = [], isBuilder, on
               </>
             )}
 
-            {/* Step 2: Conferência */}
-            {step === 2 && (
-              <CheckoutStep2Review
-                config={config}
-                formName={formName}
-                formEmail={formEmail}
-                formCpf={formCpf}
-                formPhone={formPhone}
-                totalPrice={unitPrice}
-                onBack={() => setStep(1)}
-                onConfirm={() => setStep(3)}
-              />
+            {sn.address && step === sn.address && (
+              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
-            {/* Step 3: Pagamento */}
-            {step === 3 && (
-              <CheckoutStep3Payment
-                config={config}
-                pixPrice={pixPrice}
-                formName={formName}
-                formEmail={formEmail}
-                formPhone={formPhone}
-                formCpf={formCpf}
-                timerStr={timerStr}
-              />
+            {step === sn.review && (
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={unitPrice} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+            )}
+
+            {step === sn.payment && (
+              <CheckoutStep3Payment config={config} pixPrice={pixPrice} formName={formName} formEmail={formEmail} formPhone={formPhone} formCpf={formCpf} timerStr={timerStr} />
             )}
           </div>
 
