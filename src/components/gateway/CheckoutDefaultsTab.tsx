@@ -284,6 +284,15 @@ export default function CheckoutDefaultsTab() {
               </div>
             </div>
           </div>
+          <div>
+            <Label className="text-xs">Título da Página (aba do navegador)</Label>
+            <Input
+              value={form.pageTitle || ""}
+              onChange={e => updateForm("pageTitle", e.target.value)}
+              className="text-xs mt-1"
+              placeholder="Ex: Minha Loja - Checkout Seguro"
+            />
+          </div>
           <div className="grid grid-cols-4 gap-3">
             <div>
               <Label className="text-xs">Cor Primária</Label>

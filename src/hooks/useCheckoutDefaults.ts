@@ -5,6 +5,7 @@ export interface CheckoutDefaults {
   logoUrl: string;
   showLogo: boolean;
   faviconUrl: string;
+  pageTitle: string;
   primaryColor: string;
   bgColor: string;
   textColor: string;
@@ -36,6 +37,7 @@ export const emptyDefaults: CheckoutDefaults = {
   logoUrl: "",
   showLogo: true,
   faviconUrl: "",
+  pageTitle: "",
   primaryColor: "#EF4444",
   bgColor: "#EFF1F5",
   textColor: "#1F2937",
@@ -133,6 +135,7 @@ export function useCheckoutDefaults() {
         logoUrl: newDefaults.logoUrl,
         showLogo: newDefaults.showLogo,
         faviconUrl: newDefaults.faviconUrl,
+        pageTitle: newDefaults.pageTitle,
         primaryColor: newDefaults.primaryColor,
         bgColor: newDefaults.bgColor,
         textColor: newDefaults.textColor,
