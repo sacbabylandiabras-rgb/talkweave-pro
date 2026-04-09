@@ -1096,6 +1096,7 @@
       h += '<div class="fg"><label>Celular (WhatsApp)</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="text-transform:uppercase;letter-spacing:.05em">PRÓXIMO</button>';
     h += '</div></div>';
     return h;
