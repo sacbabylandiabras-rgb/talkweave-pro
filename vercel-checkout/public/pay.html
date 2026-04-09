@@ -1258,9 +1258,7 @@
       var mainH2 = renderElementsAt('top');
       mainH2 += stepsHTML();
       mainH2 += renderElementsAt('above-form');
-      if (step === 1) mainH2 += step1TokLynx();
-      else if (step === 2) mainH2 += step2HTML();
-      else mainH2 += step3HTML();
+      mainH2 += stepContentHTML(step1TokLynx);
       mainH2 += renderElementsAt('below-form');
 
       var sideH2 = sidebarSummaryHTML({showCount:true});
@@ -1276,9 +1274,7 @@
       // Summary (always visible)
       h += defaultSummaryHTML();
       h += renderElementsAt('above-form');
-      if (step === 1) h += step1Default();
-      else if (step === 2) h += step2HTML();
-      else h += step3HTML();
+      h += stepContentHTML(step1Default);
       h += renderElementsAt('below-form');
       h += footerHTML();
       h += renderElementsAt('footer');
