@@ -1040,6 +1040,7 @@
     h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
     h += '</div>';
     h += '</div></div>';
+    if (cfg.showAddress) { h += '<div class="c"><h3>Endereço de entrega</h3><div style="margin-top:12px">' + addressFieldsHTML() + '</div></div>'; }
     h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
     return h;
   }
