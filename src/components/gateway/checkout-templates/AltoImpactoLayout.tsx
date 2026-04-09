@@ -74,7 +74,7 @@ export default function AltoImpactoLayout({ config, elements = [], isBuilder, on
     <div className="h-full overflow-auto" style={{ background: s.bgColor, fontFamily: s.fontFamily, color: s.textColor }}>
       <div className="flex items-center justify-between px-6 py-3 border-b" style={{ background: s.cardBg, borderColor: s.cardBorder }}>
         <span className="text-sm font-bold" style={{ color: s.cardTitle }}>
-          {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-6 object-contain" /> : "Minha Loja"}
+          {config.showLogo !== false && config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-6 object-contain" /> : "Minha Loja"}
         </span>
         <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#16A34A" }}>
           <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% seguro

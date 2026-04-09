@@ -58,7 +58,7 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b" style={{ background: s.cardBg, borderColor: s.cardBorder }}>
         <span className="text-sm font-bold" style={{ color: s.cardTitle }}>
-          {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-7 object-contain" /> : "Minha Loja"}
+          {config.showLogo !== false && config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="h-7 object-contain" /> : "Minha Loja"}
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#16A34A" }}>
           <ShieldCheck className="w-3.5 h-3.5" /> Pagamento 100% Seguro
