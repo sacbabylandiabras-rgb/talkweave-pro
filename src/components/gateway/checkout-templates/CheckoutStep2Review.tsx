@@ -33,7 +33,7 @@ export default function CheckoutStep2Review({ config, formName, formEmail, formC
     { label: "E-mail", value: formEmail },
     { label: "CPF / CNPJ", value: formCpf },
     ...(config.showPhone ? [{ label: "Celular", value: formPhone }] : []),
-    ...(config.showAddress ? [{ label: "Endereço", value: addressValue }] : []),
+    ...(config.showAddress && addressValue ? [{ label: "Endereço", value: addressValue }] : []),
   ];
 
   return (

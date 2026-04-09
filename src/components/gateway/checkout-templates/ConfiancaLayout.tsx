@@ -36,6 +36,13 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
     setCpfError(""); setStep(sn0.address || sn0.review);
   };
   const [formPhone, setFormPhone] = useState("");
+  const [formCep, setFormCep] = useState("");
+  const [formStreet, setFormStreet] = useState("");
+  const [formNumber, setFormNumber] = useState("");
+  const [formComplement, setFormComplement] = useState("");
+  const [formNeighborhood, setFormNeighborhood] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formState, setFormState] = useState("");
 
   const s = getCheckoutStyles(config);
   const bannerBg = config.bgColor || "#C8E832";
@@ -125,16 +132,16 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
                   {config.showAddress && !sn.address && (
                     <div className="border p-4 space-y-2" style={cardStyle(s)}>
                       <label className="text-xs font-bold block" style={{ color: s.cardTitle }}>Endereço de Entrega</label>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="CEP" />
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="CEP" value={formCep} onChange={e => setFormCep(e.target.value)} />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua / Avenida" value={formStreet} onChange={e => setFormStreet(e.target.value)} />
                       <div className="grid grid-cols-3 gap-2">
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" />
-                        <input className="col-span-2 w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" />
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" value={formNumber} onChange={e => setFormNumber(e.target.value)} />
+                        <input className="col-span-2 w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Complemento" value={formComplement} onChange={e => setFormComplement(e.target.value)} />
                       </div>
-                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" />
+                      <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Bairro" value={formNeighborhood} onChange={e => setFormNeighborhood(e.target.value)} />
                       <div className="grid grid-cols-2 gap-2">
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" />
-                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" />
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" value={formCity} onChange={e => setFormCity(e.target.value)} />
+                        <input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Estado" value={formState} onChange={e => setFormState(e.target.value)} />
                       </div>
                     </div>
                   )}
@@ -148,12 +155,12 @@ export default function ConfiancaLayout({ config, elements = [], isBuilder, onSe
 
             {/* Address step (4-step flow) */}
             {sn.address && step === sn.address && (
-              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
+              <CheckoutStep2Address config={config} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} onCepChange={setFormCep} onStreetChange={setFormStreet} onNumberChange={setFormNumber} onComplementChange={setFormComplement} onNeighborhoodChange={setFormNeighborhood} onCityChange={setFormCity} onStateChange={setFormState} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
             {/* Review */}
             {step === sn.review && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
             )}
 
             {/* Payment */}

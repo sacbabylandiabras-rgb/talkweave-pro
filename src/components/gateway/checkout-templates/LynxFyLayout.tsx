@@ -30,6 +30,13 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [formCep, setFormCep] = useState("");
+  const [formStreet, setFormStreet] = useState("");
+  const [formNumber, setFormNumber] = useState("");
+  const [formComplement, setFormComplement] = useState("");
+  const [formNeighborhood, setFormNeighborhood] = useState("");
+  const [formCity, setFormCity] = useState("");
+  const [formState, setFormState] = useState("");
   const [cpfError, setCpfError] = useState("");
 
   const sn0 = getStepNumbers(config);
@@ -123,12 +130,12 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
                 {config.showAddress && !sn.address && (
                   <div className="border p-5 space-y-3" style={cardStyle(s)}>
                     <h3 className="text-sm font-bold" style={{ color: s.cardTitle }}>Endereço de entrega</h3>
-                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" /></div>
-                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, avenida..." /></div>
+                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="00000-000" value={formCep} onChange={e => setFormCep(e.target.value)} /></div>
+                    <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Rua</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Rua, avenida..." value={formStreet} onChange={e => setFormStreet(e.target.value)} /></div>
                     <div className="grid grid-cols-3 gap-3">
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" /></div>
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" /></div>
-                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" /></div>
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Número</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Nº" value={formNumber} onChange={e => setFormNumber(e.target.value)} /></div>
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Cidade</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="Cidade" value={formCity} onChange={e => setFormCity(e.target.value)} /></div>
+                      <div><label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>Estado</label><input className="w-full px-3 py-2.5 text-sm border outline-none placeholder:text-gray-400" style={inputStyle(s)} placeholder="UF" value={formState} onChange={e => setFormState(e.target.value)} /></div>
                     </div>
                   </div>
                 )}
@@ -143,11 +150,11 @@ export default function LynxFyLayout({ config, elements = [], isBuilder, onSelec
             )}
 
             {sn.address && step === sn.address && (
-              <CheckoutStep2Address config={config} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
+              <CheckoutStep2Address config={config} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} onCepChange={setFormCep} onStreetChange={setFormStreet} onNumberChange={setFormNumber} onComplementChange={setFormComplement} onNeighborhoodChange={setFormNeighborhood} onCityChange={setFormCity} onStateChange={setFormState} onBack={() => setStep(1)} onNext={() => setStep(sn.review)} />
             )}
 
             {step === sn.review && (
-              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
+              <CheckoutStep2Review config={config} formName={formName} formEmail={formEmail} formCpf={formCpf} formPhone={formPhone} formCep={formCep} formStreet={formStreet} formNumber={formNumber} formComplement={formComplement} formNeighborhood={formNeighborhood} formCity={formCity} formState={formState} totalPrice={subtotal} onBack={() => setStep(sn.address || 1)} onConfirm={() => setStep(sn.payment)} />
             )}
 
             {step === sn.payment && (

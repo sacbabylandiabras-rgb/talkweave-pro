@@ -200,7 +200,7 @@
   var AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
   var app = document.getElementById('app');
   var elems = []; // checkout builder elements
-  var step = 1, totalSteps = 3, fd = { name:'', email:'', cpf:'', phone:'' }, pixData = null, cfg = null, tenant = null;
+  var step = 1, totalSteps = 3, fd = { name:'', email:'', cpf:'', phone:'', cep:'', street:'', number:'', complement:'', neighborhood:'', city:'', state:'' }, pixData = null, cfg = null, tenant = null;
 
   function validateCPF(v){var d=v.replace(/\D/g,'');if(d.length!==11)return false;if(/^(\d)\1{10}$/.test(d))return false;var s=0;for(var i=0;i<9;i++)s+=parseInt(d[i])*(10-i);var r=(s*10)%11;if(r===10)r=0;if(r!==parseInt(d[9]))return false;s=0;for(var i=0;i<10;i++)s+=parseInt(d[i])*(11-i);r=(s*10)%11;if(r===10)r=0;return r===parseInt(d[10]);}
   function validateCNPJ(v){var d=v.replace(/\D/g,'');if(d.length!==14)return false;if(/^(\d)\1{13}$/.test(d))return false;var w1=[5,4,3,2,9,8,7,6,5,4,3,2],s=0;for(var i=0;i<12;i++)s+=parseInt(d[i])*w1[i];var r=s%11,d1=r<2?0:11-r;if(parseInt(d[12])!==d1)return false;var w2=[6,5,4,3,2,9,8,7,6,5,4,3,2];s=0;for(var i=0;i<13;i++)s+=parseInt(d[i])*w2[i];r=s%11;var d2=r<2?0:11-r;return parseInt(d[13])===d2;}
@@ -862,6 +862,30 @@
     return h;
   }
 
+  function collectAddressFields() {
+    var cep = document.getElementById('f-cep');
+    var street = document.getElementById('f-street');
+    var number = document.getElementById('f-number');
+    var complement = document.getElementById('f-comp');
+    var neighborhood = document.getElementById('f-neighborhood');
+    var city = document.getElementById('f-city');
+    var state = document.getElementById('f-state');
+    if (cep) fd.cep = cep.value || '';
+    if (street) fd.street = street.value || '';
+    if (number) fd.number = number.value || '';
+    if (complement) fd.complement = complement.value || '';
+    if (neighborhood) fd.neighborhood = neighborhood.value || '';
+    if (city) fd.city = city.value || '';
+    if (state) fd.state = state.value || '';
+  }
+
+  function formatAddressReview() {
+    var line1 = [fd.street, fd.number].filter(Boolean).join(', ');
+    var line2 = [fd.complement, fd.neighborhood].filter(Boolean).join(' • ');
+    var line3 = [fd.city, fd.state].filter(Boolean).join(' - ');
+    return [fd.cep, line1, line2, line3].filter(Boolean).join(' | ');
+  }
+
   // Payment footer
   function footerHTML() {
     return '<div style="padding:16px 0;text-align:center">'
@@ -919,6 +943,7 @@
     h += '<div class="rv"><span class="rl">E-mail</span><span class="rval">'+(fd.email||'—')+'</span></div>';
     h += '<div class="rv"><span class="rl">CPF / CNPJ</span><span class="rval">'+(fd.cpf||'—')+'</span></div>';
     if (cfg.showPhone !== false && fd.phone) h += '<div class="rv"><span class="rl">Celular</span><span class="rval">'+fd.phone+'</span></div>';
+    if (cfg.showAddress && formatAddressReview()) h += '<div class="rv"><span class="rl">Endereço</span><span class="rval">'+formatAddressReview()+'</span></div>';
     var tp = cfg.price;
     if (cfg.templateId === 'lynxfy' || cfg.templateId === 'confianca') tp = cfg.price * quantity;
     h += '<div class="rv"><span class="rl">Valor total</span><span class="rval" style="font-size:1rem;font-weight:700;color:var(--primary)">'+fmt(tp)+'</span></div>';
@@ -1002,18 +1027,18 @@
   // Address fields block (reusable)
   function addressFieldsHTML() {
     var h = '';
-    h += fieldHTML('f-cep','CEP','00000-000','');
-    h += '<div class="fg"><label>Endereço</label><input placeholder="Rua, Avenida..." style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += fieldHTML('f-cep','CEP','00000-000',fd.cep);
+    h += '<div class="fg"><label>Endereço</label><input id="f-street" placeholder="Rua, Avenida..." value="'+(fd.street||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
     h += '<div class="fg-row">';
-    h += '<div class="fg"><label>Número</label><input placeholder="123" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
-    h += '<div class="fg" style="flex:2"><label>Complemento</label><input placeholder="Apto, Bloco..." style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg"><label>Número</label><input id="f-number" placeholder="123" value="'+(fd.number||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg" style="flex:2"><label>Complemento</label><input id="f-comp" placeholder="Apto, Bloco..." value="'+(fd.complement||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
     h += '</div>';
-    h += '<div class="fg"><label>Bairro</label><input placeholder="Bairro" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg"><label>Bairro</label><input id="f-neighborhood" placeholder="Bairro" value="'+(fd.neighborhood||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
     h += '<div class="fg-row">';
-    h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
-    h += '<div class="fg"><label>Estado</label><select style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)"><option value="">UF</option>';
+    h += '<div class="fg"><label>Cidade</label><input id="f-city" placeholder="Cidade" value="'+(fd.city||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)" /></div>';
+    h += '<div class="fg"><label>Estado</label><select id="f-state" style="width:100%;padding:10px 12px;border:1px solid var(--input-border);border-radius:var(--field-radius);font-size:.8125rem;outline:none;background:var(--input-bg);color:var(--card-text)"><option value="">UF</option>';
     var ufs = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
-    for (var i=0;i<ufs.length;i++) h += '<option value="'+ufs[i]+'">'+ufs[i]+'</option>';
+    for (var i=0;i<ufs.length;i++) h += '<option value="'+ufs[i]+'"'+(fd.state===ufs[i]?' selected':'')+'>'+ufs[i]+'</option>';
     h += '</select></div></div>';
     return h;
   }
@@ -1027,7 +1052,7 @@
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
     h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
     if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
-    if (cfg.showAddress) h += addressFieldsHTML();
+    if (cfg.showAddress && totalSteps !== 4) h += addressFieldsHTML();
     h += '</div></div>';
     if (cfg.showOrderBump) {
       h += '<div class="c" style="border:2px dashed var(--primary)">';
@@ -1049,7 +1074,7 @@
     h += fieldHTML('f-cpf','CPF ou CNPJ','000.000.000-00',fd.cpf,{required:true,errId:'cpf-err'});
     if (cfg.showPhone !== false) h += fieldHTML('f-phone','Celular (WhatsApp)','(00) 00000-0000',fd.phone,{phone:true});
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
-    if (cfg.showAddress) h += addressFieldsHTML();
+    if (cfg.showAddress && totalSteps !== 4) h += addressFieldsHTML();
     h += '</div>';
     h += '<button class="btn" id="btn-s1" style="margin-top:8px">PRÓXIMO</button>';
     h += '</div>';
@@ -1068,7 +1093,7 @@
     h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
     h += '</div>';
     h += '</div></div>';
-    if (cfg.showAddress) { h += '<div class="c"><h3>Endereço de entrega</h3><div style="margin-top:12px">' + addressFieldsHTML() + '</div></div>'; }
+    if (cfg.showAddress && totalSteps !== 4) { h += '<div class="c"><h3>Endereço de entrega</h3><div style="margin-top:12px">' + addressFieldsHTML() + '</div></div>'; }
     h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
     return h;
   }
@@ -1076,20 +1101,20 @@
   // TokLynx/TikTok: contact + address + cpf sections
   function step1TokLynx() {
     var h = '';
-    if (cfg.showAddress) {
+    if (cfg.showAddress && totalSteps !== 4) {
       h += '<div class="c">';
       h += '<h3 style="font-size:.6875rem">Endereço de Entrega</h3>';
       h += '<div style="margin-top:8px">';
-      h += fieldHTML('f-cep','CEP','00000-000','');
+      h += fieldHTML('f-cep','CEP','00000-000',fd.cep);
       h += '<div class="fg-row">';
-      h += '<div class="fg"><label>Rua</label><input placeholder="Rua *" /></div>';
-      h += '<div class="fg"><label>Número</label><input placeholder="Nº *" /></div>';
+      h += '<div class="fg"><label>Rua</label><input id="f-street" placeholder="Rua *" value="'+(fd.street||'')+'" /></div>';
+      h += '<div class="fg"><label>Número</label><input id="f-number" placeholder="Nº *" value="'+(fd.number||'')+'" /></div>';
       h += '</div>';
-      h += fieldHTML('f-comp','Complemento','Complemento','');
+      h += fieldHTML('f-comp','Complemento','Complemento',fd.complement);
       h += '<div class="fg-row">';
-      h += '<div class="fg"><label>Bairro</label><input placeholder="Bairro *" /></div>';
-      h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade *" /></div>';
-      h += '<div class="fg"><label>UF</label><input placeholder="UF *" /></div>';
+      h += '<div class="fg"><label>Bairro</label><input id="f-neighborhood" placeholder="Bairro *" value="'+(fd.neighborhood||'')+'" /></div>';
+      h += '<div class="fg"><label>Cidade</label><input id="f-city" placeholder="Cidade *" value="'+(fd.city||'')+'" /></div>';
+      h += '<div class="fg"><label>UF</label><input id="f-state" placeholder="UF *" value="'+(fd.state||'')+'" /></div>';
       h += '</div></div></div>';
     }
     h += '<div class="c">';
@@ -1124,7 +1149,7 @@
       h += '<div class="fg"><label>Celular (WhatsApp)</label><div class="phone-row"><div class="phone-prefix">🇧🇷 +55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
     h += fieldHTML('f-email','E-mail','seu@email.com',fd.email,{type:'email'});
-    if (cfg.showAddress) h += addressFieldsHTML();
+    if (cfg.showAddress && totalSteps !== 4) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="text-transform:uppercase;letter-spacing:.05em">PRÓXIMO</button>';
     h += '</div></div>';
     return h;
@@ -1144,15 +1169,15 @@
     h += '<div class="fg"><label>CPF/CNPJ <span style="color:#EF4444">*</span></label><input id="f-cpf" placeholder="000.000.000-00" value="'+(fd.cpf||'')+'" /><div class="err" id="cpf-err"></div></div>';
     h += '</div>';
     h += '</div></div>';
-    if (cfg.showAddress) {
+    if (cfg.showAddress && totalSteps !== 4) {
       h += '<div class="c">';
       h += '<h3>Endereço de entrega</h3><div style="margin-top:12px">';
-      h += fieldHTML('f-cep','CEP','00000-000','');
-      h += fieldHTML('f-rua','Rua','Rua, avenida...','');
+      h += fieldHTML('f-cep','CEP','00000-000',fd.cep);
+      h += fieldHTML('f-street','Rua','Rua, avenida...',fd.street);
       h += '<div class="fg-row">';
-      h += '<div class="fg"><label>Número</label><input placeholder="Nº" /></div>';
-      h += '<div class="fg"><label>Cidade</label><input placeholder="Cidade" /></div>';
-      h += '<div class="fg"><label>Estado</label><input placeholder="UF" /></div>';
+      h += '<div class="fg"><label>Número</label><input id="f-number" placeholder="Nº" value="'+(fd.number||'')+'" /></div>';
+      h += '<div class="fg"><label>Cidade</label><input id="f-city" placeholder="Cidade" value="'+(fd.city||'')+'" /></div>';
+      h += '<div class="fg"><label>Estado</label><input id="f-state" placeholder="UF" value="'+(fd.state||'')+'" /></div>';
       h += '</div></div></div>';
     }
     h += '<button class="btn" id="btn-s1">'+I.lock+' PRÓXIMO</button>';
@@ -1170,7 +1195,7 @@
     if (cfg.showPhone !== false) {
       h += '<div class="fg"><label>Celular / WhatsApp</label><div class="phone-row"><div class="phone-prefix">+55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
-    if (cfg.showAddress) h += addressFieldsHTML();
+    if (cfg.showAddress && totalSteps !== 4) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
     h += '</div></div>';
     return h;
@@ -1334,6 +1359,7 @@
     if (b1) b1.onclick = function() {
       var n=document.getElementById('f-name'), e=document.getElementById('f-email'), c=document.getElementById('f-cpf'), p=document.getElementById('f-phone');
       fd.name = n?n.value:''; fd.email = e?e.value:''; fd.cpf = c?c.value:''; fd.phone = p?p.value:'';
+      collectAddressFields();
       var err=document.getElementById('cpf-err');
       if (!fd.cpf.trim()) { if(err) err.textContent='CPF/CNPJ é obrigatório'; return; }
       if (!validateCpfCnpj(fd.cpf)) { if(err) err.textContent='CPF ou CNPJ inválido'; if(c) c.style.borderColor='#EF4444'; return; }
@@ -1352,7 +1378,7 @@
     }
     // Address step buttons (4-step only)
     var addrNext = document.getElementById('btn-addr-next');
-    if (addrNext) addrNext.onclick = function() { step = getReviewStep(); render(); };
+    if (addrNext) addrNext.onclick = function() { collectAddressFields(); step = getReviewStep(); render(); };
     var addrBack = document.getElementById('btn-addr-back');
     if (addrBack) addrBack.onclick = function() { step = 1; render(); };
     var b2 = document.getElementById('btn-s2');
