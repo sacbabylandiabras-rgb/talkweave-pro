@@ -108,12 +108,28 @@ export default function CheckoutDefaultsTab() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs">Logo URL</Label>
-              <Input value={form.logoUrl} onChange={e => updateForm("logoUrl", e.target.value)} placeholder="https://..." className="mt-1" />
+              <Label className="text-xs">Logo</Label>
+              <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0], "logoUrl"); }} />
+              <div className="flex items-center gap-2 mt-1">
+                {form.logoUrl && <img src={form.logoUrl} alt="Logo" className="w-8 h-8 rounded object-contain border border-border" />}
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+                  {uploadingLogo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {form.logoUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {form.logoUrl && <Input value={form.logoUrl} onChange={e => updateForm("logoUrl", e.target.value)} className="flex-1 text-xs" placeholder="URL" />}
+              </div>
             </div>
             <div>
-              <Label className="text-xs">Favicon URL</Label>
-              <Input value={form.faviconUrl} onChange={e => updateForm("faviconUrl", e.target.value)} placeholder="https://..." className="mt-1" />
+              <Label className="text-xs">Favicon</Label>
+              <input type="file" accept="image/*" ref={faviconInputRef} className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0], "faviconUrl"); }} />
+              <div className="flex items-center gap-2 mt-1">
+                {form.faviconUrl && <img src={form.faviconUrl} alt="Favicon" className="w-6 h-6 rounded object-contain border border-border" />}
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" disabled={uploadingFavicon} onClick={() => faviconInputRef.current?.click()}>
+                  {uploadingFavicon ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {form.faviconUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {form.faviconUrl && <Input value={form.faviconUrl} onChange={e => updateForm("faviconUrl", e.target.value)} className="flex-1 text-xs" placeholder="URL" />}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
