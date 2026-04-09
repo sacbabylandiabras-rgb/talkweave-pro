@@ -441,12 +441,7 @@ export default function PaySettings() {
         </TabsContent>
 
         <TabsContent value="dominio" className="mt-4 space-y-4">
-          <Card className="border-[#2A2A2A]">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#FF4D2E]" />
-                Domínio Personalizado
-              </CardTitle>
+          <CheckoutDomainSection />
               <CardDescription className="text-xs">
                 Use seu próprio domínio para os links de checkout (ex: pay.seusite.com)
               </CardDescription>
