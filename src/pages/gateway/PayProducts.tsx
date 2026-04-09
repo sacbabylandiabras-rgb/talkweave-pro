@@ -55,6 +55,9 @@ export default function PayProducts() {
   const [uploading, setUploading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
+
+  const checkoutDomain = localStorage.getItem("checkout_custom_domain") || "pay.zaplynxpro.online";
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("gateway_products" as any).select("*").order("created_at", { ascending: false });
@@ -62,7 +65,21 @@ export default function PayProducts() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  const fetchCheckouts = async () => {
+    const { data } = await supabase.from("gateway_checkouts" as any).select("id, name, slug, status, product_id").order("created_at", { ascending: false });
+    if (data) {
+      const map: Record<string, { id: string; name: string; slug: string | null; status: boolean }[]> = {};
+      for (const c of data as any[]) {
+        if (c.product_id) {
+          if (!map[c.product_id]) map[c.product_id] = [];
+          map[c.product_id].push({ id: c.id, name: c.name, slug: c.slug, status: c.status });
+        }
+      }
+      setCheckoutsByProduct(map);
+    }
+  };
+
+  useEffect(() => { fetchProducts(); fetchCheckouts(); }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
