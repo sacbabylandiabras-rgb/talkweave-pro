@@ -105,7 +105,16 @@ export default function CheckoutDefaultsTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex gap-6">
+      {/* Config Panel */}
+      <div className={`space-y-4 ${showPreview ? "w-1/2" : "w-full"} min-w-0`}>
+        {/* Preview Toggle */}
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowPreview(!showPreview)}>
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showPreview ? "Ocultar Preview" : "Mostrar Preview"}
+          </Button>
+        </div>
       {/* Modelos */}
       <Card className="border-border">
         <CardHeader>
