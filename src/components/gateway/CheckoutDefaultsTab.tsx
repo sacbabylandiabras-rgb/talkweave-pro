@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff, Blocks, Mail } from "lucide-react";
+import { Save, Palette, CreditCard, FormInput, Layout, RefreshCw, Loader2, CheckCircle2, Upload, Monitor, Smartphone, Eye, EyeOff, Blocks, Mail, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -513,7 +513,7 @@ export default function CheckoutDefaultsTab() {
       {/* Preview Panel */}
       {showPreview && (
         <div className="flex-1 min-w-0">
-          <div className="sticky top-0">
+          <div className="sticky top-0 relative">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground">Preview</h3>
               <div className="flex items-center gap-1 border border-border rounded-lg p-0.5">
@@ -546,6 +546,30 @@ export default function CheckoutDefaultsTab() {
                 onDropElement={addElement}
               />
             </PreviewFrame>
+
+            {/* Floating Element Editor Panel */}
+            {selectedElementId && elements.find(e => e.id === selectedElementId) && (
+              <div className="absolute top-12 right-2 z-50 w-80 max-h-[70vh] overflow-auto rounded-xl border border-border bg-card shadow-2xl">
+                <div className="flex items-center justify-between p-3 border-b border-border sticky top-0 bg-card z-10">
+                  <span className="text-xs font-bold text-foreground">Editar Elemento</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => { removeElement(selectedElementId); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setSelectedElementId(null)}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <CheckoutElementEditor
+                    element={elements.find(e => e.id === selectedElementId)!}
+                    onUpdate={updateElementContent}
+                    onUpdatePosition={updateElementPosition}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
