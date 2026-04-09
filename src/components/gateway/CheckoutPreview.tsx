@@ -324,11 +324,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     }
   }
 
-  const stepLabels = [
-    { num: 1, label: "Identificação", icon: <User className="w-5 h-5" /> },
-    { num: 2, label: "Conferência", icon: <Check className="w-5 h-5" /> },
-    { num: 3, label: "Pagamento", icon: <CardIcon className="w-5 h-5" /> },
-  ];
+  const stepLabels = getCheckoutSteps(config);
+  const sn = getStepNumbers(config);
 
   return wrapBuilderShell(
     <div
