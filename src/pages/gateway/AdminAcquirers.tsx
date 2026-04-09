@@ -82,8 +82,7 @@ export default function AdminAcquirers() {
     const fetchUsers = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, email, full_name, pix_acquirer")
-        .order("created_at", { ascending: false });
+        .select("id, email, full_name, pix_acquirer" as any) as any;
       setUsers((data as UserAcquirer[]) || []);
       setLoadingUsers(false);
     };
