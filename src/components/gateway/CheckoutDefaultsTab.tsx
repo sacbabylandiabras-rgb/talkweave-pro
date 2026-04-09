@@ -105,9 +105,9 @@ export default function CheckoutDefaultsTab() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-4">
       {/* Config Panel */}
-      <div className={`space-y-4 ${showPreview ? "w-1/2" : "w-full"} min-w-0`}>
+      <div className={`space-y-4 ${showPreview ? "w-[55%] flex-shrink-0" : "w-full"} min-w-0`}>
         {/* Preview Toggle */}
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowPreview(!showPreview)}>
@@ -334,9 +334,9 @@ export default function CheckoutDefaultsTab() {
 
       {/* Preview Panel */}
       {showPreview && (
-        <div className="w-1/2 min-w-0">
-          <div className="sticky top-4">
-            <div className="flex items-center justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="sticky top-0">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground">Preview</h3>
               <div className="flex items-center gap-1 border border-border rounded-lg p-0.5">
                 <Button
@@ -358,21 +358,13 @@ export default function CheckoutDefaultsTab() {
               </div>
             </div>
             <div 
-              className="border border-border rounded-xl overflow-hidden bg-muted/30"
-              style={{ 
-                height: previewMode === "desktop" ? 550 : 600,
-                overflow: "hidden",
-                position: "relative",
-              }}
+              className="rounded-xl overflow-auto border border-border bg-muted/20"
+              style={{ height: "calc(100vh - 140px)" }}
             >
               <div style={{ 
                 width: previewMode === "desktop" ? 800 : 375,
-                transform: previewMode === "desktop" ? "scale(0.55)" : "scale(0.7)",
-                transformOrigin: "top center",
-                position: "absolute",
-                left: "50%",
-                top: 0,
-                marginLeft: previewMode === "desktop" ? -400 : -187.5,
+                transform: previewMode === "desktop" ? "scale(0.58)" : "scale(0.75)",
+                transformOrigin: "top left",
               }}>
                 <CheckoutPreview config={form as any} previewMode={previewMode} />
               </div>
