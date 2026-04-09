@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCheckoutDefaults } from "@/hooks/useCheckoutDefaults";
 import { toast } from "sonner";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import CheckoutTemplateGallery from "@/components/gateway/CheckoutTemplateGallery";
@@ -108,6 +109,7 @@ export default function CheckoutBuilder() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id?: string }>();
   const isEditing = !!editId;
+  const { defaults: globalDefaults, loading: defaultsLoading } = useCheckoutDefaults();
   const [config, setConfig] = useState(defaultConfig);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -190,11 +192,17 @@ export default function CheckoutBuilder() {
             }
           }
         }
+      } else if (!defaultsLoading) {
+        // Apply global defaults for new checkouts
+        setConfig(prev => ({ ...prev, ...globalDefaults }));
+        if (globalDefaults.templateId) {
+          setActiveTemplateId(globalDefaults.templateId);
+        }
       }
       setLoading(false);
     };
     init();
-  }, [editId]);
+  }, [editId, defaultsLoading]);
 
   useEffect(() => {
     const element = previewPaneRef.current;
