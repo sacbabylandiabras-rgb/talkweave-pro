@@ -497,7 +497,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                     <input className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} placeholder="DD/MM/AAAA" />
                   </div>
                 )}
-                {config.showAddress && (
+                {config.showAddress && (!sn.address || isOneStep) && (
                   <>
                     <div>
                       <label className="text-xs font-medium block mb-1" style={{ color: s.cardLabel }}>CEP</label>
