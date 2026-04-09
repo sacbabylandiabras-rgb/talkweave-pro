@@ -1142,6 +1142,7 @@
     if (cfg.showPhone !== false) {
       h += '<div class="fg"><label>Celular / WhatsApp</label><div class="phone-row"><div class="phone-prefix">+55</div><input id="f-phone" placeholder="(00) 00000-0000" value="'+(fd.phone||'')+'" style="flex:1" /></div></div>';
     }
+    if (cfg.showAddress) h += addressFieldsHTML();
     h += '<button class="btn" id="btn-s1" style="margin-top:4px">Próximo</button>';
     h += '</div></div>';
     return h;
