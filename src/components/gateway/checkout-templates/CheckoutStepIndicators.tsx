@@ -11,8 +11,8 @@ interface StepItem {
 interface Props {
   config: Record<string, any>;
   steps: StepItem[];
-  step: 1 | 2 | 3;
-  onStepChange: (step: 1 | 2 | 3) => void;
+  step: 1 | 2 | 3 | 4;
+  onStepChange: (step: 1 | 2 | 3 | 4) => void;
   previewMode?: "desktop" | "mobile";
   hideLabelsOnMobilePreview?: boolean;
 }
