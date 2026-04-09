@@ -10,7 +10,7 @@ import { useCheckoutDefaults, CheckoutDefaults, emptyDefaults } from "@/hooks/us
 import { toast } from "sonner";
 
 const TEMPLATE_OPTIONS = [
-  { value: "", label: "Nenhum (padrão)" },
+  { value: "none", label: "Nenhum (padrão)" },
   { value: "minimalista", label: "Minimalista" },
   { value: "alto-impacto", label: "Alto Impacto" },
   { value: "tiktok", label: "TokLynx / TikTok" },
