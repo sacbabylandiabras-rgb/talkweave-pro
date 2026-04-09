@@ -163,6 +163,7 @@ export function useCheckoutDefaults() {
         format: newDefaults.format,
         checkoutSteps: newDefaults.checkoutSteps,
         elements: newDefaults.elements || [],
+        sendEmail: newDefaults.sendEmail,
       };
 
       const { error } = await supabase
