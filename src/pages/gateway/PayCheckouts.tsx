@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
+import { Copy, Trash2, Edit, Loader2, Globe, Save, CheckCircle2, AlertCircle, RefreshCw, X, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -255,24 +255,19 @@ export default function PayCheckouts() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Checkouts</h1>
-          <p className="text-sm text-muted-foreground">Crie e gerencie seus checkouts de pagamento</p>
+          <p className="text-sm text-muted-foreground">Gerencie e configure seus checkouts de pagamento</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="rounded-full px-4 gap-2"
-            onClick={() => setDomainOpen(true)}
-          >
-            <Globe className="w-4 h-4" />
-            Domínio
-            {savedDomain && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
-            )}
-          </Button>
-          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
-            <Plus className="w-4 h-4 mr-2" /> Novo Checkout
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="rounded-full px-4 gap-2"
+          onClick={() => setDomainOpen(true)}
+        >
+          <Globe className="w-4 h-4" />
+          Domínio
+          {savedDomain && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
+          )}
+        </Button>
       </div>
 
       {/* Saved domain banner */}
@@ -314,7 +309,7 @@ export default function PayCheckouts() {
       {checkouts.length === 0 ? (
         <Card className="border-[#2A2A2A]">
           <CardContent className="flex items-center justify-center py-16">
-            <p className="text-sm text-muted-foreground">Nenhum checkout criado ainda. Clique em "Novo Checkout" para começar.</p>
+            <p className="text-sm text-muted-foreground">Nenhum checkout ainda. Crie um produto na aba "Produtos" para gerar um checkout automaticamente.</p>
           </CardContent>
         </Card>
       ) : (
