@@ -63,10 +63,13 @@ serve(async (req) => {
       })
     }
 
-    // If status is already the same, skip ALL side effects (dedup)
-    if (existingTx.status === newStatus) {
-      console.log('Transaction already has status', newStatus, '- skipping duplicate webhook')
-      return new Response(JSON.stringify({ ok: true, message: 'duplicate, already processed', status: newStatus, transactionId: existingTx.id }), {
+    // ── ALWAYS dispatch user-configured outbound webhooks (even if status unchanged) ──
+    const isDuplicate = existingTx.status === newStatus
+    await dispatchOutboundWebhooks(supabase, tx, payload, charge, newStatus)
+
+    if (isDuplicate) {
+      console.log('Transaction already has status', newStatus, '- skipping internal side effects (WhatsApp/email/push)')
+      return new Response(JSON.stringify({ ok: true, message: 'status unchanged, outbound webhooks dispatched', status: newStatus, transactionId: existingTx.id }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -167,83 +170,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Dispatch to user-configured outbound webhooks ──
-    if (tx.user_id) {
-      try {
-        const { data: webhooks } = await supabase
-          .from('gateway_integrations')
-          .select('*')
-          .eq('user_id', tx.user_id)
-          .eq('active', true)
-
-        if (webhooks && webhooks.length > 0) {
-          const eventKeyMap: Record<string, string> = {
-            approved: 'approved',
-            pending: 'pending',
-            expired: 'expired',
-            failed: 'refused',
-          }
-          const eventKey = eventKeyMap[newStatus] || newStatus
-
-          for (const wh of webhooks) {
-            if (wh.name === 'UTMify' || wh.name === 'Shopify') continue
-
-            const whHeaders = wh.headers as any || {}
-            const events = whHeaders.events || {}
-            const hasEventConfig = Object.keys(events).length > 0
-
-            if (hasEventConfig && !events[eventKey]) {
-              console.log(`Webhook ${wh.name}: evento '${eventKey}' não habilitado, pulando`)
-              continue
-            }
-
-            const outPayload = {
-              event: `transaction.${eventKey}`,
-              transaction: {
-                id: tx.id,
-                external_id: tx.external_id,
-                status: newStatus,
-                amount: tx.amount,
-                fee: tx.fee,
-                net: tx.net,
-                payment_method: 'pix',
-                customer: {
-                  name: charge.customer?.name || tx.customer_name || null,
-                  email: charge.customer?.email || tx.customer_email || null,
-                  phone: charge.customer?.phone || tx.customer_phone || null,
-                },
-                product_id: tx.product_id,
-                checkout_id: tx.checkout_id,
-                created_at: tx.created_at,
-                updated_at: new Date().toISOString(),
-              },
-            }
-
-            const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
-            if (wh.auth_type === 'bearer' && wh.auth_token) {
-              reqHeaders['Authorization'] = `Bearer ${wh.auth_token}`
-            } else if (wh.auth_type === 'basic' && wh.auth_token) {
-              reqHeaders['Authorization'] = `Basic ${wh.auth_token}`
-            } else if (wh.auth_type === 'api_key' && wh.auth_token) {
-              reqHeaders['x-api-key'] = wh.auth_token
-            }
-
-            try {
-              const whRes = await fetch(wh.webhook_url, {
-                method: wh.method || 'POST',
-                headers: reqHeaders,
-                body: JSON.stringify(outPayload),
-              })
-              console.log(`Webhook ${wh.name} (${wh.webhook_url}): ${whRes.status}`)
-            } catch (whErr) {
-              console.error(`Webhook ${wh.name} error:`, whErr)
-            }
-          }
-        }
-      } catch (dispatchErr) {
-        console.error('Outbound webhook dispatch error:', dispatchErr)
-      }
-    }
+        // (outbound webhooks already dispatched above, before dedup check)
 
     // Forward to UTMify if configured
     if (tx.user_id) {
@@ -327,3 +254,86 @@ serve(async (req) => {
     })
   }
 })
+
+// ── Helper: dispatch outbound webhooks to user-configured endpoints ──
+async function dispatchOutboundWebhooks(supabase: any, tx: any, payload: any, charge: any, newStatus: string) {
+  if (!tx.user_id) return
+
+  try {
+    const { data: webhooks } = await supabase
+      .from('gateway_integrations')
+      .select('*')
+      .eq('user_id', tx.user_id)
+      .eq('active', true)
+
+    if (!webhooks || webhooks.length === 0) {
+      console.log('No active outbound webhooks for user:', tx.user_id)
+      return
+    }
+
+    const eventKeyMap: Record<string, string> = {
+      approved: 'approved',
+      pending: 'pending',
+      expired: 'expired',
+      failed: 'refused',
+    }
+    const eventKey = eventKeyMap[newStatus] || newStatus
+
+    for (const wh of webhooks) {
+      if (wh.name === 'UTMify' || wh.name === 'Shopify') continue
+
+      const whHeaders = wh.headers as any || {}
+      const events = whHeaders.events || {}
+      const hasEventConfig = Object.keys(events).length > 0
+
+      if (hasEventConfig && !events[eventKey]) {
+        console.log(`Webhook ${wh.name}: evento '${eventKey}' não habilitado, pulando`)
+        continue
+      }
+
+      const outPayload = {
+        event: `transaction.${eventKey}`,
+        transaction: {
+          id: tx.id,
+          external_id: tx.external_id,
+          status: newStatus,
+          amount: tx.amount,
+          fee: tx.fee,
+          net: tx.net,
+          payment_method: 'pix',
+          customer: {
+            name: charge?.customer?.name || tx.customer_name || null,
+            email: charge?.customer?.email || tx.customer_email || null,
+            phone: charge?.customer?.phone || tx.customer_phone || null,
+          },
+          product_id: tx.product_id,
+          checkout_id: tx.checkout_id,
+          created_at: tx.created_at,
+          updated_at: new Date().toISOString(),
+        },
+      }
+
+      const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (wh.auth_type === 'bearer' && wh.auth_token) {
+        reqHeaders['Authorization'] = `Bearer ${wh.auth_token}`
+      } else if (wh.auth_type === 'basic' && wh.auth_token) {
+        reqHeaders['Authorization'] = `Basic ${wh.auth_token}`
+      } else if (wh.auth_type === 'api_key' && wh.auth_token) {
+        reqHeaders['x-api-key'] = wh.auth_token
+      }
+
+      try {
+        const whRes = await fetch(wh.webhook_url, {
+          method: wh.method || 'POST',
+          headers: reqHeaders,
+          body: JSON.stringify(outPayload),
+        })
+        console.log(`✅ Outbound webhook ${wh.name} (${wh.webhook_url}): ${whRes.status}`)
+      } catch (whErr) {
+        console.error(`❌ Outbound webhook ${wh.name} error:`, whErr)
+      }
+    }
+  } catch (dispatchErr) {
+    console.error('Outbound webhook dispatch error:', dispatchErr)
+  }
+}
