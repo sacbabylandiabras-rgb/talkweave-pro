@@ -245,7 +245,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  const cancelActiveCampaigns = async () => {
+  const pauseActiveCampaigns = async () => {
     try {
       const { data: activeCampaigns, error } = await supabase
         .from('campaigns')
@@ -263,16 +263,16 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             });
           }
         } catch {}
-        await supabase.from('campaigns').update({ status: 'cancelled' }).eq('status', 'active');
+        await supabase.from('campaigns').update({ status: 'paused' }).eq('status', 'active');
         toast({
-          title: "❌ Campanhas Canceladas",
-          description: `${activeCampaigns.length} campanha(s) cancelada(s) automaticamente.`,
+          title: "⏸️ Campanhas Pausadas",
+          description: `${activeCampaigns.length} campanha(s) pausada(s) automaticamente para preservar os números pendentes.`,
           variant: "destructive",
           duration: 8000,
         });
       }
     } catch (error) {
-      console.error('Erro ao cancelar campanhas:', error);
+      console.error('Erro ao pausar campanhas:', error);
     }
   };
 
@@ -324,7 +324,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
     
     if (prevConnected === true && deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
-      cancelActiveCampaigns();
+      pauseActiveCampaigns();
     }
     if (deviceStatus?.connected === false) {
       fetchQRCode();
