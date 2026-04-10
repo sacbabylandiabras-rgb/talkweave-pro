@@ -94,12 +94,41 @@ export default function PayReports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Análise detalhada das suas vendas ({transactions.length} transações)</p>
+          <p className="text-sm text-muted-foreground">
+            Análise detalhada das suas vendas ({filtered.length} transações{selectedDate ? ` em ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}` : ""})
+          </p>
         </div>
-        <Button variant="outline" className="rounded-full"><Download className="w-4 h-4 mr-2" /> Exportar CSV</Button>
+        <div className="flex items-center gap-2">
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 rounded-full">
+                <CalendarIcon className="w-4 h-4" />
+                {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por dia"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => { setSelectedDate(date); setCalendarOpen(false); }}
+                locale={ptBR}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+              {selectedDate && (
+                <div className="p-2 border-t border-border">
+                  <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => { setSelectedDate(undefined); setCalendarOpen(false); }}>
+                    Limpar filtro
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          <Button variant="outline" className="rounded-full"><Download className="w-4 h-4 mr-2" /> Exportar CSV</Button>
+        </div>
       </div>
 
       <Tabs defaultValue="resumo">
