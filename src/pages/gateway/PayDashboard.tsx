@@ -217,6 +217,20 @@ export default function PayDashboard() {
         </div>
       </div>
 
+      {/* Saldo Disponível */}
+      <Card className="border-[#2A2A2A] ring-1 ring-emerald-500/20">
+        <CardContent className="pt-5 pb-4 flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-emerald-500/10">
+            <Wallet className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo Disponível para Saque</p>
+            <p className="text-2xl font-bold text-emerald-500">{formatCurrency(availableBalance)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m) => (
           <Card key={m.label} className="border-[#2A2A2A]">
