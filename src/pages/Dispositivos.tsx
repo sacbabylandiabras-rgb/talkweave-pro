@@ -715,14 +715,23 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
+              <User className="w-4 h-4 mr-1" />
+              Perfil WhatsApp
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {instances.length === 0 && !loading && (
@@ -743,8 +752,8 @@ const Dispositivos = () => {
         ))}
       </div>
 
-      {/* Bulk Profile Update */}
-      <BulkProfileUpdate instances={instances} />
+      {/* Bulk Profile Update Dialog */}
+      <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
