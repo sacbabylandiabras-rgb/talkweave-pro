@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -69,11 +69,10 @@ export default function PayDashboard() {
         const d = new Date();
         d.setDate(d.getDate() - (29 - i));
         const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = chartTx.filter(tx => {
-          const txDate = new Date(tx.created_at);
-          return txDate.toDateString() === d.toDateString();
-        });
-        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.amount || 0), 0) / 100 };
+        const dayTxs = chartTx.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
+        const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+        const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+        return { date: key, pagas, pendentes };
       });
       setChartData(last30);
       setLoading(false);
@@ -216,16 +215,22 @@ export default function PayDashboard() {
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={chartData}>
               <defs>
-                <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#FF4D2E" stopOpacity={0} />
+                <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
               <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 11 }} />
               <YAxis tick={{ fill: '#A0A0A0', fontSize: 11 }} />
               <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-              <Area type="monotone" dataKey="volume" stroke="#FF4D2E" fill="url(#colorVolume)" strokeWidth={2} />
+              <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === 'pagas' ? 'Pagas' : 'Pendentes'}</span>} />
+              <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
+              <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
