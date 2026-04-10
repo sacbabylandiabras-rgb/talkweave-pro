@@ -50,25 +50,34 @@ serve(async (req) => {
 
       console.log('Mapped status:', newStatus)
 
-      // Try to find transaction by hubpague_id in metadata or by external_id
+      // Try to find the exact transaction first.
+      // The old fallback could grab the latest pending HubPague transaction from another user.
+      const txColumns = 'id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status'
+
       const { data: txByMeta } = await supabase
         .from('gateway_transactions')
-        .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status')
+        .select(txColumns)
         .contains('metadata', { hubpague_id: hubpagueId })
-        .single()
+        .maybeSingle()
 
       let tx = txByMeta
 
-      if (!tx) {
-        const { data: txByExt } = await supabase
+      if (!tx && hubpagueId) {
+        const { data: txByExternalId } = await supabase
           .from('gateway_transactions')
-          .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status')
-          .contains('metadata', { provider: 'hubpague' })
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        tx = txByExt
+          .select(txColumns)
+          .eq('external_id', hubpagueId)
+          .maybeSingle()
+
+        tx = txByExternalId
+      }
+
+      if (!tx) {
+        console.log('No exact matching transaction found for HubPague ID:', hubpagueId)
+        return new Response(JSON.stringify({ ok: true, message: 'transaction not found' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
       }
 
       if (tx) {
@@ -325,8 +334,6 @@ serve(async (req) => {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
-      } else {
-        console.log('No matching transaction found for HubPague ID:', hubpagueId)
       }
     }
 
