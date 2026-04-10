@@ -572,7 +572,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 };
 
 
-const BulkProfileUpdate = ({ instances }: { instances: ZapiInstance[] }) => {
+const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { toast } = useToast();
   const [profileName, setProfileName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -660,52 +660,54 @@ const BulkProfileUpdate = ({ instances }: { instances: ZapiInstance[] }) => {
   if (instances.length === 0) return null;
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2"><User className="w-5 h-5" /> Perfil do WhatsApp</CardTitle>
-        <CardDescription>Altere o nome e foto de perfil de todas as instâncias de uma vez</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Name */}
-        <div className="space-y-2">
-          <Label>Nome do Perfil</Label>
-          <div className="flex gap-2">
-            <Input placeholder="Novo nome para todas as instâncias" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
-            <Button onClick={handleUpdateName} disabled={updating || !profileName.trim()} className="shrink-0">
-              {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Photo upload */}
-        <div className="space-y-2">
-          <Label>Foto de Perfil (Upload)</Label>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 space-y-2">
-              <Input type="file" accept="image/*" onChange={handleFileChange} disabled={updating} className="cursor-pointer" />
-              <p className="text-xs text-muted-foreground">JPG, PNG, GIF (máx. 5MB)</p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><User className="w-5 h-5" /> Perfil do WhatsApp</DialogTitle>
+          <p className="text-sm text-muted-foreground">Altere o nome e foto de perfil de todas as instâncias de uma vez</p>
+        </DialogHeader>
+        <div className="space-y-6 pt-2">
+          {/* Name */}
+          <div className="space-y-2">
+            <Label>Nome do Perfil</Label>
+            <div className="flex gap-2">
+              <Input placeholder="Novo nome para todas as instâncias" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
+              <Button onClick={handleUpdateName} disabled={updating || !profileName.trim()} className="shrink-0">
+                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
             </div>
-            {previewUrl && <img src={previewUrl} alt="Prévia" className="w-12 h-12 rounded-full object-cover border" />}
           </div>
-          {imageFile && (
-            <Button onClick={handleUpdatePictureFile} disabled={updating} size="sm">
-              {updating ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Enviando...</> : <><Upload className="w-3 h-3 mr-1" /> Aplicar foto a todas</>}
-            </Button>
-          )}
-        </div>
 
-        {/* Photo URL */}
-        <div className="space-y-2">
-          <Label>Foto de Perfil (URL)</Label>
-          <div className="flex gap-2">
-            <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
-            <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim()} className="shrink-0">
-              {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ImageIcon className="w-4 h-4 mr-1" /> Aplicar</>}
-            </Button>
+          {/* Photo upload */}
+          <div className="space-y-2">
+            <Label>Foto de Perfil (Upload)</Label>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-2">
+                <Input type="file" accept="image/*" onChange={handleFileChange} disabled={updating} className="cursor-pointer" />
+                <p className="text-xs text-muted-foreground">JPG, PNG, GIF (máx. 5MB)</p>
+              </div>
+              {previewUrl && <img src={previewUrl} alt="Prévia" className="w-12 h-12 rounded-full object-cover border" />}
+            </div>
+            {imageFile && (
+              <Button onClick={handleUpdatePictureFile} disabled={updating} size="sm">
+                {updating ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Enviando...</> : <><Upload className="w-3 h-3 mr-1" /> Aplicar foto a todas</>}
+              </Button>
+            )}
+          </div>
+
+          {/* Photo URL */}
+          <div className="space-y-2">
+            <Label>Foto de Perfil (URL)</Label>
+            <div className="flex gap-2">
+              <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
+              <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim()} className="shrink-0">
+                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ImageIcon className="w-4 h-4 mr-1" /> Aplicar</>}
+              </Button>
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -713,14 +715,23 @@ const BulkProfileUpdate = ({ instances }: { instances: ZapiInstance[] }) => {
 const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
+              <User className="w-4 h-4 mr-1" />
+              Perfil WhatsApp
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {instances.length === 0 && !loading && (
@@ -741,8 +752,8 @@ const Dispositivos = () => {
         ))}
       </div>
 
-      {/* Bulk Profile Update */}
-      <BulkProfileUpdate instances={instances} />
+      {/* Bulk Profile Update Dialog */}
+      <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
