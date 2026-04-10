@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2 } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
 import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
@@ -576,6 +576,144 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 };
 
 
+const BulkProfileUpdate = ({ instances }: { instances: ZapiInstance[] }) => {
+  const { toast } = useToast();
+  const [profileName, setProfileName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  const updateAllInstances = async (type: "name" | "picture", value: string) => {
+    setUpdating(true);
+    let success = 0;
+    let failed = 0;
+
+    for (const inst of instances) {
+      try {
+        const { error } = await supabase.functions.invoke("update-profile", {
+          body: {
+            type,
+            value,
+            instanceId: inst.zapi_instance_id,
+            token: inst.zapi_token,
+            clientToken: inst.zapi_client_token,
+          },
+        });
+        if (error) throw error;
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setUpdating(false);
+    toast({
+      title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro",
+      description: `${success} instância(s) atualizada(s)${failed > 0 ? `, ${failed} com erro` : ""}`,
+      variant: failed === instances.length ? "destructive" : "default",
+    });
+  };
+
+  const handleUpdateName = () => {
+    if (!profileName.trim()) return;
+    updateAllInstances("name", profileName.trim()).then(() => setProfileName(""));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Formato inválido", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande (máx 5MB)", variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleUpdatePictureFile = async () => {
+    if (!imageFile) return;
+    setUpdating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = imageFile.name.split(".").pop() || "jpg";
+      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("template-media").upload(filePath, imageFile, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("template-media").getPublicUrl(filePath);
+      await updateAllInstances("picture", pub.publicUrl);
+      setImageFile(null);
+      setPreviewUrl("");
+    } catch (err) {
+      toast({ title: "Erro no upload", description: err instanceof Error ? err.message : "Erro", variant: "destructive" });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleUpdatePictureUrl = () => {
+    if (!imageUrl.trim()) return;
+    updateAllInstances("picture", imageUrl.trim()).then(() => setImageUrl(""));
+  };
+
+  if (instances.length === 0) return null;
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2"><User className="w-5 h-5" /> Perfil do WhatsApp</CardTitle>
+        <CardDescription>Altere o nome e foto de perfil de todas as instâncias de uma vez</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Name */}
+        <div className="space-y-2">
+          <Label>Nome do Perfil</Label>
+          <div className="flex gap-2">
+            <Input placeholder="Novo nome para todas as instâncias" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
+            <Button onClick={handleUpdateName} disabled={updating || !profileName.trim()} className="shrink-0">
+              {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Photo upload */}
+        <div className="space-y-2">
+          <Label>Foto de Perfil (Upload)</Label>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 space-y-2">
+              <Input type="file" accept="image/*" onChange={handleFileChange} disabled={updating} className="cursor-pointer" />
+              <p className="text-xs text-muted-foreground">JPG, PNG, GIF (máx. 5MB)</p>
+            </div>
+            {previewUrl && <img src={previewUrl} alt="Prévia" className="w-12 h-12 rounded-full object-cover border" />}
+          </div>
+          {imageFile && (
+            <Button onClick={handleUpdatePictureFile} disabled={updating} size="sm">
+              {updating ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Enviando...</> : <><Upload className="w-3 h-3 mr-1" /> Aplicar foto a todas</>}
+            </Button>
+          )}
+        </div>
+
+        {/* Photo URL */}
+        <div className="space-y-2">
+          <Label>Foto de Perfil (URL)</Label>
+          <div className="flex gap-2">
+            <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
+            <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim()} className="shrink-0">
+              {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ImageIcon className="w-4 h-4 mr-1" /> Aplicar</>}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+
 const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
@@ -606,6 +744,9 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
+
+      {/* Bulk Profile Update */}
+      <BulkProfileUpdate instances={instances} />
 
       {/* Planos */}
       <Card className="border-primary/20">
