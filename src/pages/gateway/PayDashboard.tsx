@@ -179,43 +179,40 @@ export default function PayDashboard() {
             Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Date Filter */}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 text-sm">
-                <CalendarIcon className="w-4 h-4" />
-                {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por dia"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setCalendarOpen(false);
-                }}
-                locale={ptBR}
-                initialFocus
-              />
-              {selectedDate && (
-                <div className="p-2 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      setSelectedDate(undefined);
-                      setCalendarOpen(false);
-                    }}
-                  >
-                    Limpar filtro
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Period Selector */}
+          <Select value={periodFilter} onValueChange={(v) => { setPeriodFilter(v as PeriodFilter); if (v !== "custom") setSelectedDate(undefined); }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="week">Esta Semana</SelectItem>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="custom">Data específica</SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Calendar for custom date */}
+          {periodFilter === "custom" && (
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 text-sm">
+                  <CalendarIcon className="w-4 h-4" />
+                  {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => { setSelectedDate(date); setCalendarOpen(false); }}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
           {/* Sales Milestone Progress Bar */}
           <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
             <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
