@@ -67,34 +67,43 @@ export const emptyDefaults: CheckoutDefaults = {
   sendEmail: true,
 };
 
-const CONFIG_KEY_PREFIX = "checkout_defaults:";
+async function callEdgeFunction(action: string, defaults?: CheckoutDefaults) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/save-checkout-defaults`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8",
+      },
+      body: JSON.stringify({ action, defaults }),
+    }
+  );
+
+  return res.json();
+}
 
 export function useCheckoutDefaults() {
   const [defaults, setDefaults] = useState<CheckoutDefaults>(emptyDefaults);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const getConfigKey = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user ? `${CONFIG_KEY_PREFIX}${user.id}` : null;
-  };
-
   useEffect(() => {
     const load = async () => {
-      const key = await getConfigKey();
-      if (!key) { setLoading(false); return; }
-
-      const { data } = await supabase
-        .from("gateway_platform_config")
-        .select("value")
-        .eq("key", key)
-        .maybeSingle();
-
-      if (data?.value) {
-        try {
-          const parsed = JSON.parse(data.value);
-          setDefaults(prev => ({ ...prev, ...parsed }));
-        } catch {}
+      try {
+        const result = await callEdgeFunction("load");
+        if (result?.value) {
+          try {
+            const parsed = JSON.parse(result.value);
+            setDefaults(prev => ({ ...prev, ...parsed }));
+          } catch {}
+        }
+      } catch (err) {
+        console.error("Error loading checkout defaults:", err);
       }
       setLoading(false);
     };
@@ -103,77 +112,30 @@ export function useCheckoutDefaults() {
 
   const saveDefaults = async (newDefaults: CheckoutDefaults) => {
     setSaving(true);
-    const key = await getConfigKey();
-    if (!key) { setSaving(false); return false; }
-
-    const { error } = await supabase
-      .from("gateway_platform_config")
-      .upsert({ key, value: JSON.stringify(newDefaults) }, { onConflict: "key" });
-
-    setSaving(false);
-    if (!error) {
-      setDefaults(newDefaults);
-      return true;
+    try {
+      const result = await callEdgeFunction("save", newDefaults);
+      if (result?.success) {
+        setDefaults(newDefaults);
+        setSaving(false);
+        return true;
+      }
+      console.error("Save error:", result?.error);
+      setSaving(false);
+      return false;
+    } catch (err) {
+      console.error("Save error:", err);
+      setSaving(false);
+      return false;
     }
-    return false;
   };
 
   const applyToAllCheckouts = async (newDefaults: CheckoutDefaults) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return 0;
-
-    const { data: checkouts } = await supabase
-      .from("gateway_checkouts")
-      .select("id, config")
-      .eq("user_id", user.id);
-
-    if (!checkouts || checkouts.length === 0) return 0;
-
-    let updated = 0;
-    for (const checkout of checkouts) {
-      const existingConfig = (checkout.config || {}) as Record<string, any>;
-      const mergedConfig = {
-        ...existingConfig,
-        logoUrl: newDefaults.logoUrl,
-        showLogo: newDefaults.showLogo,
-        faviconUrl: newDefaults.faviconUrl,
-        pageTitle: newDefaults.pageTitle,
-        primaryColor: newDefaults.primaryColor,
-        bgColor: newDefaults.bgColor,
-        textColor: newDefaults.textColor,
-        buttonColor: newDefaults.buttonColor,
-        font: newDefaults.font,
-        creditCard: newDefaults.creditCard,
-        debitCard: newDefaults.debitCard,
-        pix: newDefaults.pix,
-        boleto: newDefaults.boleto,
-        maxInstallments: newDefaults.maxInstallments,
-        pixDiscount: newDefaults.pixDiscount,
-        showCpf: newDefaults.showCpf,
-        showPhone: newDefaults.showPhone,
-        showAddress: newDefaults.showAddress,
-        showBirthdate: newDefaults.showBirthdate,
-        showGuarantee: newDefaults.showGuarantee,
-        guaranteeDays: newDefaults.guaranteeDays,
-        showSecurityBadges: newDefaults.showSecurityBadges,
-        templateId: newDefaults.templateId || existingConfig.templateId,
-        footerCompanyName: newDefaults.footerCompanyName,
-        footerCnpj: newDefaults.footerCnpj,
-        stepIndicatorStyle: newDefaults.stepIndicatorStyle,
-        format: newDefaults.format,
-        checkoutSteps: newDefaults.checkoutSteps,
-        elements: newDefaults.elements || [],
-        sendEmail: newDefaults.sendEmail,
-      };
-
-      const { error } = await supabase
-        .from("gateway_checkouts")
-        .update({ config: mergedConfig as any })
-        .eq("id", checkout.id);
-
-      if (!error) updated++;
+    try {
+      const result = await callEdgeFunction("apply_all", newDefaults);
+      return result?.updated || 0;
+    } catch {
+      return 0;
     }
-    return updated;
   };
 
   return { defaults, loading, saving, saveDefaults, applyToAllCheckouts };
