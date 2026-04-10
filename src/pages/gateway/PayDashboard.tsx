@@ -232,7 +232,7 @@ export default function PayDashboard() {
               <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
             </div>
           </div>
-          <Button variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10" onClick={() => navigate("/gateway/saques")}>
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10" onClick={() => navigate("/gateway-checkout/withdrawals")}>
             Solicitar Saque
           </Button>
         </CardContent>
