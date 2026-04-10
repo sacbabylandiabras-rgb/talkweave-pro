@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, ExternalLink } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, ExternalLink, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const COLORS = ["#FF4D2E", "#22C55E", "#F59E0B", "#60A5FA"];
 
@@ -31,6 +35,8 @@ export default function PayReports() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [checkouts, setCheckouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,10 +51,15 @@ export default function PayReports() {
     fetchData();
   }, []);
 
-  const approved = transactions.filter(t => t.status === "approved");
-  const declined = transactions.filter(t => t.status === "declined");
-  const pending = transactions.filter(t => t.status === "pending");
-  const refunded = transactions.filter(t => t.status === "refunded");
+  const filtered = useMemo(() => {
+    if (!selectedDate) return transactions;
+    return transactions.filter(t => new Date(t.created_at).toDateString() === selectedDate.toDateString());
+  }, [transactions, selectedDate]);
+
+  const approved = filtered.filter(t => t.status === "approved");
+  const declined = filtered.filter(t => t.status === "declined");
+  const pending = filtered.filter(t => t.status === "pending");
+  const refunded = filtered.filter(t => t.status === "refunded");
   const totalRevenue = approved.reduce((a, t) => a + t.net, 0);
   const avgTicket = approved.length > 0 ? Math.round(totalRevenue / approved.length) : 0;
 
@@ -83,12 +94,41 @@ export default function PayReports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Análise detalhada das suas vendas ({transactions.length} transações)</p>
+          <p className="text-sm text-muted-foreground">
+            Análise detalhada das suas vendas ({filtered.length} transações{selectedDate ? ` em ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}` : ""})
+          </p>
         </div>
-        <Button variant="outline" className="rounded-full"><Download className="w-4 h-4 mr-2" /> Exportar CSV</Button>
+        <div className="flex items-center gap-2">
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 rounded-full">
+                <CalendarIcon className="w-4 h-4" />
+                {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por dia"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => { setSelectedDate(date); setCalendarOpen(false); }}
+                locale={ptBR}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+              {selectedDate && (
+                <div className="p-2 border-t border-border">
+                  <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => { setSelectedDate(undefined); setCalendarOpen(false); }}>
+                    Limpar filtro
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          <Button variant="outline" className="rounded-full"><Download className="w-4 h-4 mr-2" /> Exportar CSV</Button>
+        </div>
       </div>
 
       <Tabs defaultValue="resumo">
@@ -155,9 +195,9 @@ export default function PayReports() {
         <TabsContent value="transacoes" className="mt-4">
           <Card className="border-[#2A2A2A]">
             <CardContent className="p-0">
-              {transactions.length === 0 ? (
+              {filtered.length === 0 ? (
                 <div className="flex items-center justify-center py-16">
-                  <p className="text-sm text-muted-foreground">Nenhuma transação registrada.</p>
+                  <p className="text-sm text-muted-foreground">{selectedDate ? "Nenhuma transação neste dia." : "Nenhuma transação registrada."}</p>
                 </div>
               ) : (
                 <Table>
@@ -179,7 +219,7 @@ export default function PayReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map(tx => {
+                    {filtered.map(tx => {
                       const badge = getStatusBadge(tx.status);
                       const checkout = checkouts.find((ck: any) => ck.id === tx.checkout_id);
                       return (
