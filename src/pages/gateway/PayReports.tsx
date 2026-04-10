@@ -195,9 +195,9 @@ export default function PayReports() {
         <TabsContent value="transacoes" className="mt-4">
           <Card className="border-[#2A2A2A]">
             <CardContent className="p-0">
-              {transactions.length === 0 ? (
+              {filtered.length === 0 ? (
                 <div className="flex items-center justify-center py-16">
-                  <p className="text-sm text-muted-foreground">Nenhuma transação registrada.</p>
+                  <p className="text-sm text-muted-foreground">{selectedDate ? "Nenhuma transação neste dia." : "Nenhuma transação registrada."}</p>
                 </div>
               ) : (
                 <Table>
