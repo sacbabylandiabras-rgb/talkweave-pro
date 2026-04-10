@@ -8,8 +8,11 @@ import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type PeriodFilter = "today" | "week" | "30d" | "custom";
 
 interface Transaction {
   id: string;
@@ -25,65 +28,70 @@ interface Transaction {
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [approvedToday, setApprovedToday] = useState(0);
-  const [sales30d, setSales30d] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  const periodStart = useMemo(() => {
+    const now = new Date();
+    if (periodFilter === "today") {
+      const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+    }
+    if (periodFilter === "week") return startOfWeek(now, { locale: ptBR });
+    if (periodFilter === "custom" && selectedDate) {
+      const d = new Date(selectedDate); d.setHours(0, 0, 0, 0); return d;
+    }
+    // 30d
+    const d = new Date(now); d.setDate(d.getDate() - 30); return d;
+  }, [periodFilter, selectedDate]);
+
+  const periodEnd = useMemo(() => {
+    if (periodFilter === "custom" && selectedDate) {
+      const d = new Date(selectedDate); d.setHours(23, 59, 59, 999); return d;
+    }
+    return new Date();
+  }, [periodFilter, selectedDate]);
+
   const filteredTransactions = useMemo(() => {
-    if (!selectedDate) return transactions;
     return transactions.filter(t => {
-      const txDate = new Date(t.created_at);
-      return txDate.toDateString() === selectedDate.toDateString();
+      const d = new Date(t.created_at);
+      return d >= periodStart && d <= periodEnd;
     });
-  }, [transactions, selectedDate]);
+  }, [transactions, periodStart, periodEnd]);
+
+  const periodLabel = useMemo(() => {
+    if (periodFilter === "today") return "hoje";
+    if (periodFilter === "week") return "esta semana";
+    if (periodFilter === "custom" && selectedDate) return format(selectedDate, "dd/MM/yyyy", { locale: ptBR });
+    return "últimos 30 dias";
+  }, [periodFilter, selectedDate]);
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const [profileRes, txRes, todayRes] = await Promise.all([
+      const [profileRes, txRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(100),
-        supabase.from("gateway_transactions" as any).select("id", { count: "exact", head: true }).eq("status", "approved").gte("created_at", today.toISOString()),
+        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
-      setApprovedToday(todayRes.count || 0);
-
-      const d30 = new Date();
-      d30.setDate(d30.getDate() - 30);
-      const allTx = (txRes.data || []) as unknown as Transaction[];
-      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.amount, 0);
-      setSales30d(sales30);
-
-      const chartTx = (txRes.data || []) as unknown as Transaction[];
-      const last30 = Array.from({ length: 30 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (29 - i));
-        const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = chartTx.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-        const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
-        const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
-        return { date: key, pagas, pendentes };
-      });
-      setChartData(last30);
       setLoading(false);
     };
     fetchData();
   }, []);
 
+  const filteredApproved = filteredTransactions.filter(t => t.status === "approved" || t.status === "paid");
+  const filteredVolume = filteredApproved.reduce((a, t) => a + t.amount, 0);
+  const filteredAvgTicket = filteredApproved.length > 0 ? filteredVolume / filteredApproved.length : 0;
+  const filteredApprovalRate = filteredTransactions.length > 0 ? ((filteredApproved.length / filteredTransactions.length) * 100).toFixed(1) : "0";
+
+  // Global milestones always use all transactions
   const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
-  const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
-  const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
   const milestones = [
     { label: "R$ 0", value: 0 },
@@ -111,11 +119,25 @@ export default function PayDashboard() {
     };
   }, [totalVolume]);
 
+  // Chart data based on period
+  const computedChartData = useMemo(() => {
+    const days = periodFilter === "today" ? 1 : periodFilter === "week" ? 7 : periodFilter === "custom" ? 1 : 30;
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(periodStart);
+      d.setDate(d.getDate() + i);
+      const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const dayTxs = transactions.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
+      const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+      const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+      return { date: key, pagas, pendentes };
+    });
+  }, [transactions, periodStart, periodFilter]);
+
   const metrics = [
-    { label: "Vendas Aprovadas Hoje", value: String(approvedToday), icon: Activity, change: "hoje" },
-    { label: "Vendas Últimos 30 dias", value: formatCurrency(sales30d), icon: DollarSign, change: "últimos 30 dias" },
-    { label: "Taxa de Aprovação", value: transactions.length > 0 ? `${approvalRate}%` : "—", icon: TrendingUp, change: "" },
-    { label: "Ticket Médio", value: approvedTx.length > 0 ? formatCurrency(Math.round(avgTicket)) : "—", icon: CreditCard, change: "" },
+    { label: "Vendas Aprovadas", value: String(filteredApproved.length), icon: Activity, change: periodLabel },
+    { label: "Volume Aprovado", value: formatCurrency(filteredVolume), icon: DollarSign, change: periodLabel },
+    { label: "Taxa de Aprovação", value: filteredTransactions.length > 0 ? `${filteredApprovalRate}%` : "—", icon: TrendingUp, change: periodLabel },
+    { label: "Ticket Médio", value: filteredApproved.length > 0 ? formatCurrency(Math.round(filteredAvgTicket)) : "—", icon: CreditCard, change: periodLabel },
   ];
 
   if (loading) {
@@ -131,43 +153,40 @@ export default function PayDashboard() {
             Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Date Filter */}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 text-sm">
-                <CalendarIcon className="w-4 h-4" />
-                {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por dia"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setCalendarOpen(false);
-                }}
-                locale={ptBR}
-                initialFocus
-              />
-              {selectedDate && (
-                <div className="p-2 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      setSelectedDate(undefined);
-                      setCalendarOpen(false);
-                    }}
-                  >
-                    Limpar filtro
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Period Selector */}
+          <Select value={periodFilter} onValueChange={(v) => { setPeriodFilter(v as PeriodFilter); if (v !== "custom") setSelectedDate(undefined); }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="week">Esta Semana</SelectItem>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="custom">Data específica</SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Calendar for custom date */}
+          {periodFilter === "custom" && (
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 text-sm">
+                  <CalendarIcon className="w-4 h-4" />
+                  {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => { setSelectedDate(date); setCalendarOpen(false); }}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
           {/* Sales Milestone Progress Bar */}
           <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
             <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
@@ -209,11 +228,11 @@ export default function PayDashboard() {
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Volume de Vendas — Últimos 30 dias</CardTitle>
+          <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={chartData}>
+            <AreaChart data={computedChartData}>
               <defs>
                 <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
@@ -239,11 +258,9 @@ export default function PayDashboard() {
       <Card className="border-[#2A2A2A]">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">
-            Transações {selectedDate ? `— ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}` : "Recentes"}
+            Transações — {periodLabel}
           </CardTitle>
-          {selectedDate && (
-            <span className="text-xs text-muted-foreground">{filteredTransactions.length} transação(ões)</span>
-          )}
+          <span className="text-xs text-muted-foreground">{filteredTransactions.length} transação(ões)</span>
         </CardHeader>
         <CardContent>
           {filteredTransactions.length === 0 ? (
