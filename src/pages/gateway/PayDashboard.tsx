@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, CreditCard, CheckCircle, DollarSign, Loader2, Activity, Trophy } from "lucide-react";
+import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Transaction {
   id: string;
