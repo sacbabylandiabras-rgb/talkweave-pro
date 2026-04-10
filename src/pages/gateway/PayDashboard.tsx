@@ -27,6 +27,7 @@ interface Transaction {
 }
 
 export default function PayDashboard() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalWithdrawn, setTotalWithdrawn] = useState(0);
