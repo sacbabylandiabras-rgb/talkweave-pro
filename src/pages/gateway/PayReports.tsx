@@ -35,6 +35,8 @@ export default function PayReports() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [checkouts, setCheckouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,10 +51,15 @@ export default function PayReports() {
     fetchData();
   }, []);
 
-  const approved = transactions.filter(t => t.status === "approved");
-  const declined = transactions.filter(t => t.status === "declined");
-  const pending = transactions.filter(t => t.status === "pending");
-  const refunded = transactions.filter(t => t.status === "refunded");
+  const filtered = useMemo(() => {
+    if (!selectedDate) return transactions;
+    return transactions.filter(t => new Date(t.created_at).toDateString() === selectedDate.toDateString());
+  }, [transactions, selectedDate]);
+
+  const approved = filtered.filter(t => t.status === "approved");
+  const declined = filtered.filter(t => t.status === "declined");
+  const pending = filtered.filter(t => t.status === "pending");
+  const refunded = filtered.filter(t => t.status === "refunded");
   const totalRevenue = approved.reduce((a, t) => a + t.net, 0);
   const avgTicket = approved.length > 0 ? Math.round(totalRevenue / approved.length) : 0;
 
