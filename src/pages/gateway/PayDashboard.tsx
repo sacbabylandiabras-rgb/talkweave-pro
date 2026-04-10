@@ -29,8 +29,16 @@ export default function PayDashboard() {
   const [sales30d, setSales30d] = useState(0);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  useEffect(() => {
+  const filteredTransactions = useMemo(() => {
+    if (!selectedDate) return transactions;
+    return transactions.filter(t => {
+      const txDate = new Date(t.created_at);
+      return txDate.toDateString() === selectedDate.toDateString();
+    });
+  }, [transactions, selectedDate]);
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
