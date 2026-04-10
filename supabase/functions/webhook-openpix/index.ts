@@ -63,10 +63,13 @@ serve(async (req) => {
       })
     }
 
-    // If status is already the same, skip ALL side effects (dedup)
-    if (existingTx.status === newStatus) {
-      console.log('Transaction already has status', newStatus, '- skipping duplicate webhook')
-      return new Response(JSON.stringify({ ok: true, message: 'duplicate, already processed', status: newStatus, transactionId: existingTx.id }), {
+    // ── ALWAYS dispatch user-configured outbound webhooks (even if status unchanged) ──
+    const isDuplicate = existingTx.status === newStatus
+    await dispatchOutboundWebhooks(supabase, tx, payload, charge, newStatus)
+
+    if (isDuplicate) {
+      console.log('Transaction already has status', newStatus, '- skipping internal side effects (WhatsApp/email/push)')
+      return new Response(JSON.stringify({ ok: true, message: 'status unchanged, outbound webhooks dispatched', status: newStatus, transactionId: existingTx.id }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
