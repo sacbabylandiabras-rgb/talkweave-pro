@@ -110,10 +110,14 @@ export default function PayDashboard() {
     fetchData();
   }, []);
 
+  const filteredApproved = filteredTransactions.filter(t => t.status === "approved" || t.status === "paid");
+  const filteredVolume = filteredApproved.reduce((a, t) => a + t.amount, 0);
+  const filteredAvgTicket = filteredApproved.length > 0 ? filteredVolume / filteredApproved.length : 0;
+  const filteredApprovalRate = filteredTransactions.length > 0 ? ((filteredApproved.length / filteredTransactions.length) * 100).toFixed(1) : "0";
+
+  // Global milestones always use all transactions
   const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
-  const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
-  const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
   const milestones = [
     { label: "R$ 0", value: 0 },
@@ -141,11 +145,25 @@ export default function PayDashboard() {
     };
   }, [totalVolume]);
 
+  // Chart data based on period
+  const computedChartData = useMemo(() => {
+    const days = periodFilter === "today" ? 1 : periodFilter === "week" ? 7 : periodFilter === "custom" ? 1 : 30;
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(periodStart);
+      d.setDate(d.getDate() + i);
+      const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const dayTxs = transactions.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
+      const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+      const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+      return { date: key, pagas, pendentes };
+    });
+  }, [transactions, periodStart, periodFilter]);
+
   const metrics = [
-    { label: "Vendas Aprovadas Hoje", value: String(approvedToday), icon: Activity, change: "hoje" },
-    { label: "Vendas Últimos 30 dias", value: formatCurrency(sales30d), icon: DollarSign, change: "últimos 30 dias" },
-    { label: "Taxa de Aprovação", value: transactions.length > 0 ? `${approvalRate}%` : "—", icon: TrendingUp, change: "" },
-    { label: "Ticket Médio", value: approvedTx.length > 0 ? formatCurrency(Math.round(avgTicket)) : "—", icon: CreditCard, change: "" },
+    { label: "Vendas Aprovadas", value: String(filteredApproved.length), icon: Activity, change: periodLabel },
+    { label: "Volume Aprovado", value: formatCurrency(filteredVolume), icon: DollarSign, change: periodLabel },
+    { label: "Taxa de Aprovação", value: filteredTransactions.length > 0 ? `${filteredApprovalRate}%` : "—", icon: TrendingUp, change: periodLabel },
+    { label: "Ticket Médio", value: filteredApproved.length > 0 ? formatCurrency(Math.round(filteredAvgTicket)) : "—", icon: CreditCard, change: periodLabel },
   ];
 
   if (loading) {
