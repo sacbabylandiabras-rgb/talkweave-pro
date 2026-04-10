@@ -72,9 +72,6 @@ export default function PayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
       const [profileRes, txRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
