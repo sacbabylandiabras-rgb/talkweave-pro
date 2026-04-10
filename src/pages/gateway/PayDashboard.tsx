@@ -96,6 +96,8 @@ export default function PayDashboard() {
   // Global milestones always use all transactions
   const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
+  const totalNet = approvedTx.reduce((a, t) => a + t.net, 0);
+  const availableBalance = Math.max(0, totalNet - totalWithdrawn);
 
   const milestones = [
     { label: "R$ 0", value: 0 },
