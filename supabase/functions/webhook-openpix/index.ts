@@ -63,8 +63,10 @@ serve(async (req) => {
       })
     }
 
+    const tx = existingTx
+
     // ── ALWAYS dispatch user-configured outbound webhooks (even if status unchanged) ──
-    const isDuplicate = existingTx.status === newStatus
+    const isDuplicate = tx.status === newStatus
     await dispatchOutboundWebhooks(supabase, tx, payload, charge, newStatus)
 
     if (isDuplicate) {
@@ -86,8 +88,6 @@ serve(async (req) => {
     } else {
       console.log('Transaction updated:', existingTx.id, 'from', existingTx.status, 'to', newStatus)
     }
-
-    const tx = existingTx
 
     // Forward to webhook-gateway if payment approved (to trigger WhatsApp messages)
     if (newStatus === 'approved' && tx.user_id) {
@@ -248,7 +248,8 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('OpenPix webhook error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
