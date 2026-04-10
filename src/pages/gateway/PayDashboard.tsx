@@ -73,13 +73,16 @@ export default function PayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const [profileRes, txRes] = await Promise.all([
+      const [profileRes, txRes, wdRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
+        supabase.from("gateway_withdrawals").select("amount, status"),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
+      const wdData = (wdRes.data || []) as any[];
+      setTotalWithdrawn(wdData.filter((w: any) => ["approved", "paid", "completed"].includes(w.status)).reduce((a: number, w: any) => a + (w.amount || 0), 0));
       setLoading(false);
     };
     fetchData();
