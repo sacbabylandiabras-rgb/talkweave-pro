@@ -93,171 +93,168 @@ serve(async (req) => {
         })
       }
 
-        await supabase
-          .from('gateway_transactions')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', tx.id)
+      await supabase
+        .from('gateway_transactions')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', tx.id)
 
-        console.log('Transaction updated:', tx.id, 'from', tx.status, 'to', newStatus)
+      console.log('Transaction updated:', tx.id, 'from', tx.status, 'to', newStatus)
 
-        // Forward to webhook-gateway for WhatsApp notifications if approved
-        if (newStatus === 'approved' && tx.user_id) {
-          try {
-            const gatewayUrl = `${supabaseUrl}/functions/v1/webhook-gateway?user_id=${tx.user_id}`
-            const forwardPayload = {
-              ...payload,
-              status: 'approved',
-              phone: payload.customer?.phone || null,
-              customer: payload.customer || null,
-              amount: payload.total,
-            }
-            await fetch(gatewayUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify(forwardPayload),
-            })
-            console.log('Forwarded to webhook-gateway for WhatsApp notifications')
-          } catch (fwdErr) {
-            console.error('Forward error:', fwdErr)
+      // Forward to webhook-gateway for WhatsApp notifications if approved
+      if (newStatus === 'approved' && tx.user_id) {
+        try {
+          const gatewayUrl = `${supabaseUrl}/functions/v1/webhook-gateway?user_id=${tx.user_id}`
+          const forwardPayload = {
+            ...payload,
+            status: 'approved',
+            phone: payload.customer?.phone || null,
+            customer: payload.customer || null,
+            amount: payload.total,
           }
+          await fetch(gatewayUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify(forwardPayload),
+          })
+          console.log('Forwarded to webhook-gateway for WhatsApp notifications')
+        } catch (fwdErr) {
+          console.error('Forward error:', fwdErr)
+        }
 
-          // Send push notification
+        // Send push notification
+        try {
+          const amount = (tx.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+          const pushUrl = `${supabaseUrl}/functions/v1/send-push-notification`
+          await fetch(pushUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              user_id: tx.user_id,
+              title: '💰 Nova venda aprovada!',
+              body: `Pagamento de ${amount} recebido${tx.customer_name ? ` de ${tx.customer_name}` : ''}`,
+              data: { transaction_id: tx.id, type: 'transaction_approved' },
+            }),
+          })
+          console.log('Push notification sent for transaction:', tx.id)
+        } catch (pushErr) {
+          console.error('Push notification error:', pushErr)
+        }
+
+        // Send approved email to customer (if enabled in checkout config)
+        const customerEmail = payload.customer?.email || tx.customer_email
+        let emailApprovedEnabled = true
+        let productName = 'Produto'
+        if (tx.checkout_id) {
+          const { data: co } = await supabase.from('gateway_checkouts').select('name, config').eq('id', tx.checkout_id).single()
+          if (co) {
+            productName = (co.config as any)?.productName || co.name || 'Produto'
+            emailApprovedEnabled = (co.config as any)?.emailApproved !== false
+          }
+        }
+        if (customerEmail && emailApprovedEnabled) {
           try {
-            const amount = (tx.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-            const pushUrl = `${supabaseUrl}/functions/v1/send-push-notification`
-            await fetch(pushUrl, {
+            const emailUrl = `${supabaseUrl}/functions/v1/send-gateway-email`
+            await fetch(emailUrl, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
               body: JSON.stringify({
-                user_id: tx.user_id,
-                title: '💰 Nova venda aprovada!',
-                body: `Pagamento de ${amount} recebido${tx.customer_name ? ` de ${tx.customer_name}` : ''}`,
-                data: { transaction_id: tx.id, type: 'transaction_approved' },
+                type: 'approved',
+                to: customerEmail,
+                data: {
+                  customerName: payload.customer?.name || tx.customer_name || 'Cliente',
+                  amount: tx.amount || 0,
+                  productName,
+                  transactionId: tx.id,
+                },
               }),
             })
-            console.log('Push notification sent for transaction:', tx.id)
-          } catch (pushErr) {
-            console.error('Push notification error:', pushErr)
-          }
-
-          // Send approved email to customer (if enabled in checkout config)
-          const customerEmail = payload.customer?.email || tx.customer_email
-          let emailApprovedEnabled = true
-          let productName = 'Produto'
-          if (tx.checkout_id) {
-            const { data: co } = await supabase.from('gateway_checkouts').select('name, config').eq('id', tx.checkout_id).single()
-            if (co) {
-              productName = (co.config as any)?.productName || co.name || 'Produto'
-              emailApprovedEnabled = (co.config as any)?.emailApproved !== false
-            }
-          }
-          if (customerEmail && emailApprovedEnabled) {
-            try {
-              const emailUrl = `${supabaseUrl}/functions/v1/send-gateway-email`
-              await fetch(emailUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
-                body: JSON.stringify({
-                  type: 'approved',
-                  to: customerEmail,
-                  data: {
-                    customerName: payload.customer?.name || tx.customer_name || 'Cliente',
-                    amount: tx.amount || 0,
-                    productName,
-                    transactionId: tx.id,
-                  },
-                }),
-              })
-              console.log('Approved email sent to:', customerEmail)
-            } catch (emailErr) {
-              console.error('Approved email error:', emailErr)
-            }
+            console.log('Approved email sent to:', customerEmail)
+          } catch (emailErr) {
+            console.error('Approved email error:', emailErr)
           }
         }
-
-        // (outbound webhooks already dispatched above, before dedup check)
-
-        // Forward to UTMify if configured
-        if (tx.user_id) {
-          try {
-            const { data: utmifyConfig } = await supabase
-              .from('gateway_integrations')
-              .select('*')
-              .eq('user_id', tx.user_id)
-              .eq('name', 'UTMify')
-              .eq('active', true)
-              .maybeSingle()
-
-            if (utmifyConfig?.auth_token) {
-              const utmifyStatus = newStatus === 'approved' ? 'paid' : newStatus === 'refunded' ? 'refunded' : 'waiting_payment'
-              const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
-              const createdAt = tx.created_at ? new Date(tx.created_at).toISOString().replace('T', ' ').substring(0, 19) : now
-
-              const utmifyPayload = {
-                orderId: tx.external_id || tx.id,
-                platform: 'ZapLynxPay',
-                paymentMethod: 'pix',
-                status: utmifyStatus,
-                createdAt,
-                approvedDate: utmifyStatus === 'paid' ? now : null,
-                refundedAt: utmifyStatus === 'refunded' ? now : null,
-                customer: {
-                  name: payload.customer?.name || tx.customer_name || '',
-                  email: payload.customer?.email || tx.customer_email || '',
-                  phone: payload.customer?.phone || tx.customer_phone || null,
-                  document: payload.customer?.document || null,
-                },
-                products: [{
-                  id: tx.product_id || tx.id,
-                  name: payload.products?.[0]?.name || 'Produto',
-                  planId: null,
-                  planName: null,
-                  quantity: 1,
-                  priceInCents: tx.amount || payload.total || 0,
-                }],
-                trackingParameters: {
-                  src: (tx.metadata as any)?.src || null,
-                  sck: (tx.metadata as any)?.sck || null,
-                  utm_source: (tx.metadata as any)?.utm_source || null,
-                  utm_campaign: (tx.metadata as any)?.utm_campaign || null,
-                  utm_medium: (tx.metadata as any)?.utm_medium || null,
-                  utm_content: (tx.metadata as any)?.utm_content || null,
-                  utm_term: (tx.metadata as any)?.utm_term || null,
-                },
-                commission: {
-                  totalPriceInCents: tx.amount || 0,
-                  gatewayFeeInCents: tx.fee || 0,
-                  userCommissionInCents: tx.net || 0,
-                  currency: 'BRL',
-                },
-              }
-
-              const utmRes = await fetch('https://api.utmify.com.br/api-credentials/orders', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-api-token': utmifyConfig.auth_token,
-                },
-                body: JSON.stringify(utmifyPayload),
-              })
-              console.log('UTMify response:', utmRes.status, await utmRes.text())
-            }
-          } catch (utmErr) {
-            console.error('UTMify forward error:', utmErr)
-          }
-        }
-
-        return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx.id }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
       }
+
+      // Forward to UTMify if configured
+      if (tx.user_id) {
+        try {
+          const { data: utmifyConfig } = await supabase
+            .from('gateway_integrations')
+            .select('*')
+            .eq('user_id', tx.user_id)
+            .eq('name', 'UTMify')
+            .eq('active', true)
+            .maybeSingle()
+
+          if (utmifyConfig?.auth_token) {
+            const utmifyStatus = newStatus === 'approved' ? 'paid' : newStatus === 'refunded' ? 'refunded' : 'waiting_payment'
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+            const createdAt = tx.created_at ? new Date(tx.created_at).toISOString().replace('T', ' ').substring(0, 19) : now
+
+            const utmifyPayload = {
+              orderId: tx.external_id || tx.id,
+              platform: 'ZapLynxPay',
+              paymentMethod: 'pix',
+              status: utmifyStatus,
+              createdAt,
+              approvedDate: utmifyStatus === 'paid' ? now : null,
+              refundedAt: utmifyStatus === 'refunded' ? now : null,
+              customer: {
+                name: payload.customer?.name || tx.customer_name || '',
+                email: payload.customer?.email || tx.customer_email || '',
+                phone: payload.customer?.phone || tx.customer_phone || null,
+                document: payload.customer?.document || null,
+              },
+              products: [{
+                id: tx.product_id || tx.id,
+                name: payload.products?.[0]?.name || 'Produto',
+                planId: null,
+                planName: null,
+                quantity: 1,
+                priceInCents: tx.amount || payload.total || 0,
+              }],
+              trackingParameters: {
+                src: (tx.metadata as any)?.src || null,
+                sck: (tx.metadata as any)?.sck || null,
+                utm_source: (tx.metadata as any)?.utm_source || null,
+                utm_campaign: (tx.metadata as any)?.utm_campaign || null,
+                utm_medium: (tx.metadata as any)?.utm_medium || null,
+                utm_content: (tx.metadata as any)?.utm_content || null,
+                utm_term: (tx.metadata as any)?.utm_term || null,
+              },
+              commission: {
+                totalPriceInCents: tx.amount || 0,
+                gatewayFeeInCents: tx.fee || 0,
+                userCommissionInCents: tx.net || 0,
+                currency: 'BRL',
+              },
+            }
+
+            const utmRes = await fetch('https://api.utmify.com.br/api-credentials/orders', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-token': utmifyConfig.auth_token,
+              },
+              body: JSON.stringify(utmifyPayload),
+            })
+            console.log('UTMify response:', utmRes.status, await utmRes.text())
+          }
+        } catch (utmErr) {
+          console.error('UTMify forward error:', utmErr)
+        }
+      }
+
+      return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx.id }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Handle transfer webhooks
