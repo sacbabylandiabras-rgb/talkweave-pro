@@ -32,16 +32,43 @@ export default function PayDashboard() {
   const [sales30d, setSales30d] = useState(0);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  const periodStart = useMemo(() => {
+    const now = new Date();
+    if (periodFilter === "today") {
+      const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+    }
+    if (periodFilter === "week") return startOfWeek(now, { locale: ptBR });
+    if (periodFilter === "custom" && selectedDate) {
+      const d = new Date(selectedDate); d.setHours(0, 0, 0, 0); return d;
+    }
+    // 30d
+    const d = new Date(now); d.setDate(d.getDate() - 30); return d;
+  }, [periodFilter, selectedDate]);
+
+  const periodEnd = useMemo(() => {
+    if (periodFilter === "custom" && selectedDate) {
+      const d = new Date(selectedDate); d.setHours(23, 59, 59, 999); return d;
+    }
+    return new Date();
+  }, [periodFilter, selectedDate]);
+
   const filteredTransactions = useMemo(() => {
-    if (!selectedDate) return transactions;
     return transactions.filter(t => {
-      const txDate = new Date(t.created_at);
-      return txDate.toDateString() === selectedDate.toDateString();
+      const d = new Date(t.created_at);
+      return d >= periodStart && d <= periodEnd;
     });
-  }, [transactions, selectedDate]);
+  }, [transactions, periodStart, periodEnd]);
+
+  const periodLabel = useMemo(() => {
+    if (periodFilter === "today") return "hoje";
+    if (periodFilter === "week") return "esta semana";
+    if (periodFilter === "custom" && selectedDate) return format(selectedDate, "dd/MM/yyyy", { locale: ptBR });
+    return "últimos 30 dias";
+  }, [periodFilter, selectedDate]);
 
   useEffect(() => {
     const fetchData = async () => {
