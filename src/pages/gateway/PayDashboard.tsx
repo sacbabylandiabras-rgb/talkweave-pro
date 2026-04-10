@@ -171,6 +171,7 @@ export default function PayDashboard() {
           </Card>
         ))}
       </div>
+  }, [transactions, selectedDate]);
 
 
 
