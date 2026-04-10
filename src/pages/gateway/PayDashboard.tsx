@@ -8,8 +8,11 @@ import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type PeriodFilter = "today" | "week" | "30d" | "custom";
 
 interface Transaction {
   id: string;
