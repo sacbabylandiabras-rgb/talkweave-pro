@@ -161,12 +161,17 @@ export default function PayReports() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={chartData}>
-                    <defs><linearGradient id="gVol" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15}/><stop offset="95%" stopColor="#FF4D2E" stopOpacity={0}/></linearGradient></defs>
+                    <defs>
+                      <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.15}/><stop offset="95%" stopColor="#22C55E" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15}/><stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/></linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                     <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                     <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                    <Area type="monotone" dataKey="volume" stroke="#FF4D2E" fill="url(#gVol)" strokeWidth={2} />
+                    <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === 'pagas' ? 'Pagas' : 'Pendentes'}</span>} />
+                    <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
+                    <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
