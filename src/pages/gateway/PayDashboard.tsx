@@ -254,11 +254,11 @@ export default function PayDashboard() {
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Volume de Vendas — Últimos 30 dias</CardTitle>
+          <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={chartData}>
+            <AreaChart data={computedChartData}>
               <defs>
                 <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
