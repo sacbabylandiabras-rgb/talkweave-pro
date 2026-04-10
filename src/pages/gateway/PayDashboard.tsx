@@ -284,11 +284,9 @@ export default function PayDashboard() {
       <Card className="border-[#2A2A2A]">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">
-            Transações {selectedDate ? `— ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}` : "Recentes"}
+            Transações — {periodLabel}
           </CardTitle>
-          {selectedDate && (
-            <span className="text-xs text-muted-foreground">{filteredTransactions.length} transação(ões)</span>
-          )}
+          <span className="text-xs text-muted-foreground">{filteredTransactions.length} transação(ões)</span>
         </CardHeader>
         <CardContent>
           {filteredTransactions.length === 0 ? (
