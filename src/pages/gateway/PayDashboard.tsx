@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +27,7 @@ interface Transaction {
 }
 
 export default function PayDashboard() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalWithdrawn, setTotalWithdrawn] = useState(0);
@@ -219,15 +221,20 @@ export default function PayDashboard() {
 
       {/* Saldo Disponível */}
       <Card className="border-[#2A2A2A] ring-1 ring-emerald-500/20">
-        <CardContent className="pt-5 pb-4 flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-emerald-500/10">
-            <Wallet className="w-6 h-6 text-emerald-500" />
+        <CardContent className="pt-5 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-emerald-500/10">
+              <Wallet className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo Disponível para Saque</p>
+              <p className="text-2xl font-bold text-emerald-500">{formatCurrency(availableBalance)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo Disponível para Saque</p>
-            <p className="text-2xl font-bold text-emerald-500">{formatCurrency(availableBalance)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
-          </div>
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10" onClick={() => navigate("/gateway/saques")}>
+            Solicitar Saque
+          </Button>
         </CardContent>
       </Card>
 
