@@ -430,12 +430,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               onClick={async () => {
                 try {
                   await withInstance(() => disconnectDevice());
-                  try {
-                    await supabase.from('message_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                    await supabase.from('campaign_sends').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                    localStorage.removeItem('readConversations');
-                    toast({ title: "🗑️ Histórico limpo" });
-                  } catch {}
+                  localStorage.removeItem('readConversations');
+                  toast({ title: "🔌 Instância desconectada", description: "O histórico e os envios da campanha foram preservados." });
                   setTimeout(fetchDeviceStatus, 1000);
                 } catch {}
               }}>
