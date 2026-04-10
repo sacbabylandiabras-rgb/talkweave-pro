@@ -75,33 +75,13 @@ export default function PayDashboard() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const [profileRes, txRes, todayRes] = await Promise.all([
+      const [profileRes, txRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(100),
-        supabase.from("gateway_transactions" as any).select("id", { count: "exact", head: true }).eq("status", "approved").gte("created_at", today.toISOString()),
+        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
-      setApprovedToday(todayRes.count || 0);
-
-      const d30 = new Date();
-      d30.setDate(d30.getDate() - 30);
-      const allTx = (txRes.data || []) as unknown as Transaction[];
-      const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.amount, 0);
-      setSales30d(sales30);
-
-      const chartTx = (txRes.data || []) as unknown as Transaction[];
-      const last30 = Array.from({ length: 30 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (29 - i));
-        const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = chartTx.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-        const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
-        const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
-        return { date: key, pagas, pendentes };
-      });
-      setChartData(last30);
       setLoading(false);
     };
     fetchData();
