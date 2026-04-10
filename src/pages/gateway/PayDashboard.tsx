@@ -69,11 +69,10 @@ export default function PayDashboard() {
         const d = new Date();
         d.setDate(d.getDate() - (29 - i));
         const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayTxs = chartTx.filter(tx => {
-          const txDate = new Date(tx.created_at);
-          return txDate.toDateString() === d.toDateString();
-        });
-        return { date: key, volume: dayTxs.reduce((a, t) => a + (t.amount || 0), 0) / 100 };
+        const dayTxs = chartTx.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
+        const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+        const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+        return { date: key, pagas, pendentes };
       });
       setChartData(last30);
       setLoading(false);
