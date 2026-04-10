@@ -28,6 +28,7 @@ interface Transaction {
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalWithdrawn, setTotalWithdrawn] = useState(0);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
