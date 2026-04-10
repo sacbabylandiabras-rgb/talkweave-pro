@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon } from "lucide-react";
+import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -28,6 +28,7 @@ interface Transaction {
 export default function PayDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalWithdrawn, setTotalWithdrawn] = useState(0);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -72,13 +73,16 @@ export default function PayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const [profileRes, txRes] = await Promise.all([
+      const [profileRes, txRes, wdRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
+        supabase.from("gateway_withdrawals").select("amount, status"),
       ]);
 
       setProfile(profileRes.data);
       setTransactions((txRes.data || []) as unknown as Transaction[]);
+      const wdData = (wdRes.data || []) as any[];
+      setTotalWithdrawn(wdData.filter((w: any) => ["approved", "paid", "completed"].includes(w.status)).reduce((a: number, w: any) => a + (w.amount || 0), 0));
       setLoading(false);
     };
     fetchData();
@@ -92,6 +96,8 @@ export default function PayDashboard() {
   // Global milestones always use all transactions
   const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
+  const totalNet = approvedTx.reduce((a, t) => a + t.net, 0);
+  const availableBalance = Math.max(0, totalNet - totalWithdrawn);
 
   const milestones = [
     { label: "R$ 0", value: 0 },
@@ -210,6 +216,20 @@ export default function PayDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Saldo Disponível */}
+      <Card className="border-[#2A2A2A] ring-1 ring-emerald-500/20">
+        <CardContent className="pt-5 pb-4 flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-emerald-500/10">
+            <Wallet className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo Disponível para Saque</p>
+            <p className="text-2xl font-bold text-emerald-500">{formatCurrency(availableBalance)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m) => (
