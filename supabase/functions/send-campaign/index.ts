@@ -480,6 +480,34 @@ serve(async (req) => {
       return numericId ? `${numericId}-group` : phone;
     };
 
+    const persistCampaignSend = async (record: CampaignSendRecord, existingId?: string | null) => {
+      if (existingId) {
+        const { error: updateError } = await supabase
+          .from('campaign_sends')
+          .update({
+            phone: record.phone,
+            contact_name: record.contact_name,
+            message_content: record.message_content,
+            status: record.status,
+            sent_at: record.sent_at ?? null,
+            delivered_at: record.delivered_at ?? null,
+            error_message: record.error_message ?? null,
+            user_id: record.user_id,
+            instance_name: record.instance_name,
+          })
+          .eq('id', existingId);
+
+        if (!updateError) return;
+
+        console.error(`❌ Failed to update campaign_send ${existingId} for ${record.phone}:`, updateError.message);
+      }
+
+      const { error: insertError } = await supabase.from('campaign_sends').insert([record]);
+      if (insertError) {
+        console.error(`❌ Failed to insert campaign_send for ${record.phone}:`, insertError.message);
+      }
+    };
+
     // Process current batch
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
@@ -490,6 +518,7 @@ serve(async (req) => {
         : null;
       const currentInstance = explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
+      let reusableSendId: string | null = null;
 
       try {
         // Check if paused/cancelled before EACH contact to stop immediately
@@ -501,7 +530,11 @@ serve(async (req) => {
         }
 
         // Check duplicates
-        const { data: existingSends } = await supabase.from('campaign_sends').select('id, status').eq('campaign_id', campaignId).eq('phone', contact.phone);
+        const { data: existingSends } = await supabase
+          .from('campaign_sends')
+          .select('id, status, created_at')
+          .eq('campaign_id', campaignId)
+          .eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
         const phoneOccurrencesBefore = currentBatch.slice(0, i).filter(c => c.phone === contact.phone).length;
 
@@ -511,10 +544,10 @@ serve(async (req) => {
           continue;
         }
 
-        const failedOrPending = existingSends?.find(s => s.status === 'failed' || s.status === 'pending');
-        if (failedOrPending) {
-          await supabase.from('campaign_sends').delete().eq('id', failedOrPending.id);
-        }
+        const failedOrPending = [...(existingSends || [])]
+          .filter(s => s.status === 'failed' || s.status === 'pending')
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        reusableSendId = failedOrPending?.id || null;
 
         // Device connectivity is checked once at batch level (above), not per-contact
         // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
@@ -571,7 +604,7 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
           }
 
-          await supabase.from('campaign_sends').insert([campaignSend]);
+          await persistCampaignSend(campaignSend, reusableSendId);
           if (i < currentBatch.length - 1) await sleep(delayMs);
           continue;
         }
@@ -650,7 +683,7 @@ serve(async (req) => {
           }
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
-          await supabase.from('campaign_sends').insert([campaignSend]);
+          await persistCampaignSend(campaignSend, reusableSendId);
           if (i < currentBatch.length - 1) await sleep(delayMs);
           continue;
 
@@ -791,12 +824,9 @@ serve(async (req) => {
         results.push({ phone: contact.phone, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
 
-      // Insert campaign_send record immediately after each contact
+      // Persist campaign_send record immediately after each contact without deleting prior history rows
       if (campaignSend) {
-        const { error: insertError } = await supabase.from('campaign_sends').insert([campaignSend]);
-        if (insertError) {
-          console.error(`❌ Failed to insert campaign_send for ${contact.phone}:`, insertError.message);
-        }
+        await persistCampaignSend(campaignSend, reusableSendId);
       }
 
       // Delay between contacts (except last)
