@@ -38,6 +38,7 @@ export default function PayDashboard() {
       const txDate = new Date(t.created_at);
       return txDate.toDateString() === selectedDate.toDateString();
     });
+  }, [transactions, selectedDate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,14 +58,12 @@ export default function PayDashboard() {
       setTransactions((txRes.data || []) as unknown as Transaction[]);
       setApprovedToday(todayRes.count || 0);
 
-      // Sales last 30 days
       const d30 = new Date();
       d30.setDate(d30.getDate() - 30);
       const allTx = (txRes.data || []) as unknown as Transaction[];
       const sales30 = allTx.filter(t => t.status === "approved" && new Date(t.created_at) >= d30).reduce((a, t) => a + t.amount, 0);
       setSales30d(sales30);
 
-      // Build chart from transactions (last 30 days)
       const chartTx = (txRes.data || []) as unknown as Transaction[];
       const last30 = Array.from({ length: 30 }, (_, i) => {
         const d = new Date();
@@ -87,7 +86,6 @@ export default function PayDashboard() {
   const avgTicket = approvedTx.length > 0 ? totalVolume / approvedTx.length : 0;
   const approvalRate = transactions.length > 0 ? ((approvedTx.length / transactions.length) * 100).toFixed(1) : "0";
 
-  // Milestones in cents
   const milestones = [
     { label: "R$ 0", value: 0 },
     { label: "R$ 10k", value: 10_000_00 },
@@ -134,24 +132,62 @@ export default function PayDashboard() {
             Bem-vindo, {profile?.full_name || profile?.email || "Usuário"} — Visão geral das suas vendas e transações
           </p>
         </div>
-        {/* Sales Milestone Progress Bar - Top Right */}
-        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
-          <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">
-                {progressInfo.currentLabel} → {progressInfo.nextLabel}
-              </span>
-              <span className="text-[10px] text-muted-foreground">{progressInfo.volumeFormatted}</span>
-            </div>
-            <div className="relative w-full h-2 rounded-full bg-muted/50 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${progressInfo.segmentPct}%`,
-                  background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
+        <div className="flex items-center gap-3">
+          {/* Date Filter */}
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 text-sm">
+                <CalendarIcon className="w-4 h-4" />
+                {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por dia"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setCalendarOpen(false);
                 }}
+                locale={ptBR}
+                initialFocus
               />
+              {selectedDate && (
+                <div className="p-2 border-t border-border">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => {
+                      setSelectedDate(undefined);
+                      setCalendarOpen(false);
+                    }}
+                  >
+                    Limpar filtro
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          {/* Sales Milestone Progress Bar */}
+          <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
+            <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">
+                  {progressInfo.currentLabel} → {progressInfo.nextLabel}
+                </span>
+                <span className="text-[10px] text-muted-foreground">{progressInfo.volumeFormatted}</span>
+              </div>
+              <div className="relative w-full h-2 rounded-full bg-muted/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${progressInfo.segmentPct}%`,
+                    background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -171,10 +207,6 @@ export default function PayDashboard() {
           </Card>
         ))}
       </div>
-  }, [transactions, selectedDate]);
-
-
-
 
       <Card className="border-[#2A2A2A]">
         <CardHeader>
@@ -200,13 +232,20 @@ export default function PayDashboard() {
       </Card>
 
       <Card className="border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Transações Recentes</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium">
+            Transações {selectedDate ? `— ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}` : "Recentes"}
+          </CardTitle>
+          {selectedDate && (
+            <span className="text-xs text-muted-foreground">{filteredTransactions.length} transação(ões)</span>
+          )}
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {filteredTransactions.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-sm text-muted-foreground">Nenhuma transação registrada ainda.</p>
+              <p className="text-sm text-muted-foreground">
+                {selectedDate ? "Nenhuma transação neste dia." : "Nenhuma transação registrada ainda."}
+              </p>
             </div>
           ) : (
             <Table>
@@ -221,7 +260,7 @@ export default function PayDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((tx) => {
+                {filteredTransactions.map((tx) => {
                   const badge = getStatusBadge(tx.status);
                   return (
                     <TableRow key={tx.id} className="border-[#2A2A2A]">
