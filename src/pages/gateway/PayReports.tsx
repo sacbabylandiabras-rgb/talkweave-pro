@@ -219,7 +219,7 @@ export default function PayReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map(tx => {
+                    {filtered.map(tx => {
                       const badge = getStatusBadge(tx.status);
                       const checkout = checkouts.find((ck: any) => ck.id === tx.checkout_id);
                       return (
