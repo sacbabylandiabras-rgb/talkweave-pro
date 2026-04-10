@@ -38,7 +38,8 @@ export default function PayDashboard() {
       const txDate = new Date(t.created_at);
       return txDate.toDateString() === selectedDate.toDateString();
     });
-  }, [transactions, selectedDate]);
+
+  useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
