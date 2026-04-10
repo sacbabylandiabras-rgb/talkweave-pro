@@ -880,11 +880,26 @@ serve(async (req) => {
       }
 
       // All contacts processed - mark campaign as completed
-      console.log(`✅ Campaign ${campaignId}: ${totalProcessed}/${effectiveTarget} contacts processed. Marking as completed.`);
-      const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
-      if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
-        await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        console.log(`✅ Campaign ${campaignId} completed!`);
+      // Safety check: only mark completed if at least one send was successful
+      const { count: successCount } = await supabase
+        .from('campaign_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId)
+        .in('status', ['sent', 'delivered']);
+
+      const actualSuccesses = successCount ?? 0;
+
+      if (totalProcessed === 0 || actualSuccesses === 0) {
+        // No sends created or ALL sends failed — mark as paused, not completed
+        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualSuccesses} successful. Pausing instead of completing.`);
+        await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+      } else {
+        console.log(`✅ Campaign ${campaignId}: ${actualSuccesses}/${totalProcessed} successful out of ${effectiveTarget} target. Marking as completed.`);
+        const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
+        if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
+          await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
+          console.log(`✅ Campaign ${campaignId} completed!`);
+        }
       }
     }
 

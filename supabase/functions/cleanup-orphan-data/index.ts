@@ -60,6 +60,38 @@ serve(async (req) => {
       );
     }
 
+    // Reset campaigns that were marked as completed but have zero successful sends
+    if (body?.action === 'reset-broken-campaigns' && body?.targetUserId) {
+      if (!isAdmin) throw new Error('Only admins can reset campaigns');
+
+      // Find completed campaigns with 0 successful sends for the target user
+      const { data: brokenCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('user_id', body.targetUserId)
+        .eq('status', 'completed');
+
+      let resetCount = 0;
+      for (const campaign of (brokenCampaigns || [])) {
+        const { count } = await supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaign.id)
+          .in('status', ['sent', 'delivered']);
+
+        if ((count ?? 0) === 0) {
+          await supabase.from('campaigns').update({ status: 'draft', updated_at: new Date().toISOString() }).eq('id', campaign.id);
+          console.log(`🔄 Reset campaign ${campaign.name} (${campaign.id}) from completed to draft`);
+          resetCount++;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, resetCount }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!isAdmin) throw new Error('Only admins can run cleanup');
 
     console.log('🧹 Starting cleanup of orphan data...');
