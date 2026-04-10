@@ -70,13 +70,15 @@ export default function PayReports() {
   }, {} as Record<string, number>);
   const methodData = Object.entries(methodGroups).map(([name, value]) => ({ name, value: value / 100 }));
 
-  // Chart: last 30 days
+  // Chart: last 30 days — separate lines for paid and pending
   const chartData = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
     const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const dayTxs = approved.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-    return { date: key, volume: dayTxs.reduce((a, t) => a + t.net, 0) / 100 };
+    const dayAll = filtered.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
+    const paidVol = dayAll.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+    const pendingVol = dayAll.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+    return { date: key, pagas: paidVol, pendentes: pendingVol };
   });
 
   const summaryCards = [
