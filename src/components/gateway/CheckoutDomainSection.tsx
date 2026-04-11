@@ -187,6 +187,28 @@ export default function CheckoutDomainSection() {
           </p>
         </div>
 
+        <div>
+          <Label className="text-xs">Prefixo da URL</Label>
+          <Select
+            value={pathPrefix}
+            onValueChange={(v) => {
+              setPathPrefix(v);
+              localStorage.setItem("checkout_path_prefix", v);
+            }}
+          >
+            <SelectTrigger className="w-full mt-1 text-xs font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pay">/{`pay`}/slug</SelectItem>
+              <SelectItem value="checkout">/{`checkout`}/slug</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Escolha se os links usarão /pay/ ou /checkout/ como caminho.
+          </p>
+        </div>
+
         {domainStatus !== "none" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
