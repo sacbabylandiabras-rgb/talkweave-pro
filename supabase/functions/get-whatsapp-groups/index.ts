@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
-          if (group.isCommunity || group.isCommunityAnnounce || group.isGroupAnnouncement) continue;
+          const isCommunity = !!(group.isCommunity || group.isCommunityAnnounce || group.isGroupAnnouncement);
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
               pinned: group.pinned || false,
               sourceInstanceName: group.__sourceInstanceName || null,
               sourceInstanceId: group.__sourceInstanceId || null,
+              isCommunity,
             });
           }
         }
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
     }
 
     const allGroups = Array.from(groupsById.values());
-    console.log(`✅ Total unique groups (excluding communities): ${allGroups.length}`);
+    console.log(`✅ Total unique groups (including communities): ${allGroups.length}`);
 
     return new Response(JSON.stringify({ groups: allGroups }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
