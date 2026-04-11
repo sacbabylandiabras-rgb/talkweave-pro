@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet } from "lucide-react";
+import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const InteractiveGlobe = lazy(() => import("@/components/gateway/InteractiveGlobe"));
 
 type PeriodFilter = "today" | "week" | "30d" | "custom";
 
@@ -279,6 +281,41 @@ export default function PayDashboard() {
               <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
             </AreaChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Globe Section */}
+      <Card className="border-border overflow-hidden">
+        <CardContent className="p-0">
+          <div className="flex flex-col lg:flex-row">
+            <div className="p-6 lg:w-[40%] flex flex-col justify-center space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
+              </div>
+              <h3 className="text-xl font-bold text-foreground">
+                Monitore suas vendas ao redor do <span className="text-emerald-500">mundo</span>
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Visualize em tempo real todas as conexões e visitantes do seu checkout em um globo interativo 3D. Acompanhe o tráfego global e identifique padrões de comportamento dos seus clientes.
+              </p>
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-2xl font-bold text-foreground">{filteredTransactions.length}</span>
+                <span className="text-sm text-muted-foreground">visitantes ativos</span>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5">
+                  <Globe className="w-3.5 h-3.5" /> Explorar Globo
+                </Button>
+                <Button size="sm" variant="outline">Ver Análises Completas</Button>
+              </div>
+            </div>
+            <div className="lg:w-[60%] bg-[#0a0a0a] rounded-r-lg">
+              <Suspense fallback={<div className="flex items-center justify-center h-[380px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
+                <InteractiveGlobe />
+              </Suspense>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
