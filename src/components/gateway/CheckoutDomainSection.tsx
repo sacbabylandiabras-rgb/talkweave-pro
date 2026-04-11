@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Copy, RefreshCw, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, Trash2, Lock, ShieldCheck, Shield, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
