@@ -35,12 +35,41 @@ function hashString(value: string) {
   return Math.abs(hash);
 }
 
+// Realistic population centers per continent
+const POPULATION_ZONES = [
+  // South America (Brazil, Argentina, Colombia)
+  { lat: -23.5, lon: -46.6, spread: 8 },  // São Paulo
+  { lat: -22.9, lon: -43.2, spread: 5 },  // Rio
+  { lat: -34.6, lon: -58.4, spread: 6 },  // Buenos Aires
+  { lat: 4.7, lon: -74.1, spread: 5 },    // Bogotá
+  { lat: -15.8, lon: -47.9, spread: 6 },  // Brasília
+  { lat: -12.97, lon: -38.5, spread: 5 }, // Salvador
+  // North America
+  { lat: 40.7, lon: -74.0, spread: 6 },   // New York
+  { lat: 19.4, lon: -99.1, spread: 6 },   // Mexico City
+  { lat: 34.1, lon: -118.2, spread: 5 },  // Los Angeles
+  // Europe
+  { lat: 48.9, lon: 2.3, spread: 5 },     // Paris
+  { lat: 51.5, lon: -0.1, spread: 4 },    // London
+  { lat: 40.4, lon: -3.7, spread: 5 },    // Madrid
+  { lat: 38.7, lon: -9.1, spread: 4 },    // Lisboa
+  // Africa
+  { lat: 6.5, lon: 3.4, spread: 5 },      // Lagos
+  { lat: -33.9, lon: 18.4, spread: 4 },   // Cape Town
+  // Asia
+  { lat: 35.7, lon: 139.7, spread: 5 },   // Tokyo
+  { lat: 28.6, lon: 77.2, spread: 6 },    // Delhi
+  { lat: 1.3, lon: 103.8, spread: 3 },    // Singapore
+  // Oceania
+  { lat: -33.9, lon: 151.2, spread: 5 },  // Sydney
+];
+
 function createVisitorCoordinates(seed: string) {
-  const latSeed = hashString(`${seed}-lat`);
-  const lonSeed = hashString(`${seed}-lon`);
-  const lat = (latSeed % 140) - 70;
-  const lon = (lonSeed % 360) - 180;
-  return { lat, lon };
+  const zoneSeed = hashString(`${seed}-zone`);
+  const zone = POPULATION_ZONES[zoneSeed % POPULATION_ZONES.length];
+  const latOffset = ((hashString(`${seed}-lat`) % 200) - 100) / 100 * zone.spread;
+  const lonOffset = ((hashString(`${seed}-lon`) % 200) - 100) / 100 * zone.spread;
+  return { lat: zone.lat + latOffset, lon: zone.lon + lonOffset };
 }
 
 function CountryOutlineLines({ geoData }: { geoData: any }) {
