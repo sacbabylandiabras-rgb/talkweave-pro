@@ -146,7 +146,8 @@ export default function PublicCheckout() {
 
         setCheckoutOwnerId(typeof checkout?.user_id === "string" ? checkout.user_id : null);
 
-        const productName = product?.name || checkout.name || "";
+        const resolvedProductName = product?.name || checkout.name || "";
+        setProductName(resolvedProductName);
 
         const tenantLogo = tenant?.logo_url || "";
         const tenantColor = tenant?.primary_color || "";
