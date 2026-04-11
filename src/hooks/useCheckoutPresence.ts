@@ -25,17 +25,46 @@ const getSessionId = (checkoutSlug: string) => {
 };
 
 const getCoordinatesByIP = async (): Promise<{ latitude?: number; longitude?: number }> => {
-  try {
-    const res = await fetch("https://ip-api.com/json/?fields=lat,lon", { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return {};
-    const data = await res.json();
-    if (typeof data.lat === "number" && typeof data.lon === "number") {
-      return { latitude: data.lat, longitude: data.lon };
+  // Try multiple providers for better accuracy
+  const providers = [
+    async () => {
+      const res = await fetch("https://ipwho.is/", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.success && typeof data.latitude === "number" && typeof data.longitude === "number") {
+        return { latitude: data.latitude, longitude: data.longitude };
+      }
+      return null;
+    },
+    async () => {
+      const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+        return { latitude: data.latitude, longitude: data.longitude };
+      }
+      return null;
+    },
+    async () => {
+      const res = await fetch("https://ip-api.com/json/?fields=lat,lon", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (typeof data.lat === "number" && typeof data.lon === "number") {
+        return { latitude: data.lat, longitude: data.lon };
+      }
+      return null;
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const result = await provider();
+      if (result) return result;
+    } catch {
+      continue;
     }
-    return {};
-  } catch {
-    return {};
   }
+  return {};
 };
 
 export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
