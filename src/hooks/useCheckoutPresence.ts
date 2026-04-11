@@ -28,6 +28,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     if (!checkoutSlug || !ownerUserId || typeof window === "undefined") return;
 
     const sessionId = getSessionId(checkoutSlug);
+    const joinedAt = new Date().toISOString();
     const channel = supabase.channel(CHANNEL_NAME, {
       config: {
         presence: {
@@ -39,13 +40,13 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     let isSubscribed = false;
 
     const trackPresence = async () => {
-      if (!isSubscribed || document.visibilityState === "hidden") return;
+      if (!isSubscribed) return;
 
       await channel.track({
         sessionId,
         checkoutSlug,
         ownerUserId,
-        joinedAt: new Date().toISOString(),
+        joinedAt,
       });
     };
 
@@ -55,12 +56,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        void untrackPresence();
-        return;
-      }
-
-      void trackPresence();
+      if (document.visibilityState === "visible") void trackPresence();
     };
 
     const handleBeforeUnload = () => {
