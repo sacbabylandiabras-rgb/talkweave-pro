@@ -111,9 +111,7 @@ function ConnectionArcs() {
   return (
     <>
       {arcs.map(a => (
-        <line key={a.key} geometry={a.geo}>
-          <lineBasicMaterial color="#22C55E" transparent opacity={0.2} />
-        </line>
+        <primitive key={a.key} object={new THREE.Line(a.geo, new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.2 }))} />
       ))}
     </>
   );
