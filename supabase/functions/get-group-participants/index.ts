@@ -404,17 +404,22 @@ Deno.serve(async (req) => {
           .eq("keyword_matched", "__lid_map__")
           .in("message_received", lidParticipants);
 
-        const mappingByLid = new Map(
-          (lidMappings || [])
-            .map((mapping) => [mapping.message_received, String(mapping.phone || "").replace(/\D/g, "")])
-            .filter(([, phone]) => Boolean(phone)),
-        );
+        const mappingEntries = (lidMappings || [])
+          .map((mapping): [string, string] | null => {
+            const lid = String(mapping.message_received || "").trim();
+            const phone = String(mapping.phone || "").replace(/\D/g, "");
+            if (!lid || !phone) return null;
+            return [lid, phone];
+          })
+          .filter((entry): entry is [string, string] => Boolean(entry));
+
+        const mappingByLid = new Map<string, string>(mappingEntries);
 
         for (const participant of unresolvedLidParticipants) {
           const resolvedPhone = mappingByLid.get(participant.phone);
           resolvedParticipants.push({
             ...participant,
-            phone: resolvedPhone || participant.phone,
+            phone: resolvedPhone ?? participant.phone,
           });
         }
 
@@ -456,7 +461,8 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("❌ Error fetching group participants:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
