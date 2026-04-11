@@ -13,6 +13,7 @@ export interface WhatsAppGroup {
   participantes: any[];
   sourceInstanceId?: string | null;
   sourceInstanceName?: string | null;
+  isCommunity?: boolean;
 }
 
 export function useWhatsAppGroups() {
