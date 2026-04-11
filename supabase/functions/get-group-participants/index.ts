@@ -238,6 +238,15 @@ Deno.serve(async (req) => {
       for (const candidateCommunityId of communityCandidates) {
         communityData = await fetchCommunityMetadata(candidateCommunityId);
         if (communityData) {
+          // Debug: log the raw subGroups structure
+          const rawSubGroups = communityData?.subGroups || communityData?.subgroups || communityData?.groups;
+          if (rawSubGroups) {
+            const sample = Array.isArray(rawSubGroups) ? rawSubGroups.slice(0, 2) : rawSubGroups;
+            console.log(`🔍 Raw subGroups sample for ${candidateCommunityId}: ${JSON.stringify(sample)}`);
+          } else {
+            console.log(`🔍 No subGroups/subgroups/groups key found. Keys: ${Object.keys(communityData || {}).join(", ")}`);
+          }
+          
           const extractedIds = extractSubGroupIds(communityData);
           console.log(
             `🧩 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
