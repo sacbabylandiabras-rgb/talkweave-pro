@@ -1613,24 +1613,19 @@
           productName: productLabel
         };
 
-        // Try to get geolocation
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            function(pos) {
-              trackPayload.latitude = pos.coords.latitude;
-              trackPayload.longitude = pos.coords.longitude;
-            },
-            function() {},
-            { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
-          );
-        }
+        // Get geolocation by IP (no permission needed)
+        try {
+          var geoRes = await fetch('https://ip-api.com/json/?fields=lat,lon');
+          if (geoRes.ok) {
+            var geoData = await geoRes.json();
+            if (typeof geoData.lat === 'number') trackPayload.latitude = geoData.lat;
+            if (typeof geoData.lon === 'number') trackPayload.longitude = geoData.lon;
+          }
+        } catch(ge) {}
 
         presenceChannel.subscribe(function(status) {
           if (status !== 'SUBSCRIBED') return;
-          // Small delay to allow geolocation to resolve
-          setTimeout(function() {
-            presenceChannel.track(trackPayload);
-          }, 1500);
+          presenceChannel.track(trackPayload);
         });
 
         // Re-track on visibility change
