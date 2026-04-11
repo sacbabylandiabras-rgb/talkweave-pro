@@ -128,7 +128,7 @@ function GridLines() {
   return (
     <>
       {lines.map((geometry, index) => (
-        <line key={index} geometry={geometry} material={material} />
+        <primitive key={index} object={new THREE.Line(geometry, material)} />
       ))}
     </>
   );
@@ -208,7 +208,7 @@ function ConnectionArcs() {
   return (
     <>
       {arcs.map((arc) => (
-        <line key={arc.key} geometry={arc.geometry} material={material} />
+        <primitive key={arc.key} object={new THREE.Line(arc.geometry, material)} />
       ))}
     </>
   );
