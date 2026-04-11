@@ -16,7 +16,7 @@ export default function middleware(request) {
 
   // Extract subdomain
   const subdomain = parts[0];
-  const skip = ['www', 'api', 'app', 'admin', 'pay'];
+  const skip = ['www', 'api', 'app', 'admin', 'pay', 'checkout'];
   if (skip.includes(subdomain)) return;
 
   // Inject tenant as query param
