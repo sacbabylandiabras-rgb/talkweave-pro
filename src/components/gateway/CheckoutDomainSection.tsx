@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Copy, RefreshCw, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, Trash2, Lock, ShieldCheck, Shield, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function CheckoutDomainSection() {
   const [customDomain, setCustomDomain] = useState("");
+  const [pathPrefix, setPathPrefix] = useState(() => localStorage.getItem("checkout_path_prefix") || "pay");
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainDeleting, setDomainDeleting] = useState(false);
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
@@ -185,6 +187,28 @@ export default function CheckoutDomainSection() {
           </p>
         </div>
 
+        <div>
+          <Label className="text-xs">Prefixo da URL</Label>
+          <Select
+            value={pathPrefix}
+            onValueChange={(v) => {
+              setPathPrefix(v);
+              localStorage.setItem("checkout_path_prefix", v);
+            }}
+          >
+            <SelectTrigger className="w-full mt-1 text-xs font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pay">/{`pay`}/slug</SelectItem>
+              <SelectItem value="checkout">/{`checkout`}/slug</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Escolha se os links usarão /pay/ ou /checkout/ como caminho.
+          </p>
+        </div>
+
         {domainStatus !== "none" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
@@ -347,10 +371,10 @@ export default function CheckoutDomainSection() {
             <div className="flex items-center gap-2 mt-1">
               <Input
                 readOnly
-                value={`https://${customDomain}/pay/seu-checkout`}
+                value={`https://${customDomain}/${pathPrefix}/seu-checkout`}
                 className="font-mono text-xs opacity-70"
               />
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(`https://${customDomain}/pay/seu-checkout`)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(`https://${customDomain}/${pathPrefix}/seu-checkout`)}>
                 <Copy className="w-3.5 h-3.5" />
               </Button>
             </div>
