@@ -319,6 +319,8 @@ export default function PayDashboard() {
         </CardContent>
       </Card>
 
+      <Card className="border-[#2A2A2A]">
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">
             Transações — {periodLabel}
           </CardTitle>
