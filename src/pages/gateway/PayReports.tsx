@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, ExternalLink, CalendarIcon } from "lucide-react";
+import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
