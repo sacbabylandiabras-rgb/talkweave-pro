@@ -24,25 +24,18 @@ const getSessionId = (checkoutSlug: string) => {
   return nextSessionId;
 };
 
-const getBrowserCoordinates = async (): Promise<{ latitude?: number; longitude?: number }> => {
-  if (typeof navigator === "undefined" || !navigator.geolocation) return {};
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      },
-      () => resolve({}),
-      {
-        enableHighAccuracy: false,
-        timeout: 4000,
-        maximumAge: 300000,
-      }
-    );
-  });
+const getCoordinatesByIP = async (): Promise<{ latitude?: number; longitude?: number }> => {
+  try {
+    const res = await fetch("https://ip-api.com/json/?fields=lat,lon", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (typeof data.lat === "number" && typeof data.lon === "number") {
+      return { latitude: data.lat, longitude: data.lon };
+    }
+    return {};
+  } catch {
+    return {};
+  }
 };
 
 export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
@@ -64,7 +57,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     const trackPresence = async () => {
       if (!isSubscribed) return;
 
-      const coordinates = await getBrowserCoordinates();
+      const coordinates = await getCoordinatesByIP();
 
       await channel.track({
         kind: "checkout",
