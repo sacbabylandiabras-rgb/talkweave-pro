@@ -39,6 +39,7 @@ export default function PayReports() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [receiptLoadError, setReceiptLoadError] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +53,26 @@ export default function PayReports() {
     };
     fetchData();
   }, []);
+
+  const resolvedReceiptUrl = useMemo(() => {
+    if (!receiptUrl) return null;
+    if (/^https?:\/\//i.test(receiptUrl)) return receiptUrl;
+
+    const normalizedPath = receiptUrl
+      .replace(/^payment-receipts\//i, "")
+      .replace(/^\/+/, "");
+
+    return supabase.storage.from("payment-receipts").getPublicUrl(normalizedPath).data.publicUrl;
+  }, [receiptUrl]);
+
+  const receiptType = useMemo(() => {
+    if (!resolvedReceiptUrl) return null;
+    const cleanUrl = resolvedReceiptUrl.split("?")[0].toLowerCase();
+
+    if (cleanUrl.endsWith(".pdf")) return "pdf";
+    if (/\.(jpg|jpeg|png|webp|gif|bmp|svg)$/i.test(cleanUrl)) return "image";
+    return "unknown";
+  }, [resolvedReceiptUrl]);
 
   const filtered = useMemo(() => {
     if (!selectedDate) return transactions;
@@ -260,7 +281,10 @@ export default function PayReports() {
                           <TableCell>
                             {(tx as any).metadata?.receipt_url ? (
                               <button
-                                onClick={() => setReceiptUrl((tx as any).metadata.receipt_url)}
+                                onClick={() => {
+                                  setReceiptLoadError(false);
+                                  setReceiptUrl((tx as any).metadata.receipt_url);
+                                }}
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80 bg-emerald-500/10 text-emerald-500"
                               >
                                 <FileText className="w-3 h-3" />
@@ -324,22 +348,45 @@ export default function PayReports() {
         </TabsContent>
       </Tabs>
 
-      {receiptUrl && (
-        <Dialog open={true} onOpenChange={() => setReceiptUrl(null)}>
-          <DialogContent className="max-w-lg z-[100]">
+      {receiptUrl && resolvedReceiptUrl && (
+        <Dialog open={true} onOpenChange={() => {
+          setReceiptUrl(null);
+          setReceiptLoadError(false);
+        }}>
+          <DialogContent className="max-w-3xl z-[100]">
             <DialogHeader>
               <DialogTitle>Comprovante</DialogTitle>
             </DialogHeader>
-            <div className="flex items-center justify-center min-h-[200px]">
-              <img
-                src={receiptUrl}
-                alt="Comprovante"
-                className="w-full rounded-lg object-contain max-h-[70vh]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).parentElement!.innerHTML = '<p class="text-sm text-muted-foreground">Não foi possível carregar o comprovante.</p>';
-                }}
-              />
+
+            <div className="flex items-center justify-center min-h-[240px] rounded-lg border border-border bg-muted/20 overflow-hidden">
+              {receiptType === "pdf" ? (
+                <iframe
+                  src={resolvedReceiptUrl}
+                  title="Comprovante em PDF"
+                  className="h-[70vh] w-full"
+                />
+              ) : (
+                <img
+                  src={resolvedReceiptUrl}
+                  alt="Comprovante"
+                  className="w-full rounded-lg object-contain max-h-[70vh]"
+                  onError={() => setReceiptLoadError(true)}
+                />
+              )}
+            </div>
+
+            {(receiptLoadError || receiptType === "unknown") && (
+              <p className="text-sm text-muted-foreground">
+                Não foi possível pré-visualizar este comprovante no dialog.
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="outline" asChild>
+                <a href={resolvedReceiptUrl} target="_blank" rel="noreferrer">
+                  Abrir arquivo
+                </a>
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
