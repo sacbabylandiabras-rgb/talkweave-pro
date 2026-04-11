@@ -90,7 +90,7 @@ function CountryOutlineLines({ geoData }: { geoData: any }) {
   return (
     <>
       {lineSegments.map((geometry, index) => (
-        <line key={index} geometry={geometry} material={material} />
+        <primitive key={index} object={new THREE.Line(geometry, material)} />
       ))}
     </>
   );
