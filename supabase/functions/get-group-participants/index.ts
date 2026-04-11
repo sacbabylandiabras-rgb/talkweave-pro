@@ -55,6 +55,53 @@ const normalizeCollection = (value: any) => {
   return [];
 };
 
+const toGroupLikeString = (value: any): string => {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).trim();
+  }
+
+  if (value && typeof value === "object") {
+    if (typeof value._serialized === "string") return value._serialized.trim();
+    if (typeof value.serialized === "string") return value.serialized.trim();
+    if (typeof value.id === "string") return value.id.trim();
+    if (typeof value.jid === "string") return value.jid.trim();
+    if (typeof value.phone === "string") return value.phone.trim();
+    if (typeof value.user === "string" && typeof value.server === "string") {
+      return `${value.user}@${value.server}`.trim();
+    }
+  }
+
+  return "";
+};
+
+const isLikelyGroupId = (value: any) => {
+  const raw = toGroupLikeString(value);
+  return Boolean(raw) && (raw.includes("@g.us") || raw.endsWith("-group") || /^\d{15,}$/.test(raw));
+};
+
+const toNormalizedGroupCandidate = (value: any) => {
+  const raw = toGroupLikeString(value);
+  return isLikelyGroupId(raw) ? normalizeGroupId(raw) : "";
+};
+
+const extractDeepGroupIds = (value: any, seen = new WeakSet<object>()): string[] => {
+  const directCandidate = toNormalizedGroupCandidate(value);
+  const directResults = directCandidate ? [directCandidate] : [];
+
+  if (!value || typeof value !== "object") {
+    return directResults;
+  }
+
+  if (seen.has(value)) {
+    return directResults;
+  }
+
+  seen.add(value);
+
+  const nestedResults = Object.values(value).flatMap((item) => extractDeepGroupIds(item, seen));
+  return uniqueStrings([...directResults, ...nestedResults]);
+};
+
 const extractSubGroups = (payload: any) => {
   const candidates = [
     payload,
@@ -92,23 +139,23 @@ const extractSubGroupIds = (payload: any) => {
 
   return uniqueStrings(
     subGroups.flatMap((subGroup: any) => {
-      // Handle case where subGroup is a string (just the ID)
-      if (typeof subGroup === "string") {
-        return [normalizeGroupId(subGroup)];
-      }
-      return [
-        normalizeGroupId(subGroup?.phone),
-        normalizeGroupId(subGroup?.id),
-        normalizeGroupId(subGroup?.groupId),
-        normalizeGroupId(subGroup?.groupJid),
-        normalizeGroupId(subGroup?.jid),
-        normalizeGroupId(subGroup?.chatId),
-        normalizeGroupId(subGroup?.group?.phone),
-        normalizeGroupId(subGroup?.group?.id),
-        // Z-API community format may nest differently
-        normalizeGroupId(subGroup?.subGroupJid),
-        normalizeGroupId(subGroup?.linkedGroup),
+      const explicitIds = [
+        toNormalizedGroupCandidate(subGroup),
+        toNormalizedGroupCandidate(subGroup?.phone),
+        toNormalizedGroupCandidate(subGroup?.id),
+        toNormalizedGroupCandidate(subGroup?.groupId),
+        toNormalizedGroupCandidate(subGroup?.groupJid),
+        toNormalizedGroupCandidate(subGroup?.jid),
+        toNormalizedGroupCandidate(subGroup?.chatId),
+        toNormalizedGroupCandidate(subGroup?.group?.phone),
+        toNormalizedGroupCandidate(subGroup?.group?.id),
+        toNormalizedGroupCandidate(subGroup?.subGroupJid),
+        toNormalizedGroupCandidate(subGroup?.linkedGroup),
+        toNormalizedGroupCandidate(subGroup?.group),
       ];
+
+      const deepIds = extractDeepGroupIds(subGroup);
+      return [...explicitIds, ...deepIds];
     }),
   );
 };
