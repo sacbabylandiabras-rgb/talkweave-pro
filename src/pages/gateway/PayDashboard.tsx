@@ -13,6 +13,8 @@ import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const InteractiveGlobe = lazy(() => import("@/components/gateway/InteractiveGlobe"));
+
 type PeriodFilter = "today" | "week" | "30d" | "custom";
 
 interface Transaction {
