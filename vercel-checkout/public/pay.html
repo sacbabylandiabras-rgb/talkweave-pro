@@ -190,6 +190,7 @@
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link id="font-link" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <div id="app"><div class="loader-wrap"><div class="spinner"></div></div></div>
@@ -1583,6 +1584,64 @@
     if (cfg.showTimer) startTimer(cfg.timerMinutes||15);
     if (!cfg.pageTitle) document.title = cfg.productName || 'Checkout';
     render();
+
+    // ── Presence tracking (mirror useCheckoutPresence) ──
+    try {
+      var ownerUserId = co.user_id;
+      if (ownerUserId && slug && window.supabase) {
+        var sbClient = window.supabase.createClient(SB, AK);
+        var presenceChannelName = 'gateway-active-checkouts:' + ownerUserId;
+        var sessionKey = 'gateway-checkout-session:' + slug;
+        var sessionId = sessionStorage.getItem(sessionKey);
+        if (!sessionId) {
+          sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2);
+          sessionStorage.setItem(sessionKey, sessionId);
+        }
+        var joinedAt = new Date().toISOString();
+        var productLabel = cfg.productName || slug || '';
+
+        var presenceChannel = sbClient.channel(presenceChannelName, {
+          config: { presence: { key: sessionId } }
+        });
+
+        var trackPayload = {
+          kind: 'checkout',
+          sessionId: sessionId,
+          checkoutSlug: slug,
+          ownerUserId: ownerUserId,
+          joinedAt: joinedAt,
+          productName: productLabel
+        };
+
+        // Try to get geolocation
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(pos) {
+              trackPayload.latitude = pos.coords.latitude;
+              trackPayload.longitude = pos.coords.longitude;
+            },
+            function() {},
+            { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
+          );
+        }
+
+        presenceChannel.subscribe(function(status) {
+          if (status !== 'SUBSCRIBED') return;
+          // Small delay to allow geolocation to resolve
+          setTimeout(function() {
+            presenceChannel.track(trackPayload);
+          }, 1500);
+        });
+
+        // Re-track on visibility change
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible') presenceChannel.track(trackPayload);
+        });
+        window.addEventListener('focus', function() { presenceChannel.track(trackPayload); });
+        window.addEventListener('beforeunload', function() { presenceChannel.untrack(); });
+        window.addEventListener('pagehide', function() { presenceChannel.untrack(); });
+      }
+    } catch(e) { console.warn('Presence tracking error:', e); }
   }
 
   init();
