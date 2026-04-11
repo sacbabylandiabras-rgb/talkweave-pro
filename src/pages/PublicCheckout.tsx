@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { useTenant } from "@/hooks/useTenant";
+import { useCheckoutPresence } from "@/hooks/useCheckoutPresence";
 
 interface CheckoutConfig {
   productName: string;
@@ -107,7 +108,10 @@ export default function PublicCheckout() {
   const [config, setConfig] = useState<CheckoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutOwnerId, setCheckoutOwnerId] = useState<string | null>(null);
   const { tenant, loading: tenantLoading } = useTenant();
+
+  useCheckoutPresence(slug, checkoutOwnerId);
 
   useEffect(() => {
     if (!slug) return;
@@ -139,12 +143,13 @@ export default function PublicCheckout() {
         const savedConfig = (checkout.config || {}) as Record<string, any>;
         const resolvedTemplateId = resolveTemplateId(savedConfig);
 
+        setCheckoutOwnerId(typeof checkout?.user_id === "string" ? checkout.user_id : null);
+
         const productName = product?.name || checkout.name || "";
-        
-        // Apply tenant branding overrides if available
+
         const tenantLogo = tenant?.logo_url || "";
         const tenantColor = tenant?.primary_color || "";
-        
+
         const mergedConfig: CheckoutConfig = {
           ...defaultConfig,
           ...savedConfig,
@@ -153,7 +158,6 @@ export default function PublicCheckout() {
           offerName: savedConfig.offerName || productName,
           price: savedConfig.price || (product?.price ? product.price : 0),
           productImage: savedConfig.productImage || product?.image_url || "",
-          // Tenant branding: use tenant logo/color as fallback if not set in checkout config
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
           faviconUrl: savedConfig.faviconUrl || "",
           pageTitle: savedConfig.pageTitle || "",
@@ -170,7 +174,6 @@ export default function PublicCheckout() {
     fetchCheckout();
   }, [slug, tenant]);
 
-  // Set dynamic favicon and page title
   useEffect(() => {
     if (config?.faviconUrl) {
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
