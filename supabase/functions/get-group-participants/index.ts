@@ -84,16 +84,32 @@ const extractSubGroups = (payload: any) => {
 const extractSubGroupIds = (payload: any) => {
   const subGroups = extractSubGroups(payload);
 
+  console.log(`🔍 extractSubGroupIds: found ${subGroups.length} subGroup entries`);
+  if (subGroups.length > 0) {
+    console.log(`🔍 First subGroup keys: ${Object.keys(subGroups[0] || {}).join(", ")}`);
+    console.log(`🔍 First subGroup sample: ${JSON.stringify(subGroups[0]).substring(0, 500)}`);
+  }
+
   return uniqueStrings(
-    subGroups.flatMap((subGroup: any) => [
-      normalizeGroupId(subGroup?.phone),
-      normalizeGroupId(subGroup?.id),
-      normalizeGroupId(subGroup?.groupId),
-      normalizeGroupId(subGroup?.jid),
-      normalizeGroupId(subGroup?.chatId),
-      normalizeGroupId(subGroup?.group?.phone),
-      normalizeGroupId(subGroup?.group?.id),
-    ]),
+    subGroups.flatMap((subGroup: any) => {
+      // Handle case where subGroup is a string (just the ID)
+      if (typeof subGroup === "string") {
+        return [normalizeGroupId(subGroup)];
+      }
+      return [
+        normalizeGroupId(subGroup?.phone),
+        normalizeGroupId(subGroup?.id),
+        normalizeGroupId(subGroup?.groupId),
+        normalizeGroupId(subGroup?.groupJid),
+        normalizeGroupId(subGroup?.jid),
+        normalizeGroupId(subGroup?.chatId),
+        normalizeGroupId(subGroup?.group?.phone),
+        normalizeGroupId(subGroup?.group?.id),
+        // Z-API community format may nest differently
+        normalizeGroupId(subGroup?.subGroupJid),
+        normalizeGroupId(subGroup?.linkedGroup),
+      ];
+    }),
   );
 };
 
