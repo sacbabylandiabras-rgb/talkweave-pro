@@ -2,6 +2,7 @@ import { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { GLOBE_COUNTRY_OUTLINES } from "./globe-country-outlines";
 
 const GEOJSON_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 
@@ -237,7 +238,7 @@ function RotatingGlobe({ geoData, visitors }: { geoData: any; visitors: GlobeVis
 }
 
 export default function InteractiveGlobe({ visitors = [] }: { visitors?: GlobeVisitor[] }) {
-  const [geoData, setGeoData] = useState<any>(null);
+  const [geoData, setGeoData] = useState<any>(GLOBE_COUNTRY_OUTLINES);
 
   useEffect(() => {
     const loadGeoData = async () => {
@@ -247,7 +248,8 @@ export default function InteractiveGlobe({ visitors = [] }: { visitors?: GlobeVi
         const data = await response.json();
         setGeoData(data);
       } catch (error) {
-        console.error(error);
+        console.warn("Usando mapa local do globo", error);
+        setGeoData(GLOBE_COUNTRY_OUTLINES);
       }
     };
 
