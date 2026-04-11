@@ -316,7 +316,6 @@ export const useCampaigns = () => {
 
       if (error) {
         console.error('❌ Edge Function send-campaign error:', error);
-        // Try to extract detailed error message
         let errorMessage = 'Erro ao enviar campanha';
         try {
           if (error instanceof Object && 'context' in error) {
@@ -329,7 +328,27 @@ export const useCampaigns = () => {
           }
         } catch {}
         console.error('❌ Detailed error:', errorMessage);
-        // Rollback status to draft so user can try again
+
+        // Check if messages were already sent before rolling back
+        const { count: sentCount } = await supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId)
+          .in('status', ['sent', 'delivered']);
+
+        if ((sentCount ?? 0) > 0) {
+          // Messages were already sent — pause instead of reverting to draft
+          console.log(`⚠️ Campaign has ${sentCount} sent messages, pausing instead of reverting to draft`);
+          await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+          setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
+          toast({
+            title: "Campanha pausada",
+            description: `${sentCount} mensagem(ns) já enviada(s). A campanha foi pausada para que você possa retomá-la.`,
+          });
+          return;
+        }
+
+        // No messages sent — safe to rollback to draft
         await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaignId);
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'draft' } : c));
         throw new Error(errorMessage);
@@ -338,6 +357,24 @@ export const useCampaigns = () => {
       // Check if the response indicates an error
       if (data && typeof data === 'object' && data.error) {
         console.error('❌ Edge Function returned error in response:', data.error);
+
+        const { count: sentCount } = await supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId)
+          .in('status', ['sent', 'delivered']);
+
+        if ((sentCount ?? 0) > 0) {
+          console.log(`⚠️ Campaign has ${sentCount} sent messages, pausing instead of reverting to draft`);
+          await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+          setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
+          toast({
+            title: "Campanha pausada",
+            description: `${sentCount} mensagem(ns) já enviada(s). A campanha foi pausada para que você possa retomá-la.`,
+          });
+          return;
+        }
+
         await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaignId);
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'draft' } : c));
         throw new Error(data.error);
