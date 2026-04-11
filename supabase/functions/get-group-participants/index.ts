@@ -304,52 +304,81 @@ Deno.serve(async (req) => {
           break;
         }
 
-        // Z-API communities-metadata only returns subGroups, not members directly.
-        // Strategy: iterate through each subGroup and fetch its members via group-metadata.
-        const subGroups = communityData?.subGroups;
-        if (Array.isArray(subGroups) && subGroups.length > 0) {
-          console.log(`🔄 Community has ${subGroups.length} subGroups — fetching members from each...`);
-          const aggregatedParticipants: any[] = [];
-          const seenPhoneSet = new Set<string>();
+        // Z-API communities-metadata only returns subGroups, not members.
+        // Fallback: try Evolution API if configured, which can fetch community members directly.
+        console.log(`🔄 Z-API returned no community members, trying Evolution API fallback...`);
+      }
+    }
 
-          for (const sg of subGroups) {
-            const sgPhone = sg.phone || sg.id || "";
-            if (!sgPhone) continue;
+    // Evolution API fallback for communities when Z-API returned 0 participants
+    if (apiParticipants.length === 0) {
+      const evoUrl = Deno.env.get("EVOLUTION_API_URL");
+      const evoKey = Deno.env.get("EVOLUTION_API_KEY");
 
-            // Skip the announcement group (read-only community channel)
-            if (sg.isGroupAnnouncement) {
-              console.log(`⏭️ Skipping announcement group: ${sgPhone}`);
-              continue;
+      if (evoUrl && evoKey) {
+        // Try to find an Evolution instance for this user, or use the global one
+        const { data: evoInstances } = await adminClient
+          .from("zapi_instances")
+          .select("instance_name, evolution_api_url, evolution_api_key")
+          .eq("user_id", credentials.userId)
+          .eq("api_provider", "evolution")
+          .eq("is_active", true)
+          .limit(1);
+
+        const evoInstance = (evoInstances || [])[0];
+        const baseUrl = (evoInstance?.evolution_api_url || evoUrl).replace(/\/$/, "");
+        const apiKey = evoInstance?.evolution_api_key || evoKey;
+        const instanceName = evoInstance?.instance_name || "default";
+
+        // Normalize groupId to JID format for Evolution API
+        const communityJid = normalizeCommunityId(groupId) + "@g.us";
+
+        console.log(`🟢 Evolution API fallback: ${baseUrl} instance: ${instanceName} groupJid: ${communityJid}`);
+
+        try {
+          const evoResponse = await fetch(
+            `${baseUrl}/group/participants/${instanceName}?groupJid=${encodeURIComponent(communityJid)}`,
+            {
+              method: "GET",
+              headers: {
+                "apikey": apiKey,
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          if (evoResponse.ok) {
+            const evoData = await evoResponse.json();
+            console.log(`🟢 Evolution API response keys: ${Object.keys(evoData || {}).join(", ")}`);
+
+            const evoParticipants = Array.isArray(evoData?.participants)
+              ? evoData.participants
+              : Array.isArray(evoData)
+                ? evoData
+                : [];
+
+            if (evoParticipants.length > 0) {
+              // Normalize Evolution API participant format to our standard
+              apiParticipants = evoParticipants.map((p: any) => ({
+                phone: p.id || p.phone || p.jid || "",
+                isAdmin: p.admin === "admin" || p.admin === "superadmin" || Boolean(p.isAdmin),
+                isSuperAdmin: p.admin === "superadmin" || Boolean(p.isSuperAdmin),
+                name: p.name || p.notify || "",
+              }));
+              console.log(`✅ Evolution API returned ${apiParticipants.length} community members`);
+            } else {
+              console.log(`⚠️ Evolution API returned 0 participants`);
             }
-
-            try {
-              const sgNormalized = normalizeGroupId(sgPhone);
-              console.log(`📥 Fetching members from subgroup: ${sgNormalized}`);
-              const sgData = await fetchGroupMetadata(sgNormalized);
-              const sgParticipants = extractParticipantArray(sgData);
-              console.log(`   → ${sgParticipants.length} members found in ${sg.name || sgNormalized}`);
-
-              for (const p of sgParticipants) {
-                const rawId = p.phone || p.id || p.participant || "";
-                const key = String(rawId).trim().toLowerCase();
-                if (key && !seenPhoneSet.has(key)) {
-                  seenPhoneSet.add(key);
-                  aggregatedParticipants.push(p);
-                }
-              }
-            } catch (sgErr) {
-              const msg = sgErr instanceof Error ? sgErr.message : String(sgErr);
-              console.log(`⚠️ Failed to fetch subgroup ${sgPhone}: ${msg}`);
-            }
+          } else {
+            const errText = await evoResponse.text();
+            console.log(`⚠️ Evolution API error: ${evoResponse.status} - ${errText}`);
           }
-
-          console.log(`✅ Aggregated ${aggregatedParticipants.length} unique members from ${subGroups.length} subGroups`);
-
-          if (aggregatedParticipants.length > 0) {
-            apiParticipants = aggregatedParticipants;
-            break;
-          }
+        } catch (evoErr) {
+          const msg = evoErr instanceof Error ? evoErr.message : String(evoErr);
+          console.log(`⚠️ Evolution API fallback failed: ${msg}`);
         }
+      } else {
+        console.log(`⚠️ Evolution API not configured (no EVOLUTION_API_URL/KEY), cannot fallback`);
       }
     }
 
