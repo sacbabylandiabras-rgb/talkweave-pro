@@ -23,7 +23,7 @@ const getSessionId = (checkoutSlug: string) => {
   return nextSessionId;
 };
 
-export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null) {
+export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
   useEffect(() => {
     if (!checkoutSlug || !ownerUserId || typeof window === "undefined") return;
 
@@ -47,6 +47,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
         checkoutSlug,
         ownerUserId,
         joinedAt,
+        productName: productName || checkoutSlug || "",
       });
     };
 
@@ -80,5 +81,5 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
       void untrackPresence();
       void supabase.removeChannel(channel);
     };
-  }, [checkoutSlug, ownerUserId]);
+  }, [checkoutSlug, ownerUserId, productName]);
 }

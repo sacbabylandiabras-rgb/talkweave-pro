@@ -109,9 +109,10 @@ export default function PublicCheckout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutOwnerId, setCheckoutOwnerId] = useState<string | null>(null);
+  const [productName, setProductName] = useState<string>("");
   const { tenant, loading: tenantLoading } = useTenant();
 
-  useCheckoutPresence(slug, checkoutOwnerId);
+  useCheckoutPresence(slug, checkoutOwnerId, productName);
 
   useEffect(() => {
     if (!slug) return;
@@ -145,7 +146,8 @@ export default function PublicCheckout() {
 
         setCheckoutOwnerId(typeof checkout?.user_id === "string" ? checkout.user_id : null);
 
-        const productName = product?.name || checkout.name || "";
+        const resolvedProductName = product?.name || checkout.name || "";
+        setProductName(resolvedProductName);
 
         const tenantLogo = tenant?.logo_url || "";
         const tenantColor = tenant?.primary_color || "";
@@ -154,8 +156,8 @@ export default function PublicCheckout() {
           ...defaultConfig,
           ...savedConfig,
           templateId: resolvedTemplateId,
-          productName: savedConfig.productName || productName,
-          offerName: savedConfig.offerName || productName,
+          productName: savedConfig.productName || resolvedProductName,
+          offerName: savedConfig.offerName || resolvedProductName,
           price: savedConfig.price || (product?.price ? product.price : 0),
           productImage: savedConfig.productImage || product?.image_url || "",
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
