@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, ExternalLink, CalendarIcon } from "lucide-react";
+import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getStatusBadge, getMethodLabel } from "./mock-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -37,6 +38,7 @@ export default function PayReports() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -257,17 +259,13 @@ export default function PayReports() {
                           </TableCell>
                           <TableCell>
                             {(tx as any).metadata?.receipt_url ? (
-                              <a
-                                href={(tx as any).metadata.receipt_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80"
-                                style={{ background: '#22C55E20', color: '#22C55E' }}
+                              <button
+                                onClick={() => setReceiptUrl((tx as any).metadata.receipt_url)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80 bg-emerald-500/10 text-emerald-500"
                               >
                                 <FileText className="w-3 h-3" />
                                 Ver
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
@@ -325,6 +323,17 @@ export default function PayReports() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!receiptUrl} onOpenChange={(open) => !open && setReceiptUrl(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Comprovante</DialogTitle>
+          </DialogHeader>
+          {receiptUrl && (
+            <img src={receiptUrl} alt="Comprovante" className="w-full rounded-lg object-contain max-h-[70vh]" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
