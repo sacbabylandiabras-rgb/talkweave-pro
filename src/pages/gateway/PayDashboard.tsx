@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCheckoutPresenceChannel } from "@/hooks/useCheckoutPresence";
 
 const InteractiveGlobe = lazy(() => import("@/components/gateway/InteractiveGlobe"));
 
@@ -29,6 +30,7 @@ interface Transaction {
 }
 
 interface ActiveVisitor {
+  kind?: "checkout" | "dashboard";
   sessionId: string;
   ownerUserId: string;
   checkoutSlug: string;
@@ -110,10 +112,10 @@ export default function PayDashboard() {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const channel = supabase.channel("gateway-active-checkouts", {
+    const channel = supabase.channel(getCheckoutPresenceChannel(currentUserId), {
       config: {
         presence: {
-          key: currentUserId,
+          key: `dashboard-${currentUserId}`,
         },
       },
     });
@@ -126,6 +128,7 @@ export default function PayDashboard() {
             .flat()
             .filter(
               (visitor) =>
+                visitor.kind === "checkout" &&
                 visitor.ownerUserId === currentUserId &&
                 typeof visitor.sessionId === "string" &&
                 typeof visitor.checkoutSlug === "string"
@@ -133,6 +136,7 @@ export default function PayDashboard() {
             .map((visitor) => [
               visitor.sessionId,
               {
+                kind: "checkout",
                 sessionId: visitor.sessionId,
                 ownerUserId: visitor.ownerUserId,
                 checkoutSlug: visitor.checkoutSlug,
@@ -150,14 +154,21 @@ export default function PayDashboard() {
       .on("presence", { event: "sync" }, syncVisitors)
       .on("presence", { event: "join" }, syncVisitors)
       .on("presence", { event: "leave" }, syncVisitors)
-      .subscribe((status) => {
+      .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
+          await channel.track({
+            kind: "dashboard",
+            sessionId: `dashboard-${currentUserId}`,
+            ownerUserId: currentUserId,
+            checkoutSlug: "__dashboard__",
+          });
           syncVisitors();
         }
       });
 
     return () => {
       setActiveVisitors([]);
+      void channel.untrack();
       void supabase.removeChannel(channel);
     };
   }, [currentUserId]);
