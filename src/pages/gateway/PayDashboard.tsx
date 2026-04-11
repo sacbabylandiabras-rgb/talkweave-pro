@@ -32,6 +32,7 @@ interface ActiveVisitor {
   sessionId: string;
   ownerUserId: string;
   checkoutSlug: string;
+  productName?: string;
   joinedAt?: string;
 }
 
@@ -135,6 +136,7 @@ export default function PayDashboard() {
                 sessionId: visitor.sessionId,
                 ownerUserId: visitor.ownerUserId,
                 checkoutSlug: visitor.checkoutSlug,
+                productName: visitor.productName || visitor.checkoutSlug,
                 joinedAt: visitor.joinedAt,
               } satisfies ActiveVisitor,
             ])
