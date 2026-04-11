@@ -255,69 +255,64 @@ export default function PayDashboard() {
         ))}
       </div>
 
-      <Card className="border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={computedChartData}>
-              <defs>
-                <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-              <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#A0A0A0', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-              <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === 'pagas' ? 'Pagas' : 'Pendentes'}</span>} />
-              <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
-              <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Chart */}
+        <Card className="border-[#2A2A2A]">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={computedChartData}>
+                <defs>
+                  <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
+                <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 11 }} />
+                <YAxis tick={{ fill: '#A0A0A0', fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
+                <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === 'pagas' ? 'Pagas' : 'Pendentes'}</span>} />
+                <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
+                <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Globe Section */}
-      <Card className="border-border overflow-hidden">
-        <CardContent className="p-0">
-          <div className="flex flex-col lg:flex-row">
-            <div className="p-6 lg:w-[40%] flex flex-col justify-center space-y-4">
+        {/* Globe */}
+        <Card className="border-[#2A2A2A] overflow-hidden">
+          <CardContent className="p-0 h-full flex flex-col">
+            <div className="p-4 pb-0 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
               </div>
-              <h3 className="text-xl font-bold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 Monitore suas vendas ao redor do <span className="text-emerald-500">mundo</span>
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Visualize em tempo real todas as conexões e visitantes do seu checkout em um globo interativo 3D. Acompanhe o tráfego global e identifique padrões de comportamento dos seus clientes.
+              <p className="text-xs text-muted-foreground">
+                Acompanhe o tráfego global dos seus clientes.
               </p>
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-2xl font-bold text-foreground">{filteredTransactions.length}</span>
-                <span className="text-sm text-muted-foreground">visitantes ativos</span>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5">
-                  <Globe className="w-3.5 h-3.5" /> Explorar Globo
-                </Button>
-                <Button size="sm" variant="outline">Ver Análises Completas</Button>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-foreground">{filteredTransactions.length}</span>
+                <span className="text-xs text-muted-foreground">visitantes ativos</span>
               </div>
             </div>
-            <div className="lg:w-[60%] bg-[#0a0a0a] rounded-r-lg">
-              <Suspense fallback={<div className="flex items-center justify-center h-[380px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
+            <div className="flex-1 min-h-[280px] bg-[#0a0a0a] mt-2 rounded-b-lg">
+              <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
                 <InteractiveGlobe />
               </Suspense>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-[#2A2A2A]">
         <CardHeader className="flex flex-row items-center justify-between">
