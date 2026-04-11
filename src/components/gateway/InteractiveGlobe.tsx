@@ -10,6 +10,8 @@ export interface GlobeVisitor {
   checkoutSlug: string;
   productName?: string;
   joinedAt?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
@@ -56,13 +58,21 @@ const POPULATION_ZONES = [
   { lat: -33.9, lon: 151.2, spread: 5 },
 ];
 
-function createVisitorCoordinates(seed: string) {
+function createFallbackCoordinates(seed: string) {
   const zoneSeed = hashString(`${seed}-zone`);
   const zone = POPULATION_ZONES[zoneSeed % POPULATION_ZONES.length];
   const latOffset = (((hashString(`${seed}-lat`) % 200) - 100) / 100) * zone.spread;
   const lonOffset = (((hashString(`${seed}-lon`) % 200) - 100) / 100) * zone.spread;
 
   return { lat: zone.lat + latOffset, lon: zone.lon + lonOffset };
+}
+
+function resolveVisitorCoordinates(visitor: GlobeVisitor) {
+  if (typeof visitor.latitude === "number" && typeof visitor.longitude === "number") {
+    return { lat: visitor.latitude, lon: visitor.longitude };
+  }
+
+  return createFallbackCoordinates(visitor.sessionId);
 }
 
 function CountryOutlineLines() {
@@ -201,7 +211,7 @@ function VisitorMarker({ marker, onHover, onLeave }: { marker: MarkerData; onHov
 function VisitorMarkers({ visitors, onHover, onLeave }: { visitors: GlobeVisitor[]; onHover: (m: MarkerData) => void; onLeave: () => void }) {
   const markers = useMemo(
     () => visitors.map((visitor) => {
-      const coords = createVisitorCoordinates(visitor.sessionId);
+      const coords = resolveVisitorCoordinates(visitor);
       return {
         id: visitor.sessionId,
         position: latLonToVec3(coords.lat, coords.lon, 2.08),
