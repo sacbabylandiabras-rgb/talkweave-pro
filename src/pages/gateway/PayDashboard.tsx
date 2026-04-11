@@ -289,24 +289,18 @@ export default function PayDashboard() {
         {/* Globe */}
         <Card className="border-[#2A2A2A] overflow-hidden">
           <CardContent className="p-0 h-full flex flex-col">
-            <div className="p-4 pb-0 space-y-1">
+            <div className="px-4 pt-3 pb-1 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
               </div>
-              <h3 className="text-base font-bold text-foreground">
-                Monitore suas vendas ao redor do <span className="text-emerald-500">mundo</span>
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Acompanhe o tráfego global dos seus clientes.
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-foreground">{filteredTransactions.length}</span>
-                <span className="text-xs text-muted-foreground">visitantes ativos</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-foreground">{filteredApproved.length}</span>
+                <span className="text-[10px] text-muted-foreground">visitantes ativos</span>
               </div>
             </div>
-            <div className="flex-1 min-h-[280px] bg-[#0a0a0a] mt-2 rounded-b-lg">
-              <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
+            <div className="flex-1 min-h-[340px]">
+              <Suspense fallback={<div className="flex items-center justify-center h-[340px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
                 <InteractiveGlobe />
               </Suspense>
             </div>
