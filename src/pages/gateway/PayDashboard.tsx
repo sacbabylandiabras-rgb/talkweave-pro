@@ -109,7 +109,13 @@ export default function PayDashboard() {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const channel = supabase.channel("gateway-active-checkouts");
+    const channel = supabase.channel("gateway-active-checkouts", {
+      config: {
+        presence: {
+          key: currentUserId,
+        },
+      },
+    });
 
     const syncVisitors = () => {
       const presenceState = channel.presenceState() as Record<string, Array<ActiveVisitor & { presence_ref?: string }>>;
@@ -117,7 +123,12 @@ export default function PayDashboard() {
         new Map(
           Object.values(presenceState)
             .flat()
-            .filter((visitor) => visitor.ownerUserId === currentUserId)
+            .filter(
+              (visitor) =>
+                visitor.ownerUserId === currentUserId &&
+                typeof visitor.sessionId === "string" &&
+                typeof visitor.checkoutSlug === "string"
+            )
             .map((visitor) => [
               visitor.sessionId,
               {
@@ -137,7 +148,11 @@ export default function PayDashboard() {
       .on("presence", { event: "sync" }, syncVisitors)
       .on("presence", { event: "join" }, syncVisitors)
       .on("presence", { event: "leave" }, syncVisitors)
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          syncVisitors();
+        }
+      });
 
     return () => {
       setActiveVisitors([]);
