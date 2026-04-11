@@ -24,6 +24,27 @@ const getSessionId = (checkoutSlug: string) => {
   return nextSessionId;
 };
 
+const getBrowserCoordinates = async (): Promise<{ latitude?: number; longitude?: number }> => {
+  if (typeof navigator === "undefined" || !navigator.geolocation) return {};
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      () => resolve({}),
+      {
+        enableHighAccuracy: false,
+        timeout: 4000,
+        maximumAge: 300000,
+      }
+    );
+  });
+};
+
 export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
   useEffect(() => {
     if (!checkoutSlug || !ownerUserId || typeof window === "undefined") return;
@@ -43,6 +64,8 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     const trackPresence = async () => {
       if (!isSubscribed) return;
 
+      const coordinates = await getBrowserCoordinates();
+
       await channel.track({
         kind: "checkout",
         sessionId,
@@ -50,6 +73,8 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
         ownerUserId,
         joinedAt,
         productName: productName || checkoutSlug || "",
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
       });
     };
 
@@ -85,4 +110,3 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     };
   }, [checkoutSlug, ownerUserId, productName]);
 }
-
