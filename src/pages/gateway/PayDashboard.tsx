@@ -295,7 +295,7 @@ export default function PayDashboard() {
                 <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold text-foreground">{filteredApproved.length}</span>
+                <span className="text-lg font-bold text-foreground">0</span>
                 <span className="text-[10px] text-muted-foreground">visitantes ativos</span>
               </div>
             </div>
