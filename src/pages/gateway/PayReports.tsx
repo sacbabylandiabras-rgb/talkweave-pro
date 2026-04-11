@@ -38,6 +38,7 @@ export default function PayReports() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -322,6 +323,17 @@ export default function PayReports() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!receiptUrl} onOpenChange={(open) => !open && setReceiptUrl(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Comprovante</DialogTitle>
+          </DialogHeader>
+          {receiptUrl && (
+            <img src={receiptUrl} alt="Comprovante" className="w-full rounded-lg object-contain max-h-[70vh]" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
