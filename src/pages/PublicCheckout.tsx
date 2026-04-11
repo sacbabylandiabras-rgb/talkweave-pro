@@ -109,9 +109,10 @@ export default function PublicCheckout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutOwnerId, setCheckoutOwnerId] = useState<string | null>(null);
+  const [productName, setProductName] = useState<string>("");
   const { tenant, loading: tenantLoading } = useTenant();
 
-  useCheckoutPresence(slug, checkoutOwnerId);
+  useCheckoutPresence(slug, checkoutOwnerId, productName);
 
   useEffect(() => {
     if (!slug) return;
