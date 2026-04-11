@@ -293,6 +293,7 @@ Deno.serve(async (req) => {
           `🔍 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
         );
 
+        // First try direct participants from community metadata
         const directCommunityParticipants = extractParticipantArray(communityData);
         console.log(
           `🏘️ Direct community participants found for ${candidateCommunityId}: ${directCommunityParticipants.length}`,
@@ -301,6 +302,53 @@ Deno.serve(async (req) => {
         if (directCommunityParticipants.length > 0) {
           apiParticipants = directCommunityParticipants;
           break;
+        }
+
+        // Z-API communities-metadata only returns subGroups, not members directly.
+        // Strategy: iterate through each subGroup and fetch its members via group-metadata.
+        const subGroups = communityData?.subGroups;
+        if (Array.isArray(subGroups) && subGroups.length > 0) {
+          console.log(`🔄 Community has ${subGroups.length} subGroups — fetching members from each...`);
+          const aggregatedParticipants: any[] = [];
+          const seenPhoneSet = new Set<string>();
+
+          for (const sg of subGroups) {
+            const sgPhone = sg.phone || sg.id || "";
+            if (!sgPhone) continue;
+
+            // Skip the announcement group (read-only community channel)
+            if (sg.isGroupAnnouncement) {
+              console.log(`⏭️ Skipping announcement group: ${sgPhone}`);
+              continue;
+            }
+
+            try {
+              const sgNormalized = normalizeGroupId(sgPhone);
+              console.log(`📥 Fetching members from subgroup: ${sgNormalized}`);
+              const sgData = await fetchGroupMetadata(sgNormalized);
+              const sgParticipants = extractParticipantArray(sgData);
+              console.log(`   → ${sgParticipants.length} members found in ${sg.name || sgNormalized}`);
+
+              for (const p of sgParticipants) {
+                const rawId = p.phone || p.id || p.participant || "";
+                const key = String(rawId).trim().toLowerCase();
+                if (key && !seenPhoneSet.has(key)) {
+                  seenPhoneSet.add(key);
+                  aggregatedParticipants.push(p);
+                }
+              }
+            } catch (sgErr) {
+              const msg = sgErr instanceof Error ? sgErr.message : String(sgErr);
+              console.log(`⚠️ Failed to fetch subgroup ${sgPhone}: ${msg}`);
+            }
+          }
+
+          console.log(`✅ Aggregated ${aggregatedParticipants.length} unique members from ${subGroups.length} subGroups`);
+
+          if (aggregatedParticipants.length > 0) {
+            apiParticipants = aggregatedParticipants;
+            break;
+          }
         }
       }
     }
