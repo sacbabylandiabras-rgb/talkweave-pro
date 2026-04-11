@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const CHANNEL_NAME = "gateway-active-checkouts";
 const SESSION_KEY_PREFIX = "gateway-checkout-session:";
+
+export const getCheckoutPresenceChannel = (ownerUserId: string) => `gateway-active-checkouts:${ownerUserId}`;
 
 const createSessionId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -29,7 +30,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
 
     const sessionId = getSessionId(checkoutSlug);
     const joinedAt = new Date().toISOString();
-    const channel = supabase.channel(CHANNEL_NAME, {
+    const channel = supabase.channel(getCheckoutPresenceChannel(ownerUserId), {
       config: {
         presence: {
           key: sessionId,
@@ -43,6 +44,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
       if (!isSubscribed) return;
 
       await channel.track({
+        kind: "checkout",
         sessionId,
         checkoutSlug,
         ownerUserId,
@@ -56,12 +58,10 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
       await channel.untrack();
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") void trackPresence();
-    };
-
-    const handleBeforeUnload = () => {
-      void untrackPresence();
+    const handleVisibleTrack = () => {
+      if (document.visibilityState === "visible") {
+        void trackPresence();
+      }
     };
 
     channel.subscribe(async (status) => {
@@ -70,16 +70,19 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
       await trackPresence();
     });
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibleTrack);
+    window.addEventListener("focus", handleVisibleTrack);
+    window.addEventListener("beforeunload", untrackPresence);
+    window.addEventListener("pagehide", untrackPresence);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("pagehide", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibleTrack);
+      window.removeEventListener("focus", handleVisibleTrack);
+      window.removeEventListener("beforeunload", untrackPresence);
+      window.removeEventListener("pagehide", untrackPresence);
       void untrackPresence();
       void supabase.removeChannel(channel);
     };
   }, [checkoutSlug, ownerUserId, productName]);
 }
+
