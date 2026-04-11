@@ -36,6 +36,8 @@ interface ActiveVisitor {
   checkoutSlug: string;
   productName?: string;
   joinedAt?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function PayDashboard() {
@@ -151,6 +153,8 @@ export default function PayDashboard() {
                 checkoutSlug: visitor.checkoutSlug,
                 productName: visitor.productName || visitor.checkoutSlug,
                 joinedAt: visitor.joinedAt,
+                latitude: visitor.latitude,
+                longitude: visitor.longitude,
               } satisfies ActiveVisitor,
             ])
         ).values()
