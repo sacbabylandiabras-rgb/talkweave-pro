@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function CheckoutDomainSection() {
   const [customDomain, setCustomDomain] = useState("");
+  const [pathPrefix, setPathPrefix] = useState(() => localStorage.getItem("checkout_path_prefix") || "pay");
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainDeleting, setDomainDeleting] = useState(false);
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
