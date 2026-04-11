@@ -371,10 +371,10 @@ export default function CheckoutDomainSection() {
             <div className="flex items-center gap-2 mt-1">
               <Input
                 readOnly
-                value={`https://${customDomain}/pay/seu-checkout`}
+                value={`https://${customDomain}/${pathPrefix}/seu-checkout`}
                 className="font-mono text-xs opacity-70"
               />
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(`https://${customDomain}/pay/seu-checkout`)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(`https://${customDomain}/${pathPrefix}/seu-checkout`)}>
                 <Copy className="w-3.5 h-3.5" />
               </Button>
             </div>
