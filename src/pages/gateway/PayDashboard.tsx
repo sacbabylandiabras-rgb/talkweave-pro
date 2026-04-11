@@ -112,7 +112,7 @@ export default function PayDashboard() {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const channel = supabase.channel(getCheckoutPresenceChannel(currentUserId), {
+    const primaryChannel = supabase.channel(getCheckoutPresenceChannel(currentUserId), {
       config: {
         presence: {
           key: `dashboard-${currentUserId}`,
@@ -120,15 +120,24 @@ export default function PayDashboard() {
       },
     });
 
+    const legacyChannel = supabase.channel("gateway-active-checkouts", {
+      config: {
+        presence: {
+          key: `dashboard-legacy-${currentUserId}`,
+        },
+      },
+    });
+
     const syncVisitors = () => {
-      const presenceState = channel.presenceState() as Record<string, Array<ActiveVisitor & { presence_ref?: string }>>;
+      const primaryState = primaryChannel.presenceState() as Record<string, Array<ActiveVisitor & { presence_ref?: string }>>;
+      const legacyState = legacyChannel.presenceState() as Record<string, Array<ActiveVisitor & { presence_ref?: string }>>;
+
       const uniqueVisitors = Array.from(
         new Map(
-          Object.values(presenceState)
-            .flat()
+          [...Object.values(primaryState).flat(), ...Object.values(legacyState).flat()]
             .filter(
               (visitor) =>
-                visitor.kind === "checkout" &&
+                visitor.kind !== "dashboard" &&
                 visitor.ownerUserId === currentUserId &&
                 typeof visitor.sessionId === "string" &&
                 typeof visitor.checkoutSlug === "string"
@@ -150,26 +159,39 @@ export default function PayDashboard() {
       setActiveVisitors(uniqueVisitors);
     };
 
-    channel
-      .on("presence", { event: "sync" }, syncVisitors)
-      .on("presence", { event: "join" }, syncVisitors)
-      .on("presence", { event: "leave" }, syncVisitors)
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({
-            kind: "dashboard",
-            sessionId: `dashboard-${currentUserId}`,
-            ownerUserId: currentUserId,
-            checkoutSlug: "__dashboard__",
-          });
-          syncVisitors();
-        }
-      });
+    const subscribeChannel = (channel: typeof primaryChannel, payload: Record<string, string>) => {
+      channel
+        .on("presence", { event: "sync" }, syncVisitors)
+        .on("presence", { event: "join" }, syncVisitors)
+        .on("presence", { event: "leave" }, syncVisitors)
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel.track(payload);
+            syncVisitors();
+          }
+        });
+    };
+
+    subscribeChannel(primaryChannel, {
+      kind: "dashboard",
+      sessionId: `dashboard-${currentUserId}`,
+      ownerUserId: currentUserId,
+      checkoutSlug: "__dashboard__",
+    });
+
+    subscribeChannel(legacyChannel, {
+      kind: "dashboard",
+      sessionId: `dashboard-legacy-${currentUserId}`,
+      ownerUserId: currentUserId,
+      checkoutSlug: "__dashboard__",
+    });
 
     return () => {
       setActiveVisitors([]);
-      void channel.untrack();
-      void supabase.removeChannel(channel);
+      void primaryChannel.untrack();
+      void legacyChannel.untrack();
+      void supabase.removeChannel(primaryChannel);
+      void supabase.removeChannel(legacyChannel);
     };
   }, [currentUserId]);
 
