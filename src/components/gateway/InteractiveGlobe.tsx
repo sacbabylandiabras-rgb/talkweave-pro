@@ -5,10 +5,17 @@ import * as THREE from "three";
 
 const GEOJSON_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 
-/* Convert lat/lon to 3D point on sphere */
+export interface GlobeVisitor {
+  sessionId: string;
+  ownerUserId: string;
+  checkoutSlug: string;
+  joinedAt?: string;
+}
+
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
+
   return new THREE.Vector3(
     -radius * Math.sin(phi) * Math.cos(theta),
     radius * Math.cos(phi),
@@ -16,44 +23,57 @@ function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
   );
 }
 
-/* Parse GeoJSON and create line segments for country borders */
-function CountryLines({ geoData }: { geoData: any }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const radius = 2.01;
+function hashString(value: string) {
+  let hash = 0;
 
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+}
+
+function createVisitorCoordinates(seed: string) {
+  const latSeed = hashString(`${seed}-lat`);
+  const lonSeed = hashString(`${seed}-lon`);
+  const lat = (latSeed % 140) - 70;
+  const lon = (lonSeed % 360) - 180;
+  return { lat, lon };
+}
+
+function CountryOutlineLines({ geoData }: { geoData: any }) {
   const lineSegments = useMemo(() => {
-    if (!geoData?.features) return [];
+    if (!geoData?.features) return [] as THREE.BufferGeometry[];
 
     const segments: THREE.BufferGeometry[] = [];
 
     geoData.features.forEach((feature: any) => {
-      const geom = feature.geometry;
-      if (!geom) return;
+      const geometry = feature.geometry;
+      if (!geometry) return;
 
-      let polygons: number[][][][] = [];
+      const polygons = geometry.type === "Polygon"
+        ? [geometry.coordinates]
+        : geometry.type === "MultiPolygon"
+          ? geometry.coordinates
+          : [];
 
-      if (geom.type === "Polygon") {
-        polygons = [geom.coordinates];
-      } else if (geom.type === "MultiPolygon") {
-        polygons = geom.coordinates;
-      }
+      polygons.forEach((polygon: number[][][]) => {
+        polygon.forEach((ring: number[][]) => {
+          const step = Math.max(1, Math.floor(ring.length / 180));
+          const points: THREE.Vector3[] = [];
 
-      polygons.forEach((polygon) => {
-        polygon.forEach((ring) => {
-          // Sample every Nth point for performance
-          const step = Math.max(1, Math.floor(ring.length / 200));
-          const pts: THREE.Vector3[] = [];
           for (let i = 0; i < ring.length; i += step) {
             const [lon, lat] = ring[i];
-            pts.push(latLonToVec3(lat, lon, radius));
+            points.push(latLonToVec3(lat, lon, 2.01));
           }
-          // Close the ring
-          if (pts.length > 2) {
-            pts.push(pts[0].clone());
+
+          if (points.length > 2) {
+            points.push(points[0].clone());
           }
-          if (pts.length > 1) {
-            const geo = new THREE.BufferGeometry().setFromPoints(pts);
-            segments.push(geo);
+
+          if (points.length > 1) {
+            segments.push(new THREE.BufferGeometry().setFromPoints(points));
           }
         });
       });
@@ -62,76 +82,94 @@ function CountryLines({ geoData }: { geoData: any }) {
     return segments;
   }, [geoData]);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += 0.002;
-    }
-  });
-
   const material = useMemo(
-    () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.6 }),
+    () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.58 }),
     []
   );
 
   return (
-    <group ref={groupRef}>
-      {/* Base sphere (dark) */}
-      <mesh>
-        <sphereGeometry args={[2, 64, 64]} />
-        <meshBasicMaterial color="#0d1117" transparent opacity={0.9} />
-      </mesh>
-      {/* Grid lines */}
-      <GridLines />
-      {/* Country outlines */}
-      {lineSegments.map((geo, i) => (
-        <primitive key={i} object={new THREE.Line(geo, material)} />
+    <>
+      {lineSegments.map((geometry, index) => (
+        <line key={index} geometry={geometry} material={material} />
       ))}
-    </group>
+    </>
   );
 }
 
-/* Subtle lat/lon grid */
 function GridLines() {
   const lines = useMemo(() => {
-    const geos: THREE.BufferGeometry[] = [];
-    const r = 2.005;
+    const geometries: THREE.BufferGeometry[] = [];
+    const radius = 2.005;
 
-    // Latitude lines every 30°
     for (let lat = -60; lat <= 60; lat += 30) {
-      const pts: THREE.Vector3[] = [];
-      for (let lon = 0; lon <= 360; lon += 5) {
-        pts.push(latLonToVec3(lat, lon - 180, r));
+      const points: THREE.Vector3[] = [];
+      for (let lon = -180; lon <= 180; lon += 5) {
+        points.push(latLonToVec3(lat, lon, radius));
       }
-      geos.push(new THREE.BufferGeometry().setFromPoints(pts));
+      geometries.push(new THREE.BufferGeometry().setFromPoints(points));
     }
 
-    // Longitude lines every 30°
     for (let lon = -180; lon < 180; lon += 30) {
-      const pts: THREE.Vector3[] = [];
+      const points: THREE.Vector3[] = [];
       for (let lat = -90; lat <= 90; lat += 5) {
-        pts.push(latLonToVec3(lat, lon, r));
+        points.push(latLonToVec3(lat, lon, radius));
       }
-      geos.push(new THREE.BufferGeometry().setFromPoints(pts));
+      geometries.push(new THREE.BufferGeometry().setFromPoints(points));
     }
 
-    return geos;
+    return geometries;
   }, []);
 
-  const mat = useMemo(
+  const material = useMemo(
     () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.07 }),
     []
   );
 
   return (
     <>
-      {lines.map((g, i) => (
-        <primitive key={i} object={new THREE.Line(g, mat)} />
+      {lines.map((geometry, index) => (
+        <line key={index} geometry={geometry} material={material} />
       ))}
     </>
   );
 }
 
-/* Glow ring */
+function VisitorMarkers({ visitors }: { visitors: GlobeVisitor[] }) {
+  const pulseRef = useRef<THREE.Group>(null);
+
+  const markers = useMemo(
+    () => visitors.map((visitor) => ({
+      id: visitor.sessionId,
+      position: latLonToVec3(createVisitorCoordinates(visitor.sessionId).lat, createVisitorCoordinates(visitor.sessionId).lon, 2.08),
+    })),
+    [visitors]
+  );
+
+  useFrame(({ clock }) => {
+    if (!pulseRef.current) return;
+
+    const pulse = 1 + Math.sin(clock.elapsedTime * 3) * 0.12;
+    pulseRef.current.scale.setScalar(pulse);
+  });
+
+  return (
+    <group ref={pulseRef}>
+      {markers.map((marker) => (
+        <group key={marker.id} position={marker.position.toArray()}>
+          <mesh>
+            <sphereGeometry args={[0.045, 14, 14]} />
+            <meshBasicMaterial color="#34D399" />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.085, 14, 14]} />
+            <meshBasicMaterial color="#34D399" transparent opacity={0.18} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function GlobeGlow() {
   return (
     <mesh rotation={[Math.PI / 2, 0, 0]}>
@@ -141,7 +179,6 @@ function GlobeGlow() {
   );
 }
 
-/* Connection arcs */
 function ConnectionArcs() {
   const arcs = useMemo(() => {
     const pairs = [
@@ -149,58 +186,83 @@ function ConnectionArcs() {
       { from: [-1.5, 0.3, 0.8], to: [0.5, -0.8, 1.5] },
       { from: [1.0, 1.3, 0.8], to: [-0.8, -0.5, -1.5] },
     ];
-    return pairs.map((p, idx) => {
-      const start = new THREE.Vector3(...(p.from as [number, number, number]));
-      const end = new THREE.Vector3(...(p.to as [number, number, number]));
+
+    return pairs.map((pair, index) => {
+      const start = new THREE.Vector3(...(pair.from as [number, number, number]));
+      const end = new THREE.Vector3(...(pair.to as [number, number, number]));
       const mid = start.clone().add(end).multiplyScalar(0.5);
       mid.normalize().multiplyScalar(3.5);
       const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-      const pts = curve.getPoints(50);
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      return { geo, key: idx };
+      return {
+        key: index,
+        geometry: new THREE.BufferGeometry().setFromPoints(curve.getPoints(50)),
+      };
     });
   }, []);
 
-  const mat = useMemo(
-    () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.25 }),
+  const material = useMemo(
+    () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.18 }),
     []
   );
 
   return (
     <>
-      {arcs.map((a) => (
-        <primitive key={a.key} object={new THREE.Line(a.geo, mat)} />
+      {arcs.map((arc) => (
+        <line key={arc.key} geometry={arc.geometry} material={material} />
       ))}
     </>
   );
 }
 
-export default function InteractiveGlobe() {
+function RotatingGlobe({ geoData, visitors }: { geoData: any; visitors: GlobeVisitor[] }) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.002;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshBasicMaterial color="#0d1117" transparent opacity={0.92} />
+      </mesh>
+      <GridLines />
+      {geoData ? <CountryOutlineLines geoData={geoData} /> : null}
+      <VisitorMarkers visitors={visitors} />
+    </group>
+  );
+}
+
+export default function InteractiveGlobe({ visitors = [] }: { visitors?: GlobeVisitor[] }) {
   const [geoData, setGeoData] = useState<any>(null);
 
   useEffect(() => {
-    fetch(GEOJSON_URL)
-      .then((r) => r.json())
-      .then(setGeoData)
-      .catch(console.error);
+    const loadGeoData = async () => {
+      try {
+        const response = await fetch(GEOJSON_URL);
+        if (!response.ok) throw new Error("Falha ao carregar o mapa do globo");
+        const data = await response.json();
+        setGeoData(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadGeoData();
   }, []);
 
   return (
     <div className="w-full h-[380px] relative">
       <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
-        <ambientLight intensity={0.3} />
-        <pointLight position={[10, 10, 10]} intensity={0.5} />
-        {geoData ? <CountryLines geoData={geoData} /> : null}
+        <ambientLight intensity={0.35} />
+        <pointLight position={[10, 10, 10]} intensity={0.55} />
+        <RotatingGlobe geoData={geoData} visitors={visitors} />
         <GlobeGlow />
         <ConnectionArcs />
-        <OrbitControls
-          enableZoom={true}
-          enablePan={false}
-          minDistance={3.5}
-          maxDistance={8}
-          autoRotate={false}
-          rotateSpeed={0.5}
-        />
+        <OrbitControls enableZoom enablePan={false} minDistance={3.5} maxDistance={8} autoRotate={false} rotateSpeed={0.5} />
       </Canvas>
     </div>
   );

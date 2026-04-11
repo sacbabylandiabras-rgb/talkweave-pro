@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet, Globe } from "lucide-react";
+import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -28,6 +28,13 @@ interface Transaction {
   created_at: string;
 }
 
+interface ActiveVisitor {
+  sessionId: string;
+  ownerUserId: string;
+  checkoutSlug: string;
+  joinedAt?: string;
+}
+
 export default function PayDashboard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
@@ -37,6 +44,8 @@ export default function PayDashboard() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [activeVisitors, setActiveVisitors] = useState<ActiveVisitor[]>([]);
 
   const periodStart = useMemo(() => {
     const now = new Date();
@@ -47,7 +56,6 @@ export default function PayDashboard() {
     if (periodFilter === "custom" && selectedDate) {
       const d = new Date(selectedDate); d.setHours(0, 0, 0, 0); return d;
     }
-    // 30d
     const d = new Date(now); d.setDate(d.getDate() - 30); return d;
   }, [periodFilter, selectedDate]);
 
@@ -59,7 +67,7 @@ export default function PayDashboard() {
   }, [periodFilter, selectedDate]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    return transactions.filter((t) => {
       const d = new Date(t.created_at);
       return d >= periodStart && d <= periodEnd;
     });
@@ -75,7 +83,12 @@ export default function PayDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      setCurrentUserId(user.id);
 
       const [profileRes, txRes, wdRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
@@ -89,16 +102,55 @@ export default function PayDashboard() {
       setTotalWithdrawn(wdData.filter((w: any) => ["approved", "paid", "completed"].includes(w.status)).reduce((a: number, w: any) => a + (w.amount || 0), 0));
       setLoading(false);
     };
+
     fetchData();
   }, []);
 
-  const filteredApproved = filteredTransactions.filter(t => t.status === "approved" || t.status === "paid");
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase.channel("gateway-active-checkouts");
+
+    const syncVisitors = () => {
+      const presenceState = channel.presenceState() as Record<string, Array<ActiveVisitor & { presence_ref?: string }>>;
+      const uniqueVisitors = Array.from(
+        new Map(
+          Object.values(presenceState)
+            .flat()
+            .filter((visitor) => visitor.ownerUserId === currentUserId)
+            .map((visitor) => [
+              visitor.sessionId,
+              {
+                sessionId: visitor.sessionId,
+                ownerUserId: visitor.ownerUserId,
+                checkoutSlug: visitor.checkoutSlug,
+                joinedAt: visitor.joinedAt,
+              } satisfies ActiveVisitor,
+            ])
+        ).values()
+      );
+
+      setActiveVisitors(uniqueVisitors);
+    };
+
+    channel
+      .on("presence", { event: "sync" }, syncVisitors)
+      .on("presence", { event: "join" }, syncVisitors)
+      .on("presence", { event: "leave" }, syncVisitors)
+      .subscribe();
+
+    return () => {
+      setActiveVisitors([]);
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
+  const filteredApproved = filteredTransactions.filter((t) => t.status === "approved" || t.status === "paid");
   const filteredVolume = filteredApproved.reduce((a, t) => a + t.amount, 0);
   const filteredAvgTicket = filteredApproved.length > 0 ? filteredVolume / filteredApproved.length : 0;
   const filteredApprovalRate = filteredTransactions.length > 0 ? ((filteredApproved.length / filteredTransactions.length) * 100).toFixed(1) : "0";
 
-  // Global milestones always use all transactions
-  const approvedTx = transactions.filter(t => t.status === "approved" || t.status === "paid");
+  const approvedTx = transactions.filter((t) => t.status === "approved" || t.status === "paid");
   const totalVolume = approvedTx.reduce((a, t) => a + t.amount, 0);
   const totalNet = approvedTx.reduce((a, t) => a + t.net, 0);
   const availableBalance = Math.max(0, totalNet - totalWithdrawn);
@@ -129,16 +181,15 @@ export default function PayDashboard() {
     };
   }, [totalVolume]);
 
-  // Chart data based on period
   const computedChartData = useMemo(() => {
     const days = periodFilter === "today" ? 1 : periodFilter === "week" ? 7 : periodFilter === "custom" ? 1 : 30;
     return Array.from({ length: days }, (_, i) => {
       const d = new Date(periodStart);
       d.setDate(d.getDate() + i);
-      const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const dayTxs = transactions.filter(tx => new Date(tx.created_at).toDateString() === d.toDateString());
-      const pagas = dayTxs.filter(t => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
-      const pendentes = dayTxs.filter(t => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
+      const key = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const dayTxs = transactions.filter((tx) => new Date(tx.created_at).toDateString() === d.toDateString());
+      const pagas = dayTxs.filter((t) => t.status === "approved" || t.status === "paid").reduce((a, t) => a + t.amount, 0) / 100;
+      const pendentes = dayTxs.filter((t) => t.status === "pending").reduce((a, t) => a + t.amount, 0) / 100;
       return { date: key, pagas, pendentes };
     });
   }, [transactions, periodStart, periodFilter]);
@@ -164,7 +215,6 @@ export default function PayDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Period Selector */}
           <Select value={periodFilter} onValueChange={(v) => { setPeriodFilter(v as PeriodFilter); if (v !== "custom") setSelectedDate(undefined); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue />
@@ -176,7 +226,6 @@ export default function PayDashboard() {
               <SelectItem value="custom">Data específica</SelectItem>
             </SelectContent>
           </Select>
-          {/* Calendar for custom date */}
           {periodFilter === "custom" && (
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
@@ -197,7 +246,6 @@ export default function PayDashboard() {
               </PopoverContent>
             </Popover>
           )}
-          {/* Sales Milestone Progress Bar */}
           <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
             <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
             <div className="flex-1 space-y-1">
@@ -221,7 +269,6 @@ export default function PayDashboard() {
         </div>
       </div>
 
-      {/* Saldo Disponível */}
       <Card className="border-[#2A2A2A] ring-1 ring-emerald-500/20">
         <CardContent className="pt-5 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -256,7 +303,6 @@ export default function PayDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Chart */}
         <Card className="border-[#2A2A2A]">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
@@ -275,10 +321,10 @@ export default function PayDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-                <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#A0A0A0', fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === 'pagas' ? 'Pagas' : 'Pendentes'}</span>} />
+                <XAxis dataKey="date" tick={{ fill: "#A0A0A0", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#A0A0A0", fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 8 }} />
+                <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === "pagas" ? "Pagas" : "Pendentes"}</span>} />
                 <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
                 <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
               </AreaChart>
@@ -286,7 +332,6 @@ export default function PayDashboard() {
           </CardContent>
         </Card>
 
-        {/* Globe */}
         <Card className="border-[#2A2A2A] overflow-hidden">
           <CardContent className="p-0 h-full flex flex-col">
             <div className="px-4 pt-3 pb-1 flex items-center justify-between">
@@ -295,13 +340,13 @@ export default function PayDashboard() {
                 <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold text-foreground">0</span>
+                <span className="text-lg font-bold text-foreground">{activeVisitors.length}</span>
                 <span className="text-[10px] text-muted-foreground">visitantes ativos</span>
               </div>
             </div>
             <div className="flex-1 min-h-[340px]">
               <Suspense fallback={<div className="flex items-center justify-center h-[340px]"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}>
-                <InteractiveGlobe />
+                <InteractiveGlobe visitors={activeVisitors} />
               </Suspense>
             </div>
           </CardContent>
