@@ -1,8 +1,8 @@
-import { useRef, useMemo, useState, useCallback, useEffect } from "react";
+import { useRef, useMemo, useState, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
-import { GLOBE_COUNTRY_OUTLINES } from "./globe-country-outlines";
+import { WORLD_COUNTRY_OUTLINES } from "./world-country-outlines";
 
 export interface GlobeVisitor {
   sessionId: string;
@@ -12,11 +12,10 @@ export interface GlobeVisitor {
   joinedAt?: string;
 }
 
-const LOCAL_GEOJSON_URL = "/world-countries.geo.json";
-
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
+
   return new THREE.Vector3(
     -radius * Math.sin(phi) * Math.cos(theta),
     radius * Math.cos(phi),
@@ -26,10 +25,12 @@ function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
 
 function hashString(value: string) {
   let hash = 0;
+
   for (let i = 0; i < value.length; i += 1) {
     hash = (hash << 5) - hash + value.charCodeAt(i);
     hash |= 0;
   }
+
   return Math.abs(hash);
 }
 
@@ -60,12 +61,15 @@ function createVisitorCoordinates(seed: string) {
   const zone = POPULATION_ZONES[zoneSeed % POPULATION_ZONES.length];
   const latOffset = (((hashString(`${seed}-lat`) % 200) - 100) / 100) * zone.spread;
   const lonOffset = (((hashString(`${seed}-lon`) % 200) - 100) / 100) * zone.spread;
+
   return { lat: zone.lat + latOffset, lon: zone.lon + lonOffset };
 }
 
-function CountryOutlineLines({ geoData }: { geoData: any }) {
+function CountryOutlineLines() {
   const lineSegments = useMemo(() => {
+    const geoData = WORLD_COUNTRY_OUTLINES as any;
     if (!geoData?.features) return [] as THREE.BufferGeometry[];
+
     const segments: THREE.BufferGeometry[] = [];
 
     geoData.features.forEach((feature: any) => {
@@ -82,13 +86,11 @@ function CountryOutlineLines({ geoData }: { geoData: any }) {
         polygon.forEach((ring: number[][]) => {
           if (!Array.isArray(ring) || ring.length < 2) return;
 
-          const step = Math.max(1, Math.floor(ring.length / 220));
+          const step = Math.max(1, Math.floor(ring.length / 240));
           const points: THREE.Vector3[] = [];
 
           for (let i = 0; i < ring.length; i += step) {
-            const coord = ring[i];
-            if (!Array.isArray(coord) || coord.length < 2) continue;
-            const [lon, lat] = coord;
+            const [lon, lat] = ring[i];
             points.push(latLonToVec3(lat, lon, 2.01));
           }
 
@@ -101,7 +103,7 @@ function CountryOutlineLines({ geoData }: { geoData: any }) {
     });
 
     return segments;
-  }, [geoData]);
+  }, []);
 
   const material = useMemo(
     () => new THREE.LineBasicMaterial({ color: "#22C55E", transparent: true, opacity: 0.52 }),
@@ -174,12 +176,12 @@ function VisitorMarker({ marker, onHover, onLeave }: { marker: MarkerData; onHov
     <group position={marker.position.toArray()}>
       <group
         ref={pulseRef}
-        onPointerOver={(e) => {
-          e.stopPropagation();
+        onPointerOver={(event) => {
+          event.stopPropagation();
           onHover(marker);
         }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
+        onPointerOut={(event) => {
+          event.stopPropagation();
           onLeave();
         }}
       >
@@ -273,8 +275,7 @@ function ConnectionArcs() {
   );
 }
 
-function RotatingGlobe({ geoData, visitors, hoveredMarker, onHover, onLeave }: {
-  geoData: any;
+function RotatingGlobe({ visitors, hoveredMarker, onHover, onLeave }: {
   visitors: GlobeVisitor[];
   hoveredMarker: MarkerData | null;
   onHover: (m: MarkerData) => void;
@@ -295,7 +296,7 @@ function RotatingGlobe({ geoData, visitors, hoveredMarker, onHover, onLeave }: {
         <meshBasicMaterial color="#0d1117" transparent opacity={0.92} />
       </mesh>
       <GridLines />
-      {geoData ? <CountryOutlineLines geoData={geoData} /> : <CountryOutlineLines geoData={GLOBE_COUNTRY_OUTLINES} />}
+      <CountryOutlineLines />
       <VisitorMarkers visitors={visitors} onHover={onHover} onLeave={onLeave} />
       {hoveredMarker && <TooltipOverlay marker={hoveredMarker} />}
     </group>
@@ -304,24 +305,8 @@ function RotatingGlobe({ geoData, visitors, hoveredMarker, onHover, onLeave }: {
 
 export default function InteractiveGlobe({ visitors = [] }: { visitors?: GlobeVisitor[] }) {
   const [hoveredMarker, setHoveredMarker] = useState<MarkerData | null>(null);
-  const [geoData, setGeoData] = useState<any>(GLOBE_COUNTRY_OUTLINES);
 
-  useEffect(() => {
-    const loadGeoData = async () => {
-      try {
-        const response = await fetch(LOCAL_GEOJSON_URL);
-        if (!response.ok) throw new Error("Falha ao carregar o mapa local do globo");
-        const data = await response.json();
-        setGeoData(data);
-      } catch {
-        setGeoData(GLOBE_COUNTRY_OUTLINES);
-      }
-    };
-
-    void loadGeoData();
-  }, []);
-
-  const handleHover = useCallback((m: MarkerData) => setHoveredMarker(m), []);
+  const handleHover = useCallback((marker: MarkerData) => setHoveredMarker(marker), []);
   const handleLeave = useCallback(() => setHoveredMarker(null), []);
 
   return (
@@ -329,7 +314,7 @@ export default function InteractiveGlobe({ visitors = [] }: { visitors?: GlobeVi
       <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
         <ambientLight intensity={0.35} />
         <pointLight position={[10, 10, 10]} intensity={0.55} />
-        <RotatingGlobe geoData={geoData} visitors={visitors} hoveredMarker={hoveredMarker} onHover={handleHover} onLeave={handleLeave} />
+        <RotatingGlobe visitors={visitors} hoveredMarker={hoveredMarker} onHover={handleHover} onLeave={handleLeave} />
         <GlobeGlow />
         <ConnectionArcs />
         <OrbitControls enableZoom enablePan={false} minDistance={3.5} maxDistance={8} autoRotate={false} rotateSpeed={0.5} />
