@@ -324,16 +324,26 @@ export default function PayReports() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!receiptUrl} onOpenChange={(open) => !open && setReceiptUrl(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Comprovante</DialogTitle>
-          </DialogHeader>
-          {receiptUrl && (
-            <img src={receiptUrl} alt="Comprovante" className="w-full rounded-lg object-contain max-h-[70vh]" />
-          )}
-        </DialogContent>
-      </Dialog>
+      {receiptUrl && (
+        <Dialog open={true} onOpenChange={() => setReceiptUrl(null)}>
+          <DialogContent className="max-w-lg z-[100]">
+            <DialogHeader>
+              <DialogTitle>Comprovante</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center min-h-[200px]">
+              <img
+                src={receiptUrl}
+                alt="Comprovante"
+                className="w-full rounded-lg object-contain max-h-[70vh]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = '<p class="text-sm text-muted-foreground">Não foi possível carregar o comprovante.</p>';
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
