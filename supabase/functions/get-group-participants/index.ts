@@ -34,28 +34,7 @@ const uniqueStrings = (values: Array<string | null | undefined>) => {
   return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
 };
 
-const extractParticipantArray = (payload: any) => {
-  const candidates = [
-    payload?.participants,
-    payload?.members,
-    payload?.groupParticipants,
-    payload?.data?.participants,
-    payload?.data?.members,
-  ];
-
-  return candidates.find(Array.isArray) || [];
-};
-
-const normalizeCollection = (value: any) => {
-  if (Array.isArray(value)) return value;
-  if (value && typeof value === "object") {
-    const nestedArray = Object.values(value).find(Array.isArray);
-    if (Array.isArray(nestedArray)) return nestedArray;
-  }
-  return [];
-};
-
-const toGroupLikeString = (value: any): string => {
+const toEntityLikeString = (value: any): string => {
   if (typeof value === "string" || typeof value === "number") {
     return String(value).trim();
   }
@@ -66,6 +45,7 @@ const toGroupLikeString = (value: any): string => {
     if (typeof value.id === "string") return value.id.trim();
     if (typeof value.jid === "string") return value.jid.trim();
     if (typeof value.phone === "string") return value.phone.trim();
+    if (typeof value.participant === "string") return value.participant.trim();
     if (typeof value.user === "string" && typeof value.server === "string") {
       return `${value.user}@${value.server}`.trim();
     }
@@ -75,89 +55,98 @@ const toGroupLikeString = (value: any): string => {
 };
 
 const isLikelyGroupId = (value: any) => {
-  const raw = toGroupLikeString(value);
+  const raw = toEntityLikeString(value);
   return Boolean(raw) && (raw.includes("@g.us") || raw.endsWith("-group") || /^\d{15,}$/.test(raw));
 };
 
-const toNormalizedGroupCandidate = (value: any) => {
-  const raw = toGroupLikeString(value);
-  return isLikelyGroupId(raw) ? normalizeGroupId(raw) : "";
+const isLikelyParticipantId = (value: any) => {
+  const raw = toEntityLikeString(value);
+  if (!raw || isLikelyGroupId(raw)) return false;
+
+  const digits = raw.replace(/\D/g, "");
+  return raw.includes("@c.us") || raw.includes("@lid") || digits.length >= 8;
 };
 
-const extractDeepGroupIds = (value: any, seen = new WeakSet<object>()): string[] => {
-  const directCandidate = toNormalizedGroupCandidate(value);
-  const directResults = directCandidate ? [directCandidate] : [];
+const looksLikeParticipantObject = (value: any) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (value.isGroupAnnouncement || value.isCommunity || value.subGroups || value.communityGroups) return false;
 
-  if (!value || typeof value !== "object") {
-    return directResults;
-  }
-
-  if (seen.has(value)) {
-    return directResults;
-  }
-
-  seen.add(value);
-
-  const nestedResults = Object.values(value).flatMap((item) => extractDeepGroupIds(item, seen));
-  return uniqueStrings([...directResults, ...nestedResults]);
-};
-
-const extractSubGroups = (payload: any) => {
-  const candidates = [
-    payload,
-    payload?.subGroups,
-    payload?.subgroups,
-    payload?.groups,
-    payload?.linkedGroups,
-    payload?.communityGroups,
-    payload?.children,
-    payload?.data,
-    payload?.data?.subGroups,
-    payload?.data?.subgroups,
-    payload?.data?.groups,
-    payload?.result,
-    payload?.result?.subGroups,
-    payload?.result?.groups,
+  const idCandidates = [
+    value.phone,
+    value.id,
+    value.participant,
+    value.jid,
+    value.contact?.id,
+    value.user,
+    value._serialized,
+    value.serialized,
   ];
 
-  for (const candidate of candidates) {
-    const normalized = normalizeCollection(candidate);
+  return idCandidates.some((candidate) => isLikelyParticipantId(candidate));
+};
+
+const normalizeParticipantEntries = (values: any[]) => {
+  return values
+    .map((value) => {
+      if (looksLikeParticipantObject(value)) return value;
+      if (isLikelyParticipantId(value)) {
+        return { phone: toEntityLikeString(value) };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
+const extractDeepParticipantArray = (value: any, seen = new WeakSet<object>()): any[] => {
+  if (!value || typeof value !== "object") return [];
+
+  if (seen.has(value)) return [];
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const normalized = normalizeParticipantEntries(value);
     if (normalized.length > 0) return normalized;
+
+    for (const item of value) {
+      const nested = extractDeepParticipantArray(item, seen);
+      if (nested.length > 0) return nested;
+    }
+
+    return [];
+  }
+
+  for (const item of Object.values(value)) {
+    const nested = extractDeepParticipantArray(item, seen);
+    if (nested.length > 0) return nested;
   }
 
   return [];
 };
 
-const extractSubGroupIds = (payload: any) => {
-  const subGroups = extractSubGroups(payload);
+const extractParticipantArray = (payload: any) => {
+  const candidates = [
+    payload?.participants,
+    payload?.members,
+    payload?.groupParticipants,
+    payload?.communityParticipants,
+    payload?.users,
+    payload?.contacts,
+    payload?.data?.participants,
+    payload?.data?.members,
+    payload?.data?.groupParticipants,
+    payload?.data?.communityParticipants,
+    payload?.data?.users,
+    payload?.result?.participants,
+    payload?.result?.members,
+  ];
 
-  console.log(`🔍 extractSubGroupIds: found ${subGroups.length} subGroup entries`);
-  if (subGroups.length > 0) {
-    console.log(`🔍 First subGroup keys: ${Object.keys(subGroups[0] || {}).join(", ")}`);
-    console.log(`🔍 First subGroup sample: ${JSON.stringify(subGroups[0]).substring(0, 500)}`);
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue;
+    const normalized = normalizeParticipantEntries(candidate);
+    if (normalized.length > 0) return normalized;
   }
 
-  return uniqueStrings(
-    subGroups.flatMap((subGroup: any) => {
-      const explicitIds = [
-        toNormalizedGroupCandidate(subGroup),
-        toNormalizedGroupCandidate(subGroup?.phone),
-        toNormalizedGroupCandidate(subGroup?.id),
-        toNormalizedGroupCandidate(subGroup?.groupId),
-        toNormalizedGroupCandidate(subGroup?.groupJid),
-        toNormalizedGroupCandidate(subGroup?.jid),
-        toNormalizedGroupCandidate(subGroup?.chatId),
-        toNormalizedGroupCandidate(subGroup?.group?.phone),
-        toNormalizedGroupCandidate(subGroup?.group?.id),
-        toNormalizedGroupCandidate(subGroup?.subGroupJid),
-        toNormalizedGroupCandidate(subGroup?.linkedGroup),
-        toNormalizedGroupCandidate(subGroup?.group),
-      ];
-
-      const deepIds = extractDeepGroupIds(subGroup);
-      return [...explicitIds, ...deepIds];
-    }),
-  );
+  return extractDeepParticipantArray(payload);
 };
 
 const buildCommunityCandidates = (groupId: string, primaryData: any) => {
@@ -292,63 +281,26 @@ Deno.serve(async (req) => {
 
     const primaryData = await fetchGroupMetadata(groupId);
     let apiParticipants = extractParticipantArray(primaryData);
-    let detectedSubGroupIds = extractSubGroupIds(primaryData);
 
     if (apiParticipants.length === 0) {
       const communityCandidates = buildCommunityCandidates(groupId, primaryData);
-      let communityData: any = null;
 
       for (const candidateCommunityId of communityCandidates) {
-        communityData = await fetchCommunityMetadata(candidateCommunityId);
-        if (communityData) {
-          // Debug: log the raw subGroups structure
-          const rawSubGroups = communityData?.subGroups || communityData?.subgroups || communityData?.groups;
-          if (rawSubGroups) {
-            const sample = Array.isArray(rawSubGroups) ? rawSubGroups.slice(0, 2) : rawSubGroups;
-            console.log(`🔍 Raw subGroups sample for ${candidateCommunityId}: ${JSON.stringify(sample)}`);
-          } else {
-            console.log(`🔍 No subGroups/subgroups/groups key found. Keys: ${Object.keys(communityData || {}).join(", ")}`);
-          }
-          
-          const extractedIds = extractSubGroupIds(communityData);
-          console.log(
-            `🧩 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
-          );
-          console.log(`🧩 Extracted subgroup ids for ${candidateCommunityId}: ${extractedIds.join(", ") || "none"}`);
-          if (extractedIds.length > 0) {
-            detectedSubGroupIds = extractedIds;
-            console.log(`🏘️ Community ${candidateCommunityId} returned ${extractedIds.length} linked groups`);
-            break;
-          }
-        }
-      }
+        const communityData = await fetchCommunityMetadata(candidateCommunityId);
+        if (!communityData) continue;
 
-      const fallbackSubGroupIds = uniqueStrings([
-        ...detectedSubGroupIds,
-        normalizeGroupId(primaryData?.announcementGroup?.phone),
-        normalizeGroupId(primaryData?.announcementGroup?.id),
-        normalizeGroupId(primaryData?.linkedGroupId),
-        normalizeGroupId(primaryData?.parentGroupId),
-      ]).filter((subGroupId) => subGroupId && subGroupId !== normalizeGroupId(groupId));
+        console.log(
+          `🔍 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
+        );
 
-      console.log(`🧩 Final subgroup ids for ${groupId}: ${fallbackSubGroupIds.join(", ") || "none"}`);
+        const directCommunityParticipants = extractParticipantArray(communityData);
+        console.log(
+          `🏘️ Direct community participants found for ${candidateCommunityId}: ${directCommunityParticipants.length}`,
+        );
 
-      if (fallbackSubGroupIds.length > 0) {
-        const aggregatedParticipants: any[] = [];
-
-        for (const subGroupId of fallbackSubGroupIds) {
-          try {
-            const subGroupData = await fetchGroupMetadata(subGroupId);
-            const subGroupParticipants = extractParticipantArray(subGroupData);
-            console.log(`👥 Subgroup ${subGroupId}: ${subGroupParticipants.length} participants`);
-            aggregatedParticipants.push(...subGroupParticipants);
-          } catch (subGroupError) {
-            console.error(`❌ Failed to fetch subgroup ${subGroupId}:`, subGroupError);
-          }
-        }
-
-        if (aggregatedParticipants.length > 0) {
-          apiParticipants = aggregatedParticipants;
+        if (directCommunityParticipants.length > 0) {
+          apiParticipants = directCommunityParticipants;
+          break;
         }
       }
     }
