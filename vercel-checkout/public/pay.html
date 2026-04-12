@@ -1512,7 +1512,11 @@
         body: JSON.stringify({ slug:getSlug(), amount:pixPrice(), customerName:fd.name, customerEmail:fd.email, customerPhone:fd.phone, customerCpf:fd.cpf })
       });
       var d = await r.json();
-      if (!r.ok) throw new Error(d.error||'Erro');
+      if (!r.ok) {
+        var detailedMessage = d && (d.message || d.error) ? (d.message || d.error) : 'Erro';
+        var suffix = d && d.attempt ? ' (tentativa: ' + d.attempt + ')' : '';
+        throw new Error(detailedMessage + suffix);
+      }
       pixData = d;
       render();
     } catch(e) {
