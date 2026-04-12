@@ -344,7 +344,7 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
 
   // Get branch/account from platform config
   let branch = '0001'
-  let account = '900002'
+  let account = '7003299'
   try {
     const { data: branchCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_branch').single()
     if (branchCfg?.value) branch = branchCfg.value
