@@ -6,13 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function normalizeHmacSignature(signature: string | null): string | null {
+  if (!signature) return null
+  const normalized = signature
+    .trim()
+    .replace(/^sha512=/i, '')
+    .replace(/^hmac[:=]\s*/i, '')
+    .replace(/[^a-fA-F0-9]/g, '')
+    .toLowerCase()
+
+  return normalized || null
+}
+
 async function verifyHmac(body: string, signature: string | null): Promise<boolean> {
-  if (!signature) return false
   const hmacKey = Deno.env.get('CARTWAVE_HMAC_KEY')
   if (!hmacKey) {
     console.log('CARTWAVE_HMAC_KEY not set, skipping HMAC validation')
     return true
   }
+
+  const normalizedSignature = normalizeHmacSignature(signature)
+  if (!normalizedSignature) return false
+
   try {
     const key = await crypto.subtle.importKey(
       'raw',
@@ -23,7 +38,7 @@ async function verifyHmac(body: string, signature: string | null): Promise<boole
     )
     const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
     const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-    return computed === signature.toLowerCase()
+    return computed === normalizedSignature
   } catch (err) {
     console.error('HMAC verification error:', err)
     return false
@@ -41,7 +56,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     const rawBody = await req.text()
-    const hmacSignature = req.headers.get('x-hmac-signature') || req.headers.get('X-Hmac-Signature')
+    const hmacSignature = req.headers.get('x-hmac-signature')
+      || req.headers.get('X-Hmac-Signature')
+      || req.headers.get('hmac')
+      || req.headers.get('Hmac')
+      || req.headers.get('x-signature')
+      || req.headers.get('X-Signature')
 
     const hmacValid = await verifyHmac(rawBody, hmacSignature)
     if (!hmacValid) {

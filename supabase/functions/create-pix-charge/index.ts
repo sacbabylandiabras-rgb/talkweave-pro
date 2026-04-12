@@ -6,6 +6,134 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const CARTWAVE_AUTH_URL = 'https://api.cartwavehub.com.br/v2/finance/auth-token/'
+const CARTWAVE_PIX_URL = 'https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/'
+
+async function readResponsePayload(response: Response) {
+  const rawText = await response.text()
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.toLowerCase().includes('application/json')) {
+    try {
+      return { data: JSON.parse(rawText), rawText, contentType }
+    } catch {
+      return { data: null, rawText, contentType }
+    }
+  }
+
+  return { data: null, rawText, contentType }
+}
+
+function extractCartWaveAccessToken(payload: any): string | null {
+  return payload?.access
+    || payload?.access_token
+    || payload?.token
+    || payload?.data?.access
+    || payload?.data?.access_token
+    || payload?.data?.token
+    || null
+}
+
+async function authenticateCartWave(clientId: string, clientSecret: string) {
+  const jsonBody = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+  const formBody = new URLSearchParams({ client_id: clientId, client_secret: clientSecret }).toString()
+
+  const attempts: Array<{ label: string; headers: Record<string, string>; body: string }> = [
+    {
+      label: 'json-body',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'ZapLynxPay/1.0',
+      },
+      body: jsonBody,
+    },
+    {
+      label: 'json-body-with-underscore-headers',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'ZapLynxPay/1.0',
+        'client_id': clientId,
+        'client_secret': clientSecret,
+      },
+      body: jsonBody,
+    },
+    {
+      label: 'json-body-with-dash-headers',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'ZapLynxPay/1.0',
+        'client-id': clientId,
+        'client-secret': clientSecret,
+      },
+      body: jsonBody,
+    },
+    {
+      label: 'form-urlencoded',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'ZapLynxPay/1.0',
+      },
+      body: formBody,
+    },
+  ]
+
+  let lastAttempt: {
+    label: string
+    status: number
+    contentType: string
+    rawText: string
+    data: any
+  } | null = null
+
+  for (const attempt of attempts) {
+    const response = await fetch(CARTWAVE_AUTH_URL, {
+      method: 'POST',
+      headers: attempt.headers,
+      body: attempt.body,
+    })
+
+    const { data, rawText, contentType } = await readResponsePayload(response)
+    const accessToken = extractCartWaveAccessToken(data)
+
+    console.log('CartWave auth attempt:', attempt.label, 'status:', response.status, 'content-type:', contentType)
+    console.log('CartWave auth raw response:', rawText.slice(0, 500))
+
+    lastAttempt = {
+      label: attempt.label,
+      status: response.status,
+      contentType,
+      rawText,
+      data,
+    }
+
+    if (response.ok && accessToken) {
+      return {
+        ok: true,
+        accessToken,
+        attempt: attempt.label,
+        status: response.status,
+      }
+    }
+
+    if (response.status !== 400 && response.status !== 401 && response.status !== 403) {
+      break
+    }
+  }
+
+  return {
+    ok: false,
+    attempt: lastAttempt?.label || 'unknown',
+    status: lastAttempt?.status || 500,
+    contentType: lastAttempt?.contentType || '',
+    rawText: lastAttempt?.rawText || '',
+    data: lastAttempt?.data || null,
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -324,72 +452,30 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     })
   }
 
-  const readCartWaveResponse = async (response: Response) => {
-    const rawText = await response.text()
-    const contentType = response.headers.get('content-type') || ''
-
-    if (contentType.toLowerCase().includes('application/json')) {
-      try {
-        return { data: JSON.parse(rawText), rawText, contentType }
-      } catch {
-        return { data: null, rawText, contentType }
-      }
-    }
-
-    return { data: null, rawText, contentType }
-  }
-
   // Step 1: Get access token
   console.log('CartWave: authenticating...')
-  const authPayload = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+  const authResult = await authenticateCartWave(clientId, clientSecret)
 
-  let authRes = await fetch('https://api.cartwavehub.com.br/v2/finance/auth-token/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'accept': 'application/json',
-    },
-    body: authPayload,
-  })
-
-  let { data: authData, rawText: authRawText, contentType: authContentType } = await readCartWaveResponse(authRes)
-
-  if (!authRes.ok || !(authData?.access || authData?.access_token || authData?.token || authData?.data?.access_token || authData?.data?.token)) {
-    console.log('CartWave auth failed with JSON body, retrying with credentials in headers...')
-
-    authRes = await fetch('https://api.cartwavehub.com.br/v2/finance/auth-token/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json',
-        'client_id': clientId,
-        'client_secret': clientSecret,
-      },
-      body: authPayload,
-    })
-
-    const retried = await readCartWaveResponse(authRes)
-    authData = retried.data
-    authRawText = retried.rawText
-    authContentType = retried.contentType
-  }
-
-  console.log('CartWave auth status:', authRes.status, 'content-type:', authContentType)
-  console.log('CartWave auth raw response:', authRawText.slice(0, 500))
-
-  const accessToken = authData?.access || authData?.access_token || authData?.token || authData?.data?.access_token || authData?.data?.token
-  if (!authRes.ok || !accessToken) {
+  if (!authResult.ok || !authResult.accessToken) {
+    const blockedByCloudFront = authResult.status === 403 && authResult.rawText.includes('CloudFront')
     return new Response(JSON.stringify({
       error: 'CartWave auth failed',
-      status: authRes.status,
-      details: authData,
-      raw: authRawText.slice(0, 500),
-      contentType: authContentType,
+      message: blockedByCloudFront
+        ? 'CartWave bloqueou a autenticação antes de validar as credenciais.'
+        : 'Não foi possível autenticar na CartWave com os formatos compatíveis testados.',
+      attempt: authResult.attempt,
+      status: authResult.status,
+      details: authResult.data,
+      raw: authResult.rawText.slice(0, 500),
+      contentType: authResult.contentType,
+      blockedByCloudFront,
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
+
+  const accessToken = authResult.accessToken
 
   // Get branch/account from platform config
   let branch = '0001'
@@ -434,18 +520,19 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
   console.log('CartWave request:', bodyString)
 
   // Step 3: Create PIX charge
-  const cartwaveRes = await fetch('https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/', {
+  const cartwaveRes = await fetch(CARTWAVE_PIX_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'accept': 'application/json',
+      'User-Agent': 'ZapLynxPay/1.0',
       'Authorization': `Bearer ${accessToken}`,
       'hmac': hmacHex,
     },
     body: bodyString,
   })
 
-  const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readCartWaveResponse(cartwaveRes)
+  const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readResponsePayload(cartwaveRes)
   console.log('CartWave response status:', cartwaveRes.status, 'content-type:', cartwaveContentType)
   console.log('CartWave response raw:', cartwaveRawText.slice(0, 500))
 
