@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const CARTWAVE_AUTH_URL = 'https://api.cartwavehub.com.br/v2/finance/auth-token/'
 const CARTWAVE_PIX_URL = 'https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/'
+const CARTWAVE_IPV4_LOCAL_ADDRESS = '0.0.0.0'
+
+function createCartWaveHttpClient() {
+  return Deno.createHttpClient({
+    localAddress: CARTWAVE_IPV4_LOCAL_ADDRESS,
+    http1: true,
+    http2: false,
+  })
+}
 
 async function readResponsePayload(response: Response) {
   const rawText = await response.text()
@@ -34,7 +43,7 @@ function extractCartWaveAccessToken(payload: any): string | null {
     || null
 }
 
-async function authenticateCartWave(clientId: string, clientSecret: string) {
+async function authenticateCartWave(clientId: string, clientSecret: string, client: Deno.HttpClient) {
   const jsonBody = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
   const formBody = new URLSearchParams({ client_id: clientId, client_secret: clientSecret }).toString()
 
@@ -99,6 +108,7 @@ async function authenticateCartWave(clientId: string, clientSecret: string) {
       method: 'POST',
       headers: attempt.headers,
       body: attempt.body,
+      client,
     })
 
     const requestId = response.headers.get('x-amzn-requestid')
@@ -223,7 +233,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('PIX charge error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -231,6 +242,7 @@ serve(async (req) => {
 })
 
 async function processOpenPix(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const openpixAppId = Deno.env.get('OPENPIX_APP_ID')
   if (!openpixAppId) {
     return new Response(JSON.stringify({ error: 'OpenPix not configured' }), {
@@ -464,162 +476,173 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     })
   }
 
-  // Step 1: Get access token
-  console.log('CartWave: authenticating...')
-  const authResult = await authenticateCartWave(clientId, clientSecret)
-
-  if (!authResult.ok || !authResult.accessToken) {
-    const blockedByCloudFront = authResult.status === 403 && authResult.rawText.includes('CloudFront')
-    return new Response(JSON.stringify({
-      error: 'CartWave auth failed',
-      message: blockedByCloudFront
-        ? 'CartWave bloqueou a autenticação antes de validar as credenciais.'
-        : 'Não foi possível autenticar na CartWave com os formatos compatíveis testados.',
-      attempt: authResult.attempt,
-      status: authResult.status,
-      details: authResult.data,
-      raw: authResult.rawText.slice(0, 500),
-      contentType: authResult.contentType,
-      blockedByCloudFront,
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
-  const accessToken = authResult.accessToken
-
-  // Get branch/account from platform config
-  let branch = '0001'
-  let account = '7003299'
-  try {
-    const { data: branchCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_branch').single()
-    if (branchCfg?.value) branch = branchCfg.value
-    const { data: accountCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_account').single()
-    if (accountCfg?.value) account = accountCfg.value
-  } catch {}
-
-  const externalId = `zlp_${checkout.id}_${Date.now()}`
-  const amountReais = parseFloat((amountCents / 100).toFixed(2))
-  const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
-  const isCnpj = cleanCpf.length === 14
-
-  const cartwaveBody = {
-    amount: amountReais,
-    debtor_name: (customerName || 'Cliente').substring(0, 25),
-    debtor_document: cleanCpf,
-    type_document: isCnpj ? 'CNPJ' : 'CPF',
-    type_fine: 'NONE',
-    fine: 0,
-    source_account_branch_identifier: branch,
-    source_account_number: account,
-    base_64_image: true,
-  }
-
-  // Step 2: Calculate HMAC SHA-512 of the body using the secret key
-  const bodyString = JSON.stringify(cartwaveBody)
-  const encoder = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(hmacSecret),
-    { name: 'HMAC', hash: 'SHA-512' },
-    false,
-    ['sign']
-  )
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(bodyString))
-  const hmacHex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('')
-
-  console.log('CartWave request:', bodyString)
-
-  // Step 3: Create PIX charge
-  const cartwaveRes = await fetch(CARTWAVE_PIX_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'accept': 'application/json',
-      'User-Agent': 'ZapLynxPay/1.0',
-      'Authorization': `Bearer ${accessToken}`,
-      'hmac': hmacHex,
-    },
-    body: bodyString,
-  })
-
-  const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readResponsePayload(cartwaveRes)
-  console.log('CartWave response status:', cartwaveRes.status, 'content-type:', cartwaveContentType)
-  console.log('CartWave response raw:', cartwaveRawText.slice(0, 500))
-
-  if (!cartwaveRes.ok || !cartwaveData || cartwaveData.worked === false) {
-    return new Response(JSON.stringify({
-      error: 'Failed to create PIX charge via CartWave',
-      status: cartwaveRes.status,
-      details: cartwaveData,
-      raw: cartwaveRawText.slice(0, 500),
-      contentType: cartwaveContentType,
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
-  const brCode = cartwaveData.pix_copy_and_paste || ''
-  const qrCodeImage = cartwaveData.base_64_image_url || ''
-  const cartwaveId = cartwaveData.qr_code_id || cartwaveData.tx_id || externalId
-
-  await supabase.from('gateway_transactions').insert({
-    user_id: checkout.user_id,
-    checkout_id: checkout.id,
-    product_id: checkout.product_id,
-    amount: amountCents,
-    fee: feeCents,
-    net: netCents,
-    payment_method: 'pix',
-    status: 'pending',
-    external_id: externalId,
-    customer_name: customerName || null,
-    customer_email: customerEmail || null,
-    customer_phone: customerPhone || null,
-    metadata: { provider: 'cartwave', cartwave_id: cartwaveId, tx_id: cartwaveData.tx_id || null, brCode: brCode || null, document: customerCpf || null },
-  })
+  const cartWaveHttpClient = createCartWaveHttpClient()
 
   try {
-    await supabase
-      .from('gateway_checkouts')
-      .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
-      .eq('id', checkout.id)
-  } catch {}
+    // Step 1: Get access token
+    console.log('CartWave: authenticating with forced IPv4 egress...')
+    const authResult = await authenticateCartWave(clientId, clientSecret, cartWaveHttpClient)
+    const authRawText = authResult.rawText || ''
 
-  // Send PIX generated email
-  const emailPixEnabled = (checkout.config as any)?.emailPixGenerated !== false
-  if (customerEmail && emailPixEnabled) {
-    try {
-      const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
-      await fetch(emailUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
-        body: JSON.stringify({
-          type: 'pix_generated',
-          to: customerEmail,
-          data: {
-            customerName: customerName || 'Cliente',
-            amount: amountCents,
-            productName: (checkout.config as any)?.productName || checkout.name || 'Produto',
-            brCode: brCode || undefined,
-          },
-        }),
+    if (!authResult.ok || !authResult.accessToken) {
+      const blockedByCloudFront = authResult.status === 403 && authRawText.includes('CloudFront')
+      return new Response(JSON.stringify({
+        error: 'CartWave auth failed',
+        message: blockedByCloudFront
+          ? 'CartWave bloqueou a autenticação antes de validar as credenciais.'
+          : 'Não foi possível autenticar na CartWave com os formatos compatíveis testados.',
+        attempt: authResult.attempt,
+        status: authResult.status,
+        details: authResult.data,
+        raw: authRawText.slice(0, 500),
+        contentType: authResult.contentType,
+        blockedByCloudFront,
+        networkMode: 'ipv4-forced',
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-    } catch (emailErr) {
-      console.error('Email send error:', emailErr)
     }
-  }
 
-  return new Response(JSON.stringify({
-    qrCodeImage,
-    brCode,
-    correlationID: externalId,
-    value: amountCents,
-    provider: 'cartwave',
-  }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
+    const accessToken = authResult.accessToken
+
+    // Get branch/account from platform config
+    let branch = '0001'
+    let account = '7003299'
+    try {
+      const { data: branchCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_branch').single()
+      if (branchCfg?.value) branch = branchCfg.value
+      const { data: accountCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_account').single()
+      if (accountCfg?.value) account = accountCfg.value
+    } catch {}
+
+    const externalId = `zlp_${checkout.id}_${Date.now()}`
+    const amountReais = parseFloat((amountCents / 100).toFixed(2))
+    const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
+    const isCnpj = cleanCpf.length === 14
+
+    const cartwaveBody = {
+      amount: amountReais,
+      debtor_name: (customerName || 'Cliente').substring(0, 25),
+      debtor_document: cleanCpf,
+      type_document: isCnpj ? 'CNPJ' : 'CPF',
+      type_fine: 'NONE',
+      fine: 0,
+      source_account_branch_identifier: branch,
+      source_account_number: account,
+      base_64_image: true,
+    }
+
+    // Step 2: Calculate HMAC SHA-512 of the body using the secret key
+    const bodyString = JSON.stringify(cartwaveBody)
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(hmacSecret),
+      { name: 'HMAC', hash: 'SHA-512' },
+      false,
+      ['sign']
+    )
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(bodyString))
+    const hmacHex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+    console.log('CartWave request:', bodyString)
+
+    // Step 3: Create PIX charge
+    const cartwaveRes = await fetch(CARTWAVE_PIX_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        'User-Agent': 'ZapLynxPay/1.0',
+        'Authorization': `Bearer ${accessToken}`,
+        'hmac': hmacHex,
+      },
+      body: bodyString,
+      client: cartWaveHttpClient,
+    })
+
+    const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readResponsePayload(cartwaveRes)
+    console.log('CartWave response status:', cartwaveRes.status, 'content-type:', cartwaveContentType)
+    console.log('CartWave response raw:', cartwaveRawText.slice(0, 500))
+
+    if (!cartwaveRes.ok || !cartwaveData || cartwaveData.worked === false) {
+      return new Response(JSON.stringify({
+        error: 'Failed to create PIX charge via CartWave',
+        status: cartwaveRes.status,
+        details: cartwaveData,
+        raw: cartwaveRawText.slice(0, 500),
+        contentType: cartwaveContentType,
+        networkMode: 'ipv4-forced',
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const brCode = cartwaveData.pix_copy_and_paste || ''
+    const qrCodeImage = cartwaveData.base_64_image_url || ''
+    const cartwaveId = cartwaveData.qr_code_id || cartwaveData.tx_id || externalId
+
+    await supabase.from('gateway_transactions').insert({
+      user_id: checkout.user_id,
+      checkout_id: checkout.id,
+      product_id: checkout.product_id,
+      amount: amountCents,
+      fee: feeCents,
+      net: netCents,
+      payment_method: 'pix',
+      status: 'pending',
+      external_id: externalId,
+      customer_name: customerName || null,
+      customer_email: customerEmail || null,
+      customer_phone: customerPhone || null,
+      metadata: { provider: 'cartwave', cartwave_id: cartwaveId, tx_id: cartwaveData.tx_id || null, brCode: brCode || null, document: customerCpf || null },
+    })
+
+    try {
+      await supabase
+        .from('gateway_checkouts')
+        .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
+        .eq('id', checkout.id)
+    } catch {}
+
+    // Send PIX generated email
+    const emailPixEnabled = (checkout.config as any)?.emailPixGenerated !== false
+    if (customerEmail && emailPixEnabled) {
+      try {
+        const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
+        await fetch(emailUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+          body: JSON.stringify({
+            type: 'pix_generated',
+            to: customerEmail,
+            data: {
+              customerName: customerName || 'Cliente',
+              amount: amountCents,
+              productName: (checkout.config as any)?.productName || checkout.name || 'Produto',
+              brCode: brCode || undefined,
+            },
+          }),
+        })
+      } catch (emailErr) {
+        console.error('Email send error:', emailErr)
+      }
+    }
+
+    return new Response(JSON.stringify({
+      qrCodeImage,
+      brCode,
+      correlationID: externalId,
+      value: amountCents,
+      provider: 'cartwave',
+      networkMode: 'ipv4-forced',
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } finally {
+    cartWaveHttpClient.close()
+  }
 }
