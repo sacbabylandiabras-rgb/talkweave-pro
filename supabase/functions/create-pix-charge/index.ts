@@ -311,3 +311,116 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 }
+
+async function processCartWave(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const clientId = Deno.env.get('CARTWAVE_CLIENT_ID')
+  const clientSecret = Deno.env.get('CARTWAVE_CLIENT_SECRET')
+  if (!clientId || !clientSecret) {
+    return new Response(JSON.stringify({ error: 'CartWave not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const externalId = `zlp_${checkout.id}_${Date.now()}`
+  const rawName = (checkout.config as any)?.productName || checkout.name || 'Produto'
+  const productName = rawName.length >= 3 ? rawName : 'Produto Digital'
+
+  // CartWave API: create-pix-copy-and-paste
+  const amountReais = (amountCents / 100).toFixed(2)
+  const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
+
+  const cartwaveBody = {
+    amount: amountReais,
+    external_id: externalId,
+    payer: {
+      name: customerName || 'Cliente',
+      document: cleanCpf,
+    },
+    description: productName,
+  }
+
+  console.log('CartWave request:', JSON.stringify(cartwaveBody))
+
+  const cartwaveRes = await fetch('https://api.cartwave.com.br/api/v1/pix/create-pix-copy-and-paste', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'auth-token': `${clientId}:${clientSecret}`,
+    },
+    body: JSON.stringify(cartwaveBody),
+  })
+
+  const cartwaveData = await cartwaveRes.json()
+  console.log('CartWave response:', JSON.stringify(cartwaveData))
+
+  if (!cartwaveRes.ok) {
+    return new Response(JSON.stringify({ error: 'Failed to create PIX charge via CartWave', details: cartwaveData }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const brCode = cartwaveData.pix_copy_paste || cartwaveData.copy_paste || cartwaveData.brCode || ''
+  const qrCodeImage = cartwaveData.qr_code || cartwaveData.qrcode || cartwaveData.qr_code_image || ''
+  const cartwaveId = cartwaveData.id || cartwaveData.transaction_id || externalId
+
+  await supabase.from('gateway_transactions').insert({
+    user_id: checkout.user_id,
+    checkout_id: checkout.id,
+    product_id: checkout.product_id,
+    amount: amountCents,
+    fee: feeCents,
+    net: netCents,
+    payment_method: 'pix',
+    status: 'pending',
+    external_id: externalId,
+    customer_name: customerName || null,
+    customer_email: customerEmail || null,
+    customer_phone: customerPhone || null,
+    metadata: { provider: 'cartwave', cartwave_id: cartwaveId, brCode: brCode || null, document: customerCpf || null },
+  })
+
+  try {
+    await supabase
+      .from('gateway_checkouts')
+      .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
+      .eq('id', checkout.id)
+  } catch {}
+
+  // Send PIX generated email
+  const emailPixEnabled = (checkout.config as any)?.emailPixGenerated !== false
+  if (customerEmail && emailPixEnabled) {
+    try {
+      const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
+      await fetch(emailUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          type: 'pix_generated',
+          to: customerEmail,
+          data: {
+            customerName: customerName || 'Cliente',
+            amount: amountCents,
+            productName: (checkout.config as any)?.productName || checkout.name || 'Produto',
+            brCode: brCode || undefined,
+          },
+        }),
+      })
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr)
+    }
+  }
+
+  return new Response(JSON.stringify({
+    qrCodeImage,
+    brCode,
+    correlationID: externalId,
+    value: amountCents,
+    provider: 'cartwave',
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
