@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const CARTWAVE_AUTH_URL = 'https://api.cartwavehub.com.br/v2/finance/auth-token/'
-const CARTWAVE_IPV4_LOCAL_ADDRESS = '0.0.0.0'
+const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
+const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
