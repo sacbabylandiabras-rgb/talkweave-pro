@@ -233,7 +233,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('PIX charge error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -241,6 +242,7 @@ serve(async (req) => {
 })
 
 async function processOpenPix(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const openpixAppId = Deno.env.get('OPENPIX_APP_ID')
   if (!openpixAppId) {
     return new Response(JSON.stringify({ error: 'OpenPix not configured' }), {
@@ -480,9 +482,10 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     // Step 1: Get access token
     console.log('CartWave: authenticating with forced IPv4 egress...')
     const authResult = await authenticateCartWave(clientId, clientSecret, cartWaveHttpClient)
+    const authRawText = authResult.rawText || ''
 
     if (!authResult.ok || !authResult.accessToken) {
-      const blockedByCloudFront = authResult.status === 403 && authResult.rawText.includes('CloudFront')
+      const blockedByCloudFront = authResult.status === 403 && authRawText.includes('CloudFront')
       return new Response(JSON.stringify({
         error: 'CartWave auth failed',
         message: blockedByCloudFront
@@ -491,7 +494,7 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
         attempt: authResult.attempt,
         status: authResult.status,
         details: authResult.data,
-        raw: authResult.rawText.slice(0, 500),
+        raw: authRawText.slice(0, 500),
         contentType: authResult.contentType,
         blockedByCloudFront,
         networkMode: 'ipv4-forced',
