@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.track-flow-click]
 verify_jwt = false
+
+[functions.webhook-cartwave]
+verify_jwt = false

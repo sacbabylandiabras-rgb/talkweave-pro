@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, TestTube, Loader2, CheckCircle, CreditCard, Power, Users, Search } from "lucide-react";
+import { Settings, TestTube, Loader2, CheckCircle, CreditCard, Power, Users, Search, Waves } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrencyReais } from "./mock-data";
 import { toast } from "sonner";
 
-type Acquirer = "openpix" | "hubpague";
+type Acquirer = "openpix" | "hubpague" | "cartwave";
 
 interface UserAcquirer {
   id: string;
@@ -25,12 +25,17 @@ export default function AdminAcquirers() {
   const [loading, setLoading] = useState(true);
   const [testingWoovi, setTestingWoovi] = useState(false);
   const [testingHubpague, setTestingHubpague] = useState(false);
+  const [testingCartwave, setTestingCartwave] = useState(false);
   const [activeAcquirer, setActiveAcquirer] = useState<Acquirer>("openpix");
   const [switching, setSwitching] = useState(false);
 
   const [hubVolumeMonth, setHubVolumeMonth] = useState(0);
   const [hubTxCount, setHubTxCount] = useState(0);
   const [hubApprovalRate, setHubApprovalRate] = useState(0);
+
+  const [cwVolumeMonth, setCwVolumeMonth] = useState(0);
+  const [cwTxCount, setCwTxCount] = useState(0);
+  const [cwApprovalRate, setCwApprovalRate] = useState(0);
 
   // Per-user acquirer state
   const [users, setUsers] = useState<UserAcquirer[]>([]);
@@ -51,6 +56,7 @@ export default function AdminAcquirers() {
       const txs = allTx || [];
       const wooviTxs = txs.filter(t => !(t.metadata as any)?.provider || (t.metadata as any)?.provider === 'openpix');
       const hubTxs = txs.filter(t => (t.metadata as any)?.provider === 'hubpague');
+      const cwTxs = txs.filter(t => (t.metadata as any)?.provider === 'cartwave');
 
       const wooviApproved = wooviTxs.filter(t => t.status === "approved");
       setVolumeMonth(wooviApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
@@ -61,6 +67,11 @@ export default function AdminAcquirers() {
       setHubVolumeMonth(hubApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
       setHubTxCount(hubTxs.length);
       setHubApprovalRate(hubTxs.length > 0 ? Math.round((hubApproved.length / hubTxs.length) * 100) : 100);
+
+      const cwApproved = cwTxs.filter(t => t.status === "approved");
+      setCwVolumeMonth(cwApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
+      setCwTxCount(cwTxs.length);
+      setCwApprovalRate(cwTxs.length > 0 ? Math.round((cwApproved.length / cwTxs.length) * 100) : 100);
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -80,14 +91,12 @@ export default function AdminAcquirers() {
     };
 
     const fetchUsers = async () => {
-      // Try with pix_acquirer first, fall back without it if column doesn't exist yet
       let result = await supabase
         .from("profiles")
         .select("id, email, full_name") as any;
       
       const profiles = (result.data || []) as Array<{ id: string; email: string | null; full_name: string | null }>;
       
-      // Try to get pix_acquirer separately (column may not exist yet)
       let acquirerMap: Record<string, string | null> = {};
       try {
         const { data: withAcq } = await supabase
@@ -111,6 +120,13 @@ export default function AdminAcquirers() {
     fetchUsers();
   }, []);
 
+  const acquirerLabel = (acq: string) => {
+    if (acq === 'openpix') return 'Woovi (OpenPix)';
+    if (acq === 'hubpague') return 'HubPague';
+    if (acq === 'cartwave') return 'CartWave';
+    return acq;
+  };
+
   const handleSwitchAcquirer = async (acquirer: Acquirer) => {
     if (acquirer === activeAcquirer || switching) return;
     setSwitching(true);
@@ -128,7 +144,7 @@ export default function AdminAcquirers() {
       const data = await res.json();
       if (data?.success) {
         setActiveAcquirer(acquirer);
-        toast.success(`Adquirente padrão alterada para ${acquirer === 'openpix' ? 'Woovi (OpenPix)' : 'HubPague'}`);
+        toast.success(`Adquirente padrão alterada para ${acquirerLabel(acquirer)}`);
       } else {
         toast.error(data?.error || "Erro ao alterar adquirente");
       }
@@ -151,7 +167,7 @@ export default function AdminAcquirers() {
       toast.error("Erro ao salvar: " + error.message);
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, pix_acquirer: acquirerValue } : u));
-      const label = acquirerValue ? (acquirerValue === 'openpix' ? 'Woovi' : 'HubPague') : 'Padrão da plataforma';
+      const label = acquirerValue ? acquirerLabel(acquirerValue) : 'Padrão da plataforma';
       toast.success(`Adquirente do usuário alterada para: ${label}`);
     }
     setSavingUser(null);
@@ -223,12 +239,46 @@ export default function AdminAcquirers() {
     }
   };
 
+  const handleTestCartwave = async () => {
+    setTestingCartwave(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pix-charge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ slug: "__test_cartwave__", amount: 100 }),
+      });
+      const rawBody = await response.text();
+      let data: any = null;
+      try { data = rawBody ? JSON.parse(rawBody) : null; } catch { data = { error: rawBody }; }
+
+      if (response.status === 404 && data?.error === "Checkout not found") {
+        toast.success("Conexão com CartWave está respondendo corretamente.");
+      } else if (response.ok && data?.brCode) {
+        toast.success("Conexão com CartWave está funcionando!");
+      } else if (data?.error === "CartWave not configured") {
+        toast.error("CARTWAVE_CLIENT_ID/SECRET não está configurado nos secrets.");
+      } else {
+        toast.error(`Erro ao testar: ${data?.error || `status ${response.status}`}`);
+      }
+    } catch (e: any) {
+      toast.error("Falha no teste: " + (e.message || "erro desconhecido"));
+    } finally {
+      setTestingCartwave(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   const isWooviActive = activeAcquirer === "openpix";
   const isHubActive = activeAcquirer === "hubpague";
+  const isCartwaveActive = activeAcquirer === "cartwave";
 
   const filteredUsers = users.filter(u => {
     if (!searchTerm) return true;
@@ -247,7 +297,7 @@ export default function AdminAcquirers() {
       <div className="p-3 rounded-lg border border-[#FF4D2E]/30 bg-[#FF4D2E]/5 flex items-center gap-3">
         <Power className="w-4 h-4 text-[#FF4D2E]" />
         <span className="text-sm">
-          Adquirente padrão: <strong>{isWooviActive ? 'Woovi (OpenPix)' : 'HubPague'}</strong>
+          Adquirente padrão: <strong>{acquirerLabel(activeAcquirer)}</strong>
           {switching && <Loader2 className="w-3 h-3 inline ml-2 animate-spin" />}
         </span>
       </div>
@@ -350,6 +400,55 @@ export default function AdminAcquirers() {
             </div>
           </CardContent>
         </Card>
+
+        {/* CartWave Card */}
+        <Card className={`border transition-colors ${isCartwaveActive ? 'border-purple-500/50 shadow-purple-500/10 shadow-lg' : 'border-[#2A2A2A] opacity-60'}`}>
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <Waves className="w-6 h-6 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">CartWave</h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${isCartwaveActive ? 'text-purple-400 bg-purple-500/10' : 'text-muted-foreground bg-muted'}`}>
+                    {isCartwaveActive ? 'Padrão' : 'Inativa'}
+                  </span>
+                </div>
+              </div>
+              <Switch
+                checked={isCartwaveActive}
+                onCheckedChange={() => handleSwitchAcquirer('cartwave')}
+                disabled={switching || isCartwaveActive}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Volume Mês</p>
+                <p className="font-bold text-sm">{formatCurrencyReais(cwVolumeMonth)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Transações</p>
+                <p className="font-bold text-sm">{cwTxCount}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Aprovação</p>
+                <p className="font-bold text-sm text-purple-400">{cwApprovalRate}%</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1 text-xs rounded-full" onClick={() => window.open("https://cartwave.com.br", "_blank")}>
+                <Settings className="w-3 h-3 mr-1" /> Configurar
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 text-xs rounded-full" onClick={handleTestCartwave} disabled={testingCartwave}>
+                {testingCartwave ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <TestTube className="w-3 h-3 mr-1" />}
+                Testar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Per-user acquirer assignment */}
@@ -401,15 +500,16 @@ export default function AdminAcquirers() {
                             onValueChange={v => handleUserAcquirerChange(user.id, v)}
                             disabled={savingUser === user.id}
                           >
-                            <SelectTrigger className="w-44 h-8 text-xs">
+                            <SelectTrigger className="w-48 h-8 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="default">
-                                🔄 Padrão ({isWooviActive ? 'Woovi' : 'HubPague'})
+                                🔄 Padrão ({acquirerLabel(activeAcquirer)})
                               </SelectItem>
                               <SelectItem value="openpix">🟢 Woovi (OpenPix)</SelectItem>
                               <SelectItem value="hubpague">🔵 HubPague</SelectItem>
+                              <SelectItem value="cartwave">🟣 CartWave</SelectItem>
                             </SelectContent>
                           </Select>
                           {savingUser === user.id && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -431,15 +531,27 @@ export default function AdminAcquirers() {
         </CardContent>
       </Card>
 
-      <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
-        <h3 className="text-sm font-semibold mb-2">📌 Webhook do HubPague</h3>
-        <p className="text-xs text-muted-foreground mb-2">
-          Configure a URL abaixo como webhook no painel do HubPague em{" "}
-          <a href="https://app.hubpague.io/integrations" target="_blank" className="text-blue-400 underline">Integrações</a>:
-        </p>
-        <code className="text-xs bg-background px-3 py-2 rounded border border-[#2A2A2A] block break-all">
-          {import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-hubpague
-        </code>
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
+          <h3 className="text-sm font-semibold mb-2">📌 Webhook do HubPague</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Configure a URL abaixo como webhook no painel do HubPague em{" "}
+            <a href="https://app.hubpague.io/integrations" target="_blank" className="text-blue-400 underline">Integrações</a>:
+          </p>
+          <code className="text-xs bg-background px-3 py-2 rounded border border-[#2A2A2A] block break-all">
+            {import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-hubpague
+          </code>
+        </div>
+
+        <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
+          <h3 className="text-sm font-semibold mb-2">📌 Webhook da CartWave</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Configure a URL abaixo como webhook no painel da CartWave:
+          </p>
+          <code className="text-xs bg-background px-3 py-2 rounded border border-[#2A2A2A] block break-all">
+            {import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-cartwave
+          </code>
+        </div>
       </div>
     </div>
   );
