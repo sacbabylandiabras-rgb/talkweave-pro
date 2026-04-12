@@ -6,17 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const CARTWAVE_AUTH_URL = 'https://api.cartwavehub.com.br/v2/finance/auth-token/'
-const CARTWAVE_PIX_URL = 'https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/'
-const CARTWAVE_IPV4_LOCAL_ADDRESS = '0.0.0.0'
-
-function createCartWaveHttpClient() {
-  return Deno.createHttpClient({
-    localAddress: CARTWAVE_IPV4_LOCAL_ADDRESS,
-    http1: true,
-    http2: false,
-  })
-}
+const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
+const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
+const CARTWAVE_PIX_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-pix-copy-and-paste/`
 
 async function readResponsePayload(response: Response) {
   const rawText = await response.text()
@@ -43,7 +35,7 @@ function extractCartWaveAccessToken(payload: any): string | null {
     || null
 }
 
-async function authenticateCartWave(clientId: string, clientSecret: string, client: Deno.HttpClient) {
+async function authenticateCartWave(clientId: string, clientSecret: string) {
   const jsonBody = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
   const formBody = new URLSearchParams({ client_id: clientId, client_secret: clientSecret }).toString()
 
@@ -108,7 +100,6 @@ async function authenticateCartWave(clientId: string, clientSecret: string, clie
       method: 'POST',
       headers: attempt.headers,
       body: attempt.body,
-      client,
     })
 
     const requestId = response.headers.get('x-amzn-requestid')
@@ -476,12 +467,10 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     })
   }
 
-  const cartWaveHttpClient = createCartWaveHttpClient()
-
   try {
     // Step 1: Get access token
-    console.log('CartWave: authenticating with forced IPv4 egress...')
-    const authResult = await authenticateCartWave(clientId, clientSecret, cartWaveHttpClient)
+    console.log('CartWave: authenticating via proxy...')
+    const authResult = await authenticateCartWave(clientId, clientSecret)
     const authRawText = authResult.rawText || ''
 
     if (!authResult.ok || !authResult.accessToken) {
@@ -559,7 +548,6 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
         'hmac': hmacHex,
       },
       body: bodyString,
-      client: cartWaveHttpClient,
     })
 
     const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readResponsePayload(cartwaveRes)
@@ -643,6 +631,5 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } finally {
-    cartWaveHttpClient.close()
   }
 }
