@@ -118,7 +118,11 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao gerar cobrança');
+      if (!res.ok) {
+        const detailedMessage = data?.message || data?.error || 'Erro ao gerar cobrança';
+        const suffix = data?.attempt ? ` (tentativa: ${data.attempt})` : '';
+        throw new Error(`${detailedMessage}${suffix}`);
+      }
       setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
     } catch (e: any) {
       setPixError(e.message || 'Erro ao gerar PIX');
