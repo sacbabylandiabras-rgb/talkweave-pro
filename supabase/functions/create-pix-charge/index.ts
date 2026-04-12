@@ -314,40 +314,50 @@ async function processHubPague(supabase: any, checkout: any, amountCents: number
 
 async function processCartWave(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const clientId = Deno.env.get('CARTWAVE_CLIENT_ID')
   const clientSecret = Deno.env.get('CARTWAVE_CLIENT_SECRET')
-  if (!clientId || !clientSecret) {
+  const hmacKey = Deno.env.get('CARTWAVE_HMAC_KEY')
+  if (!clientSecret || !hmacKey) {
     return new Response(JSON.stringify({ error: 'CartWave not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
-  const externalId = `zlp_${checkout.id}_${Date.now()}`
-  const rawName = (checkout.config as any)?.productName || checkout.name || 'Produto'
-  const productName = rawName.length >= 3 ? rawName : 'Produto Digital'
+  // Get branch/account from platform config
+  let branch = '0001'
+  let account = '900002'
+  try {
+    const { data: branchCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_branch').single()
+    if (branchCfg?.value) branch = branchCfg.value
+    const { data: accountCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_account').single()
+    if (accountCfg?.value) account = accountCfg.value
+  } catch {}
 
-  // CartWave API: create-pix-copy-and-paste
-  const amountReais = (amountCents / 100).toFixed(2)
+  const externalId = `zlp_${checkout.id}_${Date.now()}`
+  const amountReais = parseFloat((amountCents / 100).toFixed(2))
   const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
+  const isCnpj = cleanCpf.length === 14
 
   const cartwaveBody = {
     amount: amountReais,
-    external_id: externalId,
-    payer: {
-      name: customerName || 'Cliente',
-      document: cleanCpf,
-    },
-    description: productName,
+    debtor_name: (customerName || 'Cliente').substring(0, 25),
+    debtor_document: cleanCpf,
+    type_document: isCnpj ? 'CNPJ' : 'CPF',
+    type_fine: 'NONE',
+    fine: 0,
+    source_account_branch_identifier: branch,
+    source_account_number: account,
+    base_64_image: true,
   }
 
   console.log('CartWave request:', JSON.stringify(cartwaveBody))
 
-  const cartwaveRes = await fetch('https://api.cartwave.com.br/api/v1/pix/create-pix-copy-and-paste', {
+  const cartwaveRes = await fetch('https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'auth-token': `${clientId}:${clientSecret}`,
+      'Authorization': `Bearer ${clientSecret}`,
+      'hmac': hmacKey,
     },
     body: JSON.stringify(cartwaveBody),
   })
@@ -355,16 +365,16 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
   const cartwaveData = await cartwaveRes.json()
   console.log('CartWave response:', JSON.stringify(cartwaveData))
 
-  if (!cartwaveRes.ok) {
+  if (!cartwaveRes.ok || cartwaveData.worked === false) {
     return new Response(JSON.stringify({ error: 'Failed to create PIX charge via CartWave', details: cartwaveData }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 
-  const brCode = cartwaveData.pix_copy_paste || cartwaveData.copy_paste || cartwaveData.brCode || ''
-  const qrCodeImage = cartwaveData.qr_code || cartwaveData.qrcode || cartwaveData.qr_code_image || ''
-  const cartwaveId = cartwaveData.id || cartwaveData.transaction_id || externalId
+  const brCode = cartwaveData.pix_copy_and_paste || ''
+  const qrCodeImage = cartwaveData.base_64_image_url || ''
+  const cartwaveId = cartwaveData.qr_code_id || cartwaveData.tx_id || externalId
 
   await supabase.from('gateway_transactions').insert({
     user_id: checkout.user_id,
@@ -379,7 +389,7 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     customer_name: customerName || null,
     customer_email: customerEmail || null,
     customer_phone: customerPhone || null,
-    metadata: { provider: 'cartwave', cartwave_id: cartwaveId, brCode: brCode || null, document: customerCpf || null },
+    metadata: { provider: 'cartwave', cartwave_id: cartwaveId, tx_id: cartwaveData.tx_id || null, brCode: brCode || null, document: customerCpf || null },
   })
 
   try {
