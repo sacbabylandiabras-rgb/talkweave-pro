@@ -90,17 +90,29 @@ async function authenticateCartWave(clientId: string, clientSecret: string) {
   } | null = null
 
   for (const attempt of attempts) {
+    // Build equivalent curl for debugging
+    const curlHeaders = Object.entries(attempt.headers).map(([k, v]) => `-H '${k}: ${v}'`).join(' ')
+    const curlCmd = `curl -X POST '${CARTWAVE_AUTH_URL}' ${curlHeaders} -d '${attempt.body}'`
+    console.log(`[CURL][${attempt.label}] ${curlCmd}`)
+
     const response = await fetch(CARTWAVE_AUTH_URL, {
       method: 'POST',
       headers: attempt.headers,
       body: attempt.body,
     })
 
+    const requestId = response.headers.get('x-amzn-requestid')
+      || response.headers.get('x-amz-cf-id')
+      || response.headers.get('x-request-id')
+      || 'N/A'
+    const allHeaders = Object.fromEntries(response.headers.entries())
+
     const { data, rawText, contentType } = await readResponsePayload(response)
     const accessToken = extractCartWaveAccessToken(data)
 
-    console.log('CartWave auth attempt:', attempt.label, 'status:', response.status, 'content-type:', contentType)
-    console.log('CartWave auth raw response:', rawText.slice(0, 500))
+    console.log(`[${attempt.label}] status=${response.status} content-type=${contentType} request-id=${requestId}`)
+    console.log(`[${attempt.label}] response-headers:`, JSON.stringify(allHeaders))
+    console.log(`[${attempt.label}] body: ${rawText.slice(0, 800)}`)
 
     lastAttempt = {
       label: attempt.label,
