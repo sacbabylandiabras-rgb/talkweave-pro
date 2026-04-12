@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 const CARTWAVE_AUTH_URL = 'https://api.cartwavehub.com.br/v2/finance/auth-token/'
+const CARTWAVE_IPV4_LOCAL_ADDRESS = '0.0.0.0'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,32 +28,44 @@ serve(async (req) => {
   const curlCmd = `curl -X POST '${CARTWAVE_AUTH_URL}' ${curlHeaders} -d '${body}'`
   console.log(`[CURL] ${curlCmd}`)
 
-  const response = await fetch(CARTWAVE_AUTH_URL, {
-    method: 'POST',
-    headers,
-    body,
+  const client = Deno.createHttpClient({
+    localAddress: CARTWAVE_IPV4_LOCAL_ADDRESS,
+    http1: true,
+    http2: false,
   })
 
-  const respHeaders = Object.fromEntries(response.headers.entries())
-  const requestId = respHeaders['x-amzn-requestid']
-    || respHeaders['x-amz-cf-id']
-    || respHeaders['x-request-id']
-    || respHeaders['x-amzn-trace-id']
-    || 'N/A'
+  try {
+    const response = await fetch(CARTWAVE_AUTH_URL, {
+      method: 'POST',
+      headers,
+      body,
+      client,
+    })
 
-  const rawText = await response.text()
+    const respHeaders = Object.fromEntries(response.headers.entries())
+    const requestId = respHeaders['x-amzn-requestid']
+      || respHeaders['x-amz-cf-id']
+      || respHeaders['x-request-id']
+      || respHeaders['x-amzn-trace-id']
+      || 'N/A'
 
-  console.log(`[RESULT] status=${response.status} request-id=${requestId}`)
-  console.log(`[HEADERS] ${JSON.stringify(respHeaders)}`)
-  console.log(`[BODY] ${rawText.slice(0, 1000)}`)
+    const rawText = await response.text()
 
-  return new Response(JSON.stringify({
-    curl: curlCmd,
-    status: response.status,
-    request_id: requestId,
-    response_headers: respHeaders,
-    response_body: rawText.slice(0, 2000),
-  }, null, 2), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
+    console.log(`[RESULT] status=${response.status} request-id=${requestId} network=ipv4-forced`)
+    console.log(`[HEADERS] ${JSON.stringify(respHeaders)}`)
+    console.log(`[BODY] ${rawText.slice(0, 1000)}`)
+
+    return new Response(JSON.stringify({
+      curl: curlCmd,
+      status: response.status,
+      request_id: requestId,
+      response_headers: respHeaders,
+      response_body: rawText.slice(0, 2000),
+      network_mode: 'ipv4-forced',
+    }, null, 2), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } finally {
+    client.close()
+  }
 })
