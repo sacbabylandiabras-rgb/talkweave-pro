@@ -73,7 +73,9 @@ serve(async (req) => {
     const netCents = amountCents - feeCents
 
     // Route to the correct acquirer
-    if (activeAcquirer === 'hubpague') {
+    if (activeAcquirer === 'cartwave') {
+      return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+    } else if (activeAcquirer === 'hubpague') {
       return await processHubPague(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
     } else {
       return await processOpenPix(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)

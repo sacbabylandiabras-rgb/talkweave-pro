@@ -127,7 +127,7 @@ serve(async (req) => {
 
       const { acquirer } = await req.json()
 
-      if (!acquirer || !['openpix', 'hubpague'].includes(acquirer)) {
+      if (!acquirer || !['openpix', 'hubpague', 'cartwave'].includes(acquirer)) {
         return new Response(JSON.stringify({ error: 'Invalid acquirer' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
