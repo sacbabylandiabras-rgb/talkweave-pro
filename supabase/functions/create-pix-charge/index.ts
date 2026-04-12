@@ -324,19 +324,68 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     })
   }
 
+  const readCartWaveResponse = async (response: Response) => {
+    const rawText = await response.text()
+    const contentType = response.headers.get('content-type') || ''
+
+    if (contentType.toLowerCase().includes('application/json')) {
+      try {
+        return { data: JSON.parse(rawText), rawText, contentType }
+      } catch {
+        return { data: null, rawText, contentType }
+      }
+    }
+
+    return { data: null, rawText, contentType }
+  }
+
   // Step 1: Get access token
   console.log('CartWave: authenticating...')
-  const authRes = await fetch('https://api.cartwavehub.com.br/v2/finance/auth-token/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
-  })
-  const authData = await authRes.json()
-  console.log('CartWave auth response:', JSON.stringify(authData))
+  const authPayload = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
 
-  const accessToken = authData.access || authData.access_token || authData.token
-  if (!accessToken) {
-    return new Response(JSON.stringify({ error: 'CartWave auth failed', details: authData }), {
+  let authRes = await fetch('https://api.cartwavehub.com.br/v2/finance/auth-token/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'accept': 'application/json',
+    },
+    body: authPayload,
+  })
+
+  let { data: authData, rawText: authRawText, contentType: authContentType } = await readCartWaveResponse(authRes)
+
+  if (!authRes.ok || !(authData?.access || authData?.access_token || authData?.token || authData?.data?.access_token || authData?.data?.token)) {
+    console.log('CartWave auth failed with JSON body, retrying with credentials in headers...')
+
+    authRes = await fetch('https://api.cartwavehub.com.br/v2/finance/auth-token/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        'client_id': clientId,
+        'client_secret': clientSecret,
+      },
+      body: authPayload,
+    })
+
+    const retried = await readCartWaveResponse(authRes)
+    authData = retried.data
+    authRawText = retried.rawText
+    authContentType = retried.contentType
+  }
+
+  console.log('CartWave auth status:', authRes.status, 'content-type:', authContentType)
+  console.log('CartWave auth raw response:', authRawText.slice(0, 500))
+
+  const accessToken = authData?.access || authData?.access_token || authData?.token || authData?.data?.access_token || authData?.data?.token
+  if (!authRes.ok || !accessToken) {
+    return new Response(JSON.stringify({
+      error: 'CartWave auth failed',
+      status: authRes.status,
+      details: authData,
+      raw: authRawText.slice(0, 500),
+      contentType: authContentType,
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -389,17 +438,25 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'accept': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
       'hmac': hmacHex,
     },
     body: bodyString,
   })
 
-  const cartwaveData = await cartwaveRes.json()
-  console.log('CartWave response:', JSON.stringify(cartwaveData))
+  const { data: cartwaveData, rawText: cartwaveRawText, contentType: cartwaveContentType } = await readCartWaveResponse(cartwaveRes)
+  console.log('CartWave response status:', cartwaveRes.status, 'content-type:', cartwaveContentType)
+  console.log('CartWave response raw:', cartwaveRawText.slice(0, 500))
 
-  if (!cartwaveRes.ok || cartwaveData.worked === false) {
-    return new Response(JSON.stringify({ error: 'Failed to create PIX charge via CartWave', details: cartwaveData }), {
+  if (!cartwaveRes.ok || !cartwaveData || cartwaveData.worked === false) {
+    return new Response(JSON.stringify({
+      error: 'Failed to create PIX charge via CartWave',
+      status: cartwaveRes.status,
+      details: cartwaveData,
+      raw: cartwaveRawText.slice(0, 500),
+      contentType: cartwaveContentType,
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
