@@ -6,6 +6,7 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  whatsapp: string | null;
   is_active: boolean;
   created_at: string;
   roles: string[];
@@ -28,7 +29,7 @@ export const useAdminUsers = () => {
       // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, is_active, created_at, subscription_status, subscription_expires_at, zapi_instance_id, zapi_token, zapi_client_token")
+        .select("id, email, full_name, whatsapp, is_active, created_at, subscription_status, subscription_expires_at, zapi_instance_id, zapi_token, zapi_client_token")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -45,6 +46,7 @@ export const useAdminUsers = () => {
         id: profile.id,
         email: profile.email || "",
         full_name: profile.full_name || "",
+        whatsapp: profile.whatsapp || null,
         is_active: profile.is_active,
         created_at: profile.created_at,
         subscription_status: (profile.subscription_status as any) || 'pending',
