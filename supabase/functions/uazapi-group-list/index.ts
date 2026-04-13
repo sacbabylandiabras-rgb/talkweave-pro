@@ -40,7 +40,7 @@ serve(async (req) => {
       })
     }
 
-    console.log(`uazapi group list: ${Array.isArray(data) ? data.length : JSON.stringify(Object.keys(data))} groups`)
+    console.log(`uazapi group list response sample:`, JSON.stringify(data).substring(0, 500))
 
     return new Response(JSON.stringify(data), {
       status: 200,
