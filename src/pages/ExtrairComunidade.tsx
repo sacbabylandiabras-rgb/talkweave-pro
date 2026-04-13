@@ -86,15 +86,15 @@ const ExtrairComunidade = () => {
         .map((g: any) => {
           const id = typeof g === "string"
             ? g
-            : g?.id || g?.jid || g?.groupId || g?.remoteJid || "";
+            : g?.JID || g?.id || g?.jid || g?.groupId || g?.remoteJid || "";
 
           const name = typeof g === "string"
             ? ""
-            : g?.subject || g?.name || g?.groupName || g?.pushName || "";
+            : g?.Name || g?.subject || g?.name || g?.groupName || g?.pushName || "";
 
           const size = typeof g === "string"
             ? 0
-            : g?.size || g?.participants?.length || g?.memberCount || 0;
+            : g?.size || g?.participants?.length || g?.memberCount || g?.MemberCount || 0;
 
           return { id, name, size };
         })
