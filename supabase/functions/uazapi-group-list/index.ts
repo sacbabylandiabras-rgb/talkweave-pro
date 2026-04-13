@@ -21,15 +21,13 @@ serve(async (req) => {
     }
 
     const baseUrl = apiUrl.replace(/\/+$/, '')
+    const url = `${baseUrl}/group/list?token=${encodeURIComponent(apiToken)}`
 
     console.log(`Fetching group list from uazapi: ${baseUrl}/group/list`)
 
-    const response = await fetch(`${baseUrl}/group/list`, {
+    const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'token': apiToken,
-      },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     const data = await response.json()
@@ -42,7 +40,7 @@ serve(async (req) => {
       })
     }
 
-    console.log(`uazapi group list: ${Array.isArray(data) ? data.length : 'non-array'} groups`)
+    console.log(`uazapi group list: ${Array.isArray(data) ? data.length : JSON.stringify(Object.keys(data))} groups`)
 
     return new Response(JSON.stringify(data), {
       status: 200,

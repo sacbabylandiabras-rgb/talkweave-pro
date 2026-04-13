@@ -20,17 +20,14 @@ serve(async (req) => {
       })
     }
 
-    // Normalize base URL (remove trailing slash)
     const baseUrl = apiUrl.replace(/\/+$/, '')
+    const url = `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`
 
     console.log(`Fetching group info from uazapi: ${baseUrl}/group/info for group: ${groupId}`)
 
-    const response = await fetch(`${baseUrl}/group/info`, {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'token': apiToken,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupId }),
     })
 
