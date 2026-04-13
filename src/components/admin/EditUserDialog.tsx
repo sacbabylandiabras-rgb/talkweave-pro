@@ -191,7 +191,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   setEditingInstanceId(null);
                   setShowAddForm(true);
                 }} disabled={instances.length >= 20 && !editingInstanceId}>
-                <Plus className="w-3 h-3 mr-1" /> Adicionar
+                <Plus className="w-3 h-3 mr-1" /> {editingInstanceId ? 'Editando' : 'Adicionar'}
               </Button>
             </div>
 
