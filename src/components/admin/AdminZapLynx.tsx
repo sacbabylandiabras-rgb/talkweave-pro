@@ -225,11 +225,19 @@ const AdminZapLynx = () => {
           <CardDescription>Gerencie status de pagamento, permissões e configurações de todos os usuários</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1180px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead><TableHead>Nome</TableHead><TableHead>WhatsApp</TableHead><TableHead>Tipo</TableHead><TableHead>Assinatura</TableHead><TableHead>Validade</TableHead><TableHead>Instância</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>WhatsApp</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Assinatura</TableHead>
+                  <TableHead>Validade</TableHead>
+                  <TableHead>Instância</TableHead>
+                  <TableHead className="min-w-[96px]">Status</TableHead>
+                  <TableHead className="sticky right-0 z-10 min-w-[168px] border-l bg-background text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -269,8 +277,10 @@ const AdminZapLynx = () => {
                         </div>
                       ) : <span className="text-muted-foreground text-sm">Não configurado</span>}
                     </TableCell>
-                    <TableCell><Badge variant={user.is_active ? "default" : "destructive"}>{user.is_active ? "Ativo" : "Inativo"}</Badge></TableCell>
                     <TableCell>
+                      <Badge variant={user.is_active ? "default" : "destructive"}>{user.is_active ? "Ativo" : "Inativo"}</Badge>
+                    </TableCell>
+                    <TableCell className="sticky right-0 z-10 border-l bg-background">
                       <div className="flex flex-wrap items-center justify-end gap-1">
                         <Button size="sm" variant="outline" onClick={() => { setViewingUser(user); setViewDialogOpen(true); }} title="Ver conta completa"><Eye className="w-4 h-4" /></Button>
                         <Button size="sm" variant="outline" onClick={() => handleEditUser(user)} title="Editar"><Pencil className="w-4 h-4" /></Button>
