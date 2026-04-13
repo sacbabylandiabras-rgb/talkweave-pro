@@ -325,10 +325,10 @@ const ExtrairComunidade = () => {
 
   const downloadCsv = () => {
     if (participants.length === 0) return;
-    const header = "Telefone,Nome,Admin\n";
+    const header = "Telefone\n";
     const rows = participants
       .filter((p) => p.phone.length > 3)
-      .map((p) => `${p.phone},${p.name.replace(/,/g, " ")},${p.isAdmin || p.isSuperAdmin ? "Sim" : "Não"}`)
+      .map((p) => p.phone)
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
