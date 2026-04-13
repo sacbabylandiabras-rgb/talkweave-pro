@@ -158,16 +158,23 @@ const ExtrairComunidade = () => {
 
       const extracted: ExtractedParticipant[] = rawParticipants
         .map((p: any) => {
-          const jid = p.id || p.jid || p.JID || p.userJid || p.participant || p.PN || "";
-          const phone = String(jid).replace(/@.*/, "");
+          // uazapi returns JID (may be @lid or @s.whatsapp.net) and LID
+          const jid = p.JID || p.id || p.jid || p.userJid || p.participant || "";
+          const lid = p.LID || "";
+          const pn = p.PN || "";
+          // Prefer PN (phone number) if available, otherwise use JID/LID
+          const phone = pn
+            ? String(pn).replace(/@.*/, "")
+            : String(jid).replace(/@.*/, "");
+          const displayId = jid || lid;
           return {
-            phone,
-            isAdmin: p.isAdmin === true || p.IsAdmin === true || p.admin === "admin" || p.role === "admin",
-            isSuperAdmin: p.isSuperAdmin === true || p.IsSuperAdmin === true || p.admin === "superadmin" || p.role === "superadmin",
-            name: p.name || p.Name || p.pushName || p.notify || p.PN || "",
+            phone: phone || String(displayId).replace(/@.*/, ""),
+            isAdmin: p.isAdmin === true || p.IsAdmin === true || p.admin === "admin" || p.role === "admin" || p.IsAdmin === "admin",
+            isSuperAdmin: p.isSuperAdmin === true || p.IsSuperAdmin === true || p.admin === "superadmin" || p.role === "superadmin" || p.IsAdmin === "superadmin",
+            name: p.name || p.Name || p.pushName || p.notify || "",
           };
         })
-        .filter((p) => p.phone.length > 5);
+        .filter((p) => p.phone.length > 3);
 
       setParticipants(extracted);
       setMetadata({
@@ -190,7 +197,7 @@ const ExtrairComunidade = () => {
 
   const phones = participants
     .map((p) => p.phone)
-    .filter((p) => p.length > 5 && !p.includes("lid"));
+    .filter((p) => p.length > 3);
 
   const filteredParticipants = filter
     ? participants.filter(
@@ -227,7 +234,7 @@ const ExtrairComunidade = () => {
     if (participants.length === 0) return;
     const header = "Telefone,Nome,Admin\n";
     const rows = participants
-      .filter((p) => p.phone.length > 5 && !p.phone.includes("lid"))
+      .filter((p) => p.phone.length > 3)
       .map((p) => `${p.phone},${p.name.replace(/,/g, " ")},${p.isAdmin || p.isSuperAdmin ? "Sim" : "Não"}`)
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
