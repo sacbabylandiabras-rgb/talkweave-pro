@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -296,12 +296,13 @@ const ExtrairComunidade = () => {
   const [connectionPolling, setConnectionPolling] = useState(false);
   const [connectedViaInstance, setConnectedViaInstance] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
+  const [savingUazapi, setSavingUazapi] = useState(false);
   const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
-  const canConnectNumber = instances.length > 0 || hasLegacyZapiProfileCredentials;
+  const canConnectNumber = true;
 
   useEffect(() => {
     if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
@@ -558,6 +559,41 @@ const ExtrairComunidade = () => {
     }
   };
 
+  const saveUazapiCredentials = async () => {
+    setSavingUazapi(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) throw new Error("Usuário não autenticado");
+
+      const cleanUrl = apiUrl.trim();
+      const cleanToken = apiToken.trim();
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          uazapi_url: cleanUrl || null,
+          uazapi_token: cleanToken || null,
+        } as any)
+        .eq("id", session.user.id);
+
+      if (error) throw error;
+
+      toast.success(cleanUrl && cleanToken ? "Credenciais UAZAPI salvas!" : "Credenciais UAZAPI removidas!");
+
+      if (cleanUrl && cleanToken) {
+        setConnectDialogOpen(false);
+        fetchGroups();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar credenciais UAZAPI");
+    } finally {
+      setSavingUazapi(false);
+    }
+  };
+
   // Auto-fetch groups when credentials are loaded
   useEffect(() => {
     if (!loadingCredentials && apiUrl && apiToken) {
@@ -800,16 +836,10 @@ const ExtrairComunidade = () => {
               <Badge variant="outline" className="text-[10px]">
                 {checkingConnection || connectionPolling ? "Verificando..." : "Desconectado"}
               </Badge>
-              {canConnectNumber ? (
-                <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                  <Smartphone className="w-4 h-4" />
-                  Conectar WhatsApp
-                </Button>
-              ) : (
-                <p className="text-[10px] text-muted-foreground max-w-[200px]">
-                  Nenhuma instância ou credencial configurada. Solicite ao administrador.
-                </p>
-              )}
+              <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
+                <Smartphone className="w-4 h-4" />
+                Conectar WhatsApp
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -825,12 +855,15 @@ const ExtrairComunidade = () => {
             </DialogTitle>
           </DialogHeader>
           <Tabs value={connectionTab} onValueChange={setConnectionTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="qr-code" className="text-xs">
                 <QrCode className="w-3 h-3 mr-1" /> QR Code
               </TabsTrigger>
               <TabsTrigger value="pairing" className="text-xs">
                 <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
+              </TabsTrigger>
+              <TabsTrigger value="uazapi" className="text-xs">
+                <KeyRound className="w-3 h-3 mr-1" /> UAZAPI
               </TabsTrigger>
             </TabsList>
 
@@ -877,6 +910,30 @@ const ExtrairComunidade = () => {
                     </p>
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="uazapi" className="mt-4">
+              <div className="flex flex-col gap-3">
+                <Input
+                  placeholder="URL da UAZAPI"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  className="text-sm"
+                />
+                <Input
+                  placeholder="Token da UAZAPI"
+                  value={apiToken}
+                  onChange={(e) => setApiToken(e.target.value)}
+                  className="text-sm"
+                />
+                <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi}>
+                  {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <KeyRound className="w-3 h-3 mr-1" />}
+                  Salvar credenciais
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Use esta opção para conectar via UAZAPI e carregar comunidades sem depender de QR Code.
+                </p>
               </div>
             </TabsContent>
           </Tabs>
