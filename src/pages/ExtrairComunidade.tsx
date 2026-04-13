@@ -71,11 +71,34 @@ const ExtrairComunidade = () => {
       });
       if (error) throw error;
 
-      const list: GroupInfo[] = (Array.isArray(data) ? data : data?.groups || []).map((g: any) => ({
-        id: g.id || g.jid || g.groupId || "",
-        name: g.subject || g.name || g.groupName || "Sem nome",
-        size: g.size || g.participants?.length || 0,
-      }));
+      const rawGroups = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.groups)
+          ? data.groups
+          : [];
+
+      const list: GroupInfo[] = rawGroups
+        .map((g: any) => {
+          const id = typeof g === "string"
+            ? g
+            : g?.id || g?.jid || g?.groupId || g?.remoteJid || "";
+
+          const name = typeof g === "string"
+            ? ""
+            : g?.subject || g?.name || g?.groupName || g?.pushName || "";
+
+          const size = typeof g === "string"
+            ? 0
+            : g?.size || g?.participants?.length || g?.memberCount || 0;
+
+          return { id, name, size };
+        })
+        .filter((g) => g.id.includes("@g.us"))
+        .filter((g, index, self) => self.findIndex((item) => item.id === g.id) === index)
+        .map((g) => ({
+          ...g,
+          name: g.name || g.id.replace("@g.us", ""),
+        }));
 
       setGroups(list);
       if (list.length === 0) {
