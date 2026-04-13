@@ -45,8 +45,11 @@ const toEntityLikeString = (value: any): string => {
     if (typeof value.id === "string") return value.id.trim();
     if (typeof value.jid === "string") return value.jid.trim();
     if (typeof value.JID === "string") return value.JID.trim();
+    if (typeof value.groupJid === "string") return value.groupJid.trim();
+    if (typeof value.GroupJid === "string") return value.GroupJid.trim();
     if (typeof value.groupId === "string") return value.groupId.trim();
     if (typeof value.remoteJid === "string") return value.remoteJid.trim();
+    if (typeof value.chatJid === "string") return value.chatJid.trim();
     if (typeof value.phone === "string") return value.phone.trim();
     if (typeof value.participant === "string") return value.participant.trim();
 
@@ -54,14 +57,20 @@ const toEntityLikeString = (value: any): string => {
       value.id,
       value.jid,
       value.JID,
+      value.groupJid,
+      value.GroupJid,
       value.groupId,
       value.remoteJid,
+      value.chatJid,
       value.phone,
       value.participant,
       value.userJid,
       value.group,
       value.subGroup,
       value.chatId,
+      value.key?.remoteJid,
+      value.key?.participant,
+      value.metadata?.jid,
       value.metadata?.id,
       value.contact?.id,
     ];
@@ -204,22 +213,63 @@ const extractCommunitySubGroupIds = (payload: any) => {
     payload?.result?.groups,
   ];
 
-  for (const candidate of candidates) {
-    if (!Array.isArray(candidate) || candidate.length === 0) continue;
+  const communityIdsToIgnore = new Set(
+    uniqueStrings([
+      normalizeCommunityId(payload?.id),
+      normalizeCommunityId(payload?.phone),
+      normalizeCommunityId(payload?.communityId),
+      normalizeCommunityId(payload?.parentCommunityId),
+    ]),
+  );
 
-    const ids = uniqueStrings(
-      candidate.flatMap((entry) => [
-        toEntityLikeString(entry),
-        toEntityLikeString(entry?.id),
-        toEntityLikeString(entry?.jid),
-        toEntityLikeString(entry?.JID),
-        toEntityLikeString(entry?.groupId),
-        toEntityLikeString(entry?.remoteJid),
-        toEntityLikeString(entry?.group),
-        toEntityLikeString(entry?.subGroup),
-        toEntityLikeString(entry?.metadata?.id),
-      ]),
-    ).filter((entry) => isLikelyGroupId(entry));
+  const extractGroupIdsRecursively = (value: any, seen = new WeakSet<object>()): string[] => {
+    if (value == null) return [];
+
+    if (typeof value === "string" || typeof value === "number") {
+      const directValue = String(value).trim();
+      return isLikelyGroupId(directValue) ? [directValue] : [];
+    }
+
+    if (typeof value !== "object") return [];
+    if (seen.has(value)) return [];
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      return uniqueStrings(value.flatMap((entry) => extractGroupIdsRecursively(entry, seen)));
+    }
+
+    const directIds = uniqueStrings([
+      toEntityLikeString(value),
+      toEntityLikeString(value?.id),
+      toEntityLikeString(value?.jid),
+      toEntityLikeString(value?.JID),
+      toEntityLikeString(value?.groupJid),
+      toEntityLikeString(value?.GroupJid),
+      toEntityLikeString(value?.groupId),
+      toEntityLikeString(value?.remoteJid),
+      toEntityLikeString(value?.chatJid),
+      toEntityLikeString(value?.group),
+      toEntityLikeString(value?.subGroup),
+      toEntityLikeString(value?.chatId),
+      toEntityLikeString(value?.key?.remoteJid),
+      toEntityLikeString(value?.metadata?.id),
+      toEntityLikeString(value?.metadata?.jid),
+    ]).filter((entry) => isLikelyGroupId(entry));
+
+    const nestedIds = uniqueStrings(
+      Object.values(value).flatMap((entry) => extractGroupIdsRecursively(entry, seen)),
+    );
+
+    return uniqueStrings([...directIds, ...nestedIds]);
+  };
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    const ids = extractGroupIdsRecursively(candidate).filter((entry) => {
+      const normalizedEntry = normalizeCommunityId(entry);
+      return normalizedEntry && !communityIdsToIgnore.has(normalizedEntry);
+    });
 
     if (ids.length > 0) return ids;
   }
@@ -300,9 +350,13 @@ Deno.serve(async (req) => {
 
     const fetchGroupMetadata = async (targetId: string) => {
       const normalizedTargetId = normalizeGroupId(targetId);
+      const strippedTargetId = normalizeCommunityId(targetId);
       const targetCandidates = uniqueStrings([
         normalizedTargetId,
         normalizedTargetId.replace(/-group$/i, "@g.us"),
+        strippedTargetId,
+        /^\d{15,}$/.test(strippedTargetId) ? `${strippedTargetId}-group` : "",
+        /^\d{15,}$/.test(strippedTargetId) ? `${strippedTargetId}@g.us` : "",
       ]);
 
       let lastError: Error | null = null;
@@ -374,6 +428,12 @@ Deno.serve(async (req) => {
         // Z-API communities-metadata returns subGroups but not members directly.
         // Iterate through each subGroup and fetch participants from each one.
         const subGroupIds = extractCommunitySubGroupIds(communityData);
+
+        if (subGroupIds.length === 0 && communityData?.subGroups) {
+          console.log(
+            `⚠️ subGroups found but no ids extracted for ${candidateCommunityId}. Sample: ${JSON.stringify(communityData.subGroups).slice(0, 1200)}`,
+          );
+        }
 
         if (subGroupIds.length > 0) {
           console.log(`📂 Community has ${subGroupIds.length} subGroups, fetching participants from each...`);
