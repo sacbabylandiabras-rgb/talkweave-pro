@@ -1025,6 +1025,74 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
           </div>
         </>
       )}
+
+      {element.type === "upsell" && (
+        <>
+          <div>
+            <Label className="text-[10px]">Nome do produto</Label>
+            <Input value={c.productName || ""} onChange={e => update("productName", e.target.value)} className="mt-1 text-xs" placeholder="Produto Extra" />
+          </div>
+          <div>
+            <Label className="text-[10px]">Título</Label>
+            <Input value={c.title || ""} onChange={e => update("title", e.target.value)} className="mt-1 text-xs" placeholder="Oferta Especial!" />
+          </div>
+          <div>
+            <Label className="text-[10px]">Descrição</Label>
+            <Textarea value={c.description || ""} onChange={e => update("description", e.target.value)} className="mt-1 text-xs" rows={2} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Preço original (R$)</Label>
+              <Input type="number" value={c.originalPrice || 0} onChange={e => update("originalPrice", Number(e.target.value))} className="mt-1 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px]">Preço com desconto (R$)</Label>
+              <Input type="number" value={c.price || 0} onChange={e => update("price", Number(e.target.value))} className="mt-1 text-xs" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[10px]">Imagem do produto</Label>
+            <Input value={c.image || ""} onChange={e => update("image", e.target.value)} className="mt-1 text-xs" placeholder="https://..." />
+            <label className="flex items-center gap-1.5 px-3 py-2 mt-1 text-xs border border-dashed rounded-lg cursor-pointer hover:bg-muted">
+              <Upload className="w-3.5 h-3.5" /> Enviar imagem
+              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, url => update("image", url)); }} />
+            </label>
+          </div>
+          <div>
+            <Label className="text-[10px]">Texto do botão</Label>
+            <Input value={c.buttonText || ""} onChange={e => update("buttonText", e.target.value)} className="mt-1 text-xs" placeholder="Adicionar ao pedido" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={c.showBadge !== false} onCheckedChange={v => update("showBadge", v)} />
+            <Label className="text-[10px]">Mostrar badge</Label>
+          </div>
+          {c.showBadge !== false && (
+            <div>
+              <Label className="text-[10px]">Texto do badge</Label>
+              <Input value={c.badgeText || ""} onChange={e => update("badgeText", e.target.value)} className="mt-1 text-xs" placeholder="OFERTA ÚNICA" />
+            </div>
+          )}
+          <div className="border-t border-border pt-3 mt-1 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground">Cores</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Cor do botão</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <input type="color" value={c.buttonColor || "#EF4444"} onChange={e => update("buttonColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                  <Input value={c.buttonColor || ""} onChange={e => update("buttonColor", e.target.value)} className="text-[10px] font-mono" placeholder="Padrão" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[10px]">Cor do preço</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <input type="color" value={c.priceColor || "#EF4444"} onChange={e => update("priceColor", e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0" />
+                  <Input value={c.priceColor || ""} onChange={e => update("priceColor", e.target.value)} className="text-[10px] font-mono" placeholder="Padrão" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

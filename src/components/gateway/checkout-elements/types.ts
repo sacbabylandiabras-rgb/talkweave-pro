@@ -23,7 +23,8 @@ export type CheckoutElementType =
   | "countdown"
   | "list"
   | "progress"
-  | "sales";
+  | "sales"
+  | "upsell";
 
 export interface ElementDefinition {
   type: CheckoutElementType;
@@ -202,6 +203,29 @@ export const ELEMENT_DEFINITIONS: ElementDefinition[] = [
     icon: "TrendingUp",
     category: "conversion",
     defaultContent: { count: 1847, text: "{count} pessoas já compraram", showAnimation: true, interval: 30 },
+  },
+  {
+    type: "upsell",
+    label: "Upsell",
+    icon: "Gift",
+    category: "conversion",
+    defaultContent: {
+      title: "Oferta Especial!",
+      description: "Adicione este produto com desconto exclusivo.",
+      productName: "Produto Extra",
+      originalPrice: 97,
+      price: 47,
+      image: "",
+      buttonText: "Adicionar ao pedido",
+      bgColor: "",
+      borderColor: "",
+      titleColor: "",
+      priceColor: "",
+      buttonColor: "",
+      buttonTextColor: "#FFFFFF",
+      showBadge: true,
+      badgeText: "OFERTA ÚNICA",
+    },
   },
 ];
 
