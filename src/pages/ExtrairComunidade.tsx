@@ -18,7 +18,71 @@ interface GroupInfo {
   id: string;
   name: string;
   size: number;
+  raw?: any;
 }
+
+const extractParticipantsFromPayload = (payload: any): any[] => {
+  const candidates = [
+    payload?.participants,
+    payload?.Participants,
+    payload?.members,
+    payload?.Members,
+    payload?.data?.participants,
+    payload?.data?.Participants,
+    payload?.data?.members,
+    payload?.data?.Members,
+    payload?.group?.participants,
+    payload?.group?.Participants,
+    payload?.group?.members,
+    payload?.group?.Members,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) return candidate;
+  }
+
+  return [];
+};
+
+const normalizeParticipant = (p: any): ExtractedParticipant | null => {
+  const rawPhone =
+    p?.PN ||
+    p?.PhoneNumber ||
+    p?.phone ||
+    p?.number ||
+    p?.waId ||
+    p?.JID ||
+    p?.jid ||
+    p?.id ||
+    p?.userJid ||
+    p?.participant ||
+    p?.LID ||
+    p?.lid ||
+    "";
+
+  const normalizedPhone = String(rawPhone).trim().replace(/@.*/, "");
+  const fallbackId = String(p?.LID || p?.lid || p?.JID || p?.jid || p?.id || "").trim().replace(/@.*/, "");
+  const phone = normalizedPhone || fallbackId;
+
+  if (phone.length <= 3) return null;
+
+  return {
+    phone,
+    isAdmin:
+      p?.isAdmin === true ||
+      p?.IsAdmin === true ||
+      p?.admin === "admin" ||
+      p?.role === "admin" ||
+      p?.IsAdmin === "admin",
+    isSuperAdmin:
+      p?.isSuperAdmin === true ||
+      p?.IsSuperAdmin === true ||
+      p?.admin === "superadmin" ||
+      p?.role === "superadmin" ||
+      p?.IsAdmin === "superadmin",
+    name: p?.DisplayName || p?.displayName || p?.name || p?.Name || p?.pushName || p?.notify || "",
+  };
+};
 
 const STORAGE_KEY = "uazapi_credentials";
 
@@ -92,11 +156,12 @@ const ExtrairComunidade = () => {
             ? ""
             : g?.Name || g?.subject || g?.name || g?.groupName || g?.pushName || "";
 
+          const rawParticipants = typeof g === "string" ? [] : extractParticipantsFromPayload(g);
           const size = typeof g === "string"
             ? 0
-            : g?.size || g?.participants?.length || g?.memberCount || g?.MemberCount || 0;
+            : g?.ParticipantCount || g?.participantCount || g?.size || rawParticipants.length || g?.memberCount || g?.MemberCount || 0;
 
-          return { id, name, size };
+          return { id, name, size, raw: typeof g === "string" ? undefined : g };
         })
         .filter((g) => g.id.includes("@g.us"))
         .filter((g, index, self) => self.findIndex((item) => item.id === g.id) === index)
@@ -146,40 +211,43 @@ const ExtrairComunidade = () => {
         return;
       }
 
-      const rawParticipants =
-        (Array.isArray(data?.participants) && data.participants) ||
-        (Array.isArray(data?.Participants) && data.Participants) ||
-        (Array.isArray(data?.members) && data.members) ||
-        (Array.isArray(data?.Members) && data.Members) ||
-        (Array.isArray(data?.data?.participants) && data.data.participants) ||
-        (Array.isArray(data?.data?.Participants) && data.data.Participants) ||
-        (Array.isArray(data?.group?.participants) && data.group.participants) ||
-        [];
+      const responseParticipants = extractParticipantsFromPayload(data);
+      const selectedGroup = groups.find((group) => group.id === groupId.trim());
+      const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
 
-      const extracted: ExtractedParticipant[] = rawParticipants
-        .map((p: any) => {
-          // uazapi returns JID (may be @lid or @s.whatsapp.net) and LID
-          const jid = p.JID || p.id || p.jid || p.userJid || p.participant || "";
-          const lid = p.LID || "";
-          const pn = p.PN || "";
-          // Prefer PN (phone number) if available, otherwise use JID/LID
-          const phone = pn
-            ? String(pn).replace(/@.*/, "")
-            : String(jid).replace(/@.*/, "");
-          const displayId = jid || lid;
-          return {
-            phone: phone || String(displayId).replace(/@.*/, ""),
-            isAdmin: p.isAdmin === true || p.IsAdmin === true || p.admin === "admin" || p.role === "admin" || p.IsAdmin === "admin",
-            isSuperAdmin: p.isSuperAdmin === true || p.IsSuperAdmin === true || p.admin === "superadmin" || p.role === "superadmin" || p.IsAdmin === "superadmin",
-            name: p.name || p.Name || p.pushName || p.notify || "",
-          };
-        })
-        .filter((p) => p.phone.length > 3);
+      const normalizedMap = new Map<string, ExtractedParticipant>();
+
+      [...responseParticipants, ...listParticipants].forEach((participant) => {
+        const normalized = normalizeParticipant(participant);
+        if (!normalized) return;
+
+        const existing = normalizedMap.get(normalized.phone);
+        if (!existing) {
+          normalizedMap.set(normalized.phone, normalized);
+          return;
+        }
+
+        normalizedMap.set(normalized.phone, {
+          phone: normalized.phone,
+          name: existing.name || normalized.name,
+          isAdmin: existing.isAdmin || normalized.isAdmin,
+          isSuperAdmin: existing.isSuperAdmin || normalized.isSuperAdmin,
+        });
+      });
+
+      const extracted = Array.from(normalizedMap.values());
+      const reportedTotal =
+        data?.ParticipantCount ||
+        data?.participantCount ||
+        data?.data?.ParticipantCount ||
+        data?.data?.participantCount ||
+        selectedGroup?.size ||
+        extracted.length;
 
       setParticipants(extracted);
       setMetadata({
-        groupName: data?.subject || data?.Subject || data?.name || data?.Name || data?.groupName || data?.data?.subject || data?.data?.name || "Comunidade",
-        totalMembers: extracted.length,
+        groupName: data?.subject || data?.Subject || data?.name || data?.Name || data?.groupName || data?.data?.subject || data?.data?.name || selectedGroup?.name || "Comunidade",
+        totalMembers: Number(reportedTotal) || extracted.length,
       });
 
       if (extracted.length === 0) {
