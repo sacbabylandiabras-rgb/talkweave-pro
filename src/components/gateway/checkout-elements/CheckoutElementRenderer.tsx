@@ -239,6 +239,9 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
     case "sales":
       return <SalesElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
 
+    case "upsell":
+      return <UpsellElement content={c} primaryColor={primaryColor} textColor={textColor} cardBg={cardBg} cardBorder={cardBorder} wrapperStyle={wrapperStyle} hoverClass={hoverClass} onClick={onClick} />;
+
     default:
       return null;
   }
