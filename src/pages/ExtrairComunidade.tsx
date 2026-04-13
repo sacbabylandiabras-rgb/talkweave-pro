@@ -143,8 +143,8 @@ const ExtrairComunidade = () => {
       const list: GroupInfo[] = rawGroups
         .map((g: any) => ({
           id: g?.phone || g?.jid || g?.id || g?.JID || "",
-          name: g?.name || g?.subject || g?.Name || "",
-          size: g?.participantCount || g?.size || g?.ParticipantCount || 0,
+          name: g?.nome || g?.name || g?.subject || g?.Name || "",
+          size: g?.membros || g?.participantCount || g?.size || g?.ParticipantCount || 0,
           raw: g,
         }))
         .filter((g) => g.id.includes("@g.us"))
