@@ -70,6 +70,11 @@ const ExtrairComunidade = () => {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
       if (error) throw error;
+      if (data?.error) {
+        toast.error(`Erro da uazapi: ${data.error}. Verifique suas credenciais.`);
+        setLoadingGroups(false);
+        return;
+      }
 
       const rawGroups = Array.isArray(data)
         ? data

@@ -34,8 +34,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error('uazapi error:', response.status, JSON.stringify(data))
-      return new Response(JSON.stringify({ error: data?.message || `uazapi error ${response.status}` }), {
-        status: response.status,
+      return new Response(JSON.stringify({ error: data?.message || `uazapi error ${response.status}`, groups: [] }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
