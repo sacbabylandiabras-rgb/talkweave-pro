@@ -186,14 +186,14 @@ export function VolumeChart() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[340px] rounded border border-border/60 bg-card">
+      <div className="flex items-center justify-center h-[340px] rounded-2xl border border-primary/15 bg-card">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="rounded border border-border/60 bg-card p-5 hover:shadow-md transition-shadow duration-300">
+    <div className="rounded-2xl border border-primary/15 bg-card p-5 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/35 transition-all duration-300">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
