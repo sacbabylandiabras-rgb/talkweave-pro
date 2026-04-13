@@ -402,11 +402,24 @@ const ExtrairComunidade = () => {
     setSelectedGroupId(groupId);
 
     try {
+      const selectedGroup = groups.find((group) => group.id === groupId.trim());
+      const sourceInstanceId =
+        selectedGroup?.raw?.sourceInstanceId ||
+        selectedGroup?.raw?.__sourceInstanceId ||
+        null;
+
       // If connected via Z-API instance, use get-group-participants directly
       const useZapiDirect = connectedViaInstance && !hasCredentials;
       const { data, error } = useZapiDirect
-        ? await supabase.functions.invoke("get-group-participants", { body: { groupId: groupId.trim() } })
-        : await supabase.functions.invoke("uazapi-group-info", { body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() } });
+        ? await supabase.functions.invoke("get-group-participants", {
+            body: {
+              groupId: groupId.trim(),
+              sourceInstanceId,
+            },
+          })
+        : await supabase.functions.invoke("uazapi-group-info", {
+            body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+          });
       if (error) throw error;
 
       if (data?.error) {
@@ -415,7 +428,6 @@ const ExtrairComunidade = () => {
       }
 
       const responseParticipants = extractParticipantsFromPayload(data);
-      const selectedGroup = groups.find((group) => group.id === groupId.trim());
       const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
       const localParticipants = [...responseParticipants, ...listParticipants]
         .map((participant) => normalizeParticipant(participant))
@@ -428,6 +440,7 @@ const ExtrairComunidade = () => {
           body: {
             groupId: groupId.trim(),
             fallbackParticipants: localParticipants,
+            sourceInstanceId,
           },
         });
 
