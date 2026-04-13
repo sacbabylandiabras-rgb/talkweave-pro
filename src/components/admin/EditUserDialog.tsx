@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Star } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   );
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingInstanceId, setEditingInstanceId] = useState<string | null>(null);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
@@ -99,6 +100,24 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
+  const resetInstanceForm = () => {
+    setEditingInstanceId(null);
+    setShowAddForm(false);
+    setNewInstanceName('');
+    setNewInstanceId('');
+    setNewToken('');
+    setNewClientToken('');
+  };
+
+  const handleEditInstance = (instance: typeof instances[number]) => {
+    setEditingInstanceId(instance.id);
+    setShowAddForm(true);
+    setNewInstanceName(instance.instance_name || '');
+    setNewInstanceId(instance.zapi_instance_id || '');
+    setNewToken(instance.zapi_token || '');
+    setNewClientToken(instance.zapi_client_token || '');
+  };
+
   const handleAddInstance = async () => {
     if (!user) return;
     if (!newInstanceId || !newToken || !newClientToken) {
@@ -106,19 +125,19 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       return;
     }
 
-    const success = await addInstance(user.id, {
+    const payload = {
       instance_name: newInstanceName || 'Nova Instância',
       zapi_instance_id: newInstanceId,
       zapi_token: newToken,
       zapi_client_token: newClientToken,
-    });
+    };
+
+    const success = editingInstanceId
+      ? await updateInstance(editingInstanceId, user.id, payload)
+      : await addInstance(user.id, payload);
 
     if (success) {
-      setShowAddForm(false);
-      setNewInstanceName('');
-      setNewInstanceId('');
-      setNewToken('');
-      setNewClientToken('');
+      resetInstanceForm();
     }
   };
 
@@ -164,8 +183,15 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/20)</h3>
-                <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 20}>
-                <Plus className="w-3 h-3 mr-1" /> Adicionar
+                <Button size="sm" variant="outline" onClick={() => {
+                  if (showAddForm) {
+                    resetInstanceForm();
+                    return;
+                  }
+                  setEditingInstanceId(null);
+                  setShowAddForm(true);
+                }} disabled={instances.length >= 20 && !editingInstanceId}>
+                <Plus className="w-3 h-3 mr-1" /> {editingInstanceId ? 'Editando' : 'Adicionar'}
               </Button>
             </div>
 
@@ -189,8 +215,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
+                     <Button size="sm" onClick={handleAddInstance}>{editingInstanceId ? 'Atualizar' : 'Salvar'}</Button>
+                     <Button size="sm" variant="outline" onClick={resetInstanceForm}>Cancelar</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -214,6 +240,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
                       </div>
                       <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" title="Editar instância" onClick={() => handleEditInstance(inst)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
                         {!inst.is_default && (
                           <Button size="sm" variant="ghost" title="Definir como padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                             <Star className="w-3 h-3" />
