@@ -69,6 +69,7 @@ import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
+import ExtrairComunidade from "./pages/ExtrairComunidade";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,7 @@ const App = () => (
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
                   <Route path="/criar-grupos" element={<CriarGrupos />} />
+                  <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
