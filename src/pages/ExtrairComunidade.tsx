@@ -356,7 +356,6 @@ const ExtrairComunidade = () => {
       const { data, error } = useZapiDirect
         ? await supabase.functions.invoke("get-group-participants", { body: { groupId: groupId.trim() } })
         : await supabase.functions.invoke("uazapi-group-info", { body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() } });
-      });
       if (error) throw error;
 
       if (data?.error) {
