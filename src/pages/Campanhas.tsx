@@ -326,7 +326,7 @@ const Campanhas = () => {
       toast({ title: "Fila limpa", description: "Filas de todas as instâncias foram limpas com sucesso." });
     } catch (error) {
       console.error('Error clearing queue:', error);
-      toast({ title: "Erro", description: "Erro ao limpar fila da Z-API", variant: "destructive" });
+      toast({ title: "Erro", description: "Erro ao limpar fila de envio", variant: "destructive" });
     }
   };
 

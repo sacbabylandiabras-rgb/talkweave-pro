@@ -190,18 +190,18 @@ const ConfiguracaoZAPI = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Configuração Z-API</h1>
-        <p className="text-muted-foreground">Configure suas credenciais da Z-API</p>
+        <h1 className="text-2xl font-bold text-foreground">Configuração da Instância</h1>
+        <p className="text-muted-foreground">Configure suas credenciais para conectar o WhatsApp</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            Credenciais Z-API
+            Credenciais da Instância
           </CardTitle>
           <CardDescription>
-            Insira suas credenciais da Z-API para conectar o WhatsApp
+            Insira suas credenciais para conectar o WhatsApp
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -272,7 +272,7 @@ const ConfiguracaoZAPI = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Resposta da Z-API</CardTitle>
+          <CardTitle>Resposta da API</CardTitle>
           <CardDescription>
             {status === 'success' ? 'Conexão bem-sucedida!' : 'Detalhes do erro para debug'}
           </CardDescription>
@@ -286,7 +286,7 @@ const ConfiguracaoZAPI = () => {
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <h4 className="font-medium text-destructive mb-2">🔍 Possíveis soluções:</h4>
               <ul className="text-sm space-y-1 text-destructive/80">
-                <li>• Verifique se a instância está ATIVA no painel Z-API</li>
+                <li>• Verifique se a instância está ATIVA</li>
                 <li>• Confirme se não há espaços extras nas credenciais</li>
                 <li>• Teste se a instância não expirou ou foi pausada</li>
                 <li>• Verifique se o Client Token está correto</li>
@@ -306,12 +306,12 @@ const ConfiguracaoZAPI = () => {
             <p className="font-medium text-amber-800 mb-1">Instance not found (Error 400)</p>
             <p className="text-amber-700">1. Instância foi desativada ou expirou</p>
             <p className="text-amber-700">2. Instance ID incorreto</p>
-            <p className="text-amber-700">3. Conta Z-API suspensa</p>
+                <p className="text-amber-700">3. Conta suspensa</p>
           </div>
           
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="font-medium text-blue-800 mb-1">Como verificar no painel Z-API:</p>
-            <p className="text-blue-700">1. Acesse https://developer.z-api.io</p>
+            <p className="font-medium text-blue-800 mb-1">Como verificar:</p>
+             <p className="text-blue-700">1. Acesse o painel da sua instância</p>
             <p className="text-blue-700">2. Vá em "Instâncias" → Sua instância</p>
             <p className="text-blue-700">3. Verifique se o status está "ATIVA"</p>
             <p className="text-blue-700">4. Copie as credenciais novamente</p>

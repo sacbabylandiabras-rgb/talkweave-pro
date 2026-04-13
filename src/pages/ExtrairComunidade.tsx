@@ -138,7 +138,7 @@ const ExtrairComunidade = () => {
       });
       if (error) throw error;
       if (data?.error) {
-        toast.error(`Erro da uazapi: ${data.error}. Verifique suas credenciais.`);
+        toast.error(`Erro ao carregar grupos: ${data.error}. Verifique suas credenciais.`);
         setLoadingGroups(false);
         return;
       }
@@ -352,7 +352,7 @@ const ExtrairComunidade = () => {
               <div>
                 <p className="text-sm font-medium">Credenciais não configuradas</p>
                 <p className="text-xs text-muted-foreground">
-                  Solicite ao administrador que configure suas credenciais uazapi no painel de administração.
+                   Solicite ao administrador que configure suas credenciais no painel de administração.
                 </p>
               </div>
             </div>
@@ -393,7 +393,7 @@ const ExtrairComunidade = () => {
             <div className="text-center py-8 text-muted-foreground text-xs">
               {hasCredentials
                 ? "Nenhum grupo encontrado. Clique em Atualizar."
-                : "Configure suas credenciais uazapi acima para listar os grupos."}
+                 : "Solicite ao administrador que configure suas credenciais."}
             </div>
           ) : (
             <>

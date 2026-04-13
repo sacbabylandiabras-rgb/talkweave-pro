@@ -298,7 +298,7 @@ const RespostaAutomatica = () => {
             Configuração do Webhook
           </CardTitle>
           <CardDescription>
-            Configure o webhook no Z-API para receber mensagens automaticamente
+            Configure o webhook para receber mensagens automaticamente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -319,7 +319,7 @@ const RespostaAutomatica = () => {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Configure esta URL no painel do Z-API em "Configurações → Webhooks → Message"
+              Configure esta URL no painel da sua instância em "Configurações → Webhooks → Message"
             </p>
           </div>
         </CardContent>
