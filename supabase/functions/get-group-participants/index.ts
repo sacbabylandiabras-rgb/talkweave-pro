@@ -304,9 +304,43 @@ Deno.serve(async (req) => {
           break;
         }
 
-        // Z-API communities-metadata only returns subGroups, not members.
-        // Fallback: try Evolution API if configured, which can fetch community members directly.
-        console.log(`🔄 Z-API returned no community members, trying Evolution API fallback...`);
+        // Z-API communities-metadata returns subGroups but not members directly.
+        // Iterate through each subGroup and fetch participants from each one.
+        const subGroups = Array.isArray(communityData?.subGroups)
+          ? communityData.subGroups
+          : Array.isArray(communityData?.SubGroups)
+            ? communityData.SubGroups
+            : Array.isArray(communityData?.groups)
+              ? communityData.groups
+              : [];
+
+        if (subGroups.length > 0) {
+          console.log(`📂 Community has ${subGroups.length} subGroups, fetching participants from each...`);
+          const allSubGroupParticipants: any[] = [];
+
+          for (const subGroup of subGroups) {
+            const subGroupId = toEntityLikeString(subGroup?.id || subGroup?.JID || subGroup?.jid || subGroup);
+            if (!subGroupId || !isLikelyGroupId(subGroupId)) continue;
+
+            try {
+              const subGroupData = await fetchGroupMetadata(subGroupId);
+              const subParticipants = extractParticipantArray(subGroupData);
+              console.log(`  📋 SubGroup ${subGroupId}: ${subParticipants.length} participants`);
+              allSubGroupParticipants.push(...subParticipants);
+            } catch (subError) {
+              const msg = subError instanceof Error ? subError.message : String(subError);
+              console.log(`  ⚠️ Failed to fetch subGroup ${subGroupId}: ${msg}`);
+            }
+          }
+
+          if (allSubGroupParticipants.length > 0) {
+            apiParticipants = allSubGroupParticipants;
+            console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${subGroups.length} subGroups`);
+            break;
+          }
+        }
+
+        console.log(`🔄 Z-API returned no community members from subGroups either.`);
       }
     }
 
