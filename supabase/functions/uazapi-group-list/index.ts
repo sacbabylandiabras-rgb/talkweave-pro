@@ -44,10 +44,8 @@ serve(async (req) => {
     const validGroups = rawGroups.filter((group: unknown) => {
       if (typeof group === 'string') return group.includes('@g.us')
       if (group && typeof group === 'object') {
-        const candidate = (group as Record<string, unknown>).id
-          ?? (group as Record<string, unknown>).jid
-          ?? (group as Record<string, unknown>).groupId
-          ?? (group as Record<string, unknown>).remoteJid
+        const g = group as Record<string, unknown>
+        const candidate = g.JID ?? g.id ?? g.jid ?? g.groupId ?? g.remoteJid
         return typeof candidate === 'string' && candidate.includes('@g.us')
       }
       return false
