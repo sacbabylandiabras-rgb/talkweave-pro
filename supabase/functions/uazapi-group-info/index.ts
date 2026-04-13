@@ -14,43 +14,63 @@ serve(async (req) => {
     const { groupId, apiUrl, apiToken } = await req.json()
 
     if (!groupId || !apiUrl || !apiToken) {
-      return new Response(JSON.stringify({ error: 'Missing groupId, apiUrl or apiToken' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const baseUrl = apiUrl.replace(/\/+$/, '')
-    const url = `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`
-
-    console.log(`Fetching group info from uazapi: ${baseUrl}/group/info for group: ${groupId}`)
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ JID: groupId }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      console.error('uazapi error:', response.status, JSON.stringify(data))
-      return new Response(JSON.stringify({ error: data?.error || data?.message || `uazapi error ${response.status}`, participants: [] }), {
+      return new Response(JSON.stringify({ error: 'Missing groupId, apiUrl or apiToken', participants: [] }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log(`uazapi response: participants count = ${data?.participants?.length || 0}`)
+    const baseUrl = apiUrl.replace(/\/+$/, '')
 
-    return new Response(JSON.stringify(data), {
+    // Try multiple endpoint patterns used by uazapi
+    const endpoints = [
+      { url: `${baseUrl}/v1/groups/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
+      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ jid: groupId }) },
+      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ JID: groupId }) },
+      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
+      { url: `${baseUrl}/group/participants?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
+      { url: `${baseUrl}/group/participants?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ JID: groupId }) },
+    ]
+
+    let lastError = ''
+
+    for (const ep of endpoints) {
+      try {
+        console.log(`Trying: ${ep.method} ${ep.url} body=${ep.body}`)
+        const response = await fetch(ep.url, {
+          method: ep.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: ep.body,
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          console.log(`Success from ${ep.url}: keys=${Object.keys(data).join(',')}`)
+          console.log(`Participants count: ${data?.participants?.length || data?.Participants?.length || 0}`)
+          return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        lastError = JSON.stringify(data)
+        console.log(`Failed ${ep.url}: ${response.status} ${lastError}`)
+      } catch (e) {
+        lastError = e.message
+        console.log(`Error ${ep.url}: ${e.message}`)
+      }
+    }
+
+    console.error('All endpoints failed. Last error:', lastError)
+    return new Response(JSON.stringify({ error: `All endpoints failed: ${lastError}`, participants: [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Proxy error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: error.message, participants: [] }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
