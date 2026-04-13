@@ -158,6 +158,39 @@ const ExtrairComunidade = () => {
   }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
 
+  const hasCredentials = apiUrl.trim() && apiToken.trim();
+  const canOperate = hasCredentials || connectedViaInstance;
+
+  const fetchGroupsViaZapi = async () => {
+    setLoadingGroups(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-whatsapp-groups");
+      if (error) throw error;
+      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+      const list: GroupInfo[] = rawGroups
+        .map((g: any) => ({
+          id: g?.phone || g?.jid || g?.id || g?.JID || "",
+          name: g?.name || g?.subject || g?.Name || "",
+          size: g?.participantCount || g?.size || g?.ParticipantCount || 0,
+          raw: g,
+        }))
+        .filter((g) => g.id.includes("@g.us"))
+        .filter((g, i, self) => self.findIndex((item) => item.id === g.id) === i)
+        .map((g) => ({ ...g, name: g.name || g.id.replace("@g.us", "") }));
+      setGroups(list);
+      if (list.length === 0) {
+        toast.warning("Nenhum grupo encontrado.");
+      } else {
+        toast.success(`${list.length} grupos carregados!`);
+      }
+    } catch (err: any) {
+      console.error("Erro ao listar grupos via Z-API:", err);
+      toast.error(err?.message || "Erro ao listar grupos");
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
   // Load credentials from database (set by admin)
   useEffect(() => {
     const loadCredentials = async () => {
