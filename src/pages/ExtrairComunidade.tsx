@@ -23,6 +23,8 @@ interface GroupInfo {
   name: string;
   size: number;
   raw?: any;
+  sourceInstanceId?: string | null;
+  isCommunity?: boolean;
 }
 
 const normalizeParticipantIdentifier = (value: any) => {
@@ -83,6 +85,14 @@ const buildGroupList = (rawGroups: any[]): GroupInfo[] => {
         name: getGroupName(group, id),
         size: getGroupSize(group),
         raw: typeof group === "string" ? undefined : group,
+        sourceInstanceId:
+          typeof group === "string"
+            ? null
+            : group?.sourceInstanceId || group?.__sourceInstanceId || null,
+        isCommunity:
+          typeof group === "string"
+            ? false
+            : Boolean(group?.isCommunity || group?.isCommunityAnnounce || group?.isGroupAnnouncement),
       };
     })
     .filter((group) => isWhatsAppGroupId(group.id))
@@ -404,6 +414,7 @@ const ExtrairComunidade = () => {
     try {
       const selectedGroup = groups.find((group) => group.id === groupId.trim());
       const sourceInstanceId =
+        selectedGroup?.sourceInstanceId ||
         selectedGroup?.raw?.sourceInstanceId ||
         selectedGroup?.raw?.__sourceInstanceId ||
         null;
@@ -722,11 +733,16 @@ const ExtrairComunidade = () => {
                       <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
                         <td className="px-3 py-2">
                           <div>
-                            <p className="text-xs font-medium truncate max-w-[250px]">{g.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-medium truncate max-w-[250px]">{g.name}</p>
+                              {g.isCommunity && <Badge variant="outline" className="text-[10px]">Comunidade</Badge>}
+                            </div>
                             <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[250px]">{g.id}</p>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">{g.size || "—"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {g.size > 0 ? g.size : g.isCommunity ? "Comunidade" : "—"}
+                        </td>
                         <td className="px-3 py-2 text-right">
                           <Button
                             size="sm"
