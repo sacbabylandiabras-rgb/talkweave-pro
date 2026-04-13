@@ -116,6 +116,16 @@ const ExtrairComunidade = () => {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
 
+  // Connection via QR/Pairing
+  const { instances } = useZapiInstances();
+  const [connectionTab, setConnectionTab] = useState("qr-code");
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+
   const hasCredentials = apiUrl.trim() && apiToken.trim();
 
   // Load credentials from database (set by admin)
