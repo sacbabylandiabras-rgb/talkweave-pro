@@ -17,6 +17,7 @@ import { useAdminZapiInstances } from "@/hooks/useZapiInstances";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Globe } from "lucide-react";
 
 interface EditUserDialogProps {
   user: UserProfile | null;
@@ -41,12 +42,24 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
 
+  // Uazapi credentials
+  const [uazapiUrl, setUazapiUrl] = useState('');
+  const [uazapiToken, setUazapiToken] = useState('');
+  const [uazapiSaving, setUazapiSaving] = useState(false);
+
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   useEffect(() => {
     if (user) {
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
+      // Load uazapi credentials
+      if (user.id) {
+        supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", user.id).single().then(({ data }) => {
+          setUazapiUrl((data as any)?.uazapi_url || '');
+          setUazapiToken((data as any)?.uazapi_token || '');
+        });
+      }
     }
   }, [user]);
 
@@ -66,6 +79,23 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveUazapi = async () => {
+    if (!user) return;
+    setUazapiSaving(true);
+    try {
+      const { error } = await supabase.from("profiles").update({
+        uazapi_url: uazapiUrl.trim() || null,
+        uazapi_token: uazapiToken.trim() || null,
+      } as any).eq("id", user.id);
+      if (error) throw error;
+      toast({ title: "Credenciais uazapi salvas", description: "O usuário poderá extrair membros de comunidades." });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } finally {
+      setUazapiSaving(false);
     }
   };
 
@@ -199,6 +229,27 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </div>
+
+          {/* Uazapi Section */}
+          <div className="border-t pt-4 mt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Globe className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold">Credenciais uazapi (Extração de Comunidades)</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>URL da API</Label>
+                <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.uazapi.com" type="url" />
+              </div>
+              <div className="space-y-2">
+                <Label>Token da Instância</Label>
+                <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token uazapi" type="password" />
+              </div>
+              <Button size="sm" onClick={handleSaveUazapi} disabled={uazapiSaving}>
+                {uazapiSaving ? "Salvando..." : "Salvar Credenciais uazapi"}
+              </Button>
             </div>
           </div>
 
