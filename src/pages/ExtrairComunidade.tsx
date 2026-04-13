@@ -3,10 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Download, Loader2, Copy, Check, Search, AlertTriangle } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, AlertTriangle, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
 
 interface ExtractedParticipant {
@@ -16,24 +14,50 @@ interface ExtractedParticipant {
   name: string;
 }
 
+const STORAGE_KEY = "uazapi_credentials";
+
+function loadCredentials() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as { apiUrl: string; apiToken: string };
+  } catch {}
+  return { apiUrl: "", apiToken: "" };
+}
+
+function saveCredentials(apiUrl: string, apiToken: string) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiUrl, apiToken }));
+}
+
 const ExtrairComunidade = () => {
   const [communityId, setCommunityId] = useState("");
-  const [selectedInstance, setSelectedInstance] = useState<string>("");
+  const stored = loadCredentials();
+  const [apiUrl, setApiUrl] = useState(stored.apiUrl);
+  const [apiToken, setApiToken] = useState(stored.apiToken);
   const [extracting, setExtracting] = useState(false);
   const [participants, setParticipants] = useState<ExtractedParticipant[]>([]);
   const [metadata, setMetadata] = useState<{
     groupName: string;
-    totalLids: number;
-    resolvedLids: number;
-    unresolvedLids: number;
+    totalMembers: number;
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState("");
-  const { instances } = useZapiInstances();
+
+  const handleSaveCredentials = () => {
+    if (!apiUrl.trim() || !apiToken.trim()) {
+      toast.error("Preencha a URL e o Token da uazapi");
+      return;
+    }
+    saveCredentials(apiUrl.trim(), apiToken.trim());
+    toast.success("Credenciais salvas localmente!");
+  };
 
   const handleExtract = async () => {
     if (!communityId.trim()) {
       toast.error("Informe o ID da comunidade");
+      return;
+    }
+    if (!apiUrl.trim() || !apiToken.trim()) {
+      toast.error("Configure a URL e Token da uazapi primeiro");
       return;
     }
 
@@ -42,29 +66,37 @@ const ExtrairComunidade = () => {
     setMetadata(null);
 
     try {
-      const sourceInstanceId = selectedInstance || null;
-      const { data, error } = await supabase.functions.invoke("get-group-participants", {
-        body: { groupId: communityId.trim(), fallbackParticipants: [], sourceInstanceId },
+      const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
+        body: {
+          groupId: communityId.trim(),
+          apiUrl: apiUrl.trim(),
+          apiToken: apiToken.trim(),
+        },
       });
 
       if (error) throw error;
 
-      const extracted: ExtractedParticipant[] = (data.participants || []).filter(
-        (p: any) => p.phone && p.phone.length > 5
-      );
+      // Parse uazapi response — participants array with JID format
+      const rawParticipants = data?.participants || [];
+      const extracted: ExtractedParticipant[] = rawParticipants.map((p: any) => {
+        const jid = p.id || p.jid || p.JID || "";
+        const phone = jid.replace(/@.*/, "");
+        return {
+          phone,
+          isAdmin: p.isAdmin === true || p.admin === "admin",
+          isSuperAdmin: p.isSuperAdmin === true || p.admin === "superadmin",
+          name: p.name || p.pushName || p.notify || "",
+        };
+      });
 
       setParticipants(extracted);
       setMetadata({
-        groupName: data.groupName || "Comunidade",
-        totalLids: data.totalLids || 0,
-        resolvedLids: data.resolvedLids || 0,
-        unresolvedLids: data.unresolvedLids || 0,
+        groupName: data?.subject || data?.name || data?.groupName || "Comunidade",
+        totalMembers: extracted.length,
       });
 
       if (extracted.length === 0) {
         toast.warning("Nenhum membro encontrado. Verifique o ID e tente novamente.");
-      } else if (data.unresolvedLids > 0) {
-        toast.success(`${extracted.length} membros extraídos (${data.unresolvedLids} com @lid não resolvido)`);
       } else {
         toast.success(`${extracted.length} membros extraídos com sucesso!`);
       }
@@ -78,7 +110,7 @@ const ExtrairComunidade = () => {
 
   const phones = participants
     .map((p) => p.phone)
-    .filter((p) => !p.includes("@lid"));
+    .filter((p) => p.length > 5 && !p.includes("lid"));
 
   const filteredParticipants = filter
     ? participants.filter(
@@ -111,7 +143,7 @@ const ExtrairComunidade = () => {
     if (participants.length === 0) return;
     const header = "Telefone,Nome,Admin\n";
     const rows = participants
-      .filter((p) => !p.phone.includes("@lid"))
+      .filter((p) => p.phone.length > 5 && !p.phone.includes("lid"))
       .map((p) => `${p.phone},${p.name.replace(/,/g, " ")},${p.isAdmin || p.isSuperAdmin ? "Sim" : "Não"}`)
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
@@ -128,50 +160,65 @@ const ExtrairComunidade = () => {
       <div>
         <h1 className="text-xl font-bold text-foreground tracking-tight">Extrair Membros de Comunidade</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Insira o ID da comunidade WhatsApp para extrair a lista de membros
+          Insira o ID da comunidade WhatsApp para extrair a lista de membros via uazapi
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Configuração</CardTitle>
+          <CardTitle className="text-sm">Credenciais uazapi</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">
-                ID da Comunidade / Grupo
+                URL da API (ex: https://seudominio.uazapi.com)
               </label>
               <Input
-                placeholder="Ex: 120363xxxxxxxxxxxx@g.us ou 120363xxxxxxxxxxxx-group"
-                value={communityId}
-                onChange={(e) => setCommunityId(e.target.value)}
-                disabled={extracting}
+                placeholder="https://seudominio.uazapi.com"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                type="url"
               />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">
-                Instância
+                Token da Instância
               </label>
-              <Select value={selectedInstance} onValueChange={setSelectedInstance}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Padrão" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Instância Padrão</SelectItem>
-                  {instances.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.zapi_instance_id}>
-                      {inst.instance_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder="Seu token de instância uazapi"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                type="password"
+              />
             </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleSaveCredentials}>
+            <Save className="w-3 h-3 mr-1" /> Salvar Credenciais
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Extração</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">
+              ID da Comunidade / Grupo
+            </label>
+            <Input
+              placeholder="Ex: 120363xxxxxxxxxxxx@g.us"
+              value={communityId}
+              onChange={(e) => setCommunityId(e.target.value)}
+              disabled={extracting}
+            />
           </div>
 
           <Button
             onClick={handleExtract}
-            disabled={extracting || !communityId.trim()}
+            disabled={extracting || !communityId.trim() || !apiUrl.trim() || !apiToken.trim()}
             className="w-full sm:w-auto"
           >
             {extracting ? (
@@ -187,8 +234,7 @@ const ExtrairComunidade = () => {
               <p className="font-medium text-foreground">Como encontrar o ID da comunidade?</p>
               <p className="mt-1">
                 No WhatsApp, abra a comunidade → toque no nome → role até "Convidar via link" → copie o link.
-                O ID é a sequência numérica longa no link (ex: <code className="bg-muted px-1 rounded">120363xxxxxxxxxx</code>).
-                Ou use o ID que aparece nos seus grupos listados na página de Apanhador de Grupos.
+                O ID é a sequência numérica longa no link (ex: <code className="bg-muted px-1 rounded">120363xxxxxxxxxx@g.us</code>).
               </p>
             </div>
           </div>
@@ -197,14 +243,14 @@ const ExtrairComunidade = () => {
 
       {metadata && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Card>
               <CardContent className="pt-4 pb-3 px-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-muted-foreground uppercase">Total Membros</span>
                   <Users className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-xl font-bold">{participants.length}</p>
+                <p className="text-xl font-bold">{metadata.totalMembers}</p>
               </CardContent>
             </Card>
             <Card>
@@ -214,24 +260,6 @@ const ExtrairComunidade = () => {
                   <Users className="w-4 h-4 text-emerald-500" />
                 </div>
                 <p className="text-xl font-bold">{phones.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground uppercase">LIDs Resolvidos</span>
-                  <Users className="w-4 h-4 text-blue-500" />
-                </div>
-                <p className="text-xl font-bold">{metadata.resolvedLids}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground uppercase">LIDs Pendentes</span>
-                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                </div>
-                <p className="text-xl font-bold">{metadata.unresolvedLids}</p>
               </CardContent>
             </Card>
           </div>
@@ -278,13 +306,7 @@ const ExtrairComunidade = () => {
                     {filteredParticipants.map((p, i) => (
                       <tr key={`${p.phone}-${i}`} className="border-t border-border/50 hover:bg-muted/30">
                         <td className="px-3 py-1.5 text-xs text-muted-foreground">{i + 1}</td>
-                        <td className="px-3 py-1.5 font-mono text-xs">
-                          {p.phone.includes("@lid") ? (
-                            <span className="text-yellow-500">{p.phone}</span>
-                          ) : (
-                            p.phone
-                          )}
-                        </td>
+                        <td className="px-3 py-1.5 font-mono text-xs">{p.phone}</td>
                         <td className="px-3 py-1.5 text-xs">{p.name || "—"}</td>
                         <td className="px-3 py-1.5">
                           {p.isSuperAdmin ? (
