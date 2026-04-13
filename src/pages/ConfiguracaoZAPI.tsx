@@ -29,7 +29,7 @@ const ConfiguracaoZAPI = () => {
       if (!user) {
         toast({
           title: "Erro",
-          description: "Você precisa estar logado para configurar Z-API",
+          description: "Você precisa estar logado para configurar a instância",
           variant: "destructive",
         });
         return;
