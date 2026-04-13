@@ -129,33 +129,8 @@ const ExtrairComunidade = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [connectionPolling, setConnectionPolling] = useState(false);
   const [connectedViaInstance, setConnectedViaInstance] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(false);
 
-  // Poll connection status after QR is shown
-  useEffect(() => {
-    if (!connectDialogOpen || !qrCodeImage || !selectedInstanceId) {
-      setConnectionPolling(false);
-      return;
-    }
-    setConnectionPolling(true);
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await supabase.functions.invoke("get-device-status", {
-          body: { instanceId: selectedInstanceId },
-        });
-        const connected = data?.data?.connected === true || data?.connected === true || data?.data?.status === "CONNECTED";
-        if (connected) {
-          toast.success("WhatsApp conectado com sucesso!");
-          setConnectDialogOpen(false);
-          setQrCodeImage(null);
-          setConnectionPolling(false);
-          setConnectedViaInstance(true);
-          // Fetch groups via Z-API instances
-          fetchGroupsViaZapi();
-        }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
 
@@ -189,6 +164,52 @@ const ExtrairComunidade = () => {
     }
   };
 
+  const checkInstanceConnection = async (instanceId: string, options?: { silent?: boolean }) => {
+    try {
+      if (!options?.silent) setCheckingConnection(true);
+      const { data } = await supabase.functions.invoke("get-device-status", {
+        body: { instanceId },
+      });
+      const connected =
+        data?.data?.connected === true ||
+        data?.connected === true ||
+        data?.data?.status === "CONNECTED" ||
+        data?.status === "CONNECTED";
+
+      setConnectedViaInstance(connected);
+
+      if (connected) {
+        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
+        setConnectDialogOpen(false);
+        setQrCodeImage(null);
+        setPairingCode(null);
+        fetchGroupsViaZapi();
+      }
+
+      return connected;
+    } catch {
+      setConnectedViaInstance(false);
+      return false;
+    } finally {
+      if (!options?.silent) setCheckingConnection(false);
+    }
+  };
+
+  // Poll connection status after QR is shown
+  useEffect(() => {
+    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || !selectedInstanceId) {
+      setConnectionPolling(false);
+      return;
+    }
+
+    setConnectionPolling(true);
+    const interval = setInterval(() => {
+      checkInstanceConnection(selectedInstanceId, { silent: true });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [connectDialogOpen, qrCodeImage, pairingCode, selectedInstanceId]);
+
   // Load credentials from database (set by admin)
   useEffect(() => {
     const loadCredentials = async () => {
@@ -215,6 +236,12 @@ const ExtrairComunidade = () => {
       setSelectedInstanceId(instances[0].id);
     }
   }, [instances, selectedInstanceId]);
+
+  useEffect(() => {
+    if (selectedInstanceId) {
+      checkInstanceConnection(selectedInstanceId, { silent: true });
+    }
+  }, [selectedInstanceId]);
 
   const fetchQrCode = async () => {
     const instId = selectedInstanceId;
@@ -500,23 +527,33 @@ const ExtrairComunidade = () => {
         </p>
       </div>
 
-      {/* No credentials — show connect button + dialog */}
-      {!loadingCredentials && !canOperate && (
+      {/* Connection status */}
+      {!loadingCredentials && !hasCredentials && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-destructive" />
               <div>
-                <p className="text-sm font-medium">Credenciais não configuradas</p>
-                <p className="text-xs text-muted-foreground">Conecte seu WhatsApp para continuar</p>
+                <p className="text-sm font-medium">Status da instância</p>
+                <p className="text-xs text-muted-foreground">
+                  {connectedViaInstance ? "WhatsApp conectado e pronto para uso" : "Conecte seu WhatsApp para continuar"}
+                </p>
               </div>
             </div>
-            {instances.length > 0 && (
-              <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                <Smartphone className="w-4 h-4" />
-                Conectar WhatsApp
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {connectedViaInstance ? (
+                <Badge variant="secondary" className="text-[10px]">Conectado</Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px]">
+                  {checkingConnection || connectionPolling ? "Verificando..." : "Desconectado"}
+                </Badge>
+              )}
+              {instances.length > 0 && !connectedViaInstance && (
+                <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
+                  <Smartphone className="w-4 h-4" />
+                  Conectar WhatsApp
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -599,8 +636,10 @@ const ExtrairComunidade = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">
-              Grupos da Instância {groups.length > 0 && <Badge variant="secondary" className="ml-2 text-[10px]">{groups.length}</Badge>}
+            <CardTitle className="text-sm flex items-center gap-2">
+              Grupos da Instância
+              {connectedViaInstance && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
+              {groups.length > 0 && <Badge variant="secondary" className="text-[10px]">{groups.length}</Badge>}
             </CardTitle>
             <Button
               variant="ghost"
