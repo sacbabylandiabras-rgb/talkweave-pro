@@ -141,26 +141,42 @@ const ExtrairComunidade = () => {
       });
       if (error) throw error;
 
-      const rawParticipants = data?.participants || [];
-      const extracted: ExtractedParticipant[] = rawParticipants.map((p: any) => {
-        const jid = p.id || p.jid || p.JID || "";
-        const phone = jid.replace(/@.*/, "");
-        return {
-          phone,
-          isAdmin: p.isAdmin === true || p.admin === "admin",
-          isSuperAdmin: p.isSuperAdmin === true || p.admin === "superadmin",
-          name: p.name || p.pushName || p.notify || "",
-        };
-      });
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const rawParticipants =
+        (Array.isArray(data?.participants) && data.participants) ||
+        (Array.isArray(data?.Participants) && data.Participants) ||
+        (Array.isArray(data?.members) && data.members) ||
+        (Array.isArray(data?.Members) && data.Members) ||
+        (Array.isArray(data?.data?.participants) && data.data.participants) ||
+        (Array.isArray(data?.data?.Participants) && data.data.Participants) ||
+        (Array.isArray(data?.group?.participants) && data.group.participants) ||
+        [];
+
+      const extracted: ExtractedParticipant[] = rawParticipants
+        .map((p: any) => {
+          const jid = p.id || p.jid || p.JID || p.userJid || p.participant || p.PN || "";
+          const phone = String(jid).replace(/@.*/, "");
+          return {
+            phone,
+            isAdmin: p.isAdmin === true || p.IsAdmin === true || p.admin === "admin" || p.role === "admin",
+            isSuperAdmin: p.isSuperAdmin === true || p.IsSuperAdmin === true || p.admin === "superadmin" || p.role === "superadmin",
+            name: p.name || p.Name || p.pushName || p.notify || p.PN || "",
+          };
+        })
+        .filter((p) => p.phone.length > 5);
 
       setParticipants(extracted);
       setMetadata({
-        groupName: data?.subject || data?.name || data?.groupName || "Comunidade",
+        groupName: data?.subject || data?.Subject || data?.name || data?.Name || data?.groupName || data?.data?.subject || data?.data?.name || "Comunidade",
         totalMembers: extracted.length,
       });
 
       if (extracted.length === 0) {
-        toast.warning("Nenhum membro encontrado.");
+        toast.warning("Nenhum membro encontrado ou a API retornou em formato diferente.");
       } else {
         toast.success(`${extracted.length} membros extraídos!`);
       }
