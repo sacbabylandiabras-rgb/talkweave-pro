@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import QRCodeLib from 'qrcode';
 
 interface ExtractedParticipant {
   phone: string;
@@ -28,6 +31,19 @@ const normalizeParticipantIdentifier = (value: any) => {
   if (/@lid$/i.test(raw)) return raw;
 
   return raw.replace(/@.*/, "");
+};
+
+const normalizeQrImageValue = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("data:image")) return trimmed;
+  if (trimmed.startsWith("iVBOR")) return `data:image/png;base64,${trimmed}`;
+  if (trimmed.startsWith("/9j/")) return `data:image/jpeg;base64,${trimmed}`;
+  if (trimmed.startsWith("R0lGOD")) return `data:image/gif;base64,${trimmed}`;
+  if (trimmed.startsWith("UklGR")) return `data:image/webp;base64,${trimmed}`;
+  if (trimmed.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${trimmed}`;
+  return trimmed;
 };
 
 const extractParticipantsFromPayload = (payload: any): any[] => {
@@ -100,6 +116,16 @@ const ExtrairComunidade = () => {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
 
+  // Connection via QR/Pairing
+  const { instances } = useZapiInstances();
+  const [connectionTab, setConnectionTab] = useState("qr-code");
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+
   const hasCredentials = apiUrl.trim() && apiToken.trim();
 
   // Load credentials from database (set by admin)
@@ -121,6 +147,73 @@ const ExtrairComunidade = () => {
     };
     loadCredentials();
   }, []);
+
+  // Auto-select first instance
+  useEffect(() => {
+    if (!selectedInstanceId && instances.length > 0) {
+      setSelectedInstanceId(instances[0].id);
+    }
+  }, [instances, selectedInstanceId]);
+
+  const fetchQrCode = async () => {
+    const instId = selectedInstanceId;
+    if (!instId) { toast.error("Nenhuma instância disponível"); return; }
+    setQrLoading(true);
+    setQrCodeImage(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-qr-code", {
+        body: { instanceId: instId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data?.message || data?.error);
+      const rawQr = data?.data?.value ?? data?.data?.qrCode ?? data?.data?.qrcode ?? null;
+      const normalized = normalizeQrImageValue(rawQr);
+      if (typeof normalized === "string" && normalized.startsWith("data:image")) {
+        setQrCodeImage(normalized);
+        toast.success("QR Code gerado!");
+      } else if (typeof normalized === "string" && normalized.length > 50) {
+        const img = await QRCodeLib.toDataURL(normalized, { width: 256, margin: 2, color: { dark: "#000000", light: "#FFFFFF" } });
+        setQrCodeImage(img);
+        toast.success("QR Code gerado!");
+      } else if (data?.data?.connected === true) {
+        toast.info("Dispositivo já conectado");
+      } else {
+        toast.error("QR Code indisponível. Tente reiniciar a instância.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao gerar QR Code");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const fetchPairingCode = async () => {
+    const instId = selectedInstanceId;
+    if (!instId) { toast.error("Nenhuma instância disponível"); return; }
+    if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
+    setPairingLoading(true);
+    setPairingCode(null);
+    try {
+      let cleanPhone = pairingPhone.replace(/\D/g, "");
+      if (cleanPhone && !cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+      const { data, error } = await supabase.functions.invoke("get-pairing-code", {
+        body: { phoneNumber: cleanPhone, instanceId: instId },
+      });
+      if (error) throw error;
+      if (!data?.success || !data?.data) throw new Error(data?.message || data?.error || "Falha ao gerar código");
+      const code = data.data.pairingCode || data.data.code || null;
+      if (code) {
+        setPairingCode(code);
+        toast.success("Código gerado!");
+      } else {
+        toast.error("Código de pareamento indisponível");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao solicitar código");
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
   // Auto-fetch groups when credentials are loaded
   useEffect(() => {
@@ -343,20 +436,84 @@ const ExtrairComunidade = () => {
         </p>
       </div>
 
-      {/* No credentials warning */}
+      {/* No credentials — show connection options */}
       {!loadingCredentials && !hasCredentials && (
-        <Card className="border-amber-500/30">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-              <div>
-                <p className="text-sm font-medium">Credenciais não configuradas</p>
-                <p className="text-xs text-muted-foreground">
-                   Solicite ao administrador que configure suas credenciais no painel de administração.
-                </p>
-              </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              <CardTitle className="text-sm">Credenciais não configuradas</CardTitle>
             </div>
-          </CardContent>
+            <p className="text-xs text-muted-foreground">
+              Solicite ao administrador que configure suas credenciais no painel de administração.
+            </p>
+          </CardHeader>
+          {instances.length > 0 && (
+            <CardContent className="space-y-4">
+              <div className="border-t pt-4">
+                <p className="text-xs font-medium mb-3 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Ou conecte via sua instância WhatsApp
+                </p>
+                <Tabs value={connectionTab} onValueChange={setConnectionTab}>
+                  <TabsList className="grid w-full grid-cols-2 max-w-xs">
+                    <TabsTrigger value="qr-code" className="text-xs">
+                      <QrCode className="w-3 h-3 mr-1" /> QR Code
+                    </TabsTrigger>
+                    <TabsTrigger value="pairing" className="text-xs">
+                      <Phone className="w-3 h-3 mr-1" /> Código
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="qr-code" className="mt-3">
+                    <div className="flex flex-col items-center gap-3">
+                      {qrCodeImage ? (
+                        <div className="p-2 bg-white rounded-lg">
+                          <img src={qrCodeImage} alt="QR Code" className="w-52 h-52" />
+                        </div>
+                      ) : (
+                        <div className="w-52 h-52 flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20">
+                          <p className="text-xs text-muted-foreground text-center px-4">
+                            Clique para gerar o QR Code
+                          </p>
+                        </div>
+                      )}
+                      <Button size="sm" onClick={fetchQrCode} disabled={qrLoading}>
+                        {qrLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}
+                        {qrCodeImage ? "Atualizar QR Code" : "Gerar QR Code"}
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="pairing" className="mt-3">
+                    <div className="flex flex-col gap-3 max-w-xs">
+                      <Input
+                        placeholder="Seu número (ex: 11999999999)"
+                        value={pairingPhone}
+                        onChange={(e) => setPairingPhone(e.target.value)}
+                        className="text-sm"
+                      />
+                      <Button size="sm" onClick={fetchPairingCode} disabled={pairingLoading || !pairingPhone}>
+                        {pairingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
+                        Gerar Código
+                      </Button>
+                      {pairingCode && (
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <p className="text-2xl font-mono font-bold tracking-widest">{pairingCode}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            Abra o WhatsApp → Dispositivos conectados → Conectar por número
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
 
