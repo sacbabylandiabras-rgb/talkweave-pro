@@ -821,24 +821,26 @@ const ExtrairComunidade = () => {
       </div>
 
       {/* Connection status */}
-      {!loadingCredentials && !connectedViaInstance && (
+      {!loadingCredentials && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
               <div>
                 <p className="text-sm font-medium">Status da instância</p>
                 <p className="text-xs text-muted-foreground">
-                  Conecte seu WhatsApp para continuar
+                  {connectedViaInstance
+                    ? "Instância conectada. Você ainda pode abrir a conexão ou configurar a UAZAPI."
+                    : "Conecte seu WhatsApp para continuar"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-[10px]">
-                {checkingConnection || connectionPolling ? "Verificando..." : "Desconectado"}
+                {checkingConnection || connectionPolling ? "Verificando..." : connectedViaInstance ? "Conectado" : "Desconectado"}
               </Badge>
               <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
                 <Smartphone className="w-4 h-4" />
-                Conectar WhatsApp
+                {connectedViaInstance ? "Gerenciar conexão" : "Conectar WhatsApp"}
               </Button>
             </div>
           </CardContent>
