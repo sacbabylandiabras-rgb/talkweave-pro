@@ -436,14 +436,15 @@ export const useCampaigns = () => {
       // Get total contacts from campaign
       const campaign = campaigns.find(c => c.id === campaignId);
       const totalContacts = campaign?.target_audience?.contacts?.length || 0;
-      const processedCount = data.length;
-      const remaining = Math.max(0, totalContacts - processedCount);
+      const pendingCount = data.filter(send => send.status === 'pending').length;
+      const finalizedCount = data.filter(send => send.status === 'sent' || send.status === 'delivered' || send.status === 'failed').length;
+      const remaining = Math.max(0, totalContacts - finalizedCount);
 
       const stats = {
         total: data.length,
         totalContacts,
         remaining,
-        pending: data.filter(send => send.status === 'pending').length,
+        pending: pendingCount,
         sent: data.filter(send => send.status === 'sent').length,
         delivered: data.filter(send => send.status === 'delivered').length,
         failed: data.filter(send => send.status === 'failed').length,

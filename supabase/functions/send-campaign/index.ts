@@ -874,12 +874,26 @@ serve(async (req) => {
     } else {
       // Last batch finished - check if ALL contacts from the audience were actually processed
       const totalTargetContacts = campaignTargetContacts.length;
-      const { count: processedCount } = await supabase
-        .from('campaign_sends')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaignId);
+      const [processedRes, pendingRes, successRes] = await Promise.all([
+        supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId),
+        supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId)
+          .eq('status', 'pending'),
+        supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId)
+          .in('status', ['sent', 'delivered']),
+      ]);
 
-      const totalProcessed = processedCount ?? 0;
+      const totalProcessed = processedRes.count ?? 0;
+      const pendingCount = pendingRes.count ?? 0;
+      const actualSuccesses = successRes.count ?? 0;
 
       // STRICT completion check: only complete if processed >= target audience
       // If target audience is 0 (edge case), use the current batch as reference
@@ -909,15 +923,18 @@ serve(async (req) => {
         }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
 
-      // All contacts processed - mark campaign as completed
-      // Safety check: only mark completed if at least one send was successful
-      const { count: successCount } = await supabase
-        .from('campaign_sends')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaignId)
-        .in('status', ['sent', 'delivered']);
-
-      const actualSuccesses = successCount ?? 0;
+      if (pendingCount > 0) {
+        console.log(`⏳ Campaign ${campaignId}: ${pendingCount} send(s) still pending callback. Keeping campaign active.`);
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Awaiting pending callbacks before completion',
+          campaignId,
+          processed: currentBatch.length,
+          remaining: 0,
+          pending: pendingCount,
+          results,
+        }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
 
       if (totalProcessed === 0 || actualSuccesses === 0) {
         // No sends created or ALL sends failed — mark as paused, not completed

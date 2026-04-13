@@ -1475,7 +1475,7 @@ serve(async (req) => {
 
           let campaignSendQuery = supabase
             .from('campaign_sends')
-            .select('id, status, phone, sent_at, delivered_at, instance_name')
+            .select('id, campaign_id, status, phone, sent_at, delivered_at, instance_name')
             .eq('user_id', userId)
             .in('phone', candidatePhones)
 
@@ -1523,6 +1523,58 @@ serve(async (req) => {
                 console.error('❌ Erro atualizando campaign_send via callback:', campaignSendUpdateError)
               } else {
                 console.log(`✅ campaign_send atualizado via callback: ${campaignSend.id} -> ${nextStatus} (${campaignSend.phone})`)
+
+                if (campaignSend.campaign_id) {
+                  const { data: campaignData, error: campaignLookupError } = await supabase
+                    .from('campaigns')
+                    .select('status, target_audience')
+                    .eq('id', campaignSend.campaign_id)
+                    .maybeSingle()
+
+                  if (campaignLookupError) {
+                    console.error('❌ Erro carregando campanha após callback:', campaignLookupError)
+                  } else if (campaignData && (campaignData.status === 'active' || campaignData.status === 'draft')) {
+                    const targetContacts = Array.isArray((campaignData.target_audience as any)?.contacts)
+                      ? (campaignData.target_audience as any).contacts.length
+                      : 0
+
+                    const [pendingCountRes, processedCountRes, successCountRes] = await Promise.all([
+                      supabase
+                        .from('campaign_sends')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('campaign_id', campaignSend.campaign_id)
+                        .eq('status', 'pending'),
+                      supabase
+                        .from('campaign_sends')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('campaign_id', campaignSend.campaign_id),
+                      supabase
+                        .from('campaign_sends')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('campaign_id', campaignSend.campaign_id)
+                        .in('status', ['sent', 'delivered']),
+                    ])
+
+                    const pendingCount = pendingCountRes.count ?? 0
+                    const processedCount = processedCountRes.count ?? 0
+                    const successCount = successCountRes.count ?? 0
+                    const hasAllAudienceProcessed = targetContacts === 0 || processedCount >= targetContacts
+
+                    if (pendingCount === 0 && hasAllAudienceProcessed) {
+                      const nextCampaignStatus = processedCount === 0 || successCount === 0 ? 'paused' : 'completed'
+                      const { error: campaignStatusError } = await supabase
+                        .from('campaigns')
+                        .update({ status: nextCampaignStatus, updated_at: nowIso })
+                        .eq('id', campaignSend.campaign_id)
+
+                      if (campaignStatusError) {
+                        console.error('❌ Erro finalizando campanha após callback:', campaignStatusError)
+                      } else {
+                        console.log(`✅ Campanha ${campaignSend.campaign_id} finalizada após callback com status ${nextCampaignStatus}`)
+                      }
+                    }
+                  }
+                }
               }
             }
           }
