@@ -148,13 +148,9 @@ const ExtrairComunidade = () => {
           setConnectDialogOpen(false);
           setQrCodeImage(null);
           setConnectionPolling(false);
-          // Reload credentials
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const { data: profile } = await supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", session.user.id).single();
-            if ((profile as any)?.uazapi_url) setApiUrl((profile as any).uazapi_url);
-            if ((profile as any)?.uazapi_token) setApiToken((profile as any).uazapi_token);
-          }
+          setConnectedViaInstance(true);
+          // Fetch groups via Z-API instances
+          fetchGroupsViaZapi();
         }
       } catch {}
     }, 5000);
