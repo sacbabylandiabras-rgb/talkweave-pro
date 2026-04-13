@@ -128,6 +128,7 @@ const ExtrairComunidade = () => {
   const [pairingLoading, setPairingLoading] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [connectionPolling, setConnectionPolling] = useState(false);
+  const [connectedViaInstance, setConnectedViaInstance] = useState(false);
 
   // Poll connection status after QR is shown
   useEffect(() => {
@@ -147,19 +148,46 @@ const ExtrairComunidade = () => {
           setConnectDialogOpen(false);
           setQrCodeImage(null);
           setConnectionPolling(false);
-          // Reload credentials
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const { data: profile } = await supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", session.user.id).single();
-            if ((profile as any)?.uazapi_url) setApiUrl((profile as any).uazapi_url);
-            if ((profile as any)?.uazapi_token) setApiToken((profile as any).uazapi_token);
-          }
+          setConnectedViaInstance(true);
+          // Fetch groups via Z-API instances
+          fetchGroupsViaZapi();
         }
       } catch {}
     }, 5000);
     return () => clearInterval(interval);
   }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
+  const canOperate = hasCredentials || connectedViaInstance;
+
+  const fetchGroupsViaZapi = async () => {
+    setLoadingGroups(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-whatsapp-groups");
+      if (error) throw error;
+      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+      const list: GroupInfo[] = rawGroups
+        .map((g: any) => ({
+          id: g?.phone || g?.jid || g?.id || g?.JID || "",
+          name: g?.name || g?.subject || g?.Name || "",
+          size: g?.participantCount || g?.size || g?.ParticipantCount || 0,
+          raw: g,
+        }))
+        .filter((g) => g.id.includes("@g.us"))
+        .filter((g, i, self) => self.findIndex((item) => item.id === g.id) === i)
+        .map((g) => ({ ...g, name: g.name || g.id.replace("@g.us", "") }));
+      setGroups(list);
+      if (list.length === 0) {
+        toast.warning("Nenhum grupo encontrado.");
+      } else {
+        toast.success(`${list.length} grupos carregados!`);
+      }
+    } catch (err: any) {
+      console.error("Erro ao listar grupos via Z-API:", err);
+      toast.error(err?.message || "Erro ao listar grupos");
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
 
   // Load credentials from database (set by admin)
   useEffect(() => {
@@ -315,7 +343,7 @@ const ExtrairComunidade = () => {
   };
 
   const handleExtract = async (groupId: string) => {
-    if (!groupId.trim() || !hasCredentials) return;
+    if (!groupId.trim() || !canOperate) return;
 
     setExtracting(true);
     setParticipants([]);
@@ -323,9 +351,11 @@ const ExtrairComunidade = () => {
     setSelectedGroupId(groupId);
 
     try {
-      const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
-        body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
-      });
+      // If connected via Z-API instance, use get-group-participants directly
+      const useZapiDirect = connectedViaInstance && !hasCredentials;
+      const { data, error } = useZapiDirect
+        ? await supabase.functions.invoke("get-group-participants", { body: { groupId: groupId.trim() } })
+        : await supabase.functions.invoke("uazapi-group-info", { body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() } });
       if (error) throw error;
 
       if (data?.error) {
@@ -471,7 +501,7 @@ const ExtrairComunidade = () => {
       </div>
 
       {/* No credentials — show connect button + dialog */}
-      {!loadingCredentials && !hasCredentials && (
+      {!loadingCredentials && !canOperate && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
@@ -575,8 +605,8 @@ const ExtrairComunidade = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchGroups}
-              disabled={loadingGroups || !hasCredentials}
+              onClick={connectedViaInstance && !hasCredentials ? fetchGroupsViaZapi : fetchGroups}
+              disabled={loadingGroups || !canOperate}
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
               Atualizar
@@ -590,9 +620,9 @@ const ExtrairComunidade = () => {
             </div>
           ) : groups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-xs">
-              {hasCredentials
+              {canOperate
                 ? "Nenhum grupo encontrado. Clique em Atualizar."
-                 : "Solicite ao administrador que configure suas credenciais."}
+                 : "Conecte seu WhatsApp ou solicite ao administrador que configure suas credenciais."}
             </div>
           ) : (
             <>
