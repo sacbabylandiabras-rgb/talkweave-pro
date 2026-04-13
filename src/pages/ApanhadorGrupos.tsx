@@ -220,7 +220,7 @@ const ApanhadorGrupos = () => {
               {busca ? "Nenhum grupo encontrado" : "Nenhum grupo disponível"}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {busca ? "Tente buscar com outro termo" : "Verifique se sua instância Z-API está conectada"}
+              {busca ? "Tente buscar com outro termo" : "Verifique se sua instância está conectada"}
             </p>
           </CardContent>
         </Card>

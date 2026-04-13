@@ -23,7 +23,7 @@ export default function PoliticaPrivacidade() {
             title: "2. Como Usamos suas Informações",
             content: `Utilizamos seus dados para:
 • Fornecer e manter os serviços da plataforma.
-• Processar envios de mensagens via APIs (Z-API e Meta Cloud API).
+• Processar envios de mensagens via APIs de integração.
 • Gerenciar sua conta e assinatura.
 • Enviar notificações sobre o serviço.
 • Melhorar e personalizar a experiência do usuário.
@@ -33,7 +33,7 @@ export default function PoliticaPrivacidade() {
             title: "3. Compartilhamento de Dados",
             content: `Não vendemos seus dados pessoais. Podemos compartilhar informações com:
 • Meta Platforms, Inc.: para operação da API oficial do WhatsApp Business.
-• Z-API: para operação de envios via API não oficial.
+• Provedores de API: para operação de envios de mensagens.
 • Supabase: nosso provedor de infraestrutura e banco de dados.
 • Autoridades legais: quando exigido por lei ou ordem judicial.`
           },

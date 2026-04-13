@@ -91,7 +91,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         uazapi_token: uazapiToken.trim() || null,
       } as any).eq("id", user.id);
       if (error) throw error;
-      toast({ title: "Credenciais uazapi salvas", description: "O usuário poderá extrair membros de comunidades." });
+      toast({ title: "Credenciais salvas", description: "O usuário poderá extrair membros de comunidades." });
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
@@ -102,7 +102,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const handleAddInstance = async () => {
     if (!user) return;
     if (!newInstanceId || !newToken || !newClientToken) {
-      toast({ title: "Preencha todos os campos da Z-API", variant: "destructive" });
+      toast({ title: "Preencha todos os campos da instância", variant: "destructive" });
       return;
     }
 
@@ -129,7 +129,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
-          <DialogDescription>Gerenciar assinatura e instâncias Z-API de {user.email}</DialogDescription>
+          <DialogDescription>Gerenciar assinatura e instâncias de {user.email}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -163,7 +163,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Instâncias Z-API ({instances.length}/20)</h3>
+                <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/20)</h3>
                 <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 20}>
                 <Plus className="w-3 h-3 mr-1" /> Adicionar
               </Button>
@@ -182,11 +182,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   </div>
                   <div className="space-y-2">
                     <Label>Token *</Label>
-                    <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token Z-API" />
+                    <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token da instância" />
                   </div>
                   <div className="space-y-2">
                     <Label>Client Token *</Label>
-                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token Z-API" />
+                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
@@ -236,19 +236,19 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold">Credenciais uazapi (Extração de Comunidades)</h3>
+              <h3 className="font-semibold">Extração de Comunidades</h3>
             </div>
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label>URL da API</Label>
-                <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.uazapi.com" type="url" />
+                <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.com" type="url" />
               </div>
               <div className="space-y-2">
                 <Label>Token da Instância</Label>
-                <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token uazapi" type="password" />
+                <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token da instância" type="password" />
               </div>
               <Button size="sm" onClick={handleSaveUazapi} disabled={uazapiSaving}>
-                {uazapiSaving ? "Salvando..." : "Salvar Credenciais uazapi"}
+                {uazapiSaving ? "Salvando..." : "Salvar Credenciais"}
               </Button>
             </div>
           </div>

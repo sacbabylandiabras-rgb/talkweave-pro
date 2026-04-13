@@ -173,7 +173,7 @@ const AdminZapLynx = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Painel de Administração</h1>
-          <p className="text-muted-foreground mt-1">Gerencie usuários, assinaturas e chaves Z-API</p>
+          <p className="text-muted-foreground mt-1">Gerencie usuários, assinaturas e instâncias</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => navigate("/dashboard")} variant="outline" size="sm">Voltar ao Dashboard</Button>
@@ -212,7 +212,7 @@ const AdminZapLynx = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Z-API Configurados</CardTitle>
+            <CardTitle className="text-sm font-medium">Instâncias Configuradas</CardTitle>
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.withZapi}</div><p className="text-xs text-muted-foreground">Chaves configuradas</p></CardContent>
@@ -222,14 +222,14 @@ const AdminZapLynx = () => {
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento de Usuários</CardTitle>
-          <CardDescription>Gerencie status de pagamento, permissões e configurações Z-API de todos os usuários</CardDescription>
+          <CardDescription>Gerencie status de pagamento, permissões e configurações de todos os usuários</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead><TableHead>Nome</TableHead><TableHead>WhatsApp</TableHead><TableHead>Tipo</TableHead><TableHead>Assinatura</TableHead><TableHead>Validade</TableHead><TableHead>Z-API</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Email</TableHead><TableHead>Nome</TableHead><TableHead>WhatsApp</TableHead><TableHead>Tipo</TableHead><TableHead>Assinatura</TableHead><TableHead>Validade</TableHead><TableHead>Instância</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
