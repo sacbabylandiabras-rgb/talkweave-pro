@@ -40,7 +40,21 @@ serve(async (req) => {
       })
     }
 
-    console.log(`uazapi group list response sample:`, JSON.stringify(data).substring(0, 500))
+    const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : []
+    const validGroups = rawGroups.filter((group: unknown) => {
+      if (typeof group === 'string') return group.includes('@g.us')
+      if (group && typeof group === 'object') {
+        const candidate = (group as Record<string, unknown>).id
+          ?? (group as Record<string, unknown>).jid
+          ?? (group as Record<string, unknown>).groupId
+          ?? (group as Record<string, unknown>).remoteJid
+        return typeof candidate === 'string' && candidate.includes('@g.us')
+      }
+      return false
+    })
+
+    console.log(`uazapi group list response sample: ${JSON.stringify(data).substring(0, 500)}`)
+    console.log(`uazapi valid whatsapp groups: ${validGroups.length}`)
 
     return new Response(JSON.stringify(data), {
       status: 200,
