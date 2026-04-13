@@ -100,6 +100,24 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
+  const resetInstanceForm = () => {
+    setEditingInstanceId(null);
+    setShowAddForm(false);
+    setNewInstanceName('');
+    setNewInstanceId('');
+    setNewToken('');
+    setNewClientToken('');
+  };
+
+  const handleEditInstance = (instance: typeof instances[number]) => {
+    setEditingInstanceId(instance.id);
+    setShowAddForm(true);
+    setNewInstanceName(instance.instance_name || '');
+    setNewInstanceId(instance.zapi_instance_id || '');
+    setNewToken(instance.zapi_token || '');
+    setNewClientToken(instance.zapi_client_token || '');
+  };
+
   const handleAddInstance = async () => {
     if (!user) return;
     if (!newInstanceId || !newToken || !newClientToken) {
@@ -107,19 +125,19 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       return;
     }
 
-    const success = await addInstance(user.id, {
+    const payload = {
       instance_name: newInstanceName || 'Nova Instância',
       zapi_instance_id: newInstanceId,
       zapi_token: newToken,
       zapi_client_token: newClientToken,
-    });
+    };
+
+    const success = editingInstanceId
+      ? await updateInstance(editingInstanceId, user.id, payload)
+      : await addInstance(user.id, payload);
 
     if (success) {
-      setShowAddForm(false);
-      setNewInstanceName('');
-      setNewInstanceId('');
-      setNewToken('');
-      setNewClientToken('');
+      resetInstanceForm();
     }
   };
 
