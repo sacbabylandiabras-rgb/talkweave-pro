@@ -229,7 +229,7 @@ const AdminZapLynx = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead><TableHead>Nome</TableHead><TableHead>Tipo</TableHead><TableHead>Assinatura</TableHead><TableHead>Validade</TableHead><TableHead>Z-API</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Email</TableHead><TableHead>Nome</TableHead><TableHead>WhatsApp</TableHead><TableHead>Tipo</TableHead><TableHead>Assinatura</TableHead><TableHead>Validade</TableHead><TableHead>Z-API</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -242,6 +242,11 @@ const AdminZapLynx = () => {
                       </div>
                     </TableCell>
                     <TableCell>{user.full_name || "-"}</TableCell>
+                    <TableCell>
+                      {user.whatsapp ? (
+                        <span className="text-sm font-mono">{user.whatsapp}</span>
+                      ) : <span className="text-muted-foreground text-sm">-</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={user.roles.includes("admin") ? "default" : "secondary"}>
                         {user.roles.includes("admin") ? "Administrador" : "Usuário"}
