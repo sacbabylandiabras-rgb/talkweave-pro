@@ -773,7 +773,7 @@ const ExtrairComunidade = () => {
       </div>
 
       {/* Connection status */}
-      {!loadingCredentials && !canOperate && (
+      {!loadingCredentials && !connectedViaInstance && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
