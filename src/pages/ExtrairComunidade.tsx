@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Download, Loader2, Copy, Check, Search, Save, RefreshCw } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -84,24 +84,10 @@ const normalizeParticipant = (p: any): ExtractedParticipant | null => {
   };
 };
 
-const STORAGE_KEY = "uazapi_credentials";
-
-function loadCredentials() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as { apiUrl: string; apiToken: string };
-  } catch {}
-  return { apiUrl: "", apiToken: "" };
-}
-
-function saveCredentials(apiUrl: string, apiToken: string) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiUrl, apiToken }));
-}
-
 const ExtrairComunidade = () => {
-  const stored = loadCredentials();
-  const [apiUrl, setApiUrl] = useState(stored.apiUrl);
-  const [apiToken, setApiToken] = useState(stored.apiToken);
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [loadingCredentials, setLoadingCredentials] = useState(true);
   const [extracting, setExtracting] = useState(false);
   const [participants, setParticipants] = useState<ExtractedParticipant[]>([]);
   const [metadata, setMetadata] = useState<{ groupName: string; totalMembers: number } | null>(null);
@@ -116,15 +102,32 @@ const ExtrairComunidade = () => {
 
   const hasCredentials = apiUrl.trim() && apiToken.trim();
 
-  const handleSaveCredentials = () => {
-    if (!hasCredentials) {
-      toast.error("Preencha a URL e o Token da uazapi");
-      return;
+  // Load credentials from database (set by admin)
+  useEffect(() => {
+    const loadCredentials = async () => {
+      setLoadingCredentials(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data } = await supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", session.user.id).single();
+        const profile = data as any;
+        if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
+        if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
+      } catch (err) {
+        console.error("Erro ao carregar credenciais:", err);
+      } finally {
+        setLoadingCredentials(false);
+      }
+    };
+    loadCredentials();
+  }, []);
+
+  // Auto-fetch groups when credentials are loaded
+  useEffect(() => {
+    if (!loadingCredentials && apiUrl && apiToken) {
+      fetchGroups();
     }
-    saveCredentials(apiUrl.trim(), apiToken.trim());
-    toast.success("Credenciais salvas!");
-    fetchGroups();
-  };
+  }, [loadingCredentials, apiUrl, apiToken]);
 
   const fetchGroups = async () => {
     if (!apiUrl.trim() || !apiToken.trim()) return;
@@ -183,14 +186,6 @@ const ExtrairComunidade = () => {
       setLoadingGroups(false);
     }
   };
-
-  // Auto-fetch groups on mount if credentials exist
-  useEffect(() => {
-    if (stored.apiUrl && stored.apiToken) {
-      fetchGroups();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleExtract = async (groupId: string) => {
     if (!groupId.trim() || !hasCredentials) return;
@@ -344,45 +339,32 @@ const ExtrairComunidade = () => {
       <div>
         <h1 className="text-xl font-bold text-foreground tracking-tight">Extrair Membros de Comunidade</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Conecte sua instância uazapi para listar grupos e extrair membros automaticamente
+          Extraia membros de comunidades e grupos do WhatsApp
         </p>
       </div>
 
-      {/* Credentials */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Credenciais uazapi</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">
-                URL da API (ex: https://seudominio.uazapi.com)
-              </label>
-              <Input
-                placeholder="https://seudominio.uazapi.com"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                type="url"
-              />
+      {/* No credentials warning */}
+      {!loadingCredentials && !hasCredentials && (
+        <Card className="border-amber-500/30">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Credenciais não configuradas</p>
+                <p className="text-xs text-muted-foreground">
+                  Solicite ao administrador que configure suas credenciais uazapi no painel de administração.
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">
-                Token da Instância
-              </label>
-              <Input
-                placeholder="Seu token de instância uazapi"
-                value={apiToken}
-                onChange={(e) => setApiToken(e.target.value)}
-                type="password"
-              />
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleSaveCredentials} disabled={!hasCredentials}>
-            <Save className="w-3 h-3 mr-1" /> Salvar e Carregar Grupos
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {loadingCredentials && (
+        <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Carregando credenciais...
+        </div>
+      )}
 
       {/* Groups List */}
       <Card>
