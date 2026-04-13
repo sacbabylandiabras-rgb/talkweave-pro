@@ -129,33 +129,8 @@ const ExtrairComunidade = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [connectionPolling, setConnectionPolling] = useState(false);
   const [connectedViaInstance, setConnectedViaInstance] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(false);
 
-  // Poll connection status after QR is shown
-  useEffect(() => {
-    if (!connectDialogOpen || !qrCodeImage || !selectedInstanceId) {
-      setConnectionPolling(false);
-      return;
-    }
-    setConnectionPolling(true);
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await supabase.functions.invoke("get-device-status", {
-          body: { instanceId: selectedInstanceId },
-        });
-        const connected = data?.data?.connected === true || data?.connected === true || data?.data?.status === "CONNECTED";
-        if (connected) {
-          toast.success("WhatsApp conectado com sucesso!");
-          setConnectDialogOpen(false);
-          setQrCodeImage(null);
-          setConnectionPolling(false);
-          setConnectedViaInstance(true);
-          // Fetch groups via Z-API instances
-          fetchGroupsViaZapi();
-        }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
 
@@ -188,6 +163,52 @@ const ExtrairComunidade = () => {
       setLoadingGroups(false);
     }
   };
+
+  const checkInstanceConnection = async (instanceId: string, options?: { silent?: boolean }) => {
+    try {
+      if (!options?.silent) setCheckingConnection(true);
+      const { data } = await supabase.functions.invoke("get-device-status", {
+        body: { instanceId },
+      });
+      const connected =
+        data?.data?.connected === true ||
+        data?.connected === true ||
+        data?.data?.status === "CONNECTED" ||
+        data?.status === "CONNECTED";
+
+      setConnectedViaInstance(connected);
+
+      if (connected) {
+        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
+        setConnectDialogOpen(false);
+        setQrCodeImage(null);
+        setPairingCode(null);
+        fetchGroupsViaZapi();
+      }
+
+      return connected;
+    } catch {
+      setConnectedViaInstance(false);
+      return false;
+    } finally {
+      if (!options?.silent) setCheckingConnection(false);
+    }
+  };
+
+  // Poll connection status after QR is shown
+  useEffect(() => {
+    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || !selectedInstanceId) {
+      setConnectionPolling(false);
+      return;
+    }
+
+    setConnectionPolling(true);
+    const interval = setInterval(() => {
+      checkInstanceConnection(selectedInstanceId, { silent: true });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [connectDialogOpen, qrCodeImage, pairingCode, selectedInstanceId]);
 
   // Load credentials from database (set by admin)
   useEffect(() => {
