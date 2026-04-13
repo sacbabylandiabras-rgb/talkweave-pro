@@ -55,7 +55,7 @@ const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
       const text = await response.clone().text();
       if (text === 'user_not_found') return 'A instância vinculada a esta conversa não existe mais ou está inativa.';
       if (text === 'missing_instance_id') return 'Nenhuma instância foi identificada para este contato.';
-      if (text === 'incomplete_credentials') return 'A instância selecionada está sem credenciais completas da Z-API.';
+      if (text === 'incomplete_credentials') return 'A instância selecionada está sem credenciais completas.';
       return text || fallback;
     } catch {
       return fallback;
@@ -196,7 +196,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (resolvedLog?.phone) {
           targetPhone = resolvedLog.phone;
         } else {
-          throw new Error('Esse lead está com identificador técnico da Z-API e ainda não foi resolvido para número real.');
+          throw new Error('Esse lead está com identificador técnico e ainda não foi resolvido para número real.');
         }
       }
 

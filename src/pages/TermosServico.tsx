@@ -15,7 +15,7 @@ export default function TermosServico() {
             content: `A ZapLynx é uma plataforma SaaS de automação e envio de mensagens via WhatsApp, oferecendo:
 • Envio de mensagens em massa e campanhas.
 • Automação de respostas e fluxos visuais.
-• Integração com APIs do WhatsApp (Z-API e Meta Cloud API).
+• Integração com APIs do WhatsApp.
 • Gestão de contatos, grupos e templates.
 • Agente de inteligência artificial para atendimento.`
           },

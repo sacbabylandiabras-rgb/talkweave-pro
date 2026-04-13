@@ -139,7 +139,7 @@ function GerenciarGrupoTab() {
       });
       if (error) throw error;
       if (data?.error) {
-        toast.error("Erro Z-API: " + data.error);
+        toast.error("Erro: " + data.error);
         return;
       }
       toast.success(
@@ -214,7 +214,7 @@ function GerenciarGrupoTab() {
         body: { action: "update-group-photo", groupId: selectedGroup.id, ...credentials, imageUrl },
       });
       if (error) throw error;
-      if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+      if (data?.error) { toast.error("Erro: " + data.error); return; }
       toast.success("Foto atualizada!");
       persistGroupPreviewData(selectedGroup.id, { photo: imageUrl });
       setNewPhotoPreview("");
@@ -243,8 +243,8 @@ function GerenciarGrupoTab() {
         body: { ...baseBody, action: "create-group", groupName: groupName.trim(), phones: phoneList },
       });
       if (error) throw error;
-      if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
-      if (data?.success === false) { toast.error("Erro Z-API: " + (data.message || "Falha ao criar grupo")); return; }
+      if (data?.error) { toast.error("Erro: " + data.error); return; }
+      if (data?.success === false) { toast.error("Erro: " + (data.message || "Falha ao criar grupo")); return; }
 
       const groupId = data?.phone || data?.groupId || data?.id;
       if (groupId && createDescription.trim()) {
@@ -520,7 +520,7 @@ function GerenciarGrupoTab() {
                             body: { action: "get-invite-link", groupId: selectedGroup.id, ...credentials },
                           });
                           if (error) throw error;
-                          if (data?.error) { toast.error("Erro Z-API: " + data.error); return; }
+                          if (data?.error) { toast.error("Erro: " + data.error); return; }
                           const link = data?.inviteLink || data?.invitationLink || data?.link || "";
                           if (link) {
                             await navigator.clipboard.writeText(link);
