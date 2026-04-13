@@ -296,10 +296,12 @@ const ExtrairComunidade = () => {
   const [connectionPolling, setConnectionPolling] = useState(false);
   const [connectedViaInstance, setConnectedViaInstance] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
+  const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
+  const canConnectNumber = instances.length > 0 || hasLegacyZapiProfileCredentials;
 
   useEffect(() => {
     if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
@@ -406,12 +408,13 @@ const ExtrairComunidade = () => {
     }
   };
 
-  const checkInstanceConnection = async (instanceId: string, options?: { silent?: boolean }) => {
+  const checkInstanceConnection = async (instanceId?: string | null, options?: { silent?: boolean }) => {
     try {
       if (!options?.silent) setCheckingConnection(true);
-      const { data } = await supabase.functions.invoke("get-device-status", {
-        body: { instanceId },
-      });
+      const { data } = await supabase.functions.invoke(
+        "get-device-status",
+        instanceId ? { body: { instanceId } } : {},
+      );
       const connected =
         data?.data?.connected === true ||
         data?.connected === true ||
@@ -439,7 +442,7 @@ const ExtrairComunidade = () => {
 
   // Poll connection status after QR is shown
   useEffect(() => {
-    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || !selectedInstanceId) {
+    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || (!selectedInstanceId && !hasLegacyZapiProfileCredentials)) {
       setConnectionPolling(false);
       return;
     }
@@ -450,7 +453,7 @@ const ExtrairComunidade = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [connectDialogOpen, qrCodeImage, pairingCode, selectedInstanceId]);
+  }, [connectDialogOpen, hasLegacyZapiProfileCredentials, qrCodeImage, pairingCode, selectedInstanceId]);
 
   // Load credentials from database (set by admin)
   useEffect(() => {
@@ -459,10 +462,17 @@ const ExtrairComunidade = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
-        const { data } = await supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", session.user.id).single();
+        const { data } = await supabase
+          .from("profiles")
+          .select("uazapi_url, uazapi_token, zapi_instance_id, zapi_token, zapi_client_token")
+          .eq("id", session.user.id)
+          .single();
         const profile = data as any;
         if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
         if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
+        setHasLegacyZapiProfileCredentials(
+          Boolean(profile?.zapi_instance_id && profile?.zapi_token && profile?.zapi_client_token),
+        );
       } catch (err) {
         console.error("Erro ao carregar credenciais:", err);
       } finally {
@@ -482,12 +492,14 @@ const ExtrairComunidade = () => {
   useEffect(() => {
     if (selectedInstanceId) {
       checkInstanceConnection(selectedInstanceId, { silent: true });
+    } else if (!loadingCredentials && hasLegacyZapiProfileCredentials) {
+      checkInstanceConnection(null, { silent: true });
     }
-  }, [selectedInstanceId]);
+  }, [hasLegacyZapiProfileCredentials, loadingCredentials, selectedInstanceId]);
 
   const fetchQrCode = async () => {
     const instId = selectedInstanceId;
-    if (!instId) { toast.error("Nenhuma instância disponível"); return; }
+    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
     setQrLoading(true);
     setQrCodeImage(null);
     try {
@@ -520,7 +532,7 @@ const ExtrairComunidade = () => {
 
   const fetchPairingCode = async () => {
     const instId = selectedInstanceId;
-    if (!instId) { toast.error("Nenhuma instância disponível"); return; }
+    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
     if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
     setPairingLoading(true);
     setPairingCode(null);
@@ -788,14 +800,14 @@ const ExtrairComunidade = () => {
               <Badge variant="outline" className="text-[10px]">
                 {checkingConnection || connectionPolling ? "Verificando..." : "Desconectado"}
               </Badge>
-              {instances.length > 0 ? (
+              {canConnectNumber ? (
                 <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
                   <Smartphone className="w-4 h-4" />
                   Conectar WhatsApp
                 </Button>
               ) : (
                 <p className="text-[10px] text-muted-foreground max-w-[200px]">
-                  Nenhuma instância configurada. Solicite ao administrador.
+                  Nenhuma instância ou credencial configurada. Solicite ao administrador.
                 </p>
               )}
             </div>
