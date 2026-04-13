@@ -178,7 +178,8 @@ const ExtrairComunidade = () => {
         setQrCodeImage(img);
         toast.success("QR Code gerado!");
       } else if (data?.data?.connected === true) {
-        toast.info("Dispositivo já conectado");
+        toast.success("Dispositivo já conectado!");
+        setConnectDialogOpen(false);
       } else {
         toast.error("QR Code indisponível. Tente reiniciar a instância.");
       }
