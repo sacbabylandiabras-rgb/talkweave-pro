@@ -128,6 +128,7 @@ const ExtrairComunidade = () => {
   const [pairingLoading, setPairingLoading] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [connectionPolling, setConnectionPolling] = useState(false);
+  const [connectedViaInstance, setConnectedViaInstance] = useState(false);
 
   // Poll connection status after QR is shown
   useEffect(() => {
