@@ -142,8 +142,40 @@ const extractParticipantsFromPayload = (payload: any): any[] => {
   return [];
 };
 
+const collectNestedMemberCounts = (payload: any, seen = new WeakSet<object>()): number[] => {
+  if (!payload || typeof payload !== "object") return [];
+  if (seen.has(payload)) return [];
+  seen.add(payload);
+
+  if (Array.isArray(payload)) {
+    return payload.flatMap((item) => collectNestedMemberCounts(item, seen));
+  }
+
+  const directCounts = [
+    payload?.membros,
+    payload?.ParticipantCount,
+    payload?.participantCount,
+    payload?.participantsCount,
+    payload?.participantsTotal,
+    payload?.memberCount,
+    payload?.MemberCount,
+    payload?.membersCount,
+    payload?.totalMembers,
+    payload?.totalParticipants,
+    payload?.size,
+    payload?.communitySize,
+    payload?.groupSize,
+  ]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  const nestedCounts = Object.values(payload).flatMap((value) => collectNestedMemberCounts(value, seen));
+
+  return [...directCounts, ...nestedCounts];
+};
+
 const extractMemberCountFromPayload = (payload: any) => {
-  const candidates = [
+  const directCounts = [
     payload?.membros,
     payload?.ParticipantCount,
     payload?.participantCount,
@@ -191,9 +223,16 @@ const extractMemberCountFromPayload = (payload: any) => {
     payload?.group?.size,
   ]
     .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value >= 0);
+    .filter((value) => Number.isFinite(value) && value > 0);
 
-  return Math.max(...candidates, extractParticipantsFromPayload(payload).length, 0);
+  const participantCount = extractParticipantsFromPayload(payload).length;
+
+  if (directCounts.length > 0) {
+    return Math.max(...directCounts, participantCount, 0);
+  }
+
+  const nestedTotal = collectNestedMemberCounts(payload).reduce((sum, count) => sum + count, 0);
+  return Math.max(participantCount, nestedTotal, 0);
 };
 
 const normalizeParticipant = (p: any): ExtractedParticipant | null => {
@@ -263,7 +302,7 @@ const ExtrairComunidade = () => {
   const canOperate = hasCredentials || connectedViaInstance;
 
   useEffect(() => {
-    if (!canOperate || groups.length === 0) return;
+    if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
 
     let cancelled = false;
 
@@ -288,7 +327,7 @@ const ExtrairComunidade = () => {
     return () => {
       cancelled = true;
     };
-  }, [canOperate, fetchMemberCount, groups]);
+  }, [canOperate, connectedViaInstance, fetchMemberCount, groups, hasCredentials]);
 
   useEffect(() => {
     if (!hasCredentials || connectedViaInstance || groups.length === 0) return;
@@ -629,57 +668,21 @@ const ExtrairComunidade = () => {
 
         pushParticipants(localParticipants);
 
-        try {
-          const { data: zapiData, error: zapiError } = await supabase.functions.invoke("get-group-participants", {
-            body: {
-              groupId: groupId.trim(),
-              fallbackParticipants: Array.from(normalizedMap.values()),
-              sourceInstanceId,
-            },
-          });
-
-          if (zapiError) throw zapiError;
-
-          pushParticipants(Array.isArray(zapiData?.participants) ? zapiData.participants : []);
-          resolvedGroupName =
-            zapiData?.groupName ||
-            data?.subject ||
-            data?.Subject ||
-            data?.name ||
-            data?.Name ||
-            data?.groupName ||
-            data?.data?.subject ||
-            data?.data?.name ||
-            selectedGroup?.name ||
-            "Comunidade";
-          resolvedTotalMembers = Math.max(
-            Number(data?.ParticipantCount) || 0,
-            Number(data?.participantCount) || 0,
-            Number(data?.data?.ParticipantCount) || 0,
-            Number(data?.data?.participantCount) || 0,
-            Number(zapiData?.participants?.length) || 0,
-            Number(selectedGroup?.size) || 0,
-          );
-        } catch (fallbackError) {
-          console.warn("Fallback get-group-participants falhou:", fallbackError);
-          resolvedGroupName =
-            data?.subject ||
-            data?.Subject ||
-            data?.name ||
-            data?.Name ||
-            data?.groupName ||
-            data?.data?.subject ||
-            data?.data?.name ||
-            selectedGroup?.name ||
-            "Comunidade";
-          resolvedTotalMembers = Math.max(
-            Number(data?.ParticipantCount) || 0,
-            Number(data?.participantCount) || 0,
-            Number(data?.data?.ParticipantCount) || 0,
-            Number(data?.data?.participantCount) || 0,
-            Number(selectedGroup?.size) || 0,
-          );
-        }
+        resolvedGroupName =
+          data?.subject ||
+          data?.Subject ||
+          data?.name ||
+          data?.Name ||
+          data?.groupName ||
+          data?.data?.subject ||
+          data?.data?.name ||
+          selectedGroup?.name ||
+          "Comunidade";
+        resolvedTotalMembers = Math.max(
+          extractMemberCountFromPayload(data),
+          localParticipants.length,
+          Number(selectedGroup?.size) || 0,
+        );
       }
 
       const extracted = Array.from(normalizedMap.values());
@@ -924,13 +927,11 @@ const ExtrairComunidade = () => {
                     {filteredGroups.map((g) => (
                         (() => {
                           const uazapiState = uazapiMemberCounts[g.id];
-                          const zapiMemberCount = getMemberCount(g.id, g.size);
-                          const uazapiMemberCount = typeof uazapiState?.count === "number" ? uazapiState.count : g.size;
                           const memberCount = hasCredentials && !connectedViaInstance
-                            ? Math.max(zapiMemberCount || 0, uazapiMemberCount || 0, g.size || 0)
-                            : zapiMemberCount;
+                            ? (typeof uazapiState?.count === "number" ? uazapiState.count : g.size)
+                            : getMemberCount(g.id, g.size);
                           const loadingMemberCount = hasCredentials && !connectedViaInstance
-                            ? Boolean(uazapiState?.loading) || isMemberCountLoading(g.id)
+                            ? Boolean(uazapiState?.loading)
                             : isMemberCountLoading(g.id);
 
                           return (
