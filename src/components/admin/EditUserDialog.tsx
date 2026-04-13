@@ -183,7 +183,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/20)</h3>
-                <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} disabled={instances.length >= 20}>
+                <Button size="sm" variant="outline" onClick={() => {
+                  if (showAddForm) {
+                    resetInstanceForm();
+                    return;
+                  }
+                  setEditingInstanceId(null);
+                  setShowAddForm(true);
+                }} disabled={instances.length >= 20 && !editingInstanceId}>
                 <Plus className="w-3 h-3 mr-1" /> Adicionar
               </Button>
             </div>
