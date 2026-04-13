@@ -334,16 +334,17 @@ const ExtrairComunidade = () => {
 
     let cancelled = false;
 
-    const groupsNeedingCount = groups.filter((group) => {
-      const cached = uazapiMemberCounts[group.id];
-      return (group.size <= 0 || group.isCommunity) && !cached?.loading && typeof cached?.count !== "number";
-    });
+    const groupsNeedingCount = groups.filter((group) => group.size <= 0 || group.isCommunity);
 
     if (groupsNeedingCount.length === 0) return;
 
     const loadUazapiCounts = async () => {
       for (const group of groupsNeedingCount) {
         if (cancelled) return;
+
+        // Skip if already fetched or in progress
+        const alreadyCached = uazapiMemberCounts[group.id];
+        if (alreadyCached && (alreadyCached.loading || alreadyCached.count > 0)) continue;
 
         setUazapiMemberCounts((prev) => ({
           ...prev,
@@ -381,7 +382,8 @@ const ExtrairComunidade = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiToken, apiUrl, connectedViaInstance, groups, hasCredentials, uazapiMemberCounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiToken, apiUrl, connectedViaInstance, groups, hasCredentials]);
 
   const fetchGroupsViaZapi = async () => {
     setLoadingGroups(true);
