@@ -215,8 +215,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddInstance}>Salvar</Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
+                     <Button size="sm" onClick={handleAddInstance}>{editingInstanceId ? 'Atualizar' : 'Salvar'}</Button>
+                     <Button size="sm" variant="outline" onClick={resetInstanceForm}>Cancelar</Button>
                   </div>
                 </CardContent>
               </Card>
