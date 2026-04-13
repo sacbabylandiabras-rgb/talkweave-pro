@@ -34,6 +34,61 @@ const normalizeParticipantIdentifier = (value: any) => {
   return raw.replace(/@.*/, "");
 };
 
+const isWhatsAppGroupId = (value: unknown) => {
+  if (typeof value !== "string") return false;
+  return value.includes("@g.us") || value.includes("-group");
+};
+
+const getGroupId = (group: any) => {
+  if (typeof group === "string") return group;
+  return group?.JID || group?.jid || group?.groupId || group?.remoteJid || group?.phone || group?.id || "";
+};
+
+const getGroupName = (group: any, fallbackId: string) => {
+  if (typeof group === "string") return fallbackId.replace(/(@g\.us|-group)$/i, "");
+  return (
+    group?.nome ||
+    group?.Name ||
+    group?.subject ||
+    group?.name ||
+    group?.groupName ||
+    group?.title ||
+    group?.contact ||
+    group?.pushName ||
+    fallbackId.replace(/(@g\.us|-group)$/i, "")
+  );
+};
+
+const getGroupSize = (group: any) => {
+  if (typeof group === "string") return 0;
+  const rawParticipants = extractParticipantsFromPayload(group);
+  return Number(
+    group?.membros ||
+    group?.ParticipantCount ||
+    group?.participantCount ||
+    group?.size ||
+    group?.memberCount ||
+    group?.MemberCount ||
+    rawParticipants.length ||
+    0,
+  );
+};
+
+const buildGroupList = (rawGroups: any[]): GroupInfo[] => {
+  return rawGroups
+    .map((group: any) => {
+      const id = getGroupId(group);
+      return {
+        id,
+        name: getGroupName(group, id),
+        size: getGroupSize(group),
+        raw: typeof group === "string" ? undefined : group,
+      };
+    })
+    .filter((group) => isWhatsAppGroupId(group.id))
+    .filter((group, index, self) => self.findIndex((item) => item.id === group.id) === index);
+};
+
 const normalizeQrImageValue = (value: unknown) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -140,16 +195,7 @@ const ExtrairComunidade = () => {
       const { data, error } = await supabase.functions.invoke("get-whatsapp-groups");
       if (error) throw error;
       const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
-      const list: GroupInfo[] = rawGroups
-        .map((g: any) => ({
-          id: g?.phone || g?.jid || g?.id || g?.JID || "",
-          name: g?.nome || g?.name || g?.subject || g?.Name || "",
-          size: g?.membros || g?.participantCount || g?.size || g?.ParticipantCount || 0,
-          raw: g,
-        }))
-        .filter((g) => g.id.includes("@g.us"))
-        .filter((g, i, self) => self.findIndex((item) => item.id === g.id) === i)
-        .map((g) => ({ ...g, name: g.name || g.id.replace("@g.us", "") }));
+      const list = buildGroupList(rawGroups);
       setGroups(list);
       if (list.length === 0) {
         toast.warning("Nenhum grupo encontrado.");
@@ -331,29 +377,7 @@ const ExtrairComunidade = () => {
           ? data.groups
           : [];
 
-      const list: GroupInfo[] = rawGroups
-        .map((g: any) => {
-          const id = typeof g === "string"
-            ? g
-            : g?.JID || g?.id || g?.jid || g?.groupId || g?.remoteJid || "";
-
-          const name = typeof g === "string"
-            ? ""
-            : g?.Name || g?.subject || g?.name || g?.groupName || g?.pushName || "";
-
-          const rawParticipants = typeof g === "string" ? [] : extractParticipantsFromPayload(g);
-          const size = typeof g === "string"
-            ? 0
-            : g?.ParticipantCount || g?.participantCount || g?.size || rawParticipants.length || g?.memberCount || g?.MemberCount || 0;
-
-          return { id, name, size, raw: typeof g === "string" ? undefined : g };
-        })
-        .filter((g) => g.id.includes("@g.us"))
-        .filter((g, index, self) => self.findIndex((item) => item.id === g.id) === index)
-        .map((g) => ({
-          ...g,
-          name: g.name || g.id.replace("@g.us", ""),
-        }));
+      const list = buildGroupList(rawGroups);
 
       setGroups(list);
       if (list.length === 0) {
