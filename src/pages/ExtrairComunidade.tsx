@@ -118,10 +118,17 @@ const extractParticipantsFromPayload = (payload: any): any[] => {
     payload?.Participants,
     payload?.members,
     payload?.Members,
+    payload?.groupParticipants,
+    payload?.communityParticipants,
+    payload?.participantIds,
     payload?.data?.participants,
     payload?.data?.Participants,
     payload?.data?.members,
     payload?.data?.Members,
+    payload?.data?.groupParticipants,
+    payload?.data?.communityParticipants,
+    payload?.result?.participants,
+    payload?.result?.members,
     payload?.group?.participants,
     payload?.group?.Participants,
     payload?.group?.members,
@@ -418,92 +425,135 @@ const ExtrairComunidade = () => {
         selectedGroup?.raw?.sourceInstanceId ||
         selectedGroup?.raw?.__sourceInstanceId ||
         null;
+      const normalizedMap = new Map<string, ExtractedParticipant>();
+      let resolvedGroupName = selectedGroup?.name || "Comunidade";
+      let resolvedTotalMembers = Number(selectedGroup?.size) || 0;
 
-      // If connected via Z-API instance, use get-group-participants directly
       const useZapiDirect = connectedViaInstance && !hasCredentials;
-      const { data, error } = useZapiDirect
-        ? await supabase.functions.invoke("get-group-participants", {
-            body: {
-              groupId: groupId.trim(),
-              sourceInstanceId,
-            },
-          })
-        : await supabase.functions.invoke("uazapi-group-info", {
-            body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      const pushParticipants = (values: any[]) => {
+        values.forEach((participant) => {
+          const normalized = normalizeParticipant(participant);
+          if (!normalized) return;
+
+          const existing = normalizedMap.get(normalized.phone);
+          if (!existing) {
+            normalizedMap.set(normalized.phone, normalized);
+            return;
+          }
+
+          normalizedMap.set(normalized.phone, {
+            phone: normalized.phone,
+            name: existing.name || normalized.name,
+            isAdmin: existing.isAdmin || normalized.isAdmin,
+            isSuperAdmin: existing.isSuperAdmin || normalized.isSuperAdmin,
           });
-      if (error) throw error;
+        });
+      };
 
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      const responseParticipants = extractParticipantsFromPayload(data);
-      const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
-      const localParticipants = [...responseParticipants, ...listParticipants]
-        .map((participant) => normalizeParticipant(participant))
-        .filter((participant): participant is ExtractedParticipant => Boolean(participant));
-
-      let zapiParticipants: ExtractedParticipant[] = [];
-
-      try {
-        const { data: zapiData, error: zapiError } = await supabase.functions.invoke("get-group-participants", {
+      if (useZapiDirect) {
+        const { data, error } = await supabase.functions.invoke("get-group-participants", {
           body: {
             groupId: groupId.trim(),
-            fallbackParticipants: localParticipants,
             sourceInstanceId,
           },
         });
 
-        if (zapiError) throw zapiError;
-
-        zapiParticipants = Array.isArray(zapiData?.participants)
-          ? zapiData.participants
-              .map((participant: any) => normalizeParticipant(participant))
-              .filter((participant): participant is ExtractedParticipant => Boolean(participant))
-          : [];
-      } catch (fallbackError) {
-        console.warn("Fallback get-group-participants falhou:", fallbackError);
-      }
-
-      const normalizedMap = new Map<string, ExtractedParticipant>();
-
-      [...localParticipants, ...zapiParticipants].forEach((normalized) => {
-        if (!normalized) return;
-
-        const existing = normalizedMap.get(normalized.phone);
-        if (!existing) {
-          normalizedMap.set(normalized.phone, normalized);
+        if (error) throw error;
+        if (data?.error) {
+          toast.error(data.error);
           return;
         }
 
-        normalizedMap.set(normalized.phone, {
-          phone: normalized.phone,
-          name: existing.name || normalized.name,
-          isAdmin: existing.isAdmin || normalized.isAdmin,
-          isSuperAdmin: existing.isSuperAdmin || normalized.isSuperAdmin,
+        pushParticipants(Array.isArray(data?.participants) ? data.participants : []);
+        resolvedGroupName = data?.groupName || selectedGroup?.name || "Comunidade";
+        resolvedTotalMembers = Math.max(
+          Number(data?.participants?.length) || 0,
+          Number(selectedGroup?.size) || 0,
+        );
+      } else {
+        const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
+          body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
         });
-      });
+
+        if (error) throw error;
+        if (data?.error) {
+          toast.error(data.error);
+          return;
+        }
+
+        const responseParticipants = extractParticipantsFromPayload(data);
+        const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
+        const localParticipants = [...responseParticipants, ...listParticipants];
+
+        pushParticipants(localParticipants);
+
+        try {
+          const { data: zapiData, error: zapiError } = await supabase.functions.invoke("get-group-participants", {
+            body: {
+              groupId: groupId.trim(),
+              fallbackParticipants: Array.from(normalizedMap.values()),
+              sourceInstanceId,
+            },
+          });
+
+          if (zapiError) throw zapiError;
+
+          pushParticipants(Array.isArray(zapiData?.participants) ? zapiData.participants : []);
+          resolvedGroupName =
+            zapiData?.groupName ||
+            data?.subject ||
+            data?.Subject ||
+            data?.name ||
+            data?.Name ||
+            data?.groupName ||
+            data?.data?.subject ||
+            data?.data?.name ||
+            selectedGroup?.name ||
+            "Comunidade";
+          resolvedTotalMembers = Math.max(
+            Number(data?.ParticipantCount) || 0,
+            Number(data?.participantCount) || 0,
+            Number(data?.data?.ParticipantCount) || 0,
+            Number(data?.data?.participantCount) || 0,
+            Number(zapiData?.participants?.length) || 0,
+            Number(selectedGroup?.size) || 0,
+          );
+        } catch (fallbackError) {
+          console.warn("Fallback get-group-participants falhou:", fallbackError);
+          resolvedGroupName =
+            data?.subject ||
+            data?.Subject ||
+            data?.name ||
+            data?.Name ||
+            data?.groupName ||
+            data?.data?.subject ||
+            data?.data?.name ||
+            selectedGroup?.name ||
+            "Comunidade";
+          resolvedTotalMembers = Math.max(
+            Number(data?.ParticipantCount) || 0,
+            Number(data?.participantCount) || 0,
+            Number(data?.data?.ParticipantCount) || 0,
+            Number(data?.data?.participantCount) || 0,
+            Number(selectedGroup?.size) || 0,
+          );
+        }
+      }
 
       const extracted = Array.from(normalizedMap.values());
-      const reportedTotal = Math.max(
-        Number(data?.ParticipantCount) || 0,
-        Number(data?.participantCount) || 0,
-        Number(data?.data?.ParticipantCount) || 0,
-        Number(data?.data?.participantCount) || 0,
-        Number(selectedGroup?.size) || 0,
-        extracted.length,
-        zapiParticipants.length,
-      );
 
       setParticipants(extracted);
       setMetadata({
-        groupName: data?.subject || data?.Subject || data?.name || data?.Name || data?.groupName || data?.data?.subject || data?.data?.name || selectedGroup?.name || "Comunidade",
-        totalMembers: Number(reportedTotal) || extracted.length,
+        groupName: resolvedGroupName,
+        totalMembers: Number(resolvedTotalMembers) || extracted.length,
       });
 
       if (extracted.length === 0) {
-        toast.warning("Nenhum membro encontrado ou a API retornou em formato diferente.");
+        toast.warning(
+          selectedGroup?.isCommunity
+            ? "Nenhum membro retornado para esta comunidade. Agora os subgrupos estão sendo interpretados com mais formatos."
+            : "Nenhum membro encontrado ou a API retornou em formato diferente.",
+        );
       } else {
         toast.success(`${extracted.length} membros extraídos!`);
       }

@@ -44,8 +44,34 @@ const toEntityLikeString = (value: any): string => {
     if (typeof value.serialized === "string") return value.serialized.trim();
     if (typeof value.id === "string") return value.id.trim();
     if (typeof value.jid === "string") return value.jid.trim();
+    if (typeof value.JID === "string") return value.JID.trim();
+    if (typeof value.groupId === "string") return value.groupId.trim();
+    if (typeof value.remoteJid === "string") return value.remoteJid.trim();
     if (typeof value.phone === "string") return value.phone.trim();
     if (typeof value.participant === "string") return value.participant.trim();
+
+    const nestedCandidates = [
+      value.id,
+      value.jid,
+      value.JID,
+      value.groupId,
+      value.remoteJid,
+      value.phone,
+      value.participant,
+      value.userJid,
+      value.group,
+      value.subGroup,
+      value.chatId,
+      value.metadata?.id,
+      value.contact?.id,
+    ];
+
+    for (const candidate of nestedCandidates) {
+      if (!candidate || candidate === value) continue;
+      const nestedValue = toEntityLikeString(candidate);
+      if (nestedValue) return nestedValue;
+    }
+
     if (typeof value.user === "string" && typeof value.server === "string") {
       return `${value.user}@${value.server}`.trim();
     }
@@ -158,6 +184,44 @@ const buildCommunityCandidates = (groupId: string, primaryData: any) => {
     normalizeCommunityId(primaryData?.phone),
     normalizeCommunityId(groupId),
   ]);
+};
+
+const extractCommunitySubGroupIds = (payload: any) => {
+  const candidates = [
+    payload?.subGroups,
+    payload?.SubGroups,
+    payload?.groups,
+    payload?.communityGroups,
+    payload?.linkedGroups,
+    payload?.children,
+    payload?.data?.subGroups,
+    payload?.data?.SubGroups,
+    payload?.data?.groups,
+    payload?.result?.subGroups,
+    payload?.result?.groups,
+  ];
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate) || candidate.length === 0) continue;
+
+    const ids = uniqueStrings(
+      candidate.flatMap((entry) => [
+        toEntityLikeString(entry),
+        toEntityLikeString(entry?.id),
+        toEntityLikeString(entry?.jid),
+        toEntityLikeString(entry?.JID),
+        toEntityLikeString(entry?.groupId),
+        toEntityLikeString(entry?.remoteJid),
+        toEntityLikeString(entry?.group),
+        toEntityLikeString(entry?.subGroup),
+        toEntityLikeString(entry?.metadata?.id),
+      ]),
+    ).filter((entry) => isLikelyGroupId(entry));
+
+    if (ids.length > 0) return ids;
+  }
+
+  return [];
 };
 
 const fetchJson = async (url: string, headers: Record<string, string>) => {
@@ -306,20 +370,14 @@ Deno.serve(async (req) => {
 
         // Z-API communities-metadata returns subGroups but not members directly.
         // Iterate through each subGroup and fetch participants from each one.
-        const subGroups = Array.isArray(communityData?.subGroups)
-          ? communityData.subGroups
-          : Array.isArray(communityData?.SubGroups)
-            ? communityData.SubGroups
-            : Array.isArray(communityData?.groups)
-              ? communityData.groups
-              : [];
+        const subGroupIds = extractCommunitySubGroupIds(communityData);
 
-        if (subGroups.length > 0) {
-          console.log(`📂 Community has ${subGroups.length} subGroups, fetching participants from each...`);
+        if (subGroupIds.length > 0) {
+          console.log(`📂 Community has ${subGroupIds.length} subGroups, fetching participants from each...`);
+          console.log(`🧩 Resolved subGroup ids: ${subGroupIds.slice(0, 10).join(", ")}`);
           const allSubGroupParticipants: any[] = [];
 
-          for (const subGroup of subGroups) {
-            const subGroupId = toEntityLikeString(subGroup?.id || subGroup?.JID || subGroup?.jid || subGroup);
+          for (const subGroupId of subGroupIds) {
             if (!subGroupId || !isLikelyGroupId(subGroupId)) continue;
 
             try {
@@ -335,7 +393,7 @@ Deno.serve(async (req) => {
 
           if (allSubGroupParticipants.length > 0) {
             apiParticipants = allSubGroupParticipants;
-            console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${subGroups.length} subGroups`);
+            console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${subGroupIds.length} subGroups`);
             break;
           }
         }
