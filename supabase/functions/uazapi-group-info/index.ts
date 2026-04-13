@@ -21,49 +21,65 @@ serve(async (req) => {
     }
 
     const baseUrl = apiUrl.replace(/\/+$/, '')
+    const encodedToken = encodeURIComponent(apiToken)
+    const encodedJid = encodeURIComponent(groupId)
 
-    // Try multiple endpoint patterns used by uazapi
+    // Try multiple endpoint patterns and methods used by uazapi
     const endpoints = [
-      { url: `${baseUrl}/v1/groups/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
-      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ jid: groupId }) },
-      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ JID: groupId }) },
-      { url: `${baseUrl}/group/info?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
-      { url: `${baseUrl}/group/participants?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ groupId }) },
-      { url: `${baseUrl}/group/participants?token=${encodeURIComponent(apiToken)}`, method: 'POST', body: JSON.stringify({ JID: groupId }) },
+      // GET with JID as query param
+      { url: `${baseUrl}/group/info?token=${encodedToken}&JID=${encodedJid}`, method: 'GET', body: null },
+      { url: `${baseUrl}/group/info?token=${encodedToken}&jid=${encodedJid}`, method: 'GET', body: null },
+      { url: `${baseUrl}/group/info?token=${encodedToken}&groupId=${encodedJid}`, method: 'GET', body: null },
+      { url: `${baseUrl}/group/participants?token=${encodedToken}&JID=${encodedJid}`, method: 'GET', body: null },
+      { url: `${baseUrl}/group/participants?token=${encodedToken}&jid=${encodedJid}`, method: 'GET', body: null },
+      // v1 endpoints
+      { url: `${baseUrl}/v1/groups/info?token=${encodedToken}&groupId=${encodedJid}`, method: 'GET', body: null },
+      { url: `${baseUrl}/v1/groups/participants?token=${encodedToken}&groupId=${encodedJid}`, method: 'GET', body: null },
+      // POST fallbacks
+      { url: `${baseUrl}/group/info?token=${encodedToken}`, method: 'POST', body: JSON.stringify({ JID: groupId }) },
+      { url: `${baseUrl}/group/info?token=${encodedToken}`, method: 'POST', body: JSON.stringify({ jid: groupId }) },
+      { url: `${baseUrl}/group/info?token=${encodedToken}`, method: 'POST', body: JSON.stringify({ groupId }) },
     ]
 
     let lastError = ''
+    let lastStatus = 0
 
     for (const ep of endpoints) {
       try {
-        console.log(`Trying: ${ep.method} ${ep.url} body=${ep.body}`)
-        const response = await fetch(ep.url, {
+        console.log(`Trying: ${ep.method} ${ep.url}`)
+        const fetchOpts: RequestInit = {
           method: ep.method,
           headers: { 'Content-Type': 'application/json' },
-          body: ep.body,
-        })
+        }
+        if (ep.body) fetchOpts.body = ep.body
 
+        const response = await fetch(ep.url, fetchOpts)
         const data = await response.json()
 
         if (response.ok) {
-          console.log(`Success from ${ep.url}: keys=${Object.keys(data).join(',')}`)
-          console.log(`Participants count: ${data?.participants?.length || data?.Participants?.length || 0}`)
+          console.log(`✅ Success from ${ep.url}: keys=${Object.keys(data).join(',')}`)
+          
+          // Log full response structure for debugging
+          const sample = JSON.stringify(data).substring(0, 1000)
+          console.log(`Response sample: ${sample}`)
+          
           return new Response(JSON.stringify(data), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
 
+        lastStatus = response.status
         lastError = JSON.stringify(data)
-        console.log(`Failed ${ep.url}: ${response.status} ${lastError}`)
+        console.log(`❌ Failed ${ep.method} ${ep.url}: ${response.status} ${lastError}`)
       } catch (e) {
         lastError = e.message
-        console.log(`Error ${ep.url}: ${e.message}`)
+        console.log(`❌ Error ${ep.url}: ${e.message}`)
       }
     }
 
-    console.error('All endpoints failed. Last error:', lastError)
-    return new Response(JSON.stringify({ error: `All endpoints failed: ${lastError}`, participants: [] }), {
+    console.error(`All endpoints failed. Last: ${lastStatus} ${lastError}`)
+    return new Response(JSON.stringify({ error: `API error (${lastStatus}): ${lastError}`, participants: [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
