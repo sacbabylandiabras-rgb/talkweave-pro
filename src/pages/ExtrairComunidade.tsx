@@ -21,6 +21,15 @@ interface GroupInfo {
   raw?: any;
 }
 
+const normalizeParticipantIdentifier = (value: any) => {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) return "";
+  if (/@lid$/i.test(raw)) return raw;
+
+  return raw.replace(/@.*/, "");
+};
+
 const extractParticipantsFromPayload = (payload: any): any[] => {
   const candidates = [
     payload?.participants,
@@ -45,24 +54,15 @@ const extractParticipantsFromPayload = (payload: any): any[] => {
 };
 
 const normalizeParticipant = (p: any): ExtractedParticipant | null => {
-  const rawPhone =
-    p?.PN ||
-    p?.PhoneNumber ||
-    p?.phone ||
-    p?.number ||
-    p?.waId ||
-    p?.JID ||
-    p?.jid ||
-    p?.id ||
-    p?.userJid ||
-    p?.participant ||
-    p?.LID ||
-    p?.lid ||
-    "";
+  const realPhone = normalizeParticipantIdentifier(
+    p?.PN || p?.PhoneNumber || p?.phone || p?.number || p?.waId || "",
+  );
 
-  const normalizedPhone = String(rawPhone).trim().replace(/@.*/, "");
-  const fallbackId = String(p?.LID || p?.lid || p?.JID || p?.jid || p?.id || "").trim().replace(/@.*/, "");
-  const phone = normalizedPhone || fallbackId;
+  const encryptedId = normalizeParticipantIdentifier(
+    p?.LID || p?.lid || p?.JID || p?.jid || p?.id || p?.userJid || p?.participant || "",
+  );
+
+  const phone = realPhone || encryptedId;
 
   if (phone.length <= 3) return null;
 
@@ -214,11 +214,34 @@ const ExtrairComunidade = () => {
       const responseParticipants = extractParticipantsFromPayload(data);
       const selectedGroup = groups.find((group) => group.id === groupId.trim());
       const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
+      const localParticipants = [...responseParticipants, ...listParticipants]
+        .map((participant) => normalizeParticipant(participant))
+        .filter((participant): participant is ExtractedParticipant => Boolean(participant));
+
+      let zapiParticipants: ExtractedParticipant[] = [];
+
+      try {
+        const { data: zapiData, error: zapiError } = await supabase.functions.invoke("get-group-participants", {
+          body: {
+            groupId: groupId.trim(),
+            fallbackParticipants: localParticipants,
+          },
+        });
+
+        if (zapiError) throw zapiError;
+
+        zapiParticipants = Array.isArray(zapiData?.participants)
+          ? zapiData.participants
+              .map((participant: any) => normalizeParticipant(participant))
+              .filter((participant): participant is ExtractedParticipant => Boolean(participant))
+          : [];
+      } catch (fallbackError) {
+        console.warn("Fallback get-group-participants falhou:", fallbackError);
+      }
 
       const normalizedMap = new Map<string, ExtractedParticipant>();
 
-      [...responseParticipants, ...listParticipants].forEach((participant) => {
-        const normalized = normalizeParticipant(participant);
+      [...localParticipants, ...zapiParticipants].forEach((normalized) => {
         if (!normalized) return;
 
         const existing = normalizedMap.get(normalized.phone);
@@ -236,13 +259,15 @@ const ExtrairComunidade = () => {
       });
 
       const extracted = Array.from(normalizedMap.values());
-      const reportedTotal =
-        data?.ParticipantCount ||
-        data?.participantCount ||
-        data?.data?.ParticipantCount ||
-        data?.data?.participantCount ||
-        selectedGroup?.size ||
-        extracted.length;
+      const reportedTotal = Math.max(
+        Number(data?.ParticipantCount) || 0,
+        Number(data?.participantCount) || 0,
+        Number(data?.data?.ParticipantCount) || 0,
+        Number(data?.data?.participantCount) || 0,
+        Number(selectedGroup?.size) || 0,
+        extracted.length,
+        zapiParticipants.length,
+      );
 
       setParticipants(extracted);
       setMetadata({
