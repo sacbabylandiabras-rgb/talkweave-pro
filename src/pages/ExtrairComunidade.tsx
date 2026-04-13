@@ -636,8 +636,10 @@ const ExtrairComunidade = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">
-              Grupos da Instância {groups.length > 0 && <Badge variant="secondary" className="ml-2 text-[10px]">{groups.length}</Badge>}
+            <CardTitle className="text-sm flex items-center gap-2">
+              Grupos da Instância
+              {connectedViaInstance && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
+              {groups.length > 0 && <Badge variant="secondary" className="text-[10px]">{groups.length}</Badge>}
             </CardTitle>
             <Button
               variant="ghost"
