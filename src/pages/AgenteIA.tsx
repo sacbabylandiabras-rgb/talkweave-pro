@@ -442,7 +442,7 @@ const AgenteIA = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card border-l-[3px] border-l-primary">
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-primary/15 bg-card hover:border-primary/30 transition-all duration-300">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Bot className="w-4 h-4 text-primary" />
               </div>
@@ -453,7 +453,7 @@ const AgenteIA = () => {
                 </Badge>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card border-l-[3px] border-l-accent">
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-primary/15 bg-card hover:border-primary/30 transition-all duration-300">
               <div className="p-2 rounded-lg bg-accent/10">
                 <HelpCircle className="w-4 h-4 text-accent" />
               </div>
@@ -462,7 +462,7 @@ const AgenteIA = () => {
                 <p className="text-lg font-bold">{knowledge.filter(k => k.type === "faq").length}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card border-l-[3px] border-l-success">
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-primary/15 bg-card hover:border-primary/30 transition-all duration-300">
               <div className="p-2 rounded-lg bg-success/10">
                 <FileText className="w-4 h-4 text-success" />
               </div>
