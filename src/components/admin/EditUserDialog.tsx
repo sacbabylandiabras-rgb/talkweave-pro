@@ -37,6 +37,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   );
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingInstanceId, setEditingInstanceId] = useState<string | null>(null);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
