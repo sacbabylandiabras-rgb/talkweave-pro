@@ -7,34 +7,36 @@ import { cn } from "@/lib/utils";
 interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
   onMultiInstanceChange?: (instanceIds: string[]) => void;
+  useSavedSelection?: boolean;
 }
 
 const ROTATE_ALL = "__rotate_all__";
 
 const STORAGE_KEY = "zaplynx_selected_instances";
 
-const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceSelectorProps) => {
+const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true }: InstanceSelectorProps) => {
   const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 
-  // Restore saved selection from localStorage, fallback to all
+  // Restore saved selection from localStorage, fallback to active/default instance
   useEffect(() => {
     if (!initialized && instances.length > 0) {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = useSavedSelection ? localStorage.getItem(STORAGE_KEY) : null;
       let idsToSelect: string[];
+      const fallbackId = activeInstance?.id || instances.find(i => i.is_default)?.id || instances[0]?.id;
 
       if (saved) {
         try {
           const parsed: string[] = JSON.parse(saved);
           // Filter to only valid instance IDs that still exist
           const valid = parsed.filter(id => instances.some(i => i.id === id));
-          idsToSelect = valid.length > 0 ? valid : instances.map(i => i.id);
+          idsToSelect = valid.length > 0 ? valid : (fallbackId ? [fallbackId] : []);
         } catch {
-          idsToSelect = instances.map(i => i.id);
+          idsToSelect = fallbackId ? [fallbackId] : [];
         }
       } else {
-        idsToSelect = instances.map(i => i.id);
+        idsToSelect = fallbackId ? [fallbackId] : [];
       }
 
       setSelectedIds(new Set(idsToSelect));
@@ -44,13 +46,13 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange }: InstanceS
       if (idsToSelect.length > 1) {
         onInstanceChange?.(ROTATE_ALL);
         onMultiInstanceChange?.(idsToSelect);
-      } else {
+      } else if (idsToSelect.length === 1) {
         selectInstance(idsToSelect[0]);
         onInstanceChange?.(idsToSelect[0]);
         onMultiInstanceChange?.(idsToSelect);
       }
     }
-  }, [instances, initialized]);
+  }, [instances, initialized, useSavedSelection, activeInstance]);
 
   const toggleInstance = (id: string) => {
     setSelectedIds(prev => {
