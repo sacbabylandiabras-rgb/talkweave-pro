@@ -127,7 +127,38 @@ const ExtrairComunidade = () => {
   const [pairingPhone, setPairingPhone] = useState("");
   const [pairingLoading, setPairingLoading] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  const [connectionPolling, setConnectionPolling] = useState(false);
 
+  // Poll connection status after QR is shown
+  useEffect(() => {
+    if (!connectDialogOpen || !qrCodeImage || !selectedInstanceId) {
+      setConnectionPolling(false);
+      return;
+    }
+    setConnectionPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("get-device-status", {
+          body: { instanceId: selectedInstanceId },
+        });
+        const connected = data?.data?.connected === true || data?.connected === true || data?.data?.status === "CONNECTED";
+        if (connected) {
+          toast.success("WhatsApp conectado com sucesso!");
+          setConnectDialogOpen(false);
+          setQrCodeImage(null);
+          setConnectionPolling(false);
+          // Reload credentials
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const { data: profile } = await supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", session.user.id).single();
+            if ((profile as any)?.uazapi_url) setApiUrl((profile as any).uazapi_url);
+            if ((profile as any)?.uazapi_token) setApiToken((profile as any).uazapi_token);
+          }
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
 
   // Load credentials from database (set by admin)
