@@ -101,7 +101,8 @@ const normalizeParticipant = (p: any): ExtractedParticipant | null => {
   };
 };
 
-const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+const ExtrairComunidade = () => {
+  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [apiUrl, setApiUrl] = useState("");
   const [apiToken, setApiToken] = useState("");
   const [loadingCredentials, setLoadingCredentials] = useState(true);
