@@ -240,6 +240,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
                       </div>
                       <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" title="Editar instância" onClick={() => handleEditInstance(inst)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
                         {!inst.is_default && (
                           <Button size="sm" variant="ghost" title="Definir como padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                             <Star className="w-3 h-3" />
