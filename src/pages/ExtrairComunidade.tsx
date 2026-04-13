@@ -501,7 +501,7 @@ const ExtrairComunidade = () => {
       </div>
 
       {/* No credentials — show connect button + dialog */}
-      {!loadingCredentials && !hasCredentials && (
+      {!loadingCredentials && !canOperate && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
