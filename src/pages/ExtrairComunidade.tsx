@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Download, Loader2, Copy, Check, Search, AlertTriangle, Save } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, Save, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,6 +12,12 @@ interface ExtractedParticipant {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   name: string;
+}
+
+interface GroupInfo {
+  id: string;
+  name: string;
+  size: number;
 }
 
 const STORAGE_KEY = "uazapi_credentials";
@@ -29,54 +35,84 @@ function saveCredentials(apiUrl: string, apiToken: string) {
 }
 
 const ExtrairComunidade = () => {
-  const [communityId, setCommunityId] = useState("");
   const stored = loadCredentials();
   const [apiUrl, setApiUrl] = useState(stored.apiUrl);
   const [apiToken, setApiToken] = useState(stored.apiToken);
   const [extracting, setExtracting] = useState(false);
   const [participants, setParticipants] = useState<ExtractedParticipant[]>([]);
-  const [metadata, setMetadata] = useState<{
-    groupName: string;
-    totalMembers: number;
-  } | null>(null);
+  const [metadata, setMetadata] = useState<{ groupName: string; totalMembers: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState("");
 
+  // Groups list
+  const [groups, setGroups] = useState<GroupInfo[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
+
+  const hasCredentials = apiUrl.trim() && apiToken.trim();
+
   const handleSaveCredentials = () => {
-    if (!apiUrl.trim() || !apiToken.trim()) {
+    if (!hasCredentials) {
       toast.error("Preencha a URL e o Token da uazapi");
       return;
     }
     saveCredentials(apiUrl.trim(), apiToken.trim());
-    toast.success("Credenciais salvas localmente!");
+    toast.success("Credenciais salvas!");
+    fetchGroups();
   };
 
-  const handleExtract = async () => {
-    if (!communityId.trim()) {
-      toast.error("Informe o ID da comunidade");
-      return;
+  const fetchGroups = async () => {
+    if (!apiUrl.trim() || !apiToken.trim()) return;
+    setLoadingGroups(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) throw error;
+
+      const list: GroupInfo[] = (Array.isArray(data) ? data : data?.groups || []).map((g: any) => ({
+        id: g.id || g.jid || g.groupId || "",
+        name: g.subject || g.name || g.groupName || "Sem nome",
+        size: g.size || g.participants?.length || 0,
+      }));
+
+      setGroups(list);
+      if (list.length === 0) {
+        toast.warning("Nenhum grupo encontrado nesta instância.");
+      } else {
+        toast.success(`${list.length} grupos carregados!`);
+      }
+    } catch (err: any) {
+      console.error("Erro ao listar grupos:", err);
+      toast.error(err?.message || "Erro ao listar grupos");
+    } finally {
+      setLoadingGroups(false);
     }
-    if (!apiUrl.trim() || !apiToken.trim()) {
-      toast.error("Configure a URL e Token da uazapi primeiro");
-      return;
+  };
+
+  // Auto-fetch groups on mount if credentials exist
+  useEffect(() => {
+    if (stored.apiUrl && stored.apiToken) {
+      fetchGroups();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleExtract = async (groupId: string) => {
+    if (!groupId.trim() || !hasCredentials) return;
 
     setExtracting(true);
     setParticipants([]);
     setMetadata(null);
+    setSelectedGroupId(groupId);
 
     try {
       const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
-        body: {
-          groupId: communityId.trim(),
-          apiUrl: apiUrl.trim(),
-          apiToken: apiToken.trim(),
-        },
+        body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
-
       if (error) throw error;
 
-      // Parse uazapi response — participants array with JID format
       const rawParticipants = data?.participants || [];
       const extracted: ExtractedParticipant[] = rawParticipants.map((p: any) => {
         const jid = p.id || p.jid || p.JID || "";
@@ -96,13 +132,13 @@ const ExtrairComunidade = () => {
       });
 
       if (extracted.length === 0) {
-        toast.warning("Nenhum membro encontrado. Verifique o ID e tente novamente.");
+        toast.warning("Nenhum membro encontrado.");
       } else {
-        toast.success(`${extracted.length} membros extraídos com sucesso!`);
+        toast.success(`${extracted.length} membros extraídos!`);
       }
     } catch (err: any) {
       console.error("Erro ao extrair membros:", err);
-      toast.error(err?.message || "Erro ao extrair membros da comunidade");
+      toast.error(err?.message || "Erro ao extrair membros");
     } finally {
       setExtracting(false);
     }
@@ -114,11 +150,15 @@ const ExtrairComunidade = () => {
 
   const filteredParticipants = filter
     ? participants.filter(
-        (p) =>
-          p.phone.includes(filter) ||
-          p.name.toLowerCase().includes(filter.toLowerCase())
+        (p) => p.phone.includes(filter) || p.name.toLowerCase().includes(filter.toLowerCase())
       )
     : participants;
+
+  const filteredGroups = groupFilter
+    ? groups.filter(
+        (g) => g.name.toLowerCase().includes(groupFilter.toLowerCase()) || g.id.includes(groupFilter)
+      )
+    : groups;
 
   const copyAll = () => {
     if (phones.length === 0) return;
@@ -134,7 +174,7 @@ const ExtrairComunidade = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `comunidade_${communityId.replace(/[^a-zA-Z0-9]/g, "_")}_membros.txt`;
+    a.download = `membros_${selectedGroupId.replace(/[^a-zA-Z0-9]/g, "_")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -150,7 +190,7 @@ const ExtrairComunidade = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `comunidade_${communityId.replace(/[^a-zA-Z0-9]/g, "_")}_membros.csv`;
+    a.download = `membros_${selectedGroupId.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -160,10 +200,11 @@ const ExtrairComunidade = () => {
       <div>
         <h1 className="text-xl font-bold text-foreground tracking-tight">Extrair Membros de Comunidade</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Insira o ID da comunidade WhatsApp para extrair a lista de membros via uazapi
+          Conecte sua instância uazapi para listar grupos e extrair membros automaticamente
         </p>
       </div>
 
+      {/* Credentials */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Credenciais uazapi</CardTitle>
@@ -193,54 +234,101 @@ const ExtrairComunidade = () => {
               />
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleSaveCredentials}>
-            <Save className="w-3 h-3 mr-1" /> Salvar Credenciais
+          <Button variant="outline" size="sm" onClick={handleSaveCredentials} disabled={!hasCredentials}>
+            <Save className="w-3 h-3 mr-1" /> Salvar e Carregar Grupos
           </Button>
         </CardContent>
       </Card>
 
+      {/* Groups List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Extração</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">
+              Grupos da Instância {groups.length > 0 && <Badge variant="secondary" className="ml-2 text-[10px]">{groups.length}</Badge>}
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchGroups}
+              disabled={loadingGroups || !hasCredentials}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">
-              ID da Comunidade / Grupo
-            </label>
-            <Input
-              placeholder="Ex: 120363xxxxxxxxxxxx@g.us"
-              value={communityId}
-              onChange={(e) => setCommunityId(e.target.value)}
-              disabled={extracting}
-            />
-          </div>
-
-          <Button
-            onClick={handleExtract}
-            disabled={extracting || !communityId.trim() || !apiUrl.trim() || !apiToken.trim()}
-            className="w-full sm:w-auto"
-          >
-            {extracting ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Extraindo...</>
-            ) : (
-              <><Search className="w-4 h-4 mr-2" /> Extrair Membros</>
-            )}
-          </Button>
-
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-yellow-500" />
-            <div>
-              <p className="font-medium text-foreground">Como encontrar o ID da comunidade?</p>
-              <p className="mt-1">
-                No WhatsApp, abra a comunidade → toque no nome → role até "Convidar via link" → copie o link.
-                O ID é a sequência numérica longa no link (ex: <code className="bg-muted px-1 rounded">120363xxxxxxxxxx@g.us</code>).
-              </p>
+        <CardContent className="space-y-3">
+          {loadingGroups && groups.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Carregando grupos...
             </div>
-          </div>
+          ) : groups.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-xs">
+              {hasCredentials
+                ? "Nenhum grupo encontrado. Clique em Atualizar."
+                : "Configure suas credenciais uazapi acima para listar os grupos."}
+            </div>
+          ) : (
+            <>
+              <Input
+                placeholder="Buscar grupo por nome ou ID..."
+                value={groupFilter}
+                onChange={(e) => setGroupFilter(e.target.value)}
+                className="max-w-sm"
+              />
+              <div className="max-h-[350px] overflow-y-auto rounded-lg border">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-xs text-muted-foreground font-medium">Nome do Grupo</th>
+                      <th className="text-left px-3 py-2 text-xs text-muted-foreground font-medium">Membros</th>
+                      <th className="text-right px-3 py-2 text-xs text-muted-foreground font-medium">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredGroups.map((g) => (
+                      <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
+                        <td className="px-3 py-2">
+                          <div>
+                            <p className="text-xs font-medium truncate max-w-[250px]">{g.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[250px]">{g.id}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{g.size || "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant={selectedGroupId === g.id && metadata ? "secondary" : "default"}
+                            onClick={() => handleExtract(g.id)}
+                            disabled={extracting}
+                            className="text-xs h-7 px-3"
+                          >
+                            {extracting && selectedGroupId === g.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <><Search className="w-3 h-3 mr-1" /> Extrair</>
+                            )}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredGroups.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="text-center py-6 text-muted-foreground text-xs">
+                          Nenhum grupo encontrado para o filtro
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
+      {/* Results */}
       {metadata && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -267,9 +355,7 @@ const ExtrairComunidade = () => {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <CardTitle className="text-sm">
-                  Membros — {metadata.groupName}
-                </CardTitle>
+                <CardTitle className="text-sm">Membros — {metadata.groupName}</CardTitle>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={copyAll} disabled={phones.length === 0}>
                     {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
@@ -291,7 +377,6 @@ const ExtrairComunidade = () => {
                 onChange={(e) => setFilter(e.target.value)}
                 className="max-w-sm"
               />
-
               <div className="max-h-[400px] overflow-y-auto rounded-lg border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
