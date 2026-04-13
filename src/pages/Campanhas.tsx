@@ -814,6 +814,7 @@ const Campanhas = () => {
           </AlertDialogHeader>
           <div className="py-2">
             <InstanceSelector
+              useSavedSelection={false}
               onInstanceChange={(id) => {
                 if (id === ROTATE_ALL) {
                   setInstanceSelectionMode('rotate');
@@ -862,6 +863,7 @@ const Campanhas = () => {
           </AlertDialogHeader>
           <div className="py-2">
             <InstanceSelector
+              useSavedSelection={false}
               onInstanceChange={(id) => {
                 if (id === ROTATE_ALL) {
                   setInstanceSelectionMode('rotate');
