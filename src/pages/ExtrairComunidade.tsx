@@ -605,8 +605,8 @@ const ExtrairComunidade = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchGroups}
-              disabled={loadingGroups || !hasCredentials}
+              onClick={connectedViaInstance && !hasCredentials ? fetchGroupsViaZapi : fetchGroups}
+              disabled={loadingGroups || !canOperate}
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
               Atualizar
@@ -620,9 +620,9 @@ const ExtrairComunidade = () => {
             </div>
           ) : groups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-xs">
-              {hasCredentials
+              {canOperate
                 ? "Nenhum grupo encontrado. Clique em Atualizar."
-                 : "Solicite ao administrador que configure suas credenciais."}
+                 : "Conecte seu WhatsApp ou solicite ao administrador que configure suas credenciais."}
             </div>
           ) : (
             <>
