@@ -115,6 +115,7 @@ const normalizeQrImageValue = (value: unknown) => {
 const extractParticipantsFromPayload = (payload: any): any[] => {
   const candidates = [
     payload?.participants,
+    payload?.participantes,
     payload?.Participants,
     payload?.members,
     payload?.Members,
@@ -122,14 +123,17 @@ const extractParticipantsFromPayload = (payload: any): any[] => {
     payload?.communityParticipants,
     payload?.participantIds,
     payload?.data?.participants,
+    payload?.data?.participantes,
     payload?.data?.Participants,
     payload?.data?.members,
     payload?.data?.Members,
     payload?.data?.groupParticipants,
     payload?.data?.communityParticipants,
     payload?.result?.participants,
+    payload?.result?.participantes,
     payload?.result?.members,
     payload?.group?.participants,
+    payload?.group?.participantes,
     payload?.group?.Participants,
     payload?.group?.members,
     payload?.group?.Members,
@@ -425,6 +429,7 @@ const ExtrairComunidade = () => {
         selectedGroup?.raw?.sourceInstanceId ||
         selectedGroup?.raw?.__sourceInstanceId ||
         null;
+      const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
       const normalizedMap = new Map<string, ExtractedParticipant>();
       let resolvedGroupName = selectedGroup?.name || "Comunidade";
       let resolvedTotalMembers = Number(selectedGroup?.size) || 0;
@@ -451,9 +456,12 @@ const ExtrairComunidade = () => {
       };
 
       if (useZapiDirect) {
+        pushParticipants(listParticipants);
+
         const { data, error } = await supabase.functions.invoke("get-group-participants", {
           body: {
             groupId: groupId.trim(),
+            fallbackParticipants: Array.from(normalizedMap.values()),
             sourceInstanceId,
           },
         });
@@ -468,6 +476,7 @@ const ExtrairComunidade = () => {
         resolvedGroupName = data?.groupName || selectedGroup?.name || "Comunidade";
         resolvedTotalMembers = Math.max(
           Number(data?.participants?.length) || 0,
+          listParticipants.length,
           Number(selectedGroup?.size) || 0,
         );
       } else {
@@ -482,7 +491,6 @@ const ExtrairComunidade = () => {
         }
 
         const responseParticipants = extractParticipantsFromPayload(data);
-        const listParticipants = extractParticipantsFromPayload(selectedGroup?.raw);
         const localParticipants = [...responseParticipants, ...listParticipants];
 
         pushParticipants(localParticipants);

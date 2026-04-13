@@ -152,17 +152,20 @@ const extractDeepParticipantArray = (value: any, seen = new WeakSet<object>()): 
 const extractParticipantArray = (payload: any) => {
   const candidates = [
     payload?.participants,
+    payload?.participantes,
     payload?.members,
     payload?.groupParticipants,
     payload?.communityParticipants,
     payload?.users,
     payload?.contacts,
     payload?.data?.participants,
+    payload?.data?.participantes,
     payload?.data?.members,
     payload?.data?.groupParticipants,
     payload?.data?.communityParticipants,
     payload?.data?.users,
     payload?.result?.participants,
+    payload?.result?.participantes,
     payload?.result?.members,
   ];
 
