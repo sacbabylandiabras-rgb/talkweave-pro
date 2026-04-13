@@ -157,8 +157,6 @@ const ExtrairComunidade = () => {
     return () => clearInterval(interval);
   }, [connectDialogOpen, qrCodeImage, selectedInstanceId]);
   const hasCredentials = apiUrl.trim() && apiToken.trim();
-
-  const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
 
   const fetchGroupsViaZapi = async () => {
