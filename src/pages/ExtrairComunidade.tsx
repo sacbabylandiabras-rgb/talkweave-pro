@@ -527,23 +527,33 @@ const ExtrairComunidade = () => {
         </p>
       </div>
 
-      {/* No credentials — show connect button + dialog */}
-      {!loadingCredentials && !canOperate && (
+      {/* Connection status */}
+      {!loadingCredentials && !hasCredentials && (
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-destructive" />
               <div>
-                <p className="text-sm font-medium">Credenciais não configuradas</p>
-                <p className="text-xs text-muted-foreground">Conecte seu WhatsApp para continuar</p>
+                <p className="text-sm font-medium">Status da instância</p>
+                <p className="text-xs text-muted-foreground">
+                  {connectedViaInstance ? "WhatsApp conectado e pronto para uso" : "Conecte seu WhatsApp para continuar"}
+                </p>
               </div>
             </div>
-            {instances.length > 0 && (
-              <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                <Smartphone className="w-4 h-4" />
-                Conectar WhatsApp
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {connectedViaInstance ? (
+                <Badge variant="secondary" className="text-[10px]">Conectado</Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px]">
+                  {checkingConnection || connectionPolling ? "Verificando..." : "Desconectado"}
+                </Badge>
+              )}
+              {instances.length > 0 && !connectedViaInstance && (
+                <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
+                  <Smartphone className="w-4 h-4" />
+                  Conectar WhatsApp
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
