@@ -343,7 +343,7 @@ const ExtrairComunidade = () => {
   };
 
   const handleExtract = async (groupId: string) => {
-    if (!groupId.trim() || !hasCredentials) return;
+    if (!groupId.trim() || !canOperate) return;
 
     setExtracting(true);
     setParticipants([]);
@@ -351,8 +351,11 @@ const ExtrairComunidade = () => {
     setSelectedGroupId(groupId);
 
     try {
-      const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
-        body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      // If connected via Z-API instance, use get-group-participants directly
+      const useZapiDirect = connectedViaInstance && !hasCredentials;
+      const { data, error } = useZapiDirect
+        ? await supabase.functions.invoke("get-group-participants", { body: { groupId: groupId.trim() } })
+        : await supabase.functions.invoke("uazapi-group-info", { body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() } });
       });
       if (error) throw error;
 
