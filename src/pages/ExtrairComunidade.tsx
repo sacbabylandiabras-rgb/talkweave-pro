@@ -237,6 +237,12 @@ const ExtrairComunidade = () => {
     }
   }, [instances, selectedInstanceId]);
 
+  useEffect(() => {
+    if (selectedInstanceId) {
+      checkInstanceConnection(selectedInstanceId, { silent: true });
+    }
+  }, [selectedInstanceId]);
+
   const fetchQrCode = async () => {
     const instId = selectedInstanceId;
     if (!instId) { toast.error("Nenhuma instância disponível"); return; }
