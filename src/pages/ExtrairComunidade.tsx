@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import QRCodeLib from 'qrcode';
 
@@ -26,6 +26,11 @@ interface GroupInfo {
   raw?: any;
   sourceInstanceId?: string | null;
   isCommunity?: boolean;
+}
+
+interface MemberCountState {
+  count: number;
+  loading: boolean;
 }
 
 const normalizeParticipantIdentifier = (value: any) => {
@@ -194,6 +199,7 @@ const ExtrairComunidade = () => {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
+  const [uazapiMemberCounts, setUazapiMemberCounts] = useState<Record<string, MemberCountState>>({});
 
   // Connection via QR/Pairing
   const { instances } = useZapiInstances();
@@ -213,7 +219,7 @@ const ExtrairComunidade = () => {
   const canOperate = hasCredentials || connectedViaInstance;
 
   useEffect(() => {
-    if (!canOperate || groups.length === 0) return;
+    if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
 
     let cancelled = false;
 
@@ -239,6 +245,67 @@ const ExtrairComunidade = () => {
       cancelled = true;
     };
   }, [canOperate, fetchMemberCount, groups]);
+
+  useEffect(() => {
+    if (!hasCredentials || connectedViaInstance || groups.length === 0) return;
+
+    let cancelled = false;
+
+    const groupsNeedingCount = groups.filter((group) => {
+      const cached = uazapiMemberCounts[group.id];
+      return (group.size <= 0 || group.isCommunity) && !cached?.loading && typeof cached?.count !== "number";
+    });
+
+    if (groupsNeedingCount.length === 0) return;
+
+    const loadUazapiCounts = async () => {
+      for (const group of groupsNeedingCount) {
+        if (cancelled) return;
+
+        setUazapiMemberCounts((prev) => ({
+          ...prev,
+          [group.id]: { count: prev[group.id]?.count ?? 0, loading: true },
+        }));
+
+        try {
+          const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
+            body: { groupId: group.id, apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+          });
+
+          if (error) throw error;
+
+          const count = Math.max(
+            Number(data?.ParticipantCount) || 0,
+            Number(data?.participantCount) || 0,
+            Number(data?.data?.ParticipantCount) || 0,
+            Number(data?.data?.participantCount) || 0,
+            extractParticipantsFromPayload(data).length,
+            group.size || 0,
+          );
+
+          if (!cancelled) {
+            setUazapiMemberCounts((prev) => ({
+              ...prev,
+              [group.id]: { count, loading: false },
+            }));
+          }
+        } catch {
+          if (!cancelled) {
+            setUazapiMemberCounts((prev) => ({
+              ...prev,
+              [group.id]: { count: group.size || 0, loading: false },
+            }));
+          }
+        }
+      }
+    };
+
+    void loadUazapiCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiToken, apiUrl, connectedViaInstance, groups, hasCredentials, uazapiMemberCounts]);
 
   const fetchGroupsViaZapi = async () => {
     setLoadingGroups(true);
@@ -819,8 +886,13 @@ const ExtrairComunidade = () => {
                   <tbody>
                     {filteredGroups.map((g) => (
                         (() => {
-                          const memberCount = getMemberCount(g.id, g.size);
-                          const loadingMemberCount = isMemberCountLoading(g.id);
+                          const uazapiState = uazapiMemberCounts[g.id];
+                          const memberCount = hasCredentials && !connectedViaInstance
+                            ? (typeof uazapiState?.count === "number" ? uazapiState.count : g.size)
+                            : getMemberCount(g.id, g.size);
+                          const loadingMemberCount = hasCredentials && !connectedViaInstance
+                            ? Boolean(uazapiState?.loading)
+                            : isMemberCountLoading(g.id);
 
                           return (
                             <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
