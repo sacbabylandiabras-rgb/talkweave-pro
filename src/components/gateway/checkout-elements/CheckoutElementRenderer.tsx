@@ -567,3 +567,49 @@ function GuaranteeElement({ content, primaryColor, textColor, cardBg, cardBorder
     </div>
   );
 }
+
+function UpsellElement({ content, primaryColor, textColor, cardBg, cardBorder, wrapperStyle, hoverClass, onClick }: any) {
+  const c = content;
+  const bgColor = c.bgColor || cardBg;
+  const border = c.borderColor || cardBorder;
+  const titleCol = c.titleColor || textColor;
+  const priceCol = c.priceColor || primaryColor;
+  const btnColor = c.buttonColor || primaryColor;
+  const btnTextColor = c.buttonTextColor || "#FFFFFF";
+  const badgeText = c.badgeText || "OFERTA ÚNICA";
+
+  return (
+    <div style={{ ...wrapperStyle, background: bgColor, border: `2px solid ${border}`, borderRadius: "12px", padding: "16px", position: "relative" }} className={hoverClass} onClick={onClick}>
+      {c.showBadge !== false && (
+        <div style={{ position: "absolute", top: "-10px", left: "16px", background: priceCol, color: btnTextColor, fontSize: "10px", fontWeight: 700, padding: "2px 10px", borderRadius: "999px", letterSpacing: "0.05em" }}>
+          {badgeText}
+        </div>
+      )}
+      <div className="flex gap-3 items-center">
+        {c.image ? (
+          <img src={c.image} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
+        ) : (
+          <div className="w-16 h-16 rounded-lg shrink-0 flex items-center justify-center" style={{ background: `${primaryColor}15`, border: `1px dashed ${border}` }}>
+            <Gift className="w-6 h-6" style={{ color: primaryColor + "60" }} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-bold truncate" style={{ color: titleCol }}>{c.productName || "Produto Extra"}</h4>
+          <p className="text-xs mt-0.5" style={{ color: titleCol + "99" }}>{c.description || ""}</p>
+          <div className="flex items-center gap-2 mt-1">
+            {c.originalPrice > 0 && c.originalPrice !== c.price && (
+              <span className="text-xs line-through" style={{ color: titleCol + "60" }}>R$ {Number(c.originalPrice || 0).toFixed(2).replace(".", ",")}</span>
+            )}
+            <span className="text-sm font-bold" style={{ color: priceCol }}>R$ {Number(c.price || 0).toFixed(2).replace(".", ",")}</span>
+          </div>
+        </div>
+      </div>
+      <button
+        className="w-full mt-3 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+        style={{ background: btnColor, color: btnTextColor }}
+      >
+        {c.buttonText || "Adicionar ao pedido"}
+      </button>
+    </div>
+  );
+}
