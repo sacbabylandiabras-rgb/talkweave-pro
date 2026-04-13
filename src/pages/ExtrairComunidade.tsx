@@ -436,20 +436,84 @@ const ExtrairComunidade = () => {
         </p>
       </div>
 
-      {/* No credentials warning */}
+      {/* No credentials — show connection options */}
       {!loadingCredentials && !hasCredentials && (
-        <Card className="border-amber-500/30">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-              <div>
-                <p className="text-sm font-medium">Credenciais não configuradas</p>
-                <p className="text-xs text-muted-foreground">
-                   Solicite ao administrador que configure suas credenciais no painel de administração.
-                </p>
-              </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              <CardTitle className="text-sm">Credenciais não configuradas</CardTitle>
             </div>
-          </CardContent>
+            <p className="text-xs text-muted-foreground">
+              Solicite ao administrador que configure suas credenciais no painel de administração.
+            </p>
+          </CardHeader>
+          {instances.length > 0 && (
+            <CardContent className="space-y-4">
+              <div className="border-t pt-4">
+                <p className="text-xs font-medium mb-3 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Ou conecte via sua instância WhatsApp
+                </p>
+                <Tabs value={connectionTab} onValueChange={setConnectionTab}>
+                  <TabsList className="grid w-full grid-cols-2 max-w-xs">
+                    <TabsTrigger value="qr-code" className="text-xs">
+                      <QrCode className="w-3 h-3 mr-1" /> QR Code
+                    </TabsTrigger>
+                    <TabsTrigger value="pairing" className="text-xs">
+                      <Phone className="w-3 h-3 mr-1" /> Código
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="qr-code" className="mt-3">
+                    <div className="flex flex-col items-center gap-3">
+                      {qrCodeImage ? (
+                        <div className="p-2 bg-white rounded-lg">
+                          <img src={qrCodeImage} alt="QR Code" className="w-52 h-52" />
+                        </div>
+                      ) : (
+                        <div className="w-52 h-52 flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20">
+                          <p className="text-xs text-muted-foreground text-center px-4">
+                            Clique para gerar o QR Code
+                          </p>
+                        </div>
+                      )}
+                      <Button size="sm" onClick={fetchQrCode} disabled={qrLoading}>
+                        {qrLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}
+                        {qrCodeImage ? "Atualizar QR Code" : "Gerar QR Code"}
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="pairing" className="mt-3">
+                    <div className="flex flex-col gap-3 max-w-xs">
+                      <Input
+                        placeholder="Seu número (ex: 11999999999)"
+                        value={pairingPhone}
+                        onChange={(e) => setPairingPhone(e.target.value)}
+                        className="text-sm"
+                      />
+                      <Button size="sm" onClick={fetchPairingCode} disabled={pairingLoading || !pairingPhone}>
+                        {pairingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
+                        Gerar Código
+                      </Button>
+                      {pairingCode && (
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <p className="text-2xl font-mono font-bold tracking-widest">{pairingCode}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            Abra o WhatsApp → Dispositivos conectados → Conectar por número
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
 
