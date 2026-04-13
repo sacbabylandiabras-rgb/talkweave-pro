@@ -234,7 +234,7 @@ const ExtrairComunidade = () => {
     if (participants.length === 0) return;
     const header = "Telefone,Nome,Admin\n";
     const rows = participants
-      .filter((p) => p.phone.length > 5 && !p.phone.includes("lid"))
+      .filter((p) => p.phone.length > 3)
       .map((p) => `${p.phone},${p.name.replace(/,/g, " ")},${p.isAdmin || p.isSuperAdmin ? "Sim" : "Não"}`)
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
