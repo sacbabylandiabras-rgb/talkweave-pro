@@ -355,3 +355,13 @@
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Dashboard content area - subtle dot pattern like landing page */
+.dashboard-content {
+  background-image: radial-gradient(circle, rgb(var(--foreground) / 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.dark .dashboard-content {
+  background-image: radial-gradient(circle, rgb(var(--foreground) / 0.04) 1px, transparent 1px);
+}
