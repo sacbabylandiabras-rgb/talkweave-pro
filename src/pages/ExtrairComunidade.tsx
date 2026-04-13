@@ -69,17 +69,7 @@ const getGroupName = (group: any, fallbackId: string) => {
 
 const getGroupSize = (group: any) => {
   if (typeof group === "string") return 0;
-  const rawParticipants = extractParticipantsFromPayload(group);
-  return Number(
-    group?.membros ||
-    group?.ParticipantCount ||
-    group?.participantCount ||
-    group?.size ||
-    group?.memberCount ||
-    group?.MemberCount ||
-    rawParticipants.length ||
-    0,
-  );
+   return extractMemberCountFromPayload(group);
 };
 
 const buildGroupList = (rawGroups: any[]): GroupInfo[] => {
@@ -152,6 +142,60 @@ const extractParticipantsFromPayload = (payload: any): any[] => {
   return [];
 };
 
+const extractMemberCountFromPayload = (payload: any) => {
+  const candidates = [
+    payload?.membros,
+    payload?.ParticipantCount,
+    payload?.participantCount,
+    payload?.participantsCount,
+    payload?.participantsTotal,
+    payload?.memberCount,
+    payload?.MemberCount,
+    payload?.membersCount,
+    payload?.totalMembers,
+    payload?.totalParticipants,
+    payload?.size,
+    payload?.communitySize,
+    payload?.groupSize,
+    payload?.data?.membros,
+    payload?.data?.ParticipantCount,
+    payload?.data?.participantCount,
+    payload?.data?.participantsCount,
+    payload?.data?.participantsTotal,
+    payload?.data?.memberCount,
+    payload?.data?.MemberCount,
+    payload?.data?.membersCount,
+    payload?.data?.totalMembers,
+    payload?.data?.totalParticipants,
+    payload?.data?.size,
+    payload?.result?.membros,
+    payload?.result?.ParticipantCount,
+    payload?.result?.participantCount,
+    payload?.result?.participantsCount,
+    payload?.result?.participantsTotal,
+    payload?.result?.memberCount,
+    payload?.result?.MemberCount,
+    payload?.result?.membersCount,
+    payload?.result?.totalMembers,
+    payload?.result?.totalParticipants,
+    payload?.result?.size,
+    payload?.group?.membros,
+    payload?.group?.ParticipantCount,
+    payload?.group?.participantCount,
+    payload?.group?.participantsCount,
+    payload?.group?.memberCount,
+    payload?.group?.MemberCount,
+    payload?.group?.membersCount,
+    payload?.group?.totalMembers,
+    payload?.group?.totalParticipants,
+    payload?.group?.size,
+  ]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+
+  return Math.max(...candidates, extractParticipantsFromPayload(payload).length, 0);
+};
+
 const normalizeParticipant = (p: any): ExtractedParticipant | null => {
   const realPhone = normalizeParticipantIdentifier(
     p?.PN || p?.PhoneNumber || p?.phone || p?.number || p?.waId || "",
@@ -219,7 +263,7 @@ const ExtrairComunidade = () => {
   const canOperate = hasCredentials || connectedViaInstance;
 
   useEffect(() => {
-    if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
+    if (!canOperate || groups.length === 0) return;
 
     let cancelled = false;
 
@@ -274,14 +318,7 @@ const ExtrairComunidade = () => {
 
           if (error) throw error;
 
-          const count = Math.max(
-            Number(data?.ParticipantCount) || 0,
-            Number(data?.participantCount) || 0,
-            Number(data?.data?.ParticipantCount) || 0,
-            Number(data?.data?.participantCount) || 0,
-            extractParticipantsFromPayload(data).length,
-            group.size || 0,
-          );
+          const count = Math.max(extractMemberCountFromPayload(data), group.size || 0);
 
           if (!cancelled) {
             setUazapiMemberCounts((prev) => ({
@@ -887,11 +924,13 @@ const ExtrairComunidade = () => {
                     {filteredGroups.map((g) => (
                         (() => {
                           const uazapiState = uazapiMemberCounts[g.id];
+                          const zapiMemberCount = getMemberCount(g.id, g.size);
+                          const uazapiMemberCount = typeof uazapiState?.count === "number" ? uazapiState.count : g.size;
                           const memberCount = hasCredentials && !connectedViaInstance
-                            ? (typeof uazapiState?.count === "number" ? uazapiState.count : g.size)
-                            : getMemberCount(g.id, g.size);
+                            ? Math.max(zapiMemberCount || 0, uazapiMemberCount || 0, g.size || 0)
+                            : zapiMemberCount;
                           const loadingMemberCount = hasCredentials && !connectedViaInstance
-                            ? Boolean(uazapiState?.loading)
+                            ? Boolean(uazapiState?.loading) || isMemberCountLoading(g.id)
                             : isMemberCountLoading(g.id);
 
                           return (
