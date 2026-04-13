@@ -9,6 +9,7 @@ import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import QRCodeLib from 'qrcode';
 
 interface ExtractedParticipant {
@@ -206,9 +207,38 @@ const ExtrairComunidade = () => {
   const [connectionPolling, setConnectionPolling] = useState(false);
   const [connectedViaInstance, setConnectedViaInstance] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
+  const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   const hasCredentials = apiUrl.trim() && apiToken.trim();
   const canOperate = hasCredentials || connectedViaInstance;
+
+  useEffect(() => {
+    if (!canOperate || groups.length === 0) return;
+
+    let cancelled = false;
+
+    const groupsNeedingCount = groups.filter((group) => group.size <= 0 || group.isCommunity);
+
+    if (groupsNeedingCount.length === 0) return;
+
+    const loadMemberCounts = async () => {
+      for (const group of groupsNeedingCount) {
+        if (cancelled) return;
+
+        await fetchMemberCount(
+          group.id,
+          group.sourceInstanceId || null,
+          extractParticipantsFromPayload(group.raw),
+        );
+      }
+    };
+
+    void loadMemberCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canOperate, fetchMemberCount, groups]);
 
   const fetchGroupsViaZapi = async () => {
     setLoadingGroups(true);
@@ -788,36 +818,52 @@ const ExtrairComunidade = () => {
                   </thead>
                   <tbody>
                     {filteredGroups.map((g) => (
-                      <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
-                        <td className="px-3 py-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-medium truncate max-w-[250px]">{g.name}</p>
-                              {g.isCommunity && <Badge variant="outline" className="text-[10px]">Comunidade</Badge>}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[250px]">{g.id}</p>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">
-                          {g.size > 0 ? g.size : g.isCommunity ? "Comunidade" : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <Button
-                            size="sm"
-                            variant={selectedGroupId === g.id && metadata ? "secondary" : "default"}
-                            onClick={() => handleExtract(g.id)}
-                            disabled={extracting}
-                            className="text-xs h-7 px-3"
-                          >
-                            {extracting && selectedGroupId === g.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <><Search className="w-3 h-3 mr-1" /> Extrair</>
-                            )}
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                        (() => {
+                          const memberCount = getMemberCount(g.id, g.size);
+                          const loadingMemberCount = isMemberCountLoading(g.id);
+
+                          return (
+                            <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
+                              <td className="px-3 py-2">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-medium truncate max-w-[250px]">{g.name}</p>
+                                    {g.isCommunity && <Badge variant="outline" className="text-[10px]">Comunidade</Badge>}
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[250px]">{g.id}</p>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">
+                                {loadingMemberCount ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    carregando...
+                                  </span>
+                                ) : memberCount > 0 ? (
+                                  memberCount
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <Button
+                                  size="sm"
+                                  variant={selectedGroupId === g.id && metadata ? "secondary" : "default"}
+                                  onClick={() => handleExtract(g.id)}
+                                  disabled={extracting}
+                                  className="text-xs h-7 px-3"
+                                >
+                                  {extracting && selectedGroupId === g.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <><Search className="w-3 h-3 mr-1" /> Extrair</>
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })()
+                      ))}
                     {filteredGroups.length === 0 && (
                       <tr>
                         <td colSpan={3} className="text-center py-6 text-muted-foreground text-xs">
