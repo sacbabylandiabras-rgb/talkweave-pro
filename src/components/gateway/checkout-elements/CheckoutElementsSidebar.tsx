@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle, ThumbsUp, Shield, Star, Stars, Clock, Timer, ListOrdered, BarChart3, TrendingUp, GripVertical, Trash2, Eye, EyeOff, ChevronUp, ChevronDown, MapPin } from "lucide-react";
+import { Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle, ThumbsUp, Shield, Star, Stars, Clock, Timer, ListOrdered, BarChart3, TrendingUp, Gift, GripVertical, Trash2, Eye, EyeOff, ChevronUp, ChevronDown, MapPin } from "lucide-react";
 import { CheckoutElement, ELEMENT_DEFINITIONS, CheckoutElementType, generateElementId, ElementPosition } from "./types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const ICON_MAP: Record<string, any> = {
   Type, ImageIcon, PlayCircle, LayoutGrid, HelpCircle,
   ThumbsUp, Shield, Star, Stars, Clock,
-  Timer, ListOrdered, BarChart3, TrendingUp,
+  Timer, ListOrdered, BarChart3, TrendingUp, Gift,
 };
 
 const POSITION_LABELS: Record<ElementPosition, string> = {
