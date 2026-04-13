@@ -28,15 +28,15 @@ serve(async (req) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupId }),
+      body: JSON.stringify({ JID: groupId }),
     })
 
     const data = await response.json()
 
     if (!response.ok) {
       console.error('uazapi error:', response.status, JSON.stringify(data))
-      return new Response(JSON.stringify({ error: data?.message || `uazapi error ${response.status}` }), {
-        status: response.status,
+      return new Response(JSON.stringify({ error: data?.error || data?.message || `uazapi error ${response.status}`, participants: [] }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
