@@ -805,6 +805,16 @@ const ExtrairComunidade = () => {
       return;
     }
 
+    if (groups.length > 0 || uazapiConnected === true) {
+      setUazapiConnected(true);
+      setConnectionPolling(false);
+      setQrCodeImage(null);
+      setPairingCode(null);
+      setConnectDialogOpen(false);
+      toast.success("WhatsApp já está conectado.");
+      return;
+    }
+
     setCheckingUazapi(true);
     try {
       const { data, error } = await supabase.functions.invoke("uazapi-status", {
