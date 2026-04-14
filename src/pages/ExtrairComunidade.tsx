@@ -385,66 +385,7 @@ const ExtrairComunidade = () => {
     loadCredentials();
   }, []);
 
-  const fetchQrCode = async () => {
-    const instId = selectedInstanceId;
-    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
-    setQrLoading(true);
-    setQrCodeImage(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("get-qr-code", {
-        body: { instanceId: instId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data?.message || data?.error);
-      const rawQr = data?.data?.value ?? data?.data?.qrCode ?? data?.data?.qrcode ?? null;
-      const normalized = normalizeQrImageValue(rawQr);
-      if (typeof normalized === "string" && normalized.startsWith("data:image")) {
-        setQrCodeImage(normalized);
-        toast.success("QR Code gerado!");
-      } else if (typeof normalized === "string" && normalized.length > 50) {
-        const img = await QRCodeLib.toDataURL(normalized, { width: 256, margin: 2, color: { dark: "#000000", light: "#FFFFFF" } });
-        setQrCodeImage(img);
-        toast.success("QR Code gerado!");
-      } else if (data?.data?.connected === true) {
-        toast.success("Dispositivo já conectado!");
-        setConnectDialogOpen(false);
-      } else {
-        toast.error("QR Code indisponível. Tente reiniciar a instância.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao gerar QR Code");
-    } finally {
-      setQrLoading(false);
-    }
-  };
-
-  const fetchPairingCode = async () => {
-    const instId = selectedInstanceId;
-    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
-    if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
-    setPairingLoading(true);
-    setPairingCode(null);
-    try {
-      let cleanPhone = pairingPhone.replace(/\D/g, "");
-      if (cleanPhone && !cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
-      const { data, error } = await supabase.functions.invoke("get-pairing-code", {
-        body: { phoneNumber: cleanPhone, instanceId: instId },
-      });
-      if (error) throw error;
-      if (!data?.success || !data?.data) throw new Error(data?.message || data?.error || "Falha ao gerar código");
-      const code = data.data.pairingCode || data.data.code || null;
-      if (code) {
-        setPairingCode(code);
-        toast.success("Código gerado!");
-      } else {
-        toast.error("Código de pareamento indisponível");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao solicitar código");
-    } finally {
-      setPairingLoading(false);
-    }
-  };
+  // No Z-API QR/pairing on this page — uazapi only
 
   const saveUazapiCredentials = async () => {
     setSavingUazapi(true);
