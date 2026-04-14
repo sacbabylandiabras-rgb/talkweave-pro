@@ -613,9 +613,40 @@ const ExtrairComunidade = () => {
   // Auto-fetch groups when credentials are loaded
   useEffect(() => {
     if (!loadingCredentials && apiUrl && apiToken) {
-      fetchGroups();
+      checkUazapiConnection();
     }
   }, [loadingCredentials, apiUrl, apiToken]);
+
+  const checkUazapiConnection = async () => {
+    setCheckingUazapi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) {
+        setUazapiConnected(false);
+        return;
+      }
+      if (data?.error) {
+        setUazapiConnected(false);
+        return;
+      }
+      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+      const list = buildGroupList(rawGroups);
+      setGroups(list);
+      setUazapiConnected(list.length > 0);
+      if (list.length > 0) {
+        toast.success(`${list.length} grupos carregados!`);
+      } else {
+        setUazapiConnected(false);
+        toast.warning("Instância desconectada ou sem grupos.");
+      }
+    } catch {
+      setUazapiConnected(false);
+    } finally {
+      setCheckingUazapi(false);
+    }
+  };
 
   const fetchGroups = async () => {
     if (!apiUrl.trim() || !apiToken.trim()) return;
