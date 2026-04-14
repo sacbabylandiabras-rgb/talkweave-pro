@@ -44,10 +44,10 @@ serve(async (req) => {
     console.log("OAuth callback - userId:", userId, "origin:", appOrigin, "ig_flow:", isInstagramFlow);
 
     if (isInstagramFlow) {
-      const igAppId = "1776661049961616";
-      const igAppSecret = INSTAGRAM_APP_SECRET;
+      const igAppId = META_APP_ID || "1469403167979920";
+      const igAppSecret = INSTAGRAM_APP_SECRET || META_APP_SECRET;
 
-      if (!igAppSecret) {
+      if (!igAppSecret && !META_APP_SECRET) {
         console.error("INSTAGRAM_APP_SECRET not configured");
         return redirectToApp(appOrigin, "/instagram/configuracao", {
           error: "1",
