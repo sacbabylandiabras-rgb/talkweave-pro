@@ -692,66 +692,49 @@ const ExtrairComunidade = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Smartphone className="w-5 h-5 text-primary" />
-              Conectar WhatsApp
+              Configurar Conexão
             </DialogTitle>
           </DialogHeader>
-          <Tabs value={connectionTab} onValueChange={setConnectionTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="qr-code" className="text-xs">
-                <QrCode className="w-3 h-3 mr-1" /> QR Code
-              </TabsTrigger>
-              <TabsTrigger value="pairing" className="text-xs">
-                <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="qr-code" className="mt-4">
-              <div className="flex flex-col items-center gap-3">
-                {qrCodeImage ? (
-                  <div className="p-2 bg-white rounded-lg">
-                    <img src={qrCodeImage} alt="QR Code" className="w-52 h-52" />
-                  </div>
-                ) : (
-                  <div className="w-52 h-52 flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20">
-                    <p className="text-xs text-muted-foreground text-center px-4">
-                      Clique para gerar o QR Code
-                    </p>
-                  </div>
-                )}
-                <Button size="sm" onClick={fetchQrCode} disabled={qrLoading}>
-                  {qrLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}
-                  {qrCodeImage ? "Atualizar QR Code" : "Gerar QR Code"}
-                </Button>
-                <p className="text-[10px] text-muted-foreground text-center">
-                  Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
-                </p>
+          <div className="space-y-4">
+            {isAdmin ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">URL da API</label>
+                  <Input
+                    placeholder="https://..."
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Token da API</label>
+                  <Input
+                    placeholder="Token de acesso"
+                    value={apiToken}
+                    onChange={(e) => setApiToken(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi || !apiUrl.trim() || !apiToken.trim()}>
+                    {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                    Salvar Credenciais
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi || !hasCredentials}>
+                    {checkingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                    Testar Conexão
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p>As credenciais de conexão são configuradas pelo administrador.</p>
+                <p className="text-xs mt-1">Entre em contato com o administrador para configurar sua instância.</p>
               </div>
-            </TabsContent>
-
-            <TabsContent value="pairing" className="mt-4">
-              <div className="flex flex-col gap-3">
-                <Input
-                  placeholder="Seu número (ex: 11999999999)"
-                  value={pairingPhone}
-                  onChange={(e) => setPairingPhone(e.target.value)}
-                  className="text-sm"
-                />
-                <Button size="sm" onClick={fetchPairingCode} disabled={pairingLoading || !pairingPhone}>
-                  {pairingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
-                  Gerar Código
-                </Button>
-                {pairingCode && (
-                  <div className="text-center p-4 rounded-lg bg-muted">
-                    <p className="text-2xl font-mono font-bold tracking-widest">{pairingCode}</p>
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      Abra o WhatsApp → Dispositivos conectados → Conectar por número
-                    </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-          </Tabs>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
