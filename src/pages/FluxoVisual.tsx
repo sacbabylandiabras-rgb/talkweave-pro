@@ -846,6 +846,7 @@ export default function FluxoVisual() {
                 phone: payload.phone,
                 media_url: payload.mediaUrl,
                 media_type: payload.mediaType,
+                ...(payload.mediaType === 'audio' ? { voice: true } : {}),
                 caption: payload.message || undefined,
                 ...overrideHeader,
               });

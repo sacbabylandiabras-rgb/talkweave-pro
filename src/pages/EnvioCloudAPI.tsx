@@ -222,6 +222,7 @@ export default function EnvioCloudAPI() {
         phone,
         media_url: mediaUrl,
         media_type: mediaType,
+        ...(mediaType === "audio" ? { voice: true } : {}),
         caption: caption || undefined,
       });
       toast.success("Mídia enviada com sucesso!");
@@ -697,7 +698,7 @@ export default function EnvioCloudAPI() {
                   className="h-9 text-sm"
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  A URL deve ser pública e acessível pela Meta.
+                  A URL deve ser pública e acessível pela Meta. Para sair como gravado, use áudio .ogg/OPUS.
                 </p>
               </div>
 
