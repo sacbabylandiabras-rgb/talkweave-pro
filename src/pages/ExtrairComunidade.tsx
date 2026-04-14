@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone, QrCode, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -276,6 +277,15 @@ const ExtrairComunidade = () => {
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
 
+  // QR Code / Pairing state (uazapi native)
+  const [connectionTab, setConnectionTab] = useState("qr-code");
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [connectionPolling, setConnectionPolling] = useState(false);
+
   // Get current user id for role check
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -417,14 +427,36 @@ const ExtrairComunidade = () => {
   const checkUazapiConnection = async () => {
     setCheckingUazapi(true);
     try {
+      // First check native status endpoint
+      const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      const status = statusData?.status || statusData?.state || statusData?.connectionStatus;
+      if (status === "connected") {
+        setUazapiConnected(true);
+        toast.success("Instância conectada!");
+        // Also fetch groups
+        const { data } = await supabase.functions.invoke("uazapi-group-list", {
+          body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+        });
+        if (data && !data.error) {
+          const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+          const list = buildGroupList(rawGroups);
+          setGroups(list);
+          if (list.length > 0) toast.success(`${list.length} grupos carregados!`);
+        }
+        return;
+      }
+      if (status === "disconnected" || status === "connecting") {
+        setUazapiConnected(false);
+        toast.warning(status === "connecting" ? "Instância em processo de conexão..." : "Instância desconectada.");
+        return;
+      }
+      // Fallback: try group list
       const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
-      if (error) {
-        setUazapiConnected(false);
-        return;
-      }
-      if (data?.error) {
+      if (error || data?.error) {
         setUazapiConnected(false);
         return;
       }
@@ -441,6 +473,136 @@ const ExtrairComunidade = () => {
       setUazapiConnected(false);
     } finally {
       setCheckingUazapi(false);
+    }
+  };
+  // Check uazapi status (native endpoint)
+  const checkUazapiStatus = async (options?: { silent?: boolean }) => {
+    if (!hasCredentials) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error || data?.error) return;
+      const status = data?.status || data?.state || data?.connectionStatus;
+      if (status === "connected") {
+        setUazapiConnected(true);
+        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
+        setConnectDialogOpen(false);
+        setQrCodeImage(null);
+        setPairingCode(null);
+        setConnectionPolling(false);
+        fetchGroups();
+        return true;
+      }
+      // Update QR if still connecting
+      if (status === "connecting") {
+        const qr = data?.qrCode || data?.qrcode || data?.qr;
+        if (qr && typeof qr === "string") {
+          if (qr.startsWith("data:image")) {
+            setQrCodeImage(qr);
+          } else if (qr.startsWith("iVBOR") || qr.startsWith("/9j/")) {
+            setQrCodeImage(`data:image/png;base64,${qr}`);
+          }
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  // Poll connection status after QR/pairing is shown
+  useEffect(() => {
+    if (!connectionPolling || !hasCredentials) return;
+
+    const interval = setInterval(() => {
+      checkUazapiStatus({ silent: false });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [connectionPolling, hasCredentials, apiUrl, apiToken]);
+
+  // Generate QR Code via uazapi
+  const fetchQrCode = async () => {
+    if (!hasCredentials) { toast.error("Credenciais não configuradas"); return; }
+    setQrLoading(true);
+    setQrCodeImage(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-connect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Check if already connected
+      const status = data?.status || data?.state;
+      if (status === "connected") {
+        toast.success("Dispositivo já conectado!");
+        setUazapiConnected(true);
+        setConnectDialogOpen(false);
+        fetchGroups();
+        return;
+      }
+
+      // Extract QR from response
+      const qr = data?.qrCode || data?.qrcode || data?.qr || data?.data?.qrCode || data?.data?.qrcode;
+      if (qr && typeof qr === "string") {
+        if (qr.startsWith("data:image")) {
+          setQrCodeImage(qr);
+        } else if (qr.length > 50) {
+          setQrCodeImage(qr.startsWith("iVBOR") || qr.startsWith("/9j/") ? `data:image/png;base64,${qr}` : qr);
+        }
+        toast.success("QR Code gerado! Escaneie com o WhatsApp.");
+        setConnectionPolling(true);
+      } else {
+        toast.warning("QR Code ainda não disponível. Verifique o status da instância.");
+        // Start polling anyway to get QR from status
+        setConnectionPolling(true);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao gerar QR Code");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // Generate pairing code via uazapi
+  const fetchPairingCode = async () => {
+    if (!hasCredentials) { toast.error("Credenciais não configuradas"); return; }
+    if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
+    setPairingLoading(true);
+    setPairingCode(null);
+    try {
+      let cleanPhone = pairingPhone.replace(/\D/g, "");
+      if (cleanPhone && !cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+
+      const { data, error } = await supabase.functions.invoke("uazapi-connect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim(), phone: cleanPhone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const status = data?.status || data?.state;
+      if (status === "connected") {
+        toast.success("Dispositivo já conectado!");
+        setUazapiConnected(true);
+        setConnectDialogOpen(false);
+        fetchGroups();
+        return;
+      }
+
+      const code = data?.pairingCode || data?.code || data?.data?.pairingCode || data?.data?.code;
+      if (code) {
+        setPairingCode(code);
+        toast.success("Código de pareamento gerado!");
+        setConnectionPolling(true);
+      } else {
+        toast.error("Código de pareamento indisponível");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao solicitar código de pareamento");
+    } finally {
+      setPairingLoading(false);
     }
   };
 
@@ -671,66 +833,107 @@ const ExtrairComunidade = () => {
        )}
 
       {/* Connection dialog */}
-      <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
+      <Dialog open={connectDialogOpen} onOpenChange={(open) => { setConnectDialogOpen(open); if (!open) setConnectionPolling(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Smartphone className="w-5 h-5 text-primary" />
-              Configurar Conexão
+              Conectar WhatsApp
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {isAdmin ? (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">URL da API</label>
-                  <Input
-                    placeholder="https://..."
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    className="text-sm"
-                  />
+
+          {hasCredentials ? (
+            <Tabs value={connectionTab} onValueChange={setConnectionTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="qr-code" className="text-xs">
+                  <QrCode className="w-3 h-3 mr-1" /> QR Code
+                </TabsTrigger>
+                <TabsTrigger value="pairing" className="text-xs">
+                  <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="qr-code" className="mt-4">
+                <div className="flex flex-col items-center gap-3">
+                  {qrCodeImage ? (
+                    <div className="p-2 bg-white rounded-lg">
+                      <img src={qrCodeImage} alt="QR Code" className="w-52 h-52" />
+                    </div>
+                  ) : (
+                    <div className="w-52 h-52 flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20">
+                      <p className="text-xs text-muted-foreground text-center px-4">
+                        Clique para gerar o QR Code
+                      </p>
+                    </div>
+                  )}
+                  <Button size="sm" onClick={fetchQrCode} disabled={qrLoading}>
+                    {qrLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}
+                    {qrCodeImage ? "Atualizar QR Code" : "Gerar QR Code"}
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Token da API</label>
+              </TabsContent>
+
+              <TabsContent value="pairing" className="mt-4">
+                <div className="flex flex-col gap-3">
                   <Input
-                    placeholder="Token de acesso"
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
+                    placeholder="Seu número (ex: 11999999999)"
+                    value={pairingPhone}
+                    onChange={(e) => setPairingPhone(e.target.value)}
                     className="text-sm"
                   />
+                  <Button size="sm" onClick={fetchPairingCode} disabled={pairingLoading || !pairingPhone}>
+                    {pairingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
+                    Gerar Código
+                  </Button>
+                  {pairingCode && (
+                    <div className="text-center p-4 rounded-lg bg-muted">
+                      <p className="text-2xl font-mono font-bold tracking-widest">{pairingCode}</p>
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Abra o WhatsApp → Dispositivos conectados → Conectar por número
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p>As credenciais de conexão são configuradas pelo administrador.</p>
+              <p className="text-xs mt-1">Entre em contato com o administrador para configurar sua instância.</p>
+            </div>
+          )}
+
+          {isAdmin && (
+            <details className="mt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                Configuração avançada (Admin)
+              </summary>
+              <div className="space-y-3 mt-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">URL da API</label>
+                  <Input placeholder="https://..." value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} className="text-xs h-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Token da API</label>
+                  <Input placeholder="Token de acesso" value={apiToken} onChange={(e) => setApiToken(e.target.value)} className="text-xs h-8" />
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi || !apiUrl.trim() || !apiToken.trim()}>
+                  <Button size="sm" variant="outline" onClick={saveUazapiCredentials} disabled={savingUazapi || !apiUrl.trim() || !apiToken.trim()} className="text-xs h-7">
                     {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                    Salvar Credenciais
+                    Salvar
                   </Button>
-                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi || !hasCredentials}>
+                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi || !hasCredentials} className="text-xs h-7">
                     {checkingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                    Testar Conexão
-                  </Button>
-                </div>
-              </>
-            ) : hasCredentials ? (
-              <div className="text-center py-6 text-muted-foreground text-sm">
-                <Smartphone className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                <p>Sua conexão já foi configurada.</p>
-                <p className="text-xs mt-1">Use o botão de verificar para atualizar o status da instância.</p>
-                <div className="mt-4 flex justify-center">
-                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi}>
-                    {checkingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                    Verificar conexão
+                    Testar
                   </Button>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground text-sm">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                <p>As credenciais de conexão são configuradas pelo administrador.</p>
-                <p className="text-xs mt-1">Entre em contato com o administrador para configurar sua instância.</p>
-              </div>
-            )}
-          </div>
+            </details>
+          )}
         </DialogContent>
       </Dialog>
 
