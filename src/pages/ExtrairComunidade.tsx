@@ -649,7 +649,7 @@ const ExtrairComunidade = () => {
                 <p className="text-sm font-medium">Status da instância</p>
                  <p className="text-xs text-muted-foreground">
                    {effectiveConnected
-                     ? hasCredentials ? "Instância UAZAPI conectada." : "Instância Z-API conectada."
+                     ? "Instância conectada."
                      : "Conecte seu WhatsApp para continuar"}
                  </p>
                </div>
