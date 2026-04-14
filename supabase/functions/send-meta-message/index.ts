@@ -370,7 +370,13 @@ async function sendMediaMessage(
   // Send as voice note if it's an OGG/OPUS audio file
   if (metaType === "audio") {
     const lowerUrl = media_url.toLowerCase();
-    if (lowerUrl.endsWith(".ogg") || lowerUrl.includes("audio/ogg") || body.voice === true) {
+    let pathname = lowerUrl;
+    try {
+      pathname = new URL(media_url).pathname.toLowerCase();
+    } catch {
+      pathname = lowerUrl.split("?")[0] || lowerUrl;
+    }
+    if (pathname.endsWith(".ogg") || lowerUrl.includes("audio/ogg") || body.voice === true) {
       mediaPayload.voice = true;
     }
   }
