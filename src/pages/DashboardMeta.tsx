@@ -68,6 +68,7 @@ export default function DashboardMeta() {
   const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPhones, setLoadingPhones] = useState(false);
+  const [hasLoadedPhoneNumbers, setHasLoadedPhoneNumbers] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editForm, setEditForm] = useState({ about: "", description: "", address: "", email: "" });
@@ -83,11 +84,13 @@ export default function DashboardMeta() {
   useEffect(() => {
     if (isConnected) {
       void fetchProfile();
-      void fetchPhoneNumbers();
+      setPhoneNumbers([]);
+      setHasLoadedPhoneNumbers(false);
       return;
     }
 
     setPhoneNumbers([]);
+    setHasLoadedPhoneNumbers(false);
   }, [isConnected]);
 
   const fetchProfile = async () => {
@@ -125,6 +128,7 @@ export default function DashboardMeta() {
       if (data?.error) throw new Error(data.error);
 
       setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
+      setHasLoadedPhoneNumbers(true);
     } catch (err) {
       setPhoneNumbers([]);
 
@@ -417,9 +421,11 @@ export default function DashboardMeta() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[9px]">
-              {phoneNumbers.length} número{phoneNumbers.length === 1 ? "" : "s"}
-            </Badge>
+            {hasLoadedPhoneNumbers && (
+              <Badge variant="outline" className="text-[9px]">
+                {phoneNumbers.length} número{phoneNumbers.length === 1 ? "" : "s"}
+              </Badge>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -428,7 +434,7 @@ export default function DashboardMeta() {
               disabled={loadingPhones}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingPhones ? "animate-spin" : ""}`} />
-              Atualizar
+              {hasLoadedPhoneNumbers ? "Atualizar" : "Carregar números"}
             </Button>
           </div>
         </div>
@@ -437,6 +443,15 @@ export default function DashboardMeta() {
           <div className="flex items-center justify-center gap-2 py-6">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Carregando números da conta...</span>
+          </div>
+        ) : !hasLoadedPhoneNumbers ? (
+          <div className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Para evitar bloqueio temporário da Meta, a listagem completa dos números foi movida para carregamento manual.
+            </p>
+            <p className="text-[11px] text-muted-foreground/80">
+              O número principal já continua disponível acima no perfil conectado.
+            </p>
           </div>
         ) : phoneNumbers.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-4 text-center">
