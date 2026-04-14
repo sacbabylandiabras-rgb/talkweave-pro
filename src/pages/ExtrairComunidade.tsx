@@ -1058,10 +1058,10 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
-               <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                 <Smartphone className="w-4 h-4" />
-                 {effectiveConnected ? "Gerenciar conexão" : "Conectar WhatsApp"}
-               </Button>
+                <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
+                  <Smartphone className="w-4 h-4" />
+                  {effectiveConnected ? "Gerenciar conexão" : checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
+                </Button>
              </div>
            </CardContent>
          </Card>
