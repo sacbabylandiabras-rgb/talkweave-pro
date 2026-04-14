@@ -584,7 +584,7 @@ const ExtrairComunidade = () => {
     }
   };
 
-
+  const fetchGroups = async () => {
     if (!apiUrl.trim() || !apiToken.trim()) return;
     setLoadingGroups(true);
     try {
