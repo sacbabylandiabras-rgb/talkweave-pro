@@ -367,6 +367,13 @@ async function sendMediaMessage(
   if (caption && metaType !== "audio") {
     mediaPayload.caption = caption;
   }
+  // Send as voice note if it's an OGG/OPUS audio file
+  if (metaType === "audio") {
+    const lowerUrl = media_url.toLowerCase();
+    if (lowerUrl.endsWith(".ogg") || lowerUrl.includes("audio/ogg") || body.voice === true) {
+      mediaPayload.voice = true;
+    }
+  }
   if (metaType === "document") {
     mediaPayload.filename = media_url.split("/").pop() || "file";
   }
