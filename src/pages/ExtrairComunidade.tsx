@@ -796,12 +796,8 @@ const ExtrairComunidade = () => {
                     {filteredGroups.map((g) => (
                         (() => {
                           const uazapiState = uazapiMemberCounts[g.id];
-                          const memberCount = hasCredentials && !connectedViaInstance
-                            ? (typeof uazapiState?.count === "number" ? uazapiState.count : g.size)
-                            : getMemberCount(g.id, g.size);
-                          const loadingMemberCount = hasCredentials && !connectedViaInstance
-                            ? Boolean(uazapiState?.loading)
-                            : isMemberCountLoading(g.id);
+                          const memberCount = typeof uazapiState?.count === "number" ? uazapiState.count : g.size;
+                          const loadingMemberCount = Boolean(uazapiState?.loading);
 
                           return (
                             <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
