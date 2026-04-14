@@ -672,6 +672,16 @@ const ExtrairComunidade = () => {
     }
   };
 
+  // Always force-close the dialog whenever the instance becomes connected.
+  useEffect(() => {
+    if (!effectiveConnected) return;
+
+    setConnectDialogOpen(false);
+    setConnectionPolling(false);
+    setQrCodeImage(null);
+    setPairingCode(null);
+  }, [effectiveConnected]);
+
   // Poll connection status after QR/pairing is shown
   useEffect(() => {
     if (!connectionPolling || !hasCredentials) return;
@@ -700,20 +710,20 @@ const ExtrairComunidade = () => {
           return;
         }
 
-        // Update QR/pairing artifacts while polling
         await applyConnectionArtifacts(data);
       } catch {
         // ignore polling errors
       }
     };
 
-    const interval = setInterval(poll, 5000);
+    poll();
+    const interval = setInterval(poll, 2000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [connectionPolling, hasCredentials, apiUrl, apiToken]);
+  }, [connectionPolling, hasCredentials, apiUrl, apiToken, effectiveConnected]);
 
   // Generate QR Code via uazapi
   const fetchQrCode = async () => {
