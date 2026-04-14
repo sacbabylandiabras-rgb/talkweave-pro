@@ -277,6 +277,15 @@ const ExtrairComunidade = () => {
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
 
+  // QR Code / Pairing state (uazapi native)
+  const [connectionTab, setConnectionTab] = useState("qr-code");
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [connectionPolling, setConnectionPolling] = useState(false);
+
   // Get current user id for role check
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
