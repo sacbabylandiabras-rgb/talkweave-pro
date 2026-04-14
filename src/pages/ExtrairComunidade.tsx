@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone, KeyRound } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -867,18 +867,13 @@ const ExtrairComunidade = () => {
             </DialogTitle>
           </DialogHeader>
           <Tabs value={connectionTab} onValueChange={setConnectionTab}>
-            <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-2"}`}>
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="qr-code" className="text-xs">
                 <QrCode className="w-3 h-3 mr-1" /> QR Code
               </TabsTrigger>
               <TabsTrigger value="pairing" className="text-xs">
                 <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="uazapi" className="text-xs">
-                  <KeyRound className="w-3 h-3 mr-1" /> Credenciais
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <TabsContent value="qr-code" className="mt-4">
@@ -927,31 +922,6 @@ const ExtrairComunidade = () => {
               </div>
             </TabsContent>
 
-            {isAdmin && (
-              <TabsContent value="uazapi" className="mt-4">
-                <div className="flex flex-col gap-3">
-                  <Input
-                    placeholder="URL da instância"
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    className="text-sm"
-                  />
-                  <Input
-                    placeholder="Token da instância"
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
-                    className="text-sm"
-                  />
-                  <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi}>
-                    {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <KeyRound className="w-3 h-3 mr-1" />}
-                    Salvar credenciais
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    Configure as credenciais de conexão para este usuário.
-                  </p>
-                </div>
-              </TabsContent>
-            )}
           </Tabs>
         </DialogContent>
       </Dialog>
