@@ -799,6 +799,46 @@ const ExtrairComunidade = () => {
     }
   };
 
+  const handleOpenConnectionDialog = async () => {
+    if (!hasCredentials) {
+      setConnectDialogOpen(true);
+      return;
+    }
+
+    setCheckingUazapi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+
+      if (error || data?.error) {
+        setConnectDialogOpen(true);
+        return;
+      }
+
+      const resolvedState = getUazapiConnectionState(data);
+
+      if (resolvedState === "connected") {
+        setUazapiConnected(true);
+        setConnectionPolling(false);
+        setQrCodeImage(null);
+        setPairingCode(null);
+        setConnectDialogOpen(false);
+        fetchGroups();
+        toast.success("WhatsApp já está conectado.");
+        return;
+      }
+
+      await applyConnectionArtifacts(data);
+      setUazapiConnected(false);
+      setConnectDialogOpen(true);
+    } catch {
+      setConnectDialogOpen(true);
+    } finally {
+      setCheckingUazapi(false);
+    }
+  };
+
   const fetchGroups = async () => {
     if (!apiUrl.trim() || !apiToken.trim()) return;
     setLoadingGroups(true);
@@ -822,6 +862,8 @@ const ExtrairComunidade = () => {
       const list = buildGroupList(rawGroups);
 
       setGroups(list);
+      setUazapiConnected(true);
+      setConnectionPolling(false);
       if (list.length === 0) {
         toast.warning("Nenhum grupo encontrado nesta instância.");
       } else {
@@ -1016,10 +1058,10 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
-               <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                 <Smartphone className="w-4 h-4" />
-                 {effectiveConnected ? "Gerenciar conexão" : "Conectar WhatsApp"}
-               </Button>
+                <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
+                  <Smartphone className="w-4 h-4" />
+                  {effectiveConnected ? "Gerenciar conexão" : checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
+                </Button>
              </div>
            </CardContent>
          </Card>
