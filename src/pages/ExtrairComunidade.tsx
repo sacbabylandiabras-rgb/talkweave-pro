@@ -417,10 +417,10 @@ const ExtrairComunidade = () => {
   const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
   const canOperate = hasCredentials;
 
-  // Determine effective connection status — if groups were loaded successfully,
-  // the instance is functionally connected even if status endpoint is inconsistent.
+  // Connected state must fully block the QR dialog until a real disconnection happens.
   const effectiveConnected = hasCredentials ? (uazapiConnected === true || groups.length > 0) : false;
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
+  const allowConnectionDialog = !effectiveConnected;
 
   const buildQrCodeImage = async (payload: any) => {
     const qrValue = getUazapiQrValue(payload);
@@ -1068,17 +1068,19 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
-                <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
-                  <Smartphone className="w-4 h-4" />
-                  {effectiveConnected ? "Gerenciar conexão" : checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
-                </Button>
+                {!effectiveConnected && (
+                  <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
+                    <Smartphone className="w-4 h-4" />
+                    {checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
+                  </Button>
+                )}
              </div>
            </CardContent>
          </Card>
        )}
-
-      {/* Connection dialog */}
-      <Dialog open={connectDialogOpen} onOpenChange={(open) => { setConnectDialogOpen(open); if (!open) setConnectionPolling(false); }}>
+ 
+       {/* Connection dialog */}
+      <Dialog open={allowConnectionDialog && connectDialogOpen} onOpenChange={(open) => { setConnectDialogOpen(allowConnectionDialog ? open : false); if (!open) setConnectionPolling(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
