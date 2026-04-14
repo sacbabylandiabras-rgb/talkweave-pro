@@ -922,31 +922,6 @@ const ExtrairComunidade = () => {
               </div>
             </TabsContent>
 
-            {isAdmin && (
-              <TabsContent value="uazapi" className="mt-4">
-                <div className="flex flex-col gap-3">
-                  <Input
-                    placeholder="URL da instância"
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    className="text-sm"
-                  />
-                  <Input
-                    placeholder="Token da instância"
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
-                    className="text-sm"
-                  />
-                  <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi}>
-                    {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <KeyRound className="w-3 h-3 mr-1" />}
-                    Salvar credenciais
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    Configure as credenciais de conexão para este usuário.
-                  </p>
-                </div>
-              </TabsContent>
-            )}
           </Tabs>
         </DialogContent>
       </Dialog>
