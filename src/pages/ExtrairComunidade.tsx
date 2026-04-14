@@ -1099,6 +1099,12 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
+                {effectiveConnected && (
+                  <Button size="sm" variant="destructive" onClick={handleDisconnect} className="gap-1.5" disabled={disconnecting}>
+                    <LogOut className="w-4 h-4" />
+                    {disconnecting ? "Desconectando..." : "Desconectar"}
+                  </Button>
+                )}
                 {!effectiveConnected && (
                   <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
                     <Smartphone className="w-4 h-4" />
