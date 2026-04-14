@@ -35,6 +35,7 @@ interface PhoneNumber {
   quality_rating: string;
   name_status: string;
   id: string;
+  waba_id?: string;
 }
 
 /* ---------- helpers ---------- */
@@ -97,10 +98,17 @@ export default function EnvioCloudAPI() {
 
   useEffect(() => {
     if (isConnected) {
-      fetchTemplates();
       fetchPhoneNumbers();
     }
   }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    setTemplateName("");
+    setVariables([]);
+    void fetchTemplates(selectedPhoneNumberId || undefined);
+  }, [isConnected, selectedPhoneNumberId]);
 
   /* ---------- fetchers ---------- */
   const fetchPhoneNumbers = async () => {
@@ -119,11 +127,14 @@ export default function EnvioCloudAPI() {
     }
   };
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (phoneNumberId?: string) => {
     setLoadingTemplates(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-meta-message", {
-        body: { action: "list_templates" },
+        body: {
+          action: "list_templates",
+          ...(phoneNumberId ? { override_phone_number_id: phoneNumberId } : {}),
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -174,14 +185,18 @@ export default function EnvioCloudAPI() {
       toast.error("Informe o número e selecione um template");
       return;
     }
-    const selectedTpl = templates.find((t) => t.name === templateName);
+    const selectedTpl = selectedTemplate;
+    if (!selectedTpl) {
+      toast.error("Selecione um template válido para o número remetente escolhido");
+      return;
+    }
     setSending(true);
     try {
       await metaInvoke({
         action: "send_template",
         phone,
-        template_name: templateName,
-        language: selectedTpl?.language || "pt_BR",
+        template_name: selectedTpl.name,
+        language: selectedTpl.language || "pt_BR",
         variables: variables.filter(Boolean),
       });
       toast.success("Template enviado com sucesso!");
@@ -295,12 +310,15 @@ export default function EnvioCloudAPI() {
 
       try {
         if (templateName) {
-          const selectedTpl = templates.find((t) => t.name === templateName);
+          const selectedTpl = selectedTemplate;
+          if (!selectedTpl) {
+            throw new Error("Template selecionado não é válido para o número remetente escolhido");
+          }
           await metaInvoke({
             action: "send_template",
             phone: contact.phone,
-            template_name: templateName,
-            language: selectedTpl?.language || "pt_BR",
+            template_name: selectedTpl.name,
+            language: selectedTpl.language || "pt_BR",
             variables: variables.filter(Boolean),
           });
         } else {
@@ -339,7 +357,9 @@ export default function EnvioCloudAPI() {
     return matches ? matches.length : 0;
   };
 
-  const selectedTemplate = templates.find((t) => t.name === templateName);
+  const getTemplateOptionValue = (tpl: MetaTemplate) => `${tpl.id}::${tpl.language}`;
+
+  const selectedTemplate = templates.find((t) => getTemplateOptionValue(t) === templateName);
 
   /* ---------- button helpers ---------- */
   const addButton = () => {
@@ -558,7 +578,7 @@ export default function EnvioCloudAPI() {
                     variant="ghost"
                     size="sm"
                     className="h-6 text-[10px] gap-1 px-2"
-                    onClick={fetchTemplates}
+                    onClick={() => fetchTemplates(selectedPhoneNumberId || undefined)}
                     disabled={loadingTemplates}
                   >
                     <RefreshCw className={`w-3 h-3 ${loadingTemplates ? "animate-spin" : ""}`} />
@@ -578,9 +598,9 @@ export default function EnvioCloudAPI() {
                 ) : (
                   <Select
                     value={templateName}
-                    onValueChange={(v) => {
-                      setTemplateName(v);
-                      const t = templates.find((tpl) => tpl.name === v);
+                      onValueChange={(v) => {
+                        setTemplateName(v);
+                        const t = templates.find((tpl) => getTemplateOptionValue(tpl) === v);
                       if (t) setVariables(Array(getBodyVarCount(t)).fill(""));
                     }}
                   >
@@ -588,8 +608,8 @@ export default function EnvioCloudAPI() {
                       <SelectValue placeholder="Selecione um template" />
                     </SelectTrigger>
                     <SelectContent>
-                      {templates.map((t) => (
-                        <SelectItem key={t.id} value={t.name} className="text-sm">
+                        {templates.map((t) => (
+                        <SelectItem key={`${t.id}-${t.language}`} value={getTemplateOptionValue(t)} className="text-sm">
                           <div className="flex items-center gap-2">
                             <span>{t.name}</span>
                             <Badge variant="outline" className="text-[9px] font-mono">{t.language}</Badge>
@@ -877,17 +897,17 @@ export default function EnvioCloudAPI() {
               {templateName || templates.length > 0 ? (
                 <div className="space-y-2">
                   <Label className="text-xs">Template aprovado</Label>
-                  <Select value={templateName} onValueChange={(v) => {
-                    setTemplateName(v);
-                    const t = templates.find((tpl) => tpl.name === v);
+                   <Select value={templateName} onValueChange={(v) => {
+                     setTemplateName(v);
+                     const t = templates.find((tpl) => getTemplateOptionValue(tpl) === v);
                     if (t) setVariables(Array(getBodyVarCount(t)).fill(""));
                   }}>
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue placeholder="Selecione (ou deixe vazio para texto livre)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {templates.map((t) => (
-                        <SelectItem key={t.id} value={t.name} className="text-sm">
+                       {templates.map((t) => (
+                         <SelectItem key={`${t.id}-${t.language}`} value={getTemplateOptionValue(t)} className="text-sm">
                           {t.name} <Badge variant="outline" className="ml-1 text-[9px]">{t.language}</Badge>
                         </SelectItem>
                       ))}
