@@ -750,7 +750,7 @@ const ExtrairComunidade = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               Grupos da Instância
-              {connectedViaInstance && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
+              {effectiveConnected && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
               {groups.length > 0 && <Badge variant="secondary" className="text-[10px]">{groups.length}</Badge>}
             </CardTitle>
             <Button
