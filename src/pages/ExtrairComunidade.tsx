@@ -316,9 +316,10 @@ const ExtrairComunidade = () => {
   const canOperate = hasCredentials || connectedViaInstance;
   const canConnectNumber = true;
 
-  // Determine effective connection status
-  const effectiveConnected = hasCredentials ? uazapiConnected === true : connectedViaInstance;
-  const effectiveChecking = hasCredentials ? checkingUazapi : (checkingConnection || connectionPolling);
+  // Determine effective connection status — this page ONLY works with uazapi
+  // so never show Z-API "connected" as it misleads users
+  const effectiveConnected = hasCredentials ? uazapiConnected === true : false;
+  const effectiveChecking = hasCredentials ? checkingUazapi : false;
 
   useEffect(() => {
     if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
