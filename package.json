@@ -59,6 +59,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "none": "^1.0.0",
     "papaparse": "^5.5.3",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
