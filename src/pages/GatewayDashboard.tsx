@@ -11,10 +11,10 @@ export default function GatewayDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Integrações Ativas", value: "0", icon: PlugZap, color: "text-emerald-500" },
-          { label: "Checkouts Criados", value: "0", icon: CreditCard, color: "text-blue-500" },
-          { label: "Webhooks Recebidos", value: "0", icon: Activity, color: "text-amber-500" },
-          { label: "Conversões", value: "0%", icon: LayoutDashboard, color: "text-purple-500" },
+          { label: "Integrações Ativas", value: "0", icon: PlugZap, color: "text-primary" },
+          { label: "Checkouts Criados", value: "0", icon: CreditCard, color: "text-primary" },
+          { label: "Webhooks Recebidos", value: "0", icon: Activity, color: "text-primary" },
+          { label: "Conversões", value: "0%", icon: LayoutDashboard, color: "text-primary" },
         ].map((item) => (
           <Card key={item.label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
