@@ -676,11 +676,43 @@ const ExtrairComunidade = () => {
   useEffect(() => {
     if (!connectionPolling || !hasCredentials) return;
 
-    const interval = setInterval(() => {
-      checkUazapiStatus({ silent: false });
-    }, 5000);
+    let cancelled = false;
 
-    return () => clearInterval(interval);
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const { data, error } = await supabase.functions.invoke("uazapi-status", {
+          body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+        });
+        if (cancelled) return;
+        if (error || data?.error) return;
+
+        const resolvedState = getUazapiConnectionState(data);
+
+        if (resolvedState === "connected") {
+          setUazapiConnected(true);
+          setConnectionPolling(false);
+          setConnectDialogOpen(false);
+          setQrCodeImage(null);
+          setPairingCode(null);
+          toast.success("WhatsApp conectado com sucesso!");
+          fetchGroups();
+          return;
+        }
+
+        // Update QR/pairing artifacts while polling
+        await applyConnectionArtifacts(data);
+      } catch {
+        // ignore polling errors
+      }
+    };
+
+    const interval = setInterval(poll, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [connectionPolling, hasCredentials, apiUrl, apiToken]);
 
   // Generate QR Code via uazapi
