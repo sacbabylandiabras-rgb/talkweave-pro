@@ -867,18 +867,13 @@ const ExtrairComunidade = () => {
             </DialogTitle>
           </DialogHeader>
           <Tabs value={connectionTab} onValueChange={setConnectionTab}>
-            <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-2"}`}>
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="qr-code" className="text-xs">
                 <QrCode className="w-3 h-3 mr-1" /> QR Code
               </TabsTrigger>
               <TabsTrigger value="pairing" className="text-xs">
                 <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="uazapi" className="text-xs">
-                  <KeyRound className="w-3 h-3 mr-1" /> Credenciais
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <TabsContent value="qr-code" className="mt-4">
