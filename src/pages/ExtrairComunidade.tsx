@@ -427,14 +427,36 @@ const ExtrairComunidade = () => {
   const checkUazapiConnection = async () => {
     setCheckingUazapi(true);
     try {
+      // First check native status endpoint
+      const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      const status = statusData?.status || statusData?.state || statusData?.connectionStatus;
+      if (status === "connected") {
+        setUazapiConnected(true);
+        toast.success("Instância conectada!");
+        // Also fetch groups
+        const { data } = await supabase.functions.invoke("uazapi-group-list", {
+          body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+        });
+        if (data && !data.error) {
+          const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+          const list = buildGroupList(rawGroups);
+          setGroups(list);
+          if (list.length > 0) toast.success(`${list.length} grupos carregados!`);
+        }
+        return;
+      }
+      if (status === "disconnected" || status === "connecting") {
+        setUazapiConnected(false);
+        toast.warning(status === "connecting" ? "Instância em processo de conexão..." : "Instância desconectada.");
+        return;
+      }
+      // Fallback: try group list
       const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
-      if (error) {
-        setUazapiConnected(false);
-        return;
-      }
-      if (data?.error) {
+      if (error || data?.error) {
         setUazapiConnected(false);
         return;
       }
