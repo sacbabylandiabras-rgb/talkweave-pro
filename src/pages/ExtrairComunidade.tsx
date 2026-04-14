@@ -1068,17 +1068,19 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
-                <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
-                  <Smartphone className="w-4 h-4" />
-                  {effectiveConnected ? "Gerenciar conexão" : checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
-                </Button>
+                {!effectiveConnected && (
+                  <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
+                    <Smartphone className="w-4 h-4" />
+                    {checkingUazapi ? "Verificando..." : "Conectar WhatsApp"}
+                  </Button>
+                )}
              </div>
            </CardContent>
          </Card>
        )}
-
-      {/* Connection dialog */}
-      <Dialog open={connectDialogOpen} onOpenChange={(open) => { setConnectDialogOpen(open); if (!open) setConnectionPolling(false); }}>
+ 
+       {/* Connection dialog */}
+      <Dialog open={allowConnectionDialog && connectDialogOpen} onOpenChange={(open) => { setConnectDialogOpen(allowConnectionDialog ? open : false); if (!open) setConnectionPolling(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
