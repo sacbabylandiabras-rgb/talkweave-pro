@@ -200,19 +200,6 @@ async function sendTextMessage(
   return jsonResponse({ success: true, data: result.data });
 }
 
-async function listTemplates(creds: { access_token: string; waba_id?: string | null }) {
-  if (!creds.waba_id) {
-    return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
-  }
-
-  const result = await metaFetch(
-    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/message_templates?limit=250`,
-    creds.access_token
-  );
-  if (result instanceof Response) return result;
-  return jsonResponse({ templates: result.data.data || [] });
-}
-
 async function resolveWabaIdForPhoneNumber(
   creds: { access_token: string; waba_id?: string | null; business_account_id?: string | null; phone_number_id?: string | null },
   phoneNumberId?: string | null,
