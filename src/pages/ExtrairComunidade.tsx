@@ -301,6 +301,8 @@ const ExtrairComunidade = () => {
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [savingUazapi, setSavingUazapi] = useState(false);
   const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
+  const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
+  const [checkingUazapi, setCheckingUazapi] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Get current user id for role check
@@ -310,9 +312,13 @@ const ExtrairComunidade = () => {
     });
   }, []);
 
-  const hasCredentials = apiUrl.trim() && apiToken.trim();
+  const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
   const canOperate = hasCredentials || connectedViaInstance;
   const canConnectNumber = true;
+
+  // Determine effective connection status
+  const effectiveConnected = hasCredentials ? uazapiConnected === true : connectedViaInstance;
+  const effectiveChecking = hasCredentials ? checkingUazapi : (checkingConnection || connectionPolling);
 
   useEffect(() => {
     if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
@@ -607,9 +613,40 @@ const ExtrairComunidade = () => {
   // Auto-fetch groups when credentials are loaded
   useEffect(() => {
     if (!loadingCredentials && apiUrl && apiToken) {
-      fetchGroups();
+      checkUazapiConnection();
     }
   }, [loadingCredentials, apiUrl, apiToken]);
+
+  const checkUazapiConnection = async () => {
+    setCheckingUazapi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) {
+        setUazapiConnected(false);
+        return;
+      }
+      if (data?.error) {
+        setUazapiConnected(false);
+        return;
+      }
+      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
+      const list = buildGroupList(rawGroups);
+      setGroups(list);
+      setUazapiConnected(list.length > 0);
+      if (list.length > 0) {
+        toast.success(`${list.length} grupos carregados!`);
+      } else {
+        setUazapiConnected(false);
+        toast.warning("Instância desconectada ou sem grupos.");
+      }
+    } catch {
+      setUazapiConnected(false);
+    } finally {
+      setCheckingUazapi(false);
+    }
+  };
 
   const fetchGroups = async () => {
     if (!apiUrl.trim() || !apiToken.trim()) return;
@@ -837,25 +874,31 @@ const ExtrairComunidade = () => {
             <div className="flex items-center gap-2">
               <div>
                 <p className="text-sm font-medium">Status da instância</p>
-                <p className="text-xs text-muted-foreground">
-                  {connectedViaInstance
-                    ? "Instância conectada. Você ainda pode abrir a conexão ou configurar a UAZAPI."
-                    : "Conecte seu WhatsApp para continuar"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px]">
-                {checkingConnection || connectionPolling ? "Verificando..." : connectedViaInstance ? "Conectado" : "Desconectado"}
-              </Badge>
-              <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
-                <Smartphone className="w-4 h-4" />
-                {connectedViaInstance ? "Gerenciar conexão" : "Conectar WhatsApp"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                 <p className="text-xs text-muted-foreground">
+                   {effectiveConnected
+                     ? hasCredentials ? "Instância UAZAPI conectada." : "Instância Z-API conectada."
+                     : "Conecte seu WhatsApp para continuar"}
+                 </p>
+               </div>
+             </div>
+             <div className="flex items-center gap-2">
+               <Badge variant="outline" className="text-[10px]">
+                 {effectiveChecking ? "Verificando..." : effectiveConnected ? "Conectado" : "Desconectado"}
+               </Badge>
+               {hasCredentials && !effectiveConnected && !effectiveChecking && (
+                 <Button size="sm" variant="outline" onClick={checkUazapiConnection} className="gap-1.5 text-xs">
+                   <RefreshCw className="w-3 h-3" />
+                   Verificar
+                 </Button>
+               )}
+               <Button size="sm" onClick={() => setConnectDialogOpen(true)} className="gap-1.5">
+                 <Smartphone className="w-4 h-4" />
+                 {effectiveConnected ? "Gerenciar conexão" : "Conectar WhatsApp"}
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
+       )}
 
       {/* Connection dialog */}
       <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
