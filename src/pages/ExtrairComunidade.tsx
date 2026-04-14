@@ -301,6 +301,8 @@ const ExtrairComunidade = () => {
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [savingUazapi, setSavingUazapi] = useState(false);
   const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
+  const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
+  const [checkingUazapi, setCheckingUazapi] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Get current user id for role check
@@ -310,9 +312,13 @@ const ExtrairComunidade = () => {
     });
   }, []);
 
-  const hasCredentials = apiUrl.trim() && apiToken.trim();
+  const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
   const canOperate = hasCredentials || connectedViaInstance;
   const canConnectNumber = true;
+
+  // Determine effective connection status
+  const effectiveConnected = hasCredentials ? uazapiConnected === true : connectedViaInstance;
+  const effectiveChecking = hasCredentials ? checkingUazapi : (checkingConnection || connectionPolling);
 
   useEffect(() => {
     if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
