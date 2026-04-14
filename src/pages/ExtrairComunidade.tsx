@@ -307,35 +307,7 @@ const ExtrairComunidade = () => {
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
 
   useEffect(() => {
-    if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
-
-    let cancelled = false;
-
-    const groupsNeedingCount = groups.filter((group) => group.size <= 0 || group.isCommunity);
-
-    if (groupsNeedingCount.length === 0) return;
-
-    const loadMemberCounts = async () => {
-      for (const group of groupsNeedingCount) {
-        if (cancelled) return;
-
-        await fetchMemberCount(
-          group.id,
-          group.sourceInstanceId || null,
-          extractParticipantsFromPayload(group.raw),
-        );
-      }
-    };
-
-    void loadMemberCounts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canOperate, connectedViaInstance, fetchMemberCount, groups, hasCredentials]);
-
-  useEffect(() => {
-    if (!hasCredentials || connectedViaInstance || groups.length === 0) return;
+    if (!hasCredentials || groups.length === 0) return;
 
     let cancelled = false;
 
@@ -347,7 +319,6 @@ const ExtrairComunidade = () => {
       for (const group of groupsNeedingCount) {
         if (cancelled) return;
 
-        // Skip if already fetched or in progress
         const alreadyCached = uazapiMemberCounts[group.id];
         if (alreadyCached && (alreadyCached.loading || alreadyCached.count > 0)) continue;
 
@@ -388,75 +359,7 @@ const ExtrairComunidade = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiToken, apiUrl, connectedViaInstance, groups, hasCredentials]);
-
-  const fetchGroupsViaZapi = async () => {
-    setLoadingGroups(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("get-whatsapp-groups");
-      if (error) throw error;
-      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
-      const list = buildGroupList(rawGroups);
-      setGroups(list);
-      if (list.length === 0) {
-        toast.warning("Nenhum grupo encontrado.");
-      } else {
-        toast.success(`${list.length} grupos carregados!`);
-      }
-    } catch (err: any) {
-      console.error("Erro ao listar grupos via Z-API:", err);
-      toast.error(err?.message || "Erro ao listar grupos");
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
-
-  const checkInstanceConnection = async (instanceId?: string | null, options?: { silent?: boolean }) => {
-    try {
-      if (!options?.silent) setCheckingConnection(true);
-      const { data } = await supabase.functions.invoke(
-        "get-device-status",
-        instanceId ? { body: { instanceId } } : {},
-      );
-      const connected =
-        data?.data?.connected === true ||
-        data?.connected === true ||
-        data?.data?.status === "CONNECTED" ||
-        data?.status === "CONNECTED";
-
-      setConnectedViaInstance(connected);
-
-      if (connected) {
-        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
-        setConnectDialogOpen(false);
-        setQrCodeImage(null);
-        setPairingCode(null);
-        fetchGroupsViaZapi();
-      }
-
-      return connected;
-    } catch {
-      setConnectedViaInstance(false);
-      return false;
-    } finally {
-      if (!options?.silent) setCheckingConnection(false);
-    }
-  };
-
-  // Poll connection status after QR is shown
-  useEffect(() => {
-    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || (!selectedInstanceId && !hasLegacyZapiProfileCredentials)) {
-      setConnectionPolling(false);
-      return;
-    }
-
-    setConnectionPolling(true);
-    const interval = setInterval(() => {
-      checkInstanceConnection(selectedInstanceId, { silent: true });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [connectDialogOpen, hasLegacyZapiProfileCredentials, qrCodeImage, pairingCode, selectedInstanceId]);
+  }, [apiToken, apiUrl, groups, hasCredentials]);
 
   // Load credentials from database (set by admin)
   useEffect(() => {
@@ -467,15 +370,12 @@ const ExtrairComunidade = () => {
         if (!session) return;
         const { data } = await supabase
           .from("profiles")
-          .select("uazapi_url, uazapi_token, zapi_instance_id, zapi_token, zapi_client_token")
+          .select("uazapi_url, uazapi_token")
           .eq("id", session.user.id)
           .single();
         const profile = data as any;
         if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
         if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
-        setHasLegacyZapiProfileCredentials(
-          Boolean(profile?.zapi_instance_id && profile?.zapi_token && profile?.zapi_client_token),
-        );
       } catch (err) {
         console.error("Erro ao carregar credenciais:", err);
       } finally {
@@ -484,21 +384,6 @@ const ExtrairComunidade = () => {
     };
     loadCredentials();
   }, []);
-
-  // Auto-select first instance
-  useEffect(() => {
-    if (!selectedInstanceId && instances.length > 0) {
-      setSelectedInstanceId(instances[0].id);
-    }
-  }, [instances, selectedInstanceId]);
-
-  useEffect(() => {
-    if (selectedInstanceId) {
-      checkInstanceConnection(selectedInstanceId, { silent: true });
-    } else if (!loadingCredentials && hasLegacyZapiProfileCredentials) {
-      checkInstanceConnection(null, { silent: true });
-    }
-  }, [hasLegacyZapiProfileCredentials, loadingCredentials, selectedInstanceId]);
 
   const fetchQrCode = async () => {
     const instId = selectedInstanceId;
