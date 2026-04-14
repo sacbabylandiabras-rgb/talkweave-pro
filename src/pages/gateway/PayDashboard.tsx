@@ -323,19 +323,19 @@ export default function PayDashboard() {
         </div>
       </div>
 
-      <Card className="border-[#2A2A2A] ring-1 ring-emerald-500/20">
+      <Card className="border-border ring-1 ring-primary/20">
         <CardContent className="pt-5 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-emerald-500/10">
-              <Wallet className="w-6 h-6 text-emerald-500" />
+            <div className="p-3 rounded-lg bg-primary/10">
+              <Wallet className="w-6 h-6 text-primary" />
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo Disponível para Saque</p>
-              <p className="text-2xl font-bold text-emerald-500">{formatCurrency(availableBalance)}</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(availableBalance)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Líquido total: {formatCurrency(totalNet)} · Sacado: {formatCurrency(totalWithdrawn)}</p>
             </div>
           </div>
-          <Button variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10" onClick={() => navigate("/gateway-checkout/withdrawals")}>
+          <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10" onClick={() => navigate("/gateway-checkout/withdrawals")}>
             Solicitar Saque
           </Button>
         </CardContent>
@@ -343,7 +343,7 @@ export default function PayDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m) => (
-          <Card key={m.label} className="border-[#2A2A2A]">
+          <Card key={m.label} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{m.label}</CardTitle>
               <m.icon className="w-4 h-4 text-[#FF4D2E]" />
@@ -357,7 +357,7 @@ export default function PayDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-[#2A2A2A]">
+        <Card className="border-border">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Volume de Vendas — {periodLabel}</CardTitle>
           </CardHeader>
@@ -366,32 +366,32 @@ export default function PayDashboard() {
               <AreaChart data={computedChartData}>
                 <defs>
                   <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#FF4D2E" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#FF7856" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#FF7856" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="date" tick={{ fill: "#A0A0A0", fontSize: 11 }} />
                 <YAxis tick={{ fill: "#A0A0A0", fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 8 }} />
+                <Tooltip contentStyle={{ background: "rgb(var(--card))", border: "1px solid rgb(var(--border))", borderRadius: 8 }} />
                 <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === "pagas" ? "Pagas" : "Pendentes"}</span>} />
-                <Area type="monotone" dataKey="pagas" stroke="#22C55E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
-                <Area type="monotone" dataKey="pendentes" stroke="#F59E0B" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
+                <Area type="monotone" dataKey="pagas" stroke="#FF4D2E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
+                <Area type="monotone" dataKey="pendentes" stroke="#FF7856" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="border-[#2A2A2A] overflow-hidden">
+        <Card className="border-border overflow-hidden">
           <CardContent className="p-0 h-full flex flex-col">
             <div className="px-4 pt-3 pb-1 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-medium text-emerald-500">Visualização em Tempo Real</span>
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-medium text-primary">Visualização em Tempo Real</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-lg font-bold text-foreground">{activeVisitors.length}</span>
@@ -407,7 +407,7 @@ export default function PayDashboard() {
         </Card>
       </div>
 
-      <Card className="border-[#2A2A2A]">
+      <Card className="border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">
             Transações — {periodLabel}
@@ -424,7 +424,7 @@ export default function PayDashboard() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-[#2A2A2A]">
+                <TableRow className="border-border">
                   <TableHead className="text-muted-foreground">ID</TableHead>
                   <TableHead className="text-muted-foreground">Cliente</TableHead>
                   <TableHead className="text-muted-foreground">Valor</TableHead>
@@ -437,7 +437,7 @@ export default function PayDashboard() {
                 {filteredTransactions.map((tx) => {
                   const badge = getStatusBadge(tx.status);
                   return (
-                    <TableRow key={tx.id} className="border-[#2A2A2A]">
+                    <TableRow key={tx.id} className="border-border">
                       <TableCell className="font-mono text-xs">{tx.id.slice(0, 8)}</TableCell>
                       <TableCell>{tx.customer_name || "—"}</TableCell>
                       <TableCell className="font-medium">{formatCurrency(tx.amount)}</TableCell>
