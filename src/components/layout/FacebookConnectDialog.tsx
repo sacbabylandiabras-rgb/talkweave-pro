@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import {
+  createMetaOAuthState,
+  requestWhatsAppEmbeddedSignupCode,
+} from "@/lib/meta-sdk";
 
 interface FacebookConnectDialogProps {
   open: boolean;
@@ -15,9 +19,6 @@ interface FacebookConnectDialogProps {
 }
 
 const META_APP_ID = "1476628750280487";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
-const SCOPES = "whatsapp_business_management,whatsapp_business_messaging,business_management";
 
 export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
   const [connecting, setConnecting] = useState(false);
@@ -34,6 +35,12 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
         setConnecting(false);
         toast.success("Conta Facebook Business conectada com sucesso!");
         queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        return;
+      }
+
+      if (event.data?.type === "META_OAUTH_ERROR") {
+        setConnecting(false);
+        toast.error(event.data?.message || "Não foi possível concluir a conexão com a Meta.");
       }
     };
     window.addEventListener("message", handler);
@@ -66,28 +73,32 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
 
     setConnecting(true);
 
-    const width = 600;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    const statePayload = encodeURIComponent(
-      btoa(JSON.stringify({ userId: user.id, origin: window.location.origin }))
-    );
+    try {
+      const statePayload = createMetaOAuthState({
+        userId: user.id,
+        origin: window.location.origin,
+      });
 
-    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${statePayload}&response_type=code`;
+      const code = await requestWhatsAppEmbeddedSignupCode();
+      const { data, error } = await supabase.functions.invoke("meta-oauth-callback", {
+        body: {
+          code,
+          origin: window.location.origin,
+          state: statePayload,
+        },
+      });
 
-    const popup = window.open(
-      oauthUrl,
-      "facebook_connect",
-      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
-    );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-    const checkPopup = setInterval(() => {
-      if (!popup || popup.closed) {
-        clearInterval(checkPopup);
-        setTimeout(() => setConnecting(false), 1500);
-      }
-    }, 500);
+      toast.success("Conta Facebook Business conectada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+    } catch (err) {
+      console.error("Meta embedded signup error:", err);
+      toast.error(err instanceof Error ? err.message : "Não foi possível concluir a conexão com a Meta.");
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const handleDisconnect = async () => {
