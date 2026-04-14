@@ -417,9 +417,9 @@ const ExtrairComunidade = () => {
   const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
   const canOperate = hasCredentials;
 
-  // Determine effective connection status — this page ONLY works with uazapi
-  // so never show Z-API "connected" as it misleads users
-  const effectiveConnected = hasCredentials ? uazapiConnected === true : false;
+  // Determine effective connection status — if groups were loaded successfully,
+  // the instance is functionally connected even if status endpoint is inconsistent.
+  const effectiveConnected = hasCredentials ? (uazapiConnected === true || groups.length > 0) : false;
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
 
   const buildQrCodeImage = async (payload: any) => {
