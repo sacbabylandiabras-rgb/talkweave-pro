@@ -453,8 +453,138 @@ const ExtrairComunidade = () => {
       setCheckingUazapi(false);
     }
   };
+  // Check uazapi status (native endpoint)
+  const checkUazapiStatus = async (options?: { silent?: boolean }) => {
+    if (!hasCredentials) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error || data?.error) return;
+      const status = data?.status || data?.state || data?.connectionStatus;
+      if (status === "connected") {
+        setUazapiConnected(true);
+        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
+        setConnectDialogOpen(false);
+        setQrCodeImage(null);
+        setPairingCode(null);
+        setConnectionPolling(false);
+        fetchGroups();
+        return true;
+      }
+      // Update QR if still connecting
+      if (status === "connecting") {
+        const qr = data?.qrCode || data?.qrcode || data?.qr;
+        if (qr && typeof qr === "string") {
+          if (qr.startsWith("data:image")) {
+            setQrCodeImage(qr);
+          } else if (qr.startsWith("iVBOR") || qr.startsWith("/9j/")) {
+            setQrCodeImage(`data:image/png;base64,${qr}`);
+          }
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
 
-  const fetchGroups = async () => {
+  // Poll connection status after QR/pairing is shown
+  useEffect(() => {
+    if (!connectionPolling || !hasCredentials) return;
+
+    const interval = setInterval(() => {
+      checkUazapiStatus({ silent: false });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [connectionPolling, hasCredentials, apiUrl, apiToken]);
+
+  // Generate QR Code via uazapi
+  const fetchQrCode = async () => {
+    if (!hasCredentials) { toast.error("Credenciais não configuradas"); return; }
+    setQrLoading(true);
+    setQrCodeImage(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-connect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Check if already connected
+      const status = data?.status || data?.state;
+      if (status === "connected") {
+        toast.success("Dispositivo já conectado!");
+        setUazapiConnected(true);
+        setConnectDialogOpen(false);
+        fetchGroups();
+        return;
+      }
+
+      // Extract QR from response
+      const qr = data?.qrCode || data?.qrcode || data?.qr || data?.data?.qrCode || data?.data?.qrcode;
+      if (qr && typeof qr === "string") {
+        if (qr.startsWith("data:image")) {
+          setQrCodeImage(qr);
+        } else if (qr.length > 50) {
+          setQrCodeImage(qr.startsWith("iVBOR") || qr.startsWith("/9j/") ? `data:image/png;base64,${qr}` : qr);
+        }
+        toast.success("QR Code gerado! Escaneie com o WhatsApp.");
+        setConnectionPolling(true);
+      } else {
+        toast.warning("QR Code ainda não disponível. Verifique o status da instância.");
+        // Start polling anyway to get QR from status
+        setConnectionPolling(true);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao gerar QR Code");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // Generate pairing code via uazapi
+  const fetchPairingCode = async () => {
+    if (!hasCredentials) { toast.error("Credenciais não configuradas"); return; }
+    if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
+    setPairingLoading(true);
+    setPairingCode(null);
+    try {
+      let cleanPhone = pairingPhone.replace(/\D/g, "");
+      if (cleanPhone && !cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+
+      const { data, error } = await supabase.functions.invoke("uazapi-connect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim(), phone: cleanPhone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const status = data?.status || data?.state;
+      if (status === "connected") {
+        toast.success("Dispositivo já conectado!");
+        setUazapiConnected(true);
+        setConnectDialogOpen(false);
+        fetchGroups();
+        return;
+      }
+
+      const code = data?.pairingCode || data?.code || data?.data?.pairingCode || data?.data?.code;
+      if (code) {
+        setPairingCode(code);
+        toast.success("Código de pareamento gerado!");
+        setConnectionPolling(true);
+      } else {
+        toast.error("Código de pareamento indisponível");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao solicitar código de pareamento");
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+
     if (!apiUrl.trim() || !apiToken.trim()) return;
     setLoadingGroups(true);
     try {
