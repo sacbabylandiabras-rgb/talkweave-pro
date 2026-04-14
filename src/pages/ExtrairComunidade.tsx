@@ -637,6 +637,26 @@ const ExtrairComunidade = () => {
       setCheckingUazapi(false);
     }
   };
+
+  const handleDisconnect = async () => {
+    if (!hasCredentials) return;
+    setDisconnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-disconnect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setUazapiConnected(false);
+      setGroups([]);
+      toast.success("WhatsApp desconectado com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   // Check uazapi status (native endpoint)
   const checkUazapiStatus = async (options?: { silent?: boolean }) => {
     if (!hasCredentials) return;
