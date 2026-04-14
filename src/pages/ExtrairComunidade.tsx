@@ -756,7 +756,7 @@ const ExtrairComunidade = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={connectedViaInstance && !hasCredentials ? fetchGroupsViaZapi : fetchGroups}
+              onClick={fetchGroups}
               disabled={loadingGroups || !canOperate}
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
