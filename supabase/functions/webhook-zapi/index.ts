@@ -1561,7 +1561,12 @@ serve(async (req) => {
                     const hasAllAudienceProcessed = targetContacts === 0 || processedCount >= targetContacts
 
                     if (pendingCount === 0 && hasAllAudienceProcessed) {
-                      const nextCampaignStatus = processedCount === 0 || successCount === 0 ? 'paused' : 'completed'
+                      // Also check if there are contacts in target_audience that were never persisted as campaign_sends
+                      const targetContacts = Array.isArray((campaignData.target_audience as any)?.contacts)
+                        ? (campaignData.target_audience as any).contacts
+                        : []
+                      const missingContacts = targetContacts.length > 0 && processedCount < targetContacts.length
+                      const nextCampaignStatus = processedCount === 0 || successCount === 0 || missingContacts ? 'paused' : 'completed'
                       const { error: campaignStatusError } = await supabase
                         .from('campaigns')
                         .update({ status: nextCampaignStatus, updated_at: nowIso })
