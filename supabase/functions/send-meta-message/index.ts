@@ -348,7 +348,7 @@ async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
 
 async function sendMediaMessage(
   creds: { access_token: string; phone_number_id: string },
-  body: { phone: string; media_url: string; media_type: string; caption?: string }
+  body: { phone: string; media_url: string; media_type: string; caption?: string; voice?: boolean }
 ) {
   const { phone, media_url, media_type, caption } = body;
   if (!phone || !media_url || !media_type) {
