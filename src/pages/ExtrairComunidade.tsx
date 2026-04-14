@@ -1035,7 +1035,20 @@ const ExtrairComunidade = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {hasCredentials ? (
+          {hasCredentials && effectiveConnected ? (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-base">WhatsApp Conectado</p>
+                <p className="text-xs text-muted-foreground mt-1">Sua instância está ativa e pronta para uso.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setConnectDialogOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          ) : hasCredentials ? (
             <Tabs value={connectionTab} onValueChange={setConnectionTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="qr-code" className="text-xs">
