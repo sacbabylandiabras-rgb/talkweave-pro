@@ -5,6 +5,99 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+
+  return null
+}
+
+const parseResponseBody = async (response: Response) => {
+  const rawText = await response.text()
+
+  if (!rawText) return {}
+
+  try {
+    return JSON.parse(rawText)
+  } catch {
+    return { message: rawText }
+  }
+}
+
+const normalizeConnectionPayload = (payload: any) => {
+  const instance = payload?.instance ?? {}
+  const statusInfo = payload?.status ?? {}
+
+  const connected =
+    payload?.connected === true ||
+    payload?.loggedIn === true ||
+    statusInfo?.connected === true ||
+    statusInfo?.loggedIn === true ||
+    instance?.status === 'connected'
+
+  const loggedIn =
+    payload?.loggedIn === true ||
+    statusInfo?.loggedIn === true ||
+    connected
+
+  const qrCode = pickFirstString(
+    payload?.qrCode,
+    payload?.qrcode,
+    payload?.qr,
+    payload?.value,
+    payload?.data?.qrCode,
+    payload?.data?.qrcode,
+    payload?.data?.qr,
+    payload?.response?.qrCode,
+    payload?.response?.qrcode,
+    payload?.response?.qr,
+    instance?.qrCode,
+    instance?.qrcode,
+  )
+
+  const pairingCode = pickFirstString(
+    payload?.pairingCode,
+    payload?.paircode,
+    payload?.code,
+    payload?.data?.pairingCode,
+    payload?.data?.paircode,
+    payload?.data?.code,
+    payload?.response?.pairingCode,
+    payload?.response?.paircode,
+    payload?.response?.code,
+    instance?.pairingCode,
+    instance?.paircode,
+  )
+
+  const rawState = pickFirstString(
+    payload?.connectionStatus,
+    payload?.state,
+    typeof payload?.status === 'string' ? payload.status : null,
+    instance?.status,
+    statusInfo?.state,
+  )
+
+  const connectionStatus = connected
+    ? 'connected'
+    : (qrCode || pairingCode || rawState === 'connecting')
+      ? 'connecting'
+      : rawState === 'disconnected'
+        ? 'disconnected'
+        : 'disconnected'
+
+  return {
+    ...payload,
+    connected,
+    loggedIn,
+    connectionStatus,
+    qrCode,
+    pairingCode,
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -37,19 +130,20 @@ serve(async (req) => {
       body: JSON.stringify(body),
     })
 
-    const data = await response.json()
+    const data = await parseResponseBody(response)
+    const normalizedData = normalizeConnectionPayload(data)
 
     if (!response.ok) {
       console.error('uazapi connect error:', response.status, JSON.stringify(data))
-      return new Response(JSON.stringify({ error: data?.error || data?.message || `Error ${response.status}`, ...data }), {
+      return new Response(JSON.stringify({ error: data?.error || data?.message || `Error ${response.status}`, ...normalizedData }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log(`✅ Connect response keys: ${Object.keys(data).join(',')}`)
+    console.log(`✅ Connect response keys: ${Object.keys(normalizedData).join(',')}`)
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(normalizedData), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

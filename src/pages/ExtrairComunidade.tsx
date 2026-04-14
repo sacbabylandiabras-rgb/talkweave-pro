@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone, QrCode, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import QRCodeLib from "qrcode";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -30,6 +32,125 @@ interface MemberCountState {
   count: number;
   loading: boolean;
 }
+
+const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = await error.context.json();
+      return payload?.message || payload?.error || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const normalizeQrImageValue = (value: unknown) => {
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("data:image")) return trimmed;
+  if (trimmed.startsWith("iVBOR")) return `data:image/png;base64,${trimmed}`;
+  if (trimmed.startsWith("/9j/")) return `data:image/jpeg;base64,${trimmed}`;
+  if (trimmed.startsWith("R0lGOD")) return `data:image/gif;base64,${trimmed}`;
+  if (trimmed.startsWith("UklGR")) return `data:image/webp;base64,${trimmed}`;
+  if (trimmed.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${trimmed}`;
+  return trimmed;
+};
+
+const getUazapiConnectionState = (payload: any) => {
+  const instanceStatus = pickFirstString(payload?.instance?.status);
+  const rawStatus = pickFirstString(
+    payload?.connectionStatus,
+    payload?.state,
+    typeof payload?.status === "string" ? payload.status : null,
+    instanceStatus,
+  );
+
+  const connected =
+    payload?.connected === true ||
+    payload?.loggedIn === true ||
+    payload?.status?.connected === true ||
+    payload?.status?.loggedIn === true ||
+    rawStatus === "connected";
+
+  if (connected) return "connected";
+
+  const hasPendingArtifacts = Boolean(
+    pickFirstString(
+      payload?.qrCode,
+      payload?.qrcode,
+      payload?.qr,
+      payload?.value,
+      payload?.pairingCode,
+      payload?.paircode,
+      payload?.code,
+      payload?.instance?.qrcode,
+      payload?.instance?.paircode,
+      payload?.response?.qrCode,
+      payload?.response?.qrcode,
+      payload?.response?.pairingCode,
+      payload?.response?.paircode,
+      payload?.response?.code,
+    ),
+  );
+
+  if (rawStatus === "connecting" || hasPendingArtifacts) return "connecting";
+  return "disconnected";
+};
+
+const getUazapiQrValue = (payload: any) => {
+  return normalizeQrImageValue(
+    pickFirstString(
+      payload?.qrCode,
+      payload?.qrcode,
+      payload?.qr,
+      payload?.value,
+      payload?.data?.qrCode,
+      payload?.data?.qrcode,
+      payload?.data?.qr,
+      payload?.data?.value,
+      payload?.instance?.qrCode,
+      payload?.instance?.qrcode,
+      payload?.response?.qrCode,
+      payload?.response?.qrcode,
+      payload?.response?.qr,
+      payload?.response?.value,
+    ),
+  );
+};
+
+const getUazapiPairingValue = (payload: any) => {
+  return pickFirstString(
+    payload?.pairingCode,
+    payload?.paircode,
+    payload?.code,
+    payload?.data?.pairingCode,
+    payload?.data?.paircode,
+    payload?.data?.code,
+    payload?.instance?.pairingCode,
+    payload?.instance?.paircode,
+    payload?.response?.pairingCode,
+    payload?.response?.paircode,
+    payload?.response?.code,
+  );
+};
 
 const normalizeParticipantIdentifier = (value: any) => {
   const raw = String(value ?? "").trim();
@@ -301,6 +422,35 @@ const ExtrairComunidade = () => {
   const effectiveConnected = hasCredentials ? uazapiConnected === true : false;
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
 
+  const buildQrCodeImage = async (payload: any) => {
+    const qrValue = getUazapiQrValue(payload);
+    if (!qrValue) return null;
+
+    if (qrValue.startsWith("data:image") || qrValue.startsWith("http")) {
+      return qrValue;
+    }
+
+    try {
+      return await QRCodeLib.toDataURL(qrValue, {
+        width: 256,
+        margin: 2,
+        color: { dark: "#000000", light: "#FFFFFF" },
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const applyConnectionArtifacts = async (payload: any) => {
+    const qrImage = await buildQrCodeImage(payload);
+    const pairing = getUazapiPairingValue(payload);
+
+    if (qrImage) setQrCodeImage(qrImage);
+    if (pairing) setPairingCode(pairing);
+
+    return { qrImage, pairingCode: pairing };
+  };
+
   useEffect(() => {
     if (!hasCredentials || groups.length === 0) return;
 
@@ -431,8 +581,10 @@ const ExtrairComunidade = () => {
       const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
-      const status = statusData?.status || statusData?.state || statusData?.connectionStatus;
-      if (status === "connected") {
+      const resolvedState = getUazapiConnectionState(statusData);
+      const artifacts = await applyConnectionArtifacts(statusData);
+
+      if (resolvedState === "connected") {
         setUazapiConnected(true);
         toast.success("Instância conectada!");
         // Also fetch groups
@@ -447,11 +599,20 @@ const ExtrairComunidade = () => {
         }
         return;
       }
-      if (status === "disconnected" || status === "connecting") {
+
+      if (resolvedState === "connecting" || artifacts.qrImage || artifacts.pairingCode) {
         setUazapiConnected(false);
-        toast.warning(status === "connecting" ? "Instância em processo de conexão..." : "Instância desconectada.");
+        setConnectionPolling(true);
+        toast.warning("Instância aguardando leitura do QR Code ou código de pareamento.");
         return;
       }
+
+      if (resolvedState === "disconnected") {
+        setUazapiConnected(false);
+        toast.warning("Instância desconectada.");
+        return;
+      }
+
       // Fallback: try group list
       const { data, error } = await supabase.functions.invoke("uazapi-group-list", {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
@@ -483,8 +644,11 @@ const ExtrairComunidade = () => {
         body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
       });
       if (error || data?.error) return;
-      const status = data?.status || data?.state || data?.connectionStatus;
-      if (status === "connected") {
+
+      const resolvedState = getUazapiConnectionState(data);
+      const artifacts = await applyConnectionArtifacts(data);
+
+      if (resolvedState === "connected") {
         setUazapiConnected(true);
         if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
         setConnectDialogOpen(false);
@@ -494,17 +658,14 @@ const ExtrairComunidade = () => {
         fetchGroups();
         return true;
       }
-      // Update QR if still connecting
-      if (status === "connecting") {
-        const qr = data?.qrCode || data?.qrcode || data?.qr;
-        if (qr && typeof qr === "string") {
-          if (qr.startsWith("data:image")) {
-            setQrCodeImage(qr);
-          } else if (qr.startsWith("iVBOR") || qr.startsWith("/9j/")) {
-            setQrCodeImage(`data:image/png;base64,${qr}`);
-          }
-        }
+
+      if (resolvedState === "connecting" || artifacts.qrImage || artifacts.pairingCode) {
+        setUazapiConnected(false);
+        setConnectionPolling(true);
+        return false;
       }
+
+      setUazapiConnected(false);
       return false;
     } catch {
       return false;
@@ -534,9 +695,10 @@ const ExtrairComunidade = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Check if already connected
-      const status = data?.status || data?.state;
-      if (status === "connected") {
+      const resolvedState = getUazapiConnectionState(data);
+      const artifacts = await applyConnectionArtifacts(data);
+
+      if (resolvedState === "connected") {
         toast.success("Dispositivo já conectado!");
         setUazapiConnected(true);
         setConnectDialogOpen(false);
@@ -544,23 +706,17 @@ const ExtrairComunidade = () => {
         return;
       }
 
-      // Extract QR from response
-      const qr = data?.qrCode || data?.qrcode || data?.qr || data?.data?.qrCode || data?.data?.qrcode;
-      if (qr && typeof qr === "string") {
-        if (qr.startsWith("data:image")) {
-          setQrCodeImage(qr);
-        } else if (qr.length > 50) {
-          setQrCodeImage(qr.startsWith("iVBOR") || qr.startsWith("/9j/") ? `data:image/png;base64,${qr}` : qr);
-        }
+      if (artifacts.qrImage) {
         toast.success("QR Code gerado! Escaneie com o WhatsApp.");
         setConnectionPolling(true);
       } else {
+        await checkUazapiStatus({ silent: true });
         toast.warning("QR Code ainda não disponível. Verifique o status da instância.");
-        // Start polling anyway to get QR from status
         setConnectionPolling(true);
       }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao gerar QR Code");
+    } catch (error) {
+      const message = await getInvokeErrorMessage(error, "Erro ao gerar QR Code");
+      toast.error(message);
     } finally {
       setQrLoading(false);
     }
@@ -582,8 +738,10 @@ const ExtrairComunidade = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const status = data?.status || data?.state;
-      if (status === "connected") {
+      const resolvedState = getUazapiConnectionState(data);
+      const artifacts = await applyConnectionArtifacts(data);
+
+      if (resolvedState === "connected") {
         toast.success("Dispositivo já conectado!");
         setUazapiConnected(true);
         setConnectDialogOpen(false);
@@ -591,16 +749,19 @@ const ExtrairComunidade = () => {
         return;
       }
 
-      const code = data?.pairingCode || data?.code || data?.data?.pairingCode || data?.data?.code;
-      if (code) {
-        setPairingCode(code);
+      if (artifacts.pairingCode) {
         toast.success("Código de pareamento gerado!");
+        setConnectionPolling(true);
+      } else if (artifacts.qrImage) {
+        setConnectionTab("qr-code");
+        toast.warning("A instância retornou QR Code em vez de código de pareamento. Escaneie o QR para conectar.");
         setConnectionPolling(true);
       } else {
         toast.error("Código de pareamento indisponível");
       }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao solicitar código de pareamento");
+    } catch (error) {
+      const message = await getInvokeErrorMessage(error, "Erro ao solicitar código de pareamento");
+      toast.error(message);
     } finally {
       setPairingLoading(false);
     }
