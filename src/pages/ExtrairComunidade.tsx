@@ -397,6 +397,7 @@ const ExtrairComunidade = () => {
   const [savingUazapi, setSavingUazapi] = useState(false);
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   // QR Code / Pairing state (uazapi native)
   const [connectionTab, setConnectionTab] = useState("qr-code");
