@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface ExtractedParticipant {
@@ -276,7 +275,6 @@ const ExtrairComunidade = () => {
   const [savingUazapi, setSavingUazapi] = useState(false);
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
-  const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Get current user id for role check
   useEffect(() => {
@@ -433,12 +431,11 @@ const ExtrairComunidade = () => {
       const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
       const list = buildGroupList(rawGroups);
       setGroups(list);
-      setUazapiConnected(list.length > 0);
+      setUazapiConnected(true);
       if (list.length > 0) {
         toast.success(`${list.length} grupos carregados!`);
       } else {
-        setUazapiConnected(false);
-        toast.warning("Instância desconectada ou sem grupos.");
+        toast.success("Conexão validada com sucesso.");
       }
     } catch {
       setUazapiConnected(false);
@@ -714,6 +711,18 @@ const ExtrairComunidade = () => {
                   </Button>
                 </div>
               </>
+            ) : hasCredentials ? (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                <Smartphone className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p>Sua conexão já foi configurada.</p>
+                <p className="text-xs mt-1">Use o botão de verificar para atualizar o status da instância.</p>
+                <div className="mt-4 flex justify-center">
+                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi}>
+                    {checkingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                    Verificar conexão
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground text-sm">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
