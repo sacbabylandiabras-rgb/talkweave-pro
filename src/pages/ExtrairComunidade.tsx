@@ -283,22 +283,10 @@ const ExtrairComunidade = () => {
   const [groupFilter, setGroupFilter] = useState("");
   const [uazapiMemberCounts, setUazapiMemberCounts] = useState<Record<string, MemberCountState>>({});
 
-  // Connection via QR/Pairing
-  const { instances } = useZapiInstances();
+  // Connection state (uazapi only — no Z-API on this page)
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const { isAdmin } = useUserRole(currentUserId);
-  const [connectionTab, setConnectionTab] = useState("qr-code");
-  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [pairingPhone, setPairingPhone] = useState("");
-  const [pairingLoading, setPairingLoading] = useState(false);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [connectionPolling, setConnectionPolling] = useState(false);
-  const [connectedViaInstance, setConnectedViaInstance] = useState(false);
-  const [checkingConnection, setCheckingConnection] = useState(false);
   const [savingUazapi, setSavingUazapi] = useState(false);
-  const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
@@ -311,8 +299,7 @@ const ExtrairComunidade = () => {
   }, []);
 
   const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
-  const canOperate = hasCredentials || connectedViaInstance;
-  const canConnectNumber = true;
+  const canOperate = hasCredentials;
 
   // Determine effective connection status — this page ONLY works with uazapi
   // so never show Z-API "connected" as it misleads users
