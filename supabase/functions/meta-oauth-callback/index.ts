@@ -44,7 +44,7 @@ serve(async (req) => {
     console.log("OAuth callback - userId:", userId, "origin:", appOrigin, "ig_flow:", isInstagramFlow);
 
     if (isInstagramFlow) {
-      const igAppId = META_APP_ID || "1476628750280487";
+      const igAppId = "2389544344842071";
       const igAppSecret = INSTAGRAM_APP_SECRET || META_APP_SECRET;
 
       if (!igAppSecret && !META_APP_SECRET) {
