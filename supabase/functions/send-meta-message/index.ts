@@ -84,7 +84,7 @@ serve(async (req) => {
         }
         return await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
       case "list_templates":
-        return await listTemplates(creds);
+        return await listTemplates(creds, effectivePhoneId);
       case "create_template":
         return await createTemplate(creds, body);
       case "get_profile":
@@ -211,6 +211,36 @@ async function listTemplates(creds: { access_token: string; waba_id?: string | n
   );
   if (result instanceof Response) return result;
   return jsonResponse({ templates: result.data.data || [] });
+}
+
+async function resolveWabaIdForPhoneNumber(
+  creds: { access_token: string; waba_id?: string | null; business_account_id?: string | null; phone_number_id?: string | null },
+  phoneNumberId?: string | null,
+) {
+  if (!phoneNumberId) return creds.waba_id || null;
+
+  const phoneNumbers = await listAccessiblePhoneNumbers(creds, API_VERSION);
+  const matchedPhone = phoneNumbers.find((phone) => phone.id === phoneNumberId);
+
+  return matchedPhone?.waba_id || creds.waba_id || null;
+}
+
+async function listTemplates(
+  creds: { access_token: string; waba_id?: string | null; business_account_id?: string | null; phone_number_id?: string | null },
+  phoneNumberId?: string | null,
+) {
+  const resolvedWabaId = await resolveWabaIdForPhoneNumber(creds, phoneNumberId);
+
+  if (!resolvedWabaId) {
+    return jsonResponse({ error: "WABA ID não configurado para o número remetente selecionado." }, 400);
+  }
+
+  const result = await metaFetch(
+    `https://graph.facebook.com/${API_VERSION}/${resolvedWabaId}/message_templates?limit=250`,
+    creds.access_token
+  );
+  if (result instanceof Response) return result;
+  return jsonResponse({ templates: result.data.data || [], waba_id: resolvedWabaId });
 }
 
 async function createTemplate(
