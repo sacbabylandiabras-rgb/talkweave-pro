@@ -9,7 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import {
+  buildLegacyFacebookOAuthUrl,
   createMetaOAuthState,
+  loadMetaSdk,
+  META_EMBEDDED_SIGNUP_CONFIG_ID,
   requestWhatsAppEmbeddedSignupCode,
 } from "@/lib/meta-sdk";
 
@@ -28,6 +31,14 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
   const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials(META_APP_ID);
 
   const isConnected = metaCreds?.connected === true;
+
+  useEffect(() => {
+    if (!open || isConnected || !META_EMBEDDED_SIGNUP_CONFIG_ID) return;
+
+    void loadMetaSdk().catch((error) => {
+      console.warn("Meta SDK preload failed:", error);
+    });
+  }, [open, isConnected]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -64,18 +75,55 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
     };
   }, [queryClient]);
 
-  const handleFacebookConnect = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Você precisa estar logado");
-      return;
+  const getPopupFeatures = () => {
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    return `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`;
+  };
+
+  const openLegacyFacebookPopup = async () => {
+    const popup = window.open("", "facebook_connect", getPopupFeatures());
+
+    if (!popup) {
+      throw new Error("Libere pop-ups do navegador para continuar.");
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+
+    if (!user) {
+      popup.close();
+      throw new Error("Você precisa estar logado");
+    }
+
+    const statePayload = createMetaOAuthState({
+      userId: user.id,
+      origin: window.location.origin,
+    });
+
+    popup.location.href = buildLegacyFacebookOAuthUrl(statePayload);
+
+    const checkPopup = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(checkPopup);
+        window.setTimeout(() => setConnecting(false), 1500);
+      }
+    }, 500);
+  };
+
+  const handleFacebookConnect = async () => {
     setConnecting(true);
 
     try {
+      if (!META_EMBEDDED_SIGNUP_CONFIG_ID) {
+        await openLegacyFacebookPopup();
+        return;
+      }
+
       const statePayload = createMetaOAuthState({
-        userId: user.id,
         origin: window.location.origin,
       });
 

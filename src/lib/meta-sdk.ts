@@ -5,6 +5,9 @@ const META_SCOPES = [
   "whatsapp_business_messaging",
   "business_management",
 ].join(",");
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
+
+export const META_REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
 
 export const META_EMBEDDED_SIGNUP_CONFIG_ID = (
   import.meta.env.VITE_META_EMBEDDED_SIGNUP_CONFIG_ID ||
@@ -117,8 +120,20 @@ export async function loadMetaSdk() {
   return sdkPromise;
 }
 
-export function createMetaOAuthState(payload: { origin: string; userId: string }) {
+export function createMetaOAuthState(payload: { origin: string; userId?: string }) {
   return encodeURIComponent(btoa(JSON.stringify(payload)));
+}
+
+export function buildLegacyFacebookOAuthUrl(state: string) {
+  const query = new URLSearchParams({
+    client_id: META_APP_ID,
+    redirect_uri: META_REDIRECT_URI,
+    response_type: "code",
+    scope: META_SCOPES,
+    state,
+  });
+
+  return `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth?${query.toString()}`;
 }
 
 export async function requestWhatsAppEmbeddedSignupCode(
