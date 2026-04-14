@@ -418,14 +418,36 @@ const EnviarMensagem = () => {
         .update({ status: 'active' })
         .eq('id', campanha.id);
 
+      // PRÉ-PERSISTIR todos os contatos como 'pending' em campaign_sends
+      // Isso garante que o histórico nunca se perca, mesmo se o dispositivo desconectar
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
+      if (currentUserId) {
+        const pendingRecords = contatosProcessados.map((c) => ({
+          campaign_id: campanha.id,
+          phone: c.telefone,
+          contact_name: c.nome,
+          message_content: mensagem.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
+          status: 'pending',
+          user_id: currentUserId,
+        }));
+
+        // Inserir em lotes de 200 para evitar payload grande
+        for (let batch = 0; batch < pendingRecords.length; batch += 200) {
+          const chunk = pendingRecords.slice(batch, batch + 200);
+          const { error: insertErr } = await supabase.from('campaign_sends').insert(chunk);
+          if (insertErr) {
+            console.error('Erro ao pré-persistir pendentes:', insertErr);
+          }
+        }
+        console.log(`📋 ${pendingRecords.length} contatos pré-persistidos como pending`);
+      }
+
       toast({
         title: "Campanha criada!",
         description: `Iniciando envio para ${contatosProcessados.length} contatos com delay de ${delay}s`,
       });
-
-      // Obter user_id para os registros de envio
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id;
 
       let processados = 0;
       let erros = 0;
@@ -670,19 +692,17 @@ const EnviarMensagem = () => {
           instanceNameUsed = usedInst?.instance_name;
         }
 
-        // Registrar o envio na campanha IMEDIATAMENTE para atualizar o progresso em tempo real
+        // ATUALIZAR o registro pré-persistido (em vez de inserir novo)
         try {
-          await supabase.from('campaign_sends').insert({
-            campaign_id: campanha.id,
-            phone: contato.telefone,
-            contact_name: contato.nome,
-            message_content: mensagem.replace(/\{nome\}/g, contato.nome).replace(/\{numero\}/g, contato.telefone),
+          await supabase.from('campaign_sends').update({
             status: sendStatus,
             sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
             error_message: errorMessage,
-            user_id: currentUserId,
             instance_name: instanceNameUsed,
-          });
+          })
+          .eq('campaign_id', campanha.id)
+          .eq('phone', contato.telefone)
+          .eq('status', 'pending');
         } catch (dbErr) {
           console.error('Erro ao registrar envio:', dbErr);
         }
@@ -690,15 +710,34 @@ const EnviarMensagem = () => {
       
       // Atualizar status da campanha (apenas se não foi cancelado E não foi interrompido externamente)
       if (!cancelarEnvioRef.current && !interrompidoExternamente) {
-        const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
-        await supabase
-          .from('campaigns')
-          .update({ status: finalStatus })
-          .eq('id', campanha.id);
+        // Verificar se ainda há pendentes antes de marcar como completed
+        const { count: remainingPending } = await supabase
+          .from('campaign_sends')
+          .select('id', { count: 'exact', head: true })
+          .eq('campaign_id', campanha.id)
+          .eq('status', 'pending');
+
+        const hasPending = (remainingPending ?? 0) > 0;
+
+        if (hasPending) {
+          // Ainda há contatos não processados — pausar em vez de concluir
+          await supabase
+            .from('campaigns')
+            .update({ status: 'paused' })
+            .eq('id', campanha.id);
+        } else {
+          const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
+          await supabase
+            .from('campaigns')
+            .update({ status: finalStatus })
+            .eq('id', campanha.id);
+        }
 
         toast({
           title: "Envio em massa concluído!",
-          description: `✅ ${processados} envios confirmados • ❌ ${erros} erros`,
+          description: hasPending
+            ? `⏸️ ${processados} processados • ${remainingPending} pendentes — campanha pausada`
+            : `✅ ${processados} envios confirmados • ❌ ${erros} erros`,
           variant: processados > 0 ? "default" : "destructive"
         });
       }
