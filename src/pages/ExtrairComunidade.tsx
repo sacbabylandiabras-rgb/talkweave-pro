@@ -417,10 +417,10 @@ const ExtrairComunidade = () => {
   const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
   const canOperate = hasCredentials;
 
-  // Determine effective connection status — if groups were loaded successfully,
-  // the instance is functionally connected even if status endpoint is inconsistent.
+  // Connected state must fully block the QR dialog until a real disconnection happens.
   const effectiveConnected = hasCredentials ? (uazapiConnected === true || groups.length > 0) : false;
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
+  const allowConnectionDialog = !effectiveConnected;
 
   const buildQrCodeImage = async (payload: any) => {
     const qrValue = getUazapiQrValue(payload);
