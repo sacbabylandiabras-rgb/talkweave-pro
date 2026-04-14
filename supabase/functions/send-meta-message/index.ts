@@ -348,7 +348,7 @@ async function getPhoneNumbers(creds: MetaCredentialsForDiscovery) {
 
 async function sendMediaMessage(
   creds: { access_token: string; phone_number_id: string },
-  body: { phone: string; media_url: string; media_type: string; caption?: string }
+  body: { phone: string; media_url: string; media_type: string; caption?: string; voice?: boolean }
 ) {
   const { phone, media_url, media_type, caption } = body;
   if (!phone || !media_url || !media_type) {
@@ -366,6 +366,13 @@ async function sendMediaMessage(
   const mediaPayload: Record<string, any> = { link: media_url };
   if (caption && metaType !== "audio") {
     mediaPayload.caption = caption;
+  }
+  // Send as voice note if it's an OGG/OPUS audio file
+  if (metaType === "audio") {
+    const lowerUrl = media_url.toLowerCase();
+    if (lowerUrl.endsWith(".ogg") || lowerUrl.includes("audio/ogg") || body.voice === true) {
+      mediaPayload.voice = true;
+    }
   }
   if (metaType === "document") {
     mediaPayload.filename = media_url.split("/").pop() || "file";
