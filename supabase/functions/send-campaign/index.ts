@@ -805,6 +805,37 @@ serve(async (req) => {
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
+
+            // Mid-batch disconnection detection: after a send failure, check if device went offline
+            try {
+              const midBatchInstance = currentInstance;
+              const midCheck = await fetchDeviceStatusSnapshot(midBatchInstance);
+              if (midCheck.ok && midCheck.explicitlyDisconnected && !midCheck.connected) {
+                // Double-check after 1.5s to confirm
+                await sleep(1500);
+                const midRecheck = await fetchDeviceStatusSnapshot(midBatchInstance);
+                if (midRecheck.ok && midRecheck.explicitlyDisconnected && !midRecheck.connected) {
+                  console.log(`❌ DISPOSITIVO DESCONECTOU DURANTE O ENVIO! Pausando campanha ${campaignId} no contato ${i + 1}/${currentBatch.length}`);
+                  
+                  // Persist this failed send before pausing
+                  await persistCampaignSend(campaignSend, reusableSendId);
+                  
+                  await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+                  
+                  return new Response(JSON.stringify({
+                    error: 'Device disconnected mid-batch, campaign paused',
+                    stopped: true,
+                    processed: i + 1,
+                    remaining: (currentBatch.length - i - 1) + remainingContacts.length,
+                  }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+                  });
+                }
+              }
+            } catch (midCheckErr) {
+              console.error('Mid-batch device check error:', midCheckErr);
+            }
           }
         }
 
