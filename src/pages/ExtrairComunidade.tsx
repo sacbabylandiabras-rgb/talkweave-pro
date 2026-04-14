@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone, QrCode, Phone } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone, QrCode, Phone, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import QRCodeLib from "qrcode";
@@ -397,6 +397,7 @@ const ExtrairComunidade = () => {
   const [savingUazapi, setSavingUazapi] = useState(false);
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   // QR Code / Pairing state (uazapi native)
   const [connectionTab, setConnectionTab] = useState("qr-code");
@@ -636,6 +637,26 @@ const ExtrairComunidade = () => {
       setCheckingUazapi(false);
     }
   };
+
+  const handleDisconnect = async () => {
+    if (!hasCredentials) return;
+    setDisconnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("uazapi-disconnect", {
+        body: { apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setUazapiConnected(false);
+      setGroups([]);
+      toast.success("WhatsApp desconectado com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   // Check uazapi status (native endpoint)
   const checkUazapiStatus = async (options?: { silent?: boolean }) => {
     if (!hasCredentials) return;
@@ -1078,6 +1099,12 @@ const ExtrairComunidade = () => {
                    Verificar
                  </Button>
                )}
+                {effectiveConnected && (
+                  <Button size="sm" variant="destructive" onClick={handleDisconnect} className="gap-1.5" disabled={disconnecting}>
+                    <LogOut className="w-4 h-4" />
+                    {disconnecting ? "Desconectando..." : "Desconectar"}
+                  </Button>
+                )}
                 {!effectiveConnected && (
                   <Button size="sm" onClick={handleOpenConnectionDialog} className="gap-1.5" disabled={checkingUazapi}>
                     <Smartphone className="w-4 h-4" />
