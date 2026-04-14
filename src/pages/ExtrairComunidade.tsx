@@ -3,15 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, QrCode, Phone, Smartphone } from "lucide-react";
+import { Users, Download, Loader2, Copy, Check, Search, RefreshCw, AlertCircle, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { useUserRole } from "@/hooks/useUserRole";
-import QRCodeLib from 'qrcode';
 
 interface ExtractedParticipant {
   phone: string;
@@ -96,18 +93,6 @@ const buildGroupList = (rawGroups: any[]): GroupInfo[] => {
     .filter((group, index, self) => self.findIndex((item) => item.id === group.id) === index);
 };
 
-const normalizeQrImageValue = (value: unknown) => {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.startsWith("data:image")) return trimmed;
-  if (trimmed.startsWith("iVBOR")) return `data:image/png;base64,${trimmed}`;
-  if (trimmed.startsWith("/9j/")) return `data:image/jpeg;base64,${trimmed}`;
-  if (trimmed.startsWith("R0lGOD")) return `data:image/gif;base64,${trimmed}`;
-  if (trimmed.startsWith("UklGR")) return `data:image/webp;base64,${trimmed}`;
-  if (trimmed.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${trimmed}`;
-  return trimmed;
-};
 
 const extractParticipantsFromPayload = (payload: any): any[] => {
   const candidates = [
@@ -285,22 +270,10 @@ const ExtrairComunidade = () => {
   const [groupFilter, setGroupFilter] = useState("");
   const [uazapiMemberCounts, setUazapiMemberCounts] = useState<Record<string, MemberCountState>>({});
 
-  // Connection via QR/Pairing
-  const { instances } = useZapiInstances();
+  // Connection state (uazapi only — no Z-API on this page)
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const { isAdmin } = useUserRole(currentUserId);
-  const [connectionTab, setConnectionTab] = useState("qr-code");
-  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [pairingPhone, setPairingPhone] = useState("");
-  const [pairingLoading, setPairingLoading] = useState(false);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [connectionPolling, setConnectionPolling] = useState(false);
-  const [connectedViaInstance, setConnectedViaInstance] = useState(false);
-  const [checkingConnection, setCheckingConnection] = useState(false);
   const [savingUazapi, setSavingUazapi] = useState(false);
-  const [hasLegacyZapiProfileCredentials, setHasLegacyZapiProfileCredentials] = useState(false);
   const [uazapiConnected, setUazapiConnected] = useState<boolean | null>(null);
   const [checkingUazapi, setCheckingUazapi] = useState(false);
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
@@ -313,8 +286,7 @@ const ExtrairComunidade = () => {
   }, []);
 
   const hasCredentials = !!(apiUrl.trim() && apiToken.trim());
-  const canOperate = hasCredentials || connectedViaInstance;
-  const canConnectNumber = true;
+  const canOperate = hasCredentials;
 
   // Determine effective connection status — this page ONLY works with uazapi
   // so never show Z-API "connected" as it misleads users
@@ -322,35 +294,7 @@ const ExtrairComunidade = () => {
   const effectiveChecking = hasCredentials ? checkingUazapi : false;
 
   useEffect(() => {
-    if (!canOperate || groups.length === 0 || (hasCredentials && !connectedViaInstance)) return;
-
-    let cancelled = false;
-
-    const groupsNeedingCount = groups.filter((group) => group.size <= 0 || group.isCommunity);
-
-    if (groupsNeedingCount.length === 0) return;
-
-    const loadMemberCounts = async () => {
-      for (const group of groupsNeedingCount) {
-        if (cancelled) return;
-
-        await fetchMemberCount(
-          group.id,
-          group.sourceInstanceId || null,
-          extractParticipantsFromPayload(group.raw),
-        );
-      }
-    };
-
-    void loadMemberCounts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canOperate, connectedViaInstance, fetchMemberCount, groups, hasCredentials]);
-
-  useEffect(() => {
-    if (!hasCredentials || connectedViaInstance || groups.length === 0) return;
+    if (!hasCredentials || groups.length === 0) return;
 
     let cancelled = false;
 
@@ -362,7 +306,6 @@ const ExtrairComunidade = () => {
       for (const group of groupsNeedingCount) {
         if (cancelled) return;
 
-        // Skip if already fetched or in progress
         const alreadyCached = uazapiMemberCounts[group.id];
         if (alreadyCached && (alreadyCached.loading || alreadyCached.count > 0)) continue;
 
@@ -403,75 +346,7 @@ const ExtrairComunidade = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiToken, apiUrl, connectedViaInstance, groups, hasCredentials]);
-
-  const fetchGroupsViaZapi = async () => {
-    setLoadingGroups(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("get-whatsapp-groups");
-      if (error) throw error;
-      const rawGroups = Array.isArray(data) ? data : Array.isArray(data?.groups) ? data.groups : [];
-      const list = buildGroupList(rawGroups);
-      setGroups(list);
-      if (list.length === 0) {
-        toast.warning("Nenhum grupo encontrado.");
-      } else {
-        toast.success(`${list.length} grupos carregados!`);
-      }
-    } catch (err: any) {
-      console.error("Erro ao listar grupos via Z-API:", err);
-      toast.error(err?.message || "Erro ao listar grupos");
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
-
-  const checkInstanceConnection = async (instanceId?: string | null, options?: { silent?: boolean }) => {
-    try {
-      if (!options?.silent) setCheckingConnection(true);
-      const { data } = await supabase.functions.invoke(
-        "get-device-status",
-        instanceId ? { body: { instanceId } } : {},
-      );
-      const connected =
-        data?.data?.connected === true ||
-        data?.connected === true ||
-        data?.data?.status === "CONNECTED" ||
-        data?.status === "CONNECTED";
-
-      setConnectedViaInstance(connected);
-
-      if (connected) {
-        if (!options?.silent) toast.success("WhatsApp conectado com sucesso!");
-        setConnectDialogOpen(false);
-        setQrCodeImage(null);
-        setPairingCode(null);
-        fetchGroupsViaZapi();
-      }
-
-      return connected;
-    } catch {
-      setConnectedViaInstance(false);
-      return false;
-    } finally {
-      if (!options?.silent) setCheckingConnection(false);
-    }
-  };
-
-  // Poll connection status after QR is shown
-  useEffect(() => {
-    if (!connectDialogOpen || (!qrCodeImage && !pairingCode) || (!selectedInstanceId && !hasLegacyZapiProfileCredentials)) {
-      setConnectionPolling(false);
-      return;
-    }
-
-    setConnectionPolling(true);
-    const interval = setInterval(() => {
-      checkInstanceConnection(selectedInstanceId, { silent: true });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [connectDialogOpen, hasLegacyZapiProfileCredentials, qrCodeImage, pairingCode, selectedInstanceId]);
+  }, [apiToken, apiUrl, groups, hasCredentials]);
 
   // Load credentials from database (set by admin)
   useEffect(() => {
@@ -482,15 +357,12 @@ const ExtrairComunidade = () => {
         if (!session) return;
         const { data } = await supabase
           .from("profiles")
-          .select("uazapi_url, uazapi_token, zapi_instance_id, zapi_token, zapi_client_token")
+          .select("uazapi_url, uazapi_token")
           .eq("id", session.user.id)
           .single();
         const profile = data as any;
         if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
         if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
-        setHasLegacyZapiProfileCredentials(
-          Boolean(profile?.zapi_instance_id && profile?.zapi_token && profile?.zapi_client_token),
-        );
       } catch (err) {
         console.error("Erro ao carregar credenciais:", err);
       } finally {
@@ -500,81 +372,7 @@ const ExtrairComunidade = () => {
     loadCredentials();
   }, []);
 
-  // Auto-select first instance
-  useEffect(() => {
-    if (!selectedInstanceId && instances.length > 0) {
-      setSelectedInstanceId(instances[0].id);
-    }
-  }, [instances, selectedInstanceId]);
-
-  useEffect(() => {
-    if (selectedInstanceId) {
-      checkInstanceConnection(selectedInstanceId, { silent: true });
-    } else if (!loadingCredentials && hasLegacyZapiProfileCredentials) {
-      checkInstanceConnection(null, { silent: true });
-    }
-  }, [hasLegacyZapiProfileCredentials, loadingCredentials, selectedInstanceId]);
-
-  const fetchQrCode = async () => {
-    const instId = selectedInstanceId;
-    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
-    setQrLoading(true);
-    setQrCodeImage(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("get-qr-code", {
-        body: { instanceId: instId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data?.message || data?.error);
-      const rawQr = data?.data?.value ?? data?.data?.qrCode ?? data?.data?.qrcode ?? null;
-      const normalized = normalizeQrImageValue(rawQr);
-      if (typeof normalized === "string" && normalized.startsWith("data:image")) {
-        setQrCodeImage(normalized);
-        toast.success("QR Code gerado!");
-      } else if (typeof normalized === "string" && normalized.length > 50) {
-        const img = await QRCodeLib.toDataURL(normalized, { width: 256, margin: 2, color: { dark: "#000000", light: "#FFFFFF" } });
-        setQrCodeImage(img);
-        toast.success("QR Code gerado!");
-      } else if (data?.data?.connected === true) {
-        toast.success("Dispositivo já conectado!");
-        setConnectDialogOpen(false);
-      } else {
-        toast.error("QR Code indisponível. Tente reiniciar a instância.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao gerar QR Code");
-    } finally {
-      setQrLoading(false);
-    }
-  };
-
-  const fetchPairingCode = async () => {
-    const instId = selectedInstanceId;
-    if (!instId && !hasLegacyZapiProfileCredentials) { toast.error("Nenhuma instância disponível"); return; }
-    if (!pairingPhone) { toast.error("Digite seu número de telefone"); return; }
-    setPairingLoading(true);
-    setPairingCode(null);
-    try {
-      let cleanPhone = pairingPhone.replace(/\D/g, "");
-      if (cleanPhone && !cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
-      const { data, error } = await supabase.functions.invoke("get-pairing-code", {
-        body: { phoneNumber: cleanPhone, instanceId: instId },
-      });
-      if (error) throw error;
-      if (!data?.success || !data?.data) throw new Error(data?.message || data?.error || "Falha ao gerar código");
-      const code = data.data.pairingCode || data.data.code || null;
-      if (code) {
-        setPairingCode(code);
-        toast.success("Código gerado!");
-      } else {
-        toast.error("Código de pareamento indisponível");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao solicitar código");
-    } finally {
-      setPairingLoading(false);
-    }
-  };
+  // No Z-API QR/pairing on this page — uazapi only
 
   const saveUazapiCredentials = async () => {
     setSavingUazapi(true);
@@ -705,7 +503,6 @@ const ExtrairComunidade = () => {
       let resolvedGroupName = selectedGroup?.name || "Comunidade";
       let resolvedTotalMembers = Number(selectedGroup?.size) || 0;
 
-      const useZapiDirect = connectedViaInstance && !hasCredentials;
       const pushParticipants = (values: any[]) => {
         values.forEach((participant) => {
           const normalized = normalizeParticipant(participant);
@@ -726,62 +523,37 @@ const ExtrairComunidade = () => {
         });
       };
 
-      if (useZapiDirect) {
-        pushParticipants(listParticipants);
+      // Always use uazapi on this page
+      const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
+        body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
+      });
 
-        const { data, error } = await supabase.functions.invoke("get-group-participants", {
-          body: {
-            groupId: groupId.trim(),
-            fallbackParticipants: Array.from(normalizedMap.values()),
-            sourceInstanceId,
-          },
-        });
-
-        if (error) throw error;
-        if (data?.error) {
-          toast.error(data.error);
-          return;
-        }
-
-        pushParticipants(Array.isArray(data?.participants) ? data.participants : []);
-        resolvedGroupName = data?.groupName || selectedGroup?.name || "Comunidade";
-        resolvedTotalMembers = Math.max(
-          Number(data?.participants?.length) || 0,
-          listParticipants.length,
-          Number(selectedGroup?.size) || 0,
-        );
-      } else {
-        const { data, error } = await supabase.functions.invoke("uazapi-group-info", {
-          body: { groupId: groupId.trim(), apiUrl: apiUrl.trim(), apiToken: apiToken.trim() },
-        });
-
-        if (error) throw error;
-        if (data?.error) {
-          toast.error(data.error);
-          return;
-        }
-
-        const responseParticipants = extractParticipantsFromPayload(data);
-        const localParticipants = [...responseParticipants, ...listParticipants];
-
-        pushParticipants(localParticipants);
-
-        resolvedGroupName =
-          data?.subject ||
-          data?.Subject ||
-          data?.name ||
-          data?.Name ||
-          data?.groupName ||
-          data?.data?.subject ||
-          data?.data?.name ||
-          selectedGroup?.name ||
-          "Comunidade";
-        resolvedTotalMembers = Math.max(
-          extractMemberCountFromPayload(data),
-          localParticipants.length,
-          Number(selectedGroup?.size) || 0,
-        );
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
       }
+
+      const responseParticipants = extractParticipantsFromPayload(data);
+      const localParticipants = [...responseParticipants, ...listParticipants];
+
+      pushParticipants(localParticipants);
+
+      resolvedGroupName =
+        data?.subject ||
+        data?.Subject ||
+        data?.name ||
+        data?.Name ||
+        data?.groupName ||
+        data?.data?.subject ||
+        data?.data?.name ||
+        selectedGroup?.name ||
+        "Comunidade";
+      resolvedTotalMembers = Math.max(
+        extractMemberCountFromPayload(data),
+        localParticipants.length,
+        Number(selectedGroup?.size) || 0,
+      );
 
       const extracted = Array.from(normalizedMap.values());
 
@@ -877,7 +649,7 @@ const ExtrairComunidade = () => {
                 <p className="text-sm font-medium">Status da instância</p>
                  <p className="text-xs text-muted-foreground">
                    {effectiveConnected
-                     ? hasCredentials ? "Instância UAZAPI conectada." : "Instância Z-API conectada."
+                     ? "Instância conectada."
                      : "Conecte seu WhatsApp para continuar"}
                  </p>
                </div>
@@ -907,66 +679,49 @@ const ExtrairComunidade = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Smartphone className="w-5 h-5 text-primary" />
-              Conectar WhatsApp
+              Configurar Conexão
             </DialogTitle>
           </DialogHeader>
-          <Tabs value={connectionTab} onValueChange={setConnectionTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="qr-code" className="text-xs">
-                <QrCode className="w-3 h-3 mr-1" /> QR Code
-              </TabsTrigger>
-              <TabsTrigger value="pairing" className="text-xs">
-                <Phone className="w-3 h-3 mr-1" /> Código de Pareamento
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="qr-code" className="mt-4">
-              <div className="flex flex-col items-center gap-3">
-                {qrCodeImage ? (
-                  <div className="p-2 bg-white rounded-lg">
-                    <img src={qrCodeImage} alt="QR Code" className="w-52 h-52" />
-                  </div>
-                ) : (
-                  <div className="w-52 h-52 flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20">
-                    <p className="text-xs text-muted-foreground text-center px-4">
-                      Clique para gerar o QR Code
-                    </p>
-                  </div>
-                )}
-                <Button size="sm" onClick={fetchQrCode} disabled={qrLoading}>
-                  {qrLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}
-                  {qrCodeImage ? "Atualizar QR Code" : "Gerar QR Code"}
-                </Button>
-                <p className="text-[10px] text-muted-foreground text-center">
-                  Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
-                </p>
+          <div className="space-y-4">
+            {isAdmin ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">URL da API</label>
+                  <Input
+                    placeholder="https://..."
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Token da API</label>
+                  <Input
+                    placeholder="Token de acesso"
+                    value={apiToken}
+                    onChange={(e) => setApiToken(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={saveUazapiCredentials} disabled={savingUazapi || !apiUrl.trim() || !apiToken.trim()}>
+                    {savingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                    Salvar Credenciais
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={checkUazapiConnection} disabled={checkingUazapi || !hasCredentials}>
+                    {checkingUazapi ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                    Testar Conexão
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p>As credenciais de conexão são configuradas pelo administrador.</p>
+                <p className="text-xs mt-1">Entre em contato com o administrador para configurar sua instância.</p>
               </div>
-            </TabsContent>
-
-            <TabsContent value="pairing" className="mt-4">
-              <div className="flex flex-col gap-3">
-                <Input
-                  placeholder="Seu número (ex: 11999999999)"
-                  value={pairingPhone}
-                  onChange={(e) => setPairingPhone(e.target.value)}
-                  className="text-sm"
-                />
-                <Button size="sm" onClick={fetchPairingCode} disabled={pairingLoading || !pairingPhone}>
-                  {pairingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Phone className="w-3 h-3 mr-1" />}
-                  Gerar Código
-                </Button>
-                {pairingCode && (
-                  <div className="text-center p-4 rounded-lg bg-muted">
-                    <p className="text-2xl font-mono font-bold tracking-widest">{pairingCode}</p>
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      Abra o WhatsApp → Dispositivos conectados → Conectar por número
-                    </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-          </Tabs>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -982,13 +737,13 @@ const ExtrairComunidade = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               Grupos da Instância
-              {connectedViaInstance && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
+              {effectiveConnected && <Badge variant="secondary" className="text-[10px]">Conectado</Badge>}
               {groups.length > 0 && <Badge variant="secondary" className="text-[10px]">{groups.length}</Badge>}
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
-              onClick={connectedViaInstance && !hasCredentials ? fetchGroupsViaZapi : fetchGroups}
+              onClick={fetchGroups}
               disabled={loadingGroups || !canOperate}
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
@@ -1028,12 +783,8 @@ const ExtrairComunidade = () => {
                     {filteredGroups.map((g) => (
                         (() => {
                           const uazapiState = uazapiMemberCounts[g.id];
-                          const memberCount = hasCredentials && !connectedViaInstance
-                            ? (typeof uazapiState?.count === "number" ? uazapiState.count : g.size)
-                            : getMemberCount(g.id, g.size);
-                          const loadingMemberCount = hasCredentials && !connectedViaInstance
-                            ? Boolean(uazapiState?.loading)
-                            : isMemberCountLoading(g.id);
+                          const memberCount = typeof uazapiState?.count === "number" ? uazapiState.count : g.size;
+                          const loadingMemberCount = Boolean(uazapiState?.loading);
 
                           return (
                             <tr key={g.id} className="border-t border-border/50 hover:bg-muted/30">
