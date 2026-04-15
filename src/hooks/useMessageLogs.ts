@@ -177,14 +177,21 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   }, []);
 
   const fetchMessageLogs = useCallback(async () => {
+    // Limit to last 30 days to avoid loading tens of thousands of records
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const sinceISO = since.toISOString();
+
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
+    const maxRecords = 3000;
     let hasMore = true;
-    while (hasMore) {
+    while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
         .select('*')
+        .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
