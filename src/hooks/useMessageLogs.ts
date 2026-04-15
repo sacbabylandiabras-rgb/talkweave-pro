@@ -177,14 +177,21 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   }, []);
 
   const fetchMessageLogs = useCallback(async () => {
+    // Limit to last 30 days to avoid loading tens of thousands of records
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const sinceISO = since.toISOString();
+
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
+    const maxRecords = 3000;
     let hasMore = true;
-    while (hasMore) {
+    while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
         .select('*')
+        .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -246,15 +253,21 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   }, []);
 
   const fetchCampaignSends = useCallback(async () => {
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const sinceISO = since.toISOString();
+
     let allData: CampaignSendMessage[] = [];
     let from = 0;
     const batchSize = 1000;
+    const maxRecords = 3000;
     let hasMore = true;
-    while (hasMore) {
+    while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
         .in('status', ['sent', 'delivered'])
+        .gte('created_at', sinceISO)
         .order('created_at', { ascending: true })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -397,7 +410,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .subscribe();
     channelRef2.current = ch2;
 
-    pollingRef.current = setInterval(fetchAll, 2000);
+    pollingRef.current = setInterval(fetchAll, 15000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
