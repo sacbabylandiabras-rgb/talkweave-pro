@@ -35,6 +35,7 @@ import logoPayImage from "@/assets/logo-pay.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
@@ -112,6 +113,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isAdmin, loading } = useUserRole(userId);
   const { activeWorkspace, workspaceLabel } = useWorkspace();
   const { isNative } = useDeviceType();
+  const { isPaid } = useSubscriptionStatus();
   const [collapsed, setCollapsed] = useState(false);
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
@@ -225,8 +227,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
-        {/* Instagram section */}
-        {activeWorkspace === "zapi" && (
+        {/* Instagram section - only for paid subscribers */}
+        {activeWorkspace === "zapi" && isPaid && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
