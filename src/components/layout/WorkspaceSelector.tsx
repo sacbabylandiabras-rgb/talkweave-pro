@@ -130,6 +130,7 @@ export function WorkspaceSelector() {
           {workspaces.map((ws) => {
             const Icon = ws.icon;
             const isActive = activeWorkspace === ws.id;
+            const isLocked = ws.id === "meta" && !isPaid && !subLoading;
             return (
               <button
                 key={ws.id}
@@ -138,15 +139,21 @@ export function WorkspaceSelector() {
                   "w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-left transition-colors",
                   isActive
                     ? "bg-muted"
-                    : "hover:bg-muted/60"
+                    : "hover:bg-muted/60",
+                  isLocked && "opacity-60"
                 )}
               >
                 <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ws.bg)}>
                   <Icon className={cn("w-4 h-4", ws.color)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground">{ws.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{ws.description}</p>
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    {ws.label}
+                    {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isLocked ? "Requer assinatura ativa" : ws.description}
+                  </p>
                 </div>
                 {isActive && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
               </button>
