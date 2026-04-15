@@ -69,6 +69,14 @@ export function WorkspaceSelector() {
     }
   }, [isMetaConnected, activeWorkspace, metaCreds, setActiveWorkspace, navigate]);
 
+  // Redirect away from Meta if subscription is not active
+  useEffect(() => {
+    if (activeWorkspace === "meta" && !subLoading && !isPaid) {
+      setActiveWorkspace("zapi");
+      navigate(workspaceDefaultRoutes.zapi);
+    }
+  }, [isPaid, subLoading, activeWorkspace, setActiveWorkspace, navigate]);
+
   const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
   const CurrentIcon = current.icon;
 
