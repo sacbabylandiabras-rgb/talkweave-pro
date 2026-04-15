@@ -410,7 +410,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .subscribe();
     channelRef2.current = ch2;
 
-    pollingRef.current = setInterval(fetchAll, 2000);
+    pollingRef.current = setInterval(fetchAll, 15000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
