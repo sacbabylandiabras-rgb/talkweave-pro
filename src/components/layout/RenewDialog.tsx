@@ -15,6 +15,7 @@ const plans = [
     name: "Básico",
     price: "R$ 49,90",
     period: "/mês",
+    link: "https://pay.zaplynxpro.online/pay/plano-start-704549",
     features: [
       "Até 1.000 mensagens/mês",
       "1 dispositivo conectado",
@@ -26,6 +27,7 @@ const plans = [
     name: "Profissional",
     price: "R$ 99,90",
     period: "/mês",
+    link: "https://pay.zaplynxpro.online/pay/plano-pro-716484",
     features: [
       "Até 5.000 mensagens/mês",
       "3 dispositivos conectados",
@@ -39,6 +41,7 @@ const plans = [
     name: "Empresarial",
     price: "R$ 199,90",
     period: "/mês",
+    link: "https://pay.zaplynxpro.online/pay/plano-scale-731140",
     features: [
       "Mensagens ilimitadas",
       "Dispositivos ilimitados",
@@ -50,15 +53,9 @@ const plans = [
 ];
 
 export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
-  const handleRenew = (planName: string) => {
-    toast({
-      title: "Renovação iniciada",
-      description: `Você está sendo redirecionado para o checkout do plano ${planName}.`,
-    });
-    // Aqui você implementaria a integração com o gateway de pagamento
-    setTimeout(() => {
-      onOpenChange(false);
-    }, 2000);
+  const handleRenew = (planLink: string) => {
+    window.open(planLink, "_blank");
+    onOpenChange(false);
   };
 
   return (
