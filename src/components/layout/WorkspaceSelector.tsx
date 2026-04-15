@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, Globe, Zap, CreditCard } from "lucide-react";
+import { Check, ChevronDown, Globe, Zap, CreditCard, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const workspaceDefaultRoutes: Record<WorkspaceType, string> = {
   zapi: "/dashboard",
@@ -44,6 +46,7 @@ const workspaces = [
 export function WorkspaceSelector() {
   const { activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { data: metaCreds } = useMetaCredentials();
+  const { isPaid, loading: subLoading } = useSubscriptionStatus();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
@@ -70,6 +73,17 @@ export function WorkspaceSelector() {
   const CurrentIcon = current.icon;
 
   const handleSelect = (ws: WorkspaceType) => {
+    // Gate Meta workspace behind paid subscription
+    if (ws === "meta" && !isPaid) {
+      toast({
+        title: "Assinatura necessária",
+        description: "A Meta API está disponível apenas para assinantes com plano ativo.",
+        variant: "destructive",
+      });
+      setOpen(false);
+      return;
+    }
+
     if (ws === "meta") {
       if (isMetaConnected) {
         setActiveWorkspace("meta");
