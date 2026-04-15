@@ -106,7 +106,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
                 <Button
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
-                  onClick={() => handleRenew(plan.name)}
+                  onClick={() => handleRenew(plan.link)}
                 >
                   Renovar Agora
                 </Button>
