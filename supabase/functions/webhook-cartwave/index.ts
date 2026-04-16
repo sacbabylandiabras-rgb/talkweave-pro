@@ -77,56 +77,85 @@ serve(async (req) => {
 
     console.log('CartWave webhook received:', JSON.stringify(payload))
 
-    // CartWave sends payment status updates
-    const cartwaveId = payload.id || payload.transaction_id || payload.pix_id || ''
-    const cartwaveStatus = (payload.status || '').toLowerCase()
+    // CartWave sends { type: "QR_CODE_COPY_AND_PASTE_PAID", data: { ... } }
+    const eventType = payload.type || ''
+    const eventData = payload.data || payload
 
-    console.log('CartWave webhook - ID:', cartwaveId, 'Status:', cartwaveStatus)
+    // Extract identifiers from the nested data structure
+    const cartwaveId = eventData.qr_code_id || eventData.id || eventData.transaction_id || eventData.pix_id || payload.id || ''
+    const txId = eventData.tx_id || payload.tx_id || ''
+    const cartwaveStatus = (eventData.status || payload.status || '').toLowerCase()
 
-    // Map CartWave status to our status
+    console.log('CartWave webhook - type:', eventType, 'qr_code_id:', cartwaveId, 'tx_id:', txId, 'status:', cartwaveStatus)
+
+    // Map CartWave status/type to our status
     let newStatus = 'pending'
-    if (cartwaveStatus === 'paid' || cartwaveStatus === 'completed' || cartwaveStatus === 'confirmed') {
+    if (eventType === 'QR_CODE_COPY_AND_PASTE_PAID' || cartwaveStatus === 'paid' || cartwaveStatus === 'completed' || cartwaveStatus === 'confirmed') {
       newStatus = 'approved'
-    } else if (cartwaveStatus === 'failed' || cartwaveStatus === 'cancelled' || cartwaveStatus === 'expired') {
-      newStatus = 'failed'
+    } else if (eventType === 'QR_CODE_COPY_AND_PASTE_REFUNDED' || cartwaveStatus === 'failed' || cartwaveStatus === 'cancelled' || cartwaveStatus === 'expired') {
+      newStatus = cartwaveStatus === 'refunded' || cartwaveStatus === 'returned' || eventType.includes('REFUND') ? 'refunded' : 'failed'
     } else if (cartwaveStatus === 'refunded' || cartwaveStatus === 'returned') {
       newStatus = 'refunded'
     }
 
     console.log('Mapped status:', newStatus)
 
-    // Find transaction by metadata or external_id
+    // Find transaction by multiple strategies
     const txColumns = 'id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status'
+    let tx: any = null
 
-    const { data: txByMeta } = await supabase
-      .from('gateway_transactions')
-      .select(txColumns)
-      .contains('metadata', { cartwave_id: cartwaveId })
-      .maybeSingle()
+    // Strategy 1: Match by tx_id in metadata
+    if (txId) {
+      const { data } = await supabase
+        .from('gateway_transactions')
+        .select(txColumns)
+        .contains('metadata', { tx_id: txId })
+        .maybeSingle()
+      tx = data
+    }
 
-    let tx = txByMeta
-
+    // Strategy 2: Match by cartwave_id (qr_code_id) in metadata
     if (!tx && cartwaveId) {
-      const { data: txByExternal } = await supabase
+      const { data } = await supabase
+        .from('gateway_transactions')
+        .select(txColumns)
+        .contains('metadata', { cartwave_id: cartwaveId })
+        .maybeSingle()
+      tx = data
+    }
+
+    // Strategy 3: Match by cartwave_id as number in metadata
+    if (!tx && cartwaveId) {
+      const { data } = await supabase
+        .from('gateway_transactions')
+        .select(txColumns)
+        .contains('metadata', { cartwave_id: Number(cartwaveId) })
+        .maybeSingle()
+      tx = data
+    }
+
+    // Strategy 4: Match by external_id
+    if (!tx && cartwaveId) {
+      const { data } = await supabase
         .from('gateway_transactions')
         .select(txColumns)
         .eq('external_id', String(cartwaveId))
         .maybeSingle()
-      tx = txByExternal
+      tx = data
     }
 
-    // Also try matching by external_id pattern
+    // Strategy 5: Match by payload.external_id
     if (!tx && payload.external_id) {
-      const { data: txByPayloadExt } = await supabase
+      const { data } = await supabase
         .from('gateway_transactions')
         .select(txColumns)
         .eq('external_id', payload.external_id)
         .maybeSingle()
-      tx = txByPayloadExt
+      tx = data
     }
 
     if (!tx) {
-      console.log('No matching transaction found for CartWave ID:', cartwaveId)
+      console.log('No matching transaction found for CartWave tx_id:', txId, 'qr_code_id:', cartwaveId)
       return new Response(JSON.stringify({ ok: true, message: 'transaction not found' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
