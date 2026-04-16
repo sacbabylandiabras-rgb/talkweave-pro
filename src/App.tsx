@@ -43,6 +43,7 @@ import PayDashboard from "./pages/gateway/PayDashboard";
 import PayProducts from "./pages/gateway/PayProducts";
 import PayCheckouts from "./pages/gateway/PayCheckouts";
 import PayReports from "./pages/gateway/PayReports";
+import PayCartRecovery from "./pages/gateway/PayCartRecovery";
 import PayPixels from "./pages/gateway/PayPixels";
 import PayIntegrations from "./pages/gateway/PayIntegrations";
 import PaySettings from "./pages/gateway/PaySettings";
