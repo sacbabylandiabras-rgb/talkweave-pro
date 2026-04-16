@@ -375,7 +375,7 @@ export default function PayReports() {
               )}
             </div>
 
-            {(receiptLoadError || receiptType === "unknown") && (
+            {receiptLoadError && (
               <p className="text-sm text-muted-foreground">
                 Não foi possível pré-visualizar este comprovante no dialog.
               </p>
