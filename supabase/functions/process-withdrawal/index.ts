@@ -130,8 +130,7 @@ serve(async (req) => {
         .eq('id', withdrawal.user_id)
         .single()
       const userAcq = (profileData?.pix_acquirer || '').toLowerCase().trim()
-      // CartWave não suporta PIX cash-out — mantém adquirente global (Woovi/HubPague)
-      if (userAcq && userAcq !== 'cartwave') activeAcquirer = userAcq
+      if (userAcq) activeAcquirer = userAcq
     } catch {}
 
     console.log(`Active acquirer for payout (user ${withdrawal.user_id}): ${activeAcquirer}`)
