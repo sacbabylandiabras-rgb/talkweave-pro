@@ -429,7 +429,11 @@ const ChatView = ({
           const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-          await onSendMessage(conversation.phone, '', publicUrl, 'audio', undefined, undefined, conversation.preferredInstanceId);
+          await onSendMessage(conversation.phone, '', {
+            mediaUrl: publicUrl,
+            mediaType: 'audio',
+            preferredInstanceId: conversation.preferredInstanceId,
+          });
         } catch (e) {
           toast({ title: "Erro", description: "Falha ao enviar áudio.", variant: "destructive" });
         } finally {
