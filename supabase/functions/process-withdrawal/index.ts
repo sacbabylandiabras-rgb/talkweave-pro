@@ -111,18 +111,32 @@ serve(async (req) => {
       })
     }
 
-    // APPROVED: determine active acquirer for payout
+    // APPROVED: determine acquirer for payout
+    // Priority: 1) user's profile.pix_acquirer, 2) global platform config, 3) openpix default
     let activeAcquirer = 'openpix'
     try {
-      const { data: configData } = await supabase
+      const { data: globalCfg } = await supabase
         .from('gateway_platform_config')
         .select('value')
         .eq('key', 'active_acquirer')
         .single()
-      if (configData?.value) activeAcquirer = configData.value
+      if (globalCfg?.value) activeAcquirer = globalCfg.value
     } catch {}
 
-    console.log(`Active acquirer for payout: ${activeAcquirer}`)
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('pix_acquirer')
+        .eq('id', withdrawal.user_id)
+        .single()
+      const userAcq = (profileData?.pix_acquirer || '').toLowerCase().trim()
+      if (userAcq && userAcq !== 'cartwave') {
+        // CartWave does not support PIX cash-out, fall back to global config
+        activeAcquirer = userAcq
+      }
+    } catch {}
+
+    console.log(`Active acquirer for payout (user ${withdrawal.user_id}): ${activeAcquirer}`)
 
     // Mark as processing
     await supabase
