@@ -46,30 +46,47 @@ Deno.serve(async (req) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const [allTxRes, todayTxRes, monthTxRes, monthByProviderRes, kycRes, usersRes] = await Promise.all([
-      adminClient.from("gateway_transactions").select("amount, fee, status"),
-      adminClient.from("gateway_transactions").select("amount, status").gte("created_at", startOfDay),
-      adminClient.from("gateway_transactions").select("amount, fee, status").gte("created_at", startOfMonth),
-      adminClient.from("gateway_transactions").select("amount, status, metadata").gte("created_at", startOfMonth),
+    // Fetch ALL transactions with metadata (paginated to bypass 1000 row limit)
+    const fetchAllTx = async () => {
+      const all: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await adminClient
+          .from("gateway_transactions")
+          .select("amount, fee, status, metadata, created_at")
+          .range(from, from + pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
+    };
+
+    const [allTxFull, kycRes, usersRes] = await Promise.all([
+      fetchAllTx(),
       adminClient.from("gateway_kyc").select("id", { count: "exact", head: true }).eq("status", "submitted"),
       adminClient.from("profiles").select("id", { count: "exact", head: true }),
     ]);
 
-    const allTx = allTxRes.data || [];
-    const todayTx = todayTxRes.data || [];
-    const monthTx = monthTxRes.data || [];
-    const monthByProvider = monthByProviderRes.data || [];
     const isApproved = (t: any) => t.status === "approved" || t.status === "paid";
+    const allTx = allTxFull;
+    const todayTx = allTxFull.filter((t: any) => t.created_at >= startOfDay);
+    const monthTx = allTxFull.filter((t: any) => t.created_at >= startOfMonth);
     const approved = allTx.filter(isApproved);
     const monthApproved = monthTx.filter(isApproved);
     const todayApproved = todayTx.filter(isApproved);
 
-    // Per-acquirer breakdown for current month
+    // Per-acquirer breakdown — TOTAL (all time) volume, not just month
     const computeAcq = (filter: (t: any) => boolean) => {
-      const list = monthByProvider.filter(filter);
+      const list = allTx.filter(filter);
       const approvedList = list.filter(isApproved);
+      const monthList = list.filter((t: any) => t.created_at >= startOfMonth);
+      const monthApprovedList = monthList.filter(isApproved);
       return {
-        volumeMonth: approvedList.reduce((s: number, t: any) => s + (t.amount || 0), 0),
+        volumeTotal: approvedList.reduce((s: number, t: any) => s + (t.amount || 0), 0),
+        volumeMonth: monthApprovedList.reduce((s: number, t: any) => s + (t.amount || 0), 0),
         txCount: list.length,
         approvalRate: list.length > 0 ? Math.round((approvedList.length / list.length) * 100) : 100,
       };
