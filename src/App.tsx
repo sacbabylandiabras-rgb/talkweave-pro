@@ -37,6 +37,7 @@ import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
+import ShopifyOAuthCallback from "./pages/ShopifyOAuthCallback";
 import PayDashboard from "./pages/gateway/PayDashboard";
 import PayProducts from "./pages/gateway/PayProducts";
 import PayCheckouts from "./pages/gateway/PayCheckouts";
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
+                <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route element={<DashboardLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/gateway-checkout/dashboard" element={<GatewayKycGate><PayDashboard /></GatewayKycGate>} />
