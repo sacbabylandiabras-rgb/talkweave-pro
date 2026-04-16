@@ -130,10 +130,7 @@ serve(async (req) => {
         .eq('id', withdrawal.user_id)
         .single()
       const userAcq = (profileData?.pix_acquirer || '').toLowerCase().trim()
-      if (userAcq && userAcq !== 'cartwave') {
-        // CartWave does not support PIX cash-out, fall back to global config
-        activeAcquirer = userAcq
-      }
+      if (userAcq) activeAcquirer = userAcq
     } catch {}
 
     console.log(`Active acquirer for payout (user ${withdrawal.user_id}): ${activeAcquirer}`)
@@ -228,6 +225,122 @@ serve(async (req) => {
         status: 'approved',
         correlationID: transferId,
         message: 'Transferência PIX processada com sucesso via HubPague',
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+
+    } else if (activeAcquirer === 'cartwave') {
+      // === CartWave PIX Cash-out ===
+      const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
+      const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
+      const CARTWAVE_CASHOUT_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-pix-cash-out/`
+
+      const clientId = Deno.env.get('CARTWAVE_CLIENT_ID')
+      const clientSecret = Deno.env.get('CARTWAVE_CLIENT_SECRET')
+
+      if (!clientId || !clientSecret) {
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: 'CartWave não configurado (CLIENT_ID/SECRET ausentes)',
+        }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'CartWave não configurado.' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // 1) Authenticate
+      const authRes = await fetch(CARTWAVE_AUTH_URL, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'ZapLynxPay/1.0',
+        },
+        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+      })
+      const authData = await authRes.json().catch(() => ({}))
+      const accessToken = authData?.access || authData?.access_token || authData?.token
+        || authData?.data?.access || authData?.data?.access_token || authData?.data?.token
+
+      if (!authRes.ok || !accessToken) {
+        console.error('CartWave auth failed:', authRes.status, JSON.stringify(authData))
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `Erro autenticação CartWave: ${authData?.message || authData?.detail || 'auth failed'}`,
+        }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'Falha na autenticação CartWave' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Map pix_key_type to CartWave format
+      const cwKeyTypeMap: Record<string, string> = {
+        'cpf': 'cpf',
+        'cnpj': 'cnpj',
+        'email': 'email',
+        'telefone': 'phone',
+        'phone': 'phone',
+        'aleatoria': 'random',
+        'random': 'random',
+        'evp': 'random',
+      }
+      const cwKeyType = cwKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'cpf'
+      const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
+
+      // CartWave uses BRL with decimal value (e.g., 10.50)
+      const valueDecimal = (payoutAmount / 100).toFixed(2)
+
+      console.log(`CartWave cash-out: R$${valueDecimal} to ${withdrawal.pix_key} (${cwKeyType})`)
+
+      const cashOutRes = await fetch(CARTWAVE_CASHOUT_URL, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': 'ZapLynxPay/1.0',
+        },
+        body: JSON.stringify({
+          value: valueDecimal,
+          pix_key: withdrawal.pix_key,
+          pix_key_type: cwKeyType,
+          tx_id: correlationID,
+          description: `Saque ZapLynxPay #${withdrawal.id.slice(0, 8)}`,
+        }),
+      })
+
+      const cashOutData = await cashOutRes.json().catch(() => ({}))
+      console.log('CartWave cash-out response:', cashOutRes.status, JSON.stringify(cashOutData))
+
+      if (!cashOutRes.ok) {
+        console.error('CartWave cash-out error:', cashOutData)
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `Erro CartWave: ${cashOutData?.message || cashOutData?.detail || cashOutData?.error || JSON.stringify(cashOutData).slice(0, 300)}`,
+        }).eq('id', withdrawalId)
+
+        return new Response(JSON.stringify({
+          error: 'Falha ao processar transferência PIX via CartWave',
+          details: cashOutData?.message || cashOutData?.detail || 'Unknown CartWave error',
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const cwTransferId = cashOutData?.id || cashOutData?.transaction_id || cashOutData?.data?.id || correlationID
+
+      await supabase.from('gateway_withdrawals').update({
+        status: 'approved',
+        admin_notes: adminNotes?.trim() || `PIX enviado via CartWave. ID: ${cwTransferId}`,
+        reviewed_by: callerId,
+        reviewed_at: new Date().toISOString(),
+      }).eq('id', withdrawalId)
+
+      return new Response(JSON.stringify({
+        success: true,
+        status: 'approved',
+        correlationID: cwTransferId,
+        message: 'Transferência PIX processada com sucesso via CartWave',
       }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
