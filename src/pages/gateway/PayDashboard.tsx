@@ -97,8 +97,8 @@ export default function PayDashboard() {
 
       const [profileRes, txRes, wdRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").order("created_at", { ascending: false }).limit(500),
-        supabase.from("gateway_withdrawals").select("amount, status"),
+        supabase.from("gateway_transactions" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
+        supabase.from("gateway_withdrawals").select("amount, status").eq("user_id", user.id),
       ]);
 
       setProfile(profileRes.data);
