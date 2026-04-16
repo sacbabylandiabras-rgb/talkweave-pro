@@ -46,10 +46,11 @@ Deno.serve(async (req) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const [allTxRes, todayTxRes, monthTxRes, kycRes, usersRes] = await Promise.all([
+    const [allTxRes, todayTxRes, monthTxRes, monthByProviderRes, kycRes, usersRes] = await Promise.all([
       adminClient.from("gateway_transactions").select("amount, fee, status"),
       adminClient.from("gateway_transactions").select("amount, status").gte("created_at", startOfDay),
       adminClient.from("gateway_transactions").select("amount, fee, status").gte("created_at", startOfMonth),
+      adminClient.from("gateway_transactions").select("amount, status, metadata").gte("created_at", startOfMonth),
       adminClient.from("gateway_kyc").select("id", { count: "exact", head: true }).eq("status", "submitted"),
       adminClient.from("profiles").select("id", { count: "exact", head: true }),
     ]);
@@ -57,10 +58,27 @@ Deno.serve(async (req) => {
     const allTx = allTxRes.data || [];
     const todayTx = todayTxRes.data || [];
     const monthTx = monthTxRes.data || [];
+    const monthByProvider = monthByProviderRes.data || [];
     const isApproved = (t: any) => t.status === "approved" || t.status === "paid";
     const approved = allTx.filter(isApproved);
     const monthApproved = monthTx.filter(isApproved);
     const todayApproved = todayTx.filter(isApproved);
+
+    // Per-acquirer breakdown for current month
+    const computeAcq = (filter: (t: any) => boolean) => {
+      const list = monthByProvider.filter(filter);
+      const approvedList = list.filter(isApproved);
+      return {
+        volumeMonth: approvedList.reduce((s: number, t: any) => s + (t.amount || 0), 0),
+        txCount: list.length,
+        approvalRate: list.length > 0 ? Math.round((approvedList.length / list.length) * 100) : 100,
+      };
+    };
+    const acquirers = {
+      openpix: computeAcq((t: any) => !t.metadata?.provider || t.metadata?.provider === 'openpix'),
+      hubpague: computeAcq((t: any) => t.metadata?.provider === 'hubpague'),
+      cartwave: computeAcq((t: any) => t.metadata?.provider === 'cartwave'),
+    };
 
     const stats = {
       totalUsers: usersRes.count || 0,
@@ -76,6 +94,7 @@ Deno.serve(async (req) => {
       approvedTransactions: approved.length,
       feePercent: 6.99,
       feeFixed: 199,
+      acquirers,
     };
 
     return new Response(JSON.stringify(stats), {

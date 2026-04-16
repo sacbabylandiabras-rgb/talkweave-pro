@@ -45,33 +45,31 @@ export default function AdminAcquirers() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const statsRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats`, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session?.access_token || ''}`,
+          },
+        });
+        const stats = await statsRes.json();
+        const acq = stats?.acquirers || {};
 
-      const { data: allTx } = await supabase
-        .from("gateway_transactions")
-        .select("amount, status, metadata")
-        .gte("created_at", startOfMonth);
+        setVolumeMonth((acq.openpix?.volumeMonth || 0) / 100);
+        setTxCount(acq.openpix?.txCount || 0);
+        setApprovalRate(acq.openpix?.approvalRate ?? 100);
 
-      const txs = allTx || [];
-      const wooviTxs = txs.filter(t => !(t.metadata as any)?.provider || (t.metadata as any)?.provider === 'openpix');
-      const hubTxs = txs.filter(t => (t.metadata as any)?.provider === 'hubpague');
-      const cwTxs = txs.filter(t => (t.metadata as any)?.provider === 'cartwave');
+        setHubVolumeMonth((acq.hubpague?.volumeMonth || 0) / 100);
+        setHubTxCount(acq.hubpague?.txCount || 0);
+        setHubApprovalRate(acq.hubpague?.approvalRate ?? 100);
 
-      const wooviApproved = wooviTxs.filter(t => t.status === "approved");
-      setVolumeMonth(wooviApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
-      setTxCount(wooviTxs.length);
-      setApprovalRate(wooviTxs.length > 0 ? Math.round((wooviApproved.length / wooviTxs.length) * 100) : 100);
-
-      const hubApproved = hubTxs.filter(t => t.status === "approved");
-      setHubVolumeMonth(hubApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
-      setHubTxCount(hubTxs.length);
-      setHubApprovalRate(hubTxs.length > 0 ? Math.round((hubApproved.length / hubTxs.length) * 100) : 100);
-
-      const cwApproved = cwTxs.filter(t => t.status === "approved");
-      setCwVolumeMonth(cwApproved.reduce((a, t) => a + (t.amount || 0), 0) / 100);
-      setCwTxCount(cwTxs.length);
-      setCwApprovalRate(cwTxs.length > 0 ? Math.round((cwApproved.length / cwTxs.length) * 100) : 100);
+        setCwVolumeMonth((acq.cartwave?.volumeMonth || 0) / 100);
+        setCwTxCount(acq.cartwave?.txCount || 0);
+        setCwApprovalRate(acq.cartwave?.approvalRate ?? 100);
+      } catch (e) {
+        console.error('Failed to load acquirer stats:', e);
+      }
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
