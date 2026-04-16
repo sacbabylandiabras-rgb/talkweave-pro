@@ -5,7 +5,7 @@ const corsHeaders = {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const APP_ORIGIN = "https://talkweave-pro.lovable.app";
-const CALLBACK_PATH = "/functions/v1/shopify-oauth-callback";
+const CALLBACK_PATH = "/shopify-oauth-callback";
 const SHOPIFY_SCOPES = [
   "read_products",
   "write_products",
@@ -35,6 +35,20 @@ function sanitizeShopDomain(input: string) {
   }
 
   return normalized;
+}
+
+function resolveOrigin(input: unknown) {
+  if (typeof input !== "string") return APP_ORIGIN;
+
+  try {
+    const url = new URL(input);
+    const isLovableHost = url.hostname.endsWith(".lovable.app");
+    const isLocalHost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+
+    return isLovableHost || isLocalHost ? url.origin : APP_ORIGIN;
+  } catch {
+    return APP_ORIGIN;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -69,13 +83,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const shop = typeof body?.shop === "string" ? sanitizeShopDomain(body.shop) : "";
-    const origin = typeof body?.origin === "string" && body.origin.startsWith("http") ? body.origin : APP_ORIGIN;
+    const origin = resolveOrigin(body?.origin);
 
     if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(shop)) {
       return json({ error: "Informe um domínio MyShopify válido." }, 400);
     }
 
-    const redirectUri = `${SUPABASE_URL}${CALLBACK_PATH}`;
+    const redirectUri = `${APP_ORIGIN}${CALLBACK_PATH}`;
     const nonce = crypto.randomUUID();
     const statePayload = btoa(JSON.stringify({
       nonce,
