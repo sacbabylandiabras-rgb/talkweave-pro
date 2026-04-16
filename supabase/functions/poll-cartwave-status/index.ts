@@ -105,38 +105,88 @@ serve(async (req) => {
       if (!txId) continue
 
       try {
-        // Compute HMAC for status request
-        const statusBody = JSON.stringify({ tx_id: txId })
-        let hmacHex = ''
-        if (hmacSecret) {
-          const encoder = new TextEncoder()
-          const key = await crypto.subtle.importKey(
-            'raw', encoder.encode(hmacSecret),
-            { name: 'HMAC', hash: 'SHA-512' }, false, ['sign']
-          )
-          const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(statusBody))
-          hmacHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+        // Try multiple endpoints to find the right one
+        let statusData: any = null
+        let cwStatus = ''
+        let foundEndpoint = false
+
+        for (const urlFn of CARTWAVE_STATUS_URLS) {
+          const statusUrl = urlFn(txId)
+          try {
+            // Try GET first
+            const getRes = await fetch(statusUrl, {
+              method: 'GET',
+              headers: {
+                'accept': 'application/json',
+                'User-Agent': 'ZapLynxPay/1.0',
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            })
+            
+            const rawText = await getRes.text()
+            console.log(`CartWave GET ${statusUrl}: ${getRes.status} - ${rawText.slice(0, 200)}`)
+            
+            if (getRes.ok && rawText.includes('{')) {
+              try {
+                statusData = JSON.parse(rawText)
+                cwStatus = (statusData?.status || statusData?.pix_status || statusData?.payment_status || '').toLowerCase()
+                foundEndpoint = true
+                console.log(`Found working endpoint: ${statusUrl}, status: ${cwStatus}`)
+                break
+              } catch {}
+            }
+          } catch (endpointErr) {
+            console.log(`Endpoint ${statusUrl} failed:`, endpointErr)
+          }
         }
 
-        const statusRes = await fetch(CARTWAVE_STATUS_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-            'User-Agent': 'ZapLynxPay/1.0',
-            'Authorization': `Bearer ${accessToken}`,
-            ...(hmacHex ? { 'hmac': hmacHex } : {}),
-          },
-          body: statusBody,
-        })
-
-        const statusRaw = await statusRes.text()
-        console.log(`CartWave status for tx_id ${txId}: ${statusRes.status} - ${statusRaw.slice(0, 300)}`)
-
-        let statusData: any = null
-        try { statusData = JSON.parse(statusRaw) } catch {}
-
-        const cwStatus = (statusData?.status || statusData?.pix_status || '').toLowerCase()
+        // If no GET endpoint works, try POST with tx_id body
+        if (!foundEndpoint) {
+          const postEndpoints = [
+            `${CARTWAVE_PROXY_BASE}/v2/finance/pix-status/`,
+            `${CARTWAVE_PROXY_BASE}/v2/finance/check-status/`,
+          ]
+          
+          for (const postUrl of postEndpoints) {
+            const statusBody = JSON.stringify({ tx_id: txId })
+            let hmacHex = ''
+            if (hmacSecret) {
+              const encoder = new TextEncoder()
+              const key = await crypto.subtle.importKey(
+                'raw', encoder.encode(hmacSecret),
+                { name: 'HMAC', hash: 'SHA-512' }, false, ['sign']
+              )
+              const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(statusBody))
+              hmacHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+            }
+            
+            try {
+              const postRes = await fetch(postUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'accept': 'application/json',
+                  'User-Agent': 'ZapLynxPay/1.0',
+                  'Authorization': `Bearer ${accessToken}`,
+                  ...(hmacHex ? { 'hmac': hmacHex } : {}),
+                },
+                body: statusBody,
+              })
+              
+              const rawText = await postRes.text()
+              console.log(`CartWave POST ${postUrl}: ${postRes.status} - ${rawText.slice(0, 200)}`)
+              
+              if (postRes.ok && rawText.includes('{')) {
+                try {
+                  statusData = JSON.parse(rawText)
+                  cwStatus = (statusData?.status || statusData?.pix_status || statusData?.payment_status || '').toLowerCase()
+                  foundEndpoint = true
+                  break
+                } catch {}
+              }
+            } catch {}
+          }
+        }
 
         let newStatus: string | null = null
         if (cwStatus === 'paid' || cwStatus === 'completed' || cwStatus === 'confirmed' || cwStatus === 'concluida' || cwStatus === 'aprovada' || cwStatus === 'approved') {
