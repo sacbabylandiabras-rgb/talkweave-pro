@@ -8,7 +8,13 @@ const corsHeaders = {
 
 const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
 const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
-const CARTWAVE_STATUS_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/pix-status/`
+// Try multiple possible status endpoints
+const CARTWAVE_STATUS_URLS = [
+  (txId: string) => `${CARTWAVE_PROXY_BASE}/v2/finance/pix-copy-and-paste/${txId}/`,
+  (txId: string) => `${CARTWAVE_PROXY_BASE}/v2/finance/pix/${txId}/`,
+  (txId: string) => `${CARTWAVE_PROXY_BASE}/v2/finance/transaction/${txId}/`,
+  (txId: string) => `${CARTWAVE_PROXY_BASE}/v2/finance/pix-status/${txId}/`,
+]
 
 async function getCartwaveToken(clientId: string, clientSecret: string): Promise<string | null> {
   try {
