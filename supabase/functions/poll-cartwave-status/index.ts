@@ -68,9 +68,9 @@ serve(async (req) => {
       })
     }
 
-    // Filter only CartWave transactions
+    // Filter only CartWave transactions (need cartwave_id from create-pix response)
     const cartwaveTxs = (pendingTxs || []).filter(
-      (tx: any) => tx.metadata?.provider === 'cartwave' && tx.metadata?.tx_id
+      (tx: any) => tx.metadata?.provider === 'cartwave' && (tx.metadata?.cartwave_id || tx.metadata?.tx_id)
     )
 
     if (cartwaveTxs.length === 0) {
@@ -95,101 +95,37 @@ serve(async (req) => {
     const results: any[] = []
 
     for (const tx of cartwaveTxs) {
-      const txId = (tx.metadata as any)?.tx_id
-      if (!txId) continue
+      const cwId = (tx.metadata as any)?.cartwave_id || (tx.metadata as any)?.tx_id
+      if (!cwId) continue
 
       try {
-        // Try multiple endpoints to find the right one
+        const statusUrl = `${CARTWAVE_STATUS_URL}?id=${encodeURIComponent(String(cwId))}`
+        const statusRes = await fetch(statusUrl, {
+          method: 'GET',
+          headers: {
+            'accept': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'User-Agent': 'ZapLynxPay/1.0',
+          },
+        })
+
+        const rawText = await statusRes.text()
+        console.log(`CartWave GET ${statusUrl}: ${statusRes.status} - ${rawText.slice(0, 200)}`)
+
         let statusData: any = null
-        let cwStatus = ''
-        let foundEndpoint = false
+        try { statusData = rawText ? JSON.parse(rawText) : null } catch {}
 
-        for (const urlFn of CARTWAVE_STATUS_URLS) {
-          const statusUrl = urlFn(txId)
-          try {
-            // Try GET first
-            const getRes = await fetch(statusUrl, {
-              method: 'GET',
-              headers: {
-                'accept': 'application/json',
-                'User-Agent': 'ZapLynxPay/1.0',
-                'Authorization': `Bearer ${accessToken}`,
-              },
-            })
-            
-            const rawText = await getRes.text()
-            console.log(`CartWave GET ${statusUrl}: ${getRes.status} - ${rawText.slice(0, 200)}`)
-            
-            if (getRes.ok && rawText.includes('{')) {
-              try {
-                statusData = JSON.parse(rawText)
-                cwStatus = (statusData?.status || statusData?.pix_status || statusData?.payment_status || '').toLowerCase()
-                foundEndpoint = true
-                console.log(`Found working endpoint: ${statusUrl}, status: ${cwStatus}`)
-                break
-              } catch {}
-            }
-          } catch (endpointErr) {
-            console.log(`Endpoint ${statusUrl} failed:`, endpointErr)
-          }
-        }
-
-        // If no GET endpoint works, try POST with tx_id body
-        if (!foundEndpoint) {
-          const postEndpoints = [
-            `${CARTWAVE_PROXY_BASE}/v2/finance/pix-status/`,
-            `${CARTWAVE_PROXY_BASE}/v2/finance/check-status/`,
-          ]
-          
-          for (const postUrl of postEndpoints) {
-            const statusBody = JSON.stringify({ tx_id: txId })
-            let hmacHex = ''
-            if (hmacSecret) {
-              const encoder = new TextEncoder()
-              const key = await crypto.subtle.importKey(
-                'raw', encoder.encode(hmacSecret),
-                { name: 'HMAC', hash: 'SHA-512' }, false, ['sign']
-              )
-              const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(statusBody))
-              hmacHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-            }
-            
-            try {
-              const postRes = await fetch(postUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'accept': 'application/json',
-                  'User-Agent': 'ZapLynxPay/1.0',
-                  'Authorization': `Bearer ${accessToken}`,
-                  ...(hmacHex ? { 'hmac': hmacHex } : {}),
-                },
-                body: statusBody,
-              })
-              
-              const rawText = await postRes.text()
-              console.log(`CartWave POST ${postUrl}: ${postRes.status} - ${rawText.slice(0, 200)}`)
-              
-              if (postRes.ok && rawText.includes('{')) {
-                try {
-                  statusData = JSON.parse(rawText)
-                  cwStatus = (statusData?.status || statusData?.pix_status || statusData?.payment_status || '').toLowerCase()
-                  foundEndpoint = true
-                  break
-                } catch {}
-              }
-            } catch {}
-          }
-        }
+        const cwStatus = (statusData?.status || statusData?.data?.status || statusData?.pix_status || statusData?.payment_status || '').toLowerCase()
 
         let newStatus: string | null = null
-        if (cwStatus === 'paid' || cwStatus === 'completed' || cwStatus === 'confirmed' || cwStatus === 'concluida' || cwStatus === 'aprovada' || cwStatus === 'approved') {
+        if (['paid', 'completed', 'confirmed', 'concluida', 'aprovada', 'approved'].includes(cwStatus)) {
           newStatus = 'approved'
-        } else if (cwStatus === 'failed' || cwStatus === 'cancelled' || cwStatus === 'expired' || cwStatus === 'expirada' || cwStatus === 'cancelada') {
+        } else if (['failed', 'cancelled', 'canceled', 'expired', 'expirada', 'cancelada'].includes(cwStatus)) {
           newStatus = 'failed'
-        } else if (cwStatus === 'refunded' || cwStatus === 'returned' || cwStatus === 'devolvida') {
+        } else if (['refunded', 'returned', 'devolvida'].includes(cwStatus)) {
           newStatus = 'refunded'
         }
+
 
         if (newStatus && newStatus !== tx.status) {
           await supabase
