@@ -56,15 +56,15 @@ export default function AdminAcquirers() {
         const stats = await statsRes.json();
         const acq = stats?.acquirers || {};
 
-        setVolumeMonth((acq.openpix?.volumeMonth || 0) / 100);
+        setVolumeMonth((acq.openpix?.volumeTotal ?? acq.openpix?.volumeMonth ?? 0) / 100);
         setTxCount(acq.openpix?.txCount || 0);
         setApprovalRate(acq.openpix?.approvalRate ?? 100);
 
-        setHubVolumeMonth((acq.hubpague?.volumeMonth || 0) / 100);
+        setHubVolumeMonth((acq.hubpague?.volumeTotal ?? acq.hubpague?.volumeMonth ?? 0) / 100);
         setHubTxCount(acq.hubpague?.txCount || 0);
         setHubApprovalRate(acq.hubpague?.approvalRate ?? 100);
 
-        setCwVolumeMonth((acq.cartwave?.volumeMonth || 0) / 100);
+        setCwVolumeMonth((acq.cartwave?.volumeTotal ?? acq.cartwave?.volumeMonth ?? 0) / 100);
         setCwTxCount(acq.cartwave?.txCount || 0);
         setCwApprovalRate(acq.cartwave?.approvalRate ?? 100);
       } catch (e) {
