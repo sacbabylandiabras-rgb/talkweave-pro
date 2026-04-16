@@ -39,6 +39,7 @@ export default function PayReports() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [resolvedReceiptUrl, setResolvedReceiptUrl] = useState<string | null>(null);
   const [receiptLoadError, setReceiptLoadError] = useState(false);
 
   useEffect(() => {
@@ -54,25 +55,74 @@ export default function PayReports() {
     fetchData();
   }, []);
 
-  const resolvedReceiptUrl = useMemo(() => {
-    if (!receiptUrl) return null;
-    if (/^https?:\/\//i.test(receiptUrl)) return receiptUrl;
+  useEffect(() => {
+    const resolveReceiptUrl = async () => {
+      if (!receiptUrl) {
+        setResolvedReceiptUrl(null);
+        return;
+      }
 
-    const normalizedPath = receiptUrl
-      .replace(/^payment-receipts\//i, "")
-      .replace(/^\/+/, "");
+      const parseStoragePath = (value: string) => {
+        const normalizedValue = value.replace(/^payment-receipts\//i, "").replace(/^\/+/, "");
+        if (!/^https?:\/\//i.test(value)) {
+          return normalizedValue;
+        }
 
-    return supabase.storage.from("payment-receipts").getPublicUrl(normalizedPath).data.publicUrl;
+        try {
+          const url = new URL(value);
+          const storageMarkers = [
+            "/storage/v1/object/public/payment-receipts/",
+            "/storage/v1/object/sign/payment-receipts/",
+            "/storage/v1/object/authenticated/payment-receipts/",
+            "/storage/v1/object/payment-receipts/",
+          ];
+
+          for (const marker of storageMarkers) {
+            const index = url.pathname.indexOf(marker);
+            if (index >= 0) {
+              return decodeURIComponent(url.pathname.slice(index + marker.length));
+            }
+          }
+        } catch {
+          return null;
+        }
+
+        return null;
+      };
+
+      const storagePath = parseStoragePath(receiptUrl);
+      if (!storagePath) {
+        setResolvedReceiptUrl(receiptUrl);
+        return;
+      }
+
+      const { data, error } = await supabase.storage
+        .from("payment-receipts")
+        .createSignedUrl(storagePath, 60 * 60);
+
+      if (!error && data?.signedUrl) {
+        setResolvedReceiptUrl(data.signedUrl);
+        return;
+      }
+
+      setResolvedReceiptUrl(
+        /^https?:\/\//i.test(receiptUrl)
+          ? receiptUrl
+          : supabase.storage.from("payment-receipts").getPublicUrl(storagePath).data.publicUrl
+      );
+    };
+
+    void resolveReceiptUrl();
   }, [receiptUrl]);
 
   const receiptType = useMemo(() => {
-    if (!resolvedReceiptUrl) return null;
-    const cleanUrl = resolvedReceiptUrl.split("?")[0].toLowerCase();
+    const sourceUrl = resolvedReceiptUrl || receiptUrl;
+    if (!sourceUrl) return null;
+    const cleanUrl = sourceUrl.split("?")[0].toLowerCase();
 
     if (cleanUrl.endsWith(".pdf")) return "pdf";
-    // Default to image for unknown types (most receipts are images)
     return "image";
-  }, [resolvedReceiptUrl]);
+  }, [resolvedReceiptUrl, receiptUrl]);
 
   const filtered = useMemo(() => {
     if (!selectedDate) return transactions;
@@ -359,14 +409,19 @@ export default function PayReports() {
             </DialogHeader>
 
             <div className="flex items-center justify-center min-h-[240px] rounded-lg border border-border bg-muted/20 overflow-hidden">
-              {receiptType === "pdf" ? (
+              {!resolvedReceiptUrl ? (
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              ) : receiptType === "pdf" ? (
                 <iframe
+                  key={resolvedReceiptUrl}
                   src={resolvedReceiptUrl}
                   title="Comprovante em PDF"
                   className="h-[70vh] w-full"
+                  onError={() => setReceiptLoadError(true)}
                 />
               ) : (
                 <img
+                  key={resolvedReceiptUrl}
                   src={resolvedReceiptUrl}
                   alt="Comprovante"
                   className="w-full rounded-lg object-contain max-h-[70vh]"
@@ -383,7 +438,7 @@ export default function PayReports() {
 
             <div className="flex justify-end">
               <Button variant="outline" asChild>
-                <a href={resolvedReceiptUrl} target="_blank" rel="noreferrer">
+                <a href={resolvedReceiptUrl || receiptUrl || undefined} target="_blank" rel="noreferrer">
                   Abrir arquivo
                 </a>
               </Button>
