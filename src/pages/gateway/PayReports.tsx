@@ -70,8 +70,8 @@ export default function PayReports() {
     const cleanUrl = resolvedReceiptUrl.split("?")[0].toLowerCase();
 
     if (cleanUrl.endsWith(".pdf")) return "pdf";
-    if (/\.(jpg|jpeg|png|webp|gif|bmp|svg)$/i.test(cleanUrl)) return "image";
-    return "unknown";
+    // Default to image for unknown types (most receipts are images)
+    return "image";
   }, [resolvedReceiptUrl]);
 
   const filtered = useMemo(() => {
