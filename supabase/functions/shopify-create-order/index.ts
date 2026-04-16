@@ -74,33 +74,27 @@ Deno.serve(async (req) => {
       }
     }`;
 
-    const variables = {
-      input: {
-        email: tx.customer_email || undefined,
-        purchasingEntity: undefined,
-        note: `Pedido criado automaticamente pela venda ${tx.external_id || tx.id}`,
-        tags: ["zaplynxpay", "shopify-auto-order"],
-        lineItems: [
-          {
-            title: product?.name || "Produto ZapLynxPay",
-            sku: product?.sku || undefined,
-            originalUnitPrice: (tx.amount / 100).toFixed(2),
-            quantity: 1,
-          },
-        ],
-        customer: tx.customer_email
-          ? undefined
-          : undefined,
-        billingAddress: tx.customer_name
-          ? {
-              address1: tx.customer_name,
-              city: "",
-              country: "Brazil",
-              firstName: tx.customer_name,
-              phone: tx.customer_phone || undefined,
-            }
-          : undefined,
-      },
+    const draftOrderInput = {
+      email: tx.customer_email || undefined,
+      note: `Pedido criado automaticamente pela venda ${tx.external_id || tx.id}`,
+      tags: ["zaplynxpay", "shopify-auto-order"],
+      lineItems: [
+        {
+          title: product?.name || "Produto ZapLynxPay",
+          sku: product?.sku || undefined,
+          originalUnitPrice: (tx.amount / 100).toFixed(2),
+          quantity: 1,
+        },
+      ],
+      billingAddress: tx.customer_name
+        ? {
+            address1: tx.customer_name,
+            city: "São Paulo",
+            country: "Brazil",
+            firstName: tx.customer_name,
+            phone: tx.customer_phone || undefined,
+          }
+        : undefined,
     };
 
     const response = await fetch(`https://${shopDomain}/admin/api/${API_VERSION}/graphql.json`, {
@@ -109,7 +103,7 @@ Deno.serve(async (req) => {
         "X-Shopify-Access-Token": accessToken,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query: mutation, variables }),
+      body: JSON.stringify({ query: mutation, variables: { input: draftOrderInput } }),
     });
 
     const payload = await response.json().catch(() => ({}));
