@@ -5,7 +5,7 @@ const corsHeaders = {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const DEFAULT_ORIGIN = "https://talkweave-pro.lovable.app";
-const SUCCESS_PATH = "/gateway-checkout/integracoes";
+const SUCCESS_PATH = "/gateway-checkout/integrations";
 const API_VERSION = "2025-01";
 
 type ShopifyState = {
