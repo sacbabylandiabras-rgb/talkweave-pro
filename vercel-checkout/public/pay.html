@@ -1519,10 +1519,35 @@
       }
       pixData = d;
       render();
+      startPaymentPolling();
     } catch(e) {
       var ps = document.getElementById('pix-status');
       if (ps) ps.innerHTML = '<p style="color:#EF4444;font-size:.85rem">Erro: '+e.message+'</p>';
     }
+  }
+
+  var paymentPollInterval = null;
+  function startPaymentPolling() {
+    if (paymentPollInterval) clearInterval(paymentPollInterval);
+    if (!pixData || !pixData.correlationID) return;
+    var attempts = 0;
+    paymentPollInterval = setInterval(async function() {
+      attempts++;
+      if (attempts > 240) { clearInterval(paymentPollInterval); return; } // ~20min @5s
+      try {
+        var r = await fetch(SB+'/functions/v1/check-payment-status?external_id='+encodeURIComponent(pixData.correlationID),{headers:{apikey:AK}});
+        if (!r.ok) return;
+        var d = await r.json();
+        if (d.status === 'approved') {
+          clearInterval(paymentPollInterval);
+          showPaymentApproved();
+        }
+      } catch(e) {}
+    }, 5000);
+  }
+
+  function showPaymentApproved() {
+    app.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div style="max-width:420px;text-align:center;background:var(--card-bg,#fff);border-radius:12px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.08)"><div style="width:64px;height:64px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px">Pagamento aprovado!</h2><p style="color:#6B7280;font-size:.95rem">Seu pedido foi confirmado com sucesso.</p></div></div>';
   }
 
   async function uploadReceipt(file) {
