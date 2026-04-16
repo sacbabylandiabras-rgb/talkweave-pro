@@ -271,36 +271,75 @@ serve(async (req) => {
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
 
-      const interactivePayload: Record<string, unknown> = {
-        phone: resolvedPhone,
-        message: interactiveMessage,
-        ...(title ? { title } : {}),
-        ...(footer ? { footer } : {}),
-        buttonActions: buttonActions.map((b: any, index: number) => {
-          const action: any = {
-            id: b.id || String(index + 1),
-            type: b.type,
-            label: b.label,
-          };
-          if (b.type === 'URL' && b.url) action.url = b.url;
-          if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
-          return action;
-        }),
-      };
-
-      if (mediaUrl && mediaType === 'image') {
-        interactivePayload.image = mediaUrl;
-      }
-
-      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(interactivePayload),
+      // Check if any button is an action type (URL/CALL) — these require /send-button-actions
+      const hasActionButtons = buttonActions.some((b: any) => {
+        const t = (b.type || '').toUpperCase();
+        return t === 'URL' || t === 'CALL';
       });
 
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
+      if (mediaUrl && mediaType === 'image' && !hasActionButtons) {
+        // REPLY-only buttons + image → use /send-button-list with image inside buttonList
+        const buttonListPayload = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          buttonList: {
+            image: mediaUrl,
+            buttons: buttonActions.slice(0, 3).map((b: any, index: number) => ({
+              id: b.id || String(index + 1),
+              label: b.label,
+            })),
+          },
+        };
 
-      logMessage = logMessage || '🔘 Botões de ação';
+        console.log(`📤 Sending button-list with image for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(buttonListPayload),
+        });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list-image');
+        logMessage = logMessage || '🔘 Botões com imagem';
+      } else {
+        // Action buttons (URL/CALL) or no image → use /send-button-actions
+        const interactivePayload: Record<string, unknown> = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          buttonActions: buttonActions.map((b: any, index: number) => {
+            const action: any = {
+              id: b.id || String(index + 1),
+              type: b.type,
+              label: b.label,
+            };
+            if (b.type === 'URL' && b.url) action.url = b.url;
+            if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
+            return action;
+          }),
+        };
+
+        // If there's an image but we have action buttons, send image separately first
+        if (mediaUrl && mediaType === 'image') {
+          console.log(`📤 Sending image separately before action buttons for ${resolvedPhone}`);
+          const imgResponse = await fetch(`${baseUrl}/send-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: '' }),
+          });
+          await parseZapiResponse(imgResponse, resolvedPhone, instanceId, 'pre-button-image');
+        }
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(interactivePayload),
+        });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
+        logMessage = logMessage || '🔘 Botões de ação';
+      }
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
