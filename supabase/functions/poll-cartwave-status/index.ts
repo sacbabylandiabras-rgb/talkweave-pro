@@ -199,9 +199,9 @@ serve(async (req) => {
             }
           }
 
-          results.push({ txId: tx.id, cwTxId: txId, oldStatus: tx.status, newStatus, cwStatus })
+          results.push({ txId: tx.id, cwTxId: cwId, oldStatus: tx.status, newStatus, cwStatus })
         } else {
-          results.push({ txId: tx.id, cwTxId: txId, cwStatus: cwStatus || 'unknown', noChange: true })
+          results.push({ txId: tx.id, cwTxId: cwId, cwStatus: cwStatus || 'unknown', noChange: true })
         }
       } catch (pollErr) {
         console.error(`Error polling tx ${tx.id}:`, pollErr)
