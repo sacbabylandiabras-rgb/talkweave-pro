@@ -84,6 +84,7 @@ const gatewayMenuItems = [
   { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
+  { id: "pay-cart-recovery", label: "Recuperação de Carrinhos", icon: ShoppingCart, path: "/gateway-checkout/cart-recovery" },
   { id: "pay-fees", label: "Taxas", icon: Receipt, path: "/gateway-checkout/fees" },
   { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },

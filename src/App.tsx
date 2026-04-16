@@ -43,6 +43,7 @@ import PayDashboard from "./pages/gateway/PayDashboard";
 import PayProducts from "./pages/gateway/PayProducts";
 import PayCheckouts from "./pages/gateway/PayCheckouts";
 import PayReports from "./pages/gateway/PayReports";
+import PayCartRecovery from "./pages/gateway/PayCartRecovery";
 import PayPixels from "./pages/gateway/PayPixels";
 import PayIntegrations from "./pages/gateway/PayIntegrations";
 import PaySettings from "./pages/gateway/PaySettings";
@@ -141,6 +142,7 @@ const App = () => (
                   <Route path="/gateway-checkout/checkouts/new" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/edit/:id" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
                   <Route path="/gateway-checkout/reports" element={<KycWrap><PayReports /></KycWrap>} />
+                  <Route path="/gateway-checkout/cart-recovery" element={<KycWrap><PayCartRecovery /></KycWrap>} />
                   <Route path="/gateway-checkout/pixels" element={<KycWrap><PayPixels /></KycWrap>} />
                   <Route path="/gateway-checkout/integrations" element={<KycWrap><PayIntegrations /></KycWrap>} />
                   <Route path="/gateway-checkout/settings" element={<KycWrap><PaySettings /></KycWrap>} />
