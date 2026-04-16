@@ -18,6 +18,15 @@ function normalizeHmacSignature(signature: string | null): string | null {
   return normalized || null
 }
 
+function normalizeJsonForHmac(body: string): string {
+  try {
+    const parsed = JSON.parse(body)
+    return JSON.stringify(parsed).replace(/:\s/g, ':').replace(/,\s/g, ',')
+  } catch {
+    return body.trim()
+  }
+}
+
 async function verifyHmac(body: string, signature: string | null): Promise<boolean> {
   const hmacKey = Deno.env.get('CARTWAVE_HMAC_KEY')
   if (!hmacKey) {
@@ -29,6 +38,7 @@ async function verifyHmac(body: string, signature: string | null): Promise<boole
   if (!normalizedSignature) return false
 
   try {
+    const normalizedBody = normalizeJsonForHmac(body)
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(hmacKey),
@@ -36,9 +46,30 @@ async function verifyHmac(body: string, signature: string | null): Promise<boole
       false,
       ['sign']
     )
-    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(normalizedBody))
     const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-    return computed === normalizedSignature
+
+    if (computed === normalizedSignature) {
+      return true
+    }
+
+    const rawSig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
+    const rawComputed = Array.from(new Uint8Array(rawSig)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+    if (rawComputed === normalizedSignature) {
+      console.log('CartWave HMAC matched using raw body fallback')
+      return true
+    }
+
+    console.error('CartWave HMAC mismatch', JSON.stringify({
+      receivedLength: normalizedSignature.length,
+      normalizedBodyLength: normalizedBody.length,
+      rawBodyLength: body.length,
+      normalizedPreview: normalizedBody.slice(0, 200),
+      rawPreview: body.slice(0, 200),
+    }))
+
+    return false
   } catch (err) {
     console.error('HMAC verification error:', err)
     return false
