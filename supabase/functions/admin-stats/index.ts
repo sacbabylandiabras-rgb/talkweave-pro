@@ -55,8 +55,16 @@ Deno.serve(async (req) => {
       adminClient.from("profiles").select("id", { count: "exact", head: true }),
     ]);
 
-    // Per-acquirer breakdown for current month
+    const allTx = allTxRes.data || [];
+    const todayTx = todayTxRes.data || [];
+    const monthTx = monthTxRes.data || [];
     const monthByProvider = monthByProviderRes.data || [];
+    const isApproved = (t: any) => t.status === "approved" || t.status === "paid";
+    const approved = allTx.filter(isApproved);
+    const monthApproved = monthTx.filter(isApproved);
+    const todayApproved = todayTx.filter(isApproved);
+
+    // Per-acquirer breakdown for current month
     const computeAcq = (filter: (t: any) => boolean) => {
       const list = monthByProvider.filter(filter);
       const approvedList = list.filter(isApproved);
@@ -67,18 +75,10 @@ Deno.serve(async (req) => {
       };
     };
     const acquirers = {
-      openpix: computeAcq((t) => !t.metadata?.provider || t.metadata?.provider === 'openpix'),
-      hubpague: computeAcq((t) => t.metadata?.provider === 'hubpague'),
-      cartwave: computeAcq((t) => t.metadata?.provider === 'cartwave'),
+      openpix: computeAcq((t: any) => !t.metadata?.provider || t.metadata?.provider === 'openpix'),
+      hubpague: computeAcq((t: any) => t.metadata?.provider === 'hubpague'),
+      cartwave: computeAcq((t: any) => t.metadata?.provider === 'cartwave'),
     };
-
-    const allTx = allTxRes.data || [];
-    const todayTx = todayTxRes.data || [];
-    const monthTx = monthTxRes.data || [];
-    const isApproved = (t: any) => t.status === "approved" || t.status === "paid";
-    const approved = allTx.filter(isApproved);
-    const monthApproved = monthTx.filter(isApproved);
-    const todayApproved = todayTx.filter(isApproved);
 
     const stats = {
       totalUsers: usersRes.count || 0,
@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
       approvedTransactions: approved.length,
       feePercent: 6.99,
       feeFixed: 199,
+      acquirers,
     };
 
     return new Response(JSON.stringify(stats), {
