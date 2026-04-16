@@ -230,11 +230,11 @@ serve(async (req) => {
       })
 
     } else if (activeAcquirer === 'cartwave') {
-      // === CartWave PIX Cash-out (create-cashout-manual) ===
-      // Docs: https://cartwave-prod.readme.io/reference/pix-cashout-using-pix-manual-create-payment-for-approval
+      // === CartWave PIX Cash-out by PIX key (self-approve) ===
+      // Docs: https://cartwave-prod.readme.io/reference/pix-cashout-auto-approve-using-pix-key
       const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
       const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
-      const CARTWAVE_CASHOUT_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-cashout-manual/`
+      const CARTWAVE_CASHOUT_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-cashout-self-approve/`
 
       const clientId = Deno.env.get('CARTWAVE_CLIENT_ID')
       const clientSecret = Deno.env.get('CARTWAVE_CLIENT_SECRET')
@@ -275,18 +275,41 @@ serve(async (req) => {
         })
       }
 
+      let sourceBranch = '0001'
+      let sourceAccount = '7003299'
+      try {
+        const { data: branchCfg } = await supabase
+          .from('gateway_platform_config')
+          .select('value')
+          .eq('key', 'cartwave_branch')
+          .single()
+        if (branchCfg?.value?.trim()) sourceBranch = branchCfg.value.trim()
+      } catch {}
+
+      try {
+        const { data: accountCfg } = await supabase
+          .from('gateway_platform_config')
+          .select('value')
+          .eq('key', 'cartwave_account')
+          .single()
+        if (accountCfg?.value?.trim()) sourceAccount = accountCfg.value.trim()
+      } catch {}
+
       // CartWave amount is decimal BRL (ex: 10.50)
       const amountDecimal = Number((payoutAmount / 100).toFixed(2))
 
-      // PIX key sent as-is (CartWave aceita CPF/CNPJ/email/telefone/aleatória sem prefixo de tipo)
+      // PIX key sent as-is (CartWave aceita CPF/CNPJ/email/telefone/aleatória)
       const pixKey = (withdrawal.pix_key || '').trim()
+
+      const transferTag = `withdrawal_${withdrawal.id}`
 
       // Build body — order matters for HMAC reproducibility, mas usamos JSON compacto
       const bodyObj: Record<string, any> = {
+        source_account_branch_identifier: sourceBranch,
+        source_account_number: sourceAccount,
         amount: amountDecimal,
         key: pixKey,
-        recipient_name: withdrawal.pix_key_type === 'cnpj' ? 'Cliente PJ' : 'Cliente',
-        recipient_account_type: 'CURRENT_ACCOUNT',
+        tag: transferTag,
       }
       // JSON compactado (sem espaços) — requisito do HMAC CartWave
       const compactBody = JSON.stringify(bodyObj)
@@ -300,7 +323,7 @@ serve(async (req) => {
       const hmacHex = Array.from(new Uint8Array(sigBuf))
         .map(b => b.toString(16).padStart(2, '0')).join('')
 
-      console.log(`CartWave cashout-manual: R$${amountDecimal} to ${pixKey}`)
+      console.log(`CartWave cashout-self-approve: R$${amountDecimal} to ${pixKey} from ${sourceBranch}/${sourceAccount}`)
 
       const cashOutRes = await fetch(CARTWAVE_CASHOUT_URL, {
         method: 'POST',
