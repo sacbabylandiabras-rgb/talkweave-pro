@@ -68,7 +68,7 @@ const ManagerReferral = lazy(() => import("./pages/gateway/ManagerReferral"));
 const CheckoutBuilder = lazy(() => import("./pages/gateway/CheckoutBuilder"));
 const PublicCheckout = lazy(() => import("./pages/PublicCheckout"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
-const GatewayKycGate = lazy(() => import("./components/gateway/GatewayKycGate").then(m => ({ default: m.default })));
+const GatewayKycGate = lazy(() => import("./components/gateway/GatewayKycGate"));
 const AutomacaoComentarios = lazy(() => import("./pages/instagram/AutomacaoComentarios"));
 const CampanhasInstagram = lazy(() => import("./pages/instagram/CampanhasInstagram"));
 const ContatosInstagram = lazy(() => import("./pages/instagram/ContatosInstagram"));
