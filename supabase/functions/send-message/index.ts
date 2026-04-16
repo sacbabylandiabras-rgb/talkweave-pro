@@ -271,25 +271,31 @@ serve(async (req) => {
     if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
 
+      const interactivePayload: Record<string, unknown> = {
+        phone: resolvedPhone,
+        message: interactiveMessage,
+        ...(title ? { title } : {}),
+        ...(footer ? { footer } : {}),
+        buttonActions: buttonActions.map((b: any, index: number) => {
+          const action: any = {
+            id: b.id || String(index + 1),
+            type: b.type,
+            label: b.label,
+          };
+          if (b.type === 'URL' && b.url) action.url = b.url;
+          if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
+          return action;
+        }),
+      };
+
+      if (mediaUrl && mediaType === 'image') {
+        interactivePayload.image = mediaUrl;
+      }
+
       zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          buttonActions: buttonActions.map((b: any, index: number) => {
-            const action: any = {
-              id: b.id || String(index + 1),
-              type: b.type,
-              label: b.label,
-            };
-            if (b.type === 'URL' && b.url) action.url = b.url;
-            if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
-            return action;
-          }),
-        }),
+        body: JSON.stringify(interactivePayload),
       });
 
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
