@@ -130,10 +130,7 @@ serve(async (req) => {
         .eq('id', withdrawal.user_id)
         .single()
       const userAcq = (profileData?.pix_acquirer || '').toLowerCase().trim()
-      if (userAcq && userAcq !== 'cartwave') {
-        // CartWave does not support PIX cash-out, fall back to global config
-        activeAcquirer = userAcq
-      }
+      if (userAcq) activeAcquirer = userAcq
     } catch {}
 
     console.log(`Active acquirer for payout (user ${withdrawal.user_id}): ${activeAcquirer}`)
