@@ -312,7 +312,22 @@ const ChatView = ({
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean, preferredInstanceId?: string | null) => Promise<void>;
+  onSendMessage: (phone: string, message: string, options?: {
+    mediaUrl?: string;
+    mediaType?: string;
+    viewOnce?: boolean;
+    isPtv?: boolean;
+    preferredInstanceId?: string | null;
+    title?: string;
+    footer?: string;
+    buttonActions?: Array<{
+      id: string;
+      type: 'CALL' | 'URL' | 'REPLY';
+      label: string;
+      phone?: string;
+      url?: string;
+    }>;
+  }) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
 }) => {
@@ -350,12 +365,20 @@ const ChatView = ({
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
         const isVideo = attachedFile.mediaType === 'video';
-        await onSendMessage(conversation.phone, newMessage.trim(), publicUrl, attachedFile.mediaType, isVideo ? viewOnce : undefined, isVideo ? isPtv : undefined, conversation.preferredInstanceId);
+        await onSendMessage(conversation.phone, newMessage.trim(), {
+          mediaUrl: publicUrl,
+          mediaType: attachedFile.mediaType,
+          viewOnce: isVideo ? viewOnce : undefined,
+          isPtv: isVideo ? isPtv : undefined,
+          preferredInstanceId: conversation.preferredInstanceId,
+        });
         setAttachedFile(null);
         setViewOnce(false);
         setIsPtv(false);
       } else {
-        await onSendMessage(conversation.phone, newMessage.trim(), undefined, undefined, undefined, undefined, conversation.preferredInstanceId);
+        await onSendMessage(conversation.phone, newMessage.trim(), {
+          preferredInstanceId: conversation.preferredInstanceId,
+        });
       }
       setNewMessage("");
     } catch (e: any) {
@@ -406,7 +429,11 @@ const ChatView = ({
           const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-          await onSendMessage(conversation.phone, '', publicUrl, 'audio', undefined, undefined, conversation.preferredInstanceId);
+          await onSendMessage(conversation.phone, '', {
+            mediaUrl: publicUrl,
+            mediaType: 'audio',
+            preferredInstanceId: conversation.preferredInstanceId,
+          });
         } catch (e) {
           toast({ title: "Erro", description: "Falha ao enviar áudio.", variant: "destructive" });
         } finally {
@@ -460,6 +487,17 @@ const ChatView = ({
   const handleSelectTemplate = async (template: MessageTemplate) => {
     setTemplatePopoverOpen(false);
     setTemplateSearch("");
+
+    const templateButtonActions = (template.buttons || []).map((button, index) => {
+      const rawType = (button.type || 'reply').toString().toLowerCase();
+      return {
+        id: button.id || String(index + 1),
+        label: button.text || `Botão ${index + 1}`,
+        type: (rawType === 'url' ? 'URL' : rawType === 'call' ? 'CALL' : 'REPLY') as 'CALL' | 'URL' | 'REPLY',
+        ...(rawType === 'url' ? { url: button.value } : {}),
+        ...(rawType === 'call' ? { phone: button.value } : {}),
+      };
+    }).filter((button) => button.label && (button.type === 'REPLY' || button.url || button.phone));
     
     // If template has media, send directly
     if (template.mediaUrl && template.type && template.type !== 'texto') {
@@ -471,15 +509,14 @@ const ChatView = ({
         else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
         else if (template.type === 'audio') mediaType = 'audio';
         
-        await onSendMessage(
-          conversation.phone,
-          template.content,
-          template.mediaUrl,
+        await onSendMessage(conversation.phone, template.content, {
+          mediaUrl: template.mediaUrl,
           mediaType,
-          undefined,
-          undefined,
-          conversation.preferredInstanceId,
-        );
+          preferredInstanceId: conversation.preferredInstanceId,
+          title: template.header || undefined,
+          footer: template.footer || undefined,
+          buttonActions: templateButtonActions.length > 0 ? templateButtonActions : undefined,
+        });
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
@@ -918,8 +955,8 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, mediaUrl, mediaType, viewOnce, isPtv, preferredInstanceId) => {
-            await sendMessage(phone, message, mediaUrl, mediaType, viewOnce, isPtv, preferredInstanceId);
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, options) => {
+            await sendMessage(phone, message, options);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
         )}

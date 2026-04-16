@@ -51,6 +51,25 @@ export interface Conversation {
   preferredInstanceId?: string | null;
 }
 
+type OutboundButtonAction = {
+  id: string;
+  type: 'CALL' | 'URL' | 'REPLY';
+  label: string;
+  phone?: string;
+  url?: string;
+};
+
+type SendMessageOptions = {
+  mediaUrl?: string;
+  mediaType?: string;
+  viewOnce?: boolean;
+  isPtv?: boolean;
+  preferredInstanceId?: string | null;
+  title?: string;
+  footer?: string;
+  buttonActions?: OutboundButtonAction[];
+};
+
 const isRealInboundKeyword = (keyword?: string | null) => {
   const value = (keyword || '').trim();
   return !value.startsWith('__');
@@ -603,17 +622,20 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
   })();
 
-  const sendMessage = useCallback(async (phone: string, message: string, mediaUrl?: string, mediaType?: string, viewOnce?: boolean, isPtv?: boolean, preferredInstanceId?: string | null) => {
+  const sendMessage = useCallback(async (phone: string, message: string, options: SendMessageOptions = {}) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated');
 
     const body: any = { phone, message };
-    if (mediaUrl) body.mediaUrl = mediaUrl;
-    if (mediaType) body.mediaType = mediaType;
-    if (viewOnce) body.viewOnce = true;
-    if (isPtv) body.isPtv = true;
-    if (preferredInstanceId) {
-      body.instanceId = preferredInstanceId;
+    if (options.mediaUrl) body.mediaUrl = options.mediaUrl;
+    if (options.mediaType) body.mediaType = options.mediaType;
+    if (options.viewOnce) body.viewOnce = true;
+    if (options.isPtv) body.isPtv = true;
+    if (options.title) body.title = options.title;
+    if (options.footer) body.footer = options.footer;
+    if (options.buttonActions?.length) body.buttonActions = options.buttonActions;
+    if (options.preferredInstanceId) {
+      body.instanceId = options.preferredInstanceId;
     } else if (filterInstanceId && filterInstanceId !== 'all') {
       body.instanceId = filterInstanceId;
     }
