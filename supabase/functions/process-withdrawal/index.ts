@@ -230,18 +230,20 @@ serve(async (req) => {
       })
 
     } else if (activeAcquirer === 'cartwave') {
-      // === CartWave PIX Cash-out ===
+      // === CartWave PIX Cash-out (create-cashout-manual) ===
+      // Docs: https://cartwave-prod.readme.io/reference/pix-cashout-using-pix-manual-create-payment-for-approval
       const CARTWAVE_PROXY_BASE = 'http://187.77.249.247:3480'
       const CARTWAVE_AUTH_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/auth-token/`
-      const CARTWAVE_CASHOUT_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-pix-cash-out/`
+      const CARTWAVE_CASHOUT_URL = `${CARTWAVE_PROXY_BASE}/v2/finance/create-cashout-manual/`
 
       const clientId = Deno.env.get('CARTWAVE_CLIENT_ID')
       const clientSecret = Deno.env.get('CARTWAVE_CLIENT_SECRET')
+      const hmacKey = Deno.env.get('CARTWAVE_HMAC_KEY')
 
-      if (!clientId || !clientSecret) {
+      if (!clientId || !clientSecret || !hmacKey) {
         await supabase.from('gateway_withdrawals').update({
           status: 'pending',
-          admin_notes: 'CartWave não configurado (CLIENT_ID/SECRET ausentes)',
+          admin_notes: 'CartWave não configurado (CLIENT_ID/SECRET/HMAC_KEY ausentes)',
         }).eq('id', withdrawalId)
         return new Response(JSON.stringify({ error: 'CartWave não configurado.' }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -273,24 +275,32 @@ serve(async (req) => {
         })
       }
 
-      // Map pix_key_type to CartWave format
-      const cwKeyTypeMap: Record<string, string> = {
-        'cpf': 'cpf',
-        'cnpj': 'cnpj',
-        'email': 'email',
-        'telefone': 'phone',
-        'phone': 'phone',
-        'aleatoria': 'random',
-        'random': 'random',
-        'evp': 'random',
+      // CartWave amount is decimal BRL (ex: 10.50)
+      const amountDecimal = Number((payoutAmount / 100).toFixed(2))
+
+      // PIX key sent as-is (CartWave aceita CPF/CNPJ/email/telefone/aleatória sem prefixo de tipo)
+      const pixKey = (withdrawal.pix_key || '').trim()
+
+      // Build body — order matters for HMAC reproducibility, mas usamos JSON compacto
+      const bodyObj: Record<string, any> = {
+        amount: amountDecimal,
+        key: pixKey,
+        recipient_name: withdrawal.pix_key_type === 'cnpj' ? 'Cliente PJ' : 'Cliente',
+        recipient_account_type: 'CURRENT_ACCOUNT',
       }
-      const cwKeyType = cwKeyTypeMap[withdrawal.pix_key_type?.toLowerCase()] || 'cpf'
-      const correlationID = `wdr_${withdrawal.id}_${Date.now()}`
+      // JSON compactado (sem espaços) — requisito do HMAC CartWave
+      const compactBody = JSON.stringify(bodyObj)
 
-      // CartWave uses BRL with decimal value (e.g., 10.50)
-      const valueDecimal = (payoutAmount / 100).toFixed(2)
+      // HMAC SHA-512 hex sobre o body compactado
+      const enc = new TextEncoder()
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw', enc.encode(hmacKey), { name: 'HMAC', hash: 'SHA-512' }, false, ['sign']
+      )
+      const sigBuf = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(compactBody))
+      const hmacHex = Array.from(new Uint8Array(sigBuf))
+        .map(b => b.toString(16).padStart(2, '0')).join('')
 
-      console.log(`CartWave cash-out: R$${valueDecimal} to ${withdrawal.pix_key} (${cwKeyType})`)
+      console.log(`CartWave cashout-manual: R$${amountDecimal} to ${pixKey}`)
 
       const cashOutRes = await fetch(CARTWAVE_CASHOUT_URL, {
         method: 'POST',
@@ -298,36 +308,36 @@ serve(async (req) => {
           'accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
+          'hmac': hmacHex,
           'User-Agent': 'ZapLynxPay/1.0',
         },
-        body: JSON.stringify({
-          value: valueDecimal,
-          pix_key: withdrawal.pix_key,
-          pix_key_type: cwKeyType,
-          tx_id: correlationID,
-          description: `Saque ZapLynxPay #${withdrawal.id.slice(0, 8)}`,
-        }),
+        body: compactBody,
       })
 
       const cashOutData = await cashOutRes.json().catch(() => ({}))
-      console.log('CartWave cash-out response:', cashOutRes.status, JSON.stringify(cashOutData))
+      console.log('CartWave cashout response:', cashOutRes.status, JSON.stringify(cashOutData))
 
-      if (!cashOutRes.ok) {
-        console.error('CartWave cash-out error:', cashOutData)
+      const worked = cashOutData?.worked === true || cashOutData?.status === 'SUCCESS' || cashOutData?.status === 'PROCESSING'
+
+      if (!cashOutRes.ok || !worked) {
+        console.error('CartWave cashout error:', cashOutData)
+        const errMsg = cashOutData?.new_erro_descriptor || cashOutData?.erro_descriptor
+          || cashOutData?.message || cashOutData?.detail || cashOutData?.error
+          || JSON.stringify(cashOutData).slice(0, 300)
         await supabase.from('gateway_withdrawals').update({
           status: 'pending',
-          admin_notes: `Erro CartWave: ${cashOutData?.message || cashOutData?.detail || cashOutData?.error || JSON.stringify(cashOutData).slice(0, 300)}`,
+          admin_notes: `Erro CartWave: ${errMsg}`,
         }).eq('id', withdrawalId)
 
         return new Response(JSON.stringify({
           error: 'Falha ao processar transferência PIX via CartWave',
-          details: cashOutData?.message || cashOutData?.detail || 'Unknown CartWave error',
+          details: errMsg,
         }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
 
-      const cwTransferId = cashOutData?.id || cashOutData?.transaction_id || cashOutData?.data?.id || correlationID
+      const cwTransferId = cashOutData?.transaction_id || cashOutData?.id || cashOutData?.code_transaction || cashOutData?.operationUuid
 
       await supabase.from('gateway_withdrawals').update({
         status: 'approved',
