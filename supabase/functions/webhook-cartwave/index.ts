@@ -285,6 +285,22 @@ serve(async (req) => {
       } catch (utmErr) {
         console.error('UTMify error:', utmErr)
       }
+
+      if (newStatus === 'approved') {
+        try {
+          const shopifyRes = await fetch(`${supabaseUrl}/functions/v1/shopify-create-order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({ transactionId: tx.id }),
+          })
+          console.log('Shopify create order response:', shopifyRes.status, await shopifyRes.text())
+        } catch (shopifyErr) {
+          console.error('Shopify create order error:', shopifyErr)
+        }
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, status: newStatus, transactionId: tx.id }), {
