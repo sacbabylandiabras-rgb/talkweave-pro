@@ -274,6 +274,9 @@ export function ShopifyCard() {
                 <p className="text-[11px] text-muted-foreground">
                   Exemplo: se sua loja for <span className="font-mono">minhaloja.myshopify.com</span>, digite apenas <span className="font-mono">minhaloja</span>.
                 </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Não use o link de distribuição personalizada do Shopify Partners: neste fluxo, cada usuário conecta a própria loja informando o domínio <span className="font-mono">.myshopify.com</span>.
+                </p>
               </div>
             )}
 
