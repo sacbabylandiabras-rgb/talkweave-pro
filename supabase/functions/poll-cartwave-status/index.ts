@@ -50,8 +50,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Find pending CartWave transactions from the last 48 hours
-    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    // Find pending CartWave transactions from the last 7 days
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const { data: pendingTxs, error: txErr } = await supabase
       .from('gateway_transactions')
       .select('id, user_id, checkout_id, external_id, amount, fee, net, customer_name, customer_email, customer_phone, product_id, metadata, created_at, status')
