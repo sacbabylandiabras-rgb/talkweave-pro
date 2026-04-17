@@ -245,17 +245,23 @@ serve(async (req) => {
         )
       }
 
-      const zapiResult = await zapiRes.text()
-      console.log('Z-API response:', zapiRes.status, zapiResult)
+      const zapiResultText = await zapiRes.text()
+      let zapiResultJson: any = {}
+      try { zapiResultJson = JSON.parse(zapiResultText) } catch { /* noop */ }
+      console.log('Z-API response:', zapiRes.status, zapiResultText)
 
-      // Update log
+      // Z-API pode retornar HTTP 200 mesmo quando a entrega falha. Validar o corpo também.
+      const hasMessageId = !!(zapiResultJson?.messageId || zapiResultJson?.id || zapiResultJson?.zaapId)
+      const hasError = !!(zapiResultJson?.error)
+      const trulySent = zapiRes.ok && hasMessageId && !hasError
+
       await supabase.from('gateway_webhook_logs').insert({
         user_id: userId,
         event_type: eventType,
         phone: phone,
         payload: payload,
-        message_sent: message,
-        status: zapiRes.ok ? 'sent' : 'error',
+        message_sent: trulySent ? message : `${message}\n\n[ERROR] ${zapiResultText}`,
+        status: trulySent ? 'sent' : 'error',
       })
     }
 
