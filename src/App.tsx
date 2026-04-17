@@ -117,7 +117,7 @@ const App = () => (
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
