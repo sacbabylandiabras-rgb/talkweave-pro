@@ -135,13 +135,67 @@ serve(async (req) => {
       return pool[rotationIndex]
     }
 
+    // Helper: check if a Z-API instance is actually connected to WhatsApp
+    const checkInstanceConnected = async (creds: any): Promise<{ connected: boolean; reason?: string }> => {
+      try {
+        const statusRes = await fetch(
+          `https://api.z-api.io/instances/${creds.zapi_instance_id}/token/${creds.zapi_token}/status`,
+          { headers: { 'Client-Token': creds.zapi_client_token } }
+        )
+        const statusBody = await statusRes.json().catch(() => ({}))
+        const connected = statusBody?.connected === true || String(statusBody?.status || '').toLowerCase() === 'connected'
+        if (!connected) {
+          return { connected: false, reason: statusBody?.error || statusBody?.message || `status=${statusBody?.status || 'unknown'}` }
+        }
+        return { connected: true }
+      } catch (e: any) {
+        return { connected: false, reason: `status check failed: ${e?.message}` }
+      }
+    }
+
     // Send messages for each funnel step
     for (let i = 0; i < funnels.length; i++) {
       const funnel = funnels[i]
-      const zapiCreds = getInstanceForFunnel(funnel)
+      let zapiCreds = getInstanceForFunnel(funnel)
       console.log(`Funil ${i + 1}: usando instância ${zapiCreds.instance_name}`)
       if (funnel.delay_seconds > 0) {
         await new Promise(resolve => setTimeout(resolve, funnel.delay_seconds * 1000))
+      }
+
+      // Validate connectivity; if disconnected, try other instances in the pool
+      let connectivity = await checkInstanceConnected(zapiCreds)
+      if (!connectivity.connected) {
+        console.warn(`⚠️ Instância ${zapiCreds.instance_name} desconectada (${connectivity.reason}). Procurando alternativa...`)
+        const funnelInstanceIds = funnel.instance_ids
+        let pool = allInstances
+        if (funnelInstanceIds && Array.isArray(funnelInstanceIds) && funnelInstanceIds.length > 0) {
+          const filtered = allInstances.filter((inst: any) => funnelInstanceIds.includes(inst.id))
+          if (filtered.length > 0) pool = filtered
+        }
+        let foundAlternative = false
+        for (const alt of pool) {
+          if (alt.id === zapiCreds.id) continue
+          const altCheck = await checkInstanceConnected(alt)
+          if (altCheck.connected) {
+            zapiCreds = alt
+            connectivity = altCheck
+            foundAlternative = true
+            console.log(`✅ Usando instância alternativa: ${alt.instance_name}`)
+            break
+          }
+        }
+        if (!foundAlternative) {
+          console.error(`❌ Nenhuma instância conectada disponível para envio`)
+          await supabase.from('gateway_webhook_logs').insert({
+            user_id: userId,
+            event_type: eventType,
+            phone: phone,
+            payload: payload,
+            message_sent: null,
+            status: 'error',
+          })
+          continue
+        }
       }
 
       // Replace variables in template
@@ -191,17 +245,23 @@ serve(async (req) => {
         )
       }
 
-      const zapiResult = await zapiRes.text()
-      console.log('Z-API response:', zapiRes.status, zapiResult)
+      const zapiResultText = await zapiRes.text()
+      let zapiResultJson: any = {}
+      try { zapiResultJson = JSON.parse(zapiResultText) } catch { /* noop */ }
+      console.log('Z-API response:', zapiRes.status, zapiResultText)
 
-      // Update log
+      // Z-API pode retornar HTTP 200 mesmo quando a entrega falha. Validar o corpo também.
+      const hasMessageId = !!(zapiResultJson?.messageId || zapiResultJson?.id || zapiResultJson?.zaapId)
+      const hasError = !!(zapiResultJson?.error)
+      const trulySent = zapiRes.ok && hasMessageId && !hasError
+
       await supabase.from('gateway_webhook_logs').insert({
         user_id: userId,
         event_type: eventType,
         phone: phone,
         payload: payload,
-        message_sent: message,
-        status: zapiRes.ok ? 'sent' : 'error',
+        message_sent: trulySent ? message : `${message}\n\n[ERROR] ${zapiResultText}`,
+        status: trulySent ? 'sent' : 'error',
       })
     }
 
