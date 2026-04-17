@@ -6,6 +6,7 @@ export const useUserRole = (userId: string | undefined) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const checkRole = async () => {
       if (!userId) {
         setIsAdmin(false);
