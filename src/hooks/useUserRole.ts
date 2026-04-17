@@ -3,18 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = (userId: string | undefined) => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [checkedUserId, setCheckedUserId] = useState<string | undefined>();
+  const [checkedUserId, setCheckedUserId] = useState<string | undefined | null>(null);
+  const [checking, setChecking] = useState(true);
 
-  // Sincronamente força loading=true quando userId muda antes do effect rodar
-  if (userId !== checkedUserId && !loading) {
-    setLoading(true);
-    setCheckedUserId(userId);
-  }
+  // loading enquanto ainda não verificamos o userId atual
+  const loading = checking || checkedUserId !== userId;
 
   useEffect(() => {
-    setLoading(true);
-    setCheckedUserId(userId);
+    setChecking(true);
     const checkRole = async () => {
       if (!userId) {
         setIsAdmin(false);
