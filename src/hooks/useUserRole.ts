@@ -14,12 +14,12 @@ export const useUserRole = (userId: string | undefined) => {
     const checkRole = async () => {
       if (!userId) {
         setIsAdmin(false);
-        setLoading(false);
+        setCheckedUserId(userId);
+        setChecking(false);
         return;
       }
 
       try {
-        // Busca TODAS as roles do usuário
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
@@ -29,7 +29,6 @@ export const useUserRole = (userId: string | undefined) => {
           console.error("Error checking role:", error);
           setIsAdmin(false);
         } else {
-          // Verifica se existe alguma role 'admin' na lista
           const hasAdminRole = data?.some(r => r.role === 'admin') || false;
           setIsAdmin(hasAdminRole);
         }
@@ -37,7 +36,8 @@ export const useUserRole = (userId: string | undefined) => {
         console.error("Error in checkRole:", error);
         setIsAdmin(false);
       } finally {
-        setLoading(false);
+        setCheckedUserId(userId);
+        setChecking(false);
       }
     };
 
