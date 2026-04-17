@@ -67,6 +67,7 @@ import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
 import ThankYou from "./pages/ThankYou";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
+import AdminRouteGuard from "./components/admin/AdminRouteGuard";
 import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
 import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
