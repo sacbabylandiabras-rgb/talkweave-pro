@@ -67,6 +67,7 @@ import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
 import ThankYou from "./pages/ThankYou";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
+import AdminRouteGuard from "./components/admin/AdminRouteGuard";
 import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
 import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
@@ -117,7 +118,7 @@ const App = () => (
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
