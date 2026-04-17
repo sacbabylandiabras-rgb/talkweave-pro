@@ -17,7 +17,7 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
 
   const { isAdmin, loading: roleLoading } = useUserRole(userId);
 
-  if (authLoading || roleLoading) {
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -26,6 +26,15 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
   }
 
   if (!userId) return <Navigate to="/auth" replace />;
+
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
