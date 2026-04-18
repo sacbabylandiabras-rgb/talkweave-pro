@@ -5,6 +5,7 @@ import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { useTenant } from "@/hooks/useTenant";
 import { useCheckoutPresence } from "@/hooks/useCheckoutPresence";
+import { initCheckoutPixels, trackPixelEvent, type PublicPixelConfig } from "@/lib/checkout-pixels";
 
 interface CheckoutConfig {
   productName: string;
