@@ -425,19 +425,21 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" onClick={fetchDeviceStatus} disabled={loading} className="h-7 text-[11px] px-2">
             <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} /> Status
           </Button>
-          {isConnected && (
-            <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
-              onClick={async () => {
-                try {
-                  await withInstance(() => disconnectDevice());
-                  localStorage.removeItem('readConversations');
-                  toast({ title: "🔌 Instância desconectada", description: "O histórico e os envios da campanha foram preservados." });
-                  setTimeout(fetchDeviceStatus, 1000);
-                } catch {}
-              }}>
-              <PowerOff className="w-3 h-3 mr-1" /> Desconectar
-            </Button>
-          )}
+          <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
+            onClick={async () => {
+              try {
+                await withInstance(() => disconnectDevice());
+                localStorage.removeItem('readConversations');
+                setConnectedPhone(null);
+                setProfilePicUrl(null);
+                setQrCode(null);
+                setQrCodeImage(null);
+                toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
+                setTimeout(fetchDeviceStatus, 1000);
+              } catch {}
+            }}>
+            <PowerOff className="w-3 h-3 mr-1" /> Desconectar
+          </Button>
           <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
             onClick={async () => {
               try {
