@@ -69,7 +69,18 @@ Deno.serve(async (req) => {
       product = data;
     }
 
-    return new Response(JSON.stringify({ checkout, product }), {
+    // Fetch active pixels owned by checkout user (public-safe fields only)
+    let pixels: any[] = [];
+    if (checkout.user_id) {
+      const { data: pxs } = await supabase
+        .from("gateway_pixels")
+        .select("platform, pixel_id, events, active, extra_config")
+        .eq("user_id", checkout.user_id)
+        .eq("active", true);
+      pixels = pxs || [];
+    }
+
+    return new Response(JSON.stringify({ checkout, product, pixels }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
