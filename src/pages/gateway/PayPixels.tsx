@@ -281,57 +281,66 @@ export default function PayPixels() {
         </CardContent>
       </Card>
 
-      <CapturedEventsCard activePixels={pixels.filter(p => p.active)} />
+      <SalesUtmsCard />
     </div>
   );
 }
 
-function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }) {
-  const [events, setEvents] = useState<any[]>([]);
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+
+function extractUtms(metadata: any): Record<string, string> {
+  if (!metadata || typeof metadata !== "object") return {};
+  const out: Record<string, string> = {};
+  // Direct keys
+  for (const k of UTM_KEYS) {
+    if (metadata[k]) out[k] = String(metadata[k]);
+  }
+  // Nested under metadata.utm or metadata.utms
+  const nested = metadata.utm || metadata.utms;
+  if (nested && typeof nested === "object") {
+    for (const k of UTM_KEYS) {
+      if (!out[k] && nested[k]) out[k] = String(nested[k]);
+    }
+  }
+  return out;
+}
+
+function SalesUtmsCard() {
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data } = await (supabase as any)
-      .from("pixel_event_logs")
-      .select("id, platform, event_name, status, http_status, value, currency, customer_name, customer_email, error_message, created_at")
+    const { data } = await supabase
+      .from("gateway_transactions")
+      .select("id, customer_name, customer_email, amount, status, metadata, created_at")
       .eq("user_id", user.id)
+      .in("status", ["paid", "approved"])
       .order("created_at", { ascending: false })
-      .limit(30);
-    setEvents(data || []);
+      .limit(50);
+    const filtered = (data || []).filter(r => Object.keys(extractUtms(r.metadata)).length > 0);
+    setRows(filtered);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
     const channel = supabase
-      .channel("pixel-event-logs-rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pixel_event_logs" }, () => load())
+      .channel("sales-utms-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const platformLabels: Record<string, string> = {
-    meta: "Meta",
-    tiktok: "TikTok",
-    google: "Google Ads",
-  };
-
-  const statusBadge = (status: string) => {
-    if (status === "success") return "bg-green-500/10 text-green-500 border-green-500/30";
-    if (status === "error") return "bg-red-500/10 text-red-500 border-red-500/30";
-    return "bg-yellow-500/10 text-yellow-500 border-yellow-500/30";
-  };
 
   return (
     <Card className="border-[#2A2A2A]">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-sm">Eventos capturados (CAPI real)</CardTitle>
+          <CardTitle className="text-sm">UTMs das vendas</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Disparos reais enviados via Conversions API. Cada linha é uma chamada HTTP confirmada.
+            Parâmetros UTM capturados das vendas aprovadas (origem, mídia, campanha).
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -343,42 +352,44 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
           <div className="flex justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
-        ) : events.length === 0 ? (
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            Nenhum disparo CAPI registrado ainda. Os eventos aparecerão aqui em tempo real após cada venda aprovada.
+            Nenhuma venda com UTM registrada ainda. Envie tráfego para o checkout com parâmetros como{" "}
+            <code className="text-xs">?utm_source=facebook&utm_campaign=black</code>.
           </p>
         ) : (
           <div className="space-y-2">
-            {events.map((ev) => (
-              <div
-                key={ev.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-background/40"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Badge variant="outline" className={statusBadge(ev.status)}>
-                    {ev.event_name}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {platformLabels[ev.platform] || ev.platform}
-                  </Badge>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {ev.customer_name || ev.customer_email || "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(ev.created_at), { addSuffix: true, locale: ptBR })}
-                      {ev.http_status ? ` · HTTP ${ev.http_status}` : ""}
-                      {ev.error_message ? ` · ${ev.error_message}` : ""}
-                    </p>
+            {rows.map((r) => {
+              const utms = extractUtms(r.metadata);
+              return (
+                <div
+                  key={r.id}
+                  className="p-3 rounded-lg border border-[#2A2A2A] bg-background/40 space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {r.customer_name || r.customer_email || "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums flex-shrink-0">
+                      R$ {(Number(r.amount) / 100).toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {UTM_KEYS.filter(k => utms[k]).map(k => (
+                      <Badge key={k} variant="outline" className="text-[10px] font-mono">
+                        <span className="text-muted-foreground mr-1">{k.replace("utm_", "")}:</span>
+                        <span className="text-foreground">{utms[k]}</span>
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                {ev.value ? (
-                  <span className="text-sm font-semibold tabular-nums flex-shrink-0">
-                    R$ {Number(ev.value).toFixed(2).replace(".", ",")}
-                  </span>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
