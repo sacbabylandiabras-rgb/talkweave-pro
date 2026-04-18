@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useGatewayPixels, PixelConfig } from "@/hooks/useGatewayPixels";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const EVENTS = ["Purchase", "InitiateCheckout", "AddPaymentInfo", "Lead"];
 
@@ -277,6 +280,103 @@ export default function PayPixels() {
           <p>4. Use o <strong>Test Event Code</strong> (Meta) para validar antes de ativar em produção</p>
         </CardContent>
       </Card>
+
+      <CapturedEventsCard activePixels={pixels.filter(p => p.active)} />
     </div>
+  );
+}
+
+function CapturedEventsCard({ activePixels }: { activePixels: PixelConfig[] }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("gateway_transactions")
+      .select("id, amount, status, customer_name, customer_email, created_at, updated_at")
+      .eq("user_id", user.id)
+      .eq("status", "approved")
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    setEvents(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    const channel = supabase
+      .channel("pixel-events-tx")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const platformLabels: Record<string, string> = {
+    meta: "Meta",
+    tiktok: "TikTok",
+    google: "Google Ads",
+  };
+
+  return (
+    <Card className="border-[#2A2A2A]">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-sm">Eventos capturados (Purchase)</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Disparos enviados via Conversions API quando uma venda é aprovada
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atualizar"}
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : events.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Nenhum evento capturado ainda. Eventos aparecerão aqui assim que houver vendas aprovadas no checkout.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {events.map((ev) => (
+              <div
+                key={ev.id}
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-background/40"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/30">
+                    Purchase
+                  </Badge>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {ev.customer_name || ev.customer_email || "Cliente"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(ev.updated_at || ev.created_at), { addSuffix: true, locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {activePixels.map((px) => (
+                    <Badge key={px.id} variant="outline" className="text-xs">
+                      {platformLabels[px.platform] || px.platform}
+                    </Badge>
+                  ))}
+                  <span className="text-sm font-semibold tabular-nums">
+                    R$ {Number(ev.amount || 0).toFixed(2).replace(".", ",")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
