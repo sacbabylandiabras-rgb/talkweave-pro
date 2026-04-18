@@ -145,8 +145,6 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const px of pixels) {
       const events = (px.events as string[]) || [];
-      if (events.length && !events.includes(event)) continue;
-
       const payload = {
         event,
         value: Number(value) || 0,
@@ -156,12 +154,43 @@ Deno.serve(async (req) => {
         source_url,
       };
 
+      const baseLog: any = {
+        user_id,
+        pixel_id: px.id,
+        platform: px.platform,
+        event_name: event,
+        value: payload.value,
+        currency: payload.currency,
+        customer_email: customer?.email || null,
+        customer_name: customer?.name || null,
+        event_id: event_id || null,
+      };
+
+      if (events.length && !events.includes(event)) {
+        await supabase.from("pixel_event_logs").insert({
+          ...baseLog, status: "skipped", error_message: "Evento não habilitado",
+        });
+        continue;
+      }
+
       try {
         let r: any = { skipped: "unsupported_platform" };
         if (px.platform === "meta") r = await sendMetaCapi(px, payload);
         else if (px.platform === "tiktok") r = await sendTikTokCapi(px, payload);
+
+        const ok = r.status && r.status >= 200 && r.status < 300;
+        await supabase.from("pixel_event_logs").insert({
+          ...baseLog,
+          status: r.skipped ? "skipped" : (ok ? "success" : "error"),
+          http_status: r.status || null,
+          response_body: typeof r.response === "string" ? r.response.slice(0, 2000) : (r.skipped || null),
+          error_message: !ok && !r.skipped ? `HTTP ${r.status}` : null,
+        });
         results.push({ platform: px.platform, ...r });
       } catch (err: any) {
+        await supabase.from("pixel_event_logs").insert({
+          ...baseLog, status: "error", error_message: err.message,
+        });
         results.push({ platform: px.platform, error: err.message });
       }
     }

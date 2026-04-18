@@ -286,7 +286,7 @@ export default function PayPixels() {
   );
 }
 
-function CapturedEventsCard({ activePixels }: { activePixels: PixelConfig[] }) {
+function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
