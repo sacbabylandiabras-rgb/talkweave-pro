@@ -159,7 +159,12 @@ const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
   const result = String(payload?.result || '').toUpperCase();
-  return Boolean(ackId || ['PENDING', 'QUEUED', 'QUEUE', 'SENT', 'SUCCESS', 'OK'].includes(status) || ['PENDING', 'QUEUED', 'SUCCESS', 'OK'].includes(result));
+  // Status que indicam que a mensagem ficou apenas enfileirada (não entregue de fato)
+  const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
+  if (queuedStatuses.includes(status) || queuedStatuses.includes(result)) return false;
+  // Exige um ack id real OU um status explícito de sucesso de envio
+  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'DELIVERED', 'RECEIVED'];
+  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result);
 };
 const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
 
