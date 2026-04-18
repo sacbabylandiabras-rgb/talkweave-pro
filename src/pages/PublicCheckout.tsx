@@ -196,6 +196,17 @@ export default function PublicCheckout() {
     }
   }, [config?.faviconUrl, config?.pageTitle]);
 
+  // Inject configured pixels (Meta/TikTok/Google) and fire PageView once
+  useEffect(() => {
+    if (!pixels.length || !config) return;
+    initCheckoutPixels(pixels);
+    trackPixelEvent(pixels, "PageView");
+    trackPixelEvent(pixels, "InitiateCheckout", {
+      value: config.price || 0,
+      currency: "BRL",
+    });
+  }, [pixels, config?.price]);
+
   if (loading || tenantLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#EFF1F5" }}>
