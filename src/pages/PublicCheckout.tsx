@@ -111,6 +111,7 @@ export default function PublicCheckout() {
   const [error, setError] = useState<string | null>(null);
   const [checkoutOwnerId, setCheckoutOwnerId] = useState<string | null>(null);
   const [productName, setProductName] = useState<string>("");
+  const [pixels, setPixels] = useState<PublicPixelConfig[]>([]);
   const { tenant, loading: tenantLoading } = useTenant();
 
   useCheckoutPresence(slug, checkoutOwnerId, productName);
