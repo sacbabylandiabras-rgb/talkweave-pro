@@ -143,6 +143,8 @@ export default function PublicCheckout() {
         const result = await res.json();
         const checkout = result.checkout;
         const product = result.product;
+        const fetchedPixels: PublicPixelConfig[] = Array.isArray(result.pixels) ? result.pixels : [];
+        setPixels(fetchedPixels);
         const savedConfig = (checkout.config || {}) as Record<string, any>;
         const resolvedTemplateId = resolveTemplateId(savedConfig);
 
