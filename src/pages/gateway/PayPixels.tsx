@@ -294,13 +294,12 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("gateway_transactions")
-      .select("id, amount, status, customer_name, customer_email, created_at, updated_at")
+    const { data } = await (supabase as any)
+      .from("pixel_event_logs")
+      .select("id, platform, event_name, status, http_status, value, currency, customer_name, customer_email, error_message, created_at")
       .eq("user_id", user.id)
-      .eq("status", "approved")
-      .order("updated_at", { ascending: false })
-      .limit(20);
+      .order("created_at", { ascending: false })
+      .limit(30);
     setEvents(data || []);
     setLoading(false);
   };
@@ -308,8 +307,8 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
   useEffect(() => {
     load();
     const channel = supabase
-      .channel("pixel-events-tx")
-      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, () => load())
+      .channel("pixel-event-logs-rt")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pixel_event_logs" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -320,13 +319,19 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
     google: "Google Ads",
   };
 
+  const statusBadge = (status: string) => {
+    if (status === "success") return "bg-green-500/10 text-green-500 border-green-500/30";
+    if (status === "error") return "bg-red-500/10 text-red-500 border-red-500/30";
+    return "bg-yellow-500/10 text-yellow-500 border-yellow-500/30";
+  };
+
   return (
     <Card className="border-[#2A2A2A]">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-sm">Eventos capturados (Purchase)</CardTitle>
+          <CardTitle className="text-sm">Eventos capturados (CAPI real)</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Disparos enviados via Conversions API quando uma venda é aprovada
+            Disparos reais enviados via Conversions API. Cada linha é uma chamada HTTP confirmada.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -340,7 +345,7 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
           </div>
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            Nenhum evento capturado ainda. Eventos aparecerão aqui assim que houver vendas aprovadas no checkout.
+            Nenhum disparo CAPI registrado ainda. Os eventos aparecerão aqui em tempo real após cada venda aprovada.
           </p>
         ) : (
           <div className="space-y-2">
@@ -350,28 +355,28 @@ function CapturedEventsCard({ activePixels: _ }: { activePixels: PixelConfig[] }
                 className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-background/40"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/30">
-                    Purchase
+                  <Badge variant="outline" className={statusBadge(ev.status)}>
+                    {ev.event_name}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {platformLabels[ev.platform] || ev.platform}
                   </Badge>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {ev.customer_name || ev.customer_email || "Cliente"}
+                      {ev.customer_name || ev.customer_email || "—"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(ev.updated_at || ev.created_at), { addSuffix: true, locale: ptBR })}
+                      {formatDistanceToNow(new Date(ev.created_at), { addSuffix: true, locale: ptBR })}
+                      {ev.http_status ? ` · HTTP ${ev.http_status}` : ""}
+                      {ev.error_message ? ` · ${ev.error_message}` : ""}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {activePixels.map((px) => (
-                    <Badge key={px.id} variant="outline" className="text-xs">
-                      {platformLabels[px.platform] || px.platform}
-                    </Badge>
-                  ))}
-                  <span className="text-sm font-semibold tabular-nums">
-                    R$ {Number(ev.amount || 0).toFixed(2).replace(".", ",")}
+                {ev.value ? (
+                  <span className="text-sm font-semibold tabular-nums flex-shrink-0">
+                    R$ {Number(ev.value).toFixed(2).replace(".", ",")}
                   </span>
-                </div>
+                ) : null}
               </div>
             ))}
           </div>
