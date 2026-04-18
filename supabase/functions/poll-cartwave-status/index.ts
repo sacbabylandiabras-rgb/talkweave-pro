@@ -154,7 +154,24 @@ serve(async (req) => {
               console.error('Forward error:', fwdErr)
             }
 
-            // Push notification
+            // CAPI Purchase event
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/send-meta-capi`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  user_id: tx.user_id,
+                  event: 'Purchase',
+                  value: (tx.amount || 0) / 100,
+                  currency: 'BRL',
+                  event_id: tx.id,
+                  customer: { email: tx.customer_email, phone: tx.customer_phone, name: tx.customer_name },
+                }),
+              })
+            } catch (capiErr) {
+              console.error('CAPI error:', capiErr)
+            }
+
             try {
               const amount = (tx.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
               await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {

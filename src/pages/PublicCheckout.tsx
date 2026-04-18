@@ -5,6 +5,7 @@ import CheckoutPreview from "@/components/gateway/CheckoutPreview";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { useTenant } from "@/hooks/useTenant";
 import { useCheckoutPresence } from "@/hooks/useCheckoutPresence";
+import { initCheckoutPixels, trackPixelEvent, type PublicPixelConfig } from "@/lib/checkout-pixels";
 
 interface CheckoutConfig {
   productName: string;
@@ -110,6 +111,7 @@ export default function PublicCheckout() {
   const [error, setError] = useState<string | null>(null);
   const [checkoutOwnerId, setCheckoutOwnerId] = useState<string | null>(null);
   const [productName, setProductName] = useState<string>("");
+  const [pixels, setPixels] = useState<PublicPixelConfig[]>([]);
   const { tenant, loading: tenantLoading } = useTenant();
 
   useCheckoutPresence(slug, checkoutOwnerId, productName);
@@ -141,6 +143,8 @@ export default function PublicCheckout() {
         const result = await res.json();
         const checkout = result.checkout;
         const product = result.product;
+        const fetchedPixels: PublicPixelConfig[] = Array.isArray(result.pixels) ? result.pixels : [];
+        setPixels(fetchedPixels);
         const savedConfig = (checkout.config || {}) as Record<string, any>;
         const resolvedTemplateId = resolveTemplateId(savedConfig);
 
@@ -191,6 +195,17 @@ export default function PublicCheckout() {
       document.title = config.pageTitle;
     }
   }, [config?.faviconUrl, config?.pageTitle]);
+
+  // Inject configured pixels (Meta/TikTok/Google) and fire PageView once
+  useEffect(() => {
+    if (!pixels.length || !config) return;
+    initCheckoutPixels(pixels);
+    trackPixelEvent(pixels, "PageView");
+    trackPixelEvent(pixels, "InitiateCheckout", {
+      value: config.price || 0,
+      currency: "BRL",
+    });
+  }, [pixels, config?.price]);
 
   if (loading || tenantLoading) {
     return (
