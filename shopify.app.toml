@@ -1,0 +1,17 @@
+name = "ZapLynx 2.0"
+client_id = "0a4a4627f4e668ba37162e209e84862a"
+application_url = "https://talkweave-pro.lovable.app/shopify/callback"
+embedded = true
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_products,write_products,customer_read_orders,customer_write_orders"
+
+[auth]
+redirect_urls = []
+
+[webhooks]
+api_version = "2026-04"
+
+  [[webhooks.subscriptions]]
+  topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
