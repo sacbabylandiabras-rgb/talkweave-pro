@@ -13,5 +13,13 @@ redirect_urls = []
 api_version = "2026-04"
 
   [[webhooks.subscriptions]]
-  topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  topics = ["customers/data_request"]
+  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
+
+  [[webhooks.subscriptions]]
+  topics = ["customers/redact"]
+  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
+
+  [[webhooks.subscriptions]]
+  topics = ["shop/redact"]
   uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
