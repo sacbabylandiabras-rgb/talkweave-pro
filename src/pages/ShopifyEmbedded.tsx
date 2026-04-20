@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, Zap } from "lucide-react";
-import createApp from "@shopify/app-bridge";
-import { getSessionToken } from "@shopify/app-bridge-utils";
 
 const SHOPIFY_API_KEY = "0a4a4627f4e668ba37162e209e84862a";
+
+declare global {
+  interface Window {
+    shopify?: {
+      idToken: () => Promise<string>;
+      config?: { shop?: string; host?: string };
+    };
+    "app-bridge"?: unknown;
+  }
+}
 
 const ShopifyEmbedded = () => {
   const [shop, setShop] = useState<string>("");
@@ -25,27 +33,41 @@ const ShopifyEmbedded = () => {
       return;
     }
 
-    try {
-      const app = createApp({
-        apiKey: SHOPIFY_API_KEY,
-        host: hostParam,
-        forceRedirect: true,
-      });
+    // App Bridge v4 (CDN) auto-inicializa lendo a meta tag `shopify-api-key`
+    // e expõe `window.shopify` globalmente. Aguardamos sua disponibilidade.
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 50; // ~5s
 
-      getSessionToken(app)
-        .then((token) => {
-          if (!token) {
-            setError("Session token vazio. Recarregue dentro do Shopify Admin.");
+    const fetchToken = async () => {
+      try {
+        if (!window.shopify?.idToken) {
+          attempts++;
+          if (attempts >= maxAttempts) {
+            setError("App Bridge não carregou. Verifique se a página está embedada no Shopify Admin.");
             return;
           }
-          setSessionToken(token);
-        })
-        .catch((err) => {
-          setError(err?.message || "Falha ao obter session token.");
-        });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao inicializar App Bridge.");
-    }
+          setTimeout(fetchToken, 100);
+          return;
+        }
+        const token = await window.shopify.idToken();
+        if (cancelled) return;
+        if (!token) {
+          setError("Session token vazio. Recarregue dentro do Shopify Admin.");
+          return;
+        }
+        setSessionToken(token);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Falha ao obter session token.");
+        }
+      }
+    };
+
+    fetchToken();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleConnect = async () => {
