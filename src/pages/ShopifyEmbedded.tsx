@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, Zap } from "lucide-react";
+import createApp from "@shopify/app-bridge";
+import { getSessionToken } from "@shopify/app-bridge-utils";
 
-declare global {
-  interface Window {
-    shopify?: any;
-    "app-bridge"?: any;
-  }
-}
-
-const APP_BRIDGE_SRC = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 const SHOPIFY_API_KEY = "0a4a4627f4e668ba37162e209e84862a";
 
 const ShopifyEmbedded = () => {
-  const [ready, setReady] = useState(false);
   const [shop, setShop] = useState<string>("");
   const [host, setHost] = useState<string>("");
   const [sessionToken, setSessionToken] = useState<string>("");
@@ -27,42 +20,44 @@ const ShopifyEmbedded = () => {
     setShop(shopParam);
     setHost(hostParam);
 
-    if (document.querySelector(`script[src="${APP_BRIDGE_SRC}"]`)) {
-      setReady(true);
+    if (!hostParam) {
+      setError("Parâmetro 'host' ausente na URL. Abra o app pelo Shopify Admin.");
       return;
     }
 
-    const meta = document.createElement("meta");
-    meta.name = "shopify-api-key";
-    meta.content = SHOPIFY_API_KEY;
-    document.head.appendChild(meta);
+    try {
+      const app = createApp({
+        apiKey: SHOPIFY_API_KEY,
+        host: hostParam,
+        forceRedirect: true,
+      });
 
-    const script = document.createElement("script");
-    script.src = APP_BRIDGE_SRC;
-    script.onload = () => setReady(true);
-    script.onerror = () => setError("Falha ao carregar Shopify App Bridge.");
-    document.head.appendChild(script);
+      getSessionToken(app)
+        .then((token) => {
+          if (!token) {
+            setError("Session token vazio. Recarregue dentro do Shopify Admin.");
+            return;
+          }
+          setSessionToken(token);
+        })
+        .catch((err) => {
+          setError(err?.message || "Falha ao obter session token.");
+        });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao inicializar App Bridge.");
+    }
   }, []);
-
-  useEffect(() => {
-    if (!ready || !window.shopify?.idToken) return;
-    window.shopify
-      .idToken()
-      .then((token: string) => setSessionToken(token))
-      .catch(() => setError("Não foi possível obter o session token."));
-  }, [ready]);
 
   const handleConnect = async () => {
     if (!sessionToken) {
-      setError("Session token indisponível. Recarregue a página dentro do Shopify Admin.");
+      setError("Session token indisponível.");
       return;
     }
     setConnecting(true);
     setError("");
     try {
-      // Aqui você pode chamar uma edge function passando o sessionToken e shop
-      // para vincular a loja Shopify ao usuário ZapLynx.
-      await new Promise((r) => setTimeout(r, 800));
+      // TODO: chamar edge function passando sessionToken + shop para vincular ao usuário ZapLynx
+      await new Promise((r) => setTimeout(r, 600));
       setConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao conectar.");
@@ -71,12 +66,12 @@ const ShopifyEmbedded = () => {
     }
   };
 
-  if (!ready) {
+  if (!sessionToken && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Carregando Shopify App Bridge…</p>
+          <p className="text-sm text-muted-foreground">Inicializando Shopify App Bridge…</p>
         </div>
       </main>
     );
@@ -91,9 +86,7 @@ const ShopifyEmbedded = () => {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground">ZapLynx para Shopify</h1>
-            <p className="text-xs text-muted-foreground">
-              {shop || "Loja não identificada"}
-            </p>
+            <p className="text-xs text-muted-foreground">{shop || "Loja não identificada"}</p>
           </div>
         </div>
 
@@ -120,7 +113,7 @@ const ShopifyEmbedded = () => {
 
             <button
               onClick={handleConnect}
-              disabled={connecting}
+              disabled={connecting || !sessionToken}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
             >
               {connecting ? (
