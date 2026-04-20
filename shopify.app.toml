@@ -14,12 +14,12 @@ api_version = "2026-04"
 
   [[webhooks.subscriptions]]
   topics = ["customers/data_request"]
-  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
+  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-webhook"
 
   [[webhooks.subscriptions]]
   topics = ["customers/redact"]
-  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
+ uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-webhook"
 
   [[webhooks.subscriptions]]
   topics = ["shop/redact"]
-  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-gdpr"
+  uri = "https://yodgjxdekuraxquxkhx.supabase.co/functions/v1/shopify-webhook"
