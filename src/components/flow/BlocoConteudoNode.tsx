@@ -163,6 +163,28 @@ export function BlocoConteudoNode({ data }: any) {
               />
             </div>
           )}
+          <div className="mt-1.5 px-2 py-1.5 rounded-md bg-muted/50 border border-border/50">
+            <div className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
+              Variáveis disponíveis
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {collectName && (
+                <code className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-mono">
+                  {"{{nome}}"}
+                </code>
+              )}
+              {collectWhatsapp && (
+                <code className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono">
+                  {"{{whatsapp}}"}
+                </code>
+              )}
+              {collectEmail && (
+                <code className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-mono">
+                  {"{{email}}"}
+                </code>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
