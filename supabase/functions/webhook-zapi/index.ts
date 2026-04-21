@@ -2022,6 +2022,100 @@ serve(async (req) => {
     // These integrations are reserved for gateway transaction events (approved, pending, refunded, etc).
     console.log('Encaminhamento para gateway_integrations ignorado no webhook-zapi para evitar disparos indevidos')
 
+    const { data: pendingCaptureLog } = await supabase
+      .from('message_logs')
+      .select('id, response_sent, instance_id')
+      .eq('user_id', userId)
+      .eq('phone', phone)
+      .eq('keyword_matched', `${FLOW_CAPTURE_PREFIX}${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (pendingCaptureLog?.response_sent) {
+      try {
+        const pendingState = JSON.parse(String(pendingCaptureLog.response_sent || '{}')) as PendingCaptureState
+        const flowId = pendingState.flowId
+        if (flowId) {
+          const { data: pendingFlow } = await supabase
+            .from('flow_automations')
+            .select('*')
+            .eq('id', flowId)
+            .eq('user_id', userId)
+            .eq('active', true)
+            .maybeSingle()
+
+          if (pendingFlow) {
+            const updatedCaptured = { ...(pendingState.captured || {}) }
+            if (pendingState.field === 'name') updatedCaptured.nome = messageRaw
+            if (pendingState.field === 'whatsapp') updatedCaptured.whatsapp = normalizePhoneCandidate(messageRaw) || messageRaw
+            if (pendingState.field === 'email') updatedCaptured.email = messageRaw.trim()
+
+            const flowNodes: FlowNode[] = pendingFlow.nodes || []
+            const flowEdges: FlowEdge[] = pendingFlow.edges || []
+            const sourceNode = flowNodes.find(n => n.id === pendingState.nodeId)
+            const resumeEdge = flowEdges.find(e => e.source === pendingState.nodeId && e.sourceHandle === `collect-${pendingState.field}`)
+
+            await supabase.from('message_logs').delete().eq('id', pendingCaptureLog.id)
+
+            if (sourceNode) {
+              const followUpMap = {
+                name: sourceNode.data.nameFollowUp || '',
+                whatsapp: sourceNode.data.whatsappFollowUp || '',
+                email: sourceNode.data.emailFollowUp || '',
+              }
+              const followUpMessage = String(followUpMap[pendingState.field] || '')
+                .replace(/\{\{nome\}\}/gi, updatedCaptured.nome || '')
+                .replace(/\{\{whatsapp\}\}/gi, updatedCaptured.whatsapp || phone || '')
+                .replace(/\{\{telefone\}\}/gi, updatedCaptured.whatsapp || phone || '')
+                .replace(/\{\{email\}\}/gi, updatedCaptured.email || '')
+
+              if (followUpMessage.trim()) {
+                await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Client-Token': zapiConfig.zapi_client_token,
+                  },
+                  body: JSON.stringify({ phone, message: followUpMessage }),
+                })
+              }
+            }
+
+            if (resumeEdge) {
+              const visited = new Set<string>()
+              const targetNode = flowNodes.find(n => n.id === resumeEdge.target)
+              if (targetNode?.type === 'blocoConteudo') {
+                const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, pendingFlow.name, {
+                  resumeCaptured: updatedCaptured,
+                  flowId: pendingFlow.id,
+                })
+                if (!shouldStop) {
+                  await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, pendingFlow.name, {
+                    resumeCaptured: updatedCaptured,
+                    flowId: pendingFlow.id,
+                  })
+                }
+              } else if (targetNode) {
+                await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, pendingFlow.name, {
+                  resumeCaptured: updatedCaptured,
+                  flowId: pendingFlow.id,
+                })
+              }
+
+              await finalizeMessageLog(supabase, lockId, {
+                keywordMatched: `__flow_capture_resume__:${pendingFlow.id}`,
+                responseSent: `[Captura ${pendingState.field}]`,
+              })
+              return new Response('flow_capture_resumed', { status: 200, headers: corsHeaders })
+            }
+          }
+        }
+      } catch (captureResumeError) {
+        console.error('Erro ao retomar captura pendente:', captureResumeError)
+      }
+    }
+
     // === CHECK FLOW AUTOMATIONS FIRST ===
     const { data: flowAutomations, error: flowError } = await supabase
       .from('flow_automations')
@@ -2050,7 +2144,8 @@ serve(async (req) => {
               supabase,
               new Set<string>(),
               userId,
-              directFlow.name
+              directFlow.name,
+              { flowId: directFlow.id }
             )
 
             await finalizeMessageLog(supabase, lockId, {
@@ -2086,7 +2181,7 @@ serve(async (req) => {
           const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
           // Only continue processing children if the node doesn't have button branching
           if (!shouldStop) {
-            await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
+            await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name, { flowId: flow.id })
           } else {
             console.log('Fluxo pausado no nó alvo - aguardando próximo clique de botão')
           }
@@ -2125,7 +2220,8 @@ serve(async (req) => {
             supabase,
             new Set<string>(),
             userId,
-            matchedFlow.name
+            matchedFlow.name,
+            { flowId: matchedFlow.id }
           )
           
           // Log the interaction
