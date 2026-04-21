@@ -2321,7 +2321,8 @@ async function sendNodeContent(
   visited: Set<string>,
   supabase?: any,
   userId?: string | null,
-  flowName?: string
+  flowName?: string,
+  options?: { resumeCaptured?: PendingCaptureState['captured']; skipCapturePromptForField?: PendingCaptureState['field'] | null; flowId?: string | null }
 ): Promise<boolean> {
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
@@ -2367,7 +2368,15 @@ async function sendNodeContent(
   }
 
   const contentType = targetNode.data.contentType || 'text'
-  const content = targetNode.data.content || ''
+  const replaceCapturedVars = (text: string) => {
+    const captured = options?.resumeCaptured || {}
+    return String(text || '')
+      .replace(/\{\{nome\}\}/gi, captured.nome || '')
+      .replace(/\{\{whatsapp\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{telefone\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{email\}\}/gi, captured.email || '')
+  }
+  const content = replaceCapturedVars(targetNode.data.content || '')
   const mediaUrl = targetNode.data.mediaUrl || ''
   const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
   console.log(`🎥 Node data flags: isPtv=${targetNode.data?.isPtv}, viewOnce=${targetNode.data?.viewOnce}, contentType=${contentType}`)
@@ -2387,6 +2396,20 @@ async function sendNodeContent(
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+
+  const captureSteps: Array<{ field: PendingCaptureState['field']; enabled: boolean; prompt: string; followUp: string; handle: string }> = [
+    { field: 'name', enabled: !!targetNode.data.collectName, prompt: targetNode.data.namePrompt || 'Qual o seu nome?', followUp: targetNode.data.nameFollowUp || '', handle: 'collect-name' },
+    { field: 'whatsapp', enabled: !!targetNode.data.collectWhatsapp, prompt: targetNode.data.whatsappPrompt || 'Qual seu WhatsApp?', followUp: targetNode.data.whatsappFollowUp || '', handle: 'collect-whatsapp' },
+    { field: 'email', enabled: !!targetNode.data.collectEmail, prompt: targetNode.data.emailPrompt || 'Qual seu melhor email?', followUp: targetNode.data.emailFollowUp || '', handle: 'collect-email' },
+  ].filter(step => step.enabled)
+
+  const nextCaptureStep = captureSteps.find(step => {
+    if (options?.skipCapturePromptForField === step.field) return false
+    if (step.field === 'name') return !options?.resumeCaptured?.nome
+    if (step.field === 'whatsapp') return !options?.resumeCaptured?.whatsapp
+    if (step.field === 'email') return !options?.resumeCaptured?.email
+    return false
+  })
 
   function wrapUrlWithTracking(rawUrl: string, btnText: string): string {
     if (!supabaseUrl || !flowName || !userId) return rawUrl
@@ -2424,6 +2447,36 @@ async function sendNodeContent(
 
   try {
     console.log(`>>> Enviando bloco ${targetNode.id} tipo=${contentType} buttons=${allSendButtons.length}`)
+
+    if (nextCaptureStep) {
+      const captureRes = await fetch(`${baseUrl}/send-text`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ phone, message: replaceCapturedVars(nextCaptureStep.prompt) }),
+      })
+      await parseZapiResponse(captureRes, `Bloco ${targetNode.id} (capture:${nextCaptureStep.field})`)
+
+      if (supabase && userId) {
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: null,
+          response_sent: JSON.stringify({
+            flowId: options?.flowId || null,
+            flowName: flowName || null,
+            nodeId: targetNode.id,
+            field: nextCaptureStep.field,
+            instanceId: zapiConfig?.zapi_instance_id || null,
+            captured: options?.resumeCaptured || {},
+          }),
+          keyword_matched: `${FLOW_CAPTURE_PREFIX}${userId}`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+          instance_id: zapiConfig?.zapi_instance_id || null,
+        })
+      }
+
+      return true
+    }
 
     if (hasButtons) {
       if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
@@ -2583,11 +2636,12 @@ async function sendNodeContent(
     throw e
   }
 
+  const hasCaptureEdges = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || '').startsWith('collect-'))
   const hasButtonEdges = buttons.some((btn, idx) => {
     return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
   })
 
-  if (hasButtonEdges) {
+  if (hasButtonEdges || hasCaptureEdges) {
     console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
     return true
   }
