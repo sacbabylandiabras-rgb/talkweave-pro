@@ -603,15 +603,17 @@ serve(async (req) => {
                       // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
                       const allButtons = (node.data?.buttons || []);
                       const hasButtons = node.type === "igDM" && allButtons.length > 0;
-                      const hasCollection = node.type === "igDM" && (node.data?.collectWhatsapp || node.data?.collectEmail);
-                      if (hasButtons || hasCollection) {
-                        // Only follow the default bottom handle, not button/collection-specific handles
+                      const hasCollection = node.type === "igDM" && (node.data?.collectName || node.data?.collectWhatsapp || node.data?.collectEmail);
+                      if (hasCollection) {
+                        // STOP completely — must wait for user response before proceeding
+                        console.log(`⏹ DM node "${node.data?.label}" collecting data — STOPPING flow until user responds`);
+                      } else if (hasButtons) {
+                        // Only follow the default bottom handle, not button-specific handles
                         const defaultChildren = getOutgoing(node.id, "source-bottom");
                         for (const child of defaultChildren) {
                           await executeNode(child);
                         }
-                        if (hasButtons) console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
-                        if (hasCollection) console.log(`⏹ DM node "${node.data?.label}" collecting data — waiting for user response`);
+                        console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
                       } else {
                         // For non-button/non-collection nodes, exclude special handles
                         const children = flowEdges
