@@ -2103,6 +2103,12 @@ export default function FluxoVisual() {
           </div>
         </DialogContent>
       </Dialog>
+      <FlowCapturedDataDialog
+        open={showCapturedData}
+        onOpenChange={setShowCapturedData}
+        flowId={currentFluxoId}
+        flowName={nomeFluxo}
+      />
     </>
   );
 }
