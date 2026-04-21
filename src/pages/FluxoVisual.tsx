@@ -1572,6 +1572,124 @@ export default function FluxoVisual() {
 
                 <Separator />
 
+                {/* Capturar Dados do Lead */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">📥 Capturar dados do lead</Label>
+
+                  {/* Nome */}
+                  <div className="p-3 border border-purple-500/30 rounded-lg bg-purple-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-purple-500" />
+                        <Label className="text-sm font-medium">Capturar Nome</Label>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.collectName || false}
+                        onCheckedChange={(checked) =>
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectName: checked } })
+                        }
+                      />
+                    </div>
+                    {selectedNode.data.collectName && (
+                      <div className="space-y-2">
+                        <Input
+                          value={selectedNode.data.namePrompt || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, namePrompt: e.target.value } })
+                          }
+                          placeholder="Qual o seu nome? 😊"
+                          className="h-8 text-xs"
+                        />
+                        <Textarea
+                          value={selectedNode.data.nameFollowUp || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, nameFollowUp: e.target.value } })
+                          }
+                          placeholder="Prazer em te conhecer, {{nome}}! 🤝"
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* WhatsApp */}
+                  <div className="p-3 border border-emerald-500/30 rounded-lg bg-emerald-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <PhoneIcon className="w-4 h-4 text-emerald-500" />
+                        <Label className="text-sm font-medium">Capturar WhatsApp</Label>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.collectWhatsapp || false}
+                        onCheckedChange={(checked) =>
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectWhatsapp: checked } })
+                        }
+                      />
+                    </div>
+                    {selectedNode.data.collectWhatsapp && (
+                      <div className="space-y-2">
+                        <Input
+                          value={selectedNode.data.whatsappPrompt || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, whatsappPrompt: e.target.value } })
+                          }
+                          placeholder="Qual seu número de WhatsApp? 📱"
+                          className="h-8 text-xs"
+                        />
+                        <Textarea
+                          value={selectedNode.data.whatsappFollowUp || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, whatsappFollowUp: e.target.value } })
+                          }
+                          placeholder="Obrigado! Vou te enviar mais detalhes 🚀"
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="p-3 border border-blue-500/30 rounded-lg bg-blue-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <Label className="text-sm font-medium">Capturar Email</Label>
+                      </div>
+                      <Switch
+                        checked={selectedNode.data.collectEmail || false}
+                        onCheckedChange={(checked) =>
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectEmail: checked } })
+                        }
+                      />
+                    </div>
+                    {selectedNode.data.collectEmail && (
+                      <div className="space-y-2">
+                        <Input
+                          value={selectedNode.data.emailPrompt || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailPrompt: e.target.value } })
+                          }
+                          placeholder="Qual seu melhor email? 📧"
+                          className="h-8 text-xs"
+                        />
+                        <Textarea
+                          value={selectedNode.data.emailFollowUp || ""}
+                          onChange={(e) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, emailFollowUp: e.target.value } })
+                          }
+                          placeholder="Perfeito! Enviamos as informações 📧"
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-semibold">Botões (opcional)</Label>
