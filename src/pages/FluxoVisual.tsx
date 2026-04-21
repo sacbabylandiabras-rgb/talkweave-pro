@@ -1568,6 +1568,42 @@ export default function FluxoVisual() {
                     placeholder={selectedNode.data.contentType === "text" ? "Digite a mensagem..." : "Digite uma legenda (opcional)..."}
                     rows={5}
                   />
+                  {(selectedNode.data.collectName || selectedNode.data.collectWhatsapp || selectedNode.data.collectEmail) && (
+                    <div className="mt-2 px-3 py-2 rounded-md bg-muted/50 border border-border/50">
+                      <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1.5">
+                        Variáveis disponíveis (clique para copiar)
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedNode.data.collectName && (
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("{{nome}}")}
+                            className="text-[11px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 font-mono transition-colors"
+                          >
+                            {"{{nome}}"}
+                          </button>
+                        )}
+                        {selectedNode.data.collectWhatsapp && (
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("{{whatsapp}}")}
+                            className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-mono transition-colors"
+                          >
+                            {"{{whatsapp}}"}
+                          </button>
+                        )}
+                        {selectedNode.data.collectEmail && (
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("{{email}}")}
+                            className="text-[11px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 font-mono transition-colors"
+                          >
+                            {"{{email}}"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
