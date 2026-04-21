@@ -2658,7 +2658,8 @@ async function processFlowNode(
   supabase: any,
   visited: Set<string>,
   userId?: string | null,
-  flowName?: string
+  flowName?: string,
+  options?: { resumeCaptured?: PendingCaptureState['captured']; skipCapturePromptForField?: PendingCaptureState['field'] | null; flowId?: string | null }
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
   const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
@@ -2709,11 +2710,11 @@ async function processFlowNode(
     if (!targetNode) continue
 
     if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName)
+      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName, options)
       if (shouldStop) continue
     }
 
-    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName)
+    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName, options)
   }
 }
 
