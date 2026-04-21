@@ -32,6 +32,15 @@ interface FlowNode {
     actionConfig?: string
     condition?: string
     conditionType?: string
+    collectName?: boolean
+    collectWhatsapp?: boolean
+    collectEmail?: boolean
+    namePrompt?: string
+    whatsappPrompt?: string
+    emailPrompt?: string
+    nameFollowUp?: string
+    whatsappFollowUp?: string
+    emailFollowUp?: string
   }
 }
 
@@ -41,6 +50,21 @@ interface FlowEdge {
   target: string
   sourceHandle?: string
 }
+
+interface PendingCaptureState {
+  flowId?: string
+  flowName?: string
+  nodeId: string
+  field: 'name' | 'whatsapp' | 'email'
+  instanceId?: string | null
+  captured?: {
+    nome?: string
+    whatsapp?: string
+    email?: string
+  }
+}
+
+const FLOW_CAPTURE_PREFIX = '__flow_capture__:'
 
 const normalizeParticipantIdentifier = (value: unknown) => {
   const raw = String(value || '').trim()
@@ -1998,6 +2022,100 @@ serve(async (req) => {
     // These integrations are reserved for gateway transaction events (approved, pending, refunded, etc).
     console.log('Encaminhamento para gateway_integrations ignorado no webhook-zapi para evitar disparos indevidos')
 
+    const { data: pendingCaptureLog } = await supabase
+      .from('message_logs')
+      .select('id, response_sent, instance_id')
+      .eq('user_id', userId)
+      .eq('phone', phone)
+      .eq('keyword_matched', `${FLOW_CAPTURE_PREFIX}${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (pendingCaptureLog?.response_sent) {
+      try {
+        const pendingState = JSON.parse(String(pendingCaptureLog.response_sent || '{}')) as PendingCaptureState
+        const flowId = pendingState.flowId
+        if (flowId) {
+          const { data: pendingFlow } = await supabase
+            .from('flow_automations')
+            .select('*')
+            .eq('id', flowId)
+            .eq('user_id', userId)
+            .eq('active', true)
+            .maybeSingle()
+
+          if (pendingFlow) {
+            const updatedCaptured = { ...(pendingState.captured || {}) }
+            if (pendingState.field === 'name') updatedCaptured.nome = messageRaw
+            if (pendingState.field === 'whatsapp') updatedCaptured.whatsapp = normalizePhoneCandidate(messageRaw) || messageRaw
+            if (pendingState.field === 'email') updatedCaptured.email = messageRaw.trim()
+
+            const flowNodes: FlowNode[] = pendingFlow.nodes || []
+            const flowEdges: FlowEdge[] = pendingFlow.edges || []
+            const sourceNode = flowNodes.find(n => n.id === pendingState.nodeId)
+            const resumeEdge = flowEdges.find(e => e.source === pendingState.nodeId && e.sourceHandle === `collect-${pendingState.field}`)
+
+            await supabase.from('message_logs').delete().eq('id', pendingCaptureLog.id)
+
+            if (sourceNode) {
+              const followUpMap = {
+                name: sourceNode.data.nameFollowUp || '',
+                whatsapp: sourceNode.data.whatsappFollowUp || '',
+                email: sourceNode.data.emailFollowUp || '',
+              }
+              const followUpMessage = String(followUpMap[pendingState.field] || '')
+                .replace(/\{\{nome\}\}/gi, updatedCaptured.nome || '')
+                .replace(/\{\{whatsapp\}\}/gi, updatedCaptured.whatsapp || phone || '')
+                .replace(/\{\{telefone\}\}/gi, updatedCaptured.whatsapp || phone || '')
+                .replace(/\{\{email\}\}/gi, updatedCaptured.email || '')
+
+              if (followUpMessage.trim()) {
+                await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Client-Token': zapiConfig.zapi_client_token,
+                  },
+                  body: JSON.stringify({ phone, message: followUpMessage }),
+                })
+              }
+            }
+
+            if (resumeEdge) {
+              const visited = new Set<string>()
+              const targetNode = flowNodes.find(n => n.id === resumeEdge.target)
+              if (targetNode?.type === 'blocoConteudo') {
+                const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, pendingFlow.name, {
+                  resumeCaptured: updatedCaptured,
+                  flowId: pendingFlow.id,
+                })
+                if (!shouldStop) {
+                  await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, pendingFlow.name, {
+                    resumeCaptured: updatedCaptured,
+                    flowId: pendingFlow.id,
+                  })
+                }
+              } else if (targetNode) {
+                await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, pendingFlow.name, {
+                  resumeCaptured: updatedCaptured,
+                  flowId: pendingFlow.id,
+                })
+              }
+
+              await finalizeMessageLog(supabase, lockId, {
+                keywordMatched: `__flow_capture_resume__:${pendingFlow.id}`,
+                responseSent: `[Captura ${pendingState.field}]`,
+              })
+              return new Response('flow_capture_resumed', { status: 200, headers: corsHeaders })
+            }
+          }
+        }
+      } catch (captureResumeError) {
+        console.error('Erro ao retomar captura pendente:', captureResumeError)
+      }
+    }
+
     // === CHECK FLOW AUTOMATIONS FIRST ===
     const { data: flowAutomations, error: flowError } = await supabase
       .from('flow_automations')
@@ -2026,7 +2144,8 @@ serve(async (req) => {
               supabase,
               new Set<string>(),
               userId,
-              directFlow.name
+              directFlow.name,
+              { flowId: directFlow.id }
             )
 
             await finalizeMessageLog(supabase, lockId, {
@@ -2059,10 +2178,10 @@ serve(async (req) => {
         if (targetNode) {
           const visited = new Set<string>()
           // Send target node content
-          const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
+          const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name, { flowId: flow.id })
           // Only continue processing children if the node doesn't have button branching
           if (!shouldStop) {
-            await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name)
+            await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name, { flowId: flow.id })
           } else {
             console.log('Fluxo pausado no nó alvo - aguardando próximo clique de botão')
           }
@@ -2101,7 +2220,8 @@ serve(async (req) => {
             supabase,
             new Set<string>(),
             userId,
-            matchedFlow.name
+            matchedFlow.name,
+            { flowId: matchedFlow.id }
           )
           
           // Log the interaction
@@ -2297,7 +2417,8 @@ async function sendNodeContent(
   visited: Set<string>,
   supabase?: any,
   userId?: string | null,
-  flowName?: string
+  flowName?: string,
+  options?: { resumeCaptured?: PendingCaptureState['captured']; skipCapturePromptForField?: PendingCaptureState['field'] | null; flowId?: string | null }
 ): Promise<boolean> {
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
@@ -2343,7 +2464,15 @@ async function sendNodeContent(
   }
 
   const contentType = targetNode.data.contentType || 'text'
-  const content = targetNode.data.content || ''
+  const replaceCapturedVars = (text: string) => {
+    const captured = options?.resumeCaptured || {}
+    return String(text || '')
+      .replace(/\{\{nome\}\}/gi, captured.nome || '')
+      .replace(/\{\{whatsapp\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{telefone\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{email\}\}/gi, captured.email || '')
+  }
+  const content = replaceCapturedVars(targetNode.data.content || '')
   const mediaUrl = targetNode.data.mediaUrl || ''
   const buttons: Array<{text: string, type: string, value: string}> = targetNode.data.buttons || []
   console.log(`🎥 Node data flags: isPtv=${targetNode.data?.isPtv}, viewOnce=${targetNode.data?.viewOnce}, contentType=${contentType}`)
@@ -2363,6 +2492,20 @@ async function sendNodeContent(
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+
+  const captureSteps: Array<{ field: PendingCaptureState['field']; enabled: boolean; prompt: string; followUp: string; handle: string }> = [
+    { field: 'name' as const, enabled: !!targetNode.data.collectName, prompt: targetNode.data.namePrompt || 'Qual o seu nome?', followUp: targetNode.data.nameFollowUp || '', handle: 'collect-name' },
+    { field: 'whatsapp' as const, enabled: !!targetNode.data.collectWhatsapp, prompt: targetNode.data.whatsappPrompt || 'Qual seu WhatsApp?', followUp: targetNode.data.whatsappFollowUp || '', handle: 'collect-whatsapp' },
+    { field: 'email' as const, enabled: !!targetNode.data.collectEmail, prompt: targetNode.data.emailPrompt || 'Qual seu melhor email?', followUp: targetNode.data.emailFollowUp || '', handle: 'collect-email' },
+  ].filter(step => step.enabled)
+
+  const nextCaptureStep = captureSteps.find(step => {
+    if (options?.skipCapturePromptForField === step.field) return false
+    if (step.field === 'name') return !options?.resumeCaptured?.nome
+    if (step.field === 'whatsapp') return !options?.resumeCaptured?.whatsapp
+    if (step.field === 'email') return !options?.resumeCaptured?.email
+    return false
+  })
 
   function wrapUrlWithTracking(rawUrl: string, btnText: string): string {
     if (!supabaseUrl || !flowName || !userId) return rawUrl
@@ -2400,6 +2543,36 @@ async function sendNodeContent(
 
   try {
     console.log(`>>> Enviando bloco ${targetNode.id} tipo=${contentType} buttons=${allSendButtons.length}`)
+
+    if (nextCaptureStep) {
+      const captureRes = await fetch(`${baseUrl}/send-text`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ phone, message: replaceCapturedVars(nextCaptureStep.prompt) }),
+      })
+      await parseZapiResponse(captureRes, `Bloco ${targetNode.id} (capture:${nextCaptureStep.field})`)
+
+      if (supabase && userId) {
+        await supabase.from('message_logs').insert({
+          phone,
+          message_received: null,
+          response_sent: JSON.stringify({
+            flowId: options?.flowId || null,
+            flowName: flowName || null,
+            nodeId: targetNode.id,
+            field: nextCaptureStep.field,
+            instanceId: zapiConfig?.zapi_instance_id || null,
+            captured: options?.resumeCaptured || {},
+          }),
+          keyword_matched: `${FLOW_CAPTURE_PREFIX}${userId}`,
+          timestamp: new Date().toISOString(),
+          user_id: userId,
+          instance_id: zapiConfig?.zapi_instance_id || null,
+        })
+      }
+
+      return true
+    }
 
     if (hasButtons) {
       if ((contentType === 'image' || contentType === 'video') && mediaUrl) {
@@ -2559,12 +2732,13 @@ async function sendNodeContent(
     throw e
   }
 
+  const hasCaptureEdges = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || '').startsWith('collect-'))
   const hasButtonEdges = buttons.some((btn, idx) => {
     return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
   })
 
-  if (hasButtonEdges) {
-    console.log(`Bloco ${targetNode.id} tem saídas por botão — aguardando resposta do usuário`)
+  if (hasButtonEdges || hasCaptureEdges) {
+    console.log(`Bloco ${targetNode.id} tem saídas de botão/captura — aguardando resposta do usuário`)
     return true
   }
 
@@ -2580,7 +2754,8 @@ async function processFlowNode(
   supabase: any,
   visited: Set<string>,
   userId?: string | null,
-  flowName?: string
+  flowName?: string,
+  options?: { resumeCaptured?: PendingCaptureState['captured']; skipCapturePromptForField?: PendingCaptureState['field'] | null; flowId?: string | null }
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
   const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
@@ -2631,11 +2806,11 @@ async function processFlowNode(
     if (!targetNode) continue
 
     if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName)
+      const shouldStop = await sendNodeContent(targetNode, nodes, edges, phone, zapiConfig, visited, supabase, userId, flowName, options)
       if (shouldStop) continue
     }
 
-    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName)
+    await processFlowNode(targetNode.id, nodes, edges, phone, zapiConfig, supabase, visited, userId, flowName, options)
   }
 }
 
