@@ -2178,7 +2178,7 @@ serve(async (req) => {
         if (targetNode) {
           const visited = new Set<string>()
           // Send target node content
-          const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name)
+          const shouldStop = await sendNodeContent(targetNode, flowNodes, flowEdges, phone, zapiConfig, visited, supabase, userId, flow.name, { flowId: flow.id })
           // Only continue processing children if the node doesn't have button branching
           if (!shouldStop) {
             await processFlowNode(targetNode.id, flowNodes, flowEdges, phone, zapiConfig, supabase, visited, userId, flow.name, { flowId: flow.id })
