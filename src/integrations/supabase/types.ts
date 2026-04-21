@@ -312,6 +312,48 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_captured_data: {
+        Row: {
+          created_at: string
+          email: string | null
+          flow_id: string | null
+          flow_name: string | null
+          id: string
+          nome: string | null
+          phone: string
+          source: string | null
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          flow_id?: string | null
+          flow_name?: string | null
+          id?: string
+          nome?: string | null
+          phone: string
+          source?: string | null
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          flow_id?: string | null
+          flow_name?: string | null
+          id?: string
+          nome?: string | null
+          phone?: string
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       gateway_checkouts: {
         Row: {
           config: Json
