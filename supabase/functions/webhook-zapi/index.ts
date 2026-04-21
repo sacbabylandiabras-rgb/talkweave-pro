@@ -2051,6 +2051,38 @@ serve(async (req) => {
             if (pendingState.field === 'whatsapp') updatedCaptured.whatsapp = normalizePhoneCandidate(messageRaw) || messageRaw
             if (pendingState.field === 'email') updatedCaptured.email = messageRaw.trim()
 
+            // Persist captured data for reporting (upsert by user_id + flow_id + phone)
+            try {
+              const { data: existingCapture } = await supabase
+                .from('flow_captured_data')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('flow_id', pendingFlow.id)
+                .eq('phone', phone)
+                .maybeSingle()
+
+              const captureRow = {
+                user_id: userId,
+                flow_id: pendingFlow.id,
+                flow_name: pendingFlow.name,
+                phone,
+                nome: updatedCaptured.nome || null,
+                whatsapp: updatedCaptured.whatsapp || null,
+                email: updatedCaptured.email || null,
+                source: 'whatsapp',
+                updated_at: new Date().toISOString(),
+              }
+
+              if (existingCapture) {
+                await supabase.from('flow_captured_data').update(captureRow).eq('id', existingCapture.id)
+              } else {
+                await supabase.from('flow_captured_data').insert(captureRow)
+              }
+              console.log(`💾 Captured data saved for ${phone} on flow ${pendingFlow.name}`)
+            } catch (capSaveErr) {
+              console.error('⚠️ Failed to save captured data:', capSaveErr)
+            }
+
             const flowNodes: FlowNode[] = pendingFlow.nodes || []
             const flowEdges: FlowEdge[] = pendingFlow.edges || []
             const sourceNode = flowNodes.find(n => n.id === pendingState.nodeId)
