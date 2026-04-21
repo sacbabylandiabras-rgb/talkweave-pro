@@ -2494,9 +2494,9 @@ async function sendNodeContent(
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
 
   const captureSteps: Array<{ field: PendingCaptureState['field']; enabled: boolean; prompt: string; followUp: string; handle: string }> = [
-    { field: 'name' as const, enabled: !!targetNode.data.collectName, prompt: targetNode.data.namePrompt || 'Qual o seu nome?', followUp: targetNode.data.nameFollowUp || '', handle: 'collect-name' },
-    { field: 'whatsapp' as const, enabled: !!targetNode.data.collectWhatsapp, prompt: targetNode.data.whatsappPrompt || 'Qual seu WhatsApp?', followUp: targetNode.data.whatsappFollowUp || '', handle: 'collect-whatsapp' },
-    { field: 'email' as const, enabled: !!targetNode.data.collectEmail, prompt: targetNode.data.emailPrompt || 'Qual seu melhor email?', followUp: targetNode.data.emailFollowUp || '', handle: 'collect-email' },
+    { field: 'name' as const, enabled: !!targetNode.data.collectName, prompt: targetNode.data.content || targetNode.data.namePrompt || 'Qual o seu nome?', followUp: targetNode.data.nameFollowUp || '', handle: 'collect-name' },
+    { field: 'whatsapp' as const, enabled: !!targetNode.data.collectWhatsapp, prompt: targetNode.data.content || targetNode.data.whatsappPrompt || 'Qual seu WhatsApp?', followUp: targetNode.data.whatsappFollowUp || '', handle: 'collect-whatsapp' },
+    { field: 'email' as const, enabled: !!targetNode.data.collectEmail, prompt: targetNode.data.content || targetNode.data.emailPrompt || 'Qual seu melhor email?', followUp: targetNode.data.emailFollowUp || '', handle: 'collect-email' },
   ].filter(step => step.enabled)
 
   const nextCaptureStep = captureSteps.find(step => {
