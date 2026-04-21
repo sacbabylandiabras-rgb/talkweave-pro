@@ -32,6 +32,15 @@ interface FlowNode {
     actionConfig?: string
     condition?: string
     conditionType?: string
+    collectName?: boolean
+    collectWhatsapp?: boolean
+    collectEmail?: boolean
+    namePrompt?: string
+    whatsappPrompt?: string
+    emailPrompt?: string
+    nameFollowUp?: string
+    whatsappFollowUp?: string
+    emailFollowUp?: string
   }
 }
 
@@ -41,6 +50,21 @@ interface FlowEdge {
   target: string
   sourceHandle?: string
 }
+
+interface PendingCaptureState {
+  flowId?: string
+  flowName?: string
+  nodeId: string
+  field: 'name' | 'whatsapp' | 'email'
+  instanceId?: string | null
+  captured?: {
+    nome?: string
+    whatsapp?: string
+    email?: string
+  }
+}
+
+const FLOW_CAPTURE_PREFIX = '__flow_capture__:'
 
 const normalizeParticipantIdentifier = (value: unknown) => {
   const raw = String(value || '').trim()
