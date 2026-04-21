@@ -55,6 +55,7 @@ import {
   Variable,
   Phone,
   Mail,
+  User,
   ChevronUp,
   ChevronDown,
   TableIcon,
@@ -582,6 +583,49 @@ export default function AutomacaoComentarios() {
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Name Collection Container */}
+          <div className="p-3 border border-purple-500/30 rounded-lg bg-purple-500/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-purple-500" />
+                <Label className="text-sm font-medium">Capturar Nome</Label>
+              </div>
+              <Switch
+                checked={selectedNode.data.collectName || false}
+                onCheckedChange={(checked) =>
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, collectName: checked } })
+                }
+              />
+            </div>
+            {selectedNode.data.collectName && (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Mensagem de solicitação</Label>
+                  <Input
+                    value={selectedNode.data.namePrompt || ""}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, namePrompt: e.target.value } })
+                    }
+                    placeholder="Qual o seu nome? 😊"
+                    className="h-8 text-xs mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Mensagem após receber o Nome</Label>
+                  <Textarea
+                    value={selectedNode.data.nameFollowUp || ""}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, nameFollowUp: e.target.value } })
+                    }
+                    placeholder="Prazer em te conhecer, {{nome}}! 🤝"
+                    rows={2}
+                    className="text-xs mt-1"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* WhatsApp Collection Container */}

@@ -1,10 +1,11 @@
 import { Handle, Position } from "reactflow";
-import { Send, Link2, MessageCircle, Plus, Phone, Mail } from "lucide-react";
+import { Send, Link2, MessageCircle, Plus, Phone, Mail, User } from "lucide-react";
 
 export function IGDMNode({ data }: any) {
   const buttons = data.buttons || [];
   const collectWhatsapp = data.collectWhatsapp || false;
   const collectEmail = data.collectEmail || false;
+  const collectName = data.collectName || false;
 
   return (
     <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[220px] max-w-[300px]">
@@ -34,8 +35,22 @@ export function IGDMNode({ data }: any) {
       )}
 
       {/* Collection indicators with handles */}
-      {(collectWhatsapp || collectEmail) && (
+      {(collectWhatsapp || collectEmail || collectName) && (
         <div className="mt-2 space-y-1.5">
+          {collectName && (
+            <div className="relative">
+              <div className="flex items-center gap-1 px-2 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-md text-[10px] text-purple-600 font-medium pr-6">
+                <User className="w-3 h-3" /> Nome
+              </div>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="collect-name"
+                className="w-2.5 h-2.5 !bg-purple-500 !border-2 !border-purple-700 !right-[-5px]"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              />
+            </div>
+          )}
           {collectWhatsapp && (
             <div className="relative">
               <div className="flex items-center gap-1 px-2 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[10px] text-emerald-600 font-medium pr-6">
