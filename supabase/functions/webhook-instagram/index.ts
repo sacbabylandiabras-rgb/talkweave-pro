@@ -844,8 +844,10 @@ serve(async (req) => {
 
                         // Continue traversal (stop at button/collection nodes)
                         const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && (btnCount > 0 || hasCol)) {
+                        const hasCol = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && hasCol) {
+                          console.log(`⏹ Branch DM node collecting data — STOPPING until user responds`);
+                        } else if (n.type === "igDM" && btnCount > 0) {
                           const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defaultEdges) {
                             const next = fNodes.find((fn: any) => fn.id === e.target);
