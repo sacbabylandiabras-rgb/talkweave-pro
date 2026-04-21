@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import {
   PlayCircle,
   MessageSquare,
@@ -67,6 +68,7 @@ import {
   Info,
   Mail,
   User,
+  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -186,6 +188,7 @@ export default function FluxoVisual() {
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showCapturedData, setShowCapturedData] = useState(false);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
 
@@ -1159,6 +1162,10 @@ export default function FluxoVisual() {
                 <FileUp className="h-4 w-4 mr-1.5" />
                 Importar
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCapturedData(true)} className="h-8">
+                <Database className="h-4 w-4 mr-1.5" />
+                Dados Capturados
+              </Button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -2096,6 +2103,12 @@ export default function FluxoVisual() {
           </div>
         </DialogContent>
       </Dialog>
+      <FlowCapturedDataDialog
+        open={showCapturedData}
+        onOpenChange={setShowCapturedData}
+        flowId={currentFluxoId}
+        flowName={nomeFluxo}
+      />
     </>
   );
 }
