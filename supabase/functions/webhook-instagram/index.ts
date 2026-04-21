@@ -956,8 +956,10 @@ serve(async (req) => {
                         }
 
                         const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol2 = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && (btnCount2 > 0 || hasCol2)) {
+                        const hasCol2 = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && hasCol2) {
+                          console.log(`⏹ QR DM node collecting data — STOPPING until user responds`);
+                        } else if (n.type === "igDM" && btnCount2 > 0) {
                           const defEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
                         } else {
