@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import {
   PlayCircle,
   MessageSquare,
