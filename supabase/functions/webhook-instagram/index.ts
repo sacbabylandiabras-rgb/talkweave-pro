@@ -603,15 +603,17 @@ serve(async (req) => {
                       // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
                       const allButtons = (node.data?.buttons || []);
                       const hasButtons = node.type === "igDM" && allButtons.length > 0;
-                      const hasCollection = node.type === "igDM" && (node.data?.collectWhatsapp || node.data?.collectEmail);
-                      if (hasButtons || hasCollection) {
-                        // Only follow the default bottom handle, not button/collection-specific handles
+                      const hasCollection = node.type === "igDM" && (node.data?.collectName || node.data?.collectWhatsapp || node.data?.collectEmail);
+                      if (hasCollection) {
+                        // STOP completely — must wait for user response before proceeding
+                        console.log(`⏹ DM node "${node.data?.label}" collecting data — STOPPING flow until user responds`);
+                      } else if (hasButtons) {
+                        // Only follow the default bottom handle, not button-specific handles
                         const defaultChildren = getOutgoing(node.id, "source-bottom");
                         for (const child of defaultChildren) {
                           await executeNode(child);
                         }
-                        if (hasButtons) console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
-                        if (hasCollection) console.log(`⏹ DM node "${node.data?.label}" collecting data — waiting for user response`);
+                        console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
                       } else {
                         // For non-button/non-collection nodes, exclude special handles
                         const children = flowEdges
@@ -842,8 +844,10 @@ serve(async (req) => {
 
                         // Continue traversal (stop at button/collection nodes)
                         const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && (btnCount > 0 || hasCol)) {
+                        const hasCol = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && hasCol) {
+                          console.log(`⏹ Branch DM node collecting data — STOPPING until user responds`);
+                        } else if (n.type === "igDM" && btnCount > 0) {
                           const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defaultEdges) {
                             const next = fNodes.find((fn: any) => fn.id === e.target);
@@ -952,8 +956,10 @@ serve(async (req) => {
                         }
 
                         const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol2 = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && (btnCount2 > 0 || hasCol2)) {
+                        const hasCol2 = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
+                        if (n.type === "igDM" && hasCol2) {
+                          console.log(`⏹ QR DM node collecting data — STOPPING until user responds`);
+                        } else if (n.type === "igDM" && btnCount2 > 0) {
                           const defEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                           for (const e of defEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
                         } else {
@@ -1083,8 +1089,10 @@ serve(async (req) => {
                             }
 
                             const btnC = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                            const hasC = n.type === "igDM" && (n.data?.collectWhatsapp || n.data?.collectEmail);
-                            if (n.type === "igDM" && (btnC > 0 || hasC)) {
+                            const hasC = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
+                            if (n.type === "igDM" && hasC) {
+                              console.log(`⏹ Collection branch DM node also collecting — STOPPING until user responds`);
+                            } else if (n.type === "igDM" && btnC > 0) {
                               const defE = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
                               for (const e of defE) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
                             } else {
