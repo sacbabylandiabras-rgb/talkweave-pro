@@ -796,50 +796,6 @@ export default function FluxoVisual() {
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
 
-        // === CAPTURE BLOCK: send only the prompt and pause until user replies ===
-        const collectName = !!targetNode.data.collectName;
-        const collectWhatsapp = !!targetNode.data.collectWhatsapp;
-        const collectEmail = !!targetNode.data.collectEmail;
-
-        if (collectName || collectWhatsapp || collectEmail) {
-          const captureField: "name" | "whatsapp" | "email" = collectName
-            ? "name"
-            : collectWhatsapp
-            ? "whatsapp"
-            : "email";
-
-          const promptMap: Record<typeof captureField, string> = {
-            name: targetNode.data.content || targetNode.data.namePrompt || "Qual o seu nome?",
-            whatsapp: targetNode.data.content || targetNode.data.whatsappPrompt || "Qual seu WhatsApp?",
-            email: targetNode.data.content || targetNode.data.emailPrompt || "Qual seu melhor email?",
-          };
-
-          await sendWithInstance({ phone: contact, message: promptMap[captureField] });
-
-          // Persist pending capture state so webhook-zapi can resume the flow
-          if (userId && currentFluxoId) {
-            await (supabase as any).from("message_logs").insert({
-              phone: contact,
-              message_received: null,
-              response_sent: JSON.stringify({
-                flowId: currentFluxoId,
-                flowName: nomeFluxo || null,
-                nodeId: targetNode.id,
-                field: captureField,
-                instanceId: instanceId || null,
-                captured: {},
-              }),
-              keyword_matched: `__flow_capture__:${userId}`,
-              timestamp: new Date().toISOString(),
-              user_id: userId,
-              instance_id: instanceId || null,
-            });
-          }
-
-          // Stop further processing for this contact — wait for user reply
-          return;
-        }
-
         const contentType = targetNode.data.contentType || "text";
         const content = targetNode.data.content || "";
         const mediaUrl = targetNode.data.mediaUrl || "";
