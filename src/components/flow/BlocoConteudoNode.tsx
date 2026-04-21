@@ -128,18 +128,21 @@ export function BlocoConteudoNode({ data }: any) {
       {(collectName || collectWhatsapp || collectEmail) && (
         <div className="mt-2 space-y-1">
           {collectName && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-purple-500/10 border border-purple-500/20 rounded-md text-[10px] text-purple-600 font-medium">
+            <div className="relative flex items-center gap-1 px-2 py-1 bg-purple-500/10 border border-purple-500/20 rounded-md text-[10px] text-purple-600 font-medium">
               <User className="w-3 h-3" /> Captura Nome
+              <Handle type="source" position={Position.Right} id="collect-name" className="w-2.5 h-2.5 !bg-purple-500" style={{ right: -14 }} />
             </div>
           )}
           {collectWhatsapp && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[10px] text-emerald-600 font-medium">
+            <div className="relative flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[10px] text-emerald-600 font-medium">
               <Phone className="w-3 h-3" /> Captura WhatsApp
+              <Handle type="source" position={Position.Right} id="collect-whatsapp" className="w-2.5 h-2.5 !bg-emerald-500" style={{ right: -14 }} />
             </div>
           )}
           {collectEmail && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-[10px] text-blue-600 font-medium">
+            <div className="relative flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-[10px] text-blue-600 font-medium">
               <Mail className="w-3 h-3" /> Captura Email
+              <Handle type="source" position={Position.Right} id="collect-email" className="w-2.5 h-2.5 !bg-blue-500" style={{ right: -14 }} />
             </div>
           )}
         </div>
