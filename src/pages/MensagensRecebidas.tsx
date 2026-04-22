@@ -969,9 +969,9 @@ const MensagensRecebidas = () => {
   // Auto-select phone from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
-    if (!phoneParam || handledPhoneParamRef.current === phoneParam) return;
-
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
+    if (!normalizedPhone || handledPhoneParamRef.current === normalizedPhone) return;
+
     handledPhoneParamRef.current = normalizedPhone;
     setSelectedPhone(normalizedPhone);
     if (normalizedPhone) markAsRead(normalizedPhone);
