@@ -190,12 +190,13 @@ serve(async (req) => {
         endpoint = '/send/media';
         // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
         // instead of a regular audio attachment.
-        const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'ptt', document: 'document' };
+        const typeMap: Record<string, string> = { image: 'image', video: isPtv ? 'ptv' : 'video', audio: 'ptt', document: 'document' };
         body = {
           number: targetNumber,
           type: typeMap[mediaType] || 'document',
           file: mediaUrl,
-          text: message || '',
+          ...(message && !isPtv ? { text: message } : {}),
+          ...(viewOnce ? { viewOnce: true } : {}),
         };
       }
 
