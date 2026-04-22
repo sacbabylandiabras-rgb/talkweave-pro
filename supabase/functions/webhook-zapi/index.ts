@@ -3831,13 +3831,14 @@ async function sendNodeContent(
       .slice(0, 10)
       .map((btn, idx) => {
         const label = (btn.text || "").trim() || `Botão ${idx + 1}`;
+        const stableReplyId = `button-${idx}`;
         if (btn.type === "url" && btn.value) {
           return `${label}|url:${wrapUrlWithTracking(btn.value.trim(), label)}`;
         }
         if (btn.type === "call" && btn.value) {
           return `${label}|call:${btn.value.trim()}`;
         }
-        return `${label}|${label}`;
+        return `${label}|${stableReplyId}`;
       });
   }
 
