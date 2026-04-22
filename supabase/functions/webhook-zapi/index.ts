@@ -4280,9 +4280,19 @@ async function processFlowNode(
   },
 ) {
   const currentNode = nodes.find((n) => n.id === nodeId);
-  const sortEdgesByCanvasPosition = (list: FlowEdge[]) => {
+  const sortEdgesByFlowPriority = (list: FlowEdge[]) => {
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     return [...list].sort((a, b) => {
+      const handlePriority = (handle?: string | null) => {
+        if (!handle || handle === "default") return 0;
+        if (handle.startsWith("button-")) return 2;
+        return 1;
+      };
+
+      const priorityDiff = handlePriority(a.sourceHandle) -
+        handlePriority(b.sourceHandle);
+      if (priorityDiff !== 0) return priorityDiff;
+
       const aTarget = nodeMap.get(a.target);
       const bTarget = nodeMap.get(b.target);
       const ay = aTarget?.position?.y ?? 0;
@@ -4302,8 +4312,8 @@ async function processFlowNode(
     if (handle.startsWith("source-") || handle.startsWith("target-")) {
       return true;
     }
-    // Legacy handles (right, bottom, left, top, a, b)
-    if (["right", "bottom", "left", "top", "a", "b"].includes(handle)) {
+    // Legacy handles padrão — NÃO incluir a/b, que são ramos de condição
+    if (["right", "bottom", "left", "top"].includes(handle)) {
       return true;
     }
     return false;
@@ -4315,18 +4325,19 @@ async function processFlowNode(
       isDefaultHandle(e.sourceHandle),
   );
 
-  // Condição fallback: if no default edge exists, follow configured branch handles (a/b)
-  const outgoing = defaultOutgoing.length > 0
-    ? sortEdgesByCanvasPosition(defaultOutgoing)
-    : currentNode?.type === "blocoCondicao"
-    ? sortEdgesByCanvasPosition(edges.filter((e) => e.source === nodeId))
-    : [];
+  const outgoing = currentNode?.type === "blocoCondicao"
+    ? sortEdgesByFlowPriority(
+      edges.filter((e) =>
+        e.source === nodeId && ["a", "b", "source-bottom", "bottom", "default", undefined, null].includes(
+          e.sourceHandle as string | undefined | null,
+        )
+      ),
+    )
+    : sortEdgesByFlowPriority(defaultOutgoing);
 
   console.log(
     `processFlowNode(${nodeId}): ${outgoing.length} outgoing edges${
-      defaultOutgoing.length === 0 && currentNode?.type === "blocoCondicao"
-        ? " (fallback condicao)"
-        : " (default)"
+      currentNode?.type === "blocoCondicao" ? " (condicao)" : " (default)"
     }`,
   );
 
