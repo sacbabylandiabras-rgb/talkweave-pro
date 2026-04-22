@@ -105,6 +105,14 @@ const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
+const isHistoryPlaceholderText = (content?: string | null) => /^💬\s*Conversa com\s+/i.test(String(content || '').trim());
+
+const isHistoryPlaceholderMessage = (message: Pick<UnifiedMessage, 'source' | 'keyword_matched' | 'content'>) => (
+  message.source === 'message_log' &&
+  message.keyword_matched === '__history_import__' &&
+  isHistoryPlaceholderText(message.content)
+);
+
 const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
   const latestByPhone = new Map<string, CampaignSendMessage>();
 
@@ -792,7 +800,9 @@ export const useMessageLogs = (
           if (a.type !== b.type) return a.type === 'received' ? -1 : 1;
           return a.id.localeCompare(b.id);
         });
+        const visibleMessages = sorted.filter((message) => !isHistoryPlaceholderMessage(message));
         const last = sorted[sorted.length - 1];
+        const lastVisibleMessage = visibleMessages[visibleMessages.length - 1] || null;
         const conversationLogs = safeMapGet(groupedLogs, phone) || [];
         const sortedConversationLogs = [...conversationLogs].sort((a, b) => {
           const timeDiff = toMillis(b.timestamp || b.created_at) - toMillis(a.timestamp || a.created_at);
@@ -829,10 +839,10 @@ export const useMessageLogs = (
           phone,
           contactName: resolvedContactName,
           profilePictureUrl: saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
-          lastMessage: typeof last?.content === 'string' ? last.content : '',
+          lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
-          messages: sorted,
+          messages: visibleMessages,
           preferredInstanceId,
         };
       })
