@@ -2614,6 +2614,33 @@ async function sendNodeContent(
   }
 
   const contentType = targetNode.data.contentType || 'text'
+  const stripButtonListFromMessage = (message: string, btns: Array<{ text?: string }>) => {
+    const raw = String(message || '').trim()
+    if (!raw) return ''
+
+    const normalizedLabels = btns
+      .map((btn) => String(btn?.text || '').trim().toLowerCase())
+      .filter(Boolean)
+
+    if (normalizedLabels.length === 0) return raw
+
+    const filtered = raw
+      .split(/\r?\n/)
+      .map((line) => line.trimEnd())
+      .filter((line) => {
+        const normalizedLine = line
+          .trim()
+          .replace(/^[-*•]\s*/, '')
+          .replace(/^\d+[.)-]?\s*/, '')
+          .trim()
+          .toLowerCase()
+
+        if (!normalizedLine) return true
+        return !normalizedLabels.includes(normalizedLine)
+      })
+
+    return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  }
   const replaceCapturedVars = (text: string) => {
     const captured = options?.resumeCaptured || {}
     return String(text || '')
@@ -2838,7 +2865,8 @@ async function sendNodeContent(
 
       const replyButtons = buildReplyButtons(allSendButtons)
       const urlCallSuffix = buildUrlCallSuffix(allSendButtons)
-      const fullMessage = (content || '') + urlCallSuffix
+      const sanitizedContent = isUazapiProvider ? stripButtonListFromMessage(content || '', allSendButtons) : (content || '')
+      const fullMessage = sanitizedContent + urlCallSuffix
 
       let res: Response | null = null
       if (isUazapiProvider) {
