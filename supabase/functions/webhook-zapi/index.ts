@@ -453,13 +453,17 @@ serve(async (req) => {
       const uazInstanceId = reqUrl.searchParams.get("instanceId") || "";
 
       if (isUazapi) {
-        const m = webhook?.message || webhook?.data || {};
+        const eventPayload = webhook?.event && typeof webhook.event === "object"
+          ? webhook.event
+          : {};
+        const m = webhook?.message || webhook?.data || eventPayload || {};
         const eventType = String(webhook?.EventType || webhook?.event || "")
           .toLowerCase();
 
         // Extract phone/chat from both nested and root-level UAZAPI payloads
         const rawChatId = String(
           m?.chatid || m?.chatId || m?.remoteJid || m?.from ||
+            eventPayload?.Chat || eventPayload?.JID ||
             webhook?.chatid || webhook?.chatId || webhook?.remoteJid ||
             webhook?.from || "",
         );
@@ -477,9 +481,19 @@ serve(async (req) => {
           .replace("@c.us", "")
           .replace(/\D/g, "");
         const fromMe = Boolean(
-          webhook?.fromMe || m?.fromMe || m?.fromme || m?.key?.fromMe,
+          parseBooleanLike(eventPayload?.IsFromMe) ?? webhook?.fromMe ||
+            m?.fromMe || m?.fromme || m?.key?.fromMe,
         );
-        const text = webhook?.text?.message || webhook?.text || webhook?.body ||
+        const messageUpdateStatus = String(
+          eventPayload?.Type || webhook?.state || webhook?.status || "",
+        ).trim();
+        const isUazapiStatusUpdate = eventType === "messages_update" &&
+          ["delivered", "delivery", "sent", "read", "played", "ack"].includes(
+            messageUpdateStatus.toLowerCase(),
+          );
+        const text = isUazapiStatusUpdate
+          ? ""
+          : webhook?.text?.message || webhook?.text || webhook?.body ||
           webhook?.conversation ||
           m?.text || m?.message?.text || m?.body || m?.conversation ||
           m?.message?.conversation || m?.message?.extendedTextMessage?.text ||
@@ -506,8 +520,10 @@ serve(async (req) => {
           senderPhone,
           chatName: webhook?.chatName || m?.chatName || webhook?.groupName ||
             m?.groupName || senderName,
-          messageId: m?.id || m?.messageId || m?.key?.id,
-          type: "ReceivedCallback",
+          messageId: m?.id || m?.messageId || m?.key?.id ||
+            eventPayload?.MessageIDs?.[0] || null,
+          type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
+          status: messageUpdateStatus || undefined,
           text: text ? { message: text } : undefined,
         };
 
