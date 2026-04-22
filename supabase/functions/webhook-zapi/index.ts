@@ -3924,6 +3924,7 @@ async function sendNodeContent(
           throw new Error("UAZAPI URL/Token não configurados");
         }
         const menuChoices = buildUazapiMenuChoices(allSendButtons);
+        console.log(`📤 UAZAPI /send/menu → ${normalizedTargetNumber} | choices=${JSON.stringify(menuChoices)}`);
         res = await fetch(`${uazapiUrl}/send/menu`, {
           method: "POST",
           headers: { "Content-Type": "application/json", token: uazapiToken },
