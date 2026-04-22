@@ -225,17 +225,50 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Instance ID *</Label>
-                    <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="Ex: 3C12345678" />
+                    <Label>Provedor *</Label>
+                    <Select value={newProvider} onValueChange={(v) => setNewProvider(v as 'zapi' | 'uazapi')}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="zapi">Z-API</SelectItem>
+                        <SelectItem value="uazapi">UAZAPI</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Token *</Label>
-                    <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token da instância" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Client Token *</Label>
-                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
-                  </div>
+
+                  {newProvider === 'zapi' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Instance ID *</Label>
+                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="Ex: 3C12345678" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Token *</Label>
+                        <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token da instância" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Client Token *</Label>
+                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>URL da API *</Label>
+                        <Input value={newUazapiUrl} onChange={(e) => setNewUazapiUrl(e.target.value)} placeholder="https://seudominio.uazapi.com" type="url" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Token da Instância *</Label>
+                        <Input value={newUazapiToken} onChange={(e) => setNewUazapiToken(e.target.value)} placeholder="Token da instância UAZAPI" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Consulte a documentação em{" "}
+                        <a href="https://docs.uazapi.com/" target="_blank" rel="noreferrer" className="underline text-primary">
+                          docs.uazapi.com
+                        </a>
+                      </p>
+                    </>
+                  )}
+
                   <div className="flex gap-2">
                      <Button size="sm" onClick={handleAddInstance}>{editingInstanceId ? 'Atualizar' : 'Salvar'}</Button>
                      <Button size="sm" variant="outline" onClick={resetInstanceForm}>Cancelar</Button>
@@ -256,10 +289,17 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
+                          <Badge variant="outline" className="text-xs uppercase">
+                            {inst.api_provider === 'uazapi' ? 'UAZAPI' : 'Z-API'}
+                          </Badge>
                           {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
                           {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">ID: {inst.zapi_instance_id}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {inst.api_provider === 'uazapi'
+                            ? `URL: ${(inst as any).evolution_api_url || '—'}`
+                            : `ID: ${inst.zapi_instance_id}`}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1">
                         <Button size="sm" variant="ghost" title="Editar instância" onClick={() => handleEditInstance(inst)}>
