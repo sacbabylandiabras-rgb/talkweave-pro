@@ -862,6 +862,7 @@ const MensagensRecebidas = () => {
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
   const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
   const filterInstanceName = selectedInstance?.instance_name;
+  const shouldAutoSyncHistory = (selectedInstance?.api_provider || activeInstance?.api_provider) === 'zapi';
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -971,11 +972,13 @@ const MensagensRecebidas = () => {
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // One-time history sync
+  // Auto history sync only for Z-API. For UAZAPI, keep the initial live list stable
+  // and allow manual sync via the refresh button instead of importing old chats automatically.
   useEffect(() => {
+    if (!shouldAutoSyncHistory) return;
     if ((knownInstanceIds?.length || 0) === 0) return;
     syncHistory();
-  }, [knownInstanceIds?.join('|')]);
+  }, [shouldAutoSyncHistory, knownInstanceIds?.join('|')]);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
