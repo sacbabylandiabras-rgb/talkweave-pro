@@ -391,6 +391,15 @@ Deno.serve(async (req) => {
           keyword_matched: "__history_import__",
           instance_id: instanceId,
         });
+      } else {
+        // Chat already exists locally — refresh placeholder timestamp if UAZAPI
+        // reports a more recent lastMessageTime, so recent conversations float
+        // back to the top of the list.
+        const existingPlaceholder = latestPlaceholderByPhone.get(phone);
+        if (existingPlaceholder && lastMessageTime &&
+            new Date(lastMessageTime).getTime() > new Date(existingPlaceholder.timestamp).getTime()) {
+          placeholderTimestampUpdates.push({ id: existingPlaceholder.id, timestamp: lastMessageTime });
+        }
       }
 
       // Always upsert group name so the chat list shows the friendly name (even for existing chats)
