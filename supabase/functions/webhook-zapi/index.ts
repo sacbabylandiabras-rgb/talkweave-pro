@@ -492,9 +492,29 @@ serve(async (req) => {
           ["delivered", "delivery", "sent", "read", "played", "ack"].includes(
             messageUpdateStatus.toLowerCase(),
           );
+        const buttonSelectionCandidates = [
+          eventPayload?.SelectedDisplayText,
+          eventPayload?.SelectedButtonText,
+          eventPayload?.SelectedButtonId,
+          eventPayload?.SelectedRowId,
+          eventPayload?.selectedDisplayText,
+          eventPayload?.selectedButtonText,
+          eventPayload?.selectedButtonId,
+          eventPayload?.selectedRowId,
+          m?.selectedDisplayText,
+          m?.selectedButtonText,
+          m?.selectedButtonId,
+          m?.selectedRowId,
+          m?.buttonText,
+          m?.title,
+          webhook?.selectedDisplayText,
+          webhook?.selectedButtonText,
+          webhook?.selectedButtonId,
+          webhook?.selectedRowId,
+        ].find((value) => typeof value === "string" && value.trim()) || "";
         const text = isUazapiStatusUpdate
           ? ""
-          : webhook?.text?.message || webhook?.text || webhook?.body ||
+          : buttonSelectionCandidates || webhook?.text?.message || webhook?.text || webhook?.body ||
           webhook?.conversation ||
           m?.text || m?.message?.text || m?.body || m?.conversation ||
           m?.message?.conversation || m?.message?.extendedTextMessage?.text ||
@@ -525,7 +545,17 @@ serve(async (req) => {
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
           status: messageUpdateStatus || undefined,
-          text: text ? { message: text } : undefined,
+          text: text ? { message: text, selectedDisplayText: buttonSelectionCandidates || undefined, selectedButtonText: buttonSelectionCandidates || undefined } : undefined,
+          buttonReply: buttonSelectionCandidates
+            ? {
+              title: buttonSelectionCandidates,
+              text: buttonSelectionCandidates,
+              label: buttonSelectionCandidates,
+              selectedDisplayText: buttonSelectionCandidates,
+              selectedButtonId: eventPayload?.SelectedButtonId || eventPayload?.selectedButtonId || m?.selectedButtonId || webhook?.selectedButtonId || undefined,
+              selectedRowId: eventPayload?.SelectedRowId || eventPayload?.selectedRowId || m?.selectedRowId || webhook?.selectedRowId || undefined,
+            }
+            : undefined,
         };
 
         // Connection event normalization
