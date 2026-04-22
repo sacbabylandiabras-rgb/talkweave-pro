@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -843,8 +843,10 @@ const MensagensRecebidas = () => {
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { instances, activeInstance } = useZapiInstances();
-  const knownInstanceIds = instances.map(i => i.zapi_instance_id).filter(Boolean);
-  const knownInstanceNames = instances.map(i => i.instance_name).filter(Boolean);
+  const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
+  const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
+  const knownInstanceIds = useMemo(() => connectedInstanceIds ?? instances.map(i => i.zapi_instance_id).filter(Boolean), [connectedInstanceIds, instances]);
+  const knownInstanceNames = useMemo(() => connectedInstanceNames ?? instances.map(i => i.instance_name).filter(Boolean), [connectedInstanceNames, instances]);
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Map UI instance id to zapi_instance_id for filtering
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
@@ -883,6 +885,46 @@ const MensagensRecebidas = () => {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchConnectedInstances = async () => {
+      if (instances.length === 0) {
+        if (!cancelled) {
+          setConnectedInstanceIds([]);
+          setConnectedInstanceNames([]);
+        }
+        return;
+      }
+
+      const results = await Promise.all(
+        instances.map(async (instance) => {
+          try {
+            const { data } = await supabase.functions.invoke('get-device-status', {
+              body: { instanceId: instance.id },
+            });
+            const connected = data?.data?.connected === true;
+            return connected ? instance : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      const connected = results.filter(Boolean);
+      setConnectedInstanceIds(connected.map((i) => i!.zapi_instance_id).filter(Boolean));
+      setConnectedInstanceNames(connected.map((i) => i!.instance_name).filter(Boolean));
+    };
+
+    fetchConnectedInstances();
+    const interval = window.setInterval(fetchConnectedInstances, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [instances]);
+
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
     try {
@@ -920,7 +962,10 @@ const MensagensRecebidas = () => {
   }, [searchParams, setSearchParams]);
 
   // One-time history sync
-  useEffect(() => { syncHistory(); }, []);
+  useEffect(() => {
+    if ((knownInstanceIds?.length || 0) === 0) return;
+    syncHistory();
+  }, [knownInstanceIds?.join('|')]);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
