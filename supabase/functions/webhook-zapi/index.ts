@@ -136,6 +136,14 @@ const normalizeInstanceIdentifier = (value: unknown) => {
     .toUpperCase()
 }
 
+const resolveWebhookInstanceReference = (webhook: any) => {
+  const raw = webhook?.instanceId || webhook?.instance_id || webhook?.instanceName || webhook?.instance_name || ''
+  return {
+    raw,
+    normalized: normalizeInstanceIdentifier(raw),
+  }
+}
+
 const isLikelyTechnicalIdentifier = (value: unknown) => {
   const raw = String(value || '').trim()
   const digits = normalizePhoneCandidate(raw)
@@ -1473,7 +1481,7 @@ serve(async (req) => {
     const campaignSendStatus = mapCampaignSendStatusFromWebhook(webhook)
 
     if (campaignSendStatus) {
-      const instanceId = webhook?.instanceId || webhook?.instance_id
+      const { raw: instanceId } = resolveWebhookInstanceReference(webhook)
       const phone = resolveWebhookPhone(webhook)
       const isGroupFromMeWithText = fromMe && (phone?.includes('@g.us') || phone?.includes('-group'))
 
@@ -1489,9 +1497,10 @@ serve(async (req) => {
           .select('user_id, instance_name, zapi_instance_id')
           .eq('is_active', true)
 
-        const instanceData = (cbInstances || []).find((item: any) =>
-          normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId
-        )
+        const instanceData = (cbInstances || []).find((item: any) => {
+          return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedCbInstanceId ||
+            normalizeInstanceIdentifier(item?.instance_name) === normalizedCbInstanceId
+        })
 
         const userId = instanceData?.user_id
         const instanceName = instanceData?.instance_name
@@ -1764,8 +1773,8 @@ serve(async (req) => {
       }
     }
 
-    let instanceId = webhook?.instanceId || webhook?.instance_id
-    const normalizedInstanceId = normalizeInstanceIdentifier(instanceId)
+    let instanceId = resolveWebhookInstanceReference(webhook).raw
+    const normalizedInstanceId = resolveWebhookInstanceReference(webhook).normalized
     const isManualFlowTrigger = isManualFlowTriggerEarly
     
     console.log('Processando mensagem:', messageText, 'do telefone:', phone)
@@ -1776,7 +1785,7 @@ serve(async (req) => {
     })
 
     if (!normalizedInstanceId) {
-      console.error('No instanceId in webhook data')
+      console.error('No instance reference in webhook data')
       return new Response('missing_instance_id', { status: 400, headers: corsHeaders })
     }
 
@@ -1804,7 +1813,7 @@ serve(async (req) => {
 
     const { data: instancesData, error: instancesError } = await supabase
       .from('zapi_instances')
-      .select('user_id, zapi_instance_id, zapi_token, zapi_client_token')
+      .select('user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token')
       .eq('is_active', true)
 
     if (instancesError) {
@@ -1813,7 +1822,8 @@ serve(async (req) => {
 
     // When multiple users share the same zapi_instance_id, prefer the authenticated user's instance
     const matchingInstances = (instancesData || []).filter((item: any) => {
-      return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
+      return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId ||
+        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId
     })
 
     let instanceData: any = null
@@ -1851,10 +1861,11 @@ serve(async (req) => {
       }
     }
 
-    const hasExplicitRequestedInstance = Boolean(webhook?.instanceId || webhook?.instance_id)
+    const hasExplicitRequestedInstance = Boolean(webhook?.instanceId || webhook?.instance_id || webhook?.instanceName || webhook?.instance_name)
 
     if (instanceData) {
       userId = instanceData.user_id
+      instanceId = instanceData.zapi_instance_id
       zapiConfig = {
         zapi_instance_id: instanceData.zapi_instance_id,
         zapi_token: instanceData.zapi_token,
