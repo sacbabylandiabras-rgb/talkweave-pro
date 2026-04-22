@@ -291,22 +291,51 @@ Deno.serve(async (req) => {
     // Helper: fetch group name via UAZAPI /group/info
     const fetchUazapiGroupName = async (groupjid: string): Promise<{ name: string; pic: string | null }> => {
       if (apiProvider !== 'uazapi' || !apiUrlClean || !uazapiToken) return { name: '', pic: null };
-      try {
-        const gRes = await fetch(`${apiUrlClean}/group/info`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: uazapiToken },
-          body: JSON.stringify({ groupjid }),
-        });
-        if (!gRes.ok) return { name: '', pic: null };
-        const g = await gRes.json();
-        const name = g?.subject || g?.name || g?.group?.subject || g?.group?.name
-          || g?.groupMetadata?.subject || g?.data?.subject || '';
-        const pic = g?.imageUrl || g?.picture || g?.profilePicUrl || g?.group?.imageUrl || null;
-        return { name: String(name || ''), pic: pic || null };
-      } catch (e) {
-        console.error('UAZAPI group/info failed:', e);
-        return { name: '', pic: null };
+      // Normaliza para o formato esperado pela UAZAPI: "<numeros>@g.us"
+      const cleanId = String(groupjid).replace('@g.us', '').replace('-group', '').replace(/\D/g, '');
+      const jidWithSuffix = `${cleanId}@g.us`;
+
+      const extractName = (g: any): string => {
+        return String(
+          g?.subject || g?.name || g?.wa_name || g?.wa_chatName || g?.wa_contactName ||
+          g?.group?.subject || g?.group?.name ||
+          g?.groupMetadata?.subject || g?.data?.subject || g?.data?.name ||
+          g?.chat?.name || g?.chat?.subject || ''
+        ).trim();
+      };
+      const extractPic = (g: any): string | null => {
+        return g?.imageUrl || g?.picture || g?.profilePicUrl || g?.image ||
+          g?.group?.imageUrl || g?.chat?.image || null;
+      };
+
+      // 1) /group/info com groupjid puro (com @g.us)
+      const attempts: Array<{ url: string; body: any }> = [
+        { url: `${apiUrlClean}/group/info`, body: { groupjid: jidWithSuffix } },
+        { url: `${apiUrlClean}/group/info`, body: { groupjid: cleanId } },
+        { url: `${apiUrlClean}/chat/details`, body: { number: jidWithSuffix } },
+        { url: `${apiUrlClean}/chat/details`, body: { number: cleanId } },
+      ];
+
+      for (const attempt of attempts) {
+        try {
+          const r = await fetch(attempt.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: uazapiToken },
+            body: JSON.stringify(attempt.body),
+          });
+          if (!r.ok) continue;
+          const g = await r.json();
+          const name = extractName(g);
+          const pic = extractPic(g);
+          if (name) {
+            console.log(`✅ Group name resolved via ${attempt.url}: ${name}`);
+            return { name, pic };
+          }
+        } catch (e) {
+          console.error(`UAZAPI ${attempt.url} failed:`, e);
+        }
       }
+      return { name: '', pic: null };
     };
 
     for (const chat of allChats) {
@@ -361,6 +390,12 @@ Deno.serve(async (req) => {
           user_id: userId,
           profile_picture_url: chatPic,
         });
+      } else if (isGroup) {
+        // Sem nome utilizável: tenta resolver nome do contato existente para preservá-lo
+        const existing = existingMap.get(phone);
+        if (existing && isUsableImportedGroupName(existing.name)) {
+          // Já temos um nome bom salvo; nada a fazer
+        }
       }
     }
 
