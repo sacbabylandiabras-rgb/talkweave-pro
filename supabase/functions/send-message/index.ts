@@ -85,15 +85,14 @@ serve(async (req) => {
     }
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
     let uazapiOverride: { apiUrl: string; apiToken: string } | null = null;
 
     // Detect group phones
     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
 
-    if (requestedInstanceId && requestedInstanceId !== instanceId) {
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      
+    if (requestedInstanceId) {
       // Try matching by zapi_instance_id first, then by table id (UUID)
       let reqInstance = null;
       const { data: byZapiId } = await adminClient
@@ -127,6 +126,27 @@ serve(async (req) => {
             apiUrl: ((reqInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
             apiToken: (reqInstance as any).evolution_api_key || '',
           };
+        }
+      }
+    } else {
+      const { data: defaultInstance } = await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
+        .maybeSingle();
+
+      if (defaultInstance) {
+        instanceId = defaultInstance.zapi_instance_id;
+        token = defaultInstance.zapi_token;
+        clientToken = defaultInstance.zapi_client_token;
+        if ((defaultInstance as any).api_provider === 'uazapi') {
+          uazapiOverride = {
+            apiUrl: ((defaultInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
+            apiToken: (defaultInstance as any).evolution_api_key || '',
+          };
+          console.log(`📌 Using default UAZAPI instance: ${instanceId}`);
         }
       }
     }
