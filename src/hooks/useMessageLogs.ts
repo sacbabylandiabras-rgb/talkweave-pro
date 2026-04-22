@@ -323,9 +323,13 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     await fetchSavedContacts();
   }, [fetchSavedContacts]);
 
-  const fetchProfilePicture = useCallback(async (phone: string): Promise<string | null> => {
+  const fetchProfilePicture = useCallback(async (phone: string, instanceId?: string | null): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+      const body: Record<string, unknown> = { phone };
+      if (instanceId) body.instanceId = instanceId;
+      else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+
+      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
       if (error) return null;
       const url = extractProfilePictureUrl(data?.data ?? data);
       if (url) {
@@ -359,7 +363,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     for (const phone of toFetch) {
       fetchedPhotosRef.current.add(phone);
       try {
-        const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+        const body: Record<string, unknown> = { phone };
+        if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+        const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
         const url = extractProfilePictureUrl(data?.data ?? data);
         if (url) {
@@ -372,7 +378,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     if (toFetch.length > 0) {
       await fetchSavedContacts();
     }
-  }, [savedContacts, fetchSavedContacts]);
+  }, [savedContacts, fetchSavedContacts, filterInstanceId]);
 
   useEffect(() => {
     setLoading(true);

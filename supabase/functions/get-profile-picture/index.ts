@@ -19,9 +19,10 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const adminClient = (await import("https://esm.sh/@supabase/supabase-js@2.58.0")).createClient(supabaseUrl, supabaseServiceKey)
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
 
-    const { phone } = await req.json()
+    const { phone, instanceId } = await req.json()
     if (!phone) {
       return new Response(JSON.stringify({ error: 'Phone is required' }), {
         status: 400,
@@ -42,10 +43,82 @@ serve(async (req) => {
       })
     }
 
-    const base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
-    const headers = {
+    let provider = 'zapi'
+    let base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
+    let headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Client-Token': credentials.clientToken
+    }
+    let uazapiUrl = ''
+
+    if (instanceId) {
+      const { data: specificInstance } = await adminClient
+        .from('zapi_instances')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (specificInstance) {
+        provider = specificInstance.api_provider || 'zapi'
+        if (provider === 'uazapi') {
+          uazapiUrl = (specificInstance.evolution_api_url || '').replace(/\/+$/, '')
+          headers = {
+            'Content-Type': 'application/json',
+            token: specificInstance.evolution_api_key || ''
+          }
+        } else {
+          base = `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`
+          headers = {
+            'Content-Type': 'application/json',
+            'Client-Token': specificInstance.zapi_client_token
+          }
+        }
+      }
+    }
+
+    if (provider === 'uazapi') {
+      try {
+        const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ number: isGroup ? `${numericId}@g.us` : numericId, preview: true })
+        })
+        const detailsData = await detailsRes.json().catch(() => null)
+        const link = detailsData?.imagePreview || detailsData?.image || detailsData?.profilePicUrl || null
+        if (detailsRes.ok && link) {
+          return new Response(
+            JSON.stringify({ success: true, data: { link, raw: detailsData } }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } catch (e) {
+        console.log(`📷 UAZAPI chat/details error: ${e}`)
+      }
+
+      if (!isGroup) {
+        try {
+          const contactsRes = await fetch(`${uazapiUrl}/contacts?contactScope=all`, { method: 'GET', headers })
+          const contactsData = await contactsRes.json().catch(() => null)
+          const contacts = Array.isArray(contactsData) ? contactsData : []
+          const match = contacts.find((c: any) => String(c?.jid || '').replace(/@.*/, '').replace(/\D/g, '') === numericId)
+          const link = match?.imagePreview || match?.image || match?.profilePicUrl || null
+          if (contactsRes.ok && link) {
+            return new Response(
+              JSON.stringify({ success: true, data: { link, raw: match } }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } catch (e) {
+          console.log(`📷 UAZAPI contacts error: ${e}`)
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, data: { link: null, raw: null } }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // For groups, try multiple formats and also try group-metadata for photo

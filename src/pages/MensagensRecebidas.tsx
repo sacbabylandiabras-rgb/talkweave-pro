@@ -849,13 +849,13 @@ const MensagensRecebidas = () => {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
-        body: { maxChats: 30, amountPerChat: 12 },
+        body: { maxChats: 30, amountPerChat: 12, instanceId: selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id },
       });
       if (error) throw error;
       if (data?.error === 'disconnected') {
         toast({ title: "⚠️ WhatsApp desconectado", description: "Reconecte sua instância na página de Dispositivos.", variant: "destructive" });
-      } else if (data?.importedMessages > 0) {
-        toast({ title: "Histórico sincronizado", description: `${data.importedMessages} mensagens importadas.` });
+      } else if ((data?.importedMessages || data?.importedChats || 0) > 0) {
+        toast({ title: "Histórico sincronizado", description: `${data?.importedMessages || data?.importedChats || 0} conversas importadas.` });
         refetch();
       } else {
         toast({ title: "Já sincronizado", description: "Nenhuma mensagem nova encontrada." });
@@ -926,7 +926,7 @@ const MensagensRecebidas = () => {
 
   const handleFetchPhoto = async (phone: string) => {
     setLoadingPhoto(true);
-    const url = await fetchProfilePicture(phone);
+    const url = await fetchProfilePicture(phone, selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null);
     setLoadingPhoto(false);
     if (url) {
       toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
