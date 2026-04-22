@@ -836,6 +836,7 @@ const MensagensRecebidas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(searchParams.get("phone"));
+  const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
   const [saveDialogName, setSaveDialogName] = useState("");
@@ -900,13 +901,15 @@ const MensagensRecebidas = () => {
   // Auto-select phone from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
-    if (phoneParam) {
-      setSelectedPhone(phoneParam);
-      markAsRead(phoneParam);
-      // Clean up the URL
-      searchParams.delete("phone");
-      setSearchParams(searchParams, { replace: true });
-    }
+    if (!phoneParam || handledPhoneParamRef.current === phoneParam) return;
+
+    handledPhoneParamRef.current = phoneParam;
+    setSelectedPhone(phoneParam);
+    markAsRead(phoneParam);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("phone");
+    setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
   // One-time history sync
