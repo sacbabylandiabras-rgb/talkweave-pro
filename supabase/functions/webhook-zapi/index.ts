@@ -1805,7 +1805,14 @@ serve(async (req) => {
 
     // Find user and credentials by instanceId (prefer dedicated zapi_instances table)
     let userId: string | null = null
-    let zapiConfig: { zapi_instance_id: string; zapi_token: string; zapi_client_token: string } | null = null
+    let zapiConfig: {
+      zapi_instance_id: string
+      zapi_token: string | null
+      zapi_client_token: string | null
+      api_provider?: string | null
+      evolution_api_url?: string | null
+      evolution_api_key?: string | null
+    } | null = null
 
     // Extract authenticated user ID from Authorization header (for manual triggers from the frontend)
     let authenticatedUserId: string | null = null
@@ -1825,7 +1832,7 @@ serve(async (req) => {
 
     const { data: instancesData, error: instancesError } = await supabase
       .from('zapi_instances')
-      .select('id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token')
+      .select('id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
       .eq('is_active', true)
 
     if (instancesError) {
@@ -1883,6 +1890,9 @@ serve(async (req) => {
         zapi_instance_id: instanceData.zapi_instance_id,
         zapi_token: instanceData.zapi_token,
         zapi_client_token: instanceData.zapi_client_token,
+        api_provider: instanceData.api_provider || 'zapi',
+        evolution_api_url: instanceData.evolution_api_url || null,
+        evolution_api_key: instanceData.evolution_api_key || null,
       }
     } else if (isManualFlowTrigger && hasExplicitRequestedInstance) {
       console.error('Manual flow requested invalid or inactive instance:', {
@@ -1917,7 +1927,7 @@ serve(async (req) => {
       if (lastInbound?.instance_id && lastInbound.instance_id !== instanceId) {
         const { data: contactInstance } = await supabase
           .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
           .eq('user_id', userId)
           .eq('zapi_instance_id', lastInbound.instance_id)
           .eq('is_active', true)
@@ -1930,17 +1940,27 @@ serve(async (req) => {
             zapi_instance_id: contactInstance.zapi_instance_id,
             zapi_token: contactInstance.zapi_token,
             zapi_client_token: contactInstance.zapi_client_token,
+            api_provider: contactInstance.api_provider || 'zapi',
+            evolution_api_url: contactInstance.evolution_api_url || null,
+            evolution_api_key: contactInstance.evolution_api_key || null,
           }
         }
       }
     }
 
-    if (!userId || !zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token) {
+    const isUazapiInstance = (zapiConfig?.api_provider || '').toLowerCase() === 'uazapi'
+
+    if (!userId || !zapiConfig?.zapi_instance_id) {
+      console.error('User has incomplete instance credentials')
+      return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
+    }
+
+    if (!isUazapiInstance && (!zapiConfig?.zapi_token || !zapiConfig?.zapi_client_token)) {
       console.error('User has incomplete Z-API credentials')
       return new Response('incomplete_credentials', { status: 400, headers: corsHeaders })
     }
 
-    if (isManualFlowTrigger && zapiConfig?.zapi_instance_id && zapiConfig?.zapi_token && zapiConfig?.zapi_client_token) {
+    if (isManualFlowTrigger && !isUazapiInstance && zapiConfig?.zapi_instance_id && zapiConfig?.zapi_token && zapiConfig?.zapi_client_token) {
       try {
         const statusResponse = await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/status`, {
           method: 'GET',
