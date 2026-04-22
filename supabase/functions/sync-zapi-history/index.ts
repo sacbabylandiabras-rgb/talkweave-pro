@@ -61,10 +61,10 @@ Deno.serve(async (req) => {
     if (body?.instanceId) {
       const { data: specificInstance } = await adminClient
         .from("zapi_instances")
-        .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
-        .eq("zapi_instance_id", body.instanceId)
+        .select("id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
         .eq("user_id", user.id)
         .eq("is_active", true)
+        .or(`id.eq.${body.instanceId},zapi_instance_id.eq.${body.instanceId}`)
         .maybeSingle();
 
       if (specificInstance) {
