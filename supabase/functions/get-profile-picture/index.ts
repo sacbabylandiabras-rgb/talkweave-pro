@@ -124,9 +124,10 @@ serve(async (req) => {
         })
         const detailsData = await detailsRes.json().catch(() => null)
         const link = detailsData?.imagePreview || detailsData?.image || detailsData?.profilePicUrl || null
-        if (detailsRes.ok && link) {
+        const name = extractGroupName(detailsData)
+        if (detailsRes.ok && (link || name)) {
           return new Response(
-            JSON.stringify({ success: true, data: { link, raw: detailsData } }),
+            JSON.stringify({ success: true, data: { link, name, raw: detailsData } }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
@@ -199,9 +200,10 @@ serve(async (req) => {
           })
           console.log(`📷 Groups list match: id=${match?.phone} imgUrl=${match?.imgUrl} photo=${match?.photo}`)
           const photoUrl = match?.imgUrl || match?.profilePicture || match?.image || match?.photo || null
-          if (photoUrl) {
+          const name = extractGroupName(match)
+          if (photoUrl || name) {
             return new Response(
-              JSON.stringify({ success: true, data: { link: photoUrl, raw: match } }),
+              JSON.stringify({ success: true, data: { link: photoUrl, name, raw: match } }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
@@ -218,9 +220,10 @@ serve(async (req) => {
           const metaData = await metaRes.json()
           console.log(`📷 group-metadata keys: ${Object.keys(metaData || {}).join(',')}`)
           const photoUrl = metaData?.imgUrl || metaData?.profilePicture || metaData?.image || metaData?.photo || metaData?.groupPhoto || null
-          if (photoUrl) {
+          const name = extractGroupName(metaData)
+          if (photoUrl || name) {
             return new Response(
-              JSON.stringify({ success: true, data: { link: photoUrl, raw: metaData } }),
+              JSON.stringify({ success: true, data: { link: photoUrl, name, raw: metaData } }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
