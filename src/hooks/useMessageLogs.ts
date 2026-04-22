@@ -772,10 +772,20 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
   })();
 
+  const unresolvedGroupKey = conversations
+    .filter((c) => isGroupPhone(c.phone) && (!c.contactName || c.contactName === 'Grupo'))
+    .map((c) => c.phone)
+    .sort()
+    .join('|');
+
   useEffect(() => {
-    if (loading || conversations.length === 0) return;
-    autoResolveGroupMetadata(conversations);
-  }, [loading, conversations, autoResolveGroupMetadata]);
+    if (loading || !unresolvedGroupKey) return;
+    const targets = unresolvedGroupKey.split('|').filter(Boolean);
+    const toResolve = conversations.filter((c) => targets.includes(c.phone));
+    if (toResolve.length === 0) return;
+    autoResolveGroupMetadata(toResolve);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, unresolvedGroupKey]);
 
   const sendMessage = useCallback(async (phone: string, message: string, options: SendMessageOptions = {}) => {
     const { data: { session } } = await supabase.auth.getSession();
