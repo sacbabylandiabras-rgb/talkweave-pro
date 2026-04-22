@@ -163,6 +163,14 @@ const isGroupPhone = (phone: string): boolean => {
   return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone);
 };
 
+const isUsableGroupDisplayName = (value: string | null | undefined): boolean => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return false;
+  if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
+  if (/^(grupo|conversa com grupo)$/i.test(normalized)) return false;
+  return true;
+};
+
 const normalizeConversationPhone = (phone: string): string => {
   if (!isGroupPhone(phone)) return phone;
   const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
@@ -614,9 +622,19 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           ? filterInstanceId
           : latestInboundLog?.instance_id || groupSourceInstances.get(phone) || null;
 
+        const preferredGroupName = isGroup
+          ? (isUsableGroupDisplayName(groupName) ? groupName : null)
+          : null;
+        const preferredSavedName = isGroup
+          ? (isUsableGroupDisplayName(saved?.name) ? saved?.name || null : null)
+          : (saved?.name || null);
+        const preferredCampaignName = isGroup
+          ? (isUsableGroupDisplayName(campaignName) ? campaignName : null)
+          : campaignName;
+
         return {
           phone,
-          contactName: saved?.name || campaignName || groupName || null,
+          contactName: preferredGroupName || preferredSavedName || preferredCampaignName || null,
           profilePictureUrl: saved?.profile_picture_url || null,
           lastMessage: typeof last?.content === 'string' ? last.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
