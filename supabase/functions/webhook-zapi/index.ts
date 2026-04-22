@@ -2961,6 +2961,7 @@ serve(async (req) => {
       normalizedMessage: normalizedMessage || normalizeForMatch(storedMessage),
       rawMessage: storedMessage,
       instanceId,
+      messageId: String(webhook?.messageId || "").trim() || undefined,
     });
 
     if (!lockResult.acquired) {
@@ -3301,6 +3302,27 @@ serve(async (req) => {
             );
 
             if (waitingButtonMatch) {
+              const { data: claimedPendingButton } = await supabase
+                .from("message_logs")
+                .update({
+                  keyword_matched: `__button_claimed__:${lockId}`,
+                })
+                .eq("id", pendingButtonLog.id)
+                .like("keyword_matched", `${FLOW_BUTTON_PREFIX}%`)
+                .select("id")
+                .maybeSingle();
+
+              if (!claimedPendingButton) {
+                console.log(
+                  "⏭️ Reply de botão já foi consumido por outro webhook duplicado; ignorando repetição",
+                  { pendingButtonLogId: pendingButtonLog.id, lockId },
+                );
+                return new Response("button_already_claimed", {
+                  status: 200,
+                  headers: corsHeaders,
+                });
+              }
+
               console.log(
                 "🎯 Button reply matched for waiting node",
                 {
@@ -4605,18 +4627,29 @@ async function acquireMessageProcessingLock(
     normalizedMessage: string;
     rawMessage: string;
     instanceId?: string;
+    messageId?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId } = params;
+  const {
+    userId,
+    phone,
+    normalizedMessage,
+    rawMessage,
+    instanceId,
+    messageId,
+  } = params;
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
   const now = Date.now();
   const bucketSize = 15000;
   const currentBucket = Math.floor(now / bucketSize);
   const prevBucket = currentBucket - 1;
+  const dedupeSubject = String(messageId || "").trim()
+    ? `mid:${String(messageId || "").trim()}`
+    : `txt:${norm}`;
 
   // Check both current and previous bucket to avoid boundary race conditions
-  const currentKey = `${userId}|${phone}|${norm}|${currentBucket}`;
-  const prevKey = `${userId}|${phone}|${norm}|${prevBucket}`;
+  const currentKey = `${userId}|${phone}|${dedupeSubject}|${currentBucket}`;
+  const prevKey = `${userId}|${phone}|${dedupeSubject}|${prevBucket}`;
   const lockId = await stableUuidFromText(currentKey);
   const prevLockId = await stableUuidFromText(prevKey);
 
