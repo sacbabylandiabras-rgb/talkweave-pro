@@ -989,6 +989,47 @@ const MensagensRecebidas = () => {
     syncHistory();
   }, [shouldAutoSyncHistory, knownInstanceIds?.join('|')]);
 
+  // Background sync every 5 minutes to keep the chat list fresh while the
+  // page is open (UAZAPI/Z-API). Refreshes only the chat list — message
+  // history per chat is fetched on-demand on conversation open.
+  useEffect(() => {
+    if (!shouldAutoSyncHistory) return;
+    if ((knownInstanceIds?.length || 0) === 0) return;
+    const interval = window.setInterval(() => {
+      syncHistory();
+    }, 5 * 60 * 1000);
+    return () => window.clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoSyncHistory, knownInstanceIds?.join('|')]);
+
+  // On-demand: when the user opens a conversation, fetch its message history
+  // from the live provider (UAZAPI /chat/messages or Z-API equivalent) and
+  // persist into message_logs. Only triggers once per phone per session.
+  const fetchedHistoryRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const targetInstance = selectedInstance || activeInstance;
+    if (!targetInstance) return;
+    const key = `${targetInstance.id}:${selectedPhone}`;
+    if (fetchedHistoryRef.current.has(key)) return;
+    fetchedHistoryRef.current.add(key);
+
+    supabase.functions
+      .invoke('fetch-chat-messages', {
+        body: { phone: selectedPhone, instanceId: targetInstance.id, limit: 30 },
+      })
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('fetch-chat-messages failed', error);
+          return;
+        }
+        if ((data?.imported || 0) > 0) {
+          refetch();
+        }
+      })
+      .catch((err) => console.warn('fetch-chat-messages error', err));
+  }, [selectedPhone, selectedInstance?.id, activeInstance?.id, refetch]);
+
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
