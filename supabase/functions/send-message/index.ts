@@ -52,16 +52,36 @@ const pickPreferredInstance = (instances: any[] | null | undefined) => {
 
 const findUserInstance = async (adminClient: any, userId: string, instanceRef: string) => {
   if (!instanceRef) return null;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isUuid = UUID_RE.test(instanceRef);
+  const baseSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default, created_at';
+
+  // Build filter safely: only include id.eq when ref is a valid UUID, otherwise Postgres throws 22P02.
+  const orFilter = isUuid
+    ? `zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef}`
+    : `zapi_instance_id.eq.${instanceRef}`;
+
   const { data, error } = await adminClient
     .from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default, created_at')
+    .select(baseSelect)
     .eq('user_id', userId)
     .eq('is_active', true)
-    .or(`zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef}`);
+    .or(orFilter);
 
   if (error) {
     console.error(`❌ Failed to resolve instance ${instanceRef}:`, error);
-    return null;
+    // Fallback: try matching by zapi_instance_id only (string col, no UUID cast)
+    const { data: fallback, error: fbError } = await adminClient
+      .from('zapi_instances')
+      .select(baseSelect)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .eq('zapi_instance_id', instanceRef);
+    if (fbError) {
+      console.error(`❌ Fallback resolve failed for ${instanceRef}:`, fbError);
+      return null;
+    }
+    return pickPreferredInstance(fallback);
   }
 
   return pickPreferredInstance(data);
