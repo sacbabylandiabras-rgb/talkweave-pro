@@ -270,10 +270,21 @@ Deno.serve(async (req) => {
     // Also create a placeholder message_log entry for each chat so conversations appear in the chat list
     const { data: existingPhones } = await adminClient
       .from("message_logs")
-      .select("phone")
+      .select("id, phone, timestamp, keyword_matched")
       .eq("user_id", userId);
 
     const existingPhoneSet = new Set((existingPhones || []).map((r: any) => r.phone));
+    // Track latest existing placeholder per phone so we can refresh its timestamp
+    // to reflect the most recent UAZAPI lastMessageTime (keeps recent chats on top).
+    const latestPlaceholderByPhone = new Map<string, { id: string; timestamp: string }>();
+    (existingPhones || []).forEach((r: any) => {
+      if (r.keyword_matched !== '__history_import__') return;
+      const current = latestPlaceholderByPhone.get(r.phone);
+      if (!current || new Date(r.timestamp).getTime() > new Date(current.timestamp).getTime()) {
+        latestPlaceholderByPhone.set(r.phone, { id: r.id, timestamp: r.timestamp });
+      }
+    });
+    const placeholderTimestampUpdates: Array<{ id: string; timestamp: string }> = [];
     
     const placeholderRows: any[] = [];
     const groupContactsToUpsert: any[] = [];
