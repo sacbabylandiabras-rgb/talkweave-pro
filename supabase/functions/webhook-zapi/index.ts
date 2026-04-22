@@ -79,6 +79,28 @@ interface PendingButtonState {
 const FLOW_CAPTURE_PREFIX = "__flow_capture__:";
 const FLOW_BUTTON_PREFIX = "__flow_button__:";
 
+const isButtonHandle = (handle?: string | null) => {
+  const normalized = String(handle || "").trim().toLowerCase();
+  return normalized.startsWith("button-") ||
+    normalized.startsWith("button_") ||
+    normalized.startsWith("btn-") ||
+    normalized.startsWith("btn_");
+};
+
+const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+  const aliases = new Set<string>([
+    `button-${idx}`,
+    `button_${idx}`,
+    `btn-${idx}`,
+    `btn_${idx}`,
+  ]);
+
+  const rawId = String(button?.id || "").trim();
+  if (rawId) aliases.add(rawId);
+
+  return Array.from(aliases);
+};
+
 const normalizeParticipantIdentifier = (value: unknown) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -4247,8 +4269,9 @@ async function sendNodeContent(
     String(e.sourceHandle || "").startsWith("collect-")
   );
   const hasButtonEdges = buttons.some((btn, idx) => {
+    const aliases = getButtonHandleAliases(idx, btn);
     return edges.some((e) =>
-      e.source === targetNode.id && e.sourceHandle === `button-${idx}`
+      e.source === targetNode.id && aliases.includes(String(e.sourceHandle || ""))
     );
   });
 
@@ -4408,7 +4431,7 @@ async function processFlowNode(
     return [...list].sort((a, b) => {
       const handlePriority = (handle?: string | null) => {
         if (!handle || handle === "default") return 0;
-        if (handle.startsWith("button-")) return 2;
+        if (isButtonHandle(handle)) return 2;
         return 1;
       };
 
@@ -4444,7 +4467,7 @@ async function processFlowNode(
 
   const defaultOutgoing = edges.filter(
     (e) =>
-      e.source === nodeId && !e.sourceHandle?.startsWith("button-") &&
+      e.source === nodeId && !isButtonHandle(e.sourceHandle) &&
       isDefaultHandle(e.sourceHandle),
   );
 
@@ -4821,12 +4844,12 @@ function findButtonEdgeMatch(
         const normalizedBtn = normalizeForMatch(btnText);
         if (!normalizedBtn) continue;
 
+        const buttonHandleAliases = getButtonHandleAliases(idx, btn);
         const buttonIndexValues = [
           String(idx + 1),
-          `button-${idx}`,
-          `button_${idx}`,
           `btn-${idx + 1}`,
           `btn_${idx + 1}`,
+          ...buttonHandleAliases,
         ];
         const normalizedIndexValues = buttonIndexValues
           .map((value) => normalizeForMatch(value))
@@ -4835,7 +4858,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
-          explicitHandleCandidates.has(`button-${idx}`) ||
+          buttonHandleAliases.some((alias) => explicitHandleCandidates.has(alias)) ||
           derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
@@ -4843,9 +4866,8 @@ function findButtonEdgeMatch(
 
         if (didMatch) {
           // First try: specific button edge
-          const handleId = `button-${idx}`;
           const buttonEdge = edges.find((e: any) =>
-            e.source === node.id && e.sourceHandle === handleId
+            e.source === node.id && buttonHandleAliases.includes(String(e.sourceHandle || ""))
           );
 
           if (buttonEdge) {
