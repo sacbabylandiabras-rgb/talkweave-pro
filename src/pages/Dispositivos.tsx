@@ -337,7 +337,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
-          body: { instanceId: instance.zapi_instance_id, maxChats: 100 }
+          body: { instanceId: instance.id, maxChats: 100 }
         }).then(({ data, error }) => {
           if (error) {
             console.error('Erro ao sincronizar:', error);
