@@ -168,7 +168,7 @@ const isUsableGroupDisplayName = (value: string | null | undefined): boolean => 
   if (!normalized) return false;
   if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
   if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;
-  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false;
+  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false;
   return true;
 };
 
