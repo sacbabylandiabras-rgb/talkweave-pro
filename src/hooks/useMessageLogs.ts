@@ -720,10 +720,14 @@ export const useMessageLogs = (
       }
     });
 
-    // Filter campaign sends by instance when a filter is active
+    // Filter campaign sends by instance when a filter is active.
+    // Otherwise, restrict to known instance names so old campaign data from removed instances is hidden.
+    const knownNameSet = knownInstanceNames && knownInstanceNames.length > 0 ? new Set(knownInstanceNames) : null;
     const filteredCampaignSends = filterInstanceName
       ? campaignSends.filter(s => s.instance_name === filterInstanceName)
-      : campaignSends;
+      : knownNameSet
+        ? campaignSends.filter(s => !s.instance_name || knownNameSet.has(s.instance_name))
+        : campaignSends;
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
