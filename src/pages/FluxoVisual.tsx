@@ -80,6 +80,7 @@ import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { useZapi } from "@/hooks/useZapi";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
@@ -186,6 +187,7 @@ export default function FluxoVisual() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
+  const { instances } = useZapiInstances();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
@@ -259,6 +261,22 @@ export default function FluxoVisual() {
   useEffect(() => {
     fetchFluxos();
   }, []);
+
+  useEffect(() => {
+    const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
+    if (uazapiInstances.length === 0) return;
+
+    try {
+      const flagKey = "uazapi_webhook_synced_flow_v1";
+      if (sessionStorage.getItem(flagKey)) return;
+      sessionStorage.setItem(flagKey, "1");
+      supabase.functions.invoke("uazapi-set-webhook", { body: {} }).catch(() => {
+        /* silent */
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [instances]);
 
   const handleNovoFluxo = () => {
     setNomeFluxo("Novo Fluxo");
