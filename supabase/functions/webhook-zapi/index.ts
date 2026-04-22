@@ -379,15 +379,27 @@ serve(async (req) => {
         const m = webhook?.message || webhook?.data || {}
         const eventType = String(webhook?.EventType || webhook?.event || '').toLowerCase()
 
-        // Extract phone/chat
-        const chatId = String(m?.chatid || m?.chatId || m?.remoteJid || m?.from || '')
-        const isGroup = chatId.includes('@g.us') || m?.isGroup === true
-        const phone = chatId.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@g.us', '').replace(/\D/g, '')
-        const fromMe = Boolean(m?.fromMe || m?.fromme || m?.key?.fromMe)
-        const text = m?.text || m?.message?.text || m?.body || m?.conversation
-          || m?.message?.conversation || m?.message?.extendedTextMessage?.text || ''
-        const senderName = m?.senderName || m?.pushName || m?.notifyName || m?.sender_name || ''
-        const senderPhone = String(m?.sender || m?.participant || m?.author || phone).replace('@s.whatsapp.net','').replace('@c.us','').replace(/\D/g,'')
+        // Extract phone/chat from both nested and root-level UAZAPI payloads
+        const rawChatId = String(
+          m?.chatid || m?.chatId || m?.remoteJid || m?.from ||
+          webhook?.chatid || webhook?.chatId || webhook?.remoteJid || webhook?.from || ''
+        )
+        const rawPhoneValue = String(webhook?.phone || m?.phone || rawChatId || '')
+        const rawSenderPhone = String(webhook?.senderPhone || m?.senderPhone || m?.sender || m?.participant || m?.author || rawPhoneValue)
+        const isGroup = webhook?.isGroup === true || m?.isGroup === true || rawChatId.includes('@g.us') || rawPhoneValue.includes('@g.us')
+        const phone = (isGroup ? (rawChatId || rawPhoneValue) : rawPhoneValue)
+          .replace('@s.whatsapp.net', '')
+          .replace('@c.us', '')
+          .replace(/\D/g, '')
+        const fromMe = Boolean(webhook?.fromMe || m?.fromMe || m?.fromme || m?.key?.fromMe)
+        const text = webhook?.text?.message || webhook?.text || webhook?.body || webhook?.conversation ||
+          m?.text || m?.message?.text || m?.body || m?.conversation ||
+          m?.message?.conversation || m?.message?.extendedTextMessage?.text || ''
+        const senderName = webhook?.senderName || m?.senderName || m?.pushName || m?.notifyName || m?.sender_name || ''
+        const senderPhone = rawSenderPhone
+          .replace('@s.whatsapp.net','')
+          .replace('@c.us','')
+          .replace(/\D/g,'')
 
         // Map to Z-API ReceivedCallback shape
         const normalized: any = {
@@ -395,10 +407,10 @@ serve(async (req) => {
           phone,
           isGroup,
           fromMe,
-          instanceId: uazInstanceId || webhook?.instanceId || '',
+          instanceId: uazInstanceId || webhook?.instanceId || webhook?.instanceName || webhook?.instance_name || m?.instanceId || m?.instanceName || '',
           senderName,
           senderPhone,
-          chatName: m?.chatName || m?.groupName || senderName,
+          chatName: webhook?.chatName || m?.chatName || webhook?.groupName || m?.groupName || senderName,
           messageId: m?.id || m?.messageId || m?.key?.id,
           type: 'ReceivedCallback',
           text: text ? { message: text } : undefined,
