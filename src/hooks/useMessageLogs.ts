@@ -5,6 +5,7 @@ import {
   isUsableGroupDisplayName,
   normalizeConversationPhone,
   rememberGroupDisplayName,
+  resolveGroupConversationName,
 } from '@/lib/group-name-resolution';
 
 export interface MessageLog {
@@ -196,6 +197,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
+  const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
   const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
@@ -215,6 +217,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       const map = new Map<string, SavedContact>();
       data.forEach((c) => {
         map.set(c.phone, c);
+        if (isGroupPhone(c.phone)) {
+          map.set(normalizeConversationPhone(c.phone), c);
+        }
         rememberGroupDisplayName(stableGroupNamesRef.current, c.phone, c.name);
       });
       setSavedContacts(map);
@@ -514,6 +519,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
         if (error || !data?.groups) return;
         const map = new Map(groupNames);
+        const photoMap = new Map(groupPhotos);
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
           if (g.id && isUsableGroupDisplayName(g.nome)) {
@@ -521,6 +527,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
             const normalizedId = normalizeConversationPhone(rawId);
             map.set(rawId, g.nome);
             map.set(normalizedId, g.nome);
+            if (g.foto) {
+              photoMap.set(rawId, g.foto);
+              photoMap.set(normalizedId, g.foto);
+            }
             rememberGroupDisplayName(stableGroupNamesRef.current, rawId, g.nome);
             rememberGroupDisplayName(stableGroupNamesRef.current, normalizedId, g.nome);
 
@@ -531,10 +541,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           }
         }
         setGroupNames(map);
+        setGroupPhotos(photoMap);
         setGroupSourceInstances(instanceMap);
       } catch { /* ignore */ }
     })();
-  }, [loading, messageLogs, campaignSends, groupNames]);
+  }, [loading, messageLogs, campaignSends, groupNames, groupPhotos]);
 
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
@@ -659,50 +670,26 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           return b.id.localeCompare(a.id);
         });
         const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
-        const saved = safeMapGet(savedContacts, phone);
+        const normalizedPhone = normalizeConversationPhone(phone);
+        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalizedPhone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
-        // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
-        const groupName = isGroup ? (safeMapGet(groupNames, phone) || null) : null;
         const preferredInstanceId = filterInstanceId && filterInstanceId !== 'all'
           ? filterInstanceId
-          : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || null;
-
-        const preferredGroupName = isGroup
-          ? (isUsableGroupDisplayName(groupName) ? groupName : null)
-          : null;
-        const placeholderGroupName = isGroup
-          ? (() => {
-              for (const log of sortedConversationLogs) {
-                if (log.keyword_matched !== '__history_import__') continue;
-                const text = String(log.message_received || '').trim();
-                if (!text.startsWith('💬 Conversa com ')) continue;
-
-                const extracted = text
-                  .replace(/^💬\s*Conversa com\s*/i, '')
-                  .trim();
-
-                if (isUsableGroupDisplayName(extracted)) {
-                  return extracted;
-                }
-              }
-
-              return null;
-            })()
-          : null;
-        const preferredSavedName = isGroup
-          ? (isUsableGroupDisplayName(saved?.name) ? saved?.name || null : null)
-          : (saved?.name || null);
-        const preferredCampaignName = isGroup
-          ? (isUsableGroupDisplayName(campaignName) ? campaignName : null)
-          : campaignName;
-        const stableGroupName = isGroup
-          ? (safeMapGet(stableGroupNamesRef.current, phone) || null)
-          : null;
-        const resolvedContactName = preferredGroupName || preferredSavedName || placeholderGroupName || preferredCampaignName || stableGroupName || null;
+          : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || safeMapGet(groupSourceInstances, normalizedPhone) || null;
+        const resolvedContactName = isGroup
+          ? resolveGroupConversationName({
+              phone,
+              logs: sortedConversationLogs,
+              savedContacts,
+              groupNames,
+              stableGroupNames: stableGroupNamesRef.current,
+              campaignContactName: campaignName,
+            })
+          : (saved?.name || campaignName || null);
 
         if (isGroup && resolvedContactName) {
           rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
@@ -711,7 +698,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: saved?.profile_picture_url || null,
+          profilePictureUrl: saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
           lastMessage: typeof last?.content === 'string' ? last.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
