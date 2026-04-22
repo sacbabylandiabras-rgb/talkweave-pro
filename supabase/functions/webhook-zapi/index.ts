@@ -4828,6 +4828,41 @@ function findButtonEdgeMatch(
       .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
       .trim();
 
+  const explodeChoiceCandidates = (value: string): string[] => {
+    const raw = String(value || "").trim();
+    if (!raw) return [];
+
+    const candidates = new Set<string>([raw]);
+    const flattened = raw.replace(/\r/g, "\n");
+
+    flattened
+      .split(/\n+/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => candidates.add(part));
+
+    flattened
+      .split(/[|;,]+/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => candidates.add(part));
+
+    const numberedMatches = Array.from(
+      flattened.matchAll(/(?:^|\n)\s*(\d+)\s*[.)\-:]+\s*([^\n]+)/gu),
+    );
+    for (const match of numberedMatches) {
+      const numeric = String(match[1] || "").trim();
+      const label = String(match[2] || "").trim();
+      if (numeric) candidates.add(numeric);
+      if (label) {
+        candidates.add(label);
+        candidates.add(`${numeric}. ${label}`);
+      }
+    }
+
+    return Array.from(candidates);
+  };
+
   const extractExplicitButtonHandle = (value: string): string | null => {
     const trimmed = String(value || "").trim();
     if (!trimmed) return null;
@@ -4871,9 +4906,11 @@ function findButtonEdgeMatch(
   const replyCandidates = Array.from(
     new Set(
       baseCandidates.flatMap((value) => {
-        const trimmed = value.trim();
-        const stripped = stripChoicePrefix(trimmed);
-        return stripped && stripped !== trimmed ? [trimmed, stripped] : [trimmed];
+        return explodeChoiceCandidates(value).flatMap((candidate) => {
+          const trimmed = candidate.trim();
+          const stripped = stripChoicePrefix(trimmed);
+          return stripped && stripped !== trimmed ? [trimmed, stripped] : [trimmed];
+        });
       }),
     ),
   );
@@ -4930,11 +4967,14 @@ function findButtonEdgeMatch(
           .map((value) => normalizeForMatch(value))
           .filter(Boolean);
 
+        const idxNormalized = normalizeForMatch(String(idx + 1));
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
           buttonHandleAliases.some((alias) => explicitHandleCandidates.has(alias)) ||
-          derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
+          derivedIndexCandidates.has(idxNormalized) ||
+          normalizedRaw === idxNormalized ||
+          normalizedMessage === idxNormalized ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
           );
