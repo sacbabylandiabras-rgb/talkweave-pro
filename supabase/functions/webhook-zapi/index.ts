@@ -2868,7 +2868,14 @@ serve(async (req) => {
       }
     }
 
-    if (fromMe) {
+    const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true && fromMe &&
+      Boolean(
+        extractButtonReplyCandidates(webhook)[0] ||
+          webhook?.buttonReply?.selectedRowId || webhook?.buttonReply?.selectedButtonId ||
+          webhook?.text?.selectedRowId || webhook?.text?.selectedButtonId,
+      );
+
+    if (fromMe && !isUazapiInteractiveSelfEcho) {
       const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ??
         webhook?.timestamp ?? webhook?.createdAt;
       const numericTimestamp = Number(rawTimestamp);
@@ -2911,6 +2918,12 @@ serve(async (req) => {
         status: 200,
         headers: corsHeaders,
       });
+    }
+
+    if (isUazapiInteractiveSelfEcho) {
+      console.log(
+        "🧭 UAZAPI interactive self-echo detected; treating as button selection to continue the flow",
+      );
     }
 
     // Verifica se o sistema está ativo (filtra pelo user_id correto)
