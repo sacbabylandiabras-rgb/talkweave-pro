@@ -3739,6 +3739,9 @@ async function sendNodeContent(
   };
 
   const contentType = targetNode.data.contentType || "text";
+  const isMediaContentType = ["image", "video", "audio", "document"].includes(
+    contentType,
+  );
   const stripButtonListFromMessage = (
     message: string,
     btns: Array<{ text?: string }>,
@@ -4022,6 +4025,13 @@ async function sendNodeContent(
       `>>> Enviando bloco ${targetNode.id} tipo=${contentType} buttons=${allSendButtons.length}`,
     );
 
+    if (isMediaContentType && !mediaUrl) {
+      console.warn(
+        `⚠️ Bloco ${targetNode.id} marcado como ${contentType}, mas sem mediaUrl — pulando envio do bloco para não travar o fluxo`,
+      );
+      return false;
+    }
+
     if (nextCaptureStep) {
       await sendProviderText(
         replaceCapturedVars(nextCaptureStep.prompt),
@@ -4213,7 +4223,7 @@ async function sendNodeContent(
       }
 
       if (endpoint) {
-        if (isUazapiProvider && mediaUrl && contentType !== "text") {
+        if (isUazapiProvider && contentType !== "text") {
           await sendProviderMedia(
             contentType as "image" | "video" | "audio" | "document",
             mediaUrl,
