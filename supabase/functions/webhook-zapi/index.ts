@@ -480,9 +480,10 @@ serve(async (req) => {
           .replace("@s.whatsapp.net", "")
           .replace("@c.us", "")
           .replace(/\D/g, "");
+        const normalizedEventFromMe = parseBooleanLike(eventPayload?.IsFromMe);
         const fromMe = Boolean(
-          parseBooleanLike(eventPayload?.IsFromMe) ?? webhook?.fromMe ||
-            m?.fromMe || m?.fromme || m?.key?.fromMe,
+          (normalizedEventFromMe ?? webhook?.fromMe ?? m?.fromMe ?? m?.fromme ??
+            m?.key?.fromMe),
         );
         const messageUpdateStatus = String(
           eventPayload?.Type || webhook?.state || webhook?.status || "",
