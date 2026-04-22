@@ -207,7 +207,12 @@ const safeMapGet = <K, V>(map: Map<K, V> | null | undefined, key: K): V | undefi
   return map.get(key);
 };
 
-export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
+export const useMessageLogs = (
+  filterInstanceId?: string,
+  filterInstanceName?: string,
+  knownInstanceIds?: string[],
+  knownInstanceNames?: string[],
+) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
@@ -648,11 +653,15 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
-    // When an instance filter is active, show only conversations that have activity on that instance
-    // When no filter (all), show all conversations
+    // When a specific instance is selected, filter to that one.
+    // Otherwise (all/none), restrict to the user's currently known instances so logs from
+    // removed/disconnected instances don't pollute the list.
+    const knownIdSet = knownInstanceIds && knownInstanceIds.length > 0 ? new Set(knownInstanceIds) : null;
     const filteredLogs = filterInstanceId
       ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : messageLogs;
+      : knownIdSet
+        ? messageLogs.filter(m => !m.instance_id || knownIdSet.has(m.instance_id))
+        : messageLogs;
 
     // From message_logs
     filteredLogs.forEach(log => {
@@ -711,10 +720,14 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       }
     });
 
-    // Filter campaign sends by instance when a filter is active
+    // Filter campaign sends by instance when a filter is active.
+    // Otherwise, restrict to known instance names so old campaign data from removed instances is hidden.
+    const knownNameSet = knownInstanceNames && knownInstanceNames.length > 0 ? new Set(knownInstanceNames) : null;
     const filteredCampaignSends = filterInstanceName
       ? campaignSends.filter(s => s.instance_name === filterInstanceName)
-      : campaignSends;
+      : knownNameSet
+        ? campaignSends.filter(s => !s.instance_name || knownNameSet.has(s.instance_name))
+        : campaignSends;
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
