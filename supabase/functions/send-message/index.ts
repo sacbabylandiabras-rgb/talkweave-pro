@@ -187,10 +187,6 @@ serve(async (req) => {
     }
     // ===== END UAZAPI ROUTING =====
 
-    if (false) {
-      // placeholder to keep diff minimal
-      }
-
     // SERVER-SIDE GROUP INSTANCE RESOLUTION
     // For group phones, verify the correct instance by checking which instance
     // actually receives messages from this group. Z-API returns 200 even when
