@@ -135,22 +135,29 @@ serve(async (req) => {
     if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
       const { apiUrl, apiToken } = uazapiOverride;
       const uazHeaders = { 'Content-Type': 'application/json', token: apiToken };
+      const normalizedGroupId = isGroupPhone
+        ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
+        : null;
       const cleanPhone = String(phone).replace(/[@\-].*$/, '').replace(/\D/g, '');
+      const targetNumber = normalizedGroupId || cleanPhone;
+      const logPhone = isGroupPhone
+        ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}-group`
+        : cleanPhone;
       let endpoint = '/send/text';
-      let body: Record<string, unknown> = { number: cleanPhone, text: message || '' };
+      let body: Record<string, unknown> = { number: targetNumber, text: message || '' };
 
       if (mediaUrl && mediaType) {
         endpoint = '/send/media';
         const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' };
         body = {
-          number: cleanPhone,
+          number: targetNumber,
           type: typeMap[mediaType] || 'document',
           file: mediaUrl,
           text: message || '',
         };
       }
 
-      console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${cleanPhone}`);
+      console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${targetNumber}`);
       const uazRes = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: uazHeaders,
@@ -171,7 +178,7 @@ serve(async (req) => {
       const logTag = mediaUrl && mediaType ? `[media:${mediaType}:${mediaUrl}]` : '';
       const logContent = logTag ? (message ? `${logTag}\n${message}` : logTag) : (message || '');
       await supabase.from('message_logs').insert({
-        phone: cleanPhone,
+        phone: logPhone,
         message_received: null,
         response_sent: logContent,
         keyword_matched: '__manual_send__',
