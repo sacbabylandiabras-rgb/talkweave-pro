@@ -5,6 +5,7 @@ import {
   isUsableGroupDisplayName,
   normalizeConversationPhone,
   rememberGroupDisplayName,
+  resolveGroupConversationName,
 } from '@/lib/group-name-resolution';
 
 export interface MessageLog {
@@ -196,6 +197,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
+  const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
   const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
@@ -215,6 +217,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       const map = new Map<string, SavedContact>();
       data.forEach((c) => {
         map.set(c.phone, c);
+        if (isGroupPhone(c.phone)) {
+          map.set(normalizeConversationPhone(c.phone), c);
+        }
         rememberGroupDisplayName(stableGroupNamesRef.current, c.phone, c.name);
       });
       setSavedContacts(map);
