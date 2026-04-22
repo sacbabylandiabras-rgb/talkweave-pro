@@ -42,6 +42,31 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
   return data;
 };
 
+const pickPreferredInstance = (instances: any[] | null | undefined) => {
+  if (!Array.isArray(instances) || instances.length === 0) return null;
+  return [...instances].sort((a, b) => {
+    if (Boolean(a.is_default) !== Boolean(b.is_default)) return a.is_default ? -1 : 1;
+    return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+  })[0] || null;
+};
+
+const findUserInstance = async (adminClient: any, userId: string, instanceRef: string) => {
+  if (!instanceRef) return null;
+  const { data, error } = await adminClient
+    .from('zapi_instances')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default, created_at')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .or(`zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef}`);
+
+  if (error) {
+    console.error(`❌ Failed to resolve instance ${instanceRef}:`, error);
+    return null;
+  }
+
+  return pickPreferredInstance(data);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -85,37 +110,15 @@ serve(async (req) => {
     }
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
     let uazapiOverride: { apiUrl: string; apiToken: string } | null = null;
 
     // Detect group phones
     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
 
-    if (requestedInstanceId && requestedInstanceId !== instanceId) {
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      
-      // Try matching by zapi_instance_id first, then by table id (UUID)
-      let reqInstance = null;
-      const { data: byZapiId } = await adminClient
-        .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-        .eq('zapi_instance_id', requestedInstanceId)
-        .eq('user_id', credentials.userId)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      reqInstance = byZapiId;
-      
-      if (!reqInstance) {
-        const { data: byTableId } = await adminClient
-          .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-          .eq('id', requestedInstanceId)
-          .eq('user_id', credentials.userId)
-          .eq('is_active', true)
-          .maybeSingle();
-        reqInstance = byTableId;
-      }
+    if (requestedInstanceId) {
+      const reqInstance = await findUserInstance(adminClient, credentials.userId, requestedInstanceId);
 
       if (reqInstance) {
         console.log(`📌 Using requested instance: ${reqInstance.zapi_instance_id} (requested: ${requestedInstanceId})`);
@@ -127,6 +130,21 @@ serve(async (req) => {
             apiUrl: ((reqInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
             apiToken: (reqInstance as any).evolution_api_key || '',
           };
+        }
+      }
+    } else {
+      const defaultInstance = await findUserInstance(adminClient, credentials.userId, instanceId);
+
+      if (defaultInstance) {
+        instanceId = defaultInstance.zapi_instance_id;
+        token = defaultInstance.zapi_token;
+        clientToken = defaultInstance.zapi_client_token;
+        if ((defaultInstance as any).api_provider === 'uazapi') {
+          uazapiOverride = {
+            apiUrl: ((defaultInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
+            apiToken: (defaultInstance as any).evolution_api_key || '',
+          };
+          console.log(`📌 Using default UAZAPI instance: ${instanceId}`);
         }
       }
     }
@@ -240,13 +258,7 @@ serve(async (req) => {
 
       if (resolvedGroupInstanceId && resolvedGroupInstanceId !== instanceId) {
         // Switch to the correct instance
-        const { data: correctInstance } = await adminClient
-          .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token')
-          .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
-          .eq('user_id', credentials.userId)
-          .eq('is_active', true)
-          .maybeSingle();
+        const correctInstance = await findUserInstance(adminClient, credentials.userId, resolvedGroupInstanceId);
 
         if (correctInstance) {
           console.log(`🔄 GROUP INSTANCE OVERRIDE: switching from ${instanceId} to ${correctInstance.zapi_instance_id} (verified from inbound logs)`);
