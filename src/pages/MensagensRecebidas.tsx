@@ -862,7 +862,10 @@ const MensagensRecebidas = () => {
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
   const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
   const filterInstanceName = selectedInstance?.instance_name;
-  const shouldAutoSyncHistory = (selectedInstance?.api_provider || activeInstance?.api_provider) === 'zapi';
+  // Auto-sync the chat list from the connected provider (Z-API or UAZAPI) so
+  // we always show the latest live conversations, not only the historic logs
+  // stored in the database.
+  const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -874,19 +877,6 @@ const MensagensRecebidas = () => {
   const { toast } = useToast();
 
   const syncHistory = async () => {
-    // For UAZAPI instances the refresh button should NOT import old historical
-    // chats (which would replace the live recent conversations). Just refetch
-    // the live list instead.
-    if (!shouldAutoSyncHistory) {
-      setSyncing(true);
-      try {
-        await refetch();
-      } finally {
-        setSyncing(false);
-      }
-      return;
-    }
-
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
