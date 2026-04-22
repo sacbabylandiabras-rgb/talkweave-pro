@@ -232,6 +232,29 @@ Deno.serve(async (req) => {
     
     const placeholderRows: any[] = [];
     const groupContactsToUpsert: any[] = [];
+    const apiUrlClean = (uazapiUrl || '').replace(/\/+$/, '');
+
+    // Helper: fetch group name via UAZAPI /group/info
+    const fetchUazapiGroupName = async (groupjid: string): Promise<{ name: string; pic: string | null }> => {
+      if (apiProvider !== 'uazapi' || !apiUrlClean || !uazapiToken) return { name: '', pic: null };
+      try {
+        const gRes = await fetch(`${apiUrlClean}/group/info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: uazapiToken },
+          body: JSON.stringify({ groupjid }),
+        });
+        if (!gRes.ok) return { name: '', pic: null };
+        const g = await gRes.json();
+        const name = g?.subject || g?.name || g?.group?.subject || g?.group?.name
+          || g?.groupMetadata?.subject || g?.data?.subject || '';
+        const pic = g?.imageUrl || g?.picture || g?.profilePicUrl || g?.group?.imageUrl || null;
+        return { name: String(name || ''), pic: pic || null };
+      } catch (e) {
+        console.error('UAZAPI group/info failed:', e);
+        return { name: '', pic: null };
+      }
+    };
+
     for (const chat of allChats) {
       // For UAZAPI, group chats have wa_chatid = "<id>@g.us"; use it as the phone identifier
       const rawId = String(chat?.phone || chat?.wa_chatid || chat?.id || "").trim();
@@ -240,9 +263,9 @@ Deno.serve(async (req) => {
       const phone = isGroup
         ? rawId.replace("@g.us", "").replace(/\D/g, "") + "-group"
         : rawId.replace("@c.us", "").replace("@s.whatsapp.net", "").replace(/\D/g, "");
-      if (!phone || existingPhoneSet.has(phone)) continue;
+      if (!phone) continue;
 
-        const lastMessageTime = normalizeTimestamp(chat.lastMessageTime || chat.wa_lastMsgTimestamp);
+      const lastMessageTime = normalizeTimestamp(chat.lastMessageTime || chat.wa_lastMsgTimestamp);
 
       let chatName = chat?.name
         || chat?.wa_contactName
@@ -253,41 +276,36 @@ Deno.serve(async (req) => {
         || chat?.groupName
         || "";
 
-      // For UAZAPI groups without name, fetch group info
-      if (isGroup && !chatName && apiProvider === 'uazapi' && uazapiUrl && uazapiToken) {
-        try {
-          const apiUrl = uazapiUrl.replace(/\/+$/, '');
-          const gRes = await fetch(`${apiUrl}/group/info`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: uazapiToken },
-            body: JSON.stringify({ groupjid: rawId }),
-          });
-          if (gRes.ok) {
-            const g = await gRes.json();
-            chatName = g?.subject || g?.name || g?.group?.subject || g?.group?.name || chatName;
-          }
-        } catch (e) {
-          console.error('UAZAPI group/info failed:', e);
-        }
+      let chatPic = chat?.imagePreview || chat?.profileThumbnail || chat?.image || null;
+
+      // For UAZAPI groups, ALWAYS fetch /group/info to ensure real subject (overrides numeric IDs)
+      const looksNumeric = !chatName || /^\d+$/.test(String(chatName).trim());
+      if (isGroup && apiProvider === 'uazapi' && looksNumeric) {
+        const info = await fetchUazapiGroupName(rawId);
+        if (info.name) chatName = info.name;
+        if (info.pic) chatPic = info.pic;
       }
 
-      placeholderRows.push({
-        phone,
-        user_id: credentials.userId,
-        timestamp: lastMessageTime,
-        message_received: `💬 Conversa com ${chatName || (isGroup ? 'Grupo' : phone)}`,
-        response_sent: null,
-        keyword_matched: "__history_import__",
-        instance_id: instanceId,
-      });
+      // Insert placeholder log only if no message exists yet for this chat
+      if (!existingPhoneSet.has(phone)) {
+        placeholderRows.push({
+          phone,
+          user_id: credentials.userId,
+          timestamp: lastMessageTime,
+          message_received: `💬 Conversa com ${chatName || (isGroup ? 'Grupo' : phone)}`,
+          response_sent: null,
+          keyword_matched: "__history_import__",
+          instance_id: instanceId,
+        });
+      }
 
-      // Also save the group name into saved_contacts so the chat list shows it
+      // Always upsert group name so the chat list shows the friendly name (even for existing chats)
       if (isGroup && chatName) {
         groupContactsToUpsert.push({
           phone,
           name: chatName,
           user_id: credentials.userId,
-          profile_picture_url: chat?.imagePreview || chat?.profileThumbnail || null,
+          profile_picture_url: chatPic,
         });
       }
     }
