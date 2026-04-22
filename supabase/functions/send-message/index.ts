@@ -86,6 +86,7 @@ serve(async (req) => {
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     let { instanceId, token, clientToken } = credentials;
+    let uazapiOverride: { apiUrl: string; apiToken: string } | null = null;
 
     // Detect group phones
     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
@@ -97,7 +98,7 @@ serve(async (req) => {
       let reqInstance = null;
       const { data: byZapiId } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
         .eq('zapi_instance_id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -108,7 +109,7 @@ serve(async (req) => {
       if (!reqInstance) {
         const { data: byTableId } = await adminClient
           .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token')
+          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
           .eq('id', requestedInstanceId)
           .eq('user_id', credentials.userId)
           .eq('is_active', true)
@@ -121,8 +122,74 @@ serve(async (req) => {
         instanceId = reqInstance.zapi_instance_id;
         token = reqInstance.zapi_token;
         clientToken = reqInstance.zapi_client_token;
+        if ((reqInstance as any).api_provider === 'uazapi') {
+          uazapiOverride = {
+            apiUrl: ((reqInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
+            apiToken: (reqInstance as any).evolution_api_key || '',
+          };
+        }
       }
     }
+
+    // ===== UAZAPI ROUTING (short-circuit) =====
+    if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
+      const { apiUrl, apiToken } = uazapiOverride;
+      const uazHeaders = { 'Content-Type': 'application/json', token: apiToken };
+      const cleanPhone = String(phone).replace(/[@\-].*$/, '').replace(/\D/g, '');
+      let endpoint = '/send/text';
+      let body: Record<string, unknown> = { number: cleanPhone, text: message || '' };
+
+      if (mediaUrl && mediaType) {
+        endpoint = '/send/media';
+        const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' };
+        body = {
+          number: cleanPhone,
+          type: typeMap[mediaType] || 'document',
+          file: mediaUrl,
+          text: message || '',
+        };
+      }
+
+      console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${cleanPhone}`);
+      const uazRes = await fetch(`${apiUrl}${endpoint}`, {
+        method: 'POST',
+        headers: uazHeaders,
+        body: JSON.stringify(body),
+      });
+      const uazRaw = await uazRes.text();
+      let uazData: any = {};
+      try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+
+      if (!uazRes.ok) {
+        return new Response(
+          JSON.stringify({ error: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`, details: uazData }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const logTag = mediaUrl && mediaType ? `[media:${mediaType}:${mediaUrl}]` : '';
+      const logContent = logTag ? (message ? `${logTag}\n${message}` : logTag) : (message || '');
+      await supabase.from('message_logs').insert({
+        phone: cleanPhone,
+        message_received: null,
+        response_sent: logContent,
+        keyword_matched: '__manual_send__',
+        timestamp: new Date().toISOString(),
+        user_id: credentials.userId,
+        instance_id: instanceId,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, provider: 'uazapi', data: uazData }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    // ===== END UAZAPI ROUTING =====
+
+    if (false) {
+      // placeholder to keep diff minimal
+      }
 
     // SERVER-SIDE GROUP INSTANCE RESOLUTION
     // For group phones, verify the correct instance by checking which instance
