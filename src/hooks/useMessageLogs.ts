@@ -178,6 +178,11 @@ const normalizeConversationPhone = (phone: string): string => {
   return numericId ? `${numericId}-group` : phone;
 };
 
+const safeMapGet = <K, V>(map: Map<K, V> | null | undefined, key: K): V | undefined => {
+  if (!map || typeof map.get !== 'function') return undefined;
+  return map.get(key);
+};
+
 const rememberGroupDisplayName = (store: Map<string, string>, phone: string, name: string | null | undefined) => {
   if (!isGroupPhone(phone) || !isUsableGroupDisplayName(name)) return;
   store.set(normalizeConversationPhone(phone), String(name).trim());
@@ -354,7 +359,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
-          const existing = savedContacts.get(phone);
+          const existing = safeMapGet(savedContacts, phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
           await fetchSavedContacts();
         }
@@ -372,7 +377,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     // Only fetch for phones we haven't tried yet and that look like real numbers (not @lid)
     const toFetch = phones.filter(p => 
       !fetchedPhotosRef.current.has(p) && 
-      !savedContacts.get(p)?.profile_picture_url &&
+      !safeMapGet(savedContacts, p)?.profile_picture_url &&
       !p.includes('@') &&
       !isGroupPhone(p) &&
       !isLikelyTechnicalIdentifier(p)
@@ -387,7 +392,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         if (error) continue;
         const url = extractProfilePictureUrl(data?.data ?? data);
         if (url) {
-          const existing = savedContacts.get(phone);
+          const existing = safeMapGet(savedContacts, phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
         }
         await new Promise(r => setTimeout(r, 500));
@@ -617,24 +622,24 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           return a.id.localeCompare(b.id);
         });
         const last = sorted[sorted.length - 1];
-        const conversationLogs = groupedLogs.get(phone) || [];
+        const conversationLogs = safeMapGet(groupedLogs, phone) || [];
         const sortedConversationLogs = [...conversationLogs].sort((a, b) => {
           const timeDiff = toMillis(b.timestamp || b.created_at) - toMillis(a.timestamp || a.created_at);
           if (timeDiff !== 0) return timeDiff;
           return b.id.localeCompare(a.id);
         });
         const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
-        const saved = savedContacts.get(phone);
+        const saved = safeMapGet(savedContacts, phone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
         // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
-        const groupName = isGroup ? (groupNames.get(phone) || null) : null;
+        const groupName = isGroup ? (safeMapGet(groupNames, phone) || null) : null;
         const preferredInstanceId = filterInstanceId && filterInstanceId !== 'all'
           ? filterInstanceId
-          : latestInboundLog?.instance_id || groupSourceInstances.get(phone) || null;
+          : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || null;
 
         const preferredGroupName = isGroup
           ? (isUsableGroupDisplayName(groupName) ? groupName : null)
@@ -659,7 +664,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           ? (isUsableGroupDisplayName(campaignName) ? campaignName : null)
           : campaignName;
         const stableGroupName = isGroup
-          ? (stableGroupNamesRef.current.get(phone) || null)
+          ? (safeMapGet(stableGroupNamesRef.current, phone) || null)
           : null;
         const resolvedContactName = preferredGroupName || preferredSavedName || placeholderGroupName || preferredCampaignName || stableGroupName || null;
 
