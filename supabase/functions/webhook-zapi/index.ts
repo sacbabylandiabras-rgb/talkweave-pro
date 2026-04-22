@@ -3722,12 +3722,17 @@ async function sendNodeContent(
     file: string,
     caption: string,
     context: string,
+    options?: { isPtv?: boolean; viewOnce?: boolean },
   ) => {
     if (isUazapiProvider) {
       if (!uazapiUrl || !uazapiToken) {
         throw new Error("UAZAPI URL/Token não configurados");
       }
-      const mappedType = type === "audio" ? "ptt" : type;
+      const mappedType = type === "audio"
+        ? "ptt"
+        : type === "video" && options?.isPtv
+        ? "ptv"
+        : type;
       const res = await fetch(`${uazapiUrl}/send/media`, {
         method: "POST",
         headers: { "Content-Type": "application/json", token: uazapiToken },
@@ -3735,7 +3740,8 @@ async function sendNodeContent(
           number: normalizedTargetNumber,
           type: mappedType,
           file,
-          text: caption || "",
+          ...(caption && mappedType !== "ptv" ? { text: caption } : {}),
+          ...(options?.viewOnce ? { viewOnce: true } : {}),
         }),
       });
       return parseProviderResponse(res, context);
@@ -3921,6 +3927,10 @@ async function sendNodeContent(
             mediaUrl,
             "",
             `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`,
+            {
+              isPtv: Boolean(targetNode.data?.isPtv),
+              viewOnce: Boolean(targetNode.data?.viewOnce),
+            },
           );
         } else {
           const mediaRes = await fetch(`${baseUrl}${mediaEndpoint}`, {
@@ -4065,6 +4075,10 @@ async function sendNodeContent(
             mediaUrl,
             content,
             `Bloco ${targetNode.id} (${contentType})`,
+              {
+                isPtv: Boolean(targetNode.data?.isPtv),
+                viewOnce: Boolean(targetNode.data?.viewOnce),
+              },
           );
         } else if (isUazapiProvider && contentType === "text") {
           await sendProviderText(
