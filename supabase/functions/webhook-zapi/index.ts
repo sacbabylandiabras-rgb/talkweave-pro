@@ -4252,6 +4252,24 @@ async function sendNodeContent(
     );
   });
 
+  if (hasButtonEdges && supabase && userId) {
+    await supabase.from("message_logs").insert({
+      phone,
+      message_received: null,
+      response_sent: JSON.stringify({
+        flowId: options?.flowId || null,
+        flowName: flowName || null,
+        nodeId: targetNode.id,
+        instanceId: zapiConfig?.zapi_instance_id || null,
+        captured: options?.resumeCaptured || {},
+      }),
+      keyword_matched: `${FLOW_BUTTON_PREFIX}${userId}`,
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      instance_id: zapiConfig?.zapi_instance_id || null,
+    });
+  }
+
   if (hasButtonEdges || hasCaptureEdges) {
     console.log(
       `Bloco ${targetNode.id} tem saídas de botão/captura — aguardando resposta do usuário`,
@@ -4703,6 +4721,7 @@ function findButtonEdgeMatch(
   normalizedMessage: string,
   rawMessage: string,
   webhook?: any,
+  options?: { nodeId?: string | null },
 ):
   | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
   | null {
@@ -4788,6 +4807,7 @@ function findButtonEdgeMatch(
 
     for (const node of nodes) {
       if (node?.type !== "blocoConteudo") continue;
+      if (options?.nodeId && node?.id !== options.nodeId) continue;
       const buttons = Array.isArray(node?.data?.buttons)
         ? node.data.buttons
         : [];
