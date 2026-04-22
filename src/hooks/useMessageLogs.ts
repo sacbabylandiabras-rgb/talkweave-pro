@@ -787,6 +787,38 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, unresolvedGroupKey]);
 
+  // Sync de fotos: quando o nome do grupo já estabilizou mas a foto continua ausente
+  // (por ex. após refresh), re-busca a imagem para manter o avatar persistente.
+  const groupsMissingPhotoKey = conversations
+    .filter((c) => {
+      if (!isGroupPhone(c.phone)) return false;
+      // Nome estável (não é "Grupo" nem vazio)
+      if (!c.contactName || c.contactName === 'Grupo') return false;
+      // Foto ausente
+      return !c.profilePictureUrl;
+    })
+    .map((c) => c.phone)
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    if (loading || !groupsMissingPhotoKey) return;
+    const targets = groupsMissingPhotoKey.split('|').filter(Boolean);
+    const toRefresh = conversations.filter((c) => targets.includes(c.phone)).slice(0, 4);
+    if (toRefresh.length === 0) return;
+
+    (async () => {
+      for (const conv of toRefresh) {
+        const cacheKey = `group-photo-sync:${conv.phone}`;
+        if (fetchedPhotosRef.current.has(cacheKey)) continue;
+        fetchedPhotosRef.current.add(cacheKey);
+        await fetchProfilePicture(conv.phone, conv.preferredInstanceId || null);
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, groupsMissingPhotoKey]);
+
   const sendMessage = useCallback(async (phone: string, message: string, options: SendMessageOptions = {}) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated');
