@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
 
       // Also save the group name into saved_contacts so the chat list shows it
       if (isGroup && chatName) {
-        contactsToUpsert.push({
+        groupContactsToUpsert.push({
           phone,
           name: chatName,
           user_id: credentials.userId,
@@ -306,6 +306,18 @@ Deno.serve(async (req) => {
         } else {
           importedChats += batch.length;
         }
+      }
+    }
+
+    // Upsert group names into saved_contacts so chat list shows the group name
+    if (groupContactsToUpsert.length > 0) {
+      const batchSize = 50;
+      for (let i = 0; i < groupContactsToUpsert.length; i += batchSize) {
+        const batch = groupContactsToUpsert.slice(i, i + batchSize);
+        const { error: gErr } = await adminClient
+          .from("saved_contacts")
+          .upsert(batch, { onConflict: "user_id,phone" });
+        if (gErr) console.error(`❌ Error upserting group names:`, gErr);
       }
     }
 
