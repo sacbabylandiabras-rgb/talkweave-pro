@@ -231,6 +231,7 @@ Deno.serve(async (req) => {
     const existingPhoneSet = new Set((existingPhones || []).map((r: any) => r.phone));
     
     const placeholderRows: any[] = [];
+    const groupContactsToUpsert: any[] = [];
     for (const chat of allChats) {
       // For UAZAPI, group chats have wa_chatid = "<id>@g.us"; use it as the phone identifier
       const rawId = String(chat?.phone || chat?.wa_chatid || chat?.id || "").trim();
