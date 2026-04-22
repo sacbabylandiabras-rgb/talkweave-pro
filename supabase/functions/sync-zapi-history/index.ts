@@ -279,6 +279,15 @@ Deno.serve(async (req) => {
     const groupContactsToUpsert: any[] = [];
     const apiUrlClean = (uazapiUrl || '').replace(/\/+$/, '');
 
+    const isUsableImportedGroupName = (value: unknown) => {
+      const normalized = String(value || '').trim();
+      if (!normalized) return false;
+      if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
+      if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;
+      if (/^conversa com\s+grupo$/i.test(normalized)) return false;
+      return true;
+    };
+
     // Helper: fetch group name via UAZAPI /group/info
     const fetchUazapiGroupName = async (groupjid: string): Promise<{ name: string; pic: string | null }> => {
       if (apiProvider !== 'uazapi' || !apiUrlClean || !uazapiToken) return { name: '', pic: null };
@@ -323,11 +332,11 @@ Deno.serve(async (req) => {
 
       let chatPic = chat?.imagePreview || chat?.profileThumbnail || chat?.image || null;
 
-      // For UAZAPI groups, ALWAYS fetch /group/info to ensure real subject (overrides numeric IDs)
-      const looksNumeric = !chatName || /^\d+$/.test(String(chatName).trim());
-      if (isGroup && apiProvider === 'uazapi' && looksNumeric) {
+      // For UAZAPI groups, fetch /group/info whenever the current label is not a real group name
+      const needsResolvedGroupName = isGroup && !isUsableImportedGroupName(chatName);
+      if (apiProvider === 'uazapi' && needsResolvedGroupName) {
         const info = await fetchUazapiGroupName(rawId);
-        if (info.name) chatName = info.name;
+        if (isUsableImportedGroupName(info.name)) chatName = info.name;
         if (info.pic) chatPic = info.pic;
       }
 
@@ -337,7 +346,7 @@ Deno.serve(async (req) => {
           phone,
           user_id: userId,
           timestamp: lastMessageTime,
-          message_received: `💬 Conversa com ${chatName || (isGroup ? 'Grupo' : phone)}`,
+            message_received: `💬 Conversa com ${isUsableImportedGroupName(chatName) ? chatName : (isGroup ? 'Grupo' : phone)}`,
           response_sent: null,
           keyword_matched: "__history_import__",
           instance_id: instanceId,
@@ -345,7 +354,7 @@ Deno.serve(async (req) => {
       }
 
       // Always upsert group name so the chat list shows the friendly name (even for existing chats)
-      if (isGroup && chatName) {
+      if (isGroup && isUsableImportedGroupName(chatName)) {
         groupContactsToUpsert.push({
           phone,
           name: chatName,
