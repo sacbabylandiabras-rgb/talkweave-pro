@@ -190,7 +190,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const lastLogsRef = useRef<string>('');
   const lastSendsRef = useRef<string>('');
   const fetchedPhotosRef = useRef<Set<string>>(new Set());
-  const fetchedGroupNamesRef = useRef<boolean>(false);
+  const fetchedGroupNamesRef = useRef<string>('');
 
   const fetchSavedContacts = useCallback(async () => {
     try {
@@ -454,22 +454,24 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
   // Fetch group names when we detect group conversations
   useEffect(() => {
-    if (loading || fetchedGroupNamesRef.current) return;
     const groupPhones = [...new Set([
       ...messageLogs.map((m) => m.phone),
       ...campaignSends.map((s) => s.phone),
     ].filter(isGroupPhone))];
     if (groupPhones.length === 0) return;
-    
-    fetchedGroupNamesRef.current = true;
+
+    const groupKey = groupPhones.sort().join('|');
+    if (loading || fetchedGroupNamesRef.current === groupKey) return;
+    fetchedGroupNamesRef.current = groupKey;
+
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
         if (error || !data?.groups) return;
-        const map = new Map<string, string>();
+        const map = new Map(groupNames);
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
-          if (g.id && g.nome) {
+          if (g.id && isUsableGroupDisplayName(g.nome)) {
             map.set(g.id, g.nome);
             // Also try without @g.us suffix for matching
             const cleanId = g.id.replace('@g.us', '');
@@ -485,7 +487,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         setGroupSourceInstances(instanceMap);
       } catch { /* ignore */ }
     })();
-  }, [loading, messageLogs.length, campaignSends.length]);
+  }, [loading, messageLogs, campaignSends, groupNames]);
 
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
