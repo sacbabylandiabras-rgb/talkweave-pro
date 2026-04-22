@@ -426,6 +426,20 @@ Deno.serve(async (req) => {
           .upsert(batch, { onConflict: "user_id,phone" });
         if (gErr) console.error(`❌ Error upserting group names:`, gErr);
       }
+
+      // Atualiza placeholders antigos ("Conversa com Grupo") para refletir o nome resolvido
+      for (const g of groupContactsToUpsert) {
+        try {
+          await adminClient
+            .from('message_logs')
+            .update({ message_received: `💬 Conversa com ${g.name}` })
+            .eq('user_id', userId)
+            .eq('phone', g.phone)
+            .eq('keyword_matched', '__history_import__');
+        } catch (e) {
+          console.error('Failed to refresh placeholder for', g.phone, e);
+        }
+      }
     }
 
     return new Response(
