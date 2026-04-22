@@ -5111,9 +5111,9 @@ function extractMessageText(webhook: any): string {
     webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
 
     webhook?.text?.message,
-    webhook?.text,
+    typeof webhook?.text === "string" ? webhook.text : undefined,
     webhook?.body,
-    webhook?.message,
+    typeof webhook?.message === "string" ? webhook.message : undefined,
     webhook?.conversation,
     webhook?.image?.caption,
     webhook?.video?.caption,
