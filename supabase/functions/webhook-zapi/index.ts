@@ -2904,6 +2904,47 @@ serve(async (req) => {
             .maybeSingle();
 
           if (pendingFlow) {
+            const pendingButtonMatch = findButtonEdgeMatch(
+              [pendingFlow],
+              normalizedMessage,
+              messageRaw,
+              webhook,
+            );
+
+            if (pendingButtonMatch) {
+              console.log(
+                "🎯 Button reply matched while capture was pending; prioritizing button branch",
+                {
+                  flowId: pendingFlow.id,
+                  pendingField: pendingState.field,
+                  button: pendingButtonMatch.buttonText,
+                },
+              );
+
+              await supabase.from("message_logs").delete().eq(
+                "id",
+                pendingCaptureLog.id,
+              );
+
+              const routed = await routeMatchedButtonFlow({
+                match: pendingButtonMatch,
+                phone,
+                zapiConfig,
+                supabase,
+                userId,
+                lockId,
+                flowId: pendingFlow.id,
+                resumeCaptured: pendingState.captured || {},
+              });
+
+              if (routed) {
+                return new Response("button_flow_sent", {
+                  status: 200,
+                  headers: corsHeaders,
+                });
+              }
+            }
+
             const updatedCaptured = { ...(pendingState.captured || {}) };
             if (pendingState.field === "name") {
               updatedCaptured.nome = messageRaw;
@@ -3178,78 +3219,22 @@ serve(async (req) => {
         webhook,
       );
       if (buttonMatch) {
-        console.log("=== BOTÃO MATCH ===");
-        console.log(
-          "Fluxo:",
-          buttonMatch.flowName,
-          "| Botão:",
-          buttonMatch.buttonText,
-          "| Target:",
-          buttonMatch.targetNodeId,
-        );
-        const { flow, targetNodeId } = buttonMatch;
-        const flowNodes: FlowNode[] = flow.nodes || [];
-        const flowEdges: FlowEdge[] = flow.edges || [];
+        const routed = await routeMatchedButtonFlow({
+          match: buttonMatch,
+          phone,
+          zapiConfig,
+          supabase,
+          userId,
+          lockId,
+          flowId: buttonMatch.flow.id,
+        });
 
-        console.log(
-          "Total nodes:",
-          flowNodes.length,
-          "| Total edges:",
-          flowEdges.length,
-        );
-        console.log(
-          "Target node:",
-          JSON.stringify(flowNodes.find((n) => n.id === targetNodeId)?.data),
-        );
-
-        // Process flow starting FROM the target node directly
-        // First send the target node itself, then continue its children
-        const targetNode = flowNodes.find((n) => n.id === targetNodeId);
-        if (targetNode) {
-          const visited = new Set<string>();
-          // Send target node content
-          const shouldStop = await sendNodeContent(
-            targetNode,
-            flowNodes,
-            flowEdges,
-            phone,
-            zapiConfig,
-            visited,
-            supabase,
-            userId,
-            flow.name,
-            { flowId: flow.id },
-          );
-          // Only continue processing children if the node doesn't have button branching
-          if (!shouldStop) {
-            await processFlowNode(
-              targetNode.id,
-              flowNodes,
-              flowEdges,
-              phone,
-              zapiConfig,
-              supabase,
-              visited,
-              userId,
-              flow.name,
-              { flowId: flow.id },
-            );
-          } else {
-            console.log(
-              "Fluxo pausado no nó alvo - aguardando próximo clique de botão",
-            );
-          }
+        if (routed) {
+          return new Response("button_flow_sent", {
+            status: 200,
+            headers: corsHeaders,
+          });
         }
-
-        await finalizeMessageLog(supabase, lockId, {
-          keywordMatched: `[Botão: ${buttonMatch.buttonText}]`,
-          responseSent: `[Fluxo: ${flow.name}]`,
-        });
-
-        return new Response("button_flow_sent", {
-          status: 200,
-          headers: corsHeaders,
-        });
       }
 
       // === CHECK KEYWORD MATCH ===
@@ -4127,6 +4112,112 @@ async function sendNodeContent(
   }
 
   return false;
+}
+
+async function routeMatchedButtonFlow(
+  params: {
+    match: { flow: any; targetNodeId: string; buttonText: string; flowName: string };
+    phone: string;
+    zapiConfig: any;
+    supabase: any;
+    userId?: string | null;
+    lockId: string;
+    flowId?: string | null;
+    resumeCaptured?: PendingCaptureState["captured"];
+  },
+) {
+  const {
+    match,
+    phone,
+    zapiConfig,
+    supabase,
+    userId,
+    lockId,
+    flowId,
+    resumeCaptured,
+  } = params;
+
+  console.log("=== BOTÃO MATCH ===");
+  console.log(
+    "Fluxo:",
+    match.flowName,
+    "| Botão:",
+    match.buttonText,
+    "| Target:",
+    match.targetNodeId,
+  );
+
+  const flowNodes: FlowNode[] = match.flow.nodes || [];
+  const flowEdges: FlowEdge[] = match.flow.edges || [];
+  const targetNode = flowNodes.find((n) => n.id === match.targetNodeId);
+
+  console.log(
+    "Total nodes:",
+    flowNodes.length,
+    "| Total edges:",
+    flowEdges.length,
+  );
+  console.log("Target node:", JSON.stringify(targetNode?.data));
+
+  if (!targetNode) return false;
+
+  const visited = new Set<string>();
+  const flowContext = {
+    flowId: flowId || match.flow.id || null,
+    resumeCaptured,
+  };
+
+  if (targetNode.type === "blocoConteudo") {
+    const shouldStop = await sendNodeContent(
+      targetNode,
+      flowNodes,
+      flowEdges,
+      phone,
+      zapiConfig,
+      visited,
+      supabase,
+      userId,
+      match.flowName,
+      flowContext,
+    );
+
+    if (!shouldStop) {
+      await processFlowNode(
+        targetNode.id,
+        flowNodes,
+        flowEdges,
+        phone,
+        zapiConfig,
+        supabase,
+        visited,
+        userId,
+        match.flowName,
+        flowContext,
+      );
+    } else {
+      console.log("Fluxo pausado no ram alvo - aguardando próximo clique de botão");
+    }
+  } else {
+    await processFlowNode(
+      targetNode.id,
+      flowNodes,
+      flowEdges,
+      phone,
+      zapiConfig,
+      supabase,
+      visited,
+      userId,
+      match.flowName,
+      flowContext,
+    );
+  }
+
+  await finalizeMessageLog(supabase, lockId, {
+    keywordMatched: `[Botão: ${match.buttonText}]`,
+    responseSent: `[Fluxo: ${match.flowName}]`,
+  });
+
+  return true;
 }
 
 async function processFlowNode(
