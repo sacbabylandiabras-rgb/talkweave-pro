@@ -313,7 +313,26 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     const dataKey = JSON.stringify(allData.map(d => d.id));
     if (dataKey !== lastLogsRef.current) {
       lastLogsRef.current = dataKey;
-      setMessageLogs(allData);
+      // Merge with current state to preserve realtime-inserted messages
+      // that may not yet appear in the polled result (eventual consistency)
+      setMessageLogs(prev => {
+        const byId = new Map<string, MessageLog>();
+        allData.forEach(m => byId.set(m.id, m));
+        // Preserve any realtime messages from the last 60s not yet in polled data
+        const cutoff = Date.now() - 60_000;
+        prev.forEach(m => {
+          if (byId.has(m.id)) return;
+          const ts = toMillis(m.timestamp || m.created_at);
+          if (ts >= cutoff) byId.set(m.id, m);
+        });
+        const merged = Array.from(byId.values()).sort((a, b) => {
+          const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
+          if (timeDiff !== 0) return timeDiff;
+          return a.id.localeCompare(b.id);
+        });
+        lastLogsRef.current = JSON.stringify(merged.map(d => d.id));
+        return merged;
+      });
     }
   }, []);
 
