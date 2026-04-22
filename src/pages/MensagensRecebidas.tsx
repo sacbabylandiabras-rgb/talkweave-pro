@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { isGroupPhone } from "@/lib/group-name-resolution";
 
 const formatPhone = (phone?: string | null) => {
   if (!phone) return '';
@@ -41,6 +42,12 @@ const formatPhone = (phone?: string | null) => {
   }
   if (clean.length >= 10) return `+${clean}`;
   return phone;
+};
+
+const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
+  if (name) return name;
+  if (phone && isGroupPhone(phone)) return 'Grupo';
+  return formatPhone(phone);
 };
 
 const getSafeDate = (value?: string | null) => {
@@ -285,9 +292,9 @@ const ConversationList = ({
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-sm text-foreground truncate">
-                  {conv.contactName || formatPhone(conv.phone)}
-                </span>
+                  <span className="font-medium text-sm text-foreground truncate">
+                    {getConversationDisplayName(conv.contactName, conv.phone)}
+                  </span>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
                 </span>
@@ -567,12 +574,12 @@ const ChatView = ({
         <Avatar className="h-10 w-10">
           {conversation.profilePictureUrl && <AvatarImage src={conversation.profilePictureUrl} />}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {getInitials(conversation.contactName, conversation.phone)}
+            {getInitials(getConversationDisplayName(conversation.contactName, conversation.phone), conversation.phone)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-foreground truncate">
-            {conversation.contactName || formatPhone(conversation.phone)}
+            {getConversationDisplayName(conversation.contactName, conversation.phone)}
           </h3>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
