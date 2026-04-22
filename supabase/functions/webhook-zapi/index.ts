@@ -357,6 +357,58 @@ serve(async (req) => {
       return new Response('invalid_json', { status: 400, headers: corsHeaders })
     }
 
+    // === UAZAPI PAYLOAD NORMALIZATION ===
+    // UAZAPI sends a different schema; normalize to Z-API-like shape so the
+    // downstream engine works without changes.
+    try {
+      const reqUrl = new URL(req.url)
+      const isUazapi = reqUrl.searchParams.get('provider') === 'uazapi'
+        || webhook?.EventType !== undefined
+        || webhook?.event !== undefined && webhook?.message?.sender !== undefined
+      const uazInstanceId = reqUrl.searchParams.get('instanceId') || ''
+
+      if (isUazapi) {
+        const m = webhook?.message || webhook?.data || {}
+        const eventType = String(webhook?.EventType || webhook?.event || '').toLowerCase()
+
+        // Extract phone/chat
+        const chatId = String(m?.chatid || m?.chatId || m?.remoteJid || m?.from || '')
+        const isGroup = chatId.includes('@g.us') || m?.isGroup === true
+        const phone = chatId.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@g.us', '').replace(/\D/g, '')
+        const fromMe = Boolean(m?.fromMe || m?.fromme || m?.key?.fromMe)
+        const text = m?.text || m?.message?.text || m?.body || m?.conversation
+          || m?.message?.conversation || m?.message?.extendedTextMessage?.text || ''
+        const senderName = m?.senderName || m?.pushName || m?.notifyName || m?.sender_name || ''
+        const senderPhone = String(m?.sender || m?.participant || m?.author || phone).replace('@s.whatsapp.net','').replace('@c.us','').replace(/\D/g,'')
+
+        // Map to Z-API ReceivedCallback shape
+        const normalized: any = {
+          ...webhook,
+          phone,
+          isGroup,
+          fromMe,
+          instanceId: uazInstanceId || webhook?.instanceId || '',
+          senderName,
+          senderPhone,
+          chatName: m?.chatName || m?.groupName || senderName,
+          messageId: m?.id || m?.messageId || m?.key?.id,
+          type: 'ReceivedCallback',
+          text: text ? { message: text } : undefined,
+        }
+
+        // Connection event normalization
+        if (eventType.includes('connection')) {
+          normalized.type = 'ConnectionStatusCallback'
+          normalized.connected = webhook?.connected === true || webhook?.status === 'connected'
+        }
+
+        webhook = normalized
+        console.log('🔄 UAZAPI payload normalized:', JSON.stringify({ phone, isGroup, fromMe, hasText: !!text, instanceId: normalized.instanceId }).substring(0, 300))
+      }
+    } catch (normErr) {
+      console.error('UAZAPI normalization error:', normErr)
+    }
+
     // === GROUP PARTICIPANT JOIN DETECTION ===
     // Z-API sends group join events in multiple formats:
     // 1. action/event: 'add'/'join'
