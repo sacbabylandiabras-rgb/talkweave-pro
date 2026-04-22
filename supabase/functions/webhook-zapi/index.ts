@@ -4269,8 +4269,9 @@ async function sendNodeContent(
     String(e.sourceHandle || "").startsWith("collect-")
   );
   const hasButtonEdges = buttons.some((btn, idx) => {
+    const aliases = getButtonHandleAliases(idx, btn);
     return edges.some((e) =>
-      e.source === targetNode.id && e.sourceHandle === `button-${idx}`
+      e.source === targetNode.id && aliases.includes(String(e.sourceHandle || ""))
     );
   });
 
@@ -4430,7 +4431,7 @@ async function processFlowNode(
     return [...list].sort((a, b) => {
       const handlePriority = (handle?: string | null) => {
         if (!handle || handle === "default") return 0;
-        if (handle.startsWith("button-")) return 2;
+        if (isButtonHandle(handle)) return 2;
         return 1;
       };
 
@@ -4466,7 +4467,7 @@ async function processFlowNode(
 
   const defaultOutgoing = edges.filter(
     (e) =>
-      e.source === nodeId && !e.sourceHandle?.startsWith("button-") &&
+      e.source === nodeId && !isButtonHandle(e.sourceHandle) &&
       isDefaultHandle(e.sourceHandle),
   );
 
