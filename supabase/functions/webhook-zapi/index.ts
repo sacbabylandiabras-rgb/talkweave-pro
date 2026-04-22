@@ -1890,12 +1890,8 @@ serve(async (req) => {
       })
       return new Response('selected_instance_not_found', { status: 400, headers: corsHeaders })
     } else {
-      userId = profile.id
-      zapiConfig = {
-        zapi_instance_id: profile.zapi_instance_id,
-        zapi_token: profile.zapi_token,
-        zapi_client_token: profile.zapi_client_token,
-      }
+      console.warn(`⚠️ No active instance matched for ${normalizedInstanceId} — skipping`)
+      return new Response('instance_not_found', { status: 200, headers: corsHeaders })
     }
 
     // Manual flow trigger safeguard:
