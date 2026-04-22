@@ -42,6 +42,31 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
   return data;
 };
 
+const pickPreferredInstance = (instances: any[] | null | undefined) => {
+  if (!Array.isArray(instances) || instances.length === 0) return null;
+  return [...instances].sort((a, b) => {
+    if (Boolean(a.is_default) !== Boolean(b.is_default)) return a.is_default ? -1 : 1;
+    return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+  })[0] || null;
+};
+
+const findUserInstance = async (adminClient: any, userId: string, instanceRef: string) => {
+  if (!instanceRef) return null;
+  const { data, error } = await adminClient
+    .from('zapi_instances')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default, created_at')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .or(`zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef}`);
+
+  if (error) {
+    console.error(`❌ Failed to resolve instance ${instanceRef}:`, error);
+    return null;
+  }
+
+  return pickPreferredInstance(data);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
