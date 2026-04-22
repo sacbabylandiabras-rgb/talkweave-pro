@@ -787,11 +787,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, unresolvedGroupKey]);
 
-  // Sync de fotos: grupos com nome resolvido mas sem foto (ex.: após refresh)
-  // são re-buscados via cache key para manter o avatar persistente.
-  // Calculado como string estável para evitar re-renders em loop.
+  // Sync de fotos: TODOS os grupos sem foto têm avatar buscado em tempo real,
+  // independentemente do nome estar resolvido. Mantém o avatar mesmo após refresh.
   const groupsMissingPhotoKey = conversations
-    .filter((c) => isGroupPhone(c.phone) && c.contactName && c.contactName !== 'Grupo' && !c.profilePictureUrl)
+    .filter((c) => isGroupPhone(c.phone) && !c.profilePictureUrl)
     .map((c) => `${c.phone}::${c.preferredInstanceId || ''}`)
     .sort()
     .join('|');
