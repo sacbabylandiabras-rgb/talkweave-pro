@@ -842,7 +842,16 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { instances, activeInstance } = useZapiInstances();
+  const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
+  // Show only UAZAPI instances in the chat (hide Z-API data)
+  const instances = useMemo(
+    () => allInstances.filter((i) => i.api_provider === 'uazapi'),
+    [allInstances]
+  );
+  const activeInstance = useMemo(
+    () => (rawActiveInstance && rawActiveInstance.api_provider === 'uazapi' ? rawActiveInstance : instances[0] || null),
+    [rawActiveInstance, instances]
+  );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
   // Strict: only show data from instances confirmed online. While checking, pass [] (hide everything) to avoid flashing legacy chats.
