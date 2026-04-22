@@ -519,6 +519,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
         if (error || !data?.groups) return;
         const map = new Map(groupNames);
+        const photoMap = new Map(groupPhotos);
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
           if (g.id && isUsableGroupDisplayName(g.nome)) {
@@ -526,6 +527,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
             const normalizedId = normalizeConversationPhone(rawId);
             map.set(rawId, g.nome);
             map.set(normalizedId, g.nome);
+            if (g.foto) {
+              photoMap.set(rawId, g.foto);
+              photoMap.set(normalizedId, g.foto);
+            }
             rememberGroupDisplayName(stableGroupNamesRef.current, rawId, g.nome);
             rememberGroupDisplayName(stableGroupNamesRef.current, normalizedId, g.nome);
 
@@ -536,10 +541,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           }
         }
         setGroupNames(map);
+        setGroupPhotos(photoMap);
         setGroupSourceInstances(instanceMap);
       } catch { /* ignore */ }
     })();
-  }, [loading, messageLogs, campaignSends, groupNames]);
+  }, [loading, messageLogs, campaignSends, groupNames, groupPhotos]);
 
   // Auto-fetch profile pictures when conversations are available
   useEffect(() => {
