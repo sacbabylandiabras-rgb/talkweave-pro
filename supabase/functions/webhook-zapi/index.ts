@@ -3164,6 +3164,23 @@ serve(async (req) => {
       .eq("active", true);
 
     if (!flowError && flowAutomations && flowAutomations.length > 0) {
+      // Visual flow automations apply only to direct (1-on-1) conversations.
+      // Group messages should never trigger button/keyword flows so we don't
+      // spam groups with the user's flow content.
+      const isGroupMessage = webhook?.isGroup === true ||
+        String(phone || "").includes("@g.us") ||
+        String(phone || "").includes("-group");
+
+      if (isGroupMessage && !isManualFlowTrigger) {
+        console.log(
+          "👥 Mensagem de grupo detectada — ignorando automações de fluxo",
+        );
+        return new Response("group_message_ignored", {
+          status: 200,
+          headers: corsHeaders,
+        });
+      }
+
       if (isManualFlowTrigger && webhook?.flowId) {
         const directFlow = flowAutomations.find((flow: any) =>
           flow.id === webhook.flowId
