@@ -43,20 +43,16 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const fallbackCredentials = !body?.instanceId
-      ? await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
-      : null;
-
     const maxChats = Math.min(Math.max(Number(body?.maxChats) || 50, 1), 200);
 
     // Allow caller to specify a specific instance to sync
-    let instanceId = fallbackCredentials?.instanceId || "";
-    let token = fallbackCredentials?.token || "";
-    let clientToken = fallbackCredentials?.clientToken || "";
+    let instanceId = "";
+    let token = "";
+    let clientToken = "";
     let apiProvider = 'zapi';
     let uazapiUrl: string | null = null;
     let uazapiToken: string | null = null;
-    const userId = fallbackCredentials?.userId || user.id;
+    const userId = user.id;
 
     if (body?.instanceId) {
       const { data: specificInstance } = await adminClient
@@ -75,6 +71,34 @@ Deno.serve(async (req) => {
         uazapiUrl = specificInstance.evolution_api_url || null;
         uazapiToken = specificInstance.evolution_api_key || null;
         console.log(`📌 Using specific instance: ${instanceId}`);
+      }
+    }
+
+    if (!body?.instanceId) {
+      const { data: activeInstance } = await adminClient
+        .from("zapi_instances")
+        .select("id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeInstance) {
+        instanceId = activeInstance.zapi_instance_id;
+        token = activeInstance.zapi_token;
+        clientToken = activeInstance.zapi_client_token;
+        apiProvider = activeInstance.api_provider || 'zapi';
+        uazapiUrl = activeInstance.evolution_api_url || null;
+        uazapiToken = activeInstance.evolution_api_key || null;
+        console.log(`📌 Using active instance fallback: ${instanceId} (${apiProvider})`);
+      } else {
+        const fallbackCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+        instanceId = fallbackCredentials.instanceId;
+        token = fallbackCredentials.token;
+        clientToken = fallbackCredentials.clientToken;
+        console.log(`📌 Using legacy credentials fallback: ${instanceId}`);
       }
     }
 
