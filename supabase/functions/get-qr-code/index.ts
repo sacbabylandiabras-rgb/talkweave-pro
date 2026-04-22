@@ -84,7 +84,7 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code`;
+      const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code/image`;
       const zapiResponse = await fetch(zapiUrl, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token }
@@ -102,7 +102,7 @@ serve(async (req) => {
     // Default credentials path
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/qr-code`;
+    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/qr-code/image`;
     const zapiResponse = await fetch(zapiUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
