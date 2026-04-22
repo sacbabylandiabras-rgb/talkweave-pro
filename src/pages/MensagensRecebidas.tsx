@@ -845,8 +845,9 @@ const MensagensRecebidas = () => {
   const { instances, activeInstance } = useZapiInstances();
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
-  const knownInstanceIds = useMemo(() => connectedInstanceIds ?? instances.map(i => i.zapi_instance_id).filter(Boolean), [connectedInstanceIds, instances]);
-  const knownInstanceNames = useMemo(() => connectedInstanceNames ?? instances.map(i => i.instance_name).filter(Boolean), [connectedInstanceNames, instances]);
+  // Strict: only show data from instances confirmed online. While checking, pass [] (hide everything) to avoid flashing legacy chats.
+  const knownInstanceIds = useMemo(() => connectedInstanceIds ?? [], [connectedInstanceIds]);
+  const knownInstanceNames = useMemo(() => connectedInstanceNames ?? [], [connectedInstanceNames]);
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Map UI instance id to zapi_instance_id for filtering
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
