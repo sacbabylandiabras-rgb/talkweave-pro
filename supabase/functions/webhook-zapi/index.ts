@@ -2510,12 +2510,17 @@ serve(async (req) => {
     }
 
     // When multiple users share the same zapi_instance_id, prefer the authenticated user's instance
+    const isIncomingUazapiWebhook = webhook?.isUazapi === true ||
+      String(webhook?.provider || "").toLowerCase() === "uazapi";
+
     const matchingInstances = (instancesData || []).filter((item: any) => {
-      return normalizeInstanceIdentifier(item?.zapi_instance_id) ===
-          normalizedInstanceId ||
-        normalizeInstanceIdentifier(item?.instance_name) ===
-          normalizedInstanceId ||
-        normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
+      const matchesId = normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
+      const matchesExternalId = normalizeInstanceIdentifier(item?.zapi_instance_id) ===
+        normalizedInstanceId;
+      const matchesName = !isIncomingUazapiWebhook &&
+        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
+
+      return matchesId || matchesExternalId || matchesName;
     });
 
     let instanceData: any = null;
