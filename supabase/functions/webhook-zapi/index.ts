@@ -3165,6 +3165,7 @@ serve(async (req) => {
         flowAutomations,
         normalizedMessage,
         messageRaw,
+        webhook,
       );
       if (buttonMatch) {
         console.log("=== BOTÃO MATCH ===");
@@ -4424,15 +4425,28 @@ function findButtonEdgeMatch(
 ):
   | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
   | null {
+  const stripChoicePrefix = (value: string) =>
+    value
+      .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
+      .trim();
+
   const normalizedRaw = normalizeForMatch(rawMessage);
+  const baseCandidates = [
+    rawMessage,
+    normalizedMessage,
+    ...extractButtonReplyCandidates(webhook),
+  ].filter((value): value is string =>
+    typeof value === "string" && value.trim().length > 0
+  );
+
   const replyCandidates = Array.from(
-    new Set([
-      rawMessage,
-      normalizedMessage,
-      ...extractButtonReplyCandidates(webhook),
-    ].filter((value): value is string =>
-      typeof value === "string" && value.trim().length > 0
-    )),
+    new Set(
+      baseCandidates.flatMap((value) => {
+        const trimmed = value.trim();
+        const stripped = stripChoicePrefix(trimmed);
+        return stripped && stripped !== trimmed ? [trimmed, stripped] : [trimmed];
+      }),
+    ),
   );
 
   const normalizedCandidates = new Set(
