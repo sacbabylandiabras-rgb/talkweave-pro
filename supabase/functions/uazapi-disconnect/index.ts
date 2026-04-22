@@ -57,7 +57,7 @@ serve(async (req) => {
 
     if (!response?.ok) {
       console.error('uazapi disconnect error:', lastStatus, JSON.stringify(data))
-      return new Response(JSON.stringify({ error: data?.error || data?.message || `Error ${response.status}` }), {
+      return new Response(JSON.stringify({ error: data?.error || data?.message || `Error ${lastStatus}` }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
