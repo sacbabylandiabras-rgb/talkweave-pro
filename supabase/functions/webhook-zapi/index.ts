@@ -2632,10 +2632,92 @@ async function sendNodeContent(
   ]
   const hasButtons = allSendButtons.length > 0
 
+  const isUazapiProvider = String(zapiConfig?.api_provider || '').toLowerCase() === 'uazapi'
   const baseUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}`
   const headers = {
     'Content-Type': 'application/json',
     'Client-Token': zapiConfig.zapi_client_token,
+  }
+  const uazapiUrl = String(zapiConfig?.evolution_api_url || '').replace(/\/+$/, '')
+  const uazapiToken = String(zapiConfig?.evolution_api_key || '')
+  const normalizedTargetNumber = phone.includes('-group')
+    ? `${String(phone).replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
+    : String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '')
+
+  const parseProviderResponse = async (res: Response, context: string) => {
+    if (!isUazapiProvider) return parseZapiResponse(res, context)
+
+    const raw = await res.text()
+    let payload: any = null
+    try {
+      payload = raw ? JSON.parse(raw) : null
+    } catch {
+      payload = { raw }
+    }
+
+    console.log(`${context}: status=${res.status} provider=uazapi body=${raw.substring(0, 300)}`)
+
+    if (!res.ok || payload?.error || payload?.success === false) {
+      throw new Error(payload?.error || payload?.message || `UAZAPI não confirmou o envio do bloco (${context})`)
+    }
+
+    return payload
+  }
+
+  const sendProviderText = async (message: string, context: string) => {
+    if (isUazapiProvider) {
+      if (!uazapiUrl || !uazapiToken) throw new Error('UAZAPI URL/Token não configurados')
+      const res = await fetch(`${uazapiUrl}/send/text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', token: uazapiToken },
+        body: JSON.stringify({ number: normalizedTargetNumber, text: message }),
+      })
+      return parseProviderResponse(res, context)
+    }
+
+    const res = await fetch(`${baseUrl}/send-text`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone, message }),
+    })
+    return parseProviderResponse(res, context)
+  }
+
+  const sendProviderMedia = async (type: 'image' | 'video' | 'audio' | 'document', file: string, caption: string, context: string) => {
+    if (isUazapiProvider) {
+      if (!uazapiUrl || !uazapiToken) throw new Error('UAZAPI URL/Token não configurados')
+      const mappedType = type === 'audio' ? 'ptt' : type
+      const res = await fetch(`${uazapiUrl}/send/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', token: uazapiToken },
+        body: JSON.stringify({ number: normalizedTargetNumber, type: mappedType, file, text: caption || '' }),
+      })
+      return parseProviderResponse(res, context)
+    }
+
+    let endpoint = ''
+    const body: any = { phone }
+    if (type === 'image') {
+      endpoint = '/send-image'
+      body.image = file
+      body.caption = caption
+    } else if (type === 'video') {
+      endpoint = '/send-video'
+      body.video = file
+      body.caption = caption
+    } else if (type === 'audio') {
+      endpoint = '/send-audio'
+      body.audio = file
+      body.waveform = true
+    } else {
+      endpoint = '/send-document-url'
+      body.document = file
+      body.fileName = 'documento'
+      body.caption = caption
+    }
+
+    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+    return parseProviderResponse(res, context)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -2691,13 +2773,8 @@ async function sendNodeContent(
   try {
     console.log(`>>> Enviando bloco ${targetNode.id} tipo=${contentType} buttons=${allSendButtons.length}`)
 
-    if (nextCaptureStep) {
-      const captureRes = await fetch(`${baseUrl}/send-text`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ phone, message: replaceCapturedVars(nextCaptureStep.prompt) }),
-      })
-      await parseZapiResponse(captureRes, `Bloco ${targetNode.id} (capture:${nextCaptureStep.field})`)
+      if (nextCaptureStep) {
+      await sendProviderText(replaceCapturedVars(nextCaptureStep.prompt), `Bloco ${targetNode.id} (capture:${nextCaptureStep.field})`)
 
       if (supabase && userId) {
         await supabase.from('message_logs').insert({
@@ -2736,8 +2813,12 @@ async function sendNodeContent(
           mediaEndpoint = '/send-image'
           mediaBody.image = mediaUrl
         }
-        const mediaRes = await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
-        await parseZapiResponse(mediaRes, `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`)
+        if (isUazapiProvider) {
+          await sendProviderMedia(contentType === 'video' ? 'video' : 'image', mediaUrl, '', `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`)
+        } else {
+          const mediaRes = await fetch(`${baseUrl}${mediaEndpoint}`, { method: 'POST', headers, body: JSON.stringify(mediaBody) })
+          await parseProviderResponse(mediaRes, `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`)
+        }
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
 
@@ -2745,8 +2826,10 @@ async function sendNodeContent(
       const urlCallSuffix = buildUrlCallSuffix(allSendButtons)
       const fullMessage = (content || '') + urlCallSuffix
 
-      let res: Response
-      if (replyButtons.length > 0) {
+      let res: Response | null = null
+      if (isUazapiProvider) {
+        await sendProviderText(fullMessage, `Bloco ${targetNode.id} (${contentType}+buttons:fallback)`) 
+      } else if (replyButtons.length > 0) {
         res = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
           headers,
@@ -2795,7 +2878,9 @@ async function sendNodeContent(
           })
         }
       }
-      await parseZapiResponse(res, `Bloco ${targetNode.id} (${contentType}+buttons)`)
+      if (res) {
+        await parseProviderResponse(res, `Bloco ${targetNode.id} (${contentType}+buttons)`)
+      }
       await new Promise(resolve => setTimeout(resolve, 1500))
     } else {
       let endpoint = ''
@@ -2839,8 +2924,14 @@ async function sendNodeContent(
       }
 
       if (endpoint) {
-        const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
-        await parseZapiResponse(res, `Bloco ${targetNode.id} (${contentType})`)
+        if (isUazapiProvider && mediaUrl && contentType !== 'text') {
+          await sendProviderMedia(contentType as 'image' | 'video' | 'audio' | 'document', mediaUrl, content, `Bloco ${targetNode.id} (${contentType})`)
+        } else if (isUazapiProvider && contentType === 'text') {
+          await sendProviderText(content, `Bloco ${targetNode.id} (${contentType})`)
+        } else {
+          const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+          await parseProviderResponse(res, `Bloco ${targetNode.id} (${contentType})`)
+        }
         await new Promise(resolve => setTimeout(resolve, 1500))
       }
     }
