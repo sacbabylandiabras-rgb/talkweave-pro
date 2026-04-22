@@ -348,8 +348,10 @@ export const useMessageLogs = (
       setMessageLogs(prev => {
         const byId = new Map<string, MessageLog>();
         allData.forEach(m => byId.set(m.id, m));
-        // Preserve any realtime messages from the last 60s not yet in polled data
-        const cutoff = Date.now() - 60_000;
+        // Preserve any realtime/optimistic messages from the last 5 min not yet
+        // in polled data, so the chat doesn't flicker back to an empty/clean
+        // state while replication catches up.
+        const cutoff = Date.now() - 5 * 60_000;
         prev.forEach(m => {
           if (byId.has(m.id)) return;
           const ts = toMillis(m.timestamp || m.created_at);
@@ -436,7 +438,29 @@ export const useMessageLogs = (
     );
     if (dataKey !== lastSendsRef.current) {
       lastSendsRef.current = dataKey;
-      setCampaignSends(allData);
+      // Merge with current state to preserve realtime-inserted sends that may
+      // not yet appear in the polled result (eventual consistency / replication lag).
+      setCampaignSends(prev => {
+        const byId = new Map<string, CampaignSendMessage>();
+        allData.forEach(s => byId.set(s.id, s));
+        const cutoff = Date.now() - 60_000;
+        prev.forEach(s => {
+          if (byId.has(s.id)) return;
+          const ts = new Date(getCampaignSendTimestamp(s)).getTime();
+          if (Number.isFinite(ts) && ts >= cutoff) byId.set(s.id, s);
+        });
+        const merged = Array.from(byId.values());
+        lastSendsRef.current = JSON.stringify(
+          merged.map((d) => [
+            d.id,
+            d.sent_at || d.created_at,
+            d.status || '',
+            d.instance_name || '',
+            d.message_content || '',
+          ])
+        );
+        return merged;
+      });
     }
   }, []);
 
