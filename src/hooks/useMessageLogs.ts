@@ -470,8 +470,8 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   // Fetch group names when we detect group conversations
   useEffect(() => {
     const groupPhones = [...new Set([
-      ...messageLogs.map((m) => m.phone),
-      ...campaignSends.map((s) => s.phone),
+      ...messageLogs.map((m) => normalizeConversationPhone(m.phone)),
+      ...campaignSends.map((s) => normalizeConversationPhone(s.phone)),
     ].filter(isGroupPhone))];
     if (groupPhones.length === 0) return;
 
@@ -487,16 +487,16 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
           if (g.id && isUsableGroupDisplayName(g.nome)) {
-            map.set(g.id, g.nome);
-            // Also try without @g.us suffix for matching
-            const cleanId = g.id.replace('@g.us', '');
-            map.set(cleanId + '-group', g.nome);
-            rememberGroupDisplayName(stableGroupNamesRef.current, g.id, g.nome);
-            rememberGroupDisplayName(stableGroupNamesRef.current, cleanId + '-group', g.nome);
+            const rawId = String(g.id);
+            const normalizedId = normalizeConversationPhone(rawId);
+            map.set(rawId, g.nome);
+            map.set(normalizedId, g.nome);
+            rememberGroupDisplayName(stableGroupNamesRef.current, rawId, g.nome);
+            rememberGroupDisplayName(stableGroupNamesRef.current, normalizedId, g.nome);
 
             if (g.sourceInstanceId) {
-              instanceMap.set(g.id, g.sourceInstanceId);
-              instanceMap.set(cleanId + '-group', g.sourceInstanceId);
+              instanceMap.set(rawId, g.sourceInstanceId);
+              instanceMap.set(normalizedId, g.sourceInstanceId);
             }
           }
         }
