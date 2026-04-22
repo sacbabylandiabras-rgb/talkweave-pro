@@ -22,8 +22,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-
     let body: any = {};
     try {
       body = await req.json();
@@ -31,22 +29,41 @@ Deno.serve(async (req) => {
       body = {};
     }
 
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const fallbackCredentials = !body?.instanceId
+      ? await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
+      : null;
+
     const maxChats = Math.min(Math.max(Number(body?.maxChats) || 50, 1), 200);
 
     // Allow caller to specify a specific instance to sync
-    let instanceId = credentials.instanceId;
-    let token = credentials.token;
-    let clientToken = credentials.clientToken;
+    let instanceId = fallbackCredentials?.instanceId || "";
+    let token = fallbackCredentials?.token || "";
+    let clientToken = fallbackCredentials?.clientToken || "";
     let apiProvider = 'zapi';
     let uazapiUrl: string | null = null;
     let uazapiToken: string | null = null;
+    const userId = fallbackCredentials?.userId || user.id;
 
     if (body?.instanceId) {
       const { data: specificInstance } = await adminClient
         .from("zapi_instances")
         .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
         .eq("zapi_instance_id", body.instanceId)
-        .eq("user_id", credentials.userId)
+        .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
@@ -61,7 +78,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`📱 Syncing contacts for user: ${credentials.userId}, instance: ${instanceId}`);
+    if (!instanceId && apiProvider !== 'uazapi') {
+      throw new Error('Instância não encontrada para sincronização');
+    }
+
+    console.log(`📱 Syncing contacts for user: ${userId}, instance: ${instanceId || body?.instanceId}`);
 
     // Fetch all chats with pagination (this works in multi-device)
     let allChats: any[] = [];
@@ -153,7 +174,7 @@ Deno.serve(async (req) => {
     const { data: existingContacts } = await adminClient
       .from("saved_contacts")
       .select("phone, name, profile_picture_url")
-      .eq("user_id", credentials.userId);
+      .eq("user_id", userId);
 
     const existingMap = new Map<string, { name: string; profile_picture_url: string | null }>();
     (existingContacts || []).forEach((c: any) => {
@@ -180,7 +201,7 @@ Deno.serve(async (req) => {
         contactsToUpsert.push({
           phone,
           name: chatName,
-          user_id: credentials.userId,
+          user_id: userId,
           profile_picture_url: profilePic,
         });
         importedContacts++;
@@ -189,7 +210,7 @@ Deno.serve(async (req) => {
         contactsToUpsert.push({
           phone,
           name: chatName,
-          user_id: credentials.userId,
+          user_id: userId,
           profile_picture_url: existing.profile_picture_url || profilePic,
         });
         importedContacts++;
@@ -198,7 +219,7 @@ Deno.serve(async (req) => {
         contactsToUpsert.push({
           phone,
           name: existing.name,
-          user_id: credentials.userId,
+          user_id: userId,
           profile_picture_url: profilePic,
         });
         importedContacts++;
@@ -226,7 +247,7 @@ Deno.serve(async (req) => {
     const { data: existingPhones } = await adminClient
       .from("message_logs")
       .select("phone")
-      .eq("user_id", credentials.userId);
+      .eq("user_id", userId);
 
     const existingPhoneSet = new Set((existingPhones || []).map((r: any) => r.phone));
     
@@ -290,7 +311,7 @@ Deno.serve(async (req) => {
       if (!existingPhoneSet.has(phone)) {
         placeholderRows.push({
           phone,
-          user_id: credentials.userId,
+          user_id: userId,
           timestamp: lastMessageTime,
           message_received: `💬 Conversa com ${chatName || (isGroup ? 'Grupo' : phone)}`,
           response_sent: null,
@@ -304,7 +325,7 @@ Deno.serve(async (req) => {
         groupContactsToUpsert.push({
           phone,
           name: chatName,
-          user_id: credentials.userId,
+          user_id: userId,
           profile_picture_url: chatPic,
         });
       }
