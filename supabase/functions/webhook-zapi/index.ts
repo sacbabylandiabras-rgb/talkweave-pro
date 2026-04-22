@@ -162,6 +162,7 @@ const resolveWebhookPhone = (webhook: any) => {
     return normalizeGroupCampaignPhone(rawPhone)
   }
 
+  if (rawPhone && !rawPhone.includes('@lid')) return rawPhone
   if (senderPhone && !senderPhone.includes('@lid')) return senderPhone
   if (participantPhone && !participantPhone.includes('@lid')) return participantPhone
   if (chatPhone && !chatPhone.includes('@lid')) return chatPhone
@@ -1764,8 +1765,10 @@ serve(async (req) => {
       }
       console.log('👥 Group message from:', senderName || senderPhone || participantPhone, '| Group:', phone)
     } else {
-      // For private messages: prefer clean number over @lid format
-      if (senderPhone && !senderPhone.includes('@lid')) {
+      // For private messages: trust webhook.phone first (UAZAPI provides the real chat phone here)
+      if (rawPhone && !rawPhone.includes('@lid')) {
+        phone = rawPhone
+      } else if (senderPhone && !senderPhone.includes('@lid')) {
         phone = senderPhone
       } else if (participantPhone && !participantPhone.includes('@lid')) {
         phone = participantPhone
