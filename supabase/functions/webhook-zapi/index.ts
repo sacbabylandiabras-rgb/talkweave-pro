@@ -2316,6 +2316,17 @@ serve(async (req) => {
     let messageRaw = extractMessageText(webhook);
     const audioUrl = extractAudioUrl(webhook);
 
+    if (!messageRaw) {
+      const buttonReplyFallback = extractButtonReplyCandidates(webhook)[0] || "";
+      if (buttonReplyFallback) {
+        messageRaw = buttonReplyFallback;
+        console.log(
+          "🔁 Using button reply fallback as incoming message:",
+          messageRaw,
+        );
+      }
+    }
+
     // For manual flow triggers from campaigns, inject a synthetic message text
     if (!messageRaw && isManualFlowTriggerEarly && webhook?.flowId) {
       messageRaw = `__flow_trigger_${webhook.flowId}__`;
@@ -4463,6 +4474,13 @@ function extractButtonReplyCandidates(webhook: any): string[] {
   };
 
   const candidateValues = [
+    webhook?.text?.title,
+    webhook?.text?.description,
+    webhook?.text?.selectedDisplayText,
+    webhook?.text?.selectedButtonId,
+    webhook?.text?.selectedId,
+    webhook?.text?.selectedRowId,
+    webhook?.text?.id,
     webhook?.buttonReply?.title,
     webhook?.buttonReply?.text,
     webhook?.buttonReply?.label,
@@ -4494,6 +4512,13 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.response?.selectedDisplayText,
     webhook?.response?.selectedButtonId,
     webhook?.response?.selectedId,
+    webhook?.data?.text?.title,
+    webhook?.data?.text?.description,
+    webhook?.data?.text?.selectedDisplayText,
+    webhook?.data?.text?.selectedButtonId,
+    webhook?.data?.text?.selectedId,
+    webhook?.data?.text?.selectedRowId,
+    webhook?.data?.text?.id,
     webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
     webhook?.message?.templateButtonReplyMessage?.selectedId,
     webhook?.templateButtonReplyMessage?.selectedDisplayText,
@@ -4928,11 +4953,13 @@ function extractMessageText(webhook: any): string {
   }
 
   const objectCandidates = [
+    webhook?.text,
     webhook?.buttonReply,
     webhook?.message,
     webhook?.buttonsResponseMessage,
     webhook?.buttonResponseMessage,
     webhook?.waitingMessage,
+    webhook?.data?.text,
     webhook?.data?.buttonReply,
     webhook?.data?.message,
     webhook?.data?.waitingMessage,
