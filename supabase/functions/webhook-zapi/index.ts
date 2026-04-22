@@ -139,8 +139,11 @@ const normalizeInstanceIdentifier = (value: unknown) => {
 };
 
 const resolveWebhookInstanceReference = (webhook: any) => {
+  const provider = String(webhook?.provider || webhook?.api_provider || "")
+    .toLowerCase();
+  const isUazapiWebhook = provider === "uazapi" || webhook?.isUazapi === true;
   const raw = webhook?.instanceId || webhook?.instance_id ||
-    webhook?.instanceName || webhook?.instance_name || "";
+    (isUazapiWebhook ? "" : (webhook?.instanceName || webhook?.instance_name || ""));
   return {
     raw,
     normalized: normalizeInstanceIdentifier(raw),
@@ -456,12 +459,14 @@ serve(async (req) => {
         // Map to Z-API ReceivedCallback shape
         const normalized: any = {
           ...webhook,
+          provider: "uazapi",
+          isUazapi: true,
           phone,
           isGroup,
           fromMe,
           instanceId: uazInstanceId || webhook?.instanceId ||
-            webhook?.instanceName || webhook?.instance_name || m?.instanceId ||
-            m?.instanceName || "",
+            webhook?.instance_id || m?.instanceId || m?.instance_id ||
+            webhook?.instanceUuid || m?.instanceUuid || "",
           senderName,
           senderPhone,
           chatName: webhook?.chatName || m?.chatName || webhook?.groupName ||
