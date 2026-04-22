@@ -522,22 +522,26 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const photoMap = new Map(groupPhotos);
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
-          if (g.id && isUsableGroupDisplayName(g.nome)) {
-            const rawId = String(g.id);
-            const normalizedId = normalizeConversationPhone(rawId);
+          if (!g.id) continue;
+
+          const rawId = String(g.id);
+          const normalizedId = normalizeConversationPhone(rawId);
+
+          if (isUsableGroupDisplayName(g.nome)) {
             map.set(rawId, g.nome);
             map.set(normalizedId, g.nome);
-            if (g.foto) {
-              photoMap.set(rawId, g.foto);
-              photoMap.set(normalizedId, g.foto);
-            }
             rememberGroupDisplayName(stableGroupNamesRef.current, rawId, g.nome);
             rememberGroupDisplayName(stableGroupNamesRef.current, normalizedId, g.nome);
+          }
 
-            if (g.sourceInstanceId) {
-              instanceMap.set(rawId, g.sourceInstanceId);
-              instanceMap.set(normalizedId, g.sourceInstanceId);
-            }
+          if (g.foto) {
+            photoMap.set(rawId, g.foto);
+            photoMap.set(normalizedId, g.foto);
+          }
+
+          if (g.sourceInstanceId) {
+            instanceMap.set(rawId, g.sourceInstanceId);
+            instanceMap.set(normalizedId, g.sourceInstanceId);
           }
         }
         setGroupNames(map);
