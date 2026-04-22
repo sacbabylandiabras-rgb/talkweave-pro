@@ -111,11 +111,32 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const savedContactsApi = {
   async getAll(token: string): Promise<SavedContact[]> {
-    const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*`, {
-      headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${token}` },
-    });
-    if (!res.ok) return [];
-    return res.json();
+    const allContacts: SavedContact[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore && allContacts.length < 5000) {
+      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*&order=phone.asc`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${token}`,
+          'Range-Unit': 'items',
+          'Range': `${from}-${from + pageSize - 1}`,
+        },
+      });
+
+      if (!res.ok) break;
+
+      const batch = await res.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+
+      allContacts.push(...batch);
+      hasMore = batch.length === pageSize;
+      from += pageSize;
+    }
+
+    return allContacts;
   },
   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
@@ -241,6 +262,33 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       hasMore = data.length === batchSize;
       from += batchSize;
     }
+
+    let importedHistoryData: MessageLog[] = [];
+    from = 0;
+    hasMore = true;
+    while (hasMore && importedHistoryData.length < maxRecords) {
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select('*')
+        .eq('keyword_matched', '__history_import__')
+        .lt('timestamp', sinceISO)
+        .order('timestamp', { ascending: true })
+        .range(from, from + batchSize - 1);
+
+      if (error || !data) { hasMore = false; break; }
+      importedHistoryData = [...importedHistoryData, ...(data as unknown as MessageLog[])];
+      hasMore = data.length === batchSize;
+      from += batchSize;
+    }
+
+    const mergedLogs = new Map<string, MessageLog>();
+    [...allData, ...importedHistoryData].forEach((log) => mergedLogs.set(log.id, log));
+    allData = Array.from(mergedLogs.values()).sort((a, b) => {
+      const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
+      if (timeDiff !== 0) return timeDiff;
+      return a.id.localeCompare(b.id);
+    });
+
     // Filter out processing locks and LID mapping entries
     allData = allData.filter(m => 
       m.keyword_matched !== '__processing__' && 
