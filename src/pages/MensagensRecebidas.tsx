@@ -843,13 +843,10 @@ const MensagensRecebidas = () => {
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
-  // Show only UAZAPI instances in the chat (hide Z-API data)
-  const instances = useMemo(
-    () => allInstances.filter((i) => i.api_provider === 'uazapi'),
-    [allInstances]
-  );
+  // Show ALL connected instances (Z-API and UAZAPI) so every conversation appears in the chat
+  const instances = useMemo(() => allInstances, [allInstances]);
   const activeInstance = useMemo(
-    () => (rawActiveInstance && rawActiveInstance.api_provider === 'uazapi' ? rawActiveInstance : instances[0] || null),
+    () => rawActiveInstance || instances[0] || null,
     [rawActiveInstance, instances]
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
