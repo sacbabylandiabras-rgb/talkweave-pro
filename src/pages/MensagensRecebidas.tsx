@@ -862,7 +862,10 @@ const MensagensRecebidas = () => {
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
   const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
   const filterInstanceName = selectedInstance?.instance_name;
-  const shouldAutoSyncHistory = (selectedInstance?.api_provider || activeInstance?.api_provider) === 'zapi';
+  // Auto-sync the chat list from the connected provider (Z-API or UAZAPI) so
+  // we always show the latest live conversations, not only the historic logs
+  // stored in the database.
+  const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
