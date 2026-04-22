@@ -1825,7 +1825,7 @@ serve(async (req) => {
 
     const { data: instancesData, error: instancesError } = await supabase
       .from('zapi_instances')
-      .select('user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token')
+      .select('id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token')
       .eq('is_active', true)
 
     if (instancesError) {
@@ -1835,7 +1835,8 @@ serve(async (req) => {
     // When multiple users share the same zapi_instance_id, prefer the authenticated user's instance
     const matchingInstances = (instancesData || []).filter((item: any) => {
       return normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId ||
-        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId
+        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId ||
+        normalizeInstanceIdentifier(item?.id) === normalizedInstanceId
     })
 
     let instanceData: any = null
