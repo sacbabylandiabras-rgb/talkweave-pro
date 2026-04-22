@@ -32,17 +32,19 @@ export async function getUserZAPICredentials(
 
   const { data: instance } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
     .eq('user_id', user.id)
     .eq('is_default', true)
     .maybeSingle();
 
-  if (instance && instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token) {
+  const isUazapi = (i: any) => (i?.api_provider || '').toLowerCase() === 'uazapi';
+
+  if (instance && instance.zapi_instance_id && (isUazapi(instance) || (instance.zapi_token && instance.zapi_client_token))) {
     console.log(`✅ Found Z-API credentials from zapi_instances for user ${user.id}`);
     return {
       instanceId: instance.zapi_instance_id,
-      token: instance.zapi_token,
-      clientToken: instance.zapi_client_token,
+      token: instance.zapi_token || '',
+      clientToken: instance.zapi_client_token || '',
       userId: user.id,
       instanceName: instance.instance_name || 'Instância Padrão',
     };
@@ -50,18 +52,18 @@ export async function getUserZAPICredentials(
 
   const { data: anyInstance } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .limit(1)
     .maybeSingle();
 
-  if (anyInstance && anyInstance.zapi_instance_id && anyInstance.zapi_token && anyInstance.zapi_client_token) {
+  if (anyInstance && anyInstance.zapi_instance_id && (isUazapi(anyInstance) || (anyInstance.zapi_token && anyInstance.zapi_client_token))) {
     console.log(`✅ Found Z-API credentials from active instance for user ${user.id}`);
     return {
       instanceId: anyInstance.zapi_instance_id,
-      token: anyInstance.zapi_token,
-      clientToken: anyInstance.zapi_client_token,
+      token: anyInstance.zapi_token || '',
+      clientToken: anyInstance.zapi_client_token || '',
       userId: user.id,
       instanceName: anyInstance.instance_name || 'Instância Ativa',
     };
