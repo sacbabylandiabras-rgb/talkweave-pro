@@ -11,6 +11,43 @@ const extractUrl = (payload: any): string | null => {
   return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null
 }
 
+const isUsableGroupName = (value: unknown): value is string => {
+  const normalized = String(value || '').trim()
+  if (!normalized) return false
+  if (/@g\.us$/i.test(normalized) || /-group$/i.test(normalized)) return false
+  if (/^[+\d()\-\s]+$/.test(normalized) && /\d/.test(normalized)) return false
+  if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false
+  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false
+  return true
+}
+
+const extractGroupName = (payload: any): string | null => {
+  if (!payload) return null
+  const candidate = Array.isArray(payload) ? payload[0] : payload
+  const names = [
+    candidate?.name,
+    candidate?.subject,
+    candidate?.title,
+    candidate?.groupName,
+    candidate?.contact,
+    candidate?.wa_name,
+    candidate?.wa_chatName,
+    candidate?.data?.name,
+    candidate?.data?.subject,
+    candidate?.group?.name,
+    candidate?.group?.subject,
+    candidate?.groupMetadata?.subject,
+    candidate?.chat?.name,
+    candidate?.chat?.subject,
+  ]
+
+  for (const name of names) {
+    if (isUsableGroupName(name)) return String(name).trim()
+  }
+
+  return null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
