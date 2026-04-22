@@ -2182,6 +2182,36 @@ serve(async (req) => {
 
             await supabase.from('message_logs').delete().eq('id', pendingCaptureLog.id)
 
+            const sendResumeText = async (message: string) => {
+              const isUazapiResume = (zapiConfig?.api_provider || '').toLowerCase() === 'uazapi'
+              if (isUazapiResume) {
+                const apiUrl = String(zapiConfig?.evolution_api_url || '').replace(/\/+$/, '')
+                const apiToken = String(zapiConfig?.evolution_api_key || '')
+                if (!apiUrl || !apiToken) throw new Error('UAZAPI URL/Token não configurados para retomar captura')
+                const normalizedTarget = phone.includes('-group')
+                  ? `${String(phone).replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
+                  : String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '')
+                const resumeRes = await fetch(`${apiUrl}/send/text`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', token: apiToken },
+                  body: JSON.stringify({ number: normalizedTarget, text: message }),
+                })
+                if (!resumeRes.ok) {
+                  throw new Error(`UAZAPI não confirmou o follow-up da captura (${resumeRes.status})`)
+                }
+                return
+              }
+
+              await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Client-Token': zapiConfig.zapi_client_token,
+                },
+                body: JSON.stringify({ phone, message }),
+              })
+            }
+
             if (sourceNode) {
               const followUpMap = {
                 name: sourceNode.data.nameFollowUp || '',
@@ -2195,14 +2225,7 @@ serve(async (req) => {
                 .replace(/\{\{email\}\}/gi, updatedCaptured.email || '')
 
               if (followUpMessage.trim()) {
-                await fetch(`https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Client-Token': zapiConfig.zapi_client_token,
-                  },
-                  body: JSON.stringify({ phone, message: followUpMessage }),
-                })
+                await sendResumeText(followUpMessage)
               }
             }
 
