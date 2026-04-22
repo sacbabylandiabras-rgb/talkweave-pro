@@ -139,8 +139,11 @@ const normalizeInstanceIdentifier = (value: unknown) => {
 };
 
 const resolveWebhookInstanceReference = (webhook: any) => {
+  const provider = String(webhook?.provider || webhook?.api_provider || "")
+    .toLowerCase();
+  const isUazapiWebhook = provider === "uazapi" || webhook?.isUazapi === true;
   const raw = webhook?.instanceId || webhook?.instance_id ||
-    webhook?.instanceName || webhook?.instance_name || "";
+    (isUazapiWebhook ? "" : (webhook?.instanceName || webhook?.instance_name || ""));
   return {
     raw,
     normalized: normalizeInstanceIdentifier(raw),
@@ -456,12 +459,14 @@ serve(async (req) => {
         // Map to Z-API ReceivedCallback shape
         const normalized: any = {
           ...webhook,
+          provider: "uazapi",
+          isUazapi: true,
           phone,
           isGroup,
           fromMe,
           instanceId: uazInstanceId || webhook?.instanceId ||
-            webhook?.instanceName || webhook?.instance_name || m?.instanceId ||
-            m?.instanceName || "",
+            webhook?.instance_id || m?.instanceId || m?.instance_id ||
+            webhook?.instanceUuid || m?.instanceUuid || "",
           senderName,
           senderPhone,
           chatName: webhook?.chatName || m?.chatName || webhook?.groupName ||
@@ -2505,12 +2510,17 @@ serve(async (req) => {
     }
 
     // When multiple users share the same zapi_instance_id, prefer the authenticated user's instance
+    const isIncomingUazapiWebhook = webhook?.isUazapi === true ||
+      String(webhook?.provider || "").toLowerCase() === "uazapi";
+
     const matchingInstances = (instancesData || []).filter((item: any) => {
-      return normalizeInstanceIdentifier(item?.zapi_instance_id) ===
-          normalizedInstanceId ||
-        normalizeInstanceIdentifier(item?.instance_name) ===
-          normalizedInstanceId ||
-        normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
+      const matchesId = normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
+      const matchesExternalId = normalizeInstanceIdentifier(item?.zapi_instance_id) ===
+        normalizedInstanceId;
+      const matchesName = !isIncomingUazapiWebhook &&
+        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
+
+      return matchesId || matchesExternalId || matchesName;
     });
 
     let instanceData: any = null;
@@ -4430,6 +4440,29 @@ function findButtonEdgeMatch(
       .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
       .trim();
 
+  const extractUazapiChoiceIndex = (value: string): number | null => {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) return null;
+
+    const prefixedIdMatch = trimmed.match(/^(\d{8,16})\s*[:|_-]\s*([a-f0-9]{8,})$/i);
+    if (prefixedIdMatch) {
+      const lastHex = prefixedIdMatch[2].slice(-1).toLowerCase();
+      const parsed = Number.parseInt(lastHex, 16);
+      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
+      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    }
+
+    const pureHexMatch = trimmed.match(/^[a-f0-9]{8,}$/i);
+    if (pureHexMatch) {
+      const lastHex = trimmed.slice(-1).toLowerCase();
+      const parsed = Number.parseInt(lastHex, 16);
+      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
+      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    }
+
+    return null;
+  };
+
   const normalizedRaw = normalizeForMatch(rawMessage);
   const baseCandidates = [
     rawMessage,
@@ -4453,6 +4486,13 @@ function findButtonEdgeMatch(
     replyCandidates
       .map((value) => normalizeForMatch(value))
       .filter(Boolean),
+  );
+
+  const derivedIndexCandidates = new Set(
+    replyCandidates
+      .map((value) => extractUazapiChoiceIndex(value))
+      .filter((value): value is number => Number.isFinite(value))
+      .map((value) => normalizeForMatch(String(value))),
   );
 
   console.log("🎛️ Button reply candidates:", replyCandidates);
@@ -4490,6 +4530,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
+          derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
           );
