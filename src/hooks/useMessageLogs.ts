@@ -93,6 +93,14 @@ const isConversationBoundInstanceLog = (log: Pick<MessageLog, 'instance_id' | 'm
   return Boolean(log.message_received) && isRealInboundKeyword(log.keyword_matched);
 };
 
+const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 'timestamp' | 'created_at'>) => {
+  if (log.keyword_matched === '__history_import__') {
+    return log.timestamp || log.created_at;
+  }
+
+  return log.created_at || log.timestamp;
+};
+
 const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'sent' || send.status === 'delivered';
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
@@ -654,8 +662,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
           content: log.message_received,
-          // Use created_at for received messages because timestamp may be updated by flow processing.
-          timestamp: log.created_at || log.timestamp,
+          timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
         });
