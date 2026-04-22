@@ -8,14 +8,22 @@ interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
+  /** Restrict to instances of a specific api_provider (e.g. "uazapi"). */
+  providerFilter?: "zapi" | "uazapi";
 }
 
 const ROTATE_ALL = "__rotate_all__";
 
 const STORAGE_KEY = "zaplynx_selected_instances";
 
-const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true }: InstanceSelectorProps) => {
-  const { instances, activeInstance, selectInstance, loading } = useZapiInstances();
+const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
+  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances();
+  const instances = providerFilter
+    ? allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === providerFilter)
+    : allInstances;
+  const activeInstance = providerFilter
+    ? (instances.find((i: any) => i.id === rawActiveInstance?.id) || instances.find((i: any) => i.is_default) || instances[0] || null)
+    : rawActiveInstance;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 

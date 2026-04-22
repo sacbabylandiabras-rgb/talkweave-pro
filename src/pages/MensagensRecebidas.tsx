@@ -850,10 +850,16 @@ const MensagensRecebidas = () => {
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
-  // Show ALL connected instances (Z-API and UAZAPI) so every conversation appears in the chat
-  const instances = useMemo(() => allInstances, [allInstances]);
+  // Mensagens usa exclusivamente UAZAPI: filtra todas as instâncias por provider
+  const instances = useMemo(
+    () => allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === "uazapi"),
+    [allInstances]
+  );
   const activeInstance = useMemo(
-    () => rawActiveInstance || instances[0] || null,
+    () =>
+      (rawActiveInstance && (rawActiveInstance as any).api_provider?.toLowerCase() === "uazapi"
+        ? rawActiveInstance
+        : instances.find((i: any) => i.is_default) || instances[0] || null),
     [rawActiveInstance, instances]
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
