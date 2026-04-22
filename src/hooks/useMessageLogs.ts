@@ -656,11 +656,12 @@ export const useMessageLogs = (
     // When a specific instance is selected, filter to that one.
     // Otherwise (all/none), restrict to the user's currently known instances so logs from
     // removed/disconnected instances don't pollute the list.
-    const knownIdSet = knownInstanceIds && knownInstanceIds.length > 0 ? new Set(knownInstanceIds) : null;
+    const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
+    const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
     const filteredLogs = filterInstanceId
       ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : knownIdSet
-        ? messageLogs.filter(m => !m.instance_id || knownIdSet.has(m.instance_id))
+      : hasKnownInstanceFilter
+        ? messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id))
         : messageLogs;
 
     // From message_logs
@@ -722,11 +723,12 @@ export const useMessageLogs = (
 
     // Filter campaign sends by instance when a filter is active.
     // Otherwise, restrict to known instance names so old campaign data from removed instances is hidden.
-    const knownNameSet = knownInstanceNames && knownInstanceNames.length > 0 ? new Set(knownInstanceNames) : null;
+    const hasKnownInstanceNameFilter = Array.isArray(knownInstanceNames);
+    const knownNameSet = hasKnownInstanceNameFilter ? new Set(knownInstanceNames) : null;
     const filteredCampaignSends = filterInstanceName
       ? campaignSends.filter(s => s.instance_name === filterInstanceName)
-      : knownNameSet
-        ? campaignSends.filter(s => !s.instance_name || knownNameSet.has(s.instance_name))
+      : hasKnownInstanceNameFilter
+        ? campaignSends.filter(s => !!s.instance_name && knownNameSet!.has(s.instance_name))
         : campaignSends;
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
