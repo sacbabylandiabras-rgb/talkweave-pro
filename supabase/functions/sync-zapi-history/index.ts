@@ -436,6 +436,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Refresh timestamps on existing placeholders so the chat list reflects
+    // the latest activity reported by UAZAPI (e.g. messages from today).
+    if (placeholderTimestampUpdates.length > 0) {
+      console.log(`🔄 Refreshing ${placeholderTimestampUpdates.length} placeholder timestamps`);
+      for (const upd of placeholderTimestampUpdates) {
+        try {
+          await adminClient
+            .from('message_logs')
+            .update({ timestamp: upd.timestamp })
+            .eq('id', upd.id);
+        } catch (e) {
+          console.error('Failed to refresh placeholder timestamp', upd.id, e);
+        }
+      }
+    }
+
     // Upsert group names into saved_contacts so chat list shows the group name
     if (groupContactsToUpsert.length > 0) {
       const batchSize = 50;
