@@ -42,6 +42,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
+  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+  const [newUazapiUrl, setNewUazapiUrl] = useState('');
+  const [newUazapiToken, setNewUazapiToken] = useState('');
 
   // Uazapi credentials
   const [uazapiUrl, setUazapiUrl] = useState('');
@@ -107,6 +110,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId('');
     setNewToken('');
     setNewClientToken('');
+    setNewProvider('zapi');
+    setNewUazapiUrl('');
+    setNewUazapiToken('');
   };
 
   const handleEditInstance = (instance: typeof instances[number]) => {
@@ -116,20 +122,36 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId(instance.zapi_instance_id || '');
     setNewToken(instance.zapi_token || '');
     setNewClientToken(instance.zapi_client_token || '');
+    setNewProvider((instance.api_provider as 'zapi' | 'uazapi') || 'zapi');
+    setNewUazapiUrl((instance as any).evolution_api_url || '');
+    setNewUazapiToken((instance as any).evolution_api_key || '');
   };
 
   const handleAddInstance = async () => {
     if (!user) return;
-    if (!newInstanceId || !newToken || !newClientToken) {
-      toast({ title: "Preencha todos os campos da instância", variant: "destructive" });
-      return;
+
+    if (newProvider === 'zapi') {
+      if (!newInstanceId || !newToken || !newClientToken) {
+        toast({ title: "Preencha todos os campos da instância Z-API", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!newUazapiUrl.trim() || !newUazapiToken.trim()) {
+        toast({ title: "Preencha URL e Token da UAZAPI", variant: "destructive" });
+        return;
+      }
     }
 
     const payload = {
       instance_name: newInstanceName || 'Nova Instância',
-      zapi_instance_id: newInstanceId,
-      zapi_token: newToken,
-      zapi_client_token: newClientToken,
+      api_provider: newProvider,
+      // Z-API fields (kept for backward compat; for uazapi use token as identifier)
+      zapi_instance_id: newProvider === 'zapi' ? newInstanceId : newUazapiToken.trim().substring(0, 32),
+      zapi_token: newProvider === 'zapi' ? newToken : newUazapiToken.trim(),
+      zapi_client_token: newProvider === 'zapi' ? newClientToken : 'uazapi',
+      // UAZAPI fields stored in evolution_* columns
+      evolution_api_url: newProvider === 'uazapi' ? newUazapiUrl.trim() : null,
+      evolution_api_key: newProvider === 'uazapi' ? newUazapiToken.trim() : null,
     };
 
     const success = editingInstanceId
