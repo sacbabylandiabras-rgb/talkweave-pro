@@ -79,6 +79,28 @@ interface PendingButtonState {
 const FLOW_CAPTURE_PREFIX = "__flow_capture__:";
 const FLOW_BUTTON_PREFIX = "__flow_button__:";
 
+const isButtonHandle = (handle?: string | null) => {
+  const normalized = String(handle || "").trim().toLowerCase();
+  return normalized.startsWith("button-") ||
+    normalized.startsWith("button_") ||
+    normalized.startsWith("btn-") ||
+    normalized.startsWith("btn_");
+};
+
+const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+  const aliases = new Set<string>([
+    `button-${idx}`,
+    `button_${idx}`,
+    `btn-${idx}`,
+    `btn_${idx}`,
+  ]);
+
+  const rawId = String(button?.id || "").trim();
+  if (rawId) aliases.add(rawId);
+
+  return Array.from(aliases);
+};
+
 const normalizeParticipantIdentifier = (value: unknown) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
