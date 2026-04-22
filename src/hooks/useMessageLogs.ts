@@ -323,7 +323,16 @@ export const useMessageLogs = (
       return m;
     });
     // Keep messages with unresolved @lid - show them with the LID identifier
-    const dataKey = JSON.stringify(allData.map(d => d.id));
+    const dataKey = JSON.stringify(
+      allData.map((d) => [
+        d.id,
+        d.timestamp || d.created_at,
+        d.message_received || '',
+        d.response_sent || '',
+        d.instance_id || '',
+        d.keyword_matched || '',
+      ])
+    );
     if (dataKey !== lastLogsRef.current) {
       lastLogsRef.current = dataKey;
       // Merge with current state to preserve realtime-inserted messages
@@ -343,7 +352,16 @@ export const useMessageLogs = (
           if (timeDiff !== 0) return timeDiff;
           return a.id.localeCompare(b.id);
         });
-        lastLogsRef.current = JSON.stringify(merged.map(d => d.id));
+        lastLogsRef.current = JSON.stringify(
+          merged.map((d) => [
+            d.id,
+            d.timestamp || d.created_at,
+            d.message_received || '',
+            d.response_sent || '',
+            d.instance_id || '',
+            d.keyword_matched || '',
+          ])
+        );
         return merged;
       });
     }
@@ -399,7 +417,15 @@ export const useMessageLogs = (
       }
       return send;
     });
-    const dataKey = JSON.stringify(allData.map(d => d.id));
+    const dataKey = JSON.stringify(
+      allData.map((d) => [
+        d.id,
+        d.sent_at || d.created_at,
+        d.status || '',
+        d.instance_name || '',
+        d.message_content || '',
+      ])
+    );
     if (dataKey !== lastSendsRef.current) {
       lastSendsRef.current = dataKey;
       setCampaignSends(allData);
