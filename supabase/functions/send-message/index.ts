@@ -67,6 +67,8 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
   return pickPreferredInstance(data);
 };
 
+const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -125,7 +127,7 @@ serve(async (req) => {
         instanceId = reqInstance.zapi_instance_id;
         token = reqInstance.zapi_token;
         clientToken = reqInstance.zapi_client_token;
-        if ((reqInstance as any).api_provider === 'uazapi') {
+        if (isUazapiProvider((reqInstance as any).api_provider)) {
           uazapiOverride = {
             apiUrl: ((reqInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
             apiToken: (reqInstance as any).evolution_api_key || '',
@@ -139,7 +141,7 @@ serve(async (req) => {
         instanceId = defaultInstance.zapi_instance_id;
         token = defaultInstance.zapi_token;
         clientToken = defaultInstance.zapi_client_token;
-        if ((defaultInstance as any).api_provider === 'uazapi') {
+        if (isUazapiProvider((defaultInstance as any).api_provider)) {
           uazapiOverride = {
             apiUrl: ((defaultInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
             apiToken: (defaultInstance as any).evolution_api_key || '',
@@ -150,13 +152,13 @@ serve(async (req) => {
     }
 
     // ===== UAZAPI ROUTING (short-circuit) =====
-    if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
+      if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
       const { apiUrl, apiToken } = uazapiOverride;
       const uazHeaders = { 'Content-Type': 'application/json', token: apiToken };
       const normalizedGroupId = isGroupPhone
         ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
         : null;
-      const cleanPhone = String(phone).replace(/[@\-].*$/, '').replace(/\D/g, '');
+        const cleanPhone = String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '');
       const targetNumber = normalizedGroupId || cleanPhone;
       const logPhone = isGroupPhone
         ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}-group`
