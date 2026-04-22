@@ -436,7 +436,29 @@ export const useMessageLogs = (
     );
     if (dataKey !== lastSendsRef.current) {
       lastSendsRef.current = dataKey;
-      setCampaignSends(allData);
+      // Merge with current state to preserve realtime-inserted sends that may
+      // not yet appear in the polled result (eventual consistency / replication lag).
+      setCampaignSends(prev => {
+        const byId = new Map<string, CampaignSendMessage>();
+        allData.forEach(s => byId.set(s.id, s));
+        const cutoff = Date.now() - 60_000;
+        prev.forEach(s => {
+          if (byId.has(s.id)) return;
+          const ts = new Date(getCampaignSendTimestamp(s)).getTime();
+          if (Number.isFinite(ts) && ts >= cutoff) byId.set(s.id, s);
+        });
+        const merged = Array.from(byId.values());
+        lastSendsRef.current = JSON.stringify(
+          merged.map((d) => [
+            d.id,
+            d.sent_at || d.created_at,
+            d.status || '',
+            d.instance_name || '',
+            d.message_content || '',
+          ])
+        );
+        return merged;
+      });
     }
   }, []);
 
