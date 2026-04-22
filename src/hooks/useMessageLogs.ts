@@ -382,9 +382,9 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
   const fetchAll = useCallback(async () => {
     await fetchLidMap();
-    await Promise.all([fetchMessageLogs(), fetchCampaignSends()]);
+    await Promise.all([fetchMessageLogs(), fetchCampaignSends(), fetchSavedContacts()]);
     setLoading(false);
-  }, [fetchMessageLogs, fetchCampaignSends]);
+  }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
 
   const saveContact = useCallback(async (phone: string, name: string) => {
     const token = await getToken();
@@ -694,15 +694,21 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           : null;
         const placeholderGroupName = isGroup
           ? (() => {
-              const importedLog = sortedConversationLogs.find((log) => {
-                if (log.keyword_matched !== '__history_import__') return false;
+              for (const log of sortedConversationLogs) {
+                if (log.keyword_matched !== '__history_import__') continue;
                 const text = String(log.message_received || '').trim();
-                return text.startsWith('💬 Conversa com ');
-              });
-              const extracted = String(importedLog?.message_received || '')
-                .replace(/^💬\s*Conversa com\s*/i, '')
-                .trim();
-              return isUsableGroupDisplayName(extracted) ? extracted : null;
+                if (!text.startsWith('💬 Conversa com ')) continue;
+
+                const extracted = text
+                  .replace(/^💬\s*Conversa com\s*/i, '')
+                  .trim();
+
+                if (isUsableGroupDisplayName(extracted)) {
+                  return extracted;
+                }
+              }
+
+              return null;
             })()
           : null;
         const preferredSavedName = isGroup
