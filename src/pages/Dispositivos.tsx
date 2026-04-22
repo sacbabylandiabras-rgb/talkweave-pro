@@ -115,7 +115,39 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     if (connectedPhone) return;
     let foundPhone: string | null = null;
 
-    {
+    if (instance.api_provider === 'uazapi') {
+      // UAZAPI: GET {apiUrl}/instance with token header
+      const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+      const apiToken = instance.evolution_api_key || '';
+      if (!apiUrl || !apiToken) return;
+      try {
+        const res = await fetch(`${apiUrl}/instance/status`, {
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const inst = d?.instance ?? d ?? {};
+          const num =
+            inst?.owner?.replace?.(/@.*/, '') ||
+            inst?.wid?.replace?.(/@.*/, '') ||
+            inst?.phone ||
+            inst?.phoneNumber ||
+            d?.phone ||
+            null;
+          if (num) foundPhone = String(num).replace(/\D/g, '');
+          const pic =
+            inst?.profilePicUrl ||
+            inst?.profilePictureUrl ||
+            inst?.imgUrl ||
+            inst?.picture ||
+            d?.profilePicUrl ||
+            null;
+          if (pic) setProfilePicUrl(pic);
+          const name = inst?.profileName || inst?.pushName || inst?.name || null;
+          if (name) setInstanceName(String(name));
+        }
+      } catch {}
+    } else {
       // Z-API
       const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
       const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
