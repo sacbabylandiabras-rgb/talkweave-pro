@@ -61,7 +61,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [showConnect, setShowConnect] = useState(false);
   const [hasSynced, setHasSynced] = useState(false);
   const [prevConnected, setPrevConnected] = useState<boolean | null>(null);
-  const { disconnectDevice, restartInstance, loading } = useZapi();
+  const { disconnectDevice, loading } = useZapi();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -308,6 +308,37 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      if (instance.api_provider === 'uazapi') {
+        const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
+          body: {
+            apiUrl: instance.evolution_api_url,
+            apiToken: instance.evolution_api_key,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      } else {
+        await withInstance(() => disconnectDevice());
+      }
+
+      localStorage.removeItem('readConversations');
+      setConnectedPhone(null);
+      setProfilePicUrl(null);
+      setQrCode(null);
+      setQrCodeImage(null);
+      toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
+      setTimeout(fetchDeviceStatus, 1000);
+    } catch (err) {
+      if (instance.api_provider === 'uazapi') {
+        const message = await getInvokeErrorMessage(err, 'Erro ao desconectar');
+        toast({ title: '❌ Erro ao desconectar', description: message, variant: 'destructive' });
+      }
+    }
+  };
+
   useEffect(() => {
     fetchDeviceStatus();
     // Poll faster when connect dialog is open
@@ -459,19 +490,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" onClick={fetchDeviceStatus} disabled={loading} className="h-7 text-[11px] px-2">
             <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} /> Status
           </Button>
-          <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
-            onClick={async () => {
-              try {
-                await withInstance(() => disconnectDevice());
-                localStorage.removeItem('readConversations');
-                setConnectedPhone(null);
-                setProfilePicUrl(null);
-                setQrCode(null);
-                setQrCodeImage(null);
-                toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
-                setTimeout(fetchDeviceStatus, 1000);
-              } catch {}
-            }}>
+          <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2" onClick={handleDisconnect}>
             <PowerOff className="w-3 h-3 mr-1" /> Desconectar
           </Button>
           <Button variant="outline" size="sm" disabled={loading} className="h-7 text-[11px] px-2"
@@ -484,6 +503,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 if (error) throw error;
                 if (data?.error) throw new Error(data.message || data.error);
                 toast({ title: "✅ Instância reiniciada", description: data?.message || "Escaneie o QR Code para conectar." });
+                setQrCode(null);
+                setQrCodeImage(null);
                 setTimeout(fetchDeviceStatus, 3000);
               } catch (err) {
                 const message = await getInvokeErrorMessage(err, 'Erro ao reiniciar');
