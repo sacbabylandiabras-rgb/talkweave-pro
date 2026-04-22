@@ -653,11 +653,15 @@ export const useMessageLogs = (
   const conversations: Conversation[] = (() => {
     const allMessages: UnifiedMessage[] = [];
 
-    // When an instance filter is active, show only conversations that have activity on that instance
-    // When no filter (all), show all conversations
+    // When a specific instance is selected, filter to that one.
+    // Otherwise (all/none), restrict to the user's currently known instances so logs from
+    // removed/disconnected instances don't pollute the list.
+    const knownIdSet = knownInstanceIds && knownInstanceIds.length > 0 ? new Set(knownInstanceIds) : null;
     const filteredLogs = filterInstanceId
       ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : messageLogs;
+      : knownIdSet
+        ? messageLogs.filter(m => !m.instance_id || knownIdSet.has(m.instance_id))
+        : messageLogs;
 
     // From message_logs
     filteredLogs.forEach(log => {
