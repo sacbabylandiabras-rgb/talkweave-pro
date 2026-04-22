@@ -849,7 +849,7 @@ const MensagensRecebidas = () => {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
-        body: { maxChats: 30, amountPerChat: 12, instanceId: selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id },
+        body: { maxChats: 200, amountPerChat: 12, instanceId: selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id },
       });
       if (error) throw error;
       if (data?.error === 'disconnected') {
