@@ -422,9 +422,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               )}
             </div>
             <p className="text-[11px] text-muted-foreground font-mono truncate mt-1">
-              {instance.api_provider === 'uazapi'
-                ? `URL: ${instance.evolution_api_url || '—'}`
-                : `ID: ${instance.zapi_instance_id}`}
+              ID: {instance.api_provider === 'uazapi'
+                ? (instance.evolution_api_key || '—')
+                : instance.zapi_instance_id}
             </p>
             {connectedPhone && (
               <div className="flex items-center gap-1 mt-1">
