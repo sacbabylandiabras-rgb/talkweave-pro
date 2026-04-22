@@ -64,7 +64,20 @@ interface PendingCaptureState {
   };
 }
 
+interface PendingButtonState {
+  flowId?: string;
+  flowName?: string;
+  nodeId: string;
+  instanceId?: string | null;
+  captured?: {
+    nome?: string;
+    whatsapp?: string;
+    email?: string;
+  };
+}
+
 const FLOW_CAPTURE_PREFIX = "__flow_capture__:";
+const FLOW_BUTTON_PREFIX = "__flow_button__:";
 
 const normalizeParticipantIdentifier = (value: unknown) => {
   const raw = String(value || "").trim();
@@ -2899,6 +2912,16 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    const { data: pendingButtonLog } = await supabase
+      .from("message_logs")
+      .select("id, response_sent, instance_id")
+      .eq("user_id", userId)
+      .eq("phone", phone)
+      .like("keyword_matched", `${FLOW_BUTTON_PREFIX}%`)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     if (pendingCaptureLog?.response_sent) {
       try {
         const pendingState = JSON.parse(
@@ -3167,6 +3190,86 @@ serve(async (req) => {
       }
     }
 
+    let hasPendingButtonContext = false;
+    if (pendingButtonLog?.response_sent) {
+      try {
+        const pendingButtonState = JSON.parse(
+          String(pendingButtonLog.response_sent || "{}"),
+        ) as PendingButtonState;
+        const pendingButtonFlowId = pendingButtonState.flowId;
+
+        if (pendingButtonFlowId) {
+          const { data: pendingButtonFlow } = await supabase
+            .from("flow_automations")
+            .select("*")
+            .eq("id", pendingButtonFlowId)
+            .eq("user_id", userId)
+            .eq("active", true)
+            .maybeSingle();
+
+          if (pendingButtonFlow) {
+            hasPendingButtonContext = true;
+
+            const waitingButtonMatch = findButtonEdgeMatch(
+              [pendingButtonFlow],
+              normalizedMessage,
+              messageRaw,
+              webhook,
+              { nodeId: pendingButtonState.nodeId },
+            );
+
+            if (waitingButtonMatch) {
+              console.log(
+                "🎯 Button reply matched for waiting node",
+                {
+                  flowId: pendingButtonFlow.id,
+                  nodeId: pendingButtonState.nodeId,
+                  button: waitingButtonMatch.buttonText,
+                },
+              );
+
+              await supabase.from("message_logs").delete().eq(
+                "id",
+                pendingButtonLog.id,
+              );
+
+              const routed = await routeMatchedButtonFlow({
+                match: waitingButtonMatch,
+                phone,
+                zapiConfig,
+                supabase,
+                userId,
+                lockId,
+                flowId: pendingButtonFlow.id,
+                resumeCaptured: pendingButtonState.captured || {},
+              });
+
+              if (routed) {
+                return new Response("button_flow_sent", {
+                  status: 200,
+                  headers: corsHeaders,
+                });
+              }
+            } else {
+              console.log(
+                "⏸️ Pending button context found but no match for waiting node",
+                {
+                  flowId: pendingButtonFlow.id,
+                  nodeId: pendingButtonState.nodeId,
+                  messageRaw,
+                },
+              );
+            }
+          }
+        }
+      } catch (pendingButtonError) {
+        console.error(
+          "Erro ao resolver contexto pendente de botão:",
+          pendingButtonError,
+        );
+      }
+    }
+
     // === CHECK FLOW AUTOMATIONS FIRST ===
     const { data: flowAutomations, error: flowError } = await supabase
       .from("flow_automations")
@@ -3240,28 +3343,30 @@ serve(async (req) => {
       }
 
       // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
-      const buttonMatch = findButtonEdgeMatch(
-        flowAutomations,
-        normalizedMessage,
-        messageRaw,
-        webhook,
-      );
-      if (buttonMatch) {
-        const routed = await routeMatchedButtonFlow({
-          match: buttonMatch,
-          phone,
-          zapiConfig,
-          supabase,
-          userId,
-          lockId,
-          flowId: buttonMatch.flow.id,
-        });
-
-        if (routed) {
-          return new Response("button_flow_sent", {
-            status: 200,
-            headers: corsHeaders,
+      if (!hasPendingButtonContext) {
+        const buttonMatch = findButtonEdgeMatch(
+          flowAutomations,
+          normalizedMessage,
+          messageRaw,
+          webhook,
+        );
+        if (buttonMatch) {
+          const routed = await routeMatchedButtonFlow({
+            match: buttonMatch,
+            phone,
+            zapiConfig,
+            supabase,
+            userId,
+            lockId,
+            flowId: buttonMatch.flow.id,
           });
+
+          if (routed) {
+            return new Response("button_flow_sent", {
+              status: 200,
+              headers: corsHeaders,
+            });
+          }
         }
       }
 
@@ -4147,6 +4252,24 @@ async function sendNodeContent(
     );
   });
 
+  if (hasButtonEdges && supabase && userId) {
+    await supabase.from("message_logs").insert({
+      phone,
+      message_received: null,
+      response_sent: JSON.stringify({
+        flowId: options?.flowId || null,
+        flowName: flowName || null,
+        nodeId: targetNode.id,
+        instanceId: zapiConfig?.zapi_instance_id || null,
+        captured: options?.resumeCaptured || {},
+      }),
+      keyword_matched: `${FLOW_BUTTON_PREFIX}${userId}`,
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      instance_id: zapiConfig?.zapi_instance_id || null,
+    });
+  }
+
   if (hasButtonEdges || hasCaptureEdges) {
     console.log(
       `Bloco ${targetNode.id} tem saídas de botão/captura — aguardando resposta do usuário`,
@@ -4598,6 +4721,7 @@ function findButtonEdgeMatch(
   normalizedMessage: string,
   rawMessage: string,
   webhook?: any,
+  options?: { nodeId?: string | null },
 ):
   | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
   | null {
@@ -4683,6 +4807,7 @@ function findButtonEdgeMatch(
 
     for (const node of nodes) {
       if (node?.type !== "blocoConteudo") continue;
+      if (options?.nodeId && node?.id !== options.nodeId) continue;
       const buttons = Array.isArray(node?.data?.buttons)
         ? node.data.buttons
         : [];
