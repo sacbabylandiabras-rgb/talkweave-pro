@@ -949,6 +949,19 @@ const MensagensRecebidas = () => {
     };
   }, [instances]);
 
+  // Auto-configure UAZAPI webhook on the provider once per session so that
+  // incoming user replies (needed for flow captures) actually arrive at our
+  // webhook-zapi function. Without this, only delivery acks are sent.
+  useEffect(() => {
+    if (instances.length === 0) return;
+    try {
+      const flagKey = 'uazapi_webhook_synced_v1';
+      if (sessionStorage.getItem(flagKey)) return;
+      sessionStorage.setItem(flagKey, '1');
+      supabase.functions.invoke('uazapi-set-webhook', { body: {} }).catch(() => { /* silent */ });
+    } catch { /* ignore */ }
+  }, [instances]);
+
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
     try {
