@@ -787,35 +787,35 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, unresolvedGroupKey]);
 
-  // Sync de fotos: quando o nome do grupo já estabilizou mas a foto continua ausente
-  // (por ex. após refresh), re-busca a imagem para manter o avatar persistente.
+  // Sync de fotos: grupos com nome resolvido mas sem foto (ex.: após refresh)
+  // são re-buscados via cache key para manter o avatar persistente.
+  // Calculado como string estável para evitar re-renders em loop.
   const groupsMissingPhotoKey = conversations
-    .filter((c) => {
-      if (!isGroupPhone(c.phone)) return false;
-      // Nome estável (não é "Grupo" nem vazio)
-      if (!c.contactName || c.contactName === 'Grupo') return false;
-      // Foto ausente
-      return !c.profilePictureUrl;
-    })
-    .map((c) => c.phone)
+    .filter((c) => isGroupPhone(c.phone) && c.contactName && c.contactName !== 'Grupo' && !c.profilePictureUrl)
+    .map((c) => `${c.phone}::${c.preferredInstanceId || ''}`)
     .sort()
     .join('|');
 
   useEffect(() => {
     if (loading || !groupsMissingPhotoKey) return;
-    const targets = groupsMissingPhotoKey.split('|').filter(Boolean);
-    const toRefresh = conversations.filter((c) => targets.includes(c.phone)).slice(0, 4);
-    if (toRefresh.length === 0) return;
+    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 4);
+    if (entries.length === 0) return;
 
+    let cancelled = false;
     (async () => {
-      for (const conv of toRefresh) {
-        const cacheKey = `group-photo-sync:${conv.phone}`;
+      for (const entry of entries) {
+        if (cancelled) return;
+        const [phone, instanceId] = entry.split('::');
+        const cacheKey = `group-photo-sync:${phone}`;
         if (fetchedPhotosRef.current.has(cacheKey)) continue;
         fetchedPhotosRef.current.add(cacheKey);
-        await fetchProfilePicture(conv.phone, conv.preferredInstanceId || null);
+        try {
+          await fetchProfilePicture(phone, instanceId || null);
+        } catch { /* ignore */ }
         await new Promise((r) => setTimeout(r, 400));
       }
     })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, groupsMissingPhotoKey]);
 
