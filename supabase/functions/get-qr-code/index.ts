@@ -50,6 +50,24 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
+        // Auto-configure webhook to point to our webhook-zapi endpoint
+        try {
+          const webhookUrl = `${supabaseUrl}/functions/v1/webhook-zapi?provider=uazapi&instanceId=${specificInstanceId}`;
+          await fetch(`${apiUrl}/webhook`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: apiToken },
+            body: JSON.stringify({
+              url: webhookUrl,
+              enabled: true,
+              events: ['messages', 'messages_update', 'connection', 'history', 'groups', 'contacts', 'chats'],
+              excludeEvents: ['wasSentByApi'],
+              addUrlEvents: false,
+              addUrlTypesMessages: false,
+            }),
+          }).catch((e) => console.error('UAZAPI webhook config failed:', e));
+        } catch (e) {
+          console.error('UAZAPI webhook setup error:', e);
+        }
         // POST /instance/connect generates QR + pairing code
         const uazRes = await fetch(`${apiUrl}/instance/connect`, {
           method: 'POST',
