@@ -178,6 +178,11 @@ const normalizeConversationPhone = (phone: string): string => {
   return numericId ? `${numericId}-group` : phone;
 };
 
+const safeMapGet = <K, V>(map: Map<K, V> | null | undefined, key: K): V | undefined => {
+  if (!map || typeof map.get !== 'function') return undefined;
+  return map.get(key);
+};
+
 const rememberGroupDisplayName = (store: Map<string, string>, phone: string, name: string | null | undefined) => {
   if (!isGroupPhone(phone) || !isUsableGroupDisplayName(name)) return;
   store.set(normalizeConversationPhone(phone), String(name).trim());
