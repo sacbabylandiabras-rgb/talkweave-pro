@@ -4867,12 +4867,15 @@ function findButtonEdgeMatch(
 
     const candidates = new Set<string>([raw]);
     const flattened = raw.replace(/\r/g, "\n");
-
-    flattened
+    const lines = flattened
       .split(/\n+/)
       .map((part) => part.trim())
-      .filter(Boolean)
-      .forEach((part) => candidates.add(part));
+      .filter(Boolean);
+
+    const lastLine = lines.at(-1);
+    if (lastLine) candidates.add(lastLine);
+
+    lines.forEach((part) => candidates.add(part));
 
     flattened
       .split(/[|;,]+/)
@@ -4883,9 +4886,14 @@ function findButtonEdgeMatch(
     const numberedMatches = Array.from(
       flattened.matchAll(/(?:^|\n)\s*(\d+)\s*[.)\-:]+\s*([^\n]+)/gu),
     );
-    for (const match of numberedMatches) {
-      const numeric = String(match[1] || "").trim();
-      const label = String(match[2] || "").trim();
+
+    const matchesToUse = numberedMatches.length > 1
+      ? [numberedMatches[numberedMatches.length - 1]]
+      : numberedMatches;
+
+    for (const match of matchesToUse) {
+      const numeric = String(match?.[1] || "").trim();
+      const label = String(match?.[2] || "").trim();
       if (numeric) candidates.add(numeric);
       if (label) {
         candidates.add(label);
