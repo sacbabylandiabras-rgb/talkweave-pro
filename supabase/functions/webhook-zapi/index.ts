@@ -4469,8 +4469,11 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.buttonReply?.selectedDisplayText,
     webhook?.buttonReply?.selectedRowId,
     webhook?.buttonReply?.id,
+    webhook?.buttonReply?.selectedId,
     webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
     webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedButtonId,
+    webhook?.message?.buttonResponseMessage?.selectedId,
     webhook?.buttonsResponseMessage?.selectedDisplayText,
     webhook?.buttonsResponseMessage?.selectedButtonId,
     webhook?.buttonsResponseMessage?.selectedButtonText,
@@ -4478,15 +4481,19 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.buttonsResponseMessage?.text,
     webhook?.buttonResponseMessage?.selectedDisplayText,
     webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.buttonResponseMessage?.selectedId,
     webhook?.listResponseMessage?.title,
     webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
     webhook?.interactiveResponse?.title,
     webhook?.interactiveResponse?.description,
     webhook?.title,
     webhook?.selectedButtonId,
+    webhook?.selectedId,
     webhook?.response?.title,
     webhook?.response?.text,
     webhook?.response?.selectedDisplayText,
+    webhook?.response?.selectedButtonId,
+    webhook?.response?.selectedId,
     webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
     webhook?.message?.templateButtonReplyMessage?.selectedId,
     webhook?.templateButtonReplyMessage?.selectedDisplayText,
@@ -4549,6 +4556,14 @@ function findButtonEdgeMatch(
       .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
       .trim();
 
+  const extractExplicitButtonHandle = (value: string): string | null => {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/\bbutton[-_ ]?(\d+)\b/i);
+    if (!match) return null;
+    return `button-${match[1]}`;
+  };
+
   const extractUazapiChoiceIndex = (value: string): number | null => {
     const trimmed = String(value || "").trim();
     if (!trimmed) return null;
@@ -4597,6 +4612,12 @@ function findButtonEdgeMatch(
       .filter(Boolean),
   );
 
+  const explicitHandleCandidates = new Set(
+    replyCandidates
+      .map((value) => extractExplicitButtonHandle(value))
+      .filter((value): value is string => Boolean(value)),
+  );
+
   const derivedIndexCandidates = new Set(
     replyCandidates
       .map((value) => extractUazapiChoiceIndex(value))
@@ -4639,6 +4660,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
+          explicitHandleCandidates.has(`button-${idx}`) ||
           derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
