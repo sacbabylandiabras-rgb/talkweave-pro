@@ -4148,7 +4148,12 @@ async function sendNodeContent(
       const sanitizedContent = isUazapiProvider
         ? stripButtonListFromMessage(content || "", allSendButtons)
         : (content || "");
-      const fullMessage = sanitizedContent + urlCallSuffix;
+      // UAZAPI já entrega botões URL/CALL nativamente via /send/menu (choices),
+      // então NÃO devemos anexar os links no texto (causa duplicação).
+      // Para Z-API, anexamos o sufixo apenas quando vamos cair no fallback de texto puro.
+      const fullMessage = isUazapiProvider
+        ? sanitizedContent
+        : sanitizedContent + urlCallSuffix;
 
       let res: Response | null = null;
       if (isUazapiProvider) {
