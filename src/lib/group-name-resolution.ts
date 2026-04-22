@@ -26,6 +26,7 @@ export const isGroupPhone = (phone: string): boolean => {
 export const isUsableGroupDisplayName = (value: string | null | undefined): boolean => {
   const normalized = String(value || '').trim();
   if (!normalized) return false;
+  if (/@g\.us$/i.test(normalized) || /-group$/i.test(normalized)) return false;
   // Only digits, plus, parens, dashes and spaces => looks like a phone number, not a name.
   if (/^[+\d()\-\s]+$/.test(normalized) && /\d/.test(normalized)) return false;
   if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;

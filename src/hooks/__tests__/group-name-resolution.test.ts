@@ -32,6 +32,8 @@ describe("isUsableGroupDisplayName", () => {
     ["Conversa com Grupo", false],
     ["Conversa com 5511999999999", false],
     ["120363405412051886", false],
+    ["120363405412051886@g.us", false],
+    ["120363405412051886-group", false],
     ["+55 11 99999-9999", false],
     ["Equipe Vendas", true],
     ["Suporte 24h", true],
@@ -66,6 +68,17 @@ describe("resolveGroupConversationName", () => {
     });
     expect(name).toBe("Equipe Vendas");
     expect(stable.get(GROUP_PHONE)).toBe("Equipe Vendas");
+  });
+
+  it("ignores raw @g.us identifiers returned as the live group name", () => {
+    const name = resolveGroupConversationName({
+      phone: GROUP_PHONE,
+      logs: [goodPlaceholderLog],
+      savedContacts: buildSavedContacts([]),
+      groupNames: new Map([[GROUP_PHONE, GROUP_RAW_ID]]),
+      stableGroupNames: stable,
+    });
+    expect(name).toBe("Equipe Vendas");
   });
 
   it("falls back to the saved contact name when live names are missing", () => {
