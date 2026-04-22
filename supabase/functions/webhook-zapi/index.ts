@@ -4129,6 +4129,112 @@ async function sendNodeContent(
   return false;
 }
 
+async function routeMatchedButtonFlow(
+  params: {
+    match: { flow: any; targetNodeId: string; buttonText: string; flowName: string };
+    phone: string;
+    zapiConfig: any;
+    supabase: any;
+    userId?: string | null;
+    lockId: string;
+    flowId?: string | null;
+    resumeCaptured?: PendingCaptureState["captured"];
+  },
+) {
+  const {
+    match,
+    phone,
+    zapiConfig,
+    supabase,
+    userId,
+    lockId,
+    flowId,
+    resumeCaptured,
+  } = params;
+
+  console.log("=== BOTÃO MATCH ===");
+  console.log(
+    "Fluxo:",
+    match.flowName,
+    "| Botão:",
+    match.buttonText,
+    "| Target:",
+    match.targetNodeId,
+  );
+
+  const flowNodes: FlowNode[] = match.flow.nodes || [];
+  const flowEdges: FlowEdge[] = match.flow.edges || [];
+  const targetNode = flowNodes.find((n) => n.id === match.targetNodeId);
+
+  console.log(
+    "Total nodes:",
+    flowNodes.length,
+    "| Total edges:",
+    flowEdges.length,
+  );
+  console.log("Target node:", JSON.stringify(targetNode?.data));
+
+  if (!targetNode) return false;
+
+  const visited = new Set<string>();
+  const flowContext = {
+    flowId: flowId || match.flow.id || null,
+    resumeCaptured,
+  };
+
+  if (targetNode.type === "blocoConteudo") {
+    const shouldStop = await sendNodeContent(
+      targetNode,
+      flowNodes,
+      flowEdges,
+      phone,
+      zapiConfig,
+      visited,
+      supabase,
+      userId,
+      match.flowName,
+      flowContext,
+    );
+
+    if (!shouldStop) {
+      await processFlowNode(
+        targetNode.id,
+        flowNodes,
+        flowEdges,
+        phone,
+        zapiConfig,
+        supabase,
+        visited,
+        userId,
+        match.flowName,
+        flowContext,
+      );
+    } else {
+      console.log("Fluxo pausado no ram alvo - aguardando próximo clique de botão");
+    }
+  } else {
+    await processFlowNode(
+      targetNode.id,
+      flowNodes,
+      flowEdges,
+      phone,
+      zapiConfig,
+      supabase,
+      visited,
+      userId,
+      match.flowName,
+      flowContext,
+    );
+  }
+
+  await finalizeMessageLog(supabase, lockId, {
+    keywordMatched: `[Botão: ${match.buttonText}]`,
+    responseSent: `[Fluxo: ${match.flowName}]`,
+  });
+
+  return true;
+}
+
 async function processFlowNode(
   nodeId: string,
   nodes: FlowNode[],
