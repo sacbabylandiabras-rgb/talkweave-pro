@@ -37,12 +37,40 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: instance, error: instError } = await adminClient
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', specificInstanceId)
         .eq('user_id', user.id)
         .single();
 
       if (instError || !instance) throw new Error('Instance not found');
+
+      // UAZAPI provider routing
+      if ((instance as any).api_provider === 'uazapi') {
+        const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
+        const apiToken = (instance as any).evolution_api_key || '';
+        if (!apiUrl || !apiToken) {
+          return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const uazRes = await fetch(`${apiUrl}/instance/status`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+        });
+        const uazRaw = await uazRes.text();
+        let uazData: any = {};
+        try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+        const status = String(uazData?.instance?.status || uazData?.status || '').toLowerCase();
+        const connected = uazData?.connected === true || uazData?.loggedIn === true || status === 'connected';
+        const normalized = {
+          connected,
+          session: connected,
+          smartphoneConnected: connected,
+          status,
+          raw: uazData,
+        };
+        return new Response(JSON.stringify({ success: true, data: normalized }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/status`;
       const zapiResponse = await fetch(zapiUrl, {
