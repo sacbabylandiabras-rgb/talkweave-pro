@@ -42,18 +42,34 @@ Deno.serve(async (req) => {
         throw new Error('UAZAPI URL/Token não configurados');
       }
 
-      const disconnectRes = await fetch(`${apiUrl}/instance/logout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', token: apiToken },
-      });
-
-      const disconnectText = await disconnectRes.text();
+      const disconnectEndpoints = [`${apiUrl}/instance/disconnect`, `${apiUrl}/instance/logout`];
       let disconnectData: any = {};
-      try { disconnectData = JSON.parse(disconnectText); } catch { disconnectData = { message: disconnectText }; }
+      let disconnectStatus = 500;
+      let disconnected = false;
 
-      if (!disconnectRes.ok) {
+      for (const endpoint of disconnectEndpoints) {
+        const disconnectRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+        });
+
+        const disconnectText = await disconnectRes.text();
+        try { disconnectData = JSON.parse(disconnectText); } catch { disconnectData = { message: disconnectText }; }
+        disconnectStatus = disconnectRes.status;
+
+        if (disconnectRes.ok) {
+          disconnected = true;
+          break;
+        }
+
+        if (disconnectRes.status !== 404 && disconnectRes.status !== 405) {
+          break;
+        }
+      }
+
+      if (!disconnected) {
         return new Response(JSON.stringify({ error: 'Failed to restart', details: disconnectData }), {
-          status: disconnectRes.status,
+          status: disconnectStatus,
           headers: jsonHeaders,
         });
       }
