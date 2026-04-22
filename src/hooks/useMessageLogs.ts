@@ -178,6 +178,11 @@ const normalizeConversationPhone = (phone: string): string => {
   return numericId ? `${numericId}-group` : phone;
 };
 
+const rememberGroupDisplayName = (store: Map<string, string>, phone: string, name: string | null | undefined) => {
+  if (!isGroupPhone(phone) || !isUsableGroupDisplayName(name)) return;
+  store.set(normalizeConversationPhone(phone), String(name).trim());
+};
+
 export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
@@ -192,6 +197,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
   const lastSendsRef = useRef<string>('');
   const fetchedPhotosRef = useRef<Set<string>>(new Set());
   const fetchedGroupNamesRef = useRef<string>('');
+  const stableGroupNamesRef = useRef<Map<string, string>>(new Map());
 
   const fetchSavedContacts = useCallback(async () => {
     try {
@@ -199,7 +205,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       if (!token) return;
       const data = await savedContactsApi.getAll(token);
       const map = new Map<string, SavedContact>();
-      data.forEach((c) => map.set(c.phone, c));
+      data.forEach((c) => {
+        map.set(c.phone, c);
+        rememberGroupDisplayName(stableGroupNamesRef.current, c.phone, c.name);
+      });
       setSavedContacts(map);
     } catch { /* table might not exist */ }
   }, []);
@@ -477,6 +486,8 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
             // Also try without @g.us suffix for matching
             const cleanId = g.id.replace('@g.us', '');
             map.set(cleanId + '-group', g.nome);
+            rememberGroupDisplayName(stableGroupNamesRef.current, g.id, g.nome);
+            rememberGroupDisplayName(stableGroupNamesRef.current, cleanId + '-group', g.nome);
 
             if (g.sourceInstanceId) {
               instanceMap.set(g.id, g.sourceInstanceId);
@@ -647,10 +658,18 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const preferredCampaignName = isGroup
           ? (isUsableGroupDisplayName(campaignName) ? campaignName : null)
           : campaignName;
+        const stableGroupName = isGroup
+          ? (stableGroupNamesRef.current.get(phone) || null)
+          : null;
+        const resolvedContactName = preferredGroupName || preferredSavedName || placeholderGroupName || preferredCampaignName || stableGroupName || null;
+
+        if (isGroup && resolvedContactName) {
+          rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
+        }
 
         return {
           phone,
-          contactName: preferredGroupName || placeholderGroupName || preferredSavedName || preferredCampaignName || null,
+          contactName: resolvedContactName,
           profilePictureUrl: saved?.profile_picture_url || null,
           lastMessage: typeof last?.content === 'string' ? last.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
