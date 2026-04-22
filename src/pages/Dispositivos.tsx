@@ -503,6 +503,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 if (error) throw error;
                 if (data?.error) throw new Error(data.message || data.error);
                 toast({ title: "✅ Instância reiniciada", description: data?.message || "Escaneie o QR Code para conectar." });
+                setQrCode(null);
+                setQrCodeImage(null);
                 setTimeout(fetchDeviceStatus, 3000);
               } catch (err) {
                 const message = await getInvokeErrorMessage(err, 'Erro ao reiniciar');
