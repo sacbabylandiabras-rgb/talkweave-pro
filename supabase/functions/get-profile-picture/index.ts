@@ -56,7 +56,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const adminClient = (await import("https://esm.sh/@supabase/supabase-js@2.58.0")).createClient(supabaseUrl, supabaseServiceKey)
+    const adminClient = (await import("npm:@supabase/supabase-js@2.58.0")).createClient(supabaseUrl, supabaseServiceKey)
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
 
     const { phone, instanceId } = await req.json()
