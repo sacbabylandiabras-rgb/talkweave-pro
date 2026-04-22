@@ -11,6 +11,43 @@ const extractUrl = (payload: any): string | null => {
   return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null
 }
 
+const isUsableGroupName = (value: unknown): value is string => {
+  const normalized = String(value || '').trim()
+  if (!normalized) return false
+  if (/@g\.us$/i.test(normalized) || /-group$/i.test(normalized)) return false
+  if (/^[+\d()\-\s]+$/.test(normalized) && /\d/.test(normalized)) return false
+  if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false
+  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false
+  return true
+}
+
+const extractGroupName = (payload: any): string | null => {
+  if (!payload) return null
+  const candidate = Array.isArray(payload) ? payload[0] : payload
+  const names = [
+    candidate?.name,
+    candidate?.subject,
+    candidate?.title,
+    candidate?.groupName,
+    candidate?.contact,
+    candidate?.wa_name,
+    candidate?.wa_chatName,
+    candidate?.data?.name,
+    candidate?.data?.subject,
+    candidate?.group?.name,
+    candidate?.group?.subject,
+    candidate?.groupMetadata?.subject,
+    candidate?.chat?.name,
+    candidate?.chat?.subject,
+  ]
+
+  for (const name of names) {
+    if (isUsableGroupName(name)) return String(name).trim()
+  }
+
+  return null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -87,9 +124,10 @@ serve(async (req) => {
         })
         const detailsData = await detailsRes.json().catch(() => null)
         const link = detailsData?.imagePreview || detailsData?.image || detailsData?.profilePicUrl || null
-        if (detailsRes.ok && link) {
+        const name = extractGroupName(detailsData)
+        if (detailsRes.ok && (link || name)) {
           return new Response(
-            JSON.stringify({ success: true, data: { link, raw: detailsData } }),
+            JSON.stringify({ success: true, data: { link, name, raw: detailsData } }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
@@ -162,9 +200,10 @@ serve(async (req) => {
           })
           console.log(`📷 Groups list match: id=${match?.phone} imgUrl=${match?.imgUrl} photo=${match?.photo}`)
           const photoUrl = match?.imgUrl || match?.profilePicture || match?.image || match?.photo || null
-          if (photoUrl) {
+          const name = extractGroupName(match)
+          if (photoUrl || name) {
             return new Response(
-              JSON.stringify({ success: true, data: { link: photoUrl, raw: match } }),
+              JSON.stringify({ success: true, data: { link: photoUrl, name, raw: match } }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
@@ -181,9 +220,10 @@ serve(async (req) => {
           const metaData = await metaRes.json()
           console.log(`📷 group-metadata keys: ${Object.keys(metaData || {}).join(',')}`)
           const photoUrl = metaData?.imgUrl || metaData?.profilePicture || metaData?.image || metaData?.photo || metaData?.groupPhoto || null
-          if (photoUrl) {
+          const name = extractGroupName(metaData)
+          if (photoUrl || name) {
             return new Response(
-              JSON.stringify({ success: true, data: { link: photoUrl, raw: metaData } }),
+              JSON.stringify({ success: true, data: { link: photoUrl, name, raw: metaData } }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }

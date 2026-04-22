@@ -176,6 +176,13 @@ const extractProfilePictureUrl = (payload: any): string | null => {
   return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null;
 };
 
+const extractResolvedGroupName = (payload: any): string | null => {
+  if (!payload) return null;
+  if (typeof payload?.name === 'string' && isUsableGroupDisplayName(payload.name)) return payload.name.trim();
+  if (typeof payload?.data?.name === 'string' && isUsableGroupDisplayName(payload.data.name)) return payload.data.name.trim();
+  return null;
+};
+
 const toMillis = (value: string | null | undefined): number => {
   if (!value) return 0;
   const ms = new Date(value).getTime();
@@ -389,13 +396,20 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
       const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
       if (error) return null;
-      const url = extractProfilePictureUrl(data?.data ?? data);
-      if (url) {
+      const responsePayload = data?.data ?? data;
+      const url = extractProfilePictureUrl(responsePayload);
+      const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
+      if (url || resolvedName) {
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
           const existing = safeMapGet(savedContacts, phone);
-          await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
+          await savedContactsApi.upsert(token, {
+            phone,
+            name: resolvedName || existing?.name || '',
+            user_id: userId,
+            profile_picture_url: url || existing?.profile_picture_url || null,
+          });
           await fetchSavedContacts();
         }
       }
@@ -437,6 +451,51 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       await fetchSavedContacts();
     }
   }, [savedContacts, fetchSavedContacts, filterInstanceId]);
+
+  const autoResolveGroupMetadata = useCallback(async (conversationsToCheck: Conversation[]) => {
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+
+    const unresolvedGroups = conversationsToCheck.filter((conversation) => {
+      if (!isGroupPhone(conversation.phone)) return false;
+      if (conversation.contactName && conversation.contactName !== 'Grupo') return false;
+      const saved = safeMapGet(savedContacts, conversation.phone) || safeMapGet(savedContacts, normalizeConversationPhone(conversation.phone));
+      return !saved || !isUsableGroupDisplayName(saved.name) || !saved.profile_picture_url;
+    }).slice(0, 4);
+
+    for (const conversation of unresolvedGroups) {
+      const phone = conversation.phone;
+      if (fetchedPhotosRef.current.has(`group-meta:${phone}`)) continue;
+      fetchedPhotosRef.current.add(`group-meta:${phone}`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('get-profile-picture', {
+          body: { phone, instanceId: conversation.preferredInstanceId || filterInstanceId || null },
+        });
+        if (error) continue;
+
+        const responsePayload = data?.data ?? data;
+        const url = extractProfilePictureUrl(responsePayload);
+        const resolvedName = extractResolvedGroupName(responsePayload);
+        if (!url && !resolvedName) continue;
+
+        const existing = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalizeConversationPhone(phone));
+        await savedContactsApi.upsert(token, {
+          phone,
+          name: resolvedName || existing?.name || '',
+          user_id: userId,
+          profile_picture_url: url || existing?.profile_picture_url || null,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    if (unresolvedGroups.length > 0) {
+      await fetchSavedContacts();
+    }
+  }, [filterInstanceId, savedContacts, fetchSavedContacts]);
 
   useEffect(() => {
     setLoading(true);
@@ -712,6 +771,11 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
   })();
+
+  useEffect(() => {
+    if (loading || conversations.length === 0) return;
+    autoResolveGroupMetadata(conversations);
+  }, [loading, conversations, autoResolveGroupMetadata]);
 
   const sendMessage = useCallback(async (phone: string, message: string, options: SendMessageOptions = {}) => {
     const { data: { session } } = await supabase.auth.getSession();
