@@ -2759,6 +2759,17 @@ async function sendNodeContent(
       .map(btn => ({ label: (btn.text || '').trim() || 'Botão' }))
   }
 
+  function buildUazapiMenuChoices(btns: typeof allSendButtons) {
+    return btns
+      .slice(0, 10)
+      .map((btn, idx) => {
+        const label = (btn.text || '').trim() || `Botão ${idx + 1}`
+        if (btn.type === 'url' && btn.value) return `${label}|url:${wrapUrlWithTracking(btn.value.trim(), label)}`
+        if (btn.type === 'call' && btn.value) return `${label}|call:${btn.value.trim()}`
+        return `${label}|${label}`
+      })
+  }
+
   function buildUrlCallSuffix(btns: typeof allSendButtons): string {
     const parts: string[] = []
     for (const btn of btns) {
@@ -2831,7 +2842,19 @@ async function sendNodeContent(
 
       let res: Response | null = null
       if (isUazapiProvider) {
-        await sendProviderText(fullMessage, `Bloco ${targetNode.id} (${contentType}+buttons:fallback)`) 
+        if (!uazapiUrl || !uazapiToken) throw new Error('UAZAPI URL/Token não configurados')
+        const menuChoices = buildUazapiMenuChoices(allSendButtons)
+        res = await fetch(`${uazapiUrl}/send/menu`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: uazapiToken },
+          body: JSON.stringify({
+            number: normalizedTargetNumber,
+            type: 'button',
+            text: fullMessage || 'Selecione uma opção:',
+            footerText: targetNode.data.footer || undefined,
+            choices: menuChoices,
+          }),
+        })
       } else if (replyButtons.length > 0) {
         res = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
