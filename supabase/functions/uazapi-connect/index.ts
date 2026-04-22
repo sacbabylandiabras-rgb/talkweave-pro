@@ -104,7 +104,7 @@ serve(async (req) => {
   }
 
   try {
-    const { apiUrl, apiToken, phone } = await req.json()
+    const { apiUrl, apiToken, phone, instanceId } = await req.json()
 
     if (!apiUrl || !apiToken) {
       return new Response(JSON.stringify({ error: 'Missing apiUrl or apiToken' }), {
@@ -142,6 +142,35 @@ serve(async (req) => {
     }
 
     console.log(`✅ Connect response keys: ${Object.keys(normalizedData).join(',')}`)
+
+    // Auto-configure webhook on UAZAPI so we receive incoming messages.
+    // Without this, only delivery acks (messages_update) arrive and flow
+    // captures never resume after the user replies.
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+      if (supabaseUrl) {
+        const projectRef = supabaseUrl.replace(/^https?:\/\//, '').split('.')[0]
+        const webhookUrl = `https://${projectRef}.supabase.co/functions/v1/webhook-zapi?provider=uazapi${instanceId ? `&instanceId=${encodeURIComponent(instanceId)}` : ''}`
+        const webhookEndpoint = `${baseUrl}/instance/updateWebhook`
+        const webhookBody = {
+          url: webhookUrl,
+          enabled: true,
+          events: ['messages', 'messages_update', 'connection', 'groups', 'presence'],
+          excludeMessages: [],
+          addUrlEvents: false,
+        }
+        console.log(`🔗 Configuring UAZAPI webhook → ${webhookUrl}`)
+        const whRes = await fetch(webhookEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify(webhookBody),
+        })
+        const whText = await whRes.text()
+        console.log(`🔗 UAZAPI webhook config response: ${whRes.status} ${whText.substring(0, 200)}`)
+      }
+    } catch (whErr) {
+      console.error('⚠️ Failed to configure UAZAPI webhook:', whErr)
+    }
 
     return new Response(JSON.stringify(normalizedData), {
       status: 200,

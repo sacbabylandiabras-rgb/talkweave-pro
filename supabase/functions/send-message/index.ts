@@ -188,7 +188,9 @@ serve(async (req) => {
 
       if (mediaUrl && mediaType) {
         endpoint = '/send/media';
-        const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' };
+        // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
+        // instead of a regular audio attachment.
+        const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'ptt', document: 'document' };
         body = {
           number: targetNumber,
           type: typeMap[mediaType] || 'document',
