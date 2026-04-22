@@ -2316,6 +2316,17 @@ serve(async (req) => {
     let messageRaw = extractMessageText(webhook);
     const audioUrl = extractAudioUrl(webhook);
 
+    if (!messageRaw) {
+      const buttonReplyFallback = extractButtonReplyCandidates(webhook)[0] || "";
+      if (buttonReplyFallback) {
+        messageRaw = buttonReplyFallback;
+        console.log(
+          "🔁 Using button reply fallback as incoming message:",
+          messageRaw,
+        );
+      }
+    }
+
     // For manual flow triggers from campaigns, inject a synthetic message text
     if (!messageRaw && isManualFlowTriggerEarly && webhook?.flowId) {
       messageRaw = `__flow_trigger_${webhook.flowId}__`;
@@ -3831,13 +3842,14 @@ async function sendNodeContent(
       .slice(0, 10)
       .map((btn, idx) => {
         const label = (btn.text || "").trim() || `Botão ${idx + 1}`;
+        const stableReplyId = `button-${idx}`;
         if (btn.type === "url" && btn.value) {
           return `${label}|url:${wrapUrlWithTracking(btn.value.trim(), label)}`;
         }
         if (btn.type === "call" && btn.value) {
           return `${label}|call:${btn.value.trim()}`;
         }
-        return `${label}|${label}`;
+        return `${label}|${stableReplyId}`;
       });
   }
 
@@ -4462,14 +4474,24 @@ function extractButtonReplyCandidates(webhook: any): string[] {
   };
 
   const candidateValues = [
+    webhook?.text?.title,
+    webhook?.text?.description,
+    webhook?.text?.selectedDisplayText,
+    webhook?.text?.selectedButtonId,
+    webhook?.text?.selectedId,
+    webhook?.text?.selectedRowId,
+    webhook?.text?.id,
     webhook?.buttonReply?.title,
     webhook?.buttonReply?.text,
     webhook?.buttonReply?.label,
     webhook?.buttonReply?.selectedDisplayText,
     webhook?.buttonReply?.selectedRowId,
     webhook?.buttonReply?.id,
+    webhook?.buttonReply?.selectedId,
     webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
     webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedButtonId,
+    webhook?.message?.buttonResponseMessage?.selectedId,
     webhook?.buttonsResponseMessage?.selectedDisplayText,
     webhook?.buttonsResponseMessage?.selectedButtonId,
     webhook?.buttonsResponseMessage?.selectedButtonText,
@@ -4477,15 +4499,26 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.buttonsResponseMessage?.text,
     webhook?.buttonResponseMessage?.selectedDisplayText,
     webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.buttonResponseMessage?.selectedId,
     webhook?.listResponseMessage?.title,
     webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
     webhook?.interactiveResponse?.title,
     webhook?.interactiveResponse?.description,
     webhook?.title,
     webhook?.selectedButtonId,
+    webhook?.selectedId,
     webhook?.response?.title,
     webhook?.response?.text,
     webhook?.response?.selectedDisplayText,
+    webhook?.response?.selectedButtonId,
+    webhook?.response?.selectedId,
+    webhook?.data?.text?.title,
+    webhook?.data?.text?.description,
+    webhook?.data?.text?.selectedDisplayText,
+    webhook?.data?.text?.selectedButtonId,
+    webhook?.data?.text?.selectedId,
+    webhook?.data?.text?.selectedRowId,
+    webhook?.data?.text?.id,
     webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
     webhook?.message?.templateButtonReplyMessage?.selectedId,
     webhook?.templateButtonReplyMessage?.selectedDisplayText,
@@ -4548,6 +4581,14 @@ function findButtonEdgeMatch(
       .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
       .trim();
 
+  const extractExplicitButtonHandle = (value: string): string | null => {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/\bbutton[-_ ]?(\d+)\b/i);
+    if (!match) return null;
+    return `button-${match[1]}`;
+  };
+
   const extractUazapiChoiceIndex = (value: string): number | null => {
     const trimmed = String(value || "").trim();
     if (!trimmed) return null;
@@ -4596,6 +4637,12 @@ function findButtonEdgeMatch(
       .filter(Boolean),
   );
 
+  const explicitHandleCandidates = new Set(
+    replyCandidates
+      .map((value) => extractExplicitButtonHandle(value))
+      .filter((value): value is string => Boolean(value)),
+  );
+
   const derivedIndexCandidates = new Set(
     replyCandidates
       .map((value) => extractUazapiChoiceIndex(value))
@@ -4638,6 +4685,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
+          explicitHandleCandidates.has(`button-${idx}`) ||
           derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
@@ -4905,11 +4953,13 @@ function extractMessageText(webhook: any): string {
   }
 
   const objectCandidates = [
+    webhook?.text,
     webhook?.buttonReply,
     webhook?.message,
     webhook?.buttonsResponseMessage,
     webhook?.buttonResponseMessage,
     webhook?.waitingMessage,
+    webhook?.data?.text,
     webhook?.data?.buttonReply,
     webhook?.data?.message,
     webhook?.data?.waitingMessage,
