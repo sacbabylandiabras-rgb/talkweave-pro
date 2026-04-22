@@ -670,14 +670,17 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
           return b.id.localeCompare(a.id);
         });
         const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
-        const saved = safeMapGet(savedContacts, phone);
+        const normalizedPhone = normalizeConversationPhone(phone);
+        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalizedPhone);
         // Get name from campaign_sends if no saved contact
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
         // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
-        const groupName = isGroup ? (safeMapGet(groupNames, phone) || null) : null;
+        const groupName = isGroup
+          ? (safeMapGet(groupNames, phone) || safeMapGet(groupNames, normalizedPhone) || null)
+          : null;
         const preferredInstanceId = filterInstanceId && filterInstanceId !== 'all'
           ? filterInstanceId
           : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || null;
@@ -685,35 +688,16 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const preferredGroupName = isGroup
           ? (isUsableGroupDisplayName(groupName) ? groupName : null)
           : null;
-        const placeholderGroupName = isGroup
-          ? (() => {
-              for (const log of sortedConversationLogs) {
-                if (log.keyword_matched !== '__history_import__') continue;
-                const text = String(log.message_received || '').trim();
-                if (!text.startsWith('💬 Conversa com ')) continue;
-
-                const extracted = text
-                  .replace(/^💬\s*Conversa com\s*/i, '')
-                  .trim();
-
-                if (isUsableGroupDisplayName(extracted)) {
-                  return extracted;
-                }
-              }
-
-              return null;
-            })()
-          : null;
-        const preferredSavedName = isGroup
-          ? (isUsableGroupDisplayName(saved?.name) ? saved?.name || null : null)
-          : (saved?.name || null);
-        const preferredCampaignName = isGroup
-          ? (isUsableGroupDisplayName(campaignName) ? campaignName : null)
-          : campaignName;
-        const stableGroupName = isGroup
-          ? (safeMapGet(stableGroupNamesRef.current, phone) || null)
-          : null;
-        const resolvedContactName = preferredGroupName || preferredSavedName || placeholderGroupName || preferredCampaignName || stableGroupName || null;
+        const resolvedContactName = isGroup
+          ? resolveGroupConversationName({
+              phone,
+              logs: sortedConversationLogs,
+              savedContacts,
+              groupNames,
+              stableGroupNames: stableGroupNamesRef.current,
+              campaignContactName: campaignName,
+            })
+          : (saved?.name || campaignName || null);
 
         if (isGroup && resolvedContactName) {
           rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
@@ -722,7 +706,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: saved?.profile_picture_url || null,
+          profilePictureUrl: saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
           lastMessage: typeof last?.content === 'string' ? last.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
