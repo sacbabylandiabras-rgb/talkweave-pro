@@ -167,7 +167,8 @@ const isUsableGroupDisplayName = (value: string | null | undefined): boolean => 
   const normalized = String(value || '').trim();
   if (!normalized) return false;
   if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
-  if (/^(grupo|conversa com grupo)$/i.test(normalized)) return false;
+  if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;
+  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false;
   return true;
 };
 
@@ -627,6 +628,19 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const preferredGroupName = isGroup
           ? (isUsableGroupDisplayName(groupName) ? groupName : null)
           : null;
+        const placeholderGroupName = isGroup
+          ? (() => {
+              const importedLog = sortedConversationLogs.find((log) => {
+                if (log.keyword_matched !== '__history_import__') return false;
+                const text = String(log.message_received || '').trim();
+                return text.startsWith('💬 Conversa com ');
+              });
+              const extracted = String(importedLog?.message_received || '')
+                .replace(/^💬\s*Conversa com\s*/i, '')
+                .trim();
+              return isUsableGroupDisplayName(extracted) ? extracted : null;
+            })()
+          : null;
         const preferredSavedName = isGroup
           ? (isUsableGroupDisplayName(saved?.name) ? saved?.name || null : null)
           : (saved?.name || null);
@@ -636,7 +650,7 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
 
         return {
           phone,
-          contactName: preferredGroupName || preferredSavedName || preferredCampaignName || null,
+          contactName: preferredGroupName || placeholderGroupName || preferredSavedName || preferredCampaignName || null,
           profilePictureUrl: saved?.profile_picture_url || null,
           lastMessage: typeof last?.content === 'string' ? last.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
