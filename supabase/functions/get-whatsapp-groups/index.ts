@@ -7,6 +7,9 @@ interface ZapiInstance {
   zapi_token: string;
   zapi_client_token: string;
   instance_name: string | null;
+  api_provider?: string | null;
+  evolution_api_url?: string | null;
+  evolution_api_key?: string | null;
 }
 
 const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
@@ -52,6 +55,98 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
   return allGroups;
 };
 
+const isUsableGroupName = (value: unknown) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return false;
+  if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
+  if (/^grupo sem nome$/i.test(normalized)) return false;
+  return true;
+};
+
+const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
+  const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+  const apiToken = instance.evolution_api_key || '';
+  if (!apiUrl || !apiToken) return [];
+
+  const response = await fetch(`${apiUrl}/group/list?token=${encodeURIComponent(apiToken)}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
+    return [];
+  }
+
+  const rawGroups = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.groups)
+      ? payload.groups
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+  const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+    const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
+    if (!String(groupId).includes('@g.us')) return null;
+
+    let detail: any = null;
+    const fallbackName = group?.subject || group?.name || group?.groupName || group?.title || '';
+    if (!isUsableGroupName(fallbackName)) {
+      try {
+        const infoResponse = await fetch(`${apiUrl}/group/info`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            token: apiToken,
+          },
+          body: JSON.stringify({ groupjid: groupId }),
+        });
+        detail = await infoResponse.json().catch(() => null);
+      } catch (error) {
+        console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
+      }
+    }
+
+    return {
+      ...group,
+      ...detail,
+      id: groupId,
+      phone: groupId,
+      name:
+        detail?.subject ||
+        detail?.name ||
+        detail?.group?.subject ||
+        detail?.group?.name ||
+        detail?.groupMetadata?.subject ||
+        detail?.data?.subject ||
+        group?.subject ||
+        group?.name ||
+        group?.groupName ||
+        group?.title ||
+        'Grupo sem nome',
+      memberCount:
+        detail?.participants?.length ||
+        detail?.group?.participants?.length ||
+        group?.memberCount ||
+        group?.size ||
+        0,
+      profilePicture:
+        detail?.imageUrl ||
+        detail?.picture ||
+        detail?.profilePicUrl ||
+        group?.imageUrl ||
+        group?.picture ||
+        null,
+      __sourceInstanceName: instance.instance_name || null,
+      __sourceInstanceId: instance.zapi_instance_id,
+    };
+  }));
+
+  return detailedGroups.filter(Boolean);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -68,7 +163,7 @@ Deno.serve(async (req) => {
 
     const { data: activeInstances } = await adminClient
       .from("zapi_instances")
-      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name")
+      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
       .eq("user_id", credentials.userId)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
@@ -92,7 +187,9 @@ Deno.serve(async (req) => {
 
     for (const instance of instances) {
       try {
-        const rawGroups = await fetchGroupsViaZapi(instance);
+        const rawGroups = instance.api_provider === 'uazapi'
+          ? await fetchGroupsViaUazapi(instance)
+          : await fetchGroupsViaZapi(instance);
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
@@ -100,7 +197,7 @@ Deno.serve(async (req) => {
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
-              nome: group.name || group.contact || group.subject || group.title || "Grupo sem nome",
+              nome: group.name || group.contact || group.subject || group.title || group.groupName || "Grupo sem nome",
               descricao: group.description || group.desc || "",
               membros: group.participants?.length || group.memberCount || group.size || 0,
               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
