@@ -348,8 +348,10 @@ export const useMessageLogs = (
       setMessageLogs(prev => {
         const byId = new Map<string, MessageLog>();
         allData.forEach(m => byId.set(m.id, m));
-        // Preserve any realtime messages from the last 60s not yet in polled data
-        const cutoff = Date.now() - 60_000;
+        // Preserve any realtime/optimistic messages from the last 5 min not yet
+        // in polled data, so the chat doesn't flicker back to an empty/clean
+        // state while replication catches up.
+        const cutoff = Date.now() - 5 * 60_000;
         prev.forEach(m => {
           if (byId.has(m.id)) return;
           const ts = toMillis(m.timestamp || m.created_at);
