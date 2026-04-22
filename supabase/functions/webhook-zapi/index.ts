@@ -4844,12 +4844,12 @@ function findButtonEdgeMatch(
         const normalizedBtn = normalizeForMatch(btnText);
         if (!normalizedBtn) continue;
 
+        const buttonHandleAliases = getButtonHandleAliases(idx, btn);
         const buttonIndexValues = [
           String(idx + 1),
-          `button-${idx}`,
-          `button_${idx}`,
           `btn-${idx + 1}`,
           `btn_${idx + 1}`,
+          ...buttonHandleAliases,
         ];
         const normalizedIndexValues = buttonIndexValues
           .map((value) => normalizeForMatch(value))
@@ -4858,7 +4858,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
-          explicitHandleCandidates.has(`button-${idx}`) ||
+          buttonHandleAliases.some((alias) => explicitHandleCandidates.has(alias)) ||
           derivedIndexCandidates.has(normalizeForMatch(String(idx + 1))) ||
           normalizedIndexValues.some((value) =>
             normalizedCandidates.has(value)
@@ -4866,9 +4866,8 @@ function findButtonEdgeMatch(
 
         if (didMatch) {
           // First try: specific button edge
-          const handleId = `button-${idx}`;
           const buttonEdge = edges.find((e: any) =>
-            e.source === node.id && e.sourceHandle === handleId
+            e.source === node.id && buttonHandleAliases.includes(String(e.sourceHandle || ""))
           );
 
           if (buttonEdge) {
