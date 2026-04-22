@@ -676,18 +676,10 @@ export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: s
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
-        // Get group name if it's a group conversation
         const isGroup = isGroupPhone(phone);
-        const groupName = isGroup
-          ? (safeMapGet(groupNames, phone) || safeMapGet(groupNames, normalizedPhone) || null)
-          : null;
         const preferredInstanceId = filterInstanceId && filterInstanceId !== 'all'
           ? filterInstanceId
-          : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || null;
-
-        const preferredGroupName = isGroup
-          ? (isUsableGroupDisplayName(groupName) ? groupName : null)
-          : null;
+          : latestInboundLog?.instance_id || safeMapGet(groupSourceInstances, phone) || safeMapGet(groupSourceInstances, normalizedPhone) || null;
         const resolvedContactName = isGroup
           ? resolveGroupConversationName({
               phone,
