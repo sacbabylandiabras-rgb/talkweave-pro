@@ -231,23 +231,65 @@ Deno.serve(async (req) => {
     const existingPhoneSet = new Set((existingPhones || []).map((r: any) => r.phone));
     
     const placeholderRows: any[] = [];
+    const groupContactsToUpsert: any[] = [];
     for (const chat of allChats) {
-      const phone = String(chat?.phone || "").trim();
+      // For UAZAPI, group chats have wa_chatid = "<id>@g.us"; use it as the phone identifier
+      const rawId = String(chat?.phone || chat?.wa_chatid || chat?.id || "").trim();
+      if (!rawId) continue;
+      const isGroup = chat?.isGroup === true || chat?.wa_isGroup === true || rawId.includes("-group") || rawId.includes("@g.us");
+      const phone = isGroup
+        ? rawId.replace("@g.us", "").replace(/\D/g, "") + "-group"
+        : rawId.replace("@c.us", "").replace("@s.whatsapp.net", "").replace(/\D/g, "");
       if (!phone || existingPhoneSet.has(phone)) continue;
 
         const lastMessageTime = normalizeTimestamp(chat.lastMessageTime || chat.wa_lastMsgTimestamp);
 
-      const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || "";
+      let chatName = chat?.name
+        || chat?.wa_contactName
+        || chat?.wa_name
+        || chat?.wa_chatName
+        || chat?.subject
+        || chat?.groupSubject
+        || chat?.groupName
+        || "";
+
+      // For UAZAPI groups without name, fetch group info
+      if (isGroup && !chatName && apiProvider === 'uazapi' && uazapiUrl && uazapiToken) {
+        try {
+          const apiUrl = uazapiUrl.replace(/\/+$/, '');
+          const gRes = await fetch(`${apiUrl}/group/info`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: uazapiToken },
+            body: JSON.stringify({ groupjid: rawId }),
+          });
+          if (gRes.ok) {
+            const g = await gRes.json();
+            chatName = g?.subject || g?.name || g?.group?.subject || g?.group?.name || chatName;
+          }
+        } catch (e) {
+          console.error('UAZAPI group/info failed:', e);
+        }
+      }
 
       placeholderRows.push({
         phone,
         user_id: credentials.userId,
         timestamp: lastMessageTime,
-        message_received: `💬 Conversa com ${chatName || phone}`,
+        message_received: `💬 Conversa com ${chatName || (isGroup ? 'Grupo' : phone)}`,
         response_sent: null,
         keyword_matched: "__history_import__",
         instance_id: instanceId,
       });
+
+      // Also save the group name into saved_contacts so the chat list shows it
+      if (isGroup && chatName) {
+        groupContactsToUpsert.push({
+          phone,
+          name: chatName,
+          user_id: credentials.userId,
+          profile_picture_url: chat?.imagePreview || chat?.profileThumbnail || null,
+        });
+      }
     }
 
     let importedChats = 0;
@@ -264,6 +306,18 @@ Deno.serve(async (req) => {
         } else {
           importedChats += batch.length;
         }
+      }
+    }
+
+    // Upsert group names into saved_contacts so chat list shows the group name
+    if (groupContactsToUpsert.length > 0) {
+      const batchSize = 50;
+      for (let i = 0; i < groupContactsToUpsert.length; i += batchSize) {
+        const batch = groupContactsToUpsert.slice(i, i + batchSize);
+        const { error: gErr } = await adminClient
+          .from("saved_contacts")
+          .upsert(batch, { onConflict: "user_id,phone" });
+        if (gErr) console.error(`❌ Error upserting group names:`, gErr);
       }
     }
 
