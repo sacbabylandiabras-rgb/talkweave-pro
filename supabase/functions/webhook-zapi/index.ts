@@ -2904,6 +2904,47 @@ serve(async (req) => {
             .maybeSingle();
 
           if (pendingFlow) {
+            const pendingButtonMatch = findButtonEdgeMatch(
+              [pendingFlow],
+              normalizedMessage,
+              messageRaw,
+              webhook,
+            );
+
+            if (pendingButtonMatch) {
+              console.log(
+                "🎯 Button reply matched while capture was pending; prioritizing button branch",
+                {
+                  flowId: pendingFlow.id,
+                  pendingField: pendingState.field,
+                  button: pendingButtonMatch.buttonText,
+                },
+              );
+
+              await supabase.from("message_logs").delete().eq(
+                "id",
+                pendingCaptureLog.id,
+              );
+
+              const routed = await routeMatchedButtonFlow({
+                match: pendingButtonMatch,
+                phone,
+                zapiConfig,
+                supabase,
+                userId,
+                lockId,
+                flowId: pendingFlow.id,
+                resumeCaptured: pendingState.captured || {},
+              });
+
+              if (routed) {
+                return new Response("button_flow_sent", {
+                  status: 200,
+                  headers: corsHeaders,
+                });
+              }
+            }
+
             const updatedCaptured = { ...(pendingState.captured || {}) };
             if (pendingState.field === "name") {
               updatedCaptured.nome = messageRaw;
@@ -3178,78 +3219,22 @@ serve(async (req) => {
         webhook,
       );
       if (buttonMatch) {
-        console.log("=== BOTÃO MATCH ===");
-        console.log(
-          "Fluxo:",
-          buttonMatch.flowName,
-          "| Botão:",
-          buttonMatch.buttonText,
-          "| Target:",
-          buttonMatch.targetNodeId,
-        );
-        const { flow, targetNodeId } = buttonMatch;
-        const flowNodes: FlowNode[] = flow.nodes || [];
-        const flowEdges: FlowEdge[] = flow.edges || [];
+        const routed = await routeMatchedButtonFlow({
+          match: buttonMatch,
+          phone,
+          zapiConfig,
+          supabase,
+          userId,
+          lockId,
+          flowId: buttonMatch.flow.id,
+        });
 
-        console.log(
-          "Total nodes:",
-          flowNodes.length,
-          "| Total edges:",
-          flowEdges.length,
-        );
-        console.log(
-          "Target node:",
-          JSON.stringify(flowNodes.find((n) => n.id === targetNodeId)?.data),
-        );
-
-        // Process flow starting FROM the target node directly
-        // First send the target node itself, then continue its children
-        const targetNode = flowNodes.find((n) => n.id === targetNodeId);
-        if (targetNode) {
-          const visited = new Set<string>();
-          // Send target node content
-          const shouldStop = await sendNodeContent(
-            targetNode,
-            flowNodes,
-            flowEdges,
-            phone,
-            zapiConfig,
-            visited,
-            supabase,
-            userId,
-            flow.name,
-            { flowId: flow.id },
-          );
-          // Only continue processing children if the node doesn't have button branching
-          if (!shouldStop) {
-            await processFlowNode(
-              targetNode.id,
-              flowNodes,
-              flowEdges,
-              phone,
-              zapiConfig,
-              supabase,
-              visited,
-              userId,
-              flow.name,
-              { flowId: flow.id },
-            );
-          } else {
-            console.log(
-              "Fluxo pausado no nó alvo - aguardando próximo clique de botão",
-            );
-          }
+        if (routed) {
+          return new Response("button_flow_sent", {
+            status: 200,
+            headers: corsHeaders,
+          });
         }
-
-        await finalizeMessageLog(supabase, lockId, {
-          keywordMatched: `[Botão: ${buttonMatch.buttonText}]`,
-          responseSent: `[Fluxo: ${flow.name}]`,
-        });
-
-        return new Response("button_flow_sent", {
-          status: 200,
-          headers: corsHeaders,
-        });
       }
 
       // === CHECK KEYWORD MATCH ===
