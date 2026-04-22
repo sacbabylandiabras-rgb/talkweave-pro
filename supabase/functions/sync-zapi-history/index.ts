@@ -274,6 +274,13 @@ Deno.serve(async (req) => {
       .eq("user_id", userId);
 
     const existingPhoneSet = new Set((existingPhones || []).map((r: any) => r.phone));
+    const latestLocalTimestampByPhone = new Map<string, string>();
+    (existingPhones || []).forEach((r: any) => {
+      const current = latestLocalTimestampByPhone.get(r.phone);
+      if (!current || new Date(r.timestamp).getTime() > new Date(current).getTime()) {
+        latestLocalTimestampByPhone.set(r.phone, r.timestamp);
+      }
+    });
     // Track latest existing placeholder per phone so we can refresh its timestamp
     // to reflect the most recent UAZAPI lastMessageTime (keeps recent chats on top).
     const latestPlaceholderByPhone = new Map<string, { id: string; timestamp: string }>();
@@ -399,6 +406,23 @@ Deno.serve(async (req) => {
         if (existingPlaceholder && lastMessageTime &&
             new Date(lastMessageTime).getTime() > new Date(existingPlaceholder.timestamp).getTime()) {
           placeholderTimestampUpdates.push({ id: existingPlaceholder.id, timestamp: lastMessageTime });
+        } else {
+          const latestLocalTimestamp = latestLocalTimestampByPhone.get(phone);
+          if (
+            !existingPlaceholder &&
+            lastMessageTime &&
+            (!latestLocalTimestamp || new Date(lastMessageTime).getTime() > new Date(latestLocalTimestamp).getTime())
+          ) {
+            placeholderRows.push({
+              phone,
+              user_id: userId,
+              timestamp: lastMessageTime,
+              message_received: `💬 Conversa com ${isUsableImportedGroupName(chatName) ? chatName : (isGroup ? 'Grupo' : phone)}`,
+              response_sent: null,
+              keyword_matched: "__history_import__",
+              instance_id: instanceId,
+            });
+          }
         }
       }
 
