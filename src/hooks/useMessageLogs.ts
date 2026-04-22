@@ -207,7 +207,12 @@ const safeMapGet = <K, V>(map: Map<K, V> | null | undefined, key: K): V | undefi
   return map.get(key);
 };
 
-export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
+export const useMessageLogs = (
+  filterInstanceId?: string,
+  filterInstanceName?: string,
+  knownInstanceIds?: string[],
+  knownInstanceNames?: string[],
+) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
