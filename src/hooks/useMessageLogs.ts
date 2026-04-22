@@ -1,5 +1,11 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  isGroupPhone,
+  isUsableGroupDisplayName,
+  normalizeConversationPhone,
+  rememberGroupDisplayName,
+} from '@/lib/group-name-resolution';
 
 export interface MessageLog {
   id: string;
@@ -180,33 +186,9 @@ const isLikelyTechnicalIdentifier = (phone: string): boolean => {
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
 };
 
-const isGroupPhone = (phone: string): boolean => {
-  return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone);
-};
-
-const isUsableGroupDisplayName = (value: string | null | undefined): boolean => {
-  const normalized = String(value || '').trim();
-  if (!normalized) return false;
-  if (/^\d+$/.test(normalized.replace(/\s+/g, ''))) return false;
-  if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;
-  if (/^conversa com\s+\+?\d[\d\s()-]*$/i.test(normalized)) return false;
-  return true;
-};
-
-const normalizeConversationPhone = (phone: string): string => {
-  if (!isGroupPhone(phone)) return phone;
-  const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-  return numericId ? `${numericId}-group` : phone;
-};
-
 const safeMapGet = <K, V>(map: Map<K, V> | null | undefined, key: K): V | undefined => {
   if (!map || typeof map.get !== 'function') return undefined;
   return map.get(key);
-};
-
-const rememberGroupDisplayName = (store: Map<string, string>, phone: string, name: string | null | undefined) => {
-  if (!isGroupPhone(phone) || !isUsableGroupDisplayName(name)) return;
-  store.set(normalizeConversationPhone(phone), String(name).trim());
 };
 
 export const useMessageLogs = (filterInstanceId?: string, filterInstanceName?: string) => {
