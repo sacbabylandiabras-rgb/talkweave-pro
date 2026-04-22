@@ -336,6 +336,7 @@ export function SelectContactsDialog({
           <div className="space-y-3">
             {effectiveProvider === "zapi" && (
               <InstanceSelector
+                providerFilter="uazapi"
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
               />
             )}
