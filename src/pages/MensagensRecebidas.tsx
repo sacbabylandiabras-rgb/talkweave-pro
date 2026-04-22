@@ -32,6 +32,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone } from "@/lib/group-name-resolution";
 
+const normalizeSelectedConversationPhone = (phone: string | null) => {
+  if (!phone) return null;
+  if (!isGroupPhone(phone)) return phone;
+  const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+  return numericId ? `${numericId}-group` : phone;
+};
+
 const formatPhone = (phone?: string | null) => {
   if (!phone) return '';
   const clean = phone.replace(/\D/g, '');
@@ -835,7 +842,7 @@ const ChatView = ({
 const MensagensRecebidas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPhone, setSelectedPhone] = useState<string | null>(searchParams.get("phone"));
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -954,8 +961,9 @@ const MensagensRecebidas = () => {
   };
 
   const handleSelectPhone = (phone: string) => {
-    setSelectedPhone(phone);
-    markAsRead(phone);
+    const normalizedPhone = normalizeSelectedConversationPhone(phone);
+    setSelectedPhone(normalizedPhone);
+    if (normalizedPhone) markAsRead(normalizedPhone);
   };
 
   // Auto-select phone from URL query param
@@ -963,9 +971,10 @@ const MensagensRecebidas = () => {
     const phoneParam = searchParams.get("phone");
     if (!phoneParam || handledPhoneParamRef.current === phoneParam) return;
 
-    handledPhoneParamRef.current = phoneParam;
-    setSelectedPhone(phoneParam);
-    markAsRead(phoneParam);
+    const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
+    handledPhoneParamRef.current = normalizedPhone;
+    setSelectedPhone(normalizedPhone);
+    if (normalizedPhone) markAsRead(normalizedPhone);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("phone");
@@ -986,7 +995,8 @@ const MensagensRecebidas = () => {
     return conv.phone.includes(term) || (conv.lastMessage || '').toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
   });
 
-  const selectedConversation = conversations.find((c) => c.phone === selectedPhone) || null;
+  const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
+  const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
 
   const handleSaveContact = (phone: string, currentName: string) => {
     setSaveDialogPhone(phone);
