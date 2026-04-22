@@ -2,6 +2,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const normalizeTimestamp = (value: unknown) => {
+  const raw = Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return new Date().toISOString();
+  const ms = raw < 4102444800 ? raw * 1000 : raw;
+  const parsed = new Date(ms);
+  return parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100
+    ? parsed.toISOString()
+    : new Date().toISOString();
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,11 +37,14 @@ Deno.serve(async (req) => {
     let instanceId = credentials.instanceId;
     let token = credentials.token;
     let clientToken = credentials.clientToken;
+    let apiProvider = 'zapi';
+    let uazapiUrl: string | null = null;
+    let uazapiToken: string | null = null;
 
     if (body?.instanceId) {
       const { data: specificInstance } = await adminClient
         .from("zapi_instances")
-        .select("zapi_instance_id, zapi_token, zapi_client_token")
+        .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
         .eq("zapi_instance_id", body.instanceId)
         .eq("user_id", credentials.userId)
         .eq("is_active", true)
@@ -41,6 +54,9 @@ Deno.serve(async (req) => {
         instanceId = specificInstance.zapi_instance_id;
         token = specificInstance.zapi_token;
         clientToken = specificInstance.zapi_client_token;
+        apiProvider = specificInstance.api_provider || 'zapi';
+        uazapiUrl = specificInstance.evolution_api_url || null;
+        uazapiToken = specificInstance.evolution_api_key || null;
         console.log(`📌 Using specific instance: ${instanceId}`);
       }
     }
@@ -54,33 +70,70 @@ Deno.serve(async (req) => {
     let hasMore = true;
 
     while (hasMore && allChats.length < maxChats) {
-      const chatsUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=${page}&pageSize=${pageSize}`;
+      let chats: any[] = [];
 
-      const chatsResponse = await fetch(chatsUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Client-Token": clientToken,
-        },
-      });
-
-      if (!chatsResponse.ok) {
-        const errorText = await chatsResponse.text();
-        console.error(`❌ Z-API chats error: ${chatsResponse.status} - ${errorText}`);
-        
-        // Detect disconnected instance
-        if (chatsResponse.status === 400 && errorText.toLowerCase().includes("connected")) {
-          return new Response(
-            JSON.stringify({ success: false, error: "disconnected", message: "Instância WhatsApp desconectada." }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+      if (apiProvider === 'uazapi') {
+        const apiUrl = (uazapiUrl || '').replace(/\/+$/, '');
+        const apiToken = uazapiToken || '';
+        if (!apiUrl || !apiToken) {
+          throw new Error('UAZAPI URL/Token não configurados');
         }
-        
-        throw new Error(`Z-API chats error: ${chatsResponse.status}`);
-      }
 
-      const chatsPayload = await chatsResponse.json();
-      const chats = Array.isArray(chatsPayload) ? chatsPayload : [];
+        const chatsResponse = await fetch(`${apiUrl}/chat/find`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            token: apiToken,
+          },
+          body: JSON.stringify({
+            limit: Math.min(pageSize, Math.max(maxChats, pageSize)),
+            offset: (page - 1) * pageSize,
+            sort: '-wa_lastMsgTimestamp',
+          }),
+        });
+
+        const rawText = await chatsResponse.text();
+        let chatsPayload: any = {};
+        try { chatsPayload = JSON.parse(rawText); } catch { chatsPayload = { message: rawText }; }
+
+        if (!chatsResponse.ok) {
+          console.error(`❌ UAZAPI chats error: ${chatsResponse.status} - ${rawText}`);
+          if (String(rawText).toLowerCase().includes('disconnect') || String(rawText).toLowerCase().includes('not connected')) {
+            return new Response(
+              JSON.stringify({ success: false, error: 'disconnected', message: 'Instância WhatsApp desconectada.' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            );
+          }
+          throw new Error(`UAZAPI chats error: ${chatsResponse.status}`);
+        }
+
+        chats = Array.isArray(chatsPayload?.chats) ? chatsPayload.chats : [];
+      } else {
+        const chatsUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=${page}&pageSize=${pageSize}`;
+
+        const chatsResponse = await fetch(chatsUrl, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Client-Token": clientToken,
+          },
+        });
+
+        if (!chatsResponse.ok) {
+          const errorText = await chatsResponse.text();
+          console.error(`❌ Z-API chats error: ${chatsResponse.status} - ${errorText}`);
+          if (chatsResponse.status === 400 && errorText.toLowerCase().includes("connected")) {
+            return new Response(
+              JSON.stringify({ success: false, error: "disconnected", message: "Instância WhatsApp desconectada." }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          throw new Error(`Z-API chats error: ${chatsResponse.status}`);
+        }
+
+        const chatsPayload = await chatsResponse.json();
+        chats = Array.isArray(chatsPayload) ? chatsPayload : [];
+      }
 
       console.log(`📄 Page ${page}: ${chats.length} chats`);
       allChats = [...allChats, ...chats];
@@ -110,12 +163,12 @@ Deno.serve(async (req) => {
     const contactsToUpsert: any[] = [];
 
     for (const chat of allChats) {
-      const phone = String(chat?.phone || "").trim();
+      const phone = String(chat?.phone || chat?.wa_chatid || "").trim();
       if (!phone) continue;
 
-      const chatName = chat?.name || chat?.contact || "";
-      const profilePic = chat?.profileThumbnail || null;
-      const isGroup = chat?.isGroup === true || phone.includes("-group") || phone.includes("@g.us");
+      const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || chat?.contact || chat?.contact_name || chat?.contactName || "";
+      const profilePic = chat?.profileThumbnail || chat?.imagePreview || chat?.image || null;
+      const isGroup = chat?.isGroup === true || chat?.wa_isGroup === true || phone.includes("-group") || phone.includes("@g.us");
 
       // Skip groups for contact saving
       if (isGroup) continue;
@@ -182,21 +235,9 @@ Deno.serve(async (req) => {
       const phone = String(chat?.phone || "").trim();
       if (!phone || existingPhoneSet.has(phone)) continue;
 
-      let lastMessageTime: string;
-      try {
-        const rawTime = Number(chat.lastMessageTime);
-        // If timestamp is in seconds (before year 2100), convert to ms; otherwise treat as ms
-        const ms = rawTime < 4102444800 ? rawTime * 1000 : rawTime;
-        const parsed = new Date(ms);
-        // Validate the date is reasonable (between 2000 and 2100)
-        lastMessageTime = (parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100)
-          ? parsed.toISOString()
-          : new Date().toISOString();
-      } catch {
-        lastMessageTime = new Date().toISOString();
-      }
+        const lastMessageTime = normalizeTimestamp(chat.lastMessageTime || chat.wa_lastMsgTimestamp);
 
-      const chatName = chat?.name || "";
+      const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || "";
 
       placeholderRows.push({
         phone,
@@ -231,6 +272,7 @@ Deno.serve(async (req) => {
         success: true,
         importedContacts,
         importedChats,
+        importedMessages: importedChats,
         skippedContacts,
         totalChatsRead: allChats.length,
       }),
