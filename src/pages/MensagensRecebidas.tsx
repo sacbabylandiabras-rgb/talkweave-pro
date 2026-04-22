@@ -874,19 +874,6 @@ const MensagensRecebidas = () => {
   const { toast } = useToast();
 
   const syncHistory = async () => {
-    // For UAZAPI instances the refresh button should NOT import old historical
-    // chats (which would replace the live recent conversations). Just refetch
-    // the live list instead.
-    if (!shouldAutoSyncHistory) {
-      setSyncing(true);
-      try {
-        await refetch();
-      } finally {
-        setSyncing(false);
-      }
-      return;
-    }
-
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
