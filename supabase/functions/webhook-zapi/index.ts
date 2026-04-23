@@ -654,14 +654,10 @@ serve(async (req) => {
           typeof text === "string" &&
           /^\d{10,}:[A-Z0-9]{10,}$/i.test(text.trim())
         ) {
-          try {
-            console.log(
-              "🪲 UAZAPI button-reply RAW payload:",
-              JSON.stringify(rawWebhookPayload).substring(0, 4000),
-            );
-          } catch (_dumpErr) {
-            console.log("🪲 UAZAPI button-reply RAW payload: <unstringifiable>");
-          }
+          console.log(
+            "🪲 UAZAPI button-reply RAW payload:",
+            (rawBody || "").substring(0, 4000),
+          );
         }
       }
     } catch (normErr) {
