@@ -157,6 +157,30 @@ const EnviarMensagem = () => {
         description: mensagemPersonalizada || specialTpl.description,
       });
 
+      // Enviar botões do modelo (ex: PIX cobrança com botão Copiar)
+      if (modeloData?.buttons?.length) {
+        await sendButtonActions(
+          phone,
+          mensagemPersonalizada || specialTpl.description || modeloData?.name || 'Pagamento',
+          modeloData.buttons.map((btn: any) => {
+            const buttonType = (btn.type || 'REPLY').toUpperCase();
+            const buttonData: any = {
+              id: btn.id || btn.text || Math.random().toString(),
+              type: buttonType,
+              label: btn.text || btn.label || 'Botão',
+            };
+            if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+            else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+            else if (buttonType === 'COPY' && (btn.copyText || btn.value || specialTpl.pixKey)) {
+              buttonData.copyText = btn.copyText || btn.value || specialTpl.pixKey;
+            }
+            return buttonData;
+          }),
+          modeloData?.header || undefined,
+          modeloData?.footer || undefined,
+        );
+      }
+
       return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
     }
 
@@ -940,6 +964,28 @@ const EnviarMensagem = () => {
               ...specialTpl,
               description: mensagemPersonalizada || specialTpl.description,
             });
+            if (modeloData?.buttons?.length) {
+              await sendButtonActions(
+                contato.telefone,
+                mensagemPersonalizada || specialTpl.description || modeloData?.name || 'Pagamento',
+                modeloData.buttons.map((btn: any) => {
+                  const buttonType = (btn.type || 'REPLY').toUpperCase();
+                  const buttonData: any = {
+                    id: btn.id || btn.text || Math.random().toString(),
+                    type: buttonType,
+                    label: btn.text || btn.label || 'Botão',
+                  };
+                  if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+                  else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+                  else if (buttonType === 'COPY' && (btn.copyText || btn.value || specialTpl.pixKey)) {
+                    buttonData.copyText = btn.copyText || btn.value || specialTpl.pixKey;
+                  }
+                  return buttonData;
+                }),
+                modeloData?.header || undefined,
+                modeloData?.footer || undefined,
+              );
+            }
           } else if (temCarrossel) {
             await sendCarousel(contato.telefone, modeloData!.carouselCards as any, mensagemPersonalizada);
           } else if (audioComBotoes) {
