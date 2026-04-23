@@ -173,6 +173,47 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getZapiAckId = (payload: any) => payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 const getZapiExplicitError = (payload: any) => payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
+const getUazapiAckId = (payload: any) => getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
+
+const hasUazapiExplicitError = (payload: any) => {
+  const candidates = [
+    payload?.error,
+    payload?.erro,
+    payload?.details?.error,
+    payload?.details?.message,
+    payload?.message,
+    payload?.reason,
+    payload?.response,
+    payload?.success === false ? payload?.message : null,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate == null) continue;
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    if (typeof candidate === 'object') {
+      const nested = (candidate as any).message || (candidate as any).error || (candidate as any).reason;
+      if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    }
+  }
+
+  if (payload?.error === true || payload?.success === false) {
+    return 'Número não está no WhatsApp ou recusou a mensagem (@lid/desconhecido).';
+  }
+
+  return null;
+};
+
+const isUazapiSendConfirmed = (payload: any) => {
+  const ackId = getUazapiAckId(payload);
+  const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || '').toLowerCase();
+
+  return Boolean(
+    ackId ||
+    payload?.queued === true ||
+    payload?.enqueued === true ||
+    ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
+  );
+};
 
 // Detect WhatsApp rate-limit / temporary restriction errors (e.g. error 463).
 // When this happens, sending more messages will only deepen the block,
@@ -314,14 +355,15 @@ const dispatchUazapiSpecial = async (
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    const explicitError = data?.error || data?.erro || (data?.success === false ? data?.message : null) || null;
+    const explicitError = hasUazapiExplicitError(data);
+    const confirmed = isUazapiSendConfirmed(data);
+    console.log(`📬 Campaign UAZAPI special response for ${phone}: status=${res.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
     if (!res.ok || explicitError) {
-      return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}` };
+      return { ok: false, ack: null, error: explicitError || `UAZAPI HTTP ${res.status}`, raw: data };
     }
-    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || null;
-    return { ok: true, ack, error: null };
+    return { ok: true, ack: getUazapiAckId(data), error: null, raw: data };
   } catch (e) {
-    return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error' };
+    return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error', raw: null };
   }
 };
 
@@ -478,12 +520,13 @@ const dispatchUazapiCampaign = async (
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    const explicitError = data?.error || data?.erro || (data?.success === false ? data?.message : null) || null;
+    const explicitError = hasUazapiExplicitError(data);
+    const confirmed = isUazapiSendConfirmed(data);
+    console.log(`📬 Campaign UAZAPI response for ${phone} via ${instance.instanceName}: status=${res.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
     if (!res.ok || explicitError) {
-      return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
+      return { ok: false, ack: null, error: explicitError || `UAZAPI HTTP ${res.status}`, raw: data };
     }
-    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || null;
-    return { ok: true, ack, error: null, raw: data };
+    return { ok: true, ack: getUazapiAckId(data), error: null, raw: data };
   } catch (e) {
     return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error', raw: null };
   }
@@ -1097,6 +1140,26 @@ serve(async (req) => {
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
+
+            if (isWhatsAppRateLimitError(uazResult.raw, undefined)) {
+              await persistCampaignSend(campaignSend, reusableSendId);
+              await supabase
+                .from('campaigns')
+                .update({ status: 'paused', updated_at: new Date().toISOString() })
+                .eq('id', campaignId);
+
+              return new Response(JSON.stringify({
+                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
+                stopped: true,
+                paused: true,
+                reason: 'whatsapp_rate_limit',
+                processed: i + 1,
+                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
+              }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders },
+              });
+            }
           }
 
           await persistCampaignSend(campaignSend, reusableSendId);
