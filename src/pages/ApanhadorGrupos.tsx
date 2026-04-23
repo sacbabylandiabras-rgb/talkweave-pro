@@ -317,6 +317,10 @@ const ApanhadorGrupos = () => {
                             <Download className="w-4 h-4 mr-1" />
                             Baixar
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => downloadCsv(grupo.id, grupo.nome)}>
+                            <Download className="w-4 h-4 mr-1" />
+                            CSV
+                          </Button>
                         </>
                       ) : (
                         <Button
