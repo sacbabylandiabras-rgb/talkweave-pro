@@ -178,6 +178,32 @@ export default function PayProducts() {
     return `${base}-${Date.now().toString().slice(-6)}`;
   };
 
+  const syncLinkedCheckoutPrices = async (productId: string, price: number) => {
+    const { data: linkedCheckouts, error } = await supabase
+      .from("gateway_checkouts" as any)
+      .select("id, config")
+      .eq("product_id", productId);
+
+    if (error) throw error;
+    if (!linkedCheckouts?.length) return;
+
+    const updates = linkedCheckouts.map((checkout: any) =>
+      supabase
+        .from("gateway_checkouts" as any)
+        .update({
+          config: {
+            ...(checkout.config || {}),
+            price,
+          },
+        } as any)
+        .eq("id", checkout.id)
+    );
+
+    const results = await Promise.all(updates);
+    const failedUpdate = results.find((result) => result.error);
+    if (failedUpdate?.error) throw failedUpdate.error;
+  };
+
   const handleSave = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login primeiro"); return; }
@@ -210,8 +236,17 @@ export default function PayProducts() {
       if (imageUrl !== undefined) updateData.image_url = imageUrl;
 
       const { error } = await supabase.from("gateway_products" as any).update(updateData as any).eq("id", editingProduct.id);
-      setSaving(false);
       if (error) { toast.error("Erro: " + error.message); return; }
+
+      try {
+        await syncLinkedCheckoutPrices(editingProduct.id, priceInCents);
+      } catch (syncError: any) {
+        setSaving(false);
+        toast.error("Produto atualizado, mas houve erro ao sincronizar o checkout: " + (syncError?.message || "erro desconhecido"));
+        return;
+      }
+
+      setSaving(false);
       toast.success("Produto atualizado!");
     } else {
       const insertData: any = {
