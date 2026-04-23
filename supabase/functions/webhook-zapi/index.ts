@@ -646,6 +646,19 @@ serve(async (req) => {
             instanceId: normalized.instanceId,
           }).substring(0, 300),
         );
+
+        // 🔍 DEBUG: when text looks like a JID:msgId reference (UAZAPI button reply quirk),
+        // dump the full raw payload to discover where the actual button label lives.
+        if (
+          !fromMe &&
+          typeof text === "string" &&
+          /^\d{10,}:[A-Z0-9]{10,}$/i.test(text.trim())
+        ) {
+          console.log(
+            "🪲 UAZAPI button-reply RAW payload:",
+            (rawBody || "").substring(0, 4000),
+          );
+        }
       }
     } catch (normErr) {
       console.error("UAZAPI normalization error:", normErr);
