@@ -11,6 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
 
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+const parseSpecial = (content?: string | null): any | null => {
+  if (!content || typeof content !== 'string' || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
 interface MediaModelSectionProps {
   arquivoMidia: File | null;
   setArquivoMidia: (file: File | null) => void;
