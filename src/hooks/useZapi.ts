@@ -98,7 +98,7 @@ export const useZapi = () => {
   const { toast } = useToast();
 
   const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
-    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING');
+    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING' || data?.success === true);
     const explicitError = data?.error || (data?.success === false ? data?.message : null);
 
     if (explicitError) {
@@ -187,6 +187,13 @@ export const useZapi = () => {
       }>;
       specialType?: 'pix' | 'localizacao' | 'contato';
       specialPayload?: Record<string, any>;
+      carouselCards?: Array<{
+        id?: string;
+        image?: string;
+        title?: string;
+        description?: string;
+        buttons?: Array<{ id?: string; text?: string; type?: string; value?: string }>;
+      }>;
     },
     fallbackMessage: string,
   ) => {
@@ -845,6 +852,45 @@ export const useZapi = () => {
     }
   };
 
+  const sendCarousel = async (
+    phone: string,
+    carouselCards: Array<{
+      id?: string;
+      image?: string;
+      title?: string;
+      description?: string;
+      buttons?: Array<{ id?: string; text?: string; type?: string; value?: string }>;
+    }>,
+    message?: string,
+  ) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        { phone, message: message || '', carouselCards },
+        'Erro ao enviar carrossel',
+      );
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do carrossel.');
+
+      toast({
+        title: 'Carrossel enviado!',
+        description: `${carouselCards.length} cards enviados.`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar carrossel:', error);
+      toast({
+        title: 'Erro ao enviar carrossel',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
@@ -855,6 +901,7 @@ export const useZapi = () => {
     sendAudio,
     sendDocument,
     sendSpecialTemplate,
+    sendCarousel,
     getDeviceStatus,
     getQRCode,
     getPairingCode,
