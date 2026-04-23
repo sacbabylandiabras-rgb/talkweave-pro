@@ -28,13 +28,13 @@ Deno.serve(async (req) => {
         throw new Error('UAZAPI: apiUrl e apiKey são obrigatórios');
       }
 
-      const endpoint = type === 'name' ? '/instance/updateName' : '/instance/updateProfilePicture';
+      const endpoint = type === 'name' ? '/profile/name' : '/profile/picture';
       const payload = type === 'name' ? { name: value } : { image: value };
       const url = `${baseUrl}${endpoint}`;
       console.log(`📱 Updating profile ${type} via UAZAPI: ${url}`);
 
       const response = await fetch(url, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'token': instanceToken,
