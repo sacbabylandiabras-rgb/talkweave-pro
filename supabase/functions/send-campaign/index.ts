@@ -318,6 +318,9 @@ const dispatchUazapiCampaign = async (
   const templateType = template?.type || 'texto';
   const hasMedia = template?.media_url && String(template.media_url).trim() !== '';
   const hasButtons = Array.isArray(template?.buttons) && template.buttons.length > 0;
+  const hasListItems = Array.isArray(template?.list_items) && template.list_items.length > 0;
+  const hasCarouselCards = Array.isArray(template?.carousel_cards) && template.carousel_cards.length > 0;
+  const footerText = template?.footer ? String(template.footer) : '';
 
   let endpoint = '/send/text';
   let body: Record<string, unknown> = { number: targetNumber, text: fullMessage };
@@ -341,7 +344,7 @@ const dispatchUazapiCampaign = async (
       // Send image first, then buttons via /send/menu
       await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
       endpoint = '/send/menu';
-      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', ...(footerText ? { footerText } : {}), choices: buildChoices(template.buttons) };
     }
   } else if (hasMedia && (templateType === 'video' || templateType === 'video_botoes')) {
     endpoint = '/send/media';
@@ -349,7 +352,7 @@ const dispatchUazapiCampaign = async (
     if (hasButtons && templateType === 'video_botoes') {
       await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
       endpoint = '/send/menu';
-      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', ...(footerText ? { footerText } : {}), choices: buildChoices(template.buttons) };
     }
   } else if (hasMedia && templateType === 'audio') {
     endpoint = '/send/media';
@@ -357,9 +360,41 @@ const dispatchUazapiCampaign = async (
   } else if (hasMedia && (templateType === 'documento' || templateType === 'arquivo')) {
     endpoint = '/send/media';
     body = { number: targetNumber, type: 'document', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
+  } else if (hasCarouselCards) {
+    endpoint = '/send/carousel';
+    const carousel = template.carousel_cards.map((card: any) => {
+      const image = String(card?.image || '').trim();
+      const text = [String(card?.title || '').trim(), String(card?.description || '').trim()]
+        .filter(Boolean)
+        .join('\n');
+      const buttons = Array.isArray(card?.buttons)
+        ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
+            const t = String(b?.type || 'REPLY').toUpperCase();
+            const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
+            let id = b?.id || label;
+            if (t === 'URL' && (b?.value || b?.url)) id = b.value || b.url;
+            if (t === 'CALL' && (b?.value || b?.phone)) id = b.value || b.phone;
+            return { id: String(id).trim(), text: label, type: t };
+          }).filter((b: any) => b.id && b.text)
+        : [];
+      return { text, image, buttons };
+    });
+    body = { number: targetNumber, text: fullMessage || '', carousel };
+  } else if (hasListItems) {
+    endpoint = '/send/menu';
+    const choices = template.list_items.slice(0, 10).map((it: any, idx: number) =>
+      String(it?.title || it?.label || it?.description || `Opção ${idx + 1}`).trim()
+    );
+    body = {
+      number: targetNumber,
+      type: 'list',
+      text: fullMessage || 'Selecione uma opção:',
+      ...(footerText ? { footerText } : {}),
+      choices,
+    };
   } else if (hasButtons) {
     endpoint = '/send/menu';
-    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', ...(footerText ? { footerText } : {}), choices: buildChoices(template.buttons) };
   }
 
   try {
