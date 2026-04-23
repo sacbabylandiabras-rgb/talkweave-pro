@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { ProviderStatusPanel } from "@/components/dispositivos/ProviderStatusPanel";
 
 const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
   if (error instanceof FunctionsHttpError) {
@@ -811,6 +812,8 @@ const Dispositivos = () => {
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+
+      <ProviderStatusPanel />
 
       {/* Planos */}
       <Card className="border-primary/20">
