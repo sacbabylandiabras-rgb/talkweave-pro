@@ -1981,123 +1981,21 @@ Formatos aceitos:
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="mensagem-massa">Prévia da Mensagem</Label>
-                    {modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado) ? (
-                      (() => {
-                        const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado)!;
-                        const specialPreview = parseSpecialTemplate(modeloAtual.content);
-                        const templateType = String(modeloAtual.type || '').toLowerCase();
-                        const isCopyPaste = templateType === 'copia_cola'
-                          || templateType === 'copia e cola'
-                          || templateType === 'copy_paste'
-                          || (specialPreview && specialPreview.type === 'copia_cola');
-                        const isListTemplate = templateType === 'lista_opcao'
-                          || templateType === 'lista'
-                          || templateType === 'lista de opção';
-                        const copyTextPreview = (() => {
-                          const vars = (modeloAtual.variables && typeof modeloAtual.variables === 'object' && !Array.isArray(modeloAtual.variables))
-                            ? modeloAtual.variables as Record<string, any>
-                            : null;
-                          return (vars && typeof vars.copyText === 'string' && vars.copyText)
-                            || specialPreview?.copyText
-                            || modeloAtual.header
-                            || '';
-                        })();
-                        const bodyPreview = isCopyPaste
-                          ? (specialPreview?.description || modeloAtual.name || 'Toque em copiar para usar o conteúdo')
-                          : modeloAtual.content;
-
-                        return (
-                          <div className="mt-1 border rounded-lg bg-background p-4 space-y-3">
-                            {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
-                              <WhatsAppCarouselPreview
-                                header={modeloAtual.header}
-                                content={modeloAtual.content}
-                                footer={modeloAtual.footer}
-                                cards={modeloAtual.carouselCards}
-                              />
-                            ) : isCopyPaste ? (
-                              <>
-                                <div className="whitespace-pre-wrap text-sm">{bodyPreview}</div>
-                                {copyTextPreview && (
-                                  <div className="rounded-md border border-border/50 bg-muted/40 p-2">
-                                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Texto para copiar</div>
-                                    <div className="text-xs font-mono whitespace-pre-wrap break-all">{copyTextPreview}</div>
-                                  </div>
-                                )}
-                                {modeloAtual.footer && (
-                                  <div className="text-xs text-muted-foreground border-t pt-2">{modeloAtual.footer}</div>
-                                )}
-                                <div className="pt-2 border-t">
-                                  <div className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary">
-                                    📋 Copiar
-                                  </div>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                {modeloAtual.header && (
-                                  <div className="font-bold text-sm border-b pb-2">
-                                    📋 {modeloAtual.header}
-                                  </div>
-                                )}
-
-                                <div className="whitespace-pre-wrap text-sm">
-                                  {modeloAtual.content}
-                                </div>
-
-                                {modeloAtual.footer && (
-                                  <div className="text-xs text-muted-foreground border-t pt-2">
-                                    {modeloAtual.footer}
-                                  </div>
-                                )}
-
-                                {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
-                                  <div className="space-y-2 pt-2 border-t">
-                                    {modeloAtual.buttons.map((button: any, index: number) => (
-                                      <div
-                                        key={index}
-                                        className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary"
-                                      >
-                                        {button.text}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {isListTemplate && modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
-                                  <div className="pt-2 border-t">
-                                    <div className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary">
-                                      📋 Ver opções ({modeloAtual.listItems.length})
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            )}
-
-                            {modeloAtual.variables && modeloAtual.variables.length > 0 && (
-                              <div className="text-xs text-muted-foreground italic pt-2 border-t">
-                                💡 Variáveis disponíveis: {modeloAtual.variables.join(', ')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <Textarea 
+                  {!modeloSelecionado && (
+                    <div>
+                      <Label htmlFor="mensagem-massa">Mensagem</Label>
+                      <Textarea
                         id="mensagem-massa"
-                        placeholder="Selecione um modelo acima para visualizar a prévia da mensagem"
+                        placeholder="Digite a mensagem ou selecione um modelo acima"
                         className="mt-1 min-h-[120px]"
                         value={mensagem}
                         onChange={(e) => setMensagem(e.target.value)}
-                        disabled
                       />
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      💡 Use {"{nome}"} e {"{numero}"} para personalizar a mensagem
-                    </p>
-                  </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        💡 Use {"{nome}"} e {"{numero}"} para personalizar a mensagem
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="delay-massa" className="flex items-center gap-2">
