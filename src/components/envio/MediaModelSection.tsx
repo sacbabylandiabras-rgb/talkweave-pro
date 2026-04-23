@@ -276,8 +276,8 @@ const MediaModelSection = ({
                           <span className="text-[10px] text-muted-foreground">
                             {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          <Check className="w-3 h-3 text-blue-500" />
-                          <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                          <Check className="w-3 h-3 text-primary" />
+                          <Check className="w-3 h-3 text-primary -ml-2" />
                         </div>
                       </div>
                     ) : (
@@ -339,8 +339,8 @@ const MediaModelSection = ({
                             <span className="text-[10px] text-muted-foreground">
                               {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            <Check className="w-3 h-3 text-blue-500" />
-                            <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                            <Check className="w-3 h-3 text-primary" />
+                            <Check className="w-3 h-3 text-primary -ml-2" />
                           </div>
                         </div>
 
