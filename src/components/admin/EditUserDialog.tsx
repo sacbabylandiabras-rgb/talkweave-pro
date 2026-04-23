@@ -138,64 +138,25 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/20)</h3>
-                <Button size="sm" variant="outline" onClick={() => {
-                  if (showAddForm) {
-                    resetInstanceForm();
-                    return;
-                  }
-                  setEditingInstanceId(null);
-                  setShowAddForm(true);
-                }} disabled={instances.length >= 20 && !editingInstanceId}>
-                <Plus className="w-3 h-3 mr-1" /> {editingInstanceId ? 'Editando' : 'Adicionar'}
-              </Button>
+                <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/{maxInstances})</h3>
             </div>
 
-            {showAddForm && (
-              <Card className="mb-4">
-                <CardContent className="pt-4 space-y-3">
-                  <div className="space-y-2">
-                    <Label>Nome da Instância</Label>
-                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Provedor *</Label>
-                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
-                      UAZAPI
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Z-API foi descontinuada. Apenas instâncias UAZAPI podem ser cadastradas.
-                    </p>
-                  </div>
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="max-instances">Limite de instâncias permitidas</Label>
+              <Input
+                id="max-instances"
+                type="number"
+                min={0}
+                max={20}
+                value={maxInstances}
+                onChange={(e) => setMaxInstances(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Define quantas instâncias este usuário pode criar (0 a 20). Aplicado ao salvar.
+              </p>
+            </div>
 
-                  {(
-                    <>
-                      <div className="space-y-2">
-                        <Label>URL da API *</Label>
-                        <Input value={newUazapiUrl} onChange={(e) => setNewUazapiUrl(e.target.value)} placeholder="https://seudominio.uazapi.com" type="url" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token da Instância *</Label>
-                        <Input value={newUazapiToken} onChange={(e) => setNewUazapiToken(e.target.value)} placeholder="Token da instância UAZAPI" />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Consulte a documentação em{" "}
-                        <a href="https://docs.uazapi.com/" target="_blank" rel="noreferrer" className="underline text-primary">
-                          docs.uazapi.com
-                        </a>
-                      </p>
-                    </>
-                  )}
-
-                  <div className="flex gap-2">
-                     <Button size="sm" onClick={handleAddInstance}>{editingInstanceId ? 'Atualizar' : 'Salvar'}</Button>
-                     <Button size="sm" variant="outline" onClick={resetInstanceForm}>Cancelar</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {instances.length === 0 && !showAddForm && (
+            {instances.length === 0 && (
               <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>
             )}
 
@@ -220,9 +181,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" title="Editar instância" onClick={() => handleEditInstance(inst)}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
                         {!inst.is_default && (
                           <Button size="sm" variant="ghost" title="Definir como padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                             <Star className="w-3 h-3" />
