@@ -663,11 +663,11 @@ export const useZapi = () => {
       });
 
       if (error) {
-        throw new Error(error.message || 'Erro ao gerar código de pareamento');
+        throw new Error(error.message || 'Erro ao gerar código de conexão');
       }
 
       if (!data?.success || !data?.data?.code) {
-        throw new Error(data?.error || data?.message || 'Falha ao gerar código de pareamento');
+        throw new Error(data?.error || data?.message || 'Falha ao gerar código de conexão');
       }
 
       toast({
@@ -678,7 +678,7 @@ export const useZapi = () => {
       
       return data;
     } catch (error) {
-      console.error('Erro ao gerar código de pareamento:', error);
+      console.error('Erro ao gerar código de conexão:', error);
       
       toast({
         title: "❌ Erro ao gerar código",
