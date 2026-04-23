@@ -871,28 +871,6 @@ const Dispositivos = () => {
                 Identificador único para esta conexão.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>URL do servidor</Label>
-              <Input
-                placeholder="https://seu-servidor.uazapi.com"
-                value={newApiUrl}
-                onChange={(e) => setNewApiUrl(e.target.value)}
-                disabled={creating}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Token de administrador</Label>
-              <Input
-                type="password"
-                placeholder="Token admin do servidor"
-                value={newAdminToken}
-                onChange={(e) => setNewAdminToken(e.target.value)}
-                disabled={creating}
-              />
-              <p className="text-xs text-muted-foreground">
-                Necessário apenas para criar a instância. Não será armazenado.
-              </p>
-            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
                 Cancelar
