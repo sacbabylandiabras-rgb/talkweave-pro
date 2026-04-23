@@ -562,7 +562,7 @@ serve(async (req) => {
       )
     }
 
-    let resolvedPhone = phone;
+      let resolvedPhone = phone;
     // Z-API expects group IDs with "-group" suffix (e.g. 120363019502650977-group)
     // See: https://developer.z-api.io/group/introduction
     if (isGroupPhone && !phone.includes('@lid')) {
@@ -573,7 +573,7 @@ serve(async (req) => {
       }
     }
 
-    if (phone.includes('@lid')) {
+      if (phone.includes('@lid')) {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       
@@ -591,19 +591,13 @@ serve(async (req) => {
         resolvedPhone = mapping.phone;
         
         if (mapping.instance_id) {
-          const { data: lidInstance } = await adminClient
-            .from('zapi_instances')
-            .select('zapi_instance_id, zapi_token, zapi_client_token')
-            .eq('zapi_instance_id', mapping.instance_id)
-            .eq('user_id', credentials.userId)
-            .eq('is_active', true)
-            .maybeSingle();
+            const lidInstance = await findUserInstance(adminClient, credentials.userId, mapping.instance_id);
 
-          if (lidInstance) {
-            console.log(`✅ Using instance ${mapping.instance_id} for resolved LID`);
-            instanceId = lidInstance.zapi_instance_id;
-            token = lidInstance.zapi_token;
-            clientToken = lidInstance.zapi_client_token;
+            if (lidInstance) {
+              console.log(`✅ Using mapped instance ${lidInstance.zapi_instance_id} for resolved LID`);
+              instanceId = lidInstance.zapi_instance_id;
+              token = lidInstance.zapi_token;
+              clientToken = lidInstance.zapi_client_token;
           }
         }
       } else {
