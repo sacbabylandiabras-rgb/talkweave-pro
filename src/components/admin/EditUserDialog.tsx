@@ -97,58 +97,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
-  const resetInstanceForm = () => {
-    setEditingInstanceId(null);
-    setShowAddForm(false);
-    setNewInstanceName('');
-    setNewInstanceId('');
-    setNewToken('');
-    setNewClientToken('');
-    setNewProvider('uazapi');
-    setNewUazapiUrl('');
-    setNewUazapiToken('');
-  };
-
-  const handleEditInstance = (instance: typeof instances[number]) => {
-    setEditingInstanceId(instance.id);
-    setShowAddForm(true);
-    setNewInstanceName(instance.instance_name || '');
-    setNewInstanceId(instance.zapi_instance_id || '');
-    setNewToken(instance.zapi_token || '');
-    setNewClientToken(instance.zapi_client_token || '');
-    setNewProvider('uazapi');
-    setNewUazapiUrl((instance as any).evolution_api_url || '');
-    setNewUazapiToken((instance as any).evolution_api_key || '');
-  };
-
-  const handleAddInstance = async () => {
-    if (!user) return;
-
-    if (!newUazapiUrl.trim() || !newUazapiToken.trim()) {
-      toast({ title: "Preencha URL e Token da UAZAPI", variant: "destructive" });
-      return;
-    }
-
-    const payload = {
-      instance_name: newInstanceName || 'Nova Instância',
-      api_provider: 'uazapi' as const,
-      // Legacy Z-API columns are reused as identifier slots for UAZAPI (kept for backward compat)
-      zapi_instance_id: newUazapiToken.trim().substring(0, 32),
-      zapi_token: newUazapiToken.trim(),
-      zapi_client_token: 'uazapi',
-      evolution_api_url: newUazapiUrl.trim(),
-      evolution_api_key: newUazapiToken.trim(),
-    };
-
-    const success = editingInstanceId
-      ? await updateInstance(editingInstanceId, user.id, payload)
-      : await addInstance(user.id, payload);
-
-    if (success) {
-      resetInstanceForm();
-    }
-  };
-
   if (!user) return null;
 
   return (
