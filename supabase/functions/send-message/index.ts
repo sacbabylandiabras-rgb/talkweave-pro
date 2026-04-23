@@ -8,6 +8,10 @@ const getZapiAckId = (payload: any) => {
   return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 };
 
+const getUazapiAckId = (payload: any) => {
+  return getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
+};
+
 const hasExplicitZapiError = (payload: any) => {
   return payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
 };
@@ -15,6 +19,23 @@ const hasExplicitZapiError = (payload: any) => {
 const isZapiSendConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   return Boolean(ackId);
+};
+
+const hasUazapiExplicitError = (payload: any) => {
+  return payload?.error || payload?.erro || payload?.details?.error || (payload?.success === false ? payload?.message : null) || null;
+};
+
+const isUazapiSendConfirmed = (payload: any) => {
+  const ackId = getUazapiAckId(payload);
+  const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || '').toLowerCase();
+
+  return Boolean(
+    ackId ||
+    payload?.success === true ||
+    payload?.queued === true ||
+    payload?.enqueued === true ||
+    ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
+  );
 };
 
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
@@ -30,6 +51,39 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
     throw new Response(
       JSON.stringify({
         error: explicitError || `Z-API did not confirm message acceptance (${label})`,
+        details: data,
+      }),
+      {
+        status: response.ok ? 502 : response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  return data;
+};
+
+const parseUazapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
+  const raw = await response.text();
+  let data: any = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = raw ? { message: raw } : {};
+  }
+
+  const explicitError = hasUazapiExplicitError(data);
+  const confirmed = isUazapiSendConfirmed(data);
+
+  console.log(
+    `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
+  );
+
+  if (!response.ok || explicitError || !confirmed) {
+    throw new Response(
+      JSON.stringify({
+        error: explicitError || `UAZAPI did not confirm message acceptance (${label})`,
         details: data,
       }),
       {
