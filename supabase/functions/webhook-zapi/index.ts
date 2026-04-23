@@ -4006,6 +4006,14 @@ async function sendNodeContent(
   const isMediaContentType = ["image", "video", "audio", "document"].includes(
     contentType,
   );
+  const typeLabelForLog = (t: string) =>
+    ({
+      interactive: "Menu Interativo",
+      "media-carousel": "Carrossel de Mídia",
+      "request-location": "Solicitar Localização",
+      "request-payment": "Solicitar Pagamento",
+      pix: "Botão PIX",
+    } as Record<string, string>)[t] || t;
   const stripButtonListFromMessage = (
     message: string,
     btns: Array<{ text?: string }>,
