@@ -47,6 +47,12 @@ const buildSpecialContent = (type: string, data: any): string => {
     payload.contactName = data.contactName;
     payload.contactPhone = data.contactPhone;
     payload.description = data.content || "";
+  } else if (type === "copia_cola") {
+    const vars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
+      ? data.variables as Record<string, any>
+      : {};
+    payload.copyText = vars.copyText || data.header || data.content || "";
+    payload.description = data.content || "";
   }
   return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
 };
