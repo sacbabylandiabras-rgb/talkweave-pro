@@ -142,8 +142,8 @@ const EnviarMensagem = () => {
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !temListaOpcoes && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !temListaOpcoes && (!!modeloData?.mediaUrl || isAudioTemplate);
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl) {
@@ -208,6 +208,10 @@ const EnviarMensagem = () => {
         modeloData?.footer || undefined,
       );
       return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
+    }
+
+    if (isListTemplate && !temListaOpcoes) {
+      throw new Error('Este modelo de lista não possui opções válidas. Edite o modelo e salve pelo menos um item na lista.');
     }
 
     if (temListaOpcoes) {
@@ -807,8 +811,8 @@ const EnviarMensagem = () => {
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
           const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
           const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !temListaOpcoes && !!modeloData?.buttons?.length;
-          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !temListaOpcoes && (!!modeloData?.mediaUrl || isAudioTemplate);
+          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !!modeloData?.buttons?.length;
+          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -869,6 +873,8 @@ const EnviarMensagem = () => {
               modeloData?.header || undefined,
               modeloData?.footer || undefined,
             );
+          } else if (isListTemplate && !temListaOpcoes) {
+            throw new Error('Este modelo de lista não possui opções válidas. Edite o modelo e salve pelo menos um item na lista.');
           } else if (temListaOpcoes) {
             const validOptions = modeloData!.listItems!
               .filter((it: any) => it && String(it.title || '').trim().length > 0)
