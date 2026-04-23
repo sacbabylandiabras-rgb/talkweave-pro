@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video, FileAudio } from "lucide-react";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video, FileAudio, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
@@ -264,6 +264,46 @@ const MediaModelSection = ({
               }}
             >
               {modeloAtual && (
+                (() => {
+                  const __special = parseSpecial(modeloAtual.content);
+                  const __isCopyPaste = __special?.type === 'copia_cola'
+                    || String(modeloAtual.type || '').toLowerCase() === 'copia_cola';
+                  if (__isCopyPaste) {
+                    const vars = (modeloAtual.variables && typeof modeloAtual.variables === 'object' && !Array.isArray(modeloAtual.variables))
+                      ? modeloAtual.variables as Record<string, any>
+                      : {};
+                    const copyText = __special?.copyText || vars.copyText || modeloAtual.header || __special?.description || '';
+                    const bodyText = __special?.description || modeloAtual.name || 'Toque em copiar para usar o conteúdo';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                          <div className="px-3 py-2 space-y-2">
+                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{bodyText}</p>
+                            {copyText && (
+                              <div className="rounded-md bg-background/60 border border-border/40 px-2 py-1.5">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Texto para copiar</p>
+                                <p className="text-xs font-mono text-foreground whitespace-pre-wrap break-all leading-snug">{copyText}</p>
+                              </div>
+                            )}
+                            {modeloAtual.footer && (
+                              <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
+                            )}
+                            <div className="flex items-center justify-end gap-1 pt-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <Check className="w-3 h-3 text-blue-500" />
+                              <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                            </div>
+                          </div>
+                          <div className="border-t border-border/30 text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-1">
+                            <Copy className="w-3 h-3" /> Copiar
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
                 <div className="flex justify-end">
                   <div className="bg-accent rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                     {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
@@ -421,20 +461,6 @@ const MediaModelSection = ({
                           </div>
                         )}
 
-                        {(() => {
-                          const special = parseSpecial(modeloAtual.content);
-                          const isCopyPaste = special?.type === 'copia_cola'
-                            || String(modeloAtual.type || '').toLowerCase() === 'copia_cola';
-                          if (!isCopyPaste) return null;
-                          return (
-                            <div className="border-t border-border/30">
-                              <div className="text-center py-2 text-sm text-primary font-medium">
-                                📋 Copiar
-                              </div>
-                            </div>
-                          );
-                        })()}
-
                         {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
                           <div className="border-t border-border/30 px-3 py-2">
                             <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
@@ -446,6 +472,8 @@ const MediaModelSection = ({
                     )}
                   </div>
                 </div>
+                  );
+                })()
               )}
             </div>
 
