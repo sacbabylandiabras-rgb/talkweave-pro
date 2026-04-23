@@ -305,6 +305,33 @@ const dispatchUazapiSpecial = async (
 
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
+// Best-effort fetch: retries on network errors and HTTP 5xx (UAZAPI server hiccups).
+// Returns the final Response or throws on definitive network failure after all retries.
+const fetchUazapiWithRetry = async (
+  url: string,
+  init: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> => {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status >= 500 && attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+        continue;
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('UAZAPI fetch failed after retries');
+};
+
 // === UAZAPI dispatch helper ===
 // Sends a campaign message via UAZAPI endpoints. Returns { ok, ack, error, raw }.
 const dispatchUazapiCampaign = async (
