@@ -984,7 +984,11 @@ const Campanhas = () => {
               }
             });
 
-            // Build full list: all target contacts with their status
+            const targetPhoneKeys = new Set(
+              targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
+            );
+
+            // Build full list: all target contacts with their latest persisted status
             const fullContactList = targetContacts.map((contact, index) => {
               const phoneKey = resolvePhoneKey(contact.phone);
               const send = sendsByPhone.get(phoneKey);
@@ -1017,7 +1021,7 @@ const Campanhas = () => {
             // Also add any sends that might not be in target_audience
             statsDialogSends.forEach(send => {
               const sendKey = resolvePhoneKey(send.phone);
-              const existsInTarget = targetContacts.some(c => resolvePhoneKey(c.phone) === sendKey);
+              const existsInTarget = targetPhoneKeys.has(sendKey);
 
               if (!existsInTarget) {
                 let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
