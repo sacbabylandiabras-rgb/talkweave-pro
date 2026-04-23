@@ -2412,6 +2412,82 @@ const Modelos = () => {
                       </div>
                     );
                   })()
+                ) : (previewTemplate.type === 'localizacao' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'localizacao')) ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const lat = Number(String(special.latitude ?? '').replace(',', '.'));
+                    const lng = Number(String(special.longitude ?? '').replace(',', '.'));
+                    const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+                    const mapUrl = hasCoords
+                      ? `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=400x200&markers=${lat},${lng},red-pushpin`
+                      : null;
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          {hasCoords && (
+                            <a
+                              href={`https://www.google.com/maps?q=${lat},${lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block bg-muted relative"
+                            >
+                              <img
+                                src={mapUrl!}
+                                alt="Mapa"
+                                className="w-full h-32 object-cover"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <MapPin className="w-8 h-8 text-red-600 drop-shadow-lg" />
+                              </div>
+                            </a>
+                          )}
+                          <div className="px-3 py-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-foreground" />
+                              <p className="text-sm font-semibold text-foreground">
+                                {special.title || previewTemplate.name || 'Localização'}
+                              </p>
+                            </div>
+                            {special.address && (
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{special.address}</p>
+                            )}
+                            {hasCoords && (
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                {lat.toFixed(6)}, {lng.toFixed(6)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (previewTemplate.type === 'contato' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'contato')) ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const name = special.contactName || previewTemplate.name || 'Contato';
+                    const phone = special.contactPhone || '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[240px]">
+                          <div className="px-3 py-3 flex items-center gap-3 border-b border-border/30">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <UserIcon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+                              {phone && (
+                                <p className="text-xs text-muted-foreground truncate">{phone}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                            Adicionar contato
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
