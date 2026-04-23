@@ -233,6 +233,25 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada || modeloData?.name || 'Lista de opções enviada';
     }
 
+    if (isCopyPasteTemplate) {
+      const copyContent = modeloData?.content || mensagemPersonalizada || '';
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || copyContent,
+        [
+          {
+            id: 'copy_btn',
+            type: 'COPY',
+            label: 'Copiar',
+            copyText: copyContent,
+          } as any,
+        ],
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined,
+      );
+      return mensagemPersonalizada || modeloData?.name || 'Mensagem copia e cola enviada';
+    }
+
     if (temBotoes) {
       await sendButtonActions(
         phone,
