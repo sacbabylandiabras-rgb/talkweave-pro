@@ -290,7 +290,7 @@ const resolveFromMe = (webhook: any): boolean => {
 
 const mapCampaignSendStatusFromWebhook = (
   webhook: any,
-): "sent" | "delivered" | null => {
+): "sent" | "delivered" | "read" | null => {
   const webhookType = String(webhook?.type || "");
   const webhookStatus = String(webhook?.status || "").toUpperCase();
   const fromMe = resolveFromMe(webhook);
@@ -300,6 +300,9 @@ const mapCampaignSendStatusFromWebhook = (
     if (webhookStatus === "SENT") return "sent";
     if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") {
       return "delivered";
+    }
+    if (webhookStatus === "READ" || webhookStatus === "PLAYED") {
+      return "read";
     }
   }
   // For ReceivedCallback with fromMe: treat as delivery confirmation
@@ -648,7 +651,7 @@ serve(async (req) => {
           messageId: m?.id || m?.messageId || m?.key?.id ||
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
-          status: messageUpdateStatus || undefined,
+          status: messageUpdateStatus ? messageUpdateStatus.toUpperCase() : undefined,
           hasInteractiveSelection,
           text: text || selectedButtonId || selectedRowId
             ? {
@@ -2351,7 +2354,7 @@ serve(async (req) => {
           let campaignSendQuery = supabase
             .from("campaign_sends")
             .select(
-              "id, campaign_id, status, phone, sent_at, delivered_at, instance_name",
+              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
             )
             .eq("user_id", userId)
             .in("phone", candidatePhones);
@@ -2383,32 +2386,61 @@ serve(async (req) => {
                 `⚠️ Nenhum campaign_send encontrado para callback ${campaignSendStatus} no telefone ${resolvedPhone}`,
               );
             } else {
-              const nextStatus = campaignSendStatus === "delivered" ||
-                  campaignSend.status === "delivered"
-                ? "delivered"
-                : "sent";
+              // For "read" status: mark read_at without downgrading current status
+              // For "delivered" / "sent": maintain previous behavior
+              const updatePayload: Record<string, string> = {};
+              let nextStatus = campaignSend.status as string;
 
-              const updatePayload: Record<string, string> = {
-                status: nextStatus,
-              };
-
-              if (!campaignSend.sent_at) {
-                updatePayload.sent_at = nowIso;
-              }
-
-              if (nextStatus === "delivered") {
-                updatePayload.delivered_at = nowIso;
+              if (campaignSendStatus === "read") {
+                if (!(campaignSend as any).read_at) {
+                  updatePayload.read_at = nowIso;
+                }
+                if (!campaignSend.delivered_at) {
+                  updatePayload.delivered_at = nowIso;
+                }
                 if (!campaignSend.sent_at) {
                   updatePayload.sent_at = nowIso;
                 }
+                // Promote at minimum to delivered
+                if (campaignSend.status !== "delivered" && campaignSend.status !== "sent") {
+                  updatePayload.status = "delivered";
+                  nextStatus = "delivered";
+                } else if (campaignSend.status === "sent") {
+                  updatePayload.status = "delivered";
+                  nextStatus = "delivered";
+                }
+              } else {
+                nextStatus = campaignSendStatus === "delivered" ||
+                    campaignSend.status === "delivered"
+                  ? "delivered"
+                  : "sent";
+                updatePayload.status = nextStatus;
+
+                if (!campaignSend.sent_at) {
+                  updatePayload.sent_at = nowIso;
+                }
+
+                if (nextStatus === "delivered") {
+                  updatePayload.delivered_at = nowIso;
+                  if (!campaignSend.sent_at) {
+                    updatePayload.sent_at = nowIso;
+                  }
+                }
               }
 
-              const { error: campaignSendUpdateError } = await supabase
-                .from("campaign_sends")
-                .update(updatePayload)
-                .eq("id", campaignSend.id);
+              const hasUpdates = Object.keys(updatePayload).length > 0;
+              const campaignSendUpdateError = hasUpdates
+                ? (await supabase
+                    .from("campaign_sends")
+                    .update(updatePayload)
+                    .eq("id", campaignSend.id)).error
+                : null;
 
-              if (campaignSendUpdateError) {
+              if (!hasUpdates) {
+                console.log(
+                  `ℹ️ campaign_send ${campaignSend.id} já está em estado ${campaignSend.status}, nada a atualizar`,
+                );
+              } else if (campaignSendUpdateError) {
                 console.error(
                   "❌ Erro atualizando campaign_send via callback:",
                   campaignSendUpdateError,

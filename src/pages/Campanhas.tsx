@@ -68,6 +68,7 @@ const Campanhas = () => {
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
+  const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   // Realtime sends for stats dialog
@@ -178,6 +179,42 @@ const Campanhas = () => {
       supabase.removeChannel(channel);
     };
   }, [statsDialogOpen]);
+
+  // Detect if the campaign template has a URL button (to show/hide "Cliques" column)
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogHasUrlButton(false);
+      return;
+    }
+
+    let active = true;
+    const fetchTemplateButtons = async () => {
+      const { data: campaignRow } = await supabase
+        .from('campaigns')
+        .select('template_id')
+        .eq('id', statsDialogCampaignId)
+        .maybeSingle();
+
+      if (!active || !campaignRow?.template_id) {
+        if (active) setStatsDialogHasUrlButton(false);
+        return;
+      }
+
+      const { data: tpl } = await supabase
+        .from('message_templates')
+        .select('buttons')
+        .eq('id', campaignRow.template_id)
+        .maybeSingle();
+
+      if (!active) return;
+      const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
+      const hasUrl = buttons.some((b: any) => String(b?.type || '').toUpperCase() === 'URL');
+      setStatsDialogHasUrlButton(hasUrl);
+    };
+
+    fetchTemplateButtons();
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
 
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
@@ -972,6 +1009,8 @@ const Campanhas = () => {
                 status,
                 sentAt,
                 errorMessage,
+                readAt: (send as any)?.read_at || null,
+                clickedAt: (send as any)?.clicked_at || null,
               };
             });
 
@@ -991,6 +1030,8 @@ const Campanhas = () => {
                   status,
                   sentAt: send.sent_at || null,
                   errorMessage: send.error_message || null,
+                  readAt: (send as any)?.read_at || null,
+                  clickedAt: (send as any)?.clicked_at || null,
                 });
               }
             });
@@ -999,6 +1040,8 @@ const Campanhas = () => {
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
+            const readCount = fullContactList.filter(c => c.readAt).length;
+            const clickedCount = fullContactList.filter(c => c.clickedAt).length;
 
             const handleRetryCancelled = async () => {
               const cancelledContacts = fullContactList
@@ -1056,7 +1099,7 @@ const Campanhas = () => {
                 </div>
 
                 {/* Stats grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-6' : 'md:grid-cols-5'} gap-3`}>
                   <div className="p-3 bg-muted/50 rounded-lg text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-bold text-lg">{totalCount}</p>
@@ -1073,6 +1116,16 @@ const Campanhas = () => {
                     <p className="text-xs text-red-600 dark:text-red-400">Canceladas</p>
                     <p className="font-bold text-lg text-red-600 dark:text-red-400">{cancelledCount}</p>
                   </div>
+                  <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Lidas</p>
+                    <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{readCount}</p>
+                  </div>
+                  {statsDialogHasUrlButton && (
+                    <div className="p-3 bg-purple-500/10 rounded-lg text-center">
+                      <p className="text-xs text-purple-600 dark:text-purple-400">Cliques</p>
+                      <p className="font-bold text-lg text-purple-600 dark:text-purple-400">{clickedCount}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Retry cancelled button */}
@@ -1095,6 +1148,8 @@ const Campanhas = () => {
                         <TableHead>Contato</TableHead>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Lida</TableHead>
+                        {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
                         <TableHead>Data</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1120,6 +1175,26 @@ const Campanhas = () => {
                               <p className="text-xs text-destructive mt-1">{contact.errorMessage}</p>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {contact.readAt ? (
+                              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 flex items-center gap-1 w-fit">
+                                <CheckCircle className="w-3 h-3" /> Lida
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          {statsDialogHasUrlButton && (
+                            <TableCell>
+                              {contact.clickedAt ? (
+                                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
+                                  <CheckCircle className="w-3 h-3" /> Clicou
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          )}
                           <TableCell className="text-xs text-muted-foreground">
                             {contact.sentAt ? format(new Date(contact.sentAt), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
                           </TableCell>

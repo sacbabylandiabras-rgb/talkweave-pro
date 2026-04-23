@@ -9,6 +9,8 @@ serve(async (req) => {
   const userId = url.searchParams.get('uid')
   const phone = url.searchParams.get('ph') || 'unknown'
   const source = url.searchParams.get('src') || 'wa'
+  const campaignId = url.searchParams.get('cid')
+  const sendId = url.searchParams.get('cs')
 
   if (!destUrl) {
     return new Response('Missing url parameter', { status: 400 })
@@ -31,6 +33,42 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
       })
       console.log(`✅ URL click tracked: flow="${flowName}", btn="${btnText}", phone=${phone}, src=${source}`)
+    }
+
+    // Mark campaign_send as clicked (for campaign link-click metrics)
+    if (campaignId || sendId) {
+      const nowIso = new Date().toISOString();
+      try {
+        if (sendId) {
+          await supabase
+            .from('campaign_sends')
+            .update({ clicked_at: nowIso })
+            .eq('id', sendId)
+            .is('clicked_at', null);
+          console.log(`✅ campaign_send click marked by id=${sendId}`);
+        } else if (campaignId && userId) {
+          // Fallback: locate by campaign_id + phone
+          const cleanPhone = String(phone).replace(/\D/g, '');
+          const { data: rows } = await supabase
+            .from('campaign_sends')
+            .select('id, phone, clicked_at')
+            .eq('campaign_id', campaignId)
+            .eq('user_id', userId)
+            .is('clicked_at', null);
+          const match = (rows || []).find((r: any) =>
+            String(r.phone).replace(/\D/g, '') === cleanPhone
+          );
+          if (match) {
+            await supabase
+              .from('campaign_sends')
+              .update({ clicked_at: nowIso })
+              .eq('id', match.id);
+            console.log(`✅ campaign_send click marked by phone match id=${match.id}`);
+          }
+        }
+      } catch (cerr) {
+        console.error('Error marking campaign_send click:', cerr);
+      }
     }
   } catch (e) {
     console.error('Error logging click:', e)
