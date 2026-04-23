@@ -93,6 +93,10 @@ const getButtonHandleAliases = (idx: number, button?: { id?: string | number | n
     `button_${idx}`,
     `btn-${idx}`,
     `btn_${idx}`,
+    `button-${idx + 1}`,
+    `button_${idx + 1}`,
+    `btn-${idx + 1}`,
+    `btn_${idx + 1}`,
   ]);
 
   const rawId = String(button?.id || "").trim();
@@ -492,29 +496,53 @@ serve(async (req) => {
           ["delivered", "delivery", "sent", "read", "played", "ack"].includes(
             messageUpdateStatus.toLowerCase(),
           );
+        const selectedButtonId = [
+          eventPayload?.SelectedButtonId,
+          eventPayload?.selectedButtonId,
+          eventPayload?.SelectedId,
+          eventPayload?.selectedId,
+          m?.selectedButtonId,
+          m?.selectedId,
+          webhook?.selectedButtonId,
+          webhook?.selectedId,
+          webhook?.text?.selectedButtonId,
+          webhook?.text?.selectedId,
+          webhook?.buttonReply?.selectedButtonId,
+          webhook?.buttonReply?.selectedId,
+        ].find((value) => typeof value === "string" && value.trim()) || "";
+        const selectedRowId = [
+          eventPayload?.SelectedRowId,
+          eventPayload?.selectedRowId,
+          m?.selectedRowId,
+          webhook?.selectedRowId,
+          webhook?.text?.selectedRowId,
+          webhook?.buttonReply?.selectedRowId,
+        ].find((value) => typeof value === "string" && value.trim()) || "";
         const buttonSelectionCandidates = [
           eventPayload?.SelectedDisplayText,
           eventPayload?.SelectedButtonText,
-          eventPayload?.SelectedButtonId,
-          eventPayload?.SelectedRowId,
           eventPayload?.selectedDisplayText,
           eventPayload?.selectedButtonText,
-          eventPayload?.selectedButtonId,
-          eventPayload?.selectedRowId,
           m?.selectedDisplayText,
           m?.selectedButtonText,
-          m?.selectedButtonId,
-          m?.selectedRowId,
           m?.buttonText,
           m?.title,
           webhook?.selectedDisplayText,
           webhook?.selectedButtonText,
-          webhook?.selectedButtonId,
-          webhook?.selectedRowId,
+          webhook?.text?.selectedDisplayText,
+          webhook?.text?.selectedButtonText,
+          webhook?.buttonReply?.title,
+          webhook?.buttonReply?.text,
+          webhook?.buttonReply?.label,
+          webhook?.buttonReply?.selectedDisplayText,
+          selectedButtonId,
+          selectedRowId,
         ].find((value) => typeof value === "string" && value.trim()) || "";
         const text = isUazapiStatusUpdate
           ? ""
-          : buttonSelectionCandidates || webhook?.text?.message || webhook?.text || webhook?.body ||
+          : buttonSelectionCandidates || selectedButtonId || selectedRowId ||
+          webhook?.text?.message || webhook?.text?.body ||
+          (typeof webhook?.text === "string" ? webhook.text : "") || webhook?.body ||
           webhook?.conversation ||
           m?.text || m?.message?.text || m?.body || m?.conversation ||
           m?.message?.conversation || m?.message?.extendedTextMessage?.text ||
@@ -545,15 +573,23 @@ serve(async (req) => {
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
           status: messageUpdateStatus || undefined,
-          text: text ? { message: text, selectedDisplayText: buttonSelectionCandidates || undefined, selectedButtonText: buttonSelectionCandidates || undefined } : undefined,
-          buttonReply: buttonSelectionCandidates
+          text: text || selectedButtonId || selectedRowId
             ? {
-              title: buttonSelectionCandidates,
-              text: buttonSelectionCandidates,
-              label: buttonSelectionCandidates,
+              message: text || selectedButtonId || selectedRowId,
+              selectedDisplayText: buttonSelectionCandidates || undefined,
+              selectedButtonText: buttonSelectionCandidates || undefined,
+              selectedButtonId: selectedButtonId || undefined,
+              selectedRowId: selectedRowId || undefined,
+            }
+            : undefined,
+          buttonReply: buttonSelectionCandidates || selectedButtonId || selectedRowId
+            ? {
+              title: buttonSelectionCandidates || selectedButtonId || selectedRowId,
+              text: buttonSelectionCandidates || selectedButtonId || selectedRowId,
+              label: buttonSelectionCandidates || selectedButtonId || selectedRowId,
               selectedDisplayText: buttonSelectionCandidates,
-              selectedButtonId: eventPayload?.SelectedButtonId || eventPayload?.selectedButtonId || m?.selectedButtonId || webhook?.selectedButtonId || undefined,
-              selectedRowId: eventPayload?.SelectedRowId || eventPayload?.selectedRowId || m?.selectedRowId || webhook?.selectedRowId || undefined,
+              selectedButtonId: selectedButtonId || undefined,
+              selectedRowId: selectedRowId || undefined,
             }
             : undefined,
         };
