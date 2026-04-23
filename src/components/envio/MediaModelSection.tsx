@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video } from "lucide-react";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video, FileAudio } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
@@ -308,7 +308,31 @@ const MediaModelSection = ({
                             <span>{arquivoMidia.name}</span>
                           </div>
                         )}
-                        {!arquivoMidia && modeloAtual.mediaUrl && (
+                        {!arquivoMidia && modeloAtual.mediaUrl && modeloAtual.type === 'audio' && (
+                          <div className="px-3 pt-3">
+                            <div className="rounded-2xl rounded-tr-md bg-background/80 border border-border px-3 py-2 space-y-2">
+                              <div className="flex items-center gap-2 text-sm text-foreground">
+                                <FileAudio className="w-4 h-4 text-primary" />
+                                <span>Áudio gravado</span>
+                              </div>
+                              <audio src={modeloAtual.mediaUrl} controls className="w-full" preload="metadata" />
+                            </div>
+                          </div>
+                        )}
+                        {!arquivoMidia && modeloAtual.mediaUrl && (modeloAtual.type === 'video' || modeloAtual.type === 'video_botoes') && (
+                          <video
+                            src={modeloAtual.mediaUrl}
+                            controls
+                            className="w-full rounded-t-lg max-h-48"
+                          />
+                        )}
+                        {!arquivoMidia && modeloAtual.mediaUrl && (modeloAtual.type === 'arquivo' || modeloAtual.type === 'documento') && (
+                          <div className="flex items-center gap-2 px-3 pt-3 text-sm text-muted-foreground">
+                            <FileText className="w-6 h-6" />
+                            <span>{modeloAtual.fileName || 'Documento do modelo'}</span>
+                          </div>
+                        )}
+                        {!arquivoMidia && modeloAtual.mediaUrl && modeloAtual.type !== 'audio' && modeloAtual.type !== 'video' && modeloAtual.type !== 'video_botoes' && modeloAtual.type !== 'arquivo' && modeloAtual.type !== 'documento' && (
                           <img
                             src={modeloAtual.mediaUrl}
                             alt="Mídia do modelo"
