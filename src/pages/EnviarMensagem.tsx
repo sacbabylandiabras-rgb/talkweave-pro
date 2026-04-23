@@ -240,6 +240,37 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada || modeloData?.name || 'Imagem + texto com botões enviado';
     }
 
+    if (documentoComBotoes) {
+      // 1) Envia o documento puro
+      await sendDocument(
+        phone,
+        modeloData!.mediaUrl!,
+        modeloData?.fileName || 'arquivo',
+        modeloData?.fileType?.split('/').pop() || 'pdf',
+        '',
+      );
+      // 2) Em seguida, envia o texto + botões
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || modeloData?.content || '',
+        modeloData!.buttons!.map((btn: any) => {
+          const buttonType = (btn.type || 'REPLY').toUpperCase();
+          const buttonData: any = {
+            id: btn.id || btn.text || Math.random().toString(),
+            type: buttonType,
+            label: btn.text || btn.label || 'Botão',
+          };
+          if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+          else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+          else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+          return buttonData;
+        }),
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined,
+      );
+      return mensagemPersonalizada || modeloData?.name || 'Documento + texto com botões enviado';
+    }
+
     if (isListTemplate && !temListaOpcoes) {
       throw new Error('Este modelo de lista não possui opções válidas. Edite o modelo e salve pelo menos um item na lista.');
     }
