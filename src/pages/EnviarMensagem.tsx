@@ -735,11 +735,12 @@ const EnviarMensagem = () => {
       const currentUserId = session?.user?.id;
 
       if (currentUserId) {
+        const baseMessage = mensagem || modeloDataValidation?.content || modeloDataValidation?.name || 'Modelo';
         const pendingRecords = contatosProcessados.map((c) => ({
           campaign_id: campanha.id,
           phone: c.telefone,
           contact_name: c.nome,
-          message_content: mensagem.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
+          message_content: baseMessage.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
           status: 'pending',
           user_id: currentUserId,
         }));
