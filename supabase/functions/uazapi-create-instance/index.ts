@@ -136,12 +136,37 @@ serve(async (req) => {
     // Persist into zapi_instances using service role (bypass RLS for safety)
     const adminClient = createClient(supabaseUrl, supabaseService)
 
-    // Enforce per-user instance limit (max_instances on profile, default 1)
+    // Enforce active subscription + per-user instance limit
     const { data: profile } = await adminClient
       .from('profiles')
-      .select('max_instances')
+      .select('max_instances, subscription_status, subscription_expires_at, is_active')
       .eq('id', user.id)
       .maybeSingle()
+
+    const isAdmin = await adminClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle()
+      .then(({ data }) => !!data)
+
+    if (!isAdmin) {
+      const status = (profile as any)?.subscription_status
+      const expiresAt = (profile as any)?.subscription_expires_at
+      const isActiveFlag = (profile as any)?.is_active !== false
+      const notExpired = !expiresAt || new Date(expiresAt).getTime() > Date.now()
+      const hasActiveSub = isActiveFlag && status === 'active' && notExpired
+
+      if (!hasActiveSub) {
+        return new Response(
+          JSON.stringify({
+            error: 'Sua assinatura não está ativa. Regularize o pagamento para criar uma instância.',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
 
     const maxInstances = Number((profile as any)?.max_instances ?? 1)
 
