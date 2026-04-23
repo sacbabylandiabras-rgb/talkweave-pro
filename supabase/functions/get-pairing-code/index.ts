@@ -131,6 +131,17 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
+        // Ensure instance is disconnected so /connect with phone returns a paircode
+        // (if already in QR-pending mode, it would return another QR instead)
+        try {
+          await fetch(`${apiUrl}/instance/disconnect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: apiToken },
+          });
+        } catch (e) {
+          console.warn('[get-pairing-code] disconnect before pairing failed (continuing):', e);
+        }
+
         const uazRes = await fetch(`${apiUrl}/instance/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
