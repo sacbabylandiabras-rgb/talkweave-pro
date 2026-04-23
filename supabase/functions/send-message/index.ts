@@ -65,6 +65,42 @@ const isUazapiSendConfirmed = (payload: any) => {
   );
 };
 
+// 🔁 Retry agressivo para maximizar entrega:
+// - até 3 tentativas com backoff (500ms, 1500ms)
+// - retenta apenas em falhas de rede ou HTTP 5xx (erro do servidor)
+// - HTTP 4xx (rejeição definitiva) não é retentado
+const fetchUazapiWithRetry = async (
+  url: string,
+  init: RequestInit,
+  phone: string,
+  label: string,
+  maxAttempts = 3,
+): Promise<Response> => {
+  let lastErr: any = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      // 5xx → retenta; 2xx/4xx → devolve para o caller decidir
+      if (res.status >= 500 && attempt < maxAttempts) {
+        console.warn(`🔁 UAZAPI ${label} HTTP ${res.status} para ${phone} — tentativa ${attempt}/${maxAttempts}, retentando...`);
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+        continue;
+      }
+      if (attempt > 1) {
+        console.log(`✅ UAZAPI ${label} sucesso na tentativa ${attempt}/${maxAttempts} para ${phone}`);
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`🔁 UAZAPI ${label} falha de rede (${err instanceof Error ? err.message : err}) — tentativa ${attempt}/${maxAttempts}`);
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+      }
+    }
+  }
+  throw lastErr || new Error('UAZAPI: falha de rede após múltiplas tentativas');
+};
+
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
   const data = await response.json().catch(() => ({}));
   const explicitError = hasExplicitZapiError(data);
