@@ -669,6 +669,32 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar instância?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove a instância <strong>{instanceName}</strong> da sua conta.
+              Você precisará criar uma nova e escanear o QR Code novamente para reconectar este número.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Apagando...</>
+              ) : (
+                <><Trash2 className="w-4 h-4 mr-1" /> Apagar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
