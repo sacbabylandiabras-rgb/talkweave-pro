@@ -36,6 +36,9 @@ interface ResolvedInstance {
   zapiToken: string;
   zapiClientToken: string;
   instanceName: string;
+  apiProvider?: string;
+  uazapiUrl?: string;
+  uazapiToken?: string;
 }
 
 const resolveContactInstance = async (
@@ -50,11 +53,14 @@ const resolveContactInstance = async (
     zapi_token: string;
     zapi_client_token: string;
     instance_name: string | null;
+    api_provider?: string | null;
+    evolution_api_url?: string | null;
+    evolution_api_key?: string | null;
   } | null = null;
 
   const { data: byZapiInstanceId } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .eq('user_id', userId)
     .eq('zapi_instance_id', sourceInstanceId)
     .eq('is_active', true)
@@ -65,7 +71,7 @@ const resolveContactInstance = async (
   if (!instance) {
     const { data: byTableId } = await supabase
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
       .eq('user_id', userId)
       .eq('id', sourceInstanceId)
       .eq('is_active', true)
@@ -74,15 +80,21 @@ const resolveContactInstance = async (
     instance = byTableId;
   }
 
-  if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
+  const isUazapi = String(instance?.api_provider || '').toLowerCase() === 'uazapi';
+  const hasZapiCreds = instance?.zapi_instance_id && instance?.zapi_token && instance?.zapi_client_token;
+  const hasUazapiCreds = isUazapi && instance?.evolution_api_url && instance?.evolution_api_key;
+  if (!instance?.zapi_instance_id || (!hasZapiCreds && !hasUazapiCreds)) {
     return null;
   }
 
   return {
     zapiInstanceId: instance.zapi_instance_id,
-    zapiToken: instance.zapi_token,
-    zapiClientToken: instance.zapi_client_token,
+    zapiToken: instance.zapi_token || '',
+    zapiClientToken: instance.zapi_client_token || '',
     instanceName: instance.instance_name || 'Instância',
+    apiProvider: isUazapi ? 'uazapi' : 'zapi',
+    uazapiUrl: instance.evolution_api_url || '',
+    uazapiToken: instance.evolution_api_key || '',
   };
 };
 
@@ -133,21 +145,27 @@ const resolveGroupInstanceFromInboundLogs = async (
 
   const { data: correctInstance } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
     .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
 
-  if (!correctInstance?.zapi_instance_id || !correctInstance?.zapi_token || !correctInstance?.zapi_client_token) {
+  const correctIsUaz = String((correctInstance as any)?.api_provider || '').toLowerCase() === 'uazapi';
+  const correctHasZapi = correctInstance?.zapi_instance_id && correctInstance?.zapi_token && correctInstance?.zapi_client_token;
+  const correctHasUaz = correctIsUaz && (correctInstance as any)?.evolution_api_url && (correctInstance as any)?.evolution_api_key;
+  if (!correctInstance?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
     return null;
   }
 
   return {
     zapiInstanceId: correctInstance.zapi_instance_id,
-    zapiToken: correctInstance.zapi_token,
-    zapiClientToken: correctInstance.zapi_client_token,
+    zapiToken: correctInstance.zapi_token || '',
+    zapiClientToken: correctInstance.zapi_client_token || '',
     instanceName: correctInstance.instance_name || 'Instância',
+    apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
+    uazapiUrl: (correctInstance as any).evolution_api_url || '',
+    uazapiToken: (correctInstance as any).evolution_api_key || '',
   };
 };
 
@@ -170,6 +188,87 @@ const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.i
 
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
+// === UAZAPI dispatch helper ===
+// Sends a campaign message via UAZAPI endpoints. Returns { ok, ack, error, raw }.
+const dispatchUazapiCampaign = async (
+  instance: ResolvedInstance,
+  phone: string,
+  template: any,
+  fullMessage: string,
+  opts: { viewOnce?: boolean; isPtv?: boolean },
+) => {
+  const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
+  const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
+  if (!baseUrl || !headers.token) {
+    return { ok: false, ack: null, error: 'UAZAPI URL/Token não configurados', raw: null };
+  }
+
+  const isGroup = isGroupDestination(phone);
+  const numericGroup = isGroup ? phone.replace(/[@\-].*$/, '').replace(/\D/g, '') : '';
+  const targetNumber = isGroup ? `${numericGroup}@g.us` : phone.replace(/^\+/, '').replace(/\D/g, '');
+
+  const templateType = template?.type || 'texto';
+  const hasMedia = template?.media_url && String(template.media_url).trim() !== '';
+  const hasButtons = Array.isArray(template?.buttons) && template.buttons.length > 0;
+
+  let endpoint = '/send/text';
+  let body: Record<string, unknown> = { number: targetNumber, text: fullMessage };
+
+  const buildChoices = (buttons: any[]) =>
+    buttons.slice(0, 10).map((btn: any, idx: number) => {
+      const label = String(btn?.text || btn?.label || `Opção ${idx + 1}`).trim();
+      const t = String(btn?.type || 'url').toUpperCase();
+      if ((t === 'URL' || t === 'COPY') && (btn?.url || btn?.value)) {
+        const url = String(btn.url || btn.value);
+        return `${label}|${url.startsWith('http') ? url : 'https://' + url}`;
+      }
+      if (t === 'CALL' && (btn?.phone || btn?.value)) return `${label}|${btn.phone || btn.value}`;
+      return label;
+    });
+
+  if (hasMedia && (templateType === 'imagem' || templateType === 'imagem_botoes')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'image', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
+    if (hasButtons && templateType === 'imagem_botoes') {
+      // Send image first, then buttons via /send/menu
+      await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+      endpoint = '/send/menu';
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+    }
+  } else if (hasMedia && (templateType === 'video' || templateType === 'video_botoes')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: opts.isPtv ? 'ptv' : 'video', file: template.media_url, ...(fullMessage && !opts.isPtv ? { text: fullMessage } : {}), ...(opts.viewOnce ? { viewOnce: true } : {}) };
+    if (hasButtons && templateType === 'video_botoes') {
+      await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+      endpoint = '/send/menu';
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+    }
+  } else if (hasMedia && templateType === 'audio') {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'ptt', file: template.media_url };
+  } else if (hasMedia && (templateType === 'documento' || templateType === 'arquivo')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'document', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
+  } else if (hasButtons) {
+    endpoint = '/send/menu';
+    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const raw = await res.text();
+    let data: any = {};
+    try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+    if (!res.ok) {
+      return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
+    }
+    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
+    return { ok: true, ack, error: null, raw: data };
+  } catch (e) {
+    return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error', raw: null };
+  }
+};
+
 const readDeviceConnectivity = (deviceStatus: any) => {
   const isConnected = deviceStatus?.connected === true ||
     (typeof deviceStatus?.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
@@ -185,6 +284,23 @@ const readDeviceConnectivity = (deviceStatus: any) => {
 
 const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
   try {
+    // === UAZAPI status check ===
+    if (instance.apiProvider === 'uazapi' && instance.uazapiUrl && instance.uazapiToken) {
+      const baseUrl = String(instance.uazapiUrl).replace(/\/+$/, '');
+      const uazRes = await fetch(`${baseUrl}/instance/status`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', token: String(instance.uazapiToken) },
+      });
+      if (!uazRes.ok) {
+        return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: `UAZAPI HTTP ${uazRes.status}` } };
+      }
+      const uazRaw = await uazRes.json().catch(() => ({}));
+      const status = String(uazRaw?.instance?.status || uazRaw?.status || '').toLowerCase();
+      const connected = status === 'connected' || status === 'open' || uazRaw?.connected === true;
+      const explicitlyDisconnected = status === 'disconnected' || status === 'closed' || uazRaw?.connected === false;
+      return { connected, explicitlyDisconnected, ok: true, raw: uazRaw };
+    }
+
     const deviceStatusUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/status`;
     const deviceResponse = await fetch(deviceStatusUrl, {
       method: 'GET',
@@ -275,16 +391,19 @@ serve(async (req) => {
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
         .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
 
-      const rawRotatePool = (allActiveInstances || []).map((instance) => ({
+      const rawRotatePool: ResolvedInstance[] = (allActiveInstances || []).map((instance: any) => ({
         zapiInstanceId: instance.zapi_instance_id,
-        zapiToken: instance.zapi_token,
-        zapiClientToken: instance.zapi_client_token,
+        zapiToken: instance.zapi_token || '',
+        zapiClientToken: instance.zapi_client_token || '',
         instanceName: instance.instance_name,
+        apiProvider: String(instance.api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi',
+        uazapiUrl: instance.evolution_api_url || '',
+        uazapiToken: instance.evolution_api_key || '',
       }));
 
       const rotateStatuses = await Promise.all(
@@ -325,7 +444,7 @@ serve(async (req) => {
     } else if (requestedInstanceId) {
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -335,6 +454,10 @@ serve(async (req) => {
         zapiInstanceId = specificInstance.zapi_instance_id;
         zapiToken = specificInstance.zapi_token;
         zapiClientToken = specificInstance.zapi_client_token;
+        // Store UAZAPI fields on credentials for downstream use
+        (credentials as any).apiProvider = String((specificInstance as any).api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi';
+        (credentials as any).uazapiUrl = (specificInstance as any).evolution_api_url || '';
+        (credentials as any).uazapiToken = (specificInstance as any).evolution_api_key || '';
       }
     }
 
@@ -347,6 +470,9 @@ serve(async (req) => {
         zapiToken,
         zapiClientToken,
         instanceName: credentials.instanceName,
+        apiProvider: (credentials as any).apiProvider || 'zapi',
+        uazapiUrl: (credentials as any).uazapiUrl || '',
+        uazapiToken: (credentials as any).uazapiToken || '',
       };
     };
 
@@ -652,6 +778,35 @@ serve(async (req) => {
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
+
+        // === UAZAPI ROUTING (short-circuit) ===
+        if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
+          const uazResult = await dispatchUazapiCampaign(
+            currentInstance,
+            contact.phone,
+            campaign.template,
+            fullMessage,
+            { viewOnce: campaignViewOnce, isPtv: campaignIsPtv },
+          );
+
+          if (uazResult.ok) {
+            const awaitingGroupCallback = isGroupDestination(contact.phone);
+            campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+            if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+            results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
+            console.log(`✅ [UAZAPI] Sent to ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack})`);
+          } else {
+            campaignSend.status = 'failed';
+            campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
+            results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
+          }
+
+          await persistCampaignSend(campaignSend, reusableSendId);
+          if (i < currentBatch.length - 1) await sleep(delayMs);
+          continue;
+        }
+        // === END UAZAPI ROUTING ===
 
         let zapiUrl: string = '';
         let requestBody: any = {};
