@@ -3394,6 +3394,17 @@ serve(async (req) => {
           if (pendingButtonFlow) {
             hasPendingButtonContext = true;
 
+            console.log(
+              "🧩 Pending button context loaded",
+              JSON.stringify({
+                flowId: pendingButtonFlow.id,
+                nodeId: pendingButtonState.nodeId,
+                phone,
+                messageRaw,
+                replyCandidates: extractButtonReplyCandidates(webhook).slice(0, 12),
+              }).substring(0, 1200),
+            );
+
             const waitingButtonMatch = findButtonEdgeMatch(
               [pendingButtonFlow],
               normalizedMessage,
