@@ -522,6 +522,25 @@ const ExtrairComunidade = () => {
         const profile = data as any;
         if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
         if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
+
+        // Auto-provision an isolated UAZAPI extractor instance for new users
+        if (!profile?.uazapi_url || !profile?.uazapi_token) {
+          try {
+            const { data: prov, error: provErr } = await supabase.functions.invoke(
+              "uazapi-provision-extractor",
+              { body: {} }
+            );
+            if (provErr) throw provErr;
+            if (prov?.error) throw new Error(prov.error);
+            if (prov?.apiUrl && prov?.apiToken) {
+              setApiUrl(prov.apiUrl);
+              setApiToken(prov.apiToken);
+            }
+          } catch (provError: any) {
+            console.error("Erro ao provisionar extrator:", provError);
+            toast.error(provError?.message || "Não foi possível provisionar o extrator. Contate o suporte.");
+          }
+        }
       } catch (err) {
         console.error("Erro ao carregar credenciais:", err);
       } finally {
