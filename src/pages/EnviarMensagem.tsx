@@ -599,12 +599,13 @@ const EnviarMensagem = () => {
             ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
             : null;
 
+          const specialTpl = parseSpecialTemplate(modeloData?.content);
           let mensagemPersonalizada = mensagem
             .replace(/\{nome\}/g, contato.nome)
             .replace(/\{numero\}/g, contato.telefone);
 
           const temMidia = !!arquivoMidia;
-          const temBotoes = modeloData?.buttons && modeloData.buttons.length > 0;
+          const temBotoes = !specialTpl && modeloData?.buttons && modeloData.buttons.length > 0;
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -616,7 +617,12 @@ const EnviarMensagem = () => {
             setZapiInstanceOverride(currentInstance);
           }
 
-          if (temMidia) {
+          if (specialTpl) {
+            await sendSpecialTemplate(contato.telefone, specialTpl.type, {
+              ...specialTpl,
+              description: mensagemPersonalizada || specialTpl.description,
+            });
+          } else if (temMidia) {
             const base64File = await convertToBase64(arquivoMidia);
             const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
             
