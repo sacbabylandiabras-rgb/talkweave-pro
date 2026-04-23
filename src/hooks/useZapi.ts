@@ -98,7 +98,7 @@ export const useZapi = () => {
   const { toast } = useToast();
 
   const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
-    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING');
+    const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING' || data?.success === true);
     const explicitError = data?.error || (data?.success === false ? data?.message : null);
 
     if (explicitError) {
