@@ -1,6 +1,47 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const cleanBase64 = (base64String: string): string => {
+  if (!base64String) return "";
+  let cleaned = base64String.trim();
+
+  if (cleaned.includes(",") && cleaned.startsWith("data:")) {
+    cleaned = cleaned.split(",")[1];
+  }
+
+  cleaned = cleaned.replace(/\s/g, "");
+
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) {
+    throw new Error("Invalid base64 string after cleaning");
+  }
+
+  return cleaned;
+};
+
+const resolveImagePayload = async (value: string) => {
+  if (value.startsWith("data:")) {
+    return cleanBase64(value);
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    const imageResponse = await fetch(value);
+    if (!imageResponse.ok) {
+      throw new Error(`Não foi possível baixar a imagem: ${imageResponse.status}`);
+    }
+
+    const bytes = new Uint8Array(await imageResponse.arrayBuffer());
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+
+    return btoa(binary);
+  }
+
+  return cleanBase64(value);
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,16 +69,18 @@ Deno.serve(async (req) => {
         throw new Error('UAZAPI: apiUrl e apiKey são obrigatórios');
       }
 
+      const imagePayload = type === 'picture' ? await resolveImagePayload(String(value)) : null;
+
       const attempts = type === 'name'
         ? [{ endpoint: '/profile/name', method: 'POST', payload: { name: value } }]
         : [
-            { endpoint: '/profile/picture', method: 'PUT', payload: { image: value } },
-            { endpoint: '/profile/picture', method: 'POST', payload: { image: value } },
-            { endpoint: '/profile/picture', method: 'PUT', payload: { value } },
-            { endpoint: '/profile/picture', method: 'POST', payload: { value } },
-            { endpoint: '/profile-picture', method: 'PUT', payload: { value } },
-            { endpoint: '/profile-picture', method: 'POST', payload: { value } },
-            { endpoint: '/instance/updateProfilePicture', method: 'PUT', payload: { image: value } },
+            { endpoint: '/profile/picture', method: 'PUT', payload: { image: imagePayload } },
+            { endpoint: '/profile/picture', method: 'POST', payload: { image: imagePayload } },
+            { endpoint: '/profile/picture', method: 'PUT', payload: { value: imagePayload } },
+            { endpoint: '/profile/picture', method: 'POST', payload: { value: imagePayload } },
+            { endpoint: '/profile-picture', method: 'PUT', payload: { value: imagePayload } },
+            { endpoint: '/profile-picture', method: 'POST', payload: { value: imagePayload } },
+            { endpoint: '/instance/updateProfilePicture', method: 'PUT', payload: { image: imagePayload } },
           ];
 
       let lastError = 'Unknown UAZAPI error';
