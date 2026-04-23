@@ -233,13 +233,13 @@ const MediaModelSection = ({
         <DialogContent className="sm:max-w-sm p-0 overflow-hidden rounded-2xl border-0">
           <div className="flex flex-col h-[600px]">
             {/* Header WhatsApp */}
-            <div className="bg-[hsl(142,70%,35%)] px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Phone className="w-4 h-4 text-white" />
+            <div className="bg-primary px-4 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                <Phone className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <p className="text-white text-sm font-semibold">Prévia da Mensagem</p>
-                <p className="text-white/70 text-xs flex items-center gap-1">
+                <p className="text-primary-foreground text-sm font-semibold">Prévia da Mensagem</p>
+                <p className="text-primary-foreground/70 text-xs flex items-center gap-1">
                   <Wifi className="w-3 h-3" /> online
                 </p>
               </div>
@@ -255,7 +255,7 @@ const MediaModelSection = ({
             >
               {modeloAtual && (
                 <div className="flex justify-end">
-                  <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                  <div className="bg-accent rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                     {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
                       <div className="px-3 py-3 space-y-2">
                         <WhatsAppCarouselPreview
@@ -349,7 +349,7 @@ const MediaModelSection = ({
                             {modeloAtual.buttons.map((btn) => (
                               <div
                                 key={btn.id}
-                                className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0"
+                                className="text-center py-2 text-sm text-primary font-medium border-b border-border/20 last:border-0"
                               >
                                 {btn.text}
                               </div>
@@ -359,7 +359,7 @@ const MediaModelSection = ({
 
                         {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
                           <div className="border-t border-border/30 px-3 py-2">
-                            <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
+                            <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
                               📋 Ver opções ({modeloAtual.listItems.length})
                             </div>
                           </div>
@@ -376,8 +376,8 @@ const MediaModelSection = ({
               <div className="flex-1 bg-background rounded-full px-4 py-2 text-xs text-muted-foreground">
                 Mensagem
               </div>
-              <div className="w-8 h-8 rounded-full bg-[hsl(142,70%,35%)] flex items-center justify-center">
-                <Phone className="w-4 h-4 text-white rotate-[135deg]" />
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <Phone className="w-4 h-4 text-primary-foreground rotate-[135deg]" />
               </div>
             </div>
           </div>
