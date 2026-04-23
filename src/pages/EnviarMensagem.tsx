@@ -17,6 +17,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+const parseSpecialTemplate = (content?: string | null) => {
+  if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
 const phoneSchema = z.string()
   .min(10, "Número deve ter pelo menos 10 dígitos")
   .refine((val) => {
@@ -65,7 +75,7 @@ const EnviarMensagem = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
