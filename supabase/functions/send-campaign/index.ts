@@ -806,6 +806,44 @@ serve(async (req) => {
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+
+      // Resolve @lid identifiers to real phone numbers before sending.
+      // UAZAPI/WhatsApp returns LinkedIDs (e.g. "12345@lid") for some group participants.
+      // These cannot be used as send targets — they must be mapped to real phones via message_logs.
+      if (contact.phone && contact.phone.includes('@lid') && !isGroupDestination(contact.phone)) {
+        const lidId = contact.phone;
+        const { data: lidMapping } = await supabase
+          .from('message_logs')
+          .select('phone')
+          .eq('user_id', credentials.userId)
+          .eq('keyword_matched', `lid_map:${lidId}`)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lidMapping?.phone && !lidMapping.phone.includes('@lid')) {
+          console.log(`✅ Resolved @lid for campaign: ${lidId} → ${lidMapping.phone}`);
+          contact.phone = lidMapping.phone;
+        } else {
+          console.log(`⚠️ Cannot resolve @lid ${lidId} — skipping contact (not on WhatsApp as direct target)`);
+          const skipRecord: CampaignSendRecord = {
+            campaign_id: campaignId,
+            phone: lidId,
+            contact_name: contact.name || null,
+            message_content: '',
+            status: 'failed',
+            error_message: 'Identificador @lid não pôde ser resolvido para um número real do WhatsApp. Este contato precisa enviar uma mensagem primeiro para que o número seja mapeado.',
+            user_id: credentials.userId,
+            instance_name: null,
+            sent_at: null,
+            delivered_at: null,
+          };
+          await persistCampaignSend(skipRecord, null);
+          results.push({ phone: lidId, success: false, error: skipRecord.error_message });
+          continue;
+        }
+      }
+
       const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
       const inferredGroupInstance = !explicitContactInstance
         ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
