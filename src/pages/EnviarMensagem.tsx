@@ -1291,11 +1291,17 @@ const EnviarMensagem = () => {
             .from('campaigns')
             .update({ status: 'paused' })
             .eq('id', campanha.id);
-        } else {
-          const finalStatus = erros === contatosProcessados.length ? 'cancelled' : 'completed';
+        } else if (erros === contatosProcessados.length && processados === 0) {
+          // TODOS falharam (ex.: dispositivo deslogado durante o envio) — pausar
+          // para permitir retomar depois de reconectar, em vez de marcar como cancelada.
           await supabase
             .from('campaigns')
-            .update({ status: finalStatus })
+            .update({ status: 'paused' })
+            .eq('id', campanha.id);
+        } else {
+          await supabase
+            .from('campaigns')
+            .update({ status: 'completed' })
             .eq('id', campanha.id);
         }
 
