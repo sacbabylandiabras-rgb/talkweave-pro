@@ -196,6 +196,21 @@ const isLikelyTechnicalIdentifier = (value: unknown) => {
     !digits.startsWith("55");
 };
 
+const isUazapiTechnicalReplyReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
+};
+
+const pickPreferredInteractiveText = (candidates: unknown[]) => {
+  const values = candidates
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return values.find((value) => !isUazapiTechnicalReplyReference(value)) ||
+    values[0] || "";
+};
+
 const resolveWebhookPhone = (webhook: any) => {
   const rawPhone = String(webhook?.phone || "");
   const participantPhone = String(webhook?.participantPhone || "");
@@ -536,7 +551,7 @@ serve(async (req) => {
           webhook?.text?.selectedRowId,
           webhook?.buttonReply?.selectedRowId,
         ].find((value) => typeof value === "string" && value.trim()) || "";
-        const buttonSelectionCandidates = [
+        const buttonSelectionCandidates = pickPreferredInteractiveText([
           eventPayload?.SelectedDisplayText,
           eventPayload?.SelectedButtonText,
           eventPayload?.selectedDisplayText,
@@ -589,7 +604,7 @@ serve(async (req) => {
           webhook?.message?.contextInfo?.quotedMessage?.templateMessage?.hydratedTemplate?.hydratedContentText,
           selectedButtonId,
           selectedRowId,
-        ].find((value) => typeof value === "string" && value.trim()) || "";
+        ]);
         const hasInteractiveSelection = Boolean(
           buttonSelectionCandidates || selectedButtonId || selectedRowId,
         );
@@ -4948,6 +4963,11 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.event?.Message?.listResponseMessage?.singleSelectReply?.title,
   ];
 
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidateValues);
+  if (preferredDirectCandidate) {
+    values.add(preferredDirectCandidate);
+  }
+
   candidateValues.forEach(push);
 
   const paramsJsonCandidates = [
@@ -5407,6 +5427,9 @@ function extractMessageText(webhook: any): string {
     webhook?.data?.waitingMessage?.message,
     webhook?.data?.waitingMessage?.body,
   ];
+
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
+  if (preferredDirectCandidate) return preferredDirectCandidate;
 
   for (const value of candidates) {
     if (typeof value === "string" && value.trim()) return value.trim();
