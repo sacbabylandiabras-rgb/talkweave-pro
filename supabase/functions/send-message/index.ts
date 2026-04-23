@@ -621,12 +621,46 @@ serve(async (req) => {
       instance_id: instanceId,
     });
 
+    await logProviderSend(adminClient, {
+      userId: credentials.userId,
+      provider: 'zapi',
+      instanceId,
+      phone: resolvedPhone,
+      endpoint: zapiResponse?.url ? new URL(zapiResponse.url).pathname.split('/').pop() : 'send',
+      status: 'success',
+      httpStatus: zapiResponse?.status ?? null,
+      payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
+    });
+
     return new Response(
       JSON.stringify({ success: true, data: zapiData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supabaseUrl && supabaseServiceKey) {
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+        if (auth) {
+          const { data: { user } } = await adminClient.auth.getUser(auth);
+          if (user) {
+            const errMsg = error instanceof Response
+              ? `HTTP ${error.status}`
+              : (error instanceof Error ? error.message : 'Unknown error');
+            await logProviderSend(adminClient, {
+              userId: user.id,
+              provider: 'zapi',
+              status: 'error',
+              errorMessage: errMsg,
+            });
+          }
+        }
+      }
+    } catch (_) { /* swallow */ }
+
     if (error instanceof Response) {
       return error;
     }
