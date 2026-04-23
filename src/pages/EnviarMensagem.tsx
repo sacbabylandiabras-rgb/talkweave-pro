@@ -137,14 +137,16 @@ const EnviarMensagem = () => {
     const templateType = String(modeloData?.type || '').toLowerCase();
     const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
     const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
+    const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes';
     const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
     const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
+    const imagemComBotoes = isImageTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl && specialTpl.type !== 'copia_cola') {
@@ -209,6 +211,31 @@ const EnviarMensagem = () => {
         modeloData?.footer || undefined,
       );
       return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
+    }
+
+    if (imagemComBotoes) {
+      // 1) Envia a imagem pura
+      await sendImage(phone, modeloData!.mediaUrl!, '');
+      // 2) Em seguida, envia o texto + botões
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || modeloData?.content || '',
+        modeloData!.buttons!.map((btn: any) => {
+          const buttonType = (btn.type || 'REPLY').toUpperCase();
+          const buttonData: any = {
+            id: btn.id || btn.text || Math.random().toString(),
+            type: buttonType,
+            label: btn.text || btn.label || 'Botão',
+          };
+          if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+          else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+          else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+          return buttonData;
+        }),
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined,
+      );
+      return mensagemPersonalizada || modeloData?.name || 'Imagem + texto com botões enviado';
     }
 
     if (isListTemplate && !temListaOpcoes) {
@@ -839,14 +866,16 @@ const EnviarMensagem = () => {
           const templateType = String(modeloData?.type || '').toLowerCase();
           const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
           const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
+          const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes';
           const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
           const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
           const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
           const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
           const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
-          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
+          const imagemComBotoes = isImageTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
+          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -889,6 +918,27 @@ const EnviarMensagem = () => {
           } else if (videoComBotoes) {
             // 1) vídeo, depois 2) texto com botões
             await sendVideo(contato.telefone, modeloData!.mediaUrl!, '', viewOnce, isPtv);
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada || modeloData?.content || '',
+              modeloData!.buttons!.map((btn: any) => {
+                const buttonType = (btn.type || 'REPLY').toUpperCase();
+                const buttonData: any = {
+                  id: btn.id || btn.text || Math.random().toString(),
+                  type: buttonType,
+                  label: btn.text || btn.label || 'Botão',
+                };
+                if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+                else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+                else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+                return buttonData;
+              }),
+              modeloData?.header || undefined,
+              modeloData?.footer || undefined,
+            );
+          } else if (imagemComBotoes) {
+            // 1) imagem, depois 2) texto com botões
+            await sendImage(contato.telefone, modeloData!.mediaUrl!, '');
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada || modeloData?.content || '',
@@ -1005,6 +1055,8 @@ const EnviarMensagem = () => {
             // Already sent above (audio + buttons) — skip remaining dispatch.
           } else if (videoComBotoes) {
             // Already sent above (video + buttons) — skip remaining dispatch.
+          } else if (imagemComBotoes) {
+            // Already sent above (image + buttons) — skip remaining dispatch.
           } else if (temMidiaModelo) {
             // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
