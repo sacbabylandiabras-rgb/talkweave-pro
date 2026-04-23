@@ -21,6 +21,29 @@ interface Stats {
   failed: number;
 }
 
+interface CampaignSendRow {
+  phone: string | null;
+  status: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+}
+
+const normalizePhoneKey = (phone?: string | null) => {
+  if (!phone) return '';
+  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
+const getSendPriority = (status?: string | null) => {
+  if (status === 'delivered') return 3;
+  if (status === 'sent') return 2;
+  if (status === 'failed') return 1;
+  return 0;
+};
+
+const getSendTimestamp = (send?: Pick<CampaignSendRow, 'delivered_at' | 'sent_at' | 'created_at'> | null) =>
+  send?.delivered_at || send?.sent_at || send?.created_at || '';
+
 export function SendProgressDialog({ open, onOpenChange, campaignId, totalContacts, onPause }: SendProgressDialogProps) {
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -96,30 +119,74 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
     const fetchAndUpdate = async () => {
       const [
-        sentRes, deliveredRes, failedRes, pendingRes, totalRes,
-        { data: campaignData }
+        { data: sendRows, error: sendRowsError },
+        { data: campaignData },
       ] = await Promise.all([
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'sent'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'delivered'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'failed'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('status', 'pending'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
-        supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single()
+        supabase
+          .from('campaign_sends')
+          .select('phone, status, sent_at, delivered_at, created_at')
+          .eq('campaign_id', campaignId)
+          .order('created_at', { ascending: true }),
+        supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single(),
       ]);
 
-      const sent = sentRes.count ?? 0;
-      const delivered = deliveredRes.count ?? 0;
-      const failed = failedRes.count ?? 0;
-      const dbPending = pendingRes.count ?? 0;
-      const dbTotal = totalRes.count ?? 0;
+      if (sendRowsError) {
+        console.error('Erro ao carregar progresso da campanha:', sendRowsError);
+        return;
+      }
 
-      const targetContacts = (campaignData?.target_audience as any)?.contacts;
-      const campaignTotalContacts = Array.isArray(targetContacts) ? targetContacts.length : 0;
-      const effectiveTotal = Math.max(totalContacts, campaignTotalContacts, dbTotal);
-      const processed = sent + delivered + failed + dbPending;
-      const remaining = Math.max(0, effectiveTotal - processed);
+      const targetContacts = Array.isArray((campaignData?.target_audience as any)?.contacts)
+        ? (campaignData?.target_audience as any).contacts
+        : [];
 
-      const newStats = { total: effectiveTotal, pending: remaining + dbPending, sent, delivered, failed };
+      const targetPhoneKeys = new Set(
+        targetContacts
+          .map((contact: any) => normalizePhoneKey(contact?.phone))
+          .filter(Boolean)
+      );
+
+      const sendsByPhone = new Map<string, CampaignSendRow>();
+      (sendRows as CampaignSendRow[] | null | undefined)?.forEach((send) => {
+        const phoneKey = normalizePhoneKey(send.phone) || String(send.phone || '');
+        if (!phoneKey) return;
+
+        const existing = sendsByPhone.get(phoneKey);
+        const nextPriority = getSendPriority(send.status);
+        const currentPriority = getSendPriority(existing?.status);
+
+        if (
+          !existing ||
+          nextPriority > currentPriority ||
+          (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
+        ) {
+          sendsByPhone.set(phoneKey, send);
+        }
+      });
+
+      const allPhoneKeys = new Set<string>([
+        ...Array.from(targetPhoneKeys),
+        ...Array.from(sendsByPhone.keys()),
+      ]);
+
+      const effectiveTotal = Math.max(totalContacts, allPhoneKeys.size);
+      let sent = 0;
+      let delivered = 0;
+      let failed = 0;
+
+      allPhoneKeys.forEach((phoneKey) => {
+        const send = sendsByPhone.get(phoneKey);
+        if (send?.status === 'delivered') delivered += 1;
+        else if (send?.status === 'sent') sent += 1;
+        else if (send?.status === 'failed') failed += 1;
+      });
+
+      const newStats = {
+        total: effectiveTotal,
+        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
+        sent,
+        delivered,
+        failed,
+      };
       setStats(newStats);
 
       if (campaignData?.status === 'completed') {
