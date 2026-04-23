@@ -69,6 +69,12 @@ interface PendingButtonState {
   flowName?: string;
   nodeId: string;
   instanceId?: string | null;
+  buttons?: Array<{
+    text: string;
+    handleAliases: string[];
+    index: number;
+    menuIndex?: number;
+  }>;
   captured?: {
     nome?: string;
     whatsapp?: string;
@@ -3425,7 +3431,10 @@ serve(async (req) => {
               normalizedMessage,
               messageRaw,
               webhook,
-              { nodeId: pendingButtonState.nodeId },
+              {
+                nodeId: pendingButtonState.nodeId,
+                pendingState: pendingButtonState,
+              },
             );
 
             if (waitingButtonMatch) {
@@ -3985,7 +3994,12 @@ async function sendNodeContent(
   };
   const content = replaceCapturedVars(targetNode.data.content || "");
   const mediaUrl = targetNode.data.mediaUrl || "";
-  const buttons: Array<{ text: string; type: string; value: string }> =
+  const buttons: Array<{
+    text: string;
+    type: string;
+    value: string;
+    id?: string | number | null;
+  }> =
     targetNode.data.buttons || [];
   console.log(
     `🎥 Node data flags: isPtv=${targetNode.data?.isPtv}, viewOnce=${targetNode.data?.viewOnce}, contentType=${contentType}`,
@@ -4519,6 +4533,12 @@ async function sendNodeContent(
         flowName: flowName || null,
         nodeId: targetNode.id,
         instanceId: zapiConfig?.zapi_instance_id || null,
+        buttons: buttons.map((btn, idx) => ({
+          text: String(btn?.text || "").trim(),
+          handleAliases: getButtonHandleAliases(idx, btn),
+          index: idx,
+          menuIndex: idx + 1,
+        })),
         captured: options?.resumeCaptured || {},
       }),
       keyword_matched: `${FLOW_BUTTON_PREFIX}${userId}`,
@@ -5003,12 +5023,65 @@ function extractButtonReplyCandidates(webhook: any): string[] {
   return Array.from(values);
 }
 
+function getPendingButtonHandleCandidates(
+  pendingState: PendingButtonState | null | undefined,
+  rawMessage: string,
+): string[] {
+  const trimmed = String(rawMessage || "").trim();
+  if (!trimmed || !pendingState?.buttons?.length) return [];
+
+  const technicalMatch = trimmed.match(/^\d{10,}:([A-Z0-9]{10,})$/i);
+  if (!technicalMatch) return [];
+
+  const suffix = technicalMatch[1].trim();
+  const hexMatches = Array.from(suffix.matchAll(/[A-F0-9]{2}/gi)).map((match) =>
+    parseInt(match[0], 16)
+  ).filter((value) => Number.isFinite(value) && value >= 1 && value <= 10);
+  const lastByte = suffix.match(/([A-F0-9]{2})$/i);
+  if (lastByte) {
+    const numericLastByte = parseInt(lastByte[1], 16);
+    if (Number.isFinite(numericLastByte) && numericLastByte >= 1 && numericLastByte <= 10) {
+      hexMatches.push(numericLastByte);
+    }
+  }
+  const uniqueIndices = Array.from(new Set(hexMatches));
+
+  if (uniqueIndices.length === 0) return [];
+
+  const candidates = new Set<string>();
+  for (const numericIndex of uniqueIndices) {
+    const button = pendingState.buttons.find((entry) =>
+      (entry.menuIndex ?? entry.index + 1) === numericIndex
+    );
+    if (!button) continue;
+
+    candidates.add(String(numericIndex));
+    candidates.add(`button-${button.index}`);
+    candidates.add(button.text);
+    for (const alias of button.handleAliases || []) {
+      candidates.add(alias);
+    }
+  }
+
+  if (candidates.size > 0) {
+    console.log(
+      "🧭 UAZAPI technical reply mapped to pending button candidates:",
+      Array.from(candidates),
+    );
+  }
+
+  return Array.from(candidates);
+}
+
 function findButtonEdgeMatch(
   flows: any[],
   normalizedMessage: string,
   rawMessage: string,
   webhook?: any,
-  options?: { nodeId?: string | null },
+  options?: {
+    nodeId?: string | null;
+    pendingState?: PendingButtonState | null;
+  },
 ):
   | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
   | null {
@@ -5088,10 +5161,16 @@ function findButtonEdgeMatch(
   };
 
   const normalizedRaw = normalizeForMatch(rawMessage);
+  const pendingHandleCandidates = getPendingButtonHandleCandidates(
+    options?.pendingState,
+    rawMessage,
+  );
+
   const baseCandidates = [
     rawMessage,
     normalizedMessage,
     ...extractButtonReplyCandidates(webhook),
+    ...pendingHandleCandidates,
   ].filter((value): value is string =>
     typeof value === "string" && value.trim().length > 0
   );
