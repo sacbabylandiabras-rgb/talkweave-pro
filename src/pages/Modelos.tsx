@@ -61,7 +61,7 @@ const parseSpecialContent = (content: string): any | null => {
 };
 
 const isSpecialType = (type?: string) =>
-  type === "pix" || type === "localizacao" || type === "contato";
+  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola";
 
 // Editor compartilhado para PIX / Localização / Contato
 const SpecialFieldsEditor = ({
@@ -206,6 +206,28 @@ const SpecialFieldsEditor = ({
             value={data.contactPhone || ""}
             onChange={(e) => onChange({ contactPhone: e.target.value })}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "copia_cola") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          📋 Texto para copiar
+        </div>
+        <div>
+          <Label>Conteúdo que será copiado ao clicar no botão *</Label>
+          <Textarea
+            placeholder="Ex: PIX: contato@exemplo.com  |  Cupom: PROMO10  |  Link: https://..."
+            value={data.header || ""}
+            onChange={(e) => onChange({ header: e.target.value })}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Este é o texto que vai para a área de transferência do contato. Se ficar vazio, o conteúdo da mensagem será copiado.
+          </p>
         </div>
       </div>
     );
