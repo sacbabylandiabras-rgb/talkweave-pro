@@ -4301,6 +4301,101 @@ async function sendNodeContent(
       return false;
     }
 
+    // === UAZAPI: novos tipos diretos (contact / location / presence / status) ===
+    if (isUazapiProvider && !nextCaptureStep) {
+      const sendUaz = async (path: string, body: any, ctx: string) => {
+        if (!uazapiUrl || !uazapiToken) {
+          throw new Error("UAZAPI URL/Token não configurados");
+        }
+        const res = await fetch(`${uazapiUrl}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: uazapiToken },
+          body: JSON.stringify(body),
+        });
+        return parseProviderResponse(res, ctx);
+      };
+
+      if (contentType === "contact") {
+        await sendUaz(
+          "/send/contact",
+          {
+            number: normalizedTargetNumber,
+            fullName: targetNode.data.contactName || "",
+            phoneNumber: targetNode.data.contactPhone || "",
+            organization: targetNode.data.contactOrg || undefined,
+          },
+          `Bloco ${targetNode.id} (contact)`,
+        );
+        return false;
+      }
+
+      if (contentType === "location") {
+        await sendUaz(
+          "/send/location",
+          {
+            number: normalizedTargetNumber,
+            latitude: Number(targetNode.data.locationLat || 0),
+            longitude: Number(targetNode.data.locationLng || 0),
+            name: targetNode.data.locationName || undefined,
+            address: targetNode.data.locationAddress || undefined,
+          },
+          `Bloco ${targetNode.id} (location)`,
+        );
+        return false;
+      }
+
+      if (contentType === "presence") {
+        const presenceType = String(targetNode.data.presenceType || "composing");
+        const duration = Number(targetNode.data.presenceDuration || 0);
+        await sendUaz(
+          "/send/presence",
+          {
+            number: normalizedTargetNumber,
+            presence: presenceType,
+            ...(duration > 0 ? { duration } : {}),
+          },
+          `Bloco ${targetNode.id} (presence)`,
+        );
+        return false;
+      }
+
+      if (contentType === "status") {
+        const kind = String(targetNode.data.statusKind || "text");
+        await sendUaz(
+          "/send/status",
+          {
+            type: kind,
+            text: content || undefined,
+            file: kind !== "text" ? mediaUrl : undefined,
+            backgroundColor: targetNode.data.statusBg || undefined,
+          },
+          `Bloco ${targetNode.id} (status)`,
+        );
+        return false;
+      }
+
+      // Os tipos abaixo (interactive avançado, media-carousel, request-location,
+      // request-payment, pix) salvam configuração e serão executados na próxima
+      // entrega; por enquanto, registramos um placeholder amigável para não
+      // quebrar o fluxo.
+      if (
+        contentType === "interactive" ||
+        contentType === "media-carousel" ||
+        contentType === "request-location" ||
+        contentType === "request-payment" ||
+        contentType === "pix"
+      ) {
+        const placeholder = content && content.trim()
+          ? content
+          : `[${typeLabelForLog(contentType)}] (em configuração)`;
+        await sendProviderText(
+          placeholder,
+          `Bloco ${targetNode.id} (${contentType} placeholder)`,
+        );
+        return false;
+      }
+    }
+
     if (nextCaptureStep) {
       await sendProviderText(
         replaceCapturedVars(nextCaptureStep.prompt),
