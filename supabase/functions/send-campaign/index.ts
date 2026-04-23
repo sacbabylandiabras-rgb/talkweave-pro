@@ -303,7 +303,7 @@ const dispatchUazapiCampaign = async (
   phone: string,
   template: any,
   fullMessage: string,
-  opts: { viewOnce?: boolean; isPtv?: boolean },
+  opts: { viewOnce?: boolean; isPtv?: boolean; campaignId?: string; userId?: string; campaignName?: string },
 ) => {
   const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
   const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
@@ -325,13 +325,33 @@ const dispatchUazapiCampaign = async (
   let endpoint = '/send/text';
   let body: Record<string, unknown> = { number: targetNumber, text: fullMessage };
 
+  // Wrap URL buttons with track-flow-click for click-tracking metrics
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+  const wrapUrlForTracking = (url: string, btnLabel: string) => {
+    if (!opts.campaignId || !opts.userId || !SUPABASE_URL) return url;
+    if (!/^https?:\/\//i.test(url)) return url;
+    const base = `${SUPABASE_URL}/functions/v1/track-flow-click`;
+    const params = new URLSearchParams({
+      url,
+      cid: opts.campaignId,
+      uid: opts.userId,
+      ph: phone.replace(/\D/g, ''),
+      btn: btnLabel,
+      flow: opts.campaignName || 'Campanha',
+      src: 'campaign',
+    });
+    return `${base}?${params.toString()}`;
+  };
+
   const buildChoices = (buttons: any[]) =>
     buttons.slice(0, 10).map((btn: any, idx: number) => {
       const label = String(btn?.text || btn?.label || `Opção ${idx + 1}`).trim();
       const t = String(btn?.type || 'url').toUpperCase();
       if ((t === 'URL' || t === 'COPY') && (btn?.url || btn?.value)) {
-        const url = String(btn.url || btn.value);
-        return `${label}|${url.startsWith('http') ? url : 'https://' + url}`;
+        let url = String(btn.url || btn.value);
+        if (!url.startsWith('http')) url = 'https://' + url;
+        if (t === 'URL') url = wrapUrlForTracking(url, label);
+        return `${label}|${url}`;
       }
       if (t === 'CALL' && (btn?.phone || btn?.value)) return `${label}|${btn.phone || btn.value}`;
       return label;
