@@ -775,21 +775,17 @@ const Dispositivos = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newApiUrl, setNewApiUrl] = useState("");
-  const [newAdminToken, setNewAdminToken] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("");
 
   const handleCreateInstance = async () => {
-    if (!newApiUrl.trim() || !newAdminToken.trim() || !newInstanceName.trim()) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+    if (!newInstanceName.trim()) {
+      toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
     }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke('uazapi-create-instance', {
         body: {
-          apiUrl: newApiUrl.trim(),
-          adminToken: newAdminToken.trim(),
           instanceName: newInstanceName.trim(),
         },
       });
@@ -797,8 +793,6 @@ const Dispositivos = () => {
       if (data?.error) throw new Error(data.error);
       toast({ title: "✅ Instância criada", description: "Agora escaneie o QR Code para conectar." });
       setCreateOpen(false);
-      setNewApiUrl("");
-      setNewAdminToken("");
       setNewInstanceName("");
       refetch();
     } catch (err) {
