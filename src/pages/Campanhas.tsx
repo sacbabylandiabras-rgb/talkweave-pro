@@ -1009,6 +1009,8 @@ const Campanhas = () => {
                 status,
                 sentAt,
                 errorMessage,
+                readAt: (send as any)?.read_at || null,
+                clickedAt: (send as any)?.clicked_at || null,
               };
             });
 
@@ -1028,6 +1030,8 @@ const Campanhas = () => {
                   status,
                   sentAt: send.sent_at || null,
                   errorMessage: send.error_message || null,
+                  readAt: (send as any)?.read_at || null,
+                  clickedAt: (send as any)?.clicked_at || null,
                 });
               }
             });
@@ -1036,6 +1040,8 @@ const Campanhas = () => {
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
+            const readCount = fullContactList.filter(c => c.readAt).length;
+            const clickedCount = fullContactList.filter(c => c.clickedAt).length;
 
             const handleRetryCancelled = async () => {
               const cancelledContacts = fullContactList
