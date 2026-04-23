@@ -966,7 +966,13 @@ serve(async (req) => {
             contact.phone,
             campaign.template,
             fullMessage,
-            { viewOnce: campaignViewOnce, isPtv: campaignIsPtv },
+            {
+              viewOnce: campaignViewOnce,
+              isPtv: campaignIsPtv,
+              campaignId,
+              userId: credentials.userId,
+              campaignName: campaign?.name,
+            },
           );
 
           if (uazResult.ok) {
