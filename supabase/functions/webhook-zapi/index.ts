@@ -5044,7 +5044,9 @@ function getPendingButtonHandleCandidates(
 
   const candidates = new Set<string>();
   for (const numericIndex of uniqueIndices) {
-    const button = pendingState.buttons.find((entry) => entry.index === numericIndex - 1);
+    const button = pendingState.buttons.find((entry) =>
+      (entry.menuIndex ?? entry.index + 1) === numericIndex
+    );
     if (!button) continue;
 
     candidates.add(String(numericIndex));
