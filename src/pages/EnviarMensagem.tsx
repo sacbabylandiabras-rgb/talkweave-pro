@@ -1923,8 +1923,14 @@ Formatos aceitos:
                       (() => {
                         const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado)!;
                         const specialPreview = parseSpecialTemplate(modeloAtual.content);
-                        const isCopyPaste = String(modeloAtual.type || '').toLowerCase() === 'copia_cola'
+                        const templateType = String(modeloAtual.type || '').toLowerCase();
+                        const isCopyPaste = templateType === 'copia_cola'
+                          || templateType === 'copia e cola'
+                          || templateType === 'copy_paste'
                           || (specialPreview && specialPreview.type === 'copia_cola');
+                        const isListTemplate = templateType === 'lista_opcao'
+                          || templateType === 'lista'
+                          || templateType === 'lista de opção';
                         const copyTextPreview = (() => {
                           const vars = (modeloAtual.variables && typeof modeloAtual.variables === 'object' && !Array.isArray(modeloAtual.variables))
                             ? modeloAtual.variables as Record<string, any>
@@ -1993,6 +1999,14 @@ Formatos aceitos:
                                         {button.text}
                                       </div>
                                     ))}
+                                  </div>
+                                )}
+
+                                {isListTemplate && modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
+                                  <div className="pt-2 border-t">
+                                    <div className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary">
+                                      📋 Ver opções ({modeloAtual.listItems.length})
+                                    </div>
                                   </div>
                                 )}
                               </>
