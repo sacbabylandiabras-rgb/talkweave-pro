@@ -779,6 +779,35 @@ serve(async (req) => {
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
 
+        // === UAZAPI ROUTING (short-circuit) ===
+        if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
+          const uazResult = await dispatchUazapiCampaign(
+            currentInstance,
+            contact.phone,
+            campaign.template,
+            fullMessage,
+            { viewOnce: campaignViewOnce, isPtv: campaignIsPtv },
+          );
+
+          if (uazResult.ok) {
+            const awaitingGroupCallback = isGroupDestination(contact.phone);
+            campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+            if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+            results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
+            console.log(`✅ [UAZAPI] Sent to ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack})`);
+          } else {
+            campaignSend.status = 'failed';
+            campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
+            results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
+          }
+
+          await persistCampaignSend(campaignSend, reusableSendId);
+          if (i < currentBatch.length - 1) await sleep(delayMs);
+          continue;
+        }
+        // === END UAZAPI ROUTING ===
+
         let zapiUrl: string = '';
         let requestBody: any = {};
 
