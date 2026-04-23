@@ -270,7 +270,33 @@ serve(async (req) => {
       const normalizedGroupId = isGroupPhone
         ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
         : null;
-        const cleanPhone = String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '');
+      const isLidPhone = String(phone).includes('@lid');
+      // Try to resolve @lid → real phone via message_logs mapping before falling back to LID id
+      let resolvedLidNumber: string | null = null;
+      if (isLidPhone && !isGroupPhone) {
+        try {
+          const adminClientLid = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: lidMap } = await adminClientLid
+            .from('message_logs')
+            .select('phone')
+            .eq('keyword_matched', '__lid_map__')
+            .eq('message_received', String(phone))
+            .eq('user_id', credentials.userId)
+            .limit(1)
+            .maybeSingle();
+          if (lidMap?.phone) {
+            resolvedLidNumber = String(lidMap.phone).replace(/\D/g, '');
+            console.log(`✅ UAZAPI resolved LID ${phone} → ${resolvedLidNumber}`);
+          } else {
+            console.log(`⚠️ UAZAPI no LID mapping for ${phone}, sending as @lid`);
+          }
+        } catch (e) {
+          console.warn('UAZAPI LID lookup failed:', e);
+        }
+      }
+      const cleanPhone = isLidPhone
+        ? (resolvedLidNumber || String(phone)) // keep '<id>@lid' as-is when unresolved
+        : String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '');
       const targetNumber = normalizedGroupId || cleanPhone;
       const logPhone = isGroupPhone
         ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}-group`
