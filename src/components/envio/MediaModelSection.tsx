@@ -461,7 +461,7 @@ const MediaModelSection = ({
                           </div>
                         )}
 
-                        {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
+                        {String(modeloAtual.type || '').toLowerCase() !== 'copia_cola' && String(modeloAtual.type || '').toLowerCase() !== 'copy_paste' && modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
                           <div className="border-t border-border/30 px-3 py-2">
                             <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
                               📋 Ver opções ({modeloAtual.listItems.length})
