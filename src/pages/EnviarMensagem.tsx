@@ -134,9 +134,11 @@ const EnviarMensagem = () => {
       .replace(/\{numero\}/g, phone);
 
     const specialTpl = parseSpecialTemplate(modeloData?.content);
+    const templateType = String(modeloData?.type || '').toLowerCase();
+    const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
-    const temBotoes = !specialTpl && !temCarrossel && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !!modeloData?.mediaUrl;
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl) {
@@ -184,9 +186,8 @@ const EnviarMensagem = () => {
 
     if (temMidiaModelo) {
       const mediaCaption = legenda || mensagemPersonalizada;
-      const templateType = modeloData?.type || 'imagem';
 
-      if (templateType === 'audio') {
+      if (templateType === 'audio' || templateType === 'áudio') {
         await sendAudio(phone, modeloData!.mediaUrl!, mediaCaption);
       } else if (templateType === 'video' || templateType === 'video_botoes') {
         await sendVideo(phone, modeloData!.mediaUrl!, mediaCaption, viewOnce, isPtv);
@@ -725,9 +726,11 @@ const EnviarMensagem = () => {
             .replace(/\{numero\}/g, contato.telefone);
 
           const temMidia = !!arquivoMidia;
+          const templateType = String(modeloData?.type || '').toLowerCase();
+          const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
-          const temBotoes = !specialTpl && !temCarrossel && modeloData?.buttons && modeloData.buttons.length > 0;
-          const temMidiaModelo = !specialTpl && !temCarrossel && !temBotoes && !!modeloData?.mediaUrl;
+          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !!modeloData?.buttons?.length;
+          const temMidiaModelo = !specialTpl && !temCarrossel && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -748,9 +751,8 @@ const EnviarMensagem = () => {
             await sendCarousel(contato.telefone, modeloData!.carouselCards as any, mensagemPersonalizada);
           } else if (temMidiaModelo) {
             const mediaCaption = legenda || mensagemPersonalizada;
-            const templateType = modeloData?.type || 'imagem';
 
-            if (templateType === 'audio') {
+            if (templateType === 'audio' || templateType === 'áudio') {
               await sendAudio(contato.telefone, modeloData!.mediaUrl!, mediaCaption);
             } else if (templateType === 'video' || templateType === 'video_botoes') {
               await sendVideo(contato.telefone, modeloData!.mediaUrl!, mediaCaption, viewOnce, isPtv);
