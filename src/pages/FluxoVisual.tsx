@@ -1004,6 +1004,68 @@ export default function FluxoVisual() {
               if (!mediaUrl) continue;
               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' });
               break;
+            case "pix": {
+              const body: Record<string, any> = {
+                phone: contact,
+                specialType: 'pix',
+                specialPayload: {
+                  pixKey: targetNode.data.pixKey || '',
+                  pixKeyType: targetNode.data.pixKeyType || 'cpf',
+                  merchantName: targetNode.data.pixReceiver || '',
+                  amount: targetNode.data.pixAmount || '',
+                  description: targetNode.data.pixDescription || content || '',
+                },
+              };
+              if (instanceId) body.instanceId = instanceId;
+              await supabase.functions.invoke('send-message', { body });
+              break;
+            }
+            case "request-payment": {
+              const body: Record<string, any> = {
+                phone: contact,
+                specialType: 'pix',
+                specialPayload: {
+                  pixKey: targetNode.data.paymentReceiver || '',
+                  pixKeyType: 'random',
+                  merchantName: targetNode.data.paymentReceiver || '',
+                  amount: targetNode.data.paymentAmount || '',
+                  description: targetNode.data.paymentDescription || content || '',
+                },
+              };
+              if (instanceId) body.instanceId = instanceId;
+              await supabase.functions.invoke('send-message', { body });
+              break;
+            }
+            case "location":
+            case "request-location": {
+              const body: Record<string, any> = {
+                phone: contact,
+                specialType: 'localizacao',
+                specialPayload: {
+                  latitude: targetNode.data.locationLat || 0,
+                  longitude: targetNode.data.locationLng || 0,
+                  title: targetNode.data.locationName || '',
+                  address: targetNode.data.locationAddress || '',
+                },
+              };
+              if (instanceId) body.instanceId = instanceId;
+              await supabase.functions.invoke('send-message', { body });
+              break;
+            }
+            case "contact": {
+              const body: Record<string, any> = {
+                phone: contact,
+                specialType: 'contato',
+                specialPayload: {
+                  contactName: targetNode.data.contactName || '',
+                  contactPhone: targetNode.data.contactPhone || '',
+                  contactOrg: targetNode.data.contactOrg || '',
+                },
+              };
+              if (instanceId) body.instanceId = instanceId;
+              await supabase.functions.invoke('send-message', { body });
+              break;
+            }
           }
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
