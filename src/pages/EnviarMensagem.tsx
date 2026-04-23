@@ -16,6 +16,7 @@ import { useCampaigns } from "@/hooks/useCampaigns";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
+import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 const parseSpecialTemplate = (content?: string | null) => {
@@ -1623,49 +1624,59 @@ Formatos aceitos:
                   <div>
                     <Label htmlFor="mensagem-massa">Prévia da Mensagem</Label>
                     {modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado) ? (
-                      <div className="mt-1 border rounded-lg bg-white dark:bg-gray-900 p-4 space-y-3">
-                        {/* Header */}
-                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.header && (
-                          <div className="font-bold text-sm border-b pb-2">
-                            📋 {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.header}
-                          </div>
-                        )}
-                        
-                        {/* Content */}
-                        <div className="whitespace-pre-wrap text-sm">
-                          {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.content}
-                        </div>
-                        
-                        {/* Footer */}
-                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.footer && (
-                          <div className="text-xs text-muted-foreground border-t pt-2">
-                            {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.footer}
-                          </div>
-                        )}
-                        
-                        {/* Buttons */}
-                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.buttons && 
-                         modelosDisponiveis.find(m => m.id === modeloSelecionado)!.buttons!.length > 0 && (
-                          <div className="space-y-2 pt-2 border-t">
-                            {modelosDisponiveis.find(m => m.id === modeloSelecionado)!.buttons!.map((button: any, index: number) => (
-                              <div 
-                                key={index}
-                                className="w-full py-2 px-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded text-center text-sm font-medium text-blue-600 dark:text-blue-300"
-                              >
-                                {button.text}
+                      (() => {
+                        const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado)!;
+
+                        return (
+                          <div className="mt-1 border rounded-lg bg-background p-4 space-y-3">
+                            {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
+                              <WhatsAppCarouselPreview
+                                header={modeloAtual.header}
+                                content={modeloAtual.content}
+                                footer={modeloAtual.footer}
+                                cards={modeloAtual.carouselCards}
+                              />
+                            ) : (
+                              <>
+                                {modeloAtual.header && (
+                                  <div className="font-bold text-sm border-b pb-2">
+                                    📋 {modeloAtual.header}
+                                  </div>
+                                )}
+
+                                <div className="whitespace-pre-wrap text-sm">
+                                  {modeloAtual.content}
+                                </div>
+
+                                {modeloAtual.footer && (
+                                  <div className="text-xs text-muted-foreground border-t pt-2">
+                                    {modeloAtual.footer}
+                                  </div>
+                                )}
+
+                                {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
+                                  <div className="space-y-2 pt-2 border-t">
+                                    {modeloAtual.buttons.map((button: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary"
+                                      >
+                                        {button.text}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {modeloAtual.variables && modeloAtual.variables.length > 0 && (
+                              <div className="text-xs text-muted-foreground italic pt-2 border-t">
+                                💡 Variáveis disponíveis: {modeloAtual.variables.join(', ')}
                               </div>
-                            ))}
+                            )}
                           </div>
-                        )}
-                        
-                        {/* Variables info */}
-                        {modelosDisponiveis.find(m => m.id === modeloSelecionado)?.variables && 
-                         modelosDisponiveis.find(m => m.id === modeloSelecionado)!.variables.length > 0 && (
-                          <div className="text-xs text-muted-foreground italic pt-2 border-t">
-                            💡 Variáveis disponíveis: {modelosDisponiveis.find(m => m.id === modeloSelecionado)!.variables.join(', ')}
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })()
                     ) : (
                       <Textarea 
                         id="mensagem-massa"

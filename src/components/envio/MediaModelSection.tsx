@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
+import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
 
 interface MediaModelSectionProps {
   arquivoMidia: File | null;
@@ -232,13 +233,13 @@ const MediaModelSection = ({
         <DialogContent className="sm:max-w-sm p-0 overflow-hidden rounded-2xl border-0">
           <div className="flex flex-col h-[600px]">
             {/* Header WhatsApp */}
-            <div className="bg-[hsl(142,70%,35%)] px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Phone className="w-4 h-4 text-white" />
+            <div className="bg-primary px-4 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                <Phone className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <p className="text-white text-sm font-semibold">Prévia da Mensagem</p>
-                <p className="text-white/70 text-xs flex items-center gap-1">
+                <p className="text-primary-foreground text-sm font-semibold">Prévia da Mensagem</p>
+                <p className="text-primary-foreground/70 text-xs flex items-center gap-1">
                   <Wifi className="w-3 h-3" /> online
                 </p>
               </div>
@@ -254,96 +255,116 @@ const MediaModelSection = ({
             >
               {modeloAtual && (
                 <div className="flex justify-end">
-                  <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
-                    {/* Mídia anexada pelo usuário */}
-                    {arquivoMidia && arquivoMidia.type.startsWith('image/') && (
-                      <img
-                        src={URL.createObjectURL(arquivoMidia)}
-                        alt="Mídia anexada"
-                        className="w-full rounded-t-lg object-cover max-h-48"
-                      />
-                    )}
-                    {arquivoMidia && arquivoMidia.type.startsWith('video/') && (
-                      <video
-                        src={URL.createObjectURL(arquivoMidia)}
-                        controls
-                        className="w-full rounded-t-lg max-h-48"
-                      />
-                    )}
-                    {arquivoMidia && arquivoMidia.type.startsWith('audio/') && (
-                      <div className="px-3 pt-3">
-                        <audio src={URL.createObjectURL(arquivoMidia)} controls className="w-full" />
-                      </div>
-                    )}
-                    {arquivoMidia && !arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
-                      <div className="flex items-center gap-2 px-3 pt-3 text-sm text-muted-foreground">
-                        <FileText className="w-6 h-6" />
-                        <span>{arquivoMidia.name}</span>
-                      </div>
-                    )}
-                    {/* Media do modelo (fallback se não tem mídia anexada) */}
-                    {!arquivoMidia && modeloAtual.mediaUrl && (
-                      <img
-                        src={modeloAtual.mediaUrl}
-                        alt="Mídia do modelo"
-                        className="w-full rounded-t-lg object-cover max-h-48"
-                      />
-                    )}
+                  <div className="bg-accent rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                    {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
+                      <div className="px-3 py-3 space-y-2">
+                        <WhatsAppCarouselPreview
+                          header={modeloAtual.header}
+                          content={modeloAtual.content}
+                          footer={modeloAtual.footer}
+                          cards={modeloAtual.carouselCards}
+                          className="max-w-full"
+                        />
 
-                    <div className="px-3 py-2 space-y-1">
-                      {/* Header */}
-                      {modeloAtual.header && (
-                        <p className="font-bold text-sm text-foreground">{modeloAtual.header}</p>
-                      )}
+                        {modeloAtual.variables && modeloAtual.variables.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            📋 Variáveis: {modeloAtual.variables.join(', ')}
+                          </p>
+                        )}
 
-                      {/* Content */}
-                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                        {modeloAtual.content}
-                      </p>
-
-                      {/* Footer */}
-                      {modeloAtual.footer && (
-                        <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
-                      )}
-
-                      {/* Variables */}
-                      {modeloAtual.variables && modeloAtual.variables.length > 0 && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          📋 Variáveis: {modeloAtual.variables.join(', ')}
-                        </p>
-                      )}
-
-                      {/* Timestamp */}
-                      <div className="flex items-center justify-end gap-1 pt-0.5">
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <Check className="w-3 h-3 text-blue-500" />
-                        <Check className="w-3 h-3 text-blue-500 -ml-2" />
-                      </div>
-                    </div>
-
-                    {/* Buttons */}
-                    {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
-                      <div className="border-t border-border/30">
-                        {modeloAtual.buttons.map((btn) => (
-                          <div
-                            key={btn.id}
-                            className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0"
-                          >
-                            {btn.text}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* List items */}
-                    {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
-                      <div className="border-t border-border/30 px-3 py-2">
-                        <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
-                          📋 Ver opções ({modeloAtual.listItems.length})
+                        <div className="flex items-center justify-end gap-1 pt-0.5">
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <Check className="w-3 h-3 text-primary" />
+                          <Check className="w-3 h-3 text-primary -ml-2" />
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        {/* Mídia anexada pelo usuário */}
+                        {arquivoMidia && arquivoMidia.type.startsWith('image/') && (
+                          <img
+                            src={URL.createObjectURL(arquivoMidia)}
+                            alt="Mídia anexada"
+                            className="w-full rounded-t-lg object-cover max-h-48"
+                          />
+                        )}
+                        {arquivoMidia && arquivoMidia.type.startsWith('video/') && (
+                          <video
+                            src={URL.createObjectURL(arquivoMidia)}
+                            controls
+                            className="w-full rounded-t-lg max-h-48"
+                          />
+                        )}
+                        {arquivoMidia && arquivoMidia.type.startsWith('audio/') && (
+                          <div className="px-3 pt-3">
+                            <audio src={URL.createObjectURL(arquivoMidia)} controls className="w-full" />
+                          </div>
+                        )}
+                        {arquivoMidia && !arquivoMidia.type.startsWith('image/') && !arquivoMidia.type.startsWith('video/') && !arquivoMidia.type.startsWith('audio/') && (
+                          <div className="flex items-center gap-2 px-3 pt-3 text-sm text-muted-foreground">
+                            <FileText className="w-6 h-6" />
+                            <span>{arquivoMidia.name}</span>
+                          </div>
+                        )}
+                        {!arquivoMidia && modeloAtual.mediaUrl && (
+                          <img
+                            src={modeloAtual.mediaUrl}
+                            alt="Mídia do modelo"
+                            className="w-full rounded-t-lg object-cover max-h-48"
+                          />
+                        )}
+
+                        <div className="px-3 py-2 space-y-1">
+                          {modeloAtual.header && (
+                            <p className="font-bold text-sm text-foreground">{modeloAtual.header}</p>
+                          )}
+
+                          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                            {modeloAtual.content}
+                          </p>
+
+                          {modeloAtual.footer && (
+                            <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
+                          )}
+
+                          {modeloAtual.variables && modeloAtual.variables.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              📋 Variáveis: {modeloAtual.variables.join(', ')}
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-end gap-1 pt-0.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <Check className="w-3 h-3 text-primary" />
+                            <Check className="w-3 h-3 text-primary -ml-2" />
+                          </div>
+                        </div>
+
+                        {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
+                          <div className="border-t border-border/30">
+                            {modeloAtual.buttons.map((btn) => (
+                              <div
+                                key={btn.id}
+                                className="text-center py-2 text-sm text-primary font-medium border-b border-border/20 last:border-0"
+                              >
+                                {btn.text}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
+                          <div className="border-t border-border/30 px-3 py-2">
+                            <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
+                              📋 Ver opções ({modeloAtual.listItems.length})
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -355,8 +376,8 @@ const MediaModelSection = ({
               <div className="flex-1 bg-background rounded-full px-4 py-2 text-xs text-muted-foreground">
                 Mensagem
               </div>
-              <div className="w-8 h-8 rounded-full bg-[hsl(142,70%,35%)] flex items-center justify-center">
-                <Phone className="w-4 h-4 text-white rotate-[135deg]" />
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <Phone className="w-4 h-4 text-primary-foreground rotate-[135deg]" />
               </div>
             </div>
           </div>
