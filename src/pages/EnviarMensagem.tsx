@@ -879,6 +879,15 @@ const EnviarMensagem = () => {
   const aplicarModelo = (modeloId: string) => {
     const modelo = modelosDisponiveis.find(m => m.id === modeloId);
     if (modelo) {
+      const special = parseSpecialTemplate(modelo.content);
+      if (special) {
+        setMensagem(special.description || "");
+        toast({
+          title: "Modelo especial selecionado",
+          description: `${modelo.name} (${special.type}) será enviado pelo formato nativo`,
+        });
+        return;
+      }
       setMensagem(modelo.content);
       toast({
         title: "Modelo aplicado!",
