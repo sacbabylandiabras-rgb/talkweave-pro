@@ -887,7 +887,7 @@ const EnviarMensagem = () => {
           title: "Envio em massa concluído!",
           description: hasPending
             ? `⏸️ ${processados} processados • ${remainingPending} pendentes — campanha pausada`
-            : `✅ ${processados} envios confirmados • ❌ ${erros} erros`,
+            : `✅ ${processados} envios confirmados • ❌ ${erros} erros${ultimoErro ? ` — Motivo: ${ultimoErro}` : ''}`,
           variant: processados > 0 ? "default" : "destructive"
         });
       }
