@@ -147,7 +147,7 @@ const EnviarMensagem = () => {
     const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
-    if (specialTpl) {
+    if (specialTpl && specialTpl.type !== 'copia_cola') {
       await sendSpecialTemplate(phone, specialTpl.type, {
         ...specialTpl,
         description: mensagemPersonalizada || specialTpl.description,
@@ -856,7 +856,7 @@ const EnviarMensagem = () => {
             setZapiInstanceOverride(currentInstance);
           }
 
-          if (specialTpl) {
+          if (specialTpl && specialTpl.type !== 'copia_cola') {
             await sendSpecialTemplate(contato.telefone, specialTpl.type, {
               ...specialTpl,
               description: mensagemPersonalizada || specialTpl.description,
