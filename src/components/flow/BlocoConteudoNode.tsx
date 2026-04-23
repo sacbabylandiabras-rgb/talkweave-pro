@@ -175,9 +175,10 @@ export function BlocoConteudoNode({ data }: any) {
             const totalRecipients = data.totalFlowRecipients || 0;
             const clickCount = stats[btnText] || 0;
             const percentage = totalRecipients > 0 ? Math.round((clickCount / totalRecipients) * 100) : 0;
+            const isFlowButton = btn.type === "flow" || btn.type === "reply";
 
             return (
-              <div key={btn.id || idx} className="bg-white dark:bg-card border border-border rounded-md px-2 py-1.5">
+              <div key={btn.id || idx} className="relative bg-white dark:bg-card border border-border rounded-md px-2 py-1.5 pr-5">
                 <div className="text-[10px] text-card-foreground flex items-center gap-1 font-medium">
                   <BtnIcon className="h-3 w-3 flex-shrink-0" />
                   {btnText}
@@ -195,6 +196,15 @@ export function BlocoConteudoNode({ data }: any) {
                     </span>
                   </div>
                 </div>
+                {isFlowButton && (
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={`button-${idx}`}
+                    className="!w-2.5 !h-2.5 !bg-orange-400 !border-2 !border-orange-600"
+                    style={{ right: -5, top: "50%", transform: "translateY(-50%)" }}
+                  />
+                )}
               </div>
             );
           })}
@@ -209,32 +219,11 @@ export function BlocoConteudoNode({ data }: any) {
         </>
       )}
 
-      {/* Per-button source handles on the right */}
+      {/* Default + bottom handles when there are flow buttons */}
       {flowButtons.length > 0 && (
         <>
-          {flowButtons.map((btn: any, idx: number) => {
-            const btnIndex = buttons.indexOf(btn);
-            const total = flowButtons.length + 1;
-            const pos = ((idx + 1) / total) * 100;
-            return (
-              <Handle
-                key={btn.id || idx}
-                type="source"
-                position={Position.Right}
-                id={`button-${btnIndex}`}
-                className="w-2.5 h-2.5 !bg-primary"
-                style={{ top: `${pos}%` }}
-              />
-            );
-          })}
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="default"
-            className="w-3 h-3 !bg-orange-500"
-            style={{ top: `${(flowButtons.length / (flowButtons.length + 1)) * 100}%` }}
-          />
           <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
+          <Handle type="source" position={Position.Right} id="default" className="w-3 h-3 !bg-orange-500" style={{ top: "100%" }} />
         </>
       )}
     </div>
