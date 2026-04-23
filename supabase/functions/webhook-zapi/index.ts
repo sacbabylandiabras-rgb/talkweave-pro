@@ -568,6 +568,9 @@ serve(async (req) => {
           selectedButtonId,
           selectedRowId,
         ].find((value) => typeof value === "string" && value.trim()) || "";
+        const hasInteractiveSelection = Boolean(
+          buttonSelectionCandidates || selectedButtonId || selectedRowId,
+        );
         const text = isUazapiStatusUpdate
           ? ""
           : buttonSelectionCandidates || selectedButtonId || selectedRowId ||
@@ -603,6 +606,7 @@ serve(async (req) => {
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
           status: messageUpdateStatus || undefined,
+          hasInteractiveSelection,
           text: text || selectedButtonId || selectedRowId
             ? {
               message: text || selectedButtonId || selectedRowId,
@@ -2934,12 +2938,8 @@ serve(async (req) => {
       }
     }
 
-    const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true && fromMe &&
-      Boolean(
-        extractButtonReplyCandidates(webhook)[0] ||
-          webhook?.buttonReply?.selectedRowId || webhook?.buttonReply?.selectedButtonId ||
-          webhook?.text?.selectedRowId || webhook?.text?.selectedButtonId,
-      );
+    const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true &&
+      webhook?.hasInteractiveSelection === true && !fromMe;
 
     if (fromMe && !isUazapiInteractiveSelfEcho) {
       const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ??
@@ -3513,7 +3513,18 @@ serve(async (req) => {
       }
 
       // === CHECK IF MESSAGE IS A BUTTON REPLY THAT MATCHES A FLOW BUTTON ===
-      if (!hasPendingButtonContext) {
+      // Só faz match global quando o payload traz um callback interativo real.
+      // Isso evita que textos comuns como "outro" ou ecos técnicos da UAZAPI
+      // disparem ramos de botão de fluxos não pendentes.
+      const hasInteractiveReplySignal = Boolean(
+        webhook?.hasInteractiveSelection === true ||
+          webhook?.buttonReply?.selectedRowId || webhook?.buttonReply?.selectedButtonId ||
+          webhook?.text?.selectedRowId || webhook?.text?.selectedButtonId ||
+          webhook?.buttonsResponseMessage?.selectedButtonId ||
+          webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+      );
+
+      if (!hasPendingButtonContext && hasInteractiveReplySignal) {
         const buttonMatch = findButtonEdgeMatch(
           flowAutomations,
           normalizedMessage,
@@ -4982,20 +4993,16 @@ function findButtonEdgeMatch(
     const trimmed = String(value || "").trim();
     if (!trimmed) return null;
 
-    const prefixedIdMatch = trimmed.match(/^(\d{8,16})\s*[:|_-]\s*([a-f0-9]{8,})$/i);
-    if (prefixedIdMatch) {
-      const lastHex = prefixedIdMatch[2].slice(-1).toLowerCase();
-      const parsed = Number.parseInt(lastHex, 16);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
-      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    const directNumberMatch = trimmed.match(/^([1-9]\d?)$/);
+    if (directNumberMatch) {
+      const parsed = Number.parseInt(directNumberMatch[1], 10);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
-    const pureHexMatch = trimmed.match(/^[a-f0-9]{8,}$/i);
-    if (pureHexMatch) {
-      const lastHex = trimmed.slice(-1).toLowerCase();
-      const parsed = Number.parseInt(lastHex, 16);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
-      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    const prefixedLabelMatch = trimmed.match(/^([1-9]\d?)\s*[.)\-:]+\s*.+$/u);
+    if (prefixedLabelMatch) {
+      const parsed = Number.parseInt(prefixedLabelMatch[1], 10);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
     return null;
