@@ -332,7 +332,7 @@ const MediaModelSection = ({
                             <span>{modeloAtual.fileName || 'Documento do modelo'}</span>
                           </div>
                         )}
-                        {!arquivoMidia && modeloAtual.mediaUrl && modeloAtual.type !== 'audio' && modeloAtual.type !== 'video' && modeloAtual.type !== 'video_botoes' && modeloAtual.type !== 'arquivo' && modeloAtual.type !== 'documento' && (
+                        {!arquivoMidia && modeloAtual.mediaUrl && (modeloAtual.type === 'imagem' || modeloAtual.type === 'image' || modeloAtual.type === 'imagem_botoes') && (
                           <img
                             src={modeloAtual.mediaUrl}
                             alt="Mídia do modelo"
