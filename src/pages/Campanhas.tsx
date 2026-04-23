@@ -180,6 +180,42 @@ const Campanhas = () => {
     };
   }, [statsDialogOpen]);
 
+  // Detect if the campaign template has a URL button (to show/hide "Cliques" column)
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogHasUrlButton(false);
+      return;
+    }
+
+    let active = true;
+    const fetchTemplateButtons = async () => {
+      const { data: campaignRow } = await supabase
+        .from('campaigns')
+        .select('template_id')
+        .eq('id', statsDialogCampaignId)
+        .maybeSingle();
+
+      if (!active || !campaignRow?.template_id) {
+        if (active) setStatsDialogHasUrlButton(false);
+        return;
+      }
+
+      const { data: tpl } = await supabase
+        .from('message_templates')
+        .select('buttons')
+        .eq('id', campaignRow.template_id)
+        .maybeSingle();
+
+      if (!active) return;
+      const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
+      const hasUrl = buttons.some((b: any) => String(b?.type || '').toUpperCase() === 'URL');
+      setStatsDialogHasUrlButton(hasUrl);
+    };
+
+    fetchTemplateButtons();
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
+
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
