@@ -651,7 +651,7 @@ serve(async (req) => {
           messageId: m?.id || m?.messageId || m?.key?.id ||
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
-          status: messageUpdateStatus || undefined,
+          status: messageUpdateStatus ? messageUpdateStatus.toUpperCase() : undefined,
           hasInteractiveSelection,
           text: text || selectedButtonId || selectedRowId
             ? {
