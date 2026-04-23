@@ -2594,6 +2594,15 @@ serve(async (req) => {
             JSON.stringify(webhook).substring(0, 2000),
           );
       }
+      // 🪲 DEBUG: when an interactive selection signal is present but no text
+      // could be extracted, dump the raw body so we can discover where UAZAPI
+      // is putting the button reply payload.
+      if (webhook?.hasInteractiveSelection || webhook?.buttonReply || webhook?.isUazapi) {
+        console.log(
+          "🪲 UAZAPI no-text with interactive hint — RAW body:",
+          (rawBody || "").substring(0, 4000),
+        );
+      }
       return new Response("ignored_no_text", {
         status: 200,
         headers: corsHeaders,
