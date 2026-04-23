@@ -792,6 +792,8 @@ const EnviarMensagem = () => {
             // Already sent above via sendSpecialTemplate — skip remaining dispatch.
           } else if (temCarrossel) {
             // Already sent above via sendCarousel — skip remaining dispatch.
+          } else if (temMidiaModelo) {
+            // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
