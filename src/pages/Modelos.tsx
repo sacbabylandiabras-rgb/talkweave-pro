@@ -993,6 +993,12 @@ const Modelos = () => {
                   </p>
                 </div>
 
+                <SpecialFieldsEditor
+                  type={newTemplate.type}
+                  data={newTemplate}
+                  onChange={(patch) => setNewTemplate(prev => ({ ...prev, ...patch }))}
+                />
+
                 {/* Campos específicos por tipo */}
                 {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-3">
