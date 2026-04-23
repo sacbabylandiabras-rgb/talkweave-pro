@@ -187,6 +187,17 @@ const isZapiConfirmed = (payload: any) => {
 const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
 
 const SPECIAL_TEMPLATE_PREFIX = '__SPECIAL_TEMPLATE__:';
+
+const getUazapiTargetNumber = (phone: string) => {
+  if (isGroupDestination(phone)) {
+    const numericGroup = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
+    return numericGroup ? `${numericGroup}@g.us` : phone;
+  }
+
+  if (phone.includes('@lid')) return phone;
+
+  return phone.replace(/^\+/, '').replace(/\D/g, '');
+};
 const parseSpecialTemplate = (content?: string | null) => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
   try {
@@ -245,9 +256,7 @@ const dispatchUazapiSpecial = async (
 ) => {
   const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
   const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
-  const isGroup = isGroupDestination(phone);
-  const numericGroup = isGroup ? phone.replace(/[@\-].*$/, '').replace(/\D/g, '') : '';
-  const targetNumber = isGroup ? `${numericGroup}@g.us` : phone.replace(/^\+/, '').replace(/\D/g, '');
+  const targetNumber = getUazapiTargetNumber(phone);
 
   let endpoint = '';
   let body: Record<string, unknown> = {};
@@ -311,9 +320,7 @@ const dispatchUazapiCampaign = async (
     return { ok: false, ack: null, error: 'UAZAPI URL/Token não configurados', raw: null };
   }
 
-  const isGroup = isGroupDestination(phone);
-  const numericGroup = isGroup ? phone.replace(/[@\-].*$/, '').replace(/\D/g, '') : '';
-  const targetNumber = isGroup ? `${numericGroup}@g.us` : phone.replace(/^\+/, '').replace(/\D/g, '');
+  const targetNumber = getUazapiTargetNumber(phone);
 
   const templateType = template?.type || 'texto';
   const hasMedia = template?.media_url && String(template.media_url).trim() !== '';
