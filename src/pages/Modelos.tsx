@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Helper para obter o ícone do tipo de template
@@ -30,6 +30,12 @@ const getTemplateIcon = (type?: string) => {
       return <FileType className="w-5 h-5 text-primary" />;
     case "carrossel":
       return <Menu className="w-5 h-5 text-primary" />;
+    case "pix":
+      return <DollarSign className="w-5 h-5 text-primary" />;
+    case "localizacao":
+      return <MapPin className="w-5 h-5 text-primary" />;
+    case "contato":
+      return <UserIcon className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -49,6 +55,9 @@ const getTypeFriendlyName = (type?: string) => {
     imagem_botoes: "Imagem c/ Botões",
     documento: "Documento",
     carrossel: "Carrossel",
+    pix: "PIX",
+    localizacao: "Localização",
+    contato: "Contato (vCard)",
   };
   return names[type || "texto"] || "Texto";
 };
