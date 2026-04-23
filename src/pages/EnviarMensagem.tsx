@@ -927,12 +927,16 @@ const EnviarMensagem = () => {
               : undefined;
             const copyContent = (typeof varsCopy === 'string' && varsCopy.trim())
               || (modeloData?.header && modeloData.header.trim())
-              || modeloData?.content
+              || (specialTpl ? '' : modeloData?.content)
               || mensagemPersonalizada
               || '';
+            const bodyMessage = (mensagem && mensagem.trim() ? mensagemPersonalizada : '')
+              || specialTpl?.description
+              || modeloData?.name
+              || 'Toque em copiar';
             await sendButtonActions(
               contato.telefone,
-              mensagemPersonalizada || copyContent,
+              bodyMessage,
               [
                 {
                   id: 'copy_btn',
