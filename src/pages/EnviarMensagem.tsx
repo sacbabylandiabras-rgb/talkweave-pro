@@ -645,7 +645,9 @@ const EnviarMensagem = () => {
             }
           }
           
-          if (temBotoes) {
+          if (specialTpl) {
+            // Already sent above via sendSpecialTemplate — skip remaining dispatch.
+          } else if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada,
