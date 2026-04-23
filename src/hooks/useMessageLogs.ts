@@ -348,14 +348,15 @@ export const useMessageLogs = (
       setMessageLogs(prev => {
         const byId = new Map<string, MessageLog>();
         allData.forEach(m => byId.set(m.id, m));
-        // Preserve any realtime/optimistic messages from the last 5 min not yet
-        // in polled data, so the chat doesn't flicker back to an empty/clean
-        // state while replication catches up.
-        const cutoff = Date.now() - 5 * 60_000;
+        // Preserve realtime-inserted messages from the last 30 min not yet in
+        // polled data, so the chat doesn't flicker back to an old state while
+        // replication catches up (Realtime can be 1-2s ahead of read replicas).
+        const cutoff = Date.now() - 30 * 60_000;
         prev.forEach(m => {
           if (byId.has(m.id)) return;
           const ts = toMillis(m.timestamp || m.created_at);
-          if (ts >= cutoff) byId.set(m.id, m);
+          // Keep recent OR keep entries with no usable timestamp (just-inserted realtime rows)
+          if (ts === 0 || ts >= cutoff) byId.set(m.id, m);
         });
         const merged = Array.from(byId.values()).sort((a, b) => {
           const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
