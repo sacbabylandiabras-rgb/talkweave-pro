@@ -832,17 +832,17 @@ const ExtrairComunidade = () => {
       }
 
       if (artifacts.pairingCode) {
-        toast.success("Código de pareamento gerado!");
+        toast.success("Código de conexão gerado!");
         setConnectionPolling(true);
       } else if (artifacts.qrImage) {
         setConnectionTab("qr-code");
-        toast.warning("A instância retornou QR Code em vez de código de pareamento. Escaneie o QR para conectar.");
+        toast.warning("Use o QR Code retornado para concluir a conexão.");
         setConnectionPolling(true);
       } else {
-        toast.error("Código de pareamento indisponível");
+        toast.error("Código de conexão indisponível");
       }
     } catch (error) {
-      const message = await getInvokeErrorMessage(error, "Erro ao solicitar código de pareamento");
+      const message = await getInvokeErrorMessage(error, "Erro ao solicitar código de conexão");
       toast.error(message);
     } finally {
       setPairingLoading(false);
