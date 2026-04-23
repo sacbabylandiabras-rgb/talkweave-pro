@@ -95,6 +95,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     const fallbackName =
       group?.subject ||
       group?.name ||
+      group?.Name ||
+      group?.Topic ||
       group?.groupName ||
       group?.title ||
       group?.wa_name ||
@@ -124,6 +126,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     const resolvedName =
       detail?.subject ||
       detail?.name ||
+      detail?.Name ||
+      detail?.Topic ||
       detail?.group?.subject ||
       detail?.group?.name ||
       detail?.groupMetadata?.subject ||
@@ -132,6 +136,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       detail?.info?.name ||
       group?.subject ||
       group?.name ||
+      group?.Name ||
+      group?.Topic ||
       group?.groupName ||
       group?.title ||
       group?.wa_name ||
@@ -153,6 +159,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       memberCount:
         detail?.participants?.length ||
         detail?.group?.participants?.length ||
+        detail?.ParticipantCount ||
+        (Array.isArray(detail?.Participants) ? detail.Participants.length : 0) ||
+        group?.ParticipantCount ||
+        (Array.isArray(group?.Participants) ? group.Participants.length : 0) ||
         group?.memberCount ||
         group?.size ||
         0,
