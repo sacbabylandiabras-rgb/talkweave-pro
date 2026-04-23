@@ -278,7 +278,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       if (!data?.success || !data?.data) {
-        throw new Error(data?.message || data?.error || 'Falha ao gerar código de pareamento');
+        throw new Error(data?.message || data?.error || 'Falha ao gerar código de conexão');
       }
 
       if (data.data.pairingCode) {
@@ -287,7 +287,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         const qr = data.data.qrCode;
         const isBase64Image = typeof qr === 'string' && qr.startsWith('data:image');
         setPairingCode(isBase64Image ? qr : data.data.code || null);
-        toast({ title: "ℹ️ Código de pareamento indisponível", description: "Sua instância Evolution não suporta pairing code. Use o QR Code abaixo ou recrie a instância com pairingCode habilitado." });
+        toast({ title: "ℹ️ Código visual disponível", description: "Use o QR Code abaixo para concluir a conexão." });
       } else if (data.data.code) {
         setPairingCode(data.data.code);
       }
@@ -666,7 +666,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                     {pairingCode.startsWith('data:image') ? (
                       <>
                         <p className="text-sm text-muted-foreground mb-2">
-                          Código de pareamento não disponível nesta versão da Evolution API. Use o QR Code abaixo:
+                          Use o QR Code abaixo para concluir a conexão:
                         </p>
                         <div className="flex justify-center">
                           <img src={pairingCode} alt="QR Code" className="w-64 h-64 rounded-lg" />

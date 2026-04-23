@@ -3,6 +3,77 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const parseResponseBody = async (response: Response) => {
+  const rawText = await response.text();
+
+  if (!rawText) return {};
+
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return { message: rawText };
+  }
+};
+
+const getPairingCodeValue = (payload: any) => {
+  return pickFirstString(
+    payload?.pairingCode,
+    payload?.paircode,
+    payload?.pairCode,
+    payload?.code,
+    payload?.data?.pairingCode,
+    payload?.data?.paircode,
+    payload?.data?.pairCode,
+    payload?.data?.code,
+    payload?.instance?.pairingCode,
+    payload?.instance?.paircode,
+    payload?.instance?.pairCode,
+    payload?.instance?.code,
+    payload?.response?.pairingCode,
+    payload?.response?.paircode,
+    payload?.response?.pairCode,
+    payload?.response?.code,
+    payload?.status?.pairingCode,
+    payload?.status?.paircode,
+    payload?.status?.pairCode,
+    payload?.status?.code,
+  );
+};
+
+const getQrCodeValue = (payload: any) => {
+  return pickFirstString(
+    payload?.qrCode,
+    payload?.qrcode,
+    payload?.qr,
+    payload?.value,
+    payload?.data?.qrCode,
+    payload?.data?.qrcode,
+    payload?.data?.qr,
+    payload?.data?.value,
+    payload?.instance?.qrCode,
+    payload?.instance?.qrcode,
+    payload?.instance?.qr,
+    payload?.response?.qrCode,
+    payload?.response?.qrcode,
+    payload?.response?.qr,
+    payload?.response?.value,
+    payload?.status?.qrCode,
+    payload?.status?.qrcode,
+    payload?.status?.qr,
+    payload?.status?.value,
+  );
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -56,26 +127,56 @@ serve(async (req) => {
         const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
         const apiToken = (instance as any).evolution_api_key || '';
         if (!apiUrl || !apiToken) {
-          return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
+          return new Response(JSON.stringify({ error: 'Configuração de conexão incompleta', message: 'Não foi possível iniciar a conexão agora.' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
+
         const uazRes = await fetch(`${apiUrl}/instance/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify({ phone: phoneNumber }),
         });
-        const uazRaw = await uazRes.text();
-        let uazData: any = {};
-        try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
-        const code = uazData?.paircode || uazData?.pairingCode || uazData?.code || uazData?.instance?.paircode || null;
-        const qr = uazData?.qrcode || uazData?.qrCode || null;
+
+        let uazData: any = await parseResponseBody(uazRes);
+        let code = getPairingCodeValue(uazData);
+        let qr = getQrCodeValue(uazData);
+
+        console.log('[get-pairing-code] connect response', {
+          status: uazRes.status,
+          hasCode: Boolean(code),
+          hasQr: Boolean(qr),
+          keys: Object.keys(uazData || {}),
+        });
+
+        if (!code) {
+          for (let attempt = 0; attempt < 4; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 700));
+
+            const statusRes = await fetch(`${apiUrl}/instance/status`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', token: apiToken },
+            });
+            const statusData = await parseResponseBody(statusRes);
+            const statusCode = getPairingCodeValue(statusData);
+            const statusQr = getQrCodeValue(statusData);
+
+            if (!qr && statusQr) qr = statusQr;
+            if (statusCode) {
+              code = statusCode;
+              uazData = statusData;
+              break;
+            }
+          }
+        }
+
         if (!code && !qr) {
-          return new Response(JSON.stringify({ error: 'UAZAPI não retornou código', details: uazData }),
+          return new Response(JSON.stringify({ error: 'Falha ao gerar código de conexão', message: 'Não foi possível gerar o código de conexão agora.', details: uazData }),
             { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
+
         return new Response(JSON.stringify({
           success: true,
-          data: { code, pairingCode: code, qrCode: qr, isReal: true, method: 'uazapi' },
+          data: { code, pairingCode: code, qrCode: qr, isReal: true, method: 'phone-number' },
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
@@ -103,12 +204,12 @@ serve(async (req) => {
 
     if (!response.ok || !result.code) {
       return new Response(
-        JSON.stringify({ error: result.error || 'Falha ao gerar código na Z-API', details: result }),
+        JSON.stringify({ error: result.error || 'Falha ao gerar código de conexão', message: result.message || 'Não foi possível gerar o código de conexão agora.', details: result }),
         { status: response.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: { code: result.code, isReal: true, method: 'zapi' } }),
+      JSON.stringify({ success: true, data: { code: result.code, pairingCode: result.code, isReal: true, method: 'phone-number' } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
