@@ -1,5 +1,26 @@
 import { Handle, Position } from "reactflow";
-import { MessageSquare, Image, Video, Mic, FileText, Link2, MessageCircle, Phone, ArrowRight, BarChart3, Mail, User } from "lucide-react";
+import {
+  MessageSquare,
+  Image,
+  Video,
+  Mic,
+  FileText,
+  Link2,
+  MessageCircle,
+  Phone,
+  ArrowRight,
+  Mail,
+  User,
+  Contact,
+  MapPin,
+  Activity,
+  Camera,
+  LayoutList,
+  Images,
+  MapPinned,
+  CreditCard,
+  QrCode,
+} from "lucide-react";
 
 const typeIcons: Record<string, any> = {
   text: MessageSquare,
@@ -7,6 +28,15 @@ const typeIcons: Record<string, any> = {
   video: Video,
   audio: Mic,
   document: FileText,
+  contact: Contact,
+  location: MapPin,
+  presence: Activity,
+  status: Camera,
+  interactive: LayoutList,
+  "media-carousel": Images,
+  "request-location": MapPinned,
+  "request-payment": CreditCard,
+  pix: QrCode,
 };
 
 const typeLabels: Record<string, string> = {
@@ -15,6 +45,15 @@ const typeLabels: Record<string, string> = {
   video: "Vídeo",
   audio: "Áudio",
   document: "Documento",
+  contact: "Contato (vCard)",
+  location: "Localização",
+  presence: "Presença",
+  status: "Status (Stories)",
+  interactive: "Menu Interativo",
+  "media-carousel": "Carrossel de Mídia",
+  "request-location": "Solicitar Localização",
+  "request-payment": "Solicitar Pagamento",
+  pix: "Botão PIX",
 };
 
 const buttonTypeIcons: Record<string, any> = {
