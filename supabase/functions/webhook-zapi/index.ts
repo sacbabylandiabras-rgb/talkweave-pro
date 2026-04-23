@@ -196,6 +196,21 @@ const isLikelyTechnicalIdentifier = (value: unknown) => {
     !digits.startsWith("55");
 };
 
+const isUazapiTechnicalReplyReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
+};
+
+const pickPreferredInteractiveText = (candidates: unknown[]) => {
+  const values = candidates
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return values.find((value) => !isUazapiTechnicalReplyReference(value)) ||
+    values[0] || "";
+};
+
 const resolveWebhookPhone = (webhook: any) => {
   const rawPhone = String(webhook?.phone || "");
   const participantPhone = String(webhook?.participantPhone || "");
