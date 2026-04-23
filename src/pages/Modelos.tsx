@@ -2159,6 +2159,65 @@ const Modelos = () => {
               style={{ backgroundColor: '#e5ddd5' }}
             >
               {previewTemplate && (
+                previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
+                  <div className="flex flex-col gap-2 items-end">
+                    {previewTemplate.content && (
+                      <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm px-3 py-2">
+                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                          {previewTemplate.content}
+                        </p>
+                      </div>
+                    )}
+                    <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
+                      <div className="flex gap-2 snap-x snap-mandatory">
+                        {previewTemplate.carouselCards.map((card: any, idx: number) => (
+                          <div
+                            key={card.id || idx}
+                            className="snap-start shrink-0 w-[78%] bg-background rounded-lg shadow-sm overflow-hidden border border-border/40 flex flex-col"
+                          >
+                            {card.image ? (
+                              <img
+                                src={card.image}
+                                alt={card.title || `Card ${idx + 1}`}
+                                className="w-full aspect-square object-cover bg-muted"
+                              />
+                            ) : (
+                              <div className="w-full aspect-square bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                <Image className="w-6 h-6" />
+                              </div>
+                            )}
+                            <div className="px-3 py-2 space-y-1">
+                              {card.title && (
+                                <p className="font-semibold text-sm text-foreground leading-tight">{card.title}</p>
+                              )}
+                              {card.description && (
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-snug">{card.description}</p>
+                              )}
+                            </div>
+                            {Array.isArray(card.buttons) && card.buttons.length > 0 && (
+                              <div className="border-t border-border/30 mt-auto">
+                                {card.buttons.map((btn: any, bIdx: number) => (
+                                  <div
+                                    key={btn.id || bIdx}
+                                    className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0 flex items-center justify-center gap-1"
+                                  >
+                                    {btn.type === 'url' && <Link className="w-3 h-3" />}
+                                    {btn.type === 'call' && <Phone className="w-3 h-3" />}
+                                    {btn.type === 'reply' && <MessageCircle className="w-3 h-3" />}
+                                    <span className="truncate">{btn.text || `Botão ${bIdx + 1}`}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground self-end pr-1">
+                      ◀ Deslize para ver os {previewTemplate.carouselCards.length} cards ▶
+                    </p>
+                  </div>
+                ) : (
                 <div className="flex justify-end">
                   <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                     {previewTemplate.mediaUrl && (
@@ -2200,6 +2259,7 @@ const Modelos = () => {
                     )}
                   </div>
                 </div>
+                )
               )}
             </div>
 
