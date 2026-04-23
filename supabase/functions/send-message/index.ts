@@ -519,11 +519,16 @@ serve(async (req) => {
 
       console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${targetNumber}`);
       const uazStartTs = Date.now();
-      const uazRes = await fetch(`${apiUrl}${endpoint}`, {
-        method: 'POST',
-        headers: uazHeaders,
-        body: JSON.stringify(body),
-      });
+      const uazRes = await fetchUazapiWithRetry(
+        `${apiUrl}${endpoint}`,
+        {
+          method: 'POST',
+          headers: uazHeaders,
+          body: JSON.stringify(body),
+        },
+        logPhone,
+        endpoint.replace('/send/', ''),
+      );
       const uazData = await parseUazapiResponse(uazRes, logPhone, instanceId, endpoint.replace('/send/', ''));
       const uazDuration = Date.now() - uazStartTs;
 
