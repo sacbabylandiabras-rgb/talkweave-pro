@@ -2361,6 +2361,57 @@ const Modelos = () => {
                       </div>
                     );
                   })()
+                ) : (previewTemplate.type === 'pix' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'pix')) ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const amount = special.amount
+                      ? `R$ ${Number(String(special.amount).replace(',', '.')).toFixed(2).replace('.', ',')}`
+                      : '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          <div className="px-3 py-2 space-y-2">
+                            <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                              <span className="text-base">💸</span>
+                              <p className="text-sm font-semibold text-foreground">Cobrança PIX</p>
+                            </div>
+                            {amount && (
+                              <p className="text-lg font-bold text-foreground">{amount}</p>
+                            )}
+                            {special.description && (
+                              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{special.description}</p>
+                            )}
+                            {special.pixKey && (
+                              <div className="rounded-md bg-background/60 border border-border/40 px-2 py-1.5 space-y-0.5">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  Chave {special.pixKeyType ? `(${special.pixKeyType})` : ''}
+                                </p>
+                                <p className="text-xs font-mono text-foreground break-all">{special.pixKey}</p>
+                              </div>
+                            )}
+                            {special.city && (
+                              <p className="text-[11px] text-muted-foreground">📍 {special.city}</p>
+                            )}
+                            {previewTemplate.footer && (
+                              <p className="text-xs text-muted-foreground italic">{previewTemplate.footer}</p>
+                            )}
+                          </div>
+                          {previewTemplate.buttons && previewTemplate.buttons.length > 0 && (
+                            <div className="border-t border-border/30">
+                              {previewTemplate.buttons.map((btn: any) => (
+                                <div
+                                  key={btn.id}
+                                  className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0"
+                                >
+                                  {btn.text}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
