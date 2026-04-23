@@ -967,9 +967,9 @@ const Dispositivos = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { name: "Plano Start", price: "R$100/mês", features: ["Mensagens ilimitadas", "1 instância", "Suporte básico"], link: "https://pay.zaplynxpro.online/pay/plano-start-704549" },
-              { name: "Plano Pro", price: "R$300/mês", features: ["Mensagens ilimitadas", "3 instâncias", "Suporte prioritário"], link: "https://pay.zaplynxpro.online/pay/plano-pro-716484", popular: true },
-              { name: "Plano Scale", price: "R$897/mês", features: ["Mensagens ilimitadas", "10 instâncias", "Suporte VIP"], link: "https://pay.zaplynxpro.online/pay/plano-scale-731140" },
+              { name: "Plano Start", price: "R$67,90/mês", features: ["Mensagens ilimitadas", "1 instância", "Suporte básico"], link: "https://pay.zaplynxpro.online/pay/plano-start-704549" },
+              { name: "Plano Pro", price: "R$297/mês", features: ["Mensagens ilimitadas", "5 instâncias", "Suporte prioritário"], link: "https://pay.zaplynxpro.online/pay/plano-pro-716484", popular: true },
+              { name: "Plano Scale", price: "R$597/mês", features: ["Mensagens ilimitadas", "10 instâncias", "Suporte VIP"], link: "https://pay.zaplynxpro.online/pay/plano-scale-731140" },
             ].map((plan, i) => (
               <a
                 key={i}
