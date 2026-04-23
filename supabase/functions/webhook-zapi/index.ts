@@ -4316,7 +4316,10 @@ async function sendNodeContent(
     return btns
       .filter((b) => b.type === "reply" || b.type === "flow")
       .slice(0, 3)
-      .map((btn) => ({ label: (btn.text || "").trim() || "Botão" }));
+      .map((btn, idx) => ({
+        id: `button-${idx}`,
+        label: (btn.text || "").trim() || "Botão",
+      }));
   }
 
   function buildUazapiMenuChoices(btns: typeof allSendButtons) {
@@ -5360,6 +5363,35 @@ function extractButtonReplyCandidates(webhook: any): string[] {
   return Array.from(values);
 }
 
+function extractQuotedMessageTextCandidates(webhook: any): string[] {
+  const values = new Set<string>();
+
+  const push = (value: unknown) => {
+    if (typeof value !== "string") return;
+    const trimmed = value.trim();
+    if (trimmed) values.add(trimmed);
+  };
+
+  [
+    webhook?.contextInfo?.quotedMessage?.conversation,
+    webhook?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+    webhook?.contextInfo?.quotedMessage?.buttonsMessage?.contentText,
+    webhook?.contextInfo?.quotedMessage?.templateMessage?.hydratedTemplate
+      ?.hydratedContentText,
+    webhook?.message?.contextInfo?.quotedMessage?.conversation,
+    webhook?.message?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+    webhook?.message?.contextInfo?.quotedMessage?.buttonsMessage?.contentText,
+    webhook?.message?.contextInfo?.quotedMessage?.templateMessage
+      ?.hydratedTemplate?.hydratedContentText,
+    webhook?.data?.contextInfo?.quotedMessage?.conversation,
+    webhook?.data?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+    webhook?.data?.message?.contextInfo?.quotedMessage?.conversation,
+    webhook?.data?.message?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+  ].forEach(push);
+
+  return Array.from(values);
+}
+
 async function resolveUazapiPendingButtonReplyFromHistory(params: {
   apiUrl: string;
   apiToken: string;
@@ -5670,11 +5702,13 @@ function findButtonEdgeMatch(
     options?.pendingState,
     rawMessage,
   );
+  const quotedMessageCandidates = extractQuotedMessageTextCandidates(webhook);
 
   const baseCandidates = [
     rawMessage,
     normalizedMessage,
     ...extractButtonReplyCandidates(webhook),
+    ...quotedMessageCandidates,
     ...pendingHandleCandidates,
   ].filter((value): value is string =>
     typeof value === "string" && value.trim().length > 0
