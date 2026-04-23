@@ -4532,6 +4532,7 @@ async function sendNodeContent(
           text: String(btn?.text || "").trim(),
           handleAliases: getButtonHandleAliases(idx, btn),
           index: idx,
+          menuIndex: idx + 1,
         })),
         captured: options?.resumeCaptured || {},
       }),
