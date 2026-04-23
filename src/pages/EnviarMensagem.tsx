@@ -856,7 +856,7 @@ const EnviarMensagem = () => {
             setZapiInstanceOverride(currentInstance);
           }
 
-          if (specialTpl) {
+          if (specialTpl && specialTpl.type !== 'copia_cola') {
             await sendSpecialTemplate(contato.telefone, specialTpl.type, {
               ...specialTpl,
               description: mensagemPersonalizada || specialTpl.description,
