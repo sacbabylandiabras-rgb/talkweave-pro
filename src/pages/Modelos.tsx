@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
@@ -506,6 +506,34 @@ const Modelos = () => {
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
+
+  useEffect(() => {
+    setIsPreviewAudioPlaying(false);
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.currentTime = 0;
+    }
+  }, [previewTemplate?.mediaUrl]);
+
+  const togglePreviewAudio = useCallback(async () => {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+
+    if (audio.paused) {
+      try {
+        await audio.play();
+        setIsPreviewAudioPlaying(true);
+      } catch {
+        setIsPreviewAudioPlaying(false);
+      }
+      return;
+    }
+
+    audio.pause();
+    setIsPreviewAudioPlaying(false);
+  }, []);
 
   // Função para fazer upload do arquivo
   const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
@@ -2253,18 +2281,36 @@ const Modelos = () => {
                     )}
                     {previewTemplate.mediaUrl && isAudioTemplateType(previewTemplate.type) && (
                       <div className="px-3 pt-3">
-                        <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-3 space-y-2">
+                        <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-3 space-y-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                             <Music className="w-4 h-4 text-primary" />
                             <span>Áudio</span>
                           </div>
+                          <button
+                            type="button"
+                            onClick={togglePreviewAudio}
+                            className="flex w-full items-center gap-3 rounded-lg bg-muted/70 px-3 py-3 text-left transition-colors hover:bg-muted"
+                          >
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                              {isPreviewAudioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block h-1.5 w-full overflow-hidden rounded-full bg-border/70">
+                                <span className={`block h-full rounded-full bg-primary transition-all ${isPreviewAudioPlaying ? 'w-2/3' : 'w-1/4'}`} />
+                              </span>
+                              <span className="mt-2 block truncate text-xs text-muted-foreground">
+                                {isPreviewAudioPlaying ? 'Reproduzindo áudio…' : 'Toque para reproduzir o áudio'}
+                              </span>
+                            </span>
+                          </button>
                           <audio
+                            ref={previewAudioRef}
                             src={previewTemplate.mediaUrl}
-                            controls
-                            controlsList="nodownload"
                             preload="metadata"
-                            className="w-full"
-                            style={{ colorScheme: 'light' }}
+                            className="hidden"
+                            onPlay={() => setIsPreviewAudioPlaying(true)}
+                            onPause={() => setIsPreviewAudioPlaying(false)}
+                            onEnded={() => setIsPreviewAudioPlaying(false)}
                           />
                         </div>
                       </div>
