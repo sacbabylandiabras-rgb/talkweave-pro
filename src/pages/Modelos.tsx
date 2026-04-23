@@ -537,6 +537,15 @@ const Modelos = () => {
 
   // Função para fazer upload do arquivo
   const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
+    const validListItems = Array.isArray(newTemplate.listItems)
+      ? newTemplate.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (newTemplate.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
+      return;
+    }
+
     try {
       setUploadingFile(true);
       
@@ -636,6 +645,15 @@ const Modelos = () => {
       return;
     }
 
+    const validListItems = Array.isArray(newTemplate.listItems)
+      ? newTemplate.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (newTemplate.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
+      return;
+    }
+
     try {
       // Extract variables from content
       const variableMatches = newTemplate.content.match(/{([^}]+)}/g);
@@ -718,10 +736,10 @@ const Modelos = () => {
         footer: newTemplate.footer,
         variables,
         buttons: newTemplate.buttons,
-        mediaUrl: newTemplate.mediaUrl,
-        fileName: newTemplate.fileName,
-        fileType: newTemplate.fileType,
-        listItems: newTemplate.listItems,
+        mediaUrl: newTemplate.type === "lista_opcao" ? "" : newTemplate.mediaUrl,
+        fileName: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileName,
+        fileType: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileType,
+        listItems: validListItems,
         carouselCards: newTemplate.carouselCards,
       });
 
@@ -733,6 +751,15 @@ const Modelos = () => {
   };
 
   const handleDuplicateTemplate = async (template: any) => {
+    const validListItems = Array.isArray(editFormData.listItems)
+      ? editFormData.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (editFormData.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
+      return;
+    }
+
     try {
       await duplicateTemplate(template);
     } catch (error) {
@@ -821,6 +848,15 @@ const Modelos = () => {
       return;
     }
 
+    const validListItems = Array.isArray(editFormData.listItems)
+      ? editFormData.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (editFormData.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
+      return;
+    }
+
     try {
       // Extract variables from content
       const variableMatches = editFormData.content.match(/{([^}]+)}/g);
@@ -903,10 +939,10 @@ const Modelos = () => {
         footer: editFormData.footer,
         variables,
         buttons: editFormData.buttons,
-        mediaUrl: editFormData.mediaUrl,
-        fileName: editFormData.fileName,
-        fileType: editFormData.fileType,
-        listItems: editFormData.listItems,
+        mediaUrl: editFormData.type === "lista_opcao" ? "" : editFormData.mediaUrl,
+        fileName: editFormData.type === "lista_opcao" ? "" : editFormData.fileName,
+        fileType: editFormData.type === "lista_opcao" ? "" : editFormData.fileType,
+        listItems: validListItems,
         carouselCards: editFormData.carouselCards,
       });
 
@@ -915,6 +951,33 @@ const Modelos = () => {
     } catch (error) {
       console.error('Error updating template:', error);
     }
+  };
+
+  const sanitizeTemplateTypeChange = (value: string, current: any) => {
+    const next = { ...current, type: value };
+
+    if (value === "lista_opcao") {
+      next.mediaUrl = "";
+      next.fileName = "";
+      next.fileType = "";
+      next.carouselCards = [];
+    }
+
+    if (value !== "lista_opcao") {
+      next.listItems = value === "carrossel" ? current.listItems : current.listItems;
+    }
+
+    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "arquivo", "documento"].includes(value)) {
+      next.mediaUrl = "";
+      next.fileName = "";
+      next.fileType = "";
+    }
+
+    if (value !== "carrossel") {
+      next.carouselCards = [];
+    }
+
+    return next;
   };
 
   const handleCancelEdit = () => {
@@ -1049,7 +1112,7 @@ const Modelos = () => {
                   <Label htmlFor="template-type">Tipo de Template</Label>
                   <Select
                     value={newTemplate.type}
-                    onValueChange={(value) => setNewTemplate(prev => ({ ...prev, type: value }))}
+                    onValueChange={(value) => setNewTemplate(prev => sanitizeTemplateTypeChange(value, prev))}
                   >
                     <SelectTrigger id="template-type">
                       <SelectValue placeholder="Selecione o tipo" />
@@ -1677,7 +1740,7 @@ const Modelos = () => {
               <Label htmlFor="edit-template-type">Tipo de Template</Label>
               <Select
                 value={editFormData.type}
-                onValueChange={(value) => setEditFormData(prev => ({ ...prev, type: value }))}
+                onValueChange={(value) => setEditFormData(prev => sanitizeTemplateTypeChange(value, prev))}
               >
                 <SelectTrigger id="edit-template-type">
                   <SelectValue placeholder="Selecione o tipo" />
