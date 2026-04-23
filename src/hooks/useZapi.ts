@@ -852,6 +852,45 @@ export const useZapi = () => {
     }
   };
 
+  const sendCarousel = async (
+    phone: string,
+    carouselCards: Array<{
+      id?: string;
+      image?: string;
+      title?: string;
+      description?: string;
+      buttons?: Array<{ id?: string; text?: string; type?: string; value?: string }>;
+    }>,
+    message?: string,
+  ) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        { phone, message: message || '', carouselCards },
+        'Erro ao enviar carrossel',
+      );
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do carrossel.');
+
+      toast({
+        title: 'Carrossel enviado!',
+        description: `${carouselCards.length} cards enviados.`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar carrossel:', error);
+      toast({
+        title: 'Erro ao enviar carrossel',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
