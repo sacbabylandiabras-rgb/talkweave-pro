@@ -63,6 +63,158 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string) =>
   type === "pix" || type === "localizacao" || type === "contato";
 
+// Editor compartilhado para PIX / Localização / Contato
+const SpecialFieldsEditor = ({
+  type,
+  data,
+  onChange,
+}: {
+  type: string;
+  data: any;
+  onChange: (patch: any) => void;
+}) => {
+  if (!isSpecialType(type)) return null;
+
+  if (type === "pix") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <DollarSign className="w-4 h-4" /> Cobrança PIX
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Tipo da chave</Label>
+            <Select value={data.pixKeyType || "cpf"} onValueChange={(v) => onChange({ pixKeyType: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="cnpj">CNPJ</SelectItem>
+                <SelectItem value="email">E-mail</SelectItem>
+                <SelectItem value="phone">Telefone</SelectItem>
+                <SelectItem value="evp">Aleatória (EVP)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Valor (R$) — opcional</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={data.pixAmount || ""}
+              onChange={(e) => onChange({ pixAmount: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Chave PIX *</Label>
+          <Input
+            placeholder="Sua chave PIX"
+            value={data.pixKey || ""}
+            onChange={(e) => onChange({ pixKey: e.target.value })}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Nome do recebedor *</Label>
+            <Input
+              placeholder="Razão social ou nome"
+              maxLength={25}
+              value={data.pixMerchantName || ""}
+              onChange={(e) => onChange({ pixMerchantName: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Cidade</Label>
+            <Input
+              placeholder="Cidade"
+              maxLength={15}
+              value={data.pixCity || ""}
+              onChange={(e) => onChange({ pixCity: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "localizacao") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <MapPin className="w-4 h-4" /> Localização
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Latitude *</Label>
+            <Input
+              placeholder="-23.5505"
+              value={data.locLatitude || ""}
+              onChange={(e) => onChange({ locLatitude: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Longitude *</Label>
+            <Input
+              placeholder="-46.6333"
+              value={data.locLongitude || ""}
+              onChange={(e) => onChange({ locLongitude: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Título</Label>
+          <Input
+            placeholder="Ex: Nosso escritório"
+            value={data.locTitle || ""}
+            onChange={(e) => onChange({ locTitle: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Endereço</Label>
+          <Input
+            placeholder="Av. Paulista, 1000 - São Paulo/SP"
+            value={data.locAddress || ""}
+            onChange={(e) => onChange({ locAddress: e.target.value })}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Dica: pegue as coordenadas no Google Maps clicando com o botão direito no local.
+        </p>
+      </div>
+    );
+  }
+
+  if (type === "contato") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <UserIcon className="w-4 h-4" /> Cartão de contato (vCard)
+        </div>
+        <div>
+          <Label>Nome do contato *</Label>
+          <Input
+            placeholder="Nome completo"
+            value={data.contactName || ""}
+            onChange={(e) => onChange({ contactName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Telefone (com DDI) *</Label>
+          <Input
+            placeholder="+5511999999999"
+            value={data.contactPhone || ""}
+            onChange={(e) => onChange({ contactPhone: e.target.value })}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
   switch (type) {
