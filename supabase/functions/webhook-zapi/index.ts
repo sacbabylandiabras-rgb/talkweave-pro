@@ -5030,11 +5030,19 @@ function getPendingButtonHandleCandidates(
   const hexMatches = Array.from(suffix.matchAll(/[A-F0-9]{2}/gi)).map((match) =>
     parseInt(match[0], 16)
   ).filter((value) => Number.isFinite(value) && value >= 1 && value <= 10);
+  const lastByte = suffix.match(/([A-F0-9]{2})$/i);
+  if (lastByte) {
+    const numericLastByte = parseInt(lastByte[1], 16);
+    if (Number.isFinite(numericLastByte) && numericLastByte >= 1 && numericLastByte <= 10) {
+      hexMatches.push(numericLastByte);
+    }
+  }
+  const uniqueIndices = Array.from(new Set(hexMatches));
 
-  if (hexMatches.length === 0) return [];
+  if (uniqueIndices.length === 0) return [];
 
   const candidates = new Set<string>();
-  for (const numericIndex of hexMatches) {
+  for (const numericIndex of uniqueIndices) {
     const button = pendingState.buttons.find((entry) => entry.index === numericIndex - 1);
     if (!button) continue;
 
