@@ -36,22 +36,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     user?.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined
   );
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingInstanceId, setEditingInstanceId] = useState<string | null>(null);
-  const [newInstanceName, setNewInstanceName] = useState('');
-  const [newInstanceId, setNewInstanceId] = useState('');
-  const [newToken, setNewToken] = useState('');
-  const [newClientToken, setNewClientToken] = useState('');
-  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('uazapi');
-  const [newUazapiUrl, setNewUazapiUrl] = useState('');
-  const [newUazapiToken, setNewUazapiToken] = useState('');
+  const [maxInstances, setMaxInstances] = useState<number>(1);
 
   // Uazapi credentials
   const [uazapiUrl, setUazapiUrl] = useState('');
   const [uazapiToken, setUazapiToken] = useState('');
   const [uazapiSaving, setUazapiSaving] = useState(false);
 
-  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
+  const { instances, loading: instancesLoading, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   useEffect(() => {
     if (user) {
@@ -59,9 +51,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
       // Load uazapi credentials
       if (user.id) {
-        supabase.from("profiles").select("uazapi_url, uazapi_token").eq("id", user.id).single().then(({ data }) => {
+        supabase.from("profiles").select("uazapi_url, uazapi_token, max_instances" as any).eq("id", user.id).single().then(({ data }) => {
           setUazapiUrl((data as any)?.uazapi_url || '');
           setUazapiToken((data as any)?.uazapi_token || '');
+          setMaxInstances(Number((data as any)?.max_instances ?? 1));
         });
       }
     }
@@ -74,7 +67,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       const { error } = await supabase.from("profiles").update({
         subscription_status: subscriptionStatus,
         subscription_expires_at: expiresAt?.toISOString() || null,
-      }).eq("id", user.id);
+        max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
+      } as any).eq("id", user.id);
       if (error) throw error;
       toast({ title: "Usuário atualizado", description: "As informações do usuário foram atualizadas com sucesso." });
       onSuccess();
