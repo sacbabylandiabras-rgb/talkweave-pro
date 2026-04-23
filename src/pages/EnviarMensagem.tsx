@@ -931,9 +931,11 @@ const EnviarMensagem = () => {
             const varsCopy = (modeloData?.variables && typeof modeloData.variables === 'object' && !Array.isArray(modeloData.variables))
               ? (modeloData.variables as Record<string, any>).copyText
               : undefined;
-            const copyContent = (typeof varsCopy === 'string' && varsCopy.trim())
-              || (modeloData?.header && modeloData.header.trim())
-              || (specialTpl ? '' : modeloData?.content)
+            const specialCopy = specialTpl && typeof specialTpl.copyText === 'string' ? specialTpl.copyText : '';
+            const copyContent = (specialCopy && specialCopy.trim())
+              || (typeof varsCopy === 'string' && varsCopy.trim() ? varsCopy : '')
+              || (modeloData?.header && modeloData.header.trim() ? modeloData.header : '')
+              || (specialTpl ? '' : (modeloData?.content || ''))
               || mensagemPersonalizada
               || '';
             const bodyMessage = (mensagem && mensagem.trim() ? mensagemPersonalizada : '')
