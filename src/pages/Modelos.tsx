@@ -1621,6 +1621,12 @@ const Modelos = () => {
               </p>
             </div>
 
+            <SpecialFieldsEditor
+              type={editFormData.type}
+              data={editFormData}
+              onChange={(patch) => setEditFormData(prev => ({ ...prev, ...patch }))}
+            />
+
             {/* Campos específicos por tipo - Edição */}
             {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-3">
