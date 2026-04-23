@@ -917,6 +917,33 @@ const Modelos = () => {
     }
   };
 
+  const sanitizeTemplateTypeChange = (value: string, current: any) => {
+    const next = { ...current, type: value };
+
+    if (value === "lista_opcao") {
+      next.mediaUrl = "";
+      next.fileName = "";
+      next.fileType = "";
+      next.carouselCards = [];
+    }
+
+    if (value !== "lista_opcao") {
+      next.listItems = value === "carrossel" ? current.listItems : current.listItems;
+    }
+
+    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "arquivo", "documento"].includes(value)) {
+      next.mediaUrl = "";
+      next.fileName = "";
+      next.fileType = "";
+    }
+
+    if (value !== "carrossel") {
+      next.carouselCards = [];
+    }
+
+    return next;
+  };
+
   const handleCancelEdit = () => {
     setEditingTemplate(null);
     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
