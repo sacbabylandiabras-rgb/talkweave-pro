@@ -899,8 +899,7 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
           contact.phone = resolvedLidPhone;
         } else {
-          unresolvedLidError = `Contato ${lidId} não foi resolvido para um número real do WhatsApp`;
-          console.log(`❌ ${unresolvedLidError}. Bloqueando envio para evitar falso positivo.`);
+          console.log(`⚠️ @lid não resolvido para ${lidId} — enviando mesmo assim (bloqueio desativado a pedido do usuário).`);
         }
       }
 
