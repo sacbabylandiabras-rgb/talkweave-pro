@@ -38,28 +38,29 @@ serve(async (req) => {
       throw new Error('userId is required for internal admin calls');
     }
 
-    let instancesToClear: Array<{ instanceId: string; token: string; clientToken: string; instanceName: string }> = [];
+    let instancesToClear: Array<{ instanceId: string; token: string; clientToken: string; instanceName: string; apiProvider: string }> = [];
 
     if (clearAllActive) {
       const { data: activeInstances, error } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      instancesToClear = (activeInstances || []).map((instance) => ({
+      instancesToClear = (activeInstances || []).map((instance: any) => ({
         instanceId: instance.zapi_instance_id,
         token: instance.zapi_token,
         clientToken: instance.zapi_client_token,
         instanceName: instance.instance_name || 'Instância Ativa',
+        apiProvider: String(instance.api_provider || 'zapi').toLowerCase(),
       }));
     } else if (requestedInstanceId) {
       const { data: specificInstance, error } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -76,6 +77,7 @@ serve(async (req) => {
         token: specificInstance.zapi_token,
         clientToken: specificInstance.zapi_client_token,
         instanceName: specificInstance.instance_name || 'Instância Selecionada',
+        apiProvider: String((specificInstance as any).api_provider || 'zapi').toLowerCase(),
       }];
     } else {
       instancesToClear = [{
@@ -83,6 +85,7 @@ serve(async (req) => {
         token: credentials.token,
         clientToken: credentials.clientToken,
         instanceName: credentials.instanceName,
+        apiProvider: 'zapi',
       }];
     }
 
