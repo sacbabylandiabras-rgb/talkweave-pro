@@ -34,6 +34,8 @@ const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const DEVICE_PROFILE_PICTURE_UPDATED_EVENT = "device-profile-picture-updated";
+
 const normalizeQrImageValue = (value: unknown) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -77,6 +79,23 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   };
 
   const statusErrorShownRef = useRef(false);
+
+  useEffect(() => {
+    const handleProfilePictureUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ value?: string; instanceIds?: string[] }>;
+      const updatedIds = customEvent.detail?.instanceIds || [];
+      const nextValue = customEvent.detail?.value;
+
+      if (nextValue && updatedIds.includes(instance.id)) {
+        setProfilePicUrl(nextValue);
+      }
+    };
+
+    window.addEventListener(DEVICE_PROFILE_PICTURE_UPDATED_EVENT, handleProfilePictureUpdated as EventListener);
+    return () => {
+      window.removeEventListener(DEVICE_PROFILE_PICTURE_UPDATED_EVENT, handleProfilePictureUpdated as EventListener);
+    };
+  }, [instance.id]);
 
   const fetchDeviceStatus = async () => {
     try {
@@ -712,6 +731,7 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
     setUpdating(true);
     let success = 0;
     let failed = 0;
+    const updatedInstanceIds: string[] = [];
 
     for (const inst of instances) {
       try {
@@ -729,6 +749,7 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
         });
         if (error) throw error;
         success++;
+        updatedInstanceIds.push(inst.id);
       } catch {
         failed++;
       }
@@ -740,6 +761,17 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
       description: `${success} instância(s) atualizada(s)${failed > 0 ? `, ${failed} com erro` : ""}`,
       variant: failed === instances.length ? "destructive" : "default",
     });
+
+    if (type === "picture" && success > 0) {
+      window.dispatchEvent(
+        new CustomEvent(DEVICE_PROFILE_PICTURE_UPDATED_EVENT, {
+          detail: {
+            value,
+            instanceIds: updatedInstanceIds,
+          },
+        })
+      );
+    }
   };
 
   const handleUpdateName = () => {
