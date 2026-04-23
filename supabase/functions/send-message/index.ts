@@ -31,7 +31,6 @@ const isUazapiSendConfirmed = (payload: any) => {
 
   return Boolean(
     ackId ||
-    payload?.success === true ||
     payload?.queued === true ||
     payload?.enqueued === true ||
     ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
