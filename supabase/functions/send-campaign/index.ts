@@ -815,8 +815,8 @@ serve(async (req) => {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
 
       // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
-      // If resolution fails, we still send (contact is labeled as "Número desconhecido"
-      // until they reply, at which point webhook-zapi creates the lid→phone mapping).
+      // If resolution fails, we strip the @lid suffix and send to the numeric ID directly
+      // so the provider attempts delivery to the unknown number anyway.
       if (contact.phone && contact.phone.includes('@lid') && !isGroupDestination(contact.phone)) {
         const lidId = contact.phone;
         const { data: lidMapping } = await supabase
@@ -832,7 +832,10 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${lidMapping.phone}`);
           contact.phone = lidMapping.phone;
         } else {
-          console.log(`📤 Sending to unresolved @lid ${lidId} — labeled as "Número desconhecido"`);
+          // Strip '@lid' suffix and send to the raw numeric identifier as a regular phone.
+          const numericId = lidId.replace(/@lid.*$/, '').replace(/\D/g, '');
+          console.log(`📤 Unresolved @lid ${lidId} — sending to numeric "${numericId}" as Número desconhecido`);
+          contact.phone = numericId || lidId;
           if (!contact.name) contact.name = 'Número desconhecido';
         }
       }
