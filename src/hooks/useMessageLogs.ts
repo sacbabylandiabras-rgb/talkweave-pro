@@ -647,8 +647,8 @@ export const useMessageLogs = (
       });
     channelRef2.current = ch2;
 
-    // Realtime is the primary source (SUBSCRIBED confirmed); polling at 1s as fast safety net.
-    pollingRef.current = setInterval(fetchAll, 1000);
+    // Realtime is the primary source (SUBSCRIBED confirmed); polling at 30s as safety net only.
+    pollingRef.current = setInterval(fetchAll, 30000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
