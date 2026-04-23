@@ -358,19 +358,23 @@ const MediaModelSection = ({
                     const lat = Number(String(__special.latitude ?? '').replace(',', '.'));
                     const lng = Number(String(__special.longitude ?? '').replace(',', '.'));
                     const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+                    const delta = 0.005;
+                    const bbox = hasCoords
+                      ? `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`
+                      : null;
                     const mapUrl = hasCoords
-                      ? `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=400x200&markers=${lat},${lng},red-pushpin`
+                      ? `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`
                       : null;
                     return (
                       <div className="flex justify-end">
                         <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
                           {hasCoords && (
                             <div className="block bg-muted relative">
-                              <img
+                              <iframe
                                 src={mapUrl!}
-                                alt="Mapa"
-                                className="w-full h-32 object-cover"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                title="Mapa"
+                                className="w-full h-36 border-0 pointer-events-none"
+                                loading="lazy"
                               />
                               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <MapPin className="w-8 h-8 text-red-600 drop-shadow-lg" />
