@@ -3430,7 +3430,10 @@ serve(async (req) => {
               normalizedMessage,
               messageRaw,
               webhook,
-              { nodeId: pendingButtonState.nodeId },
+              {
+                nodeId: pendingButtonState.nodeId,
+                pendingState: pendingButtonState,
+              },
             );
 
             if (waitingButtonMatch) {
