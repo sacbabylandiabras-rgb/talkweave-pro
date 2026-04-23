@@ -5261,33 +5261,26 @@ function getPendingButtonHandleCandidates(
   if (!technicalMatch) return [];
 
   const suffix = technicalMatch[1].trim();
-  const hexMatches = Array.from(suffix.matchAll(/[A-F0-9]{2}/gi)).map((match) =>
-    parseInt(match[0], 16)
-  ).filter((value) => Number.isFinite(value) && value >= 1 && value <= 10);
   const lastByte = suffix.match(/([A-F0-9]{2})$/i);
-  if (lastByte) {
-    const numericLastByte = parseInt(lastByte[1], 16);
-    if (Number.isFinite(numericLastByte) && numericLastByte >= 1 && numericLastByte <= 10) {
-      hexMatches.push(numericLastByte);
-    }
-  }
-  const uniqueIndices = Array.from(new Set(hexMatches));
+  if (!lastByte?.[1]) return [];
 
-  if (uniqueIndices.length === 0) return [];
+  const numericIndex = parseInt(lastByte[1], 16);
+  if (!Number.isFinite(numericIndex) || numericIndex < 1 || numericIndex > 10) {
+    return [];
+  }
 
   const candidates = new Set<string>();
-  for (const numericIndex of uniqueIndices) {
-    const button = pendingState.buttons.find((entry) =>
-      (entry.menuIndex ?? entry.index + 1) === numericIndex
-    );
-    if (!button) continue;
+  const button = pendingState.buttons.find((entry) =>
+    (entry.menuIndex ?? entry.index + 1) === numericIndex
+  );
 
-    candidates.add(String(numericIndex));
-    candidates.add(`button-${button.index}`);
-    candidates.add(button.text);
-    for (const alias of button.handleAliases || []) {
-      candidates.add(alias);
-    }
+  if (!button) return [];
+
+  candidates.add(String(numericIndex));
+  candidates.add(`button-${button.index}`);
+  candidates.add(button.text);
+  for (const alias of button.handleAliases || []) {
+    candidates.add(alias);
   }
 
   if (candidates.size > 0) {
