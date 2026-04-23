@@ -611,7 +611,9 @@ export const useMessageLogs = (
           setMessageLogs(prev => prev.filter(m => m.id !== (payload.old as any).id));
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Realtime] message_logs channel:', status);
+      });
     channelRef.current = ch1;
 
     // Realtime for campaign_sends
@@ -639,10 +641,13 @@ export const useMessageLogs = (
           }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Realtime] campaign_sends channel:', status);
+      });
     channelRef2.current = ch2;
 
-    pollingRef.current = setInterval(fetchAll, 15000);
+    // Reduced from 15s to 5s as a safety net while diagnosing realtime delivery.
+    pollingRef.current = setInterval(fetchAll, 5000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
