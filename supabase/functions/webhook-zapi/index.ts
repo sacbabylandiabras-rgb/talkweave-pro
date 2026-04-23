@@ -3415,6 +3415,58 @@ serve(async (req) => {
           if (pendingButtonFlow) {
             hasPendingButtonContext = true;
 
+            if (
+              isUazapiInstance &&
+              pendingButtonState?.buttons?.length &&
+              isUazapiTechnicalReplyReference(messageRaw)
+            ) {
+              const historyResolvedReply = await resolveUazapiPendingButtonReplyFromHistory({
+                apiUrl: String(zapiConfig?.evolution_api_url || ""),
+                apiToken: String(zapiConfig?.evolution_api_key || ""),
+                phone,
+                rawMessage: messageRaw,
+                webhook,
+                pendingState: pendingButtonState,
+              });
+
+              if (historyResolvedReply?.matchedText) {
+                const resolvedCandidates = Array.from(new Set([
+                  historyResolvedReply.matchedText,
+                  historyResolvedReply.matchedButtonId,
+                  messageRaw,
+                ]));
+
+                webhook = {
+                  ...webhook,
+                  text: {
+                    ...(typeof webhook?.text === "object" && webhook?.text ? webhook.text : {}),
+                    message: historyResolvedReply.matchedText,
+                    selectedDisplayText: historyResolvedReply.matchedText,
+                    selectedButtonId: historyResolvedReply.matchedButtonId,
+                  },
+                  buttonReply: {
+                    ...(typeof webhook?.buttonReply === "object" && webhook?.buttonReply
+                      ? webhook.buttonReply
+                      : {}),
+                    title: historyResolvedReply.matchedText,
+                    text: historyResolvedReply.matchedText,
+                    label: historyResolvedReply.matchedText,
+                    selectedDisplayText: historyResolvedReply.matchedText,
+                    selectedButtonId: historyResolvedReply.matchedButtonId,
+                  },
+                };
+
+                messageRaw = historyResolvedReply.matchedText;
+                messageText = messageRaw.toLowerCase();
+                normalizedMessage = normalizeForMatch(messageRaw);
+
+                console.log(
+                  "🧭 Pending UAZAPI button reply rewritten from recent history",
+                  { resolvedCandidates },
+                );
+              }
+            }
+
             console.log(
               "🧩 Pending button context loaded",
               JSON.stringify({
