@@ -3039,7 +3039,7 @@ serve(async (req) => {
     }
 
     const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true &&
-      webhook?.hasInteractiveSelection === true && !fromMe;
+      webhook?.hasInteractiveSelection === true;
 
     if (fromMe && !isUazapiInteractiveSelfEcho) {
       const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ??
@@ -3088,7 +3088,7 @@ serve(async (req) => {
 
     if (isUazapiInteractiveSelfEcho) {
       console.log(
-        "🧭 UAZAPI interactive self-echo detected; treating as button selection to continue the flow",
+        "🧭 UAZAPI interactive selection detected; bypassing outgoing-message block to continue the flow",
       );
     }
 
