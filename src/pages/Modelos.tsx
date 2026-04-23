@@ -812,11 +812,15 @@ const Modelos = () => {
 
   const handleEditTemplate = (template: any) => {
     const special = parseSpecialContent(template.content) || {};
+    const isSpecialContent = typeof template.content === 'string' && template.content.startsWith(SPECIAL_TEMPLATE_PREFIX);
+    const cleanContent = isSpecialContent
+      ? (special.description ?? "")
+      : (template.content ?? "");
     setEditFormData({
       name: template.name,
       category: template.category,
       type: template.type || "texto",
-      content: special.description ?? template.content,
+      content: cleanContent,
       header: template.header || "",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
@@ -825,6 +829,7 @@ const Modelos = () => {
       buttons: template.buttons || [],
       listItems: template.listItems || [],
       carouselCards: template.carouselCards || [],
+      variables: template.variables || {},
       pixKey: special.pixKey || "",
       pixKeyType: special.pixKeyType || "cpf",
       pixAmount: special.amount || "",
