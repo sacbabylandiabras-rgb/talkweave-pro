@@ -4982,20 +4982,16 @@ function findButtonEdgeMatch(
     const trimmed = String(value || "").trim();
     if (!trimmed) return null;
 
-    const prefixedIdMatch = trimmed.match(/^(\d{8,16})\s*[:|_-]\s*([a-f0-9]{8,})$/i);
-    if (prefixedIdMatch) {
-      const lastHex = prefixedIdMatch[2].slice(-1).toLowerCase();
-      const parsed = Number.parseInt(lastHex, 16);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
-      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    const directNumberMatch = trimmed.match(/^([1-9]\d?)$/);
+    if (directNumberMatch) {
+      const parsed = Number.parseInt(directNumberMatch[1], 10);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
-    const pureHexMatch = trimmed.match(/^[a-f0-9]{8,}$/i);
-    if (pureHexMatch) {
-      const lastHex = trimmed.slice(-1).toLowerCase();
-      const parsed = Number.parseInt(lastHex, 16);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
-      if (Number.isFinite(parsed)) return (parsed % 10) + 1;
+    const prefixedLabelMatch = trimmed.match(/^([1-9]\d?)\s*[.)\-:]+\s*.+$/u);
+    if (prefixedLabelMatch) {
+      const parsed = Number.parseInt(prefixedLabelMatch[1], 10);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
     return null;
