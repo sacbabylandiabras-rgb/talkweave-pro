@@ -234,6 +234,20 @@ const Modelos = () => {
       description: string;
       buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
     }>,
+    // Campos específicos PIX
+    pixKey: "",
+    pixKeyType: "cpf",
+    pixAmount: "",
+    pixMerchantName: "",
+    pixCity: "",
+    // Localização
+    locLatitude: "",
+    locLongitude: "",
+    locAddress: "",
+    locTitle: "",
+    // Contato (vCard)
+    contactName: "",
+    contactPhone: "",
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -255,6 +269,17 @@ const Modelos = () => {
       description: string;
       buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
     }>,
+    pixKey: "",
+    pixKeyType: "cpf",
+    pixAmount: "",
+    pixMerchantName: "",
+    pixCity: "",
+    locLatitude: "",
+    locLongitude: "",
+    locAddress: "",
+    locTitle: "",
+    contactName: "",
+    contactPhone: "",
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
