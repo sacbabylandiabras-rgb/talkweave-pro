@@ -615,8 +615,8 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
         body: JSON.stringify({
           phone: resolvedPhone,
-          latitude: Number(specialPayload.latitude) || 0,
-          longitude: Number(specialPayload.longitude) || 0,
+          latitude: Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0,
+          longitude: Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0,
           title: specialPayload.title || '',
           address: specialPayload.address || '',
         }),
