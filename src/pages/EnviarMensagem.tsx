@@ -136,10 +136,12 @@ const EnviarMensagem = () => {
     const specialTpl = parseSpecialTemplate(modeloData?.content);
     const templateType = String(modeloData?.type || '').toLowerCase();
     const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
+    const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && (!!modeloData?.mediaUrl || isAudioTemplate);
+    const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl) {
@@ -179,6 +181,31 @@ const EnviarMensagem = () => {
         modeloData?.footer || undefined,
       );
       return mensagemPersonalizada || modeloData?.name || 'Áudio + texto com botões enviado';
+    }
+
+    if (videoComBotoes) {
+      // 1) Envia o vídeo puro
+      await sendVideo(phone, modeloData!.mediaUrl!, '', viewOnce, isPtv);
+      // 2) Em seguida, envia o texto + botões
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || modeloData?.content || '',
+        modeloData!.buttons!.map((btn: any) => {
+          const buttonType = (btn.type || 'REPLY').toUpperCase();
+          const buttonData: any = {
+            id: btn.id || btn.text || Math.random().toString(),
+            type: buttonType,
+            label: btn.text || btn.label || 'Botão',
+          };
+          if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+          else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+          else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+          return buttonData;
+        }),
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined,
+      );
+      return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
     }
 
     if (temBotoes) {
@@ -754,10 +781,12 @@ const EnviarMensagem = () => {
           const temMidia = !!arquivoMidia;
           const templateType = String(modeloData?.type || '').toLowerCase();
           const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
+          const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
           const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !!modeloData?.buttons?.length;
-          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && (!!modeloData?.mediaUrl || isAudioTemplate);
+          const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !!modeloData?.buttons?.length;
+          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -779,6 +808,27 @@ const EnviarMensagem = () => {
           } else if (audioComBotoes) {
             // 1) áudio gravado, depois 2) texto com botões
             await sendAudio(contato.telefone, modeloData!.mediaUrl!, '');
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada || modeloData?.content || '',
+              modeloData!.buttons!.map((btn: any) => {
+                const buttonType = (btn.type || 'REPLY').toUpperCase();
+                const buttonData: any = {
+                  id: btn.id || btn.text || Math.random().toString(),
+                  type: buttonType,
+                  label: btn.text || btn.label || 'Botão',
+                };
+                if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+                else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+                else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+                return buttonData;
+              }),
+              modeloData?.header || undefined,
+              modeloData?.footer || undefined,
+            );
+          } else if (videoComBotoes) {
+            // 1) vídeo, depois 2) texto com botões
+            await sendVideo(contato.telefone, modeloData!.mediaUrl!, '', viewOnce, isPtv);
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada || modeloData?.content || '',
@@ -844,6 +894,8 @@ const EnviarMensagem = () => {
             // Already sent above via sendCarousel — skip remaining dispatch.
           } else if (audioComBotoes) {
             // Already sent above (audio + buttons) — skip remaining dispatch.
+          } else if (videoComBotoes) {
+            // Already sent above (video + buttons) — skip remaining dispatch.
           } else if (temMidiaModelo) {
             // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
