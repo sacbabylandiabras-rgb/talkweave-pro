@@ -203,6 +203,23 @@ const readDeviceConnectivity = (deviceStatus: any) => {
 
 const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
   try {
+    // === UAZAPI status check ===
+    if (instance.apiProvider === 'uazapi' && instance.uazapiUrl && instance.uazapiToken) {
+      const baseUrl = String(instance.uazapiUrl).replace(/\/+$/, '');
+      const uazRes = await fetch(`${baseUrl}/instance/status`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', token: String(instance.uazapiToken) },
+      });
+      if (!uazRes.ok) {
+        return { connected: false, explicitlyDisconnected: false, ok: false, raw: { error: `UAZAPI HTTP ${uazRes.status}` } };
+      }
+      const uazRaw = await uazRes.json().catch(() => ({}));
+      const status = String(uazRaw?.instance?.status || uazRaw?.status || '').toLowerCase();
+      const connected = status === 'connected' || status === 'open' || uazRaw?.connected === true;
+      const explicitlyDisconnected = status === 'disconnected' || status === 'closed' || uazRaw?.connected === false;
+      return { connected, explicitlyDisconnected, ok: true, raw: uazRaw };
+    }
+
     const deviceStatusUrl = `https://api.z-api.io/instances/${instance.zapiInstanceId}/token/${instance.zapiToken}/status`;
     const deviceResponse = await fetch(deviceStatusUrl, {
       method: 'GET',
