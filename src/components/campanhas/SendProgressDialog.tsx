@@ -15,6 +15,7 @@ interface SendProgressDialogProps {
 
 interface Stats {
   total: number;
+  sending: number;
   pending: number;
   sent: number;
   delivered: number;
@@ -47,6 +48,7 @@ const getSendTimestamp = (send?: Pick<CampaignSendRow, 'delivered_at' | 'sent_at
 export function SendProgressDialog({ open, onOpenChange, campaignId, totalContacts, onPause }: SendProgressDialogProps) {
   const [stats, setStats] = useState<Stats>({
     total: 0,
+    sending: 0,
     pending: totalContacts,
     sent: 0,
     delivered: 0,
@@ -169,6 +171,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       ]);
 
       const effectiveTotal = Math.max(totalContacts, allPhoneKeys.size);
+      let sending = 0;
       let sent = 0;
       let delivered = 0;
       let failed = 0;
@@ -177,12 +180,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         const send = sendsByPhone.get(phoneKey);
         if (send?.status === 'delivered') delivered += 1;
         else if (send?.status === 'sent') sent += 1;
+        else if (send?.status === 'pending') sending += 1;
         else if (send?.status === 'failed') failed += 1;
       });
 
       const newStats = {
         total: effectiveTotal,
-        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
+        sending,
+        pending: Math.max(0, effectiveTotal - sending - sent - delivered - failed),
         sent,
         delivered,
         failed,
@@ -286,6 +291,16 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
               </div>
             </div>
 
+            <div className="space-y-1 p-3 bg-primary/10 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-primary">
+                <Clock className="w-4 h-4" />
+                <span>Enviando</span>
+              </div>
+              <div className="text-2xl font-bold text-primary">
+                {stats.sending}
+              </div>
+            </div>
+
             <div className="space-y-1 p-3 bg-yellow-500/10 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
                 <Clock className="w-4 h-4" />
@@ -322,7 +337,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                <span>Enviando mensagens...</span>
+                <span>Enviando mensagens... {stats.sending > 0 ? `(${stats.sending} em andamento)` : ''}</span>
               </div>
               <div className="flex justify-center">
                 <Button 
