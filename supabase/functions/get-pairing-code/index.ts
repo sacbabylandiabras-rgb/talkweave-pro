@@ -16,6 +16,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const { phoneNumber, instanceId } = body;
+    console.log('[get-pairing-code] request received', { phoneNumber, instanceId });
 
     if (!phoneNumber) {
       return new Response(JSON.stringify({ error: 'Phone number is required' }),
@@ -43,6 +44,12 @@ serve(async (req) => {
         .single();
 
       if (instError || !instance) throw new Error('Instance not found');
+      console.log('[get-pairing-code] instance loaded', {
+        provider: (instance as any).api_provider,
+        hasZapiId: Boolean((instance as any).zapi_instance_id),
+        hasZapiToken: Boolean((instance as any).zapi_token),
+        hasClientToken: Boolean((instance as any).zapi_client_token),
+      });
 
       // UAZAPI provider routing
       if ((instance as any).api_provider === 'uazapi') {
@@ -84,11 +91,15 @@ serve(async (req) => {
 
     // Z-API pairing code
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/phone-code/${phoneNumber}`;
+    console.log('[get-pairing-code] calling Z-API', { url: zapiUrl.replace(credentials.token, '***') });
     const response = await fetch(zapiUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
     });
-    const result = await response.json();
+    const rawText = await response.text();
+    let result: any = {};
+    try { result = JSON.parse(rawText); } catch { result = { message: rawText }; }
+    console.log('[get-pairing-code] Z-API response', { status: response.status, body: rawText.slice(0, 500) });
 
     if (!response.ok || !result.code) {
       return new Response(
@@ -101,6 +112,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
+    console.error('[get-pairing-code] error', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
