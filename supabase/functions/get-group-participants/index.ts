@@ -435,14 +435,58 @@ Deno.serve(async (req) => {
         const lidParticipants: string[] = [];
 
         for (const p of rawParticipants) {
-          const rawId = p.phone || p.id || p.participant || p.JID || p.jid || "";
-          const normalizedId = String(rawId).trim();
-          const cleanPhone = normalizedId.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+          // Prefer real phone identifiers over @lid. UAZAPI often returns the
+          // real number under fields like phoneNumber/number/user even when
+          // the primary id is a @lid alias.
+          const lidCandidate = String(
+            p.lid || p.LID || p.lidJid || p.alt || p.altJid || ""
+          ).trim();
+          const phoneCandidates = [
+            p.phoneNumber,
+            p.phone_number,
+            p.number,
+            p.user,
+            p.contactNumber,
+            p.contact?.phone,
+            p.contact?.number,
+            p.realJid,
+            p.realPhone,
+            p.JID,
+            p.jid,
+            p.id,
+            p.participant,
+            p.phone,
+          ];
 
-          if (normalizedId.includes("@lid")) {
-            lidParticipants.push(normalizedId);
+          let normalizedId = "";
+          for (const cand of phoneCandidates) {
+            const value = String(cand || "").trim();
+            if (!value) continue;
+            if (value.includes("@lid")) continue;
+            normalizedId = value;
+            break;
+          }
+
+          // If everything we found was @lid, fall back to it
+          if (!normalizedId) {
+            for (const cand of phoneCandidates) {
+              const value = String(cand || "").trim();
+              if (value) { normalizedId = value; break; }
+            }
+          }
+
+          const cleanPhone = normalizedId
+            .replace("@s.whatsapp.net", "")
+            .replace("@c.us", "")
+            .replace(/\D/g, "");
+
+          const isLid = normalizedId.includes("@lid") || (lidCandidate && cleanPhone.length < 8);
+
+          if (isLid && cleanPhone.length < 8) {
+            const lidId = normalizedId.includes("@lid") ? normalizedId : lidCandidate;
+            lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
-              phone: normalizedId,
+              phone: lidId,
               isAdmin: Boolean(p.isAdmin || p.admin),
               isSuperAdmin: Boolean(p.isSuperAdmin || p.superAdmin),
               name: p.name || p.short || p.notify || p.pushName || "",
