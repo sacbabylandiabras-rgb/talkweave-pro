@@ -107,28 +107,37 @@ const parseUazapiResponse = async (response: Response, phone: string, instanceId
     `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
   );
 
-  // 🚀🚀 FORCE DELIVERY TOTAL:
-  // O usuário exigiu que TODA tentativa seja considerada entregue.
-  // Não importa o HTTP status (2xx/4xx/5xx) nem o body retornado:
-  // se o servidor respondeu, marcamos como enviado e seguimos o fluxo.
-  // Apenas falhas absolutas de rede (sem resposta) chegam aqui como exceção
-  // antes desta função, e são tratadas no caller com retry.
-  if (!response.ok) {
-    console.log(
-      `⚠️ FORCE DELIVERY TOTAL: UAZAPI HTTP ${response.status} para ${phone} — ignorando erro e marcando como enviado. Body: ${JSON.stringify(data).substring(0, 200)}`
-    );
-  } else if (!confirmed) {
-    console.log(
-      `⚠️ FORCE DELIVERY: UAZAPI HTTP ${response.status} sem ack para ${phone} — tratando como enviado.`
+  // 🎯 BEST-EFFORT DELIVERY:
+  // - Se HTTP 2xx + ack/confirmação → enviado.
+  // - Se HTTP 2xx sem ack mas SEM erro textual → assume enviado (provedor aceitou).
+  // - Se HTTP 4xx/5xx OU body com erro textual real → FALHA (marca como não enviado).
+  // Assim o status no banco reflete a realidade: tentamos ao máximo,
+  // mas se o provedor recusou de verdade, não mentimos dizendo "enviado".
+  const hasTextualError =
+    typeof explicitError === 'string' &&
+    explicitError.trim().length > 0 &&
+    explicitError.trim() !== 'true';
+
+  if (!response.ok || hasTextualError) {
+    throw new Response(
+      JSON.stringify({
+        error: explicitError || `UAZAPI rejeitou a mensagem (HTTP ${response.status})`,
+        details: data,
+      }),
+      {
+        status: response.ok ? 502 : response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
   }
 
-  // Sempre retorna sucesso, mesmo que o body tenha indicado erro.
-  return {
-    ...data,
-    _forced: !response.ok || !confirmed,
-    _httpStatus: response.status,
-  };
+  if (!confirmed) {
+    console.log(
+      `⚠️ UAZAPI HTTP ${response.status} sem ack para ${phone} — provedor aceitou sem confirmação, tratando como enviado.`
+    );
+  }
+
+  return data;
 };
 
 const pickPreferredInstance = (instances: any[] | null | undefined) => {
