@@ -575,12 +575,32 @@ const Modelos = () => {
   };
 
   const handleUpdateTemplate = async () => {
-    if (!editFormData.name || !editFormData.category || !editFormData.content) {
+    if (!editFormData.name || !editFormData.category) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha nome e categoria",
         variant: "destructive",
       });
+      return;
+    }
+    if (!isSpecialType(editFormData.type) && !editFormData.content) {
+      toast({
+        title: "Erro",
+        description: "Preencha o conteúdo do modelo",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editFormData.type === "pix" && (!editFormData.pixKey || !editFormData.pixMerchantName)) {
+      toast({ title: "Erro", description: "Informe a chave PIX e o nome do recebedor", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "localizacao" && (!editFormData.locLatitude || !editFormData.locLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
+      toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
 
@@ -635,11 +655,15 @@ const Modelos = () => {
         }
       }
 
+      const finalContent = isSpecialType(editFormData.type)
+        ? buildSpecialContent(editFormData.type, editFormData)
+        : editFormData.content;
+
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
         type: editFormData.type,
-        content: editFormData.content,
+        content: finalContent,
         header: editFormData.header,
         footer: editFormData.footer,
         variables,
