@@ -605,7 +605,8 @@ const EnviarMensagem = () => {
             .replace(/\{numero\}/g, contato.telefone);
 
           const temMidia = !!arquivoMidia;
-          const temBotoes = !specialTpl && modeloData?.buttons && modeloData.buttons.length > 0;
+          const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
+          const temBotoes = !specialTpl && !temCarrossel && modeloData?.buttons && modeloData.buttons.length > 0;
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -622,6 +623,8 @@ const EnviarMensagem = () => {
               ...specialTpl,
               description: mensagemPersonalizada || specialTpl.description,
             });
+          } else if (temCarrossel) {
+            await sendCarousel(contato.telefone, modeloData!.carouselCards as any, mensagemPersonalizada);
           } else if (temMidia) {
             const base64File = await convertToBase64(arquivoMidia);
             const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
@@ -647,6 +650,8 @@ const EnviarMensagem = () => {
           
           if (specialTpl) {
             // Already sent above via sendSpecialTemplate — skip remaining dispatch.
+          } else if (temCarrossel) {
+            // Already sent above via sendCarousel — skip remaining dispatch.
           } else if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
