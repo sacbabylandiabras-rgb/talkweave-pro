@@ -187,6 +187,13 @@ export const useZapi = () => {
       }>;
       specialType?: 'pix' | 'localizacao' | 'contato';
       specialPayload?: Record<string, any>;
+      carouselCards?: Array<{
+        id?: string;
+        image?: string;
+        title?: string;
+        description?: string;
+        buttons?: Array<{ id?: string; text?: string; type?: string; value?: string }>;
+      }>;
     },
     fallbackMessage: string,
   ) => {
