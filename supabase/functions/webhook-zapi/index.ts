@@ -4382,24 +4382,138 @@ async function sendNodeContent(
         return false;
       }
 
-      // Os tipos abaixo (interactive avançado, media-carousel, request-location,
-      // request-payment, pix) salvam configuração e serão executados na próxima
-      // entrega; por enquanto, registramos um placeholder amigável para não
-      // quebrar o fluxo.
-      if (
-        contentType === "interactive" ||
-        contentType === "media-carousel" ||
-        contentType === "request-location" ||
-        contentType === "request-payment" ||
-        contentType === "pix"
-      ) {
-        const placeholder = content && content.trim()
-          ? content
-          : `[${typeLabelForLog(contentType)}] (em configuração)`;
-        await sendProviderText(
-          placeholder,
-          `Bloco ${targetNode.id} (${contentType} placeholder)`,
+      if (contentType === "interactive") {
+        const kind = String(targetNode.data.interactiveKind || "button");
+        const choices = (targetNode.data.buttons || []).slice(0, 10).map(
+          (b: any, i: number) => {
+            const label = (b.text || `Opção ${i + 1}`).trim();
+            if (b.type === "url" && b.value) return `${label}|url:${b.value}`;
+            if (b.type === "call" && b.value) return `${label}|call:${b.value}`;
+            return `${label}|button-${i}`;
+          },
         );
+        await sendUaz(
+          "/send/menu",
+          {
+            number: normalizedTargetNumber,
+            type: kind,
+            text: content || "Selecione uma opção:",
+            footerText: targetNode.data.footer || undefined,
+            buttonText: targetNode.data.listButtonText || undefined,
+            choices,
+          },
+          `Bloco ${targetNode.id} (interactive:${kind})`,
+        );
+        return true; // pausa aguardando resposta
+      }
+
+      if (contentType === "media-carousel") {
+        let cards: any[] = [];
+        try {
+          cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
+        } catch {
+          cards = [];
+        }
+        await sendUaz(
+          "/send/media-carousel",
+          { number: normalizedTargetNumber, cards },
+          `Bloco ${targetNode.id} (media-carousel)`,
+        );
+        return false;
+      }
+
+      if (contentType === "request-location") {
+        await sendUaz(
+          "/send/request-location",
+          {
+            number: normalizedTargetNumber,
+            text: content || "Por favor, compartilhe sua localização.",
+          },
+          `Bloco ${targetNode.id} (request-location)`,
+        );
+        return false;
+      }
+
+      if (contentType === "request-payment" || contentType === "pix") {
+        const source = String(
+          targetNode.data[contentType === "pix" ? "pixSource" : "paymentSource"] || "manual",
+        );
+        const amountReais = parseFloat(
+          String(
+            targetNode.data[contentType === "pix" ? "pixAmount" : "paymentAmount"] || "0",
+          ).replace(",", "."),
+        );
+        const amountCents = Math.round((amountReais || 0) * 100);
+        const description = String(
+          targetNode.data[contentType === "pix" ? "pixDescription" : "paymentDescription"] ||
+            "Pagamento",
+        );
+
+        let brCode = "";
+        let qrCodeImage = "";
+
+        if (source === "gateway" && userId && amountCents > 0) {
+          try {
+            const chargeRes = await fetch(
+              `${supabaseUrl}/functions/v1/gateway-flow-charge`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  userId,
+                  amount: amountCents,
+                  description,
+                  customerName: options?.resumeCaptured?.nome || null,
+                  customerEmail: options?.resumeCaptured?.email || null,
+                  customerPhone: options?.resumeCaptured?.whatsapp || phone,
+                }),
+              },
+            );
+            const chargeData = await chargeRes.json();
+            brCode = chargeData?.brCode || "";
+            qrCodeImage = chargeData?.qrCodeImage || "";
+          } catch (e) {
+            console.error("Falha ao gerar cobrança no gateway:", e);
+          }
+        }
+
+        if (contentType === "pix") {
+          await sendUaz(
+            "/send/pix",
+            {
+              number: normalizedTargetNumber,
+              keyType: targetNode.data.pixKeyType || "random",
+              key: brCode || targetNode.data.pixKey || "",
+              receiver: targetNode.data.pixReceiver || null,
+              amount: amountReais,
+              description,
+            },
+            `Bloco ${targetNode.id} (pix)`,
+          );
+        } else {
+          await sendUaz(
+            "/send/request-payment",
+            {
+              number: normalizedTargetNumber,
+              amount: amountReais,
+              description,
+              receiver: targetNode.data.paymentReceiver || null,
+              brCode: brCode || undefined,
+            },
+            `Bloco ${targetNode.id} (request-payment)`,
+          );
+        }
+
+        // Envia também o copia-cola por texto para facilitar o cliente
+        if (brCode) {
+          await sendProviderText(
+            `📋 PIX Copia e Cola:\n\n${brCode}`,
+            `Bloco ${targetNode.id} (pix copia-cola)`,
+          );
+        }
         return false;
       }
     }
