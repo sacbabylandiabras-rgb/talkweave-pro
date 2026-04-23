@@ -440,7 +440,7 @@ export const useCampaigns = () => {
     try {
       const { data, error } = await supabase
         .from('campaign_sends')
-        .select('status')
+        .select('phone, status')
         .eq('campaign_id', campaignId);
 
       if (error) throw error;
