@@ -8,8 +8,212 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check } from "lucide-react";
+import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// Defaults para os campos especiais (PIX/Localização/Contato)
+const SPECIAL_FIELD_DEFAULTS = {
+  pixKey: "",
+  pixKeyType: "cpf",
+  pixAmount: "",
+  pixMerchantName: "",
+  pixCity: "",
+  locLatitude: "",
+  locLongitude: "",
+  locAddress: "",
+  locTitle: "",
+  contactName: "",
+  contactPhone: "",
+};
+
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+
+const buildSpecialContent = (type: string, data: any): string => {
+  const payload: any = { type };
+  if (type === "pix") {
+    payload.pixKey = data.pixKey;
+    payload.pixKeyType = data.pixKeyType;
+    payload.amount = data.pixAmount;
+    payload.merchantName = data.pixMerchantName;
+    payload.city = data.pixCity;
+    payload.description = data.content || "";
+  } else if (type === "localizacao") {
+    payload.latitude = data.locLatitude;
+    payload.longitude = data.locLongitude;
+    payload.address = data.locAddress;
+    payload.title = data.locTitle;
+    payload.description = data.content || "";
+  } else if (type === "contato") {
+    payload.contactName = data.contactName;
+    payload.contactPhone = data.contactPhone;
+    payload.description = data.content || "";
+  }
+  return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+};
+
+const parseSpecialContent = (content: string): any | null => {
+  if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
+const isSpecialType = (type?: string) =>
+  type === "pix" || type === "localizacao" || type === "contato";
+
+// Editor compartilhado para PIX / Localização / Contato
+const SpecialFieldsEditor = ({
+  type,
+  data,
+  onChange,
+}: {
+  type: string;
+  data: any;
+  onChange: (patch: any) => void;
+}) => {
+  if (!isSpecialType(type)) return null;
+
+  if (type === "pix") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <DollarSign className="w-4 h-4" /> Cobrança PIX
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Tipo da chave</Label>
+            <Select value={data.pixKeyType || "cpf"} onValueChange={(v) => onChange({ pixKeyType: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="cnpj">CNPJ</SelectItem>
+                <SelectItem value="email">E-mail</SelectItem>
+                <SelectItem value="phone">Telefone</SelectItem>
+                <SelectItem value="evp">Aleatória (EVP)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Valor (R$) — opcional</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={data.pixAmount || ""}
+              onChange={(e) => onChange({ pixAmount: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Chave PIX *</Label>
+          <Input
+            placeholder="Sua chave PIX"
+            value={data.pixKey || ""}
+            onChange={(e) => onChange({ pixKey: e.target.value })}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Nome do recebedor *</Label>
+            <Input
+              placeholder="Razão social ou nome"
+              maxLength={25}
+              value={data.pixMerchantName || ""}
+              onChange={(e) => onChange({ pixMerchantName: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Cidade</Label>
+            <Input
+              placeholder="Cidade"
+              maxLength={15}
+              value={data.pixCity || ""}
+              onChange={(e) => onChange({ pixCity: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "localizacao") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <MapPin className="w-4 h-4" /> Localização
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Latitude *</Label>
+            <Input
+              placeholder="-23.5505"
+              value={data.locLatitude || ""}
+              onChange={(e) => onChange({ locLatitude: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Longitude *</Label>
+            <Input
+              placeholder="-46.6333"
+              value={data.locLongitude || ""}
+              onChange={(e) => onChange({ locLongitude: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Título</Label>
+          <Input
+            placeholder="Ex: Nosso escritório"
+            value={data.locTitle || ""}
+            onChange={(e) => onChange({ locTitle: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Endereço</Label>
+          <Input
+            placeholder="Av. Paulista, 1000 - São Paulo/SP"
+            value={data.locAddress || ""}
+            onChange={(e) => onChange({ locAddress: e.target.value })}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Dica: pegue as coordenadas no Google Maps clicando com o botão direito no local.
+        </p>
+      </div>
+    );
+  }
+
+  if (type === "contato") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <UserIcon className="w-4 h-4" /> Cartão de contato (vCard)
+        </div>
+        <div>
+          <Label>Nome do contato *</Label>
+          <Input
+            placeholder="Nome completo"
+            value={data.contactName || ""}
+            onChange={(e) => onChange({ contactName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Telefone (com DDI) *</Label>
+          <Input
+            placeholder="+5511999999999"
+            value={data.contactPhone || ""}
+            onChange={(e) => onChange({ contactPhone: e.target.value })}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
@@ -30,6 +234,12 @@ const getTemplateIcon = (type?: string) => {
       return <FileType className="w-5 h-5 text-primary" />;
     case "carrossel":
       return <Menu className="w-5 h-5 text-primary" />;
+    case "pix":
+      return <DollarSign className="w-5 h-5 text-primary" />;
+    case "localizacao":
+      return <MapPin className="w-5 h-5 text-primary" />;
+    case "contato":
+      return <UserIcon className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -49,6 +259,9 @@ const getTypeFriendlyName = (type?: string) => {
     imagem_botoes: "Imagem c/ Botões",
     documento: "Documento",
     carrossel: "Carrossel",
+    pix: "PIX",
+    localizacao: "Localização",
+    contato: "Contato (vCard)",
   };
   return names[type || "texto"] || "Texto";
 };
@@ -225,6 +438,20 @@ const Modelos = () => {
       description: string;
       buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
     }>,
+    // Campos específicos PIX
+    pixKey: "",
+    pixKeyType: "cpf",
+    pixAmount: "",
+    pixMerchantName: "",
+    pixCity: "",
+    // Localização
+    locLatitude: "",
+    locLongitude: "",
+    locAddress: "",
+    locTitle: "",
+    // Contato (vCard)
+    contactName: "",
+    contactPhone: "",
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -246,6 +473,17 @@ const Modelos = () => {
       description: string;
       buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
     }>,
+    pixKey: "",
+    pixKeyType: "cpf",
+    pixAmount: "",
+    pixMerchantName: "",
+    pixCity: "",
+    locLatitude: "",
+    locLongitude: "",
+    locAddress: "",
+    locTitle: "",
+    contactName: "",
+    contactPhone: "",
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -321,12 +559,33 @@ const Modelos = () => {
   });
 
   const handleCreateTemplate = async () => {
-    if (!newTemplate.name || !newTemplate.category || !newTemplate.content) {
+    if (!newTemplate.name || !newTemplate.category) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha nome e categoria",
         variant: "destructive",
       });
+      return;
+    }
+    if (!isSpecialType(newTemplate.type) && !newTemplate.content) {
+      toast({
+        title: "Erro",
+        description: "Preencha o conteúdo do modelo",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Validações por tipo especial
+    if (newTemplate.type === "pix" && (!newTemplate.pixKey || !newTemplate.pixMerchantName)) {
+      toast({ title: "Erro", description: "Informe a chave PIX e o nome do recebedor", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "localizacao" && (!newTemplate.locLatitude || !newTemplate.locLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "contato" && (!newTemplate.contactName || !newTemplate.contactPhone)) {
+      toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
 
@@ -381,11 +640,15 @@ const Modelos = () => {
         }
       }
 
+      const finalContent = isSpecialType(newTemplate.type)
+        ? buildSpecialContent(newTemplate.type, newTemplate)
+        : newTemplate.content;
+
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
         type: newTemplate.type,
-        content: newTemplate.content,
+        content: finalContent,
         header: newTemplate.header,
         footer: newTemplate.footer,
         variables,
@@ -397,7 +660,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [] });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -434,11 +697,12 @@ const Modelos = () => {
 
 
   const handleEditTemplate = (template: any) => {
+    const special = parseSpecialContent(template.content) || {};
     setEditFormData({
       name: template.name,
       category: template.category,
       type: template.type || "texto",
-      content: template.content,
+      content: special.description ?? template.content,
       header: template.header || "",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
@@ -447,17 +711,48 @@ const Modelos = () => {
       buttons: template.buttons || [],
       listItems: template.listItems || [],
       carouselCards: template.carouselCards || [],
+      pixKey: special.pixKey || "",
+      pixKeyType: special.pixKeyType || "cpf",
+      pixAmount: special.amount || "",
+      pixMerchantName: special.merchantName || "",
+      pixCity: special.city || "",
+      locLatitude: special.latitude || "",
+      locLongitude: special.longitude || "",
+      locAddress: special.address || "",
+      locTitle: special.title || "",
+      contactName: special.contactName || "",
+      contactPhone: special.contactPhone || "",
     });
     setEditingTemplate(template.id);
   };
 
   const handleUpdateTemplate = async () => {
-    if (!editFormData.name || !editFormData.category || !editFormData.content) {
+    if (!editFormData.name || !editFormData.category) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha nome e categoria",
         variant: "destructive",
       });
+      return;
+    }
+    if (!isSpecialType(editFormData.type) && !editFormData.content) {
+      toast({
+        title: "Erro",
+        description: "Preencha o conteúdo do modelo",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editFormData.type === "pix" && (!editFormData.pixKey || !editFormData.pixMerchantName)) {
+      toast({ title: "Erro", description: "Informe a chave PIX e o nome do recebedor", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "localizacao" && (!editFormData.locLatitude || !editFormData.locLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
+      toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
 
@@ -512,11 +807,15 @@ const Modelos = () => {
         }
       }
 
+      const finalContent = isSpecialType(editFormData.type)
+        ? buildSpecialContent(editFormData.type, editFormData)
+        : editFormData.content;
+
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
         type: editFormData.type,
-        content: editFormData.content,
+        content: finalContent,
         header: editFormData.header,
         footer: editFormData.footer,
         variables,
@@ -529,7 +828,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -537,7 +836,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -684,12 +983,21 @@ const Modelos = () => {
                       <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
                       <SelectItem value="documento">documento</SelectItem>
                       <SelectItem value="carrossel">carrossel</SelectItem>
+                      <SelectItem value="pix">PIX (cobrança)</SelectItem>
+                      <SelectItem value="localizacao">localização</SelectItem>
+                      <SelectItem value="contato">contato (vCard)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
                     ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
                   </p>
                 </div>
+
+                <SpecialFieldsEditor
+                  type={newTemplate.type}
+                  data={newTemplate}
+                  onChange={(patch) => setNewTemplate(prev => ({ ...prev, ...patch }))}
+                />
 
                 {/* Campos específicos por tipo */}
                 {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
@@ -1303,12 +1611,21 @@ const Modelos = () => {
                   <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
                   <SelectItem value="documento">documento</SelectItem>
                   <SelectItem value="carrossel">carrossel</SelectItem>
+                  <SelectItem value="pix">PIX (cobrança)</SelectItem>
+                  <SelectItem value="localizacao">localização</SelectItem>
+                  <SelectItem value="contato">contato (vCard)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
               </p>
             </div>
+
+            <SpecialFieldsEditor
+              type={editFormData.type}
+              data={editFormData}
+              onChange={(patch) => setEditFormData(prev => ({ ...prev, ...patch }))}
+            />
 
             {/* Campos específicos por tipo - Edição */}
             {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
