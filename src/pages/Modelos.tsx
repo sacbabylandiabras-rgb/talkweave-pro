@@ -1693,7 +1693,7 @@ const Modelos = () => {
             <CardContent className="flex-1 flex flex-col justify-between pt-0">
               <div>
                 <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
-                  {template.content}
+                  {getDisplayContent(template)}
                 </p>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {template.header && (
