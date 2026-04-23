@@ -10,28 +10,55 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-
-    const { type, value, instanceId, token, clientToken } = await req.json();
+    const body = await req.json();
+    const { type, value, instanceId, token, clientToken, provider, apiUrl, apiKey } = body;
 
     if (!type || !value) {
       throw new Error('type and value are required');
     }
+    if (type !== 'name' && type !== 'picture') {
+      throw new Error('type must be "name" or "picture"');
+    }
 
-    // Use provided instance credentials or fall back to user defaults
+    // UAZAPI provider
+    if (provider === 'uazapi') {
+      const baseUrl = (apiUrl || '').replace(/\/+$/, '');
+      const instanceToken = apiKey || token;
+      if (!baseUrl || !instanceToken) {
+        throw new Error('UAZAPI: apiUrl e apiKey são obrigatórios');
+      }
+
+      const endpoint = type === 'name' ? '/instance/updateName' : '/instance/updateProfilePicture';
+      const payload = type === 'name' ? { name: value } : { image: value };
+      const url = `${baseUrl}${endpoint}`;
+      console.log(`📱 Updating profile ${type} via UAZAPI: ${url}`);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'token': instanceToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      console.log(`✅ UAZAPI response ${response.status}`, data);
+      if (!response.ok) {
+        const errorMsg = data.message || data.error || `UAZAPI error: ${response.status}`;
+        throw new Error(errorMsg);
+      }
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Z-API (default)
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const finalInstanceId = instanceId || credentials.instanceId;
     const finalToken = token || credentials.token;
     const finalClientToken = clientToken || credentials.clientToken;
 
-    let endpoint = '';
-    if (type === 'name') {
-      endpoint = 'profile-name';
-    } else if (type === 'picture') {
-      endpoint = 'profile-picture';
-    } else {
-      throw new Error('type must be "name" or "picture"');
-    }
-
+    const endpoint = type === 'name' ? 'profile-name' : 'profile-picture';
     const zapiUrl = `https://api.z-api.io/instances/${finalInstanceId}/token/${finalToken}/${endpoint}`;
     console.log(`📱 Updating profile ${type} via Z-API: ${zapiUrl}`);
 
@@ -43,15 +70,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({ value }),
     });
-
     const data = await response.json();
-    console.log(`✅ Z-API response status: ${response.status}`, data);
-
+    console.log(`✅ Z-API response ${response.status}`, data);
     if (!response.ok) {
       const errorMsg = data.message || data.error || `Z-API error: ${response.status}`;
       throw new Error(errorMsg);
     }
-
     return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
