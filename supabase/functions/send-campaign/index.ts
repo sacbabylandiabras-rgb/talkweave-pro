@@ -173,6 +173,27 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getZapiAckId = (payload: any) => payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 const getZapiExplicitError = (payload: any) => payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
+
+// Detect WhatsApp rate-limit / temporary restriction errors (e.g. error 463).
+// When this happens, sending more messages will only deepen the block,
+// so we must pause the campaign immediately and let the user retry later.
+const isWhatsAppRateLimitError = (payload: any, httpStatus?: number): boolean => {
+  const haystack = JSON.stringify(payload || {}).toLowerCase();
+  if (!haystack) return false;
+  return (
+    haystack.includes('error 463') ||
+    haystack.includes('"code":463') ||
+    haystack.includes('temporary restriction') ||
+    haystack.includes('temporarily restricted') ||
+    haystack.includes('currently connected account is under') ||
+    haystack.includes('sending volume or quality') ||
+    haystack.includes('rate limit') ||
+    haystack.includes('rate-limit') ||
+    haystack.includes('rate_limit') ||
+    httpStatus === 429
+  );
+};
+
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
