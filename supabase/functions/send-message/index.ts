@@ -8,6 +8,10 @@ const getZapiAckId = (payload: any) => {
   return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 };
 
+const getUazapiAckId = (payload: any) => {
+  return getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
+};
+
 const hasExplicitZapiError = (payload: any) => {
   return payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
 };
@@ -15,6 +19,22 @@ const hasExplicitZapiError = (payload: any) => {
 const isZapiSendConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   return Boolean(ackId);
+};
+
+const hasUazapiExplicitError = (payload: any) => {
+  return payload?.error || payload?.erro || payload?.details?.error || (payload?.success === false ? payload?.message : null) || null;
+};
+
+const isUazapiSendConfirmed = (payload: any) => {
+  const ackId = getUazapiAckId(payload);
+  const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || '').toLowerCase();
+
+  return Boolean(
+    ackId ||
+    payload?.queued === true ||
+    payload?.enqueued === true ||
+    ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
+  );
 };
 
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
@@ -30,6 +50,39 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
     throw new Response(
       JSON.stringify({
         error: explicitError || `Z-API did not confirm message acceptance (${label})`,
+        details: data,
+      }),
+      {
+        status: response.ok ? 502 : response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  return data;
+};
+
+const parseUazapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
+  const raw = await response.text();
+  let data: any = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = raw ? { message: raw } : {};
+  }
+
+  const explicitError = hasUazapiExplicitError(data);
+  const confirmed = isUazapiSendConfirmed(data);
+
+  console.log(
+    `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
+  );
+
+  if (!response.ok || explicitError || !confirmed) {
+    throw new Response(
+      JSON.stringify({
+        error: explicitError || `UAZAPI did not confirm message acceptance (${label})`,
         details: data,
       }),
       {
@@ -297,26 +350,46 @@ serve(async (req) => {
           choices,
         };
       } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
-        // UAZAPI tem endpoint nativo /send/carousel
         endpoint = '/send/carousel';
-        const carousel = carouselCards.map((card: any) => {
-          const cardText = [card.title ? card.title : '', card.description || '']
+        const carousel = carouselCards.map((card: any, cardIndex: number) => {
+          const image = String(card?.image || '').trim();
+          const text = [String(card?.title || '').trim(), String(card?.description || '').trim()]
             .filter(Boolean)
             .join('\n');
-          const cardObj: Record<string, unknown> = { text: cardText };
-          if (card.image && String(card.image).trim() !== '') cardObj.image = card.image;
-          if (Array.isArray(card.buttons) && card.buttons.length > 0) {
-            cardObj.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
-              const t = String(b.type || 'REPLY').toUpperCase();
-              const label = b.text || b.label || `Botão ${idx + 1}`;
-              let id = b.id || label;
-              if (t === 'URL' && (b.value || b.url)) id = b.value || b.url;
-              if (t === 'CALL' && (b.value || b.phone)) id = b.value || b.phone;
-              if (t === 'COPY' && (b.value || b.copyText)) id = b.value || b.copyText;
-              return { id: String(id), text: String(label), type: t };
-            });
+          const buttons = Array.isArray(card?.buttons)
+            ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
+                const t = String(b?.type || 'REPLY').toUpperCase();
+                const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
+                let id = b?.id || label;
+                if (t === 'URL' && (b?.value || b?.url)) id = b.value || b.url;
+                if (t === 'CALL' && (b?.value || b?.phone)) id = b.value || b.phone;
+                if (t === 'COPY' && (b?.value || b?.copyText)) id = b.value || b.copyText;
+                return { id: String(id).trim(), text: label, type: t };
+              }).filter((button: any) => button.id && button.text)
+            : [];
+
+          if (!image) {
+            throw new Response(
+              JSON.stringify({ error: `Card ${cardIndex + 1}: imagem obrigatória para carrossel` }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
           }
-          return cardObj;
+
+          if (!text) {
+            throw new Response(
+              JSON.stringify({ error: `Card ${cardIndex + 1}: título ou descrição obrigatórios para carrossel` }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          if (!buttons.length) {
+            throw new Response(
+              JSON.stringify({ error: `Card ${cardIndex + 1}: adicione ao menos 1 botão no carrossel` }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          return { text, image, buttons };
         });
         body = {
           number: targetNumber,
@@ -344,29 +417,8 @@ serve(async (req) => {
         headers: uazHeaders,
         body: JSON.stringify(body),
       });
-      const uazRaw = await uazRes.text();
-      let uazData: any = {};
-      try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+      const uazData = await parseUazapiResponse(uazRes, logPhone, instanceId, endpoint.replace('/send/', ''));
       const uazDuration = Date.now() - uazStartTs;
-
-      if (!uazRes.ok) {
-        await logProviderSend(adminClient, {
-          userId: credentials.userId,
-          provider: 'uazapi',
-          instanceId,
-          phone: logPhone,
-          endpoint,
-          status: 'error',
-          httpStatus: uazRes.status,
-          errorMessage: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`,
-          durationMs: uazDuration,
-          payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
-        });
-        return new Response(
-          JSON.stringify({ error: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`, details: uazData }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const logTag = mediaUrl && mediaType ? `[media:${mediaType}:${mediaUrl}]` : '';

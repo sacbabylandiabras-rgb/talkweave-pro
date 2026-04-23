@@ -637,6 +637,24 @@ const Modelos = () => {
               return;
             }
           }
+
+          if (!card.image || !card.image.trim()) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: imagem é obrigatória`,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          if (!Array.isArray(card.buttons) || card.buttons.length === 0) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: adicione pelo menos 1 botão`,
+              variant: "destructive",
+            });
+            return;
+          }
         }
       }
 
@@ -803,6 +821,24 @@ const Modelos = () => {
               });
               return;
             }
+          }
+
+          if (!card.image || !card.image.trim()) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: imagem é obrigatória`,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          if (!Array.isArray(card.buttons) || card.buttons.length === 0) {
+            toast({
+              title: "Erro",
+              description: `Card ${i + 1}: adicione pelo menos 1 botão`,
+              variant: "destructive",
+            });
+            return;
           }
         }
       }
