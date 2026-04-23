@@ -118,12 +118,12 @@ serve(async (req) => {
 
     // UAZAPI returns the instance object with token
     const inst = data?.instance ?? data
-    const instanceToken: string =
+    const newInstanceToken: string =
       inst?.token || data?.token || inst?.instance?.token || ''
     const instanceId: string =
       inst?.id || inst?.instance_id || data?.id || instanceName
 
-    if (!instanceToken) {
+    if (!newInstanceToken) {
       return new Response(
         JSON.stringify({
           error: 'Não foi possível obter o token da instância criada',
@@ -207,11 +207,11 @@ serve(async (req) => {
         user_id: user.id,
         instance_name: instanceName,
         zapi_instance_id: instanceId,
-        zapi_token: instanceToken,
-        zapi_client_token: instanceToken,
+        zapi_token: newInstanceToken,
+        zapi_client_token: newInstanceToken,
         api_provider: 'uazapi',
         evolution_api_url: baseUrl,
-        evolution_api_key: instanceToken,
+        evolution_api_key: newInstanceToken,
         is_default: isFirst,
         is_active: true,
       })
