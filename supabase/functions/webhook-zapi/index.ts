@@ -3994,7 +3994,12 @@ async function sendNodeContent(
   };
   const content = replaceCapturedVars(targetNode.data.content || "");
   const mediaUrl = targetNode.data.mediaUrl || "";
-  const buttons: Array<{ text: string; type: string; value: string }> =
+  const buttons: Array<{
+    text: string;
+    type: string;
+    value: string;
+    id?: string | number | null;
+  }> =
     targetNode.data.buttons || [];
   console.log(
     `🎥 Node data flags: isPtv=${targetNode.data?.isPtv}, viewOnce=${targetNode.data?.viewOnce}, contentType=${contentType}`,
