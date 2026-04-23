@@ -493,7 +493,6 @@ const Modelos = () => {
     // Contato (vCard)
     contactName: "",
     contactPhone: "",
-    variables: {} as Record<string, any>,
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -526,6 +525,7 @@ const Modelos = () => {
     locTitle: "",
     contactName: "",
     contactPhone: "",
+    variables: {} as Record<string, any>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
