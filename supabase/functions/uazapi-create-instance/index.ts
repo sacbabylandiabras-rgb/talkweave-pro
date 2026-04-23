@@ -37,12 +37,22 @@ serve(async (req) => {
       })
     }
 
-    const { apiUrl, adminToken, instanceName, systemName } = await req.json()
+    const { instanceName, systemName } = await req.json()
 
-    if (!apiUrl || !adminToken || !instanceName) {
+    if (!instanceName) {
       return new Response(
-        JSON.stringify({ error: 'apiUrl, adminToken e instanceName são obrigatórios' }),
+        JSON.stringify({ error: 'O nome da instância é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const apiUrl = Deno.env.get('UAZAPI_SERVER_URL')
+    const adminToken = Deno.env.get('UAZAPI_ADMIN_TOKEN')
+
+    if (!apiUrl || !adminToken) {
+      return new Response(
+        JSON.stringify({ error: 'Servidor não configurado. Contate o suporte.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
