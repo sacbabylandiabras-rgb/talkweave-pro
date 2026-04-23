@@ -37,14 +37,7 @@ serve(async (req) => {
       })
     }
 
-    const { instanceName, systemName } = await req.json()
-
-    if (!instanceName) {
-      return new Response(
-        JSON.stringify({ error: 'O nome da instância é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const { instanceName, systemName, action, instanceToken } = await req.json()
 
     const apiUrl = Deno.env.get('UAZAPI_SERVER_URL')
     const adminToken = Deno.env.get('UAZAPI_ADMIN_TOKEN')
@@ -57,6 +50,38 @@ serve(async (req) => {
     }
 
     const baseUrl = String(apiUrl).replace(/\/+$/, '')
+
+    // Delete action: remove instance from UAZAPI server
+    if (action === 'delete') {
+      if (!instanceToken) {
+        return new Response(
+          JSON.stringify({ error: 'instanceToken é obrigatório para deletar' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      try {
+        const delRes = await fetch(`${baseUrl}/instance/delete`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', token: instanceToken, admintoken: adminToken },
+        })
+        const delText = await delRes.text()
+        console.log(`🗑️ UAZAPI delete → ${delRes.status} ${delText}`)
+      } catch (e) {
+        console.warn('Erro ao deletar na UAZAPI:', e)
+      }
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!instanceName) {
+      return new Response(
+        JSON.stringify({ error: 'O nome da instância é obrigatório' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const initUrl = `${baseUrl}/instance/init`
 
     console.log(`📡 UAZAPI init → ${initUrl} (name=${instanceName})`)

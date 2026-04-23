@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
 import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
@@ -400,6 +401,42 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const isConnected = deviceStatus?.connected === true;
 
   const [showDetails, setShowDetails] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // Try to delete on UAZAPI server first (best-effort)
+      if (instance.api_provider === 'uazapi') {
+        try {
+          await supabase.functions.invoke('uazapi-create-instance', {
+            body: { action: 'delete', instanceToken: instance.evolution_api_key },
+          });
+        } catch (e) {
+          console.warn('Falha ao deletar na UAZAPI (seguindo com remoção local):', e);
+        }
+      }
+
+      const { error } = await supabase
+        .from('zapi_instances')
+        .delete()
+        .eq('id', instance.id);
+      if (error) throw error;
+
+      toast({ title: '🗑️ Instância apagada', description: 'A instância foi removida da sua conta.' });
+      setShowDelete(false);
+      onDeleted?.();
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao apagar',
+        description: err instanceof Error ? err.message : 'Não foi possível apagar a instância.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -525,6 +562,14 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => setShowDetails(!showDetails)}>
             {showDetails ? 'Ocultar' : 'Detalhes'}
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-[11px] px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => setShowDelete(true)}
+          >
+            <Trash2 className="w-3 h-3 mr-1" /> Apagar
+          </Button>
         </div>
 
         {/* Expandable details */}
@@ -624,6 +669,32 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar instância?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove a instância <strong>{instanceName}</strong> da sua conta.
+              Você precisará criar uma nova e escanear o QR Code novamente para reconectar este número.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Apagando...</>
+              ) : (
+                <><Trash2 className="w-4 h-4 mr-1" /> Apagar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
