@@ -1523,6 +1523,412 @@ export default function FluxoVisual() {
                   </Select>
                 </div>
 
+                {/* === UAZAPI: configurações específicas por tipo de mensagem === */}
+                {selectedNode.data.contentType === "contact" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Contato (vCard)</Label>
+                    <Input
+                      placeholder="Nome completo"
+                      value={selectedNode.data.contactName || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, contactName: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Telefone (ex: 5511999999999)"
+                      value={selectedNode.data.contactPhone || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, contactPhone: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Organização (opcional)"
+                      value={selectedNode.data.contactOrg || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, contactOrg: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "location" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Localização Geográfica</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Latitude"
+                        value={selectedNode.data.locationLat || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, locationLat: e.target.value },
+                          })
+                        }
+                      />
+                      <Input
+                        placeholder="Longitude"
+                        value={selectedNode.data.locationLng || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, locationLng: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                    <Input
+                      placeholder="Nome do local (opcional)"
+                      value={selectedNode.data.locationName || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, locationName: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Endereço (opcional)"
+                      value={selectedNode.data.locationAddress || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, locationAddress: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "presence" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Presença</Label>
+                    <Select
+                      value={selectedNode.data.presenceType || "composing"}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, presenceType: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="composing">Digitando…</SelectItem>
+                        <SelectItem value="recording">Gravando áudio…</SelectItem>
+                        <SelectItem value="available">Disponível (online)</SelectItem>
+                        <SelectItem value="unavailable">Indisponível (offline)</SelectItem>
+                        <SelectItem value="paused">Pausar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Duração em segundos (opcional)"
+                      value={selectedNode.data.presenceDuration || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, presenceDuration: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "status" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Status (Stories)</Label>
+                    <Select
+                      value={selectedNode.data.statusKind || "text"}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, statusKind: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Texto</SelectItem>
+                        <SelectItem value="image">Imagem</SelectItem>
+                        <SelectItem value="video">Vídeo</SelectItem>
+                        <SelectItem value="audio">Áudio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {selectedNode.data.statusKind !== "text" && (
+                      <Input
+                        placeholder="URL da mídia"
+                        value={selectedNode.data.mediaUrl || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, mediaUrl: e.target.value },
+                          })
+                        }
+                      />
+                    )}
+                    <Textarea
+                      placeholder="Texto do status / legenda"
+                      rows={3}
+                      value={selectedNode.data.content || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, content: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Cor de fundo hex (opcional, ex: #075E54)"
+                      value={selectedNode.data.statusBg || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, statusBg: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "interactive" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Menu Interativo</Label>
+                    <Select
+                      value={selectedNode.data.interactiveKind || "button"}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, interactiveKind: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="button">Botões (até 3)</SelectItem>
+                        <SelectItem value="list">Lista</SelectItem>
+                        <SelectItem value="poll">Enquete</SelectItem>
+                        <SelectItem value="carousel">Carrossel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      placeholder="Texto da mensagem"
+                      rows={3}
+                      value={selectedNode.data.content || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, content: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Footer (opcional)"
+                      value={selectedNode.data.footer || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, footer: e.target.value },
+                        })
+                      }
+                    />
+                    {selectedNode.data.interactiveKind === "list" && (
+                      <Input
+                        placeholder="Texto do botão da lista (ex: Ver opções)"
+                        value={selectedNode.data.listButtonText || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, listButtonText: e.target.value },
+                          })
+                        }
+                      />
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Configure as opções/itens na seção “Botões” mais abaixo deste editor.
+                    </p>
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "media-carousel" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Carrossel de Mídia</Label>
+                    <Textarea
+                      placeholder='Cole um JSON com os cards. Ex: [{"image":"https://...","title":"...","subtitle":"...","buttons":[{"label":"Ver","url":"https://..."}]}]'
+                      rows={6}
+                      value={selectedNode.data.carouselCardsJson || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, carouselCardsJson: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "request-location" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Solicitar Localização</Label>
+                    <Textarea
+                      placeholder="Mensagem que acompanha o pedido (opcional)"
+                      rows={3}
+                      value={selectedNode.data.content || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, content: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "request-payment" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Solicitar Pagamento</Label>
+                    <Select
+                      value={selectedNode.data.paymentSource || "manual"}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, paymentSource: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">Configurar manualmente</SelectItem>
+                        <SelectItem value="gateway">Gerar cobrança real pelo Gateway</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Valor (R$, ex: 49.90)"
+                      value={selectedNode.data.paymentAmount || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, paymentAmount: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Descrição"
+                      value={selectedNode.data.paymentDescription || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, paymentDescription: e.target.value },
+                        })
+                      }
+                    />
+                    {selectedNode.data.paymentSource === "manual" && (
+                      <Input
+                        placeholder="Recebedor (chave PIX ou conta)"
+                        value={selectedNode.data.paymentReceiver || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, paymentReceiver: e.target.value },
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "pix" && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">Botão PIX</Label>
+                    <Select
+                      value={selectedNode.data.pixSource || "manual"}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, pixSource: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">Chave PIX manual</SelectItem>
+                        <SelectItem value="gateway">Gerar cobrança real pelo Gateway</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {selectedNode.data.pixSource === "manual" && (
+                      <>
+                        <Select
+                          value={selectedNode.data.pixKeyType || "cpf"}
+                          onValueChange={(v) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, pixKeyType: v },
+                            })
+                          }
+                        >
+                          <SelectTrigger><SelectValue placeholder="Tipo da chave" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cpf">CPF</SelectItem>
+                            <SelectItem value="cnpj">CNPJ</SelectItem>
+                            <SelectItem value="email">E-mail</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
+                            <SelectItem value="random">Aleatória</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Chave PIX"
+                          value={selectedNode.data.pixKey || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, pixKey: e.target.value },
+                            })
+                          }
+                        />
+                        <Input
+                          placeholder="Beneficiário"
+                          value={selectedNode.data.pixReceiver || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, pixReceiver: e.target.value },
+                            })
+                          }
+                        />
+                      </>
+                    )}
+                    <Input
+                      placeholder="Valor (R$)"
+                      value={selectedNode.data.pixAmount || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, pixAmount: e.target.value },
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Descrição"
+                      value={selectedNode.data.pixDescription || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, pixDescription: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
                 {(selectedNode.data.contentType === "image" ||
                   selectedNode.data.contentType === "video" ||
                   selectedNode.data.contentType === "audio" ||
