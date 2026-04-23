@@ -914,6 +914,22 @@ const EnviarMensagem = () => {
               buttonLabel: 'Ver opções',
               options: validOptions,
             });
+          } else if (isCopyPasteTemplate) {
+            const copyContent = modeloData?.content || mensagemPersonalizada || '';
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada || copyContent,
+              [
+                {
+                  id: 'copy_btn',
+                  type: 'COPY',
+                  label: 'Copiar',
+                  copyText: copyContent,
+                } as any,
+              ],
+              modeloData?.header || undefined,
+              modeloData?.footer || undefined,
+            );
           } else if (temMidiaModelo) {
             const mediaCaption = legenda || mensagemPersonalizada;
 
