@@ -812,8 +812,6 @@ const Dispositivos = () => {
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
 
-      <ProviderStatusPanel />
-
       {/* Planos */}
       <Card className="border-primary/20">
         <CardHeader>
