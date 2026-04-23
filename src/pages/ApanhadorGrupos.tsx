@@ -122,6 +122,23 @@ const ApanhadorGrupos = () => {
     URL.revokeObjectURL(url);
   };
 
+  const downloadCsv = (groupId: string, groupName: string) => {
+    const numbers = extractedNumbers.get(groupId);
+    if (!numbers || numbers.length === 0) return;
+    const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
+    const header = ['Grupo', 'Telefone'].map(escape).join(',');
+    const rows = numbers.map((phone) => [groupName, phone].map(escape).join(','));
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_leads.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV baixado!');
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -299,6 +316,10 @@ const ApanhadorGrupos = () => {
                           <Button variant="outline" size="sm" onClick={() => downloadNumbers(grupo.id, grupo.nome)}>
                             <Download className="w-4 h-4 mr-1" />
                             Baixar
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => downloadCsv(grupo.id, grupo.nome)}>
+                            <Download className="w-4 h-4 mr-1" />
+                            CSV
                           </Button>
                         </>
                       ) : (
