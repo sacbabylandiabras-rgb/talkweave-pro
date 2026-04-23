@@ -150,6 +150,7 @@ serve(async (req) => {
       isPtv,
       specialType,
       specialPayload,
+      carouselCards,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -157,7 +158,8 @@ serve(async (req) => {
     const hasInteractivePayload =
       (Array.isArray(buttonActions) && buttonActions.length > 0) ||
       (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) ||
-      (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0);
+      (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) ||
+      (Array.isArray(carouselCards) && carouselCards.length > 0);
 
     const hasSpecialPayload = !!specialType && !!specialPayload;
 
