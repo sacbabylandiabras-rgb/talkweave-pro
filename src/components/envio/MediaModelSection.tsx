@@ -305,7 +305,7 @@ const MediaModelSection = ({
                   }
                   return (
                 <div className="flex justify-end">
-                  <div className="bg-accent rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                  <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                     {modeloAtual.type === 'carrossel' && modeloAtual.carouselCards?.length ? (
                       <div className="px-3 py-3 space-y-2">
                         <WhatsAppCarouselPreview
