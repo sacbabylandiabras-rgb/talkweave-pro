@@ -139,10 +139,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         ? (campaignData?.target_audience as any).contacts
         : [];
 
-      const targetPhoneKeys = new Set(
+      const targetPhoneKeys = new Set<string>(
         targetContacts
           .map((contact: any) => normalizePhoneKey(contact?.phone))
-          .filter(Boolean)
+          .filter((phoneKey: string) => Boolean(phoneKey))
       );
 
       const sendsByPhone = new Map<string, CampaignSendRow>();
@@ -203,7 +203,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         campaignData?.status !== 'paused' &&
         campaignData?.status !== 'draft' &&
         effectiveTotal > 0 && 
-        dbTotal >= effectiveTotal && 
         newStats.pending === 0 &&
         (sent + delivered + failed) >= effectiveTotal
       ) {
