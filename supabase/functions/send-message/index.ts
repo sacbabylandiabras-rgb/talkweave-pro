@@ -509,7 +509,54 @@ serve(async (req) => {
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
-    if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+    if (specialType === 'pix' && specialPayload) {
+      // Z-API: /send-payment-pix sends PIX charge with brcode
+      const pixBody: Record<string, unknown> = {
+        phone: resolvedPhone,
+        pixKey: specialPayload.pixKey || '',
+        type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
+        merchantName: specialPayload.merchantName || '',
+      };
+      if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+      if (specialPayload.city) pixBody.city = specialPayload.city;
+      if (specialPayload.description) pixBody.description = specialPayload.description;
+
+      zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(pixBody),
+      });
+      logMessage = `💰 PIX ${specialPayload.merchantName || ''}`.trim();
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'pix');
+    } else if (specialType === 'localizacao' && specialPayload) {
+      zapiResponse = await fetch(`${baseUrl}/send-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          latitude: Number(specialPayload.latitude) || 0,
+          longitude: Number(specialPayload.longitude) || 0,
+          title: specialPayload.title || '',
+          address: specialPayload.address || '',
+        }),
+      });
+      logMessage = `📍 ${specialPayload.title || 'Localização'}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location');
+    } else if (specialType === 'contato' && specialPayload) {
+      const contactPhoneClean = String(specialPayload.contactPhone || '').replace(/\D/g, '');
+      zapiResponse = await fetch(`${baseUrl}/send-contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          contactName: specialPayload.contactName || '',
+          contactPhone: contactPhoneClean,
+          contactBusinessDescription: specialPayload.description || '',
+        }),
+      });
+      logMessage = `👤 ${specialPayload.contactName || 'Contato'}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'contact');
+    } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
 
       // Check if any button is an action type (URL/CALL) — these require /send-button-actions
