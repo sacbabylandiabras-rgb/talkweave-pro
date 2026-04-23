@@ -651,12 +651,18 @@ const EnviarMensagem = () => {
       return;
     }
 
-    if (!mensagem.trim()) {
+    const modeloDataValidation = modeloSelecionado
+      ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
+      : null;
+
+    // Permite envio sem texto manual quando há modelo selecionado (ex: PIX/cobrança, mídia, botões)
+    if (!mensagem.trim() && !modeloDataValidation) {
       toast({
         title: "Mensagem vazia",
-        description: "Digite uma mensagem para enviar",
+        description: "Digite uma mensagem ou selecione um modelo para enviar",
         variant: "destructive"
       });
+      setEnviandoEmMassa(false);
       return;
     }
 
@@ -729,11 +735,12 @@ const EnviarMensagem = () => {
       const currentUserId = session?.user?.id;
 
       if (currentUserId) {
+        const baseMessage = mensagem || modeloDataValidation?.content || modeloDataValidation?.name || 'Modelo';
         const pendingRecords = contatosProcessados.map((c) => ({
           campaign_id: campanha.id,
           phone: c.telefone,
           contact_name: c.nome,
-          message_content: mensagem.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
+          message_content: baseMessage.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
           status: 'pending',
           user_id: currentUserId,
         }));
