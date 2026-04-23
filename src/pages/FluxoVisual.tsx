@@ -1510,6 +1510,15 @@ export default function FluxoVisual() {
                       <SelectItem value="video">Vídeo</SelectItem>
                       <SelectItem value="audio">Áudio</SelectItem>
                       <SelectItem value="document">Documento</SelectItem>
+                      <SelectItem value="contact">Contato (vCard)</SelectItem>
+                      <SelectItem value="location">Localização</SelectItem>
+                      <SelectItem value="presence">Presença (digitando/gravando)</SelectItem>
+                      <SelectItem value="status">Status (Stories)</SelectItem>
+                      <SelectItem value="interactive">Menu Interativo (botões/lista/poll)</SelectItem>
+                      <SelectItem value="media-carousel">Carrossel de Mídia</SelectItem>
+                      <SelectItem value="request-location">Solicitar Localização</SelectItem>
+                      <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                      <SelectItem value="pix">Botão PIX</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
