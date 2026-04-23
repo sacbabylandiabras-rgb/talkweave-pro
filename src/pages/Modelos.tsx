@@ -552,6 +552,7 @@ const Modelos = () => {
     locTitle: "",
     contactName: "",
     contactPhone: "",
+    variables: {} as Record<string, any>,
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -839,11 +840,15 @@ const Modelos = () => {
 
   const handleEditTemplate = (template: any) => {
     const special = parseSpecialContent(template.content) || {};
+    const isSpecialContent = typeof template.content === 'string' && template.content.startsWith(SPECIAL_TEMPLATE_PREFIX);
+    const cleanContent = isSpecialContent
+      ? (special.description ?? "")
+      : (template.content ?? "");
     setEditFormData({
       name: template.name,
       category: template.category,
       type: template.type || "texto",
-      content: special.description ?? template.content,
+      content: cleanContent,
       header: template.header || "",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
@@ -852,6 +857,7 @@ const Modelos = () => {
       buttons: template.buttons || [],
       listItems: template.listItems || [],
       carouselCards: template.carouselCards || [],
+      variables: template.variables || {},
       pixKey: special.pixKey || "",
       pixKeyType: special.pixKeyType || "cpf",
       pixAmount: special.amount || "",
@@ -996,7 +1002,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1031,7 +1037,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS });
   };
 
   const addButton = useCallback((isEdit = false) => {
