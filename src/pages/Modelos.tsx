@@ -2510,7 +2510,13 @@ const Modelos = () => {
                         ))}
                       </div>
                     )}
-                    {previewTemplate.listItems && previewTemplate.listItems.length > 0 && (
+                    {(
+                      (previewTemplate.type === 'lista_opcao'
+                        || previewTemplate.type === 'lista'
+                        || previewTemplate.type === 'lista de opção')
+                      && previewTemplate.listItems
+                      && previewTemplate.listItems.length > 0
+                    ) && (
                       <div className="border-t border-border/30 px-3 py-2">
                         <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
                           📋 Ver opções ({previewTemplate.listItems.length})
