@@ -11,6 +11,58 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Defaults para os campos especiais (PIX/Localização/Contato)
+const SPECIAL_FIELD_DEFAULTS = {
+  pixKey: "",
+  pixKeyType: "cpf",
+  pixAmount: "",
+  pixMerchantName: "",
+  pixCity: "",
+  locLatitude: "",
+  locLongitude: "",
+  locAddress: "",
+  locTitle: "",
+  contactName: "",
+  contactPhone: "",
+};
+
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+
+const buildSpecialContent = (type: string, data: any): string => {
+  const payload: any = { type };
+  if (type === "pix") {
+    payload.pixKey = data.pixKey;
+    payload.pixKeyType = data.pixKeyType;
+    payload.amount = data.pixAmount;
+    payload.merchantName = data.pixMerchantName;
+    payload.city = data.pixCity;
+    payload.description = data.content || "";
+  } else if (type === "localizacao") {
+    payload.latitude = data.locLatitude;
+    payload.longitude = data.locLongitude;
+    payload.address = data.locAddress;
+    payload.title = data.locTitle;
+    payload.description = data.content || "";
+  } else if (type === "contato") {
+    payload.contactName = data.contactName;
+    payload.contactPhone = data.contactPhone;
+    payload.description = data.content || "";
+  }
+  return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+};
+
+const parseSpecialContent = (content: string): any | null => {
+  if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
+const isSpecialType = (type?: string) =>
+  type === "pix" || type === "localizacao" || type === "contato";
+
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
   switch (type) {
