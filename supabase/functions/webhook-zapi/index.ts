@@ -568,6 +568,9 @@ serve(async (req) => {
           selectedButtonId,
           selectedRowId,
         ].find((value) => typeof value === "string" && value.trim()) || "";
+        const hasInteractiveSelection = Boolean(
+          buttonSelectionCandidates || selectedButtonId || selectedRowId,
+        );
         const text = isUazapiStatusUpdate
           ? ""
           : buttonSelectionCandidates || selectedButtonId || selectedRowId ||
@@ -603,6 +606,7 @@ serve(async (req) => {
             eventPayload?.MessageIDs?.[0] || null,
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
           status: messageUpdateStatus || undefined,
+          hasInteractiveSelection,
           text: text || selectedButtonId || selectedRowId
             ? {
               message: text || selectedButtonId || selectedRowId,
@@ -2934,12 +2938,8 @@ serve(async (req) => {
       }
     }
 
-    const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true && fromMe &&
-      Boolean(
-        extractButtonReplyCandidates(webhook)[0] ||
-          webhook?.buttonReply?.selectedRowId || webhook?.buttonReply?.selectedButtonId ||
-          webhook?.text?.selectedRowId || webhook?.text?.selectedButtonId,
-      );
+    const isUazapiInteractiveSelfEcho = webhook?.isUazapi === true &&
+      webhook?.hasInteractiveSelection === true && !fromMe;
 
     if (fromMe && !isUazapiInteractiveSelfEcho) {
       const rawTimestamp = webhook?.momment ?? webhook?.messageTimestamp ??
