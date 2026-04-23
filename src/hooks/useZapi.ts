@@ -453,7 +453,7 @@ export const useZapi = () => {
     setLoading(true);
     
     try {
-      const data = await invokeSendMessageEdge({ phone, mediaUrl: audio, mediaType: 'audio', message: caption || '' }, 'Erro ao enviar áudio');
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: audio, mediaType: 'audio' }, 'Erro ao enviar áudio');
 
       toast({
         title: "Áudio enviado!",
