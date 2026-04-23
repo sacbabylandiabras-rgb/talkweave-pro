@@ -1099,7 +1099,7 @@ const Campanhas = () => {
                 </div>
 
                 {/* Stats grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-6' : 'md:grid-cols-5'} gap-3`}>
                   <div className="p-3 bg-muted/50 rounded-lg text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-bold text-lg">{totalCount}</p>
@@ -1116,6 +1116,16 @@ const Campanhas = () => {
                     <p className="text-xs text-red-600 dark:text-red-400">Canceladas</p>
                     <p className="font-bold text-lg text-red-600 dark:text-red-400">{cancelledCount}</p>
                   </div>
+                  <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Lidas</p>
+                    <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{readCount}</p>
+                  </div>
+                  {statsDialogHasUrlButton && (
+                    <div className="p-3 bg-purple-500/10 rounded-lg text-center">
+                      <p className="text-xs text-purple-600 dark:text-purple-400">Cliques</p>
+                      <p className="font-bold text-lg text-purple-600 dark:text-purple-400">{clickedCount}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Retry cancelled button */}
