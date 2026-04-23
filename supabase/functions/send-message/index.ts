@@ -659,6 +659,41 @@ serve(async (req) => {
       });
       logMessage = logMessage || '📋 Lista de opções';
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
+    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
+      // Z-API: /send-carousel — cards com image, title, description, buttons[]
+      const cards = carouselCards.map((card: any) => {
+        const c: any = {
+          title: card.title || '',
+          description: card.description || '',
+        };
+        if (card.image && String(card.image).trim() !== '') c.image = card.image;
+        if (Array.isArray(card.buttons) && card.buttons.length > 0) {
+          c.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
+            const t = String(b.type || 'REPLY').toUpperCase();
+            const btn: any = {
+              id: b.id || String(idx + 1),
+              type: t,
+              label: b.text || b.label || `Botão ${idx + 1}`,
+            };
+            if (t === 'URL' && (b.value || b.url)) btn.url = b.value || b.url;
+            if (t === 'CALL' && (b.value || b.phone)) btn.phone = b.value || b.phone;
+            return btn;
+          });
+        }
+        return c;
+      });
+      console.log(`📤 Z-API send-carousel for ${resolvedPhone}: ${cards.length} cards`);
+      zapiResponse = await fetch(`${baseUrl}/send-carousel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || '',
+          carousel: cards,
+        }),
+      });
+      logMessage = logMessage || '🎠 Carrossel';
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'carousel');
     } else if (mediaUrl && mediaType) {
       if (mediaType === 'audio') {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
