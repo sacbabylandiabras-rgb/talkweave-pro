@@ -28,26 +28,56 @@ Deno.serve(async (req) => {
         throw new Error('UAZAPI: apiUrl e apiKey são obrigatórios');
       }
 
-      const endpoint = type === 'name' ? '/profile/name' : '/profile/picture';
-      const payload = type === 'name' ? { name: value } : { image: value };
-      const url = `${baseUrl}${endpoint}`;
-      console.log(`📱 Updating profile ${type} via UAZAPI: ${url}`);
+      const attempts = type === 'name'
+        ? [{ endpoint: '/profile/name', method: 'POST', payload: { name: value } }]
+        : [
+            { endpoint: '/profile/picture', method: 'PUT', payload: { image: value } },
+            { endpoint: '/profile/picture', method: 'POST', payload: { image: value } },
+            { endpoint: '/profile/picture', method: 'PUT', payload: { value } },
+            { endpoint: '/profile/picture', method: 'POST', payload: { value } },
+            { endpoint: '/profile-picture', method: 'PUT', payload: { value } },
+            { endpoint: '/profile-picture', method: 'POST', payload: { value } },
+            { endpoint: '/instance/updateProfilePicture', method: 'PUT', payload: { image: value } },
+          ];
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'token': instanceToken,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json().catch(() => ({}));
-      console.log(`✅ UAZAPI response ${response.status}`, data);
-      if (!response.ok) {
-        const errorMsg = data.message || data.error || `UAZAPI error: ${response.status}`;
-        throw new Error(errorMsg);
+      let lastError = 'Unknown UAZAPI error';
+      let successData: unknown = null;
+      let success = false;
+
+      for (const attempt of attempts) {
+        const url = `${baseUrl}${attempt.endpoint}`;
+        console.log(`📱 Updating profile ${type} via UAZAPI: ${attempt.method} ${url}`, attempt.payload);
+
+        const response = await fetch(url, {
+          method: attempt.method,
+          headers: {
+            'Content-Type': 'application/json',
+            'token': instanceToken,
+          },
+          body: JSON.stringify(attempt.payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        console.log(`✅ UAZAPI response ${response.status}`, data);
+
+        if (response.ok) {
+          successData = data;
+          success = true;
+          break;
+        }
+
+        lastError = data.message || data.error || `UAZAPI error: ${response.status}`;
+
+        if (response.status !== 404 && response.status !== 405) {
+          break;
+        }
       }
-      return new Response(JSON.stringify({ success: true, data }), {
+
+      if (!success) {
+        throw new Error(lastError);
+      }
+
+      return new Response(JSON.stringify({ success: true, data: successData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
