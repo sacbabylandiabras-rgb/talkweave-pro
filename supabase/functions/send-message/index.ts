@@ -236,6 +236,32 @@ serve(async (req) => {
           ...(footer ? { footerText: footer } : {}),
           choices,
         };
+      } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
+        const choices = buttonList.buttons.slice(0, 10).map((b: any, idx: number) =>
+          String(b?.label || `Opção ${idx + 1}`).trim()
+        );
+        endpoint = '/send/menu';
+        body = {
+          number: targetNumber,
+          type: 'button',
+          text: message || 'Selecione uma opção:',
+          ...(footer ? { footerText: footer } : {}),
+          choices,
+          ...(buttonList?.image ? { image: buttonList.image } : {}),
+        };
+      } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
+        const choices = optionList.options.slice(0, 10).map((opt: any, idx: number) =>
+          String(opt?.title || opt?.label || opt?.description || `Opção ${idx + 1}`).trim()
+        );
+        endpoint = '/send/menu';
+        body = {
+          number: targetNumber,
+          type: 'list',
+          text: message || optionList?.title || 'Selecione uma opção:',
+          ...(footer ? { footerText: footer } : {}),
+          ...(optionList?.buttonLabel ? { buttonText: optionList.buttonLabel } : {}),
+          choices,
+        };
       } else if (mediaUrl && mediaType) {
         endpoint = '/send/media';
         // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
