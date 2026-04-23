@@ -1014,13 +1014,14 @@ serve(async (req) => {
             { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
         }
 
-        // Check duplicates
+        // Check duplicates / progress already persisted
         const { data: existingSends } = await supabase
           .from('campaign_sends')
           .select('id, status, created_at')
           .eq('campaign_id', campaignId)
           .eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
+        const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
         const phoneOccurrencesBefore = currentBatch.slice(0, i).filter(c => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
@@ -1029,10 +1030,16 @@ serve(async (req) => {
           continue;
         }
 
-        const failedOrPending = [...(existingSends || [])]
-          .filter(s => s.status === 'failed' || s.status === 'pending')
+        if (pendingForPhone > phoneOccurrencesBefore) {
+          console.log(`⏭️ Skipping ${contact.phone} - already accepted/pending callback`);
+          results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
+          continue;
+        }
+
+        const failedOnly = [...(existingSends || [])]
+          .filter(s => s.status === 'failed')
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        reusableSendId = failedOrPending?.id || null;
+        reusableSendId = failedOnly?.id || null;
 
         if (unresolvedLidError) {
           campaignSend = {
