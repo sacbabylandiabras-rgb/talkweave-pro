@@ -936,6 +936,27 @@ const EnviarMensagem = () => {
               modeloData?.header || undefined,
               modeloData?.footer || undefined,
             );
+          } else if (imagemComBotoes) {
+            // 1) imagem, depois 2) texto com botões
+            await sendImage(contato.telefone, modeloData!.mediaUrl!, '');
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada || modeloData?.content || '',
+              modeloData!.buttons!.map((btn: any) => {
+                const buttonType = (btn.type || 'REPLY').toUpperCase();
+                const buttonData: any = {
+                  id: btn.id || btn.text || Math.random().toString(),
+                  type: buttonType,
+                  label: btn.text || btn.label || 'Botão',
+                };
+                if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+                else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+                else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+                return buttonData;
+              }),
+              modeloData?.header || undefined,
+              modeloData?.footer || undefined,
+            );
           } else if (isListTemplate && !temListaOpcoes) {
             throw new Error('Este modelo de lista não possui opções válidas. Edite o modelo e salve pelo menos um item na lista.');
           } else if (temListaOpcoes) {
@@ -1034,6 +1055,8 @@ const EnviarMensagem = () => {
             // Already sent above (audio + buttons) — skip remaining dispatch.
           } else if (videoComBotoes) {
             // Already sent above (video + buttons) — skip remaining dispatch.
+          } else if (imagemComBotoes) {
+            // Already sent above (image + buttons) — skip remaining dispatch.
           } else if (temMidiaModelo) {
             // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
