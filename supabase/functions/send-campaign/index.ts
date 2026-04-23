@@ -188,6 +188,87 @@ const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.i
 
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
+// === UAZAPI dispatch helper ===
+// Sends a campaign message via UAZAPI endpoints. Returns { ok, ack, error, raw }.
+const dispatchUazapiCampaign = async (
+  instance: ResolvedInstance,
+  phone: string,
+  template: any,
+  fullMessage: string,
+  opts: { viewOnce?: boolean; isPtv?: boolean },
+) => {
+  const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
+  const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
+  if (!baseUrl || !headers.token) {
+    return { ok: false, ack: null, error: 'UAZAPI URL/Token não configurados', raw: null };
+  }
+
+  const isGroup = isGroupDestination(phone);
+  const numericGroup = isGroup ? phone.replace(/[@\-].*$/, '').replace(/\D/g, '') : '';
+  const targetNumber = isGroup ? `${numericGroup}@g.us` : phone.replace(/^\+/, '').replace(/\D/g, '');
+
+  const templateType = template?.type || 'texto';
+  const hasMedia = template?.media_url && String(template.media_url).trim() !== '';
+  const hasButtons = Array.isArray(template?.buttons) && template.buttons.length > 0;
+
+  let endpoint = '/send/text';
+  let body: Record<string, unknown> = { number: targetNumber, text: fullMessage };
+
+  const buildChoices = (buttons: any[]) =>
+    buttons.slice(0, 10).map((btn: any, idx: number) => {
+      const label = String(btn?.text || btn?.label || `Opção ${idx + 1}`).trim();
+      const t = String(btn?.type || 'url').toUpperCase();
+      if ((t === 'URL' || t === 'COPY') && (btn?.url || btn?.value)) {
+        const url = String(btn.url || btn.value);
+        return `${label}|${url.startsWith('http') ? url : 'https://' + url}`;
+      }
+      if (t === 'CALL' && (btn?.phone || btn?.value)) return `${label}|${btn.phone || btn.value}`;
+      return label;
+    });
+
+  if (hasMedia && (templateType === 'imagem' || templateType === 'imagem_botoes')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'image', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
+    if (hasButtons && templateType === 'imagem_botoes') {
+      // Send image first, then buttons via /send/menu
+      await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+      endpoint = '/send/menu';
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+    }
+  } else if (hasMedia && (templateType === 'video' || templateType === 'video_botoes')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: opts.isPtv ? 'ptv' : 'video', file: template.media_url, ...(fullMessage && !opts.isPtv ? { text: fullMessage } : {}), ...(opts.viewOnce ? { viewOnce: true } : {}) };
+    if (hasButtons && templateType === 'video_botoes') {
+      await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+      endpoint = '/send/menu';
+      body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+    }
+  } else if (hasMedia && templateType === 'audio') {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'ptt', file: template.media_url };
+  } else if (hasMedia && (templateType === 'documento' || templateType === 'arquivo')) {
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'document', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
+  } else if (hasButtons) {
+    endpoint = '/send/menu';
+    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', choices: buildChoices(template.buttons) };
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const raw = await res.text();
+    let data: any = {};
+    try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+    if (!res.ok) {
+      return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
+    }
+    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
+    return { ok: true, ack, error: null, raw: data };
+  } catch (e) {
+    return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error', raw: null };
+  }
+};
+
 const readDeviceConnectivity = (deviceStatus: any) => {
   const isConnected = deviceStatus?.connected === true ||
     (typeof deviceStatus?.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
