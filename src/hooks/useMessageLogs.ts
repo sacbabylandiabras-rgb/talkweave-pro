@@ -270,7 +270,7 @@ export const useMessageLogs = (
         .from('message_logs')
         .select('*')
         .gte('timestamp', sinceISO)
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
       allData = [...allData, ...(data as unknown as MessageLog[])];
@@ -287,7 +287,7 @@ export const useMessageLogs = (
         .select('*')
         .eq('keyword_matched', '__history_import__')
         .lt('timestamp', sinceISO)
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
 
       if (error || !data) { hasMore = false; break; }
@@ -413,7 +413,7 @@ export const useMessageLogs = (
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
         .in('status', ['sent', 'delivered'])
         .gte('created_at', sinceISO)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
       allData = [...allData, ...data];
