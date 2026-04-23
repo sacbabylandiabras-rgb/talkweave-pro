@@ -92,7 +92,16 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     if (!String(groupId).includes('@g.us')) return null;
 
     let detail: any = null;
-    const fallbackName = group?.subject || group?.name || group?.groupName || group?.title || '';
+    const fallbackName =
+      group?.subject ||
+      group?.name ||
+      group?.groupName ||
+      group?.title ||
+      group?.wa_name ||
+      group?.wa_chatName ||
+      group?.wa_contactName ||
+      group?.pushName ||
+      '';
     if (!isUsableGroupName(fallbackName)) {
       try {
         const infoResponse = await fetch(`${apiUrl}/group/info`, {
@@ -101,12 +110,38 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
             'Content-Type': 'application/json',
             token: apiToken,
           },
-          body: JSON.stringify({ groupjid: groupId }),
+          body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
         });
         detail = await infoResponse.json().catch(() => null);
+        if (!infoResponse.ok) {
+          console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
+        }
       } catch (error) {
         console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
       }
+    }
+
+    const resolvedName =
+      detail?.subject ||
+      detail?.name ||
+      detail?.group?.subject ||
+      detail?.group?.name ||
+      detail?.groupMetadata?.subject ||
+      detail?.data?.subject ||
+      detail?.info?.subject ||
+      detail?.info?.name ||
+      group?.subject ||
+      group?.name ||
+      group?.groupName ||
+      group?.title ||
+      group?.wa_name ||
+      group?.wa_chatName ||
+      group?.wa_contactName ||
+      group?.pushName ||
+      'Grupo sem nome';
+
+    if (resolvedName === 'Grupo sem nome') {
+      console.log(`🔎 UAZAPI group without name. id=${groupId} keys=${Object.keys(group || {}).join(',')} detailKeys=${detail ? Object.keys(detail).join(',') : 'none'}`);
     }
 
     return {
@@ -114,18 +149,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       ...detail,
       id: groupId,
       phone: groupId,
-      name:
-        detail?.subject ||
-        detail?.name ||
-        detail?.group?.subject ||
-        detail?.group?.name ||
-        detail?.groupMetadata?.subject ||
-        detail?.data?.subject ||
-        group?.subject ||
-        group?.name ||
-        group?.groupName ||
-        group?.title ||
-        'Grupo sem nome',
+      name: resolvedName,
       memberCount:
         detail?.participants?.length ||
         detail?.group?.participants?.length ||
