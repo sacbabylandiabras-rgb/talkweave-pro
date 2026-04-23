@@ -173,6 +173,27 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getZapiAckId = (payload: any) => payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 const getZapiExplicitError = (payload: any) => payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
+
+// Detect WhatsApp rate-limit / temporary restriction errors (e.g. error 463).
+// When this happens, sending more messages will only deepen the block,
+// so we must pause the campaign immediately and let the user retry later.
+const isWhatsAppRateLimitError = (payload: any, httpStatus?: number): boolean => {
+  const haystack = JSON.stringify(payload || {}).toLowerCase();
+  if (!haystack) return false;
+  return (
+    haystack.includes('error 463') ||
+    haystack.includes('"code":463') ||
+    haystack.includes('temporary restriction') ||
+    haystack.includes('temporarily restricted') ||
+    haystack.includes('currently connected account is under') ||
+    haystack.includes('sending volume or quality') ||
+    haystack.includes('rate limit') ||
+    haystack.includes('rate-limit') ||
+    haystack.includes('rate_limit') ||
+    httpStatus === 429
+  );
+};
+
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
@@ -1219,6 +1240,29 @@ serve(async (req) => {
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
+
+            // 🚨 WhatsApp rate-limit (error 463 / temporary restriction):
+            // pause the campaign immediately so the remaining contacts stay
+            // pending and can be resumed later when the account recovers.
+            if (isWhatsAppRateLimitError(zapiResult, zapiResponse.status)) {
+              console.log(`🚨 WhatsApp rate-limit detectado (error 463 / temporary restriction). Pausando campanha ${campaignId} para preservar a conta.`);
+              await persistCampaignSend(campaignSend, reusableSendId);
+              await supabase
+                .from('campaigns')
+                .update({ status: 'paused', updated_at: new Date().toISOString() })
+                .eq('id', campaignId);
+              return new Response(JSON.stringify({
+                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
+                stopped: true,
+                paused: true,
+                reason: 'whatsapp_rate_limit',
+                processed: i + 1,
+                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
+              }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders },
+              });
+            }
 
             // Mid-batch disconnection detection: after a send failure, check if device went offline
             try {
