@@ -443,8 +443,8 @@ const MediaModelSection = ({
                             <span className="text-[10px] text-muted-foreground">
                               {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            <Check className="w-3 h-3 text-primary" />
-                            <Check className="w-3 h-3 text-primary -ml-2" />
+                            <Check className="w-3 h-3 text-blue-500" />
+                            <Check className="w-3 h-3 text-blue-500 -ml-2" />
                           </div>
                         </div>
 
@@ -453,7 +453,7 @@ const MediaModelSection = ({
                             {modeloAtual.buttons.map((btn) => (
                               <div
                                 key={btn.id}
-                                className="text-center py-2 text-sm text-primary font-medium border-b border-border/20 last:border-0"
+                                className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0"
                               >
                                 {btn.text}
                               </div>
@@ -476,7 +476,7 @@ const MediaModelSection = ({
 
                           return (
                             <div className="border-t border-border/30 px-3 py-2">
-                              <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
+                              <div className="bg-background/50 rounded p-2 text-center text-sm text-blue-600 dark:text-blue-400 font-medium">
                                 📋 Ver opções ({modeloAtual.listItems.length})
                               </div>
                             </div>
