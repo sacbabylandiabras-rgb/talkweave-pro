@@ -303,6 +303,56 @@ const MediaModelSection = ({
                       </div>
                     );
                   }
+                  // Prévia para Cobrança PIX (template especial)
+                  if (__special && __special.type === 'pix') {
+                    const amount = __special.amount ? `R$ ${Number(String(__special.amount).replace(',', '.')).toFixed(2).replace('.', ',')}` : '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          <div className="px-3 py-2 space-y-2">
+                            <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                              <span className="text-base">💸</span>
+                              <p className="text-sm font-semibold text-foreground">Cobrança PIX</p>
+                            </div>
+                            {amount && (
+                              <p className="text-lg font-bold text-foreground">{amount}</p>
+                            )}
+                            {__special.description && (
+                              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{__special.description}</p>
+                            )}
+                            <div className="rounded-md bg-background/60 border border-border/40 px-2 py-1.5 space-y-0.5">
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                Chave {__special.pixKeyType ? `(${__special.pixKeyType})` : ''}
+                              </p>
+                              <p className="text-xs font-mono text-foreground break-all">{__special.pixKey}</p>
+                            </div>
+                            {__special.city && (
+                              <p className="text-[11px] text-muted-foreground">📍 {__special.city}</p>
+                            )}
+                            <div className="flex items-center justify-end gap-1 pt-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <Check className="w-3 h-3 text-blue-500" />
+                              <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                            </div>
+                          </div>
+                          {modeloAtual.buttons && modeloAtual.buttons.length > 0 && (
+                            <div className="border-t border-border/30">
+                              {modeloAtual.buttons.map((btn) => (
+                                <div
+                                  key={btn.id}
+                                  className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-border/20 last:border-0 flex items-center justify-center gap-1"
+                                >
+                                  <Copy className="w-3 h-3" /> {btn.text}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                 <div className="flex justify-end">
                   <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
