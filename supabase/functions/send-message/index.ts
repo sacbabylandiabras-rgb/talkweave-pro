@@ -251,6 +251,7 @@ serve(async (req) => {
       }
 
       console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${targetNumber}`);
+      const uazStartTs = Date.now();
       const uazRes = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: uazHeaders,
@@ -259,8 +260,21 @@ serve(async (req) => {
       const uazRaw = await uazRes.text();
       let uazData: any = {};
       try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+      const uazDuration = Date.now() - uazStartTs;
 
       if (!uazRes.ok) {
+        await logProviderSend(adminClient, {
+          userId: credentials.userId,
+          provider: 'uazapi',
+          instanceId,
+          phone: logPhone,
+          endpoint,
+          status: 'error',
+          httpStatus: uazRes.status,
+          errorMessage: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`,
+          durationMs: uazDuration,
+          payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
+        });
         return new Response(
           JSON.stringify({ error: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`, details: uazData }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -278,6 +292,18 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         user_id: credentials.userId,
         instance_id: instanceId,
+      });
+
+      await logProviderSend(adminClient, {
+        userId: credentials.userId,
+        provider: 'uazapi',
+        instanceId,
+        phone: logPhone,
+        endpoint,
+        status: 'success',
+        httpStatus: uazRes.status,
+        durationMs: uazDuration,
+        payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
       });
 
       return new Response(
