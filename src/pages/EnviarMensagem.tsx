@@ -234,7 +234,10 @@ const EnviarMensagem = () => {
     }
 
     if (isCopyPasteTemplate) {
-      const copyContent = modeloData?.content || mensagemPersonalizada || '';
+      const copyContent = (modeloData?.header && modeloData.header.trim())
+        || modeloData?.content
+        || mensagemPersonalizada
+        || '';
       await sendButtonActions(
         phone,
         mensagemPersonalizada || copyContent,
@@ -246,7 +249,7 @@ const EnviarMensagem = () => {
             copyText: copyContent,
           } as any,
         ],
-        modeloData?.header || undefined,
+        undefined,
         modeloData?.footer || undefined,
       );
       return mensagemPersonalizada || modeloData?.name || 'Mensagem copia e cola enviada';
@@ -915,7 +918,10 @@ const EnviarMensagem = () => {
               options: validOptions,
             });
           } else if (isCopyPasteTemplate) {
-            const copyContent = modeloData?.content || mensagemPersonalizada || '';
+            const copyContent = (modeloData?.header && modeloData.header.trim())
+              || modeloData?.content
+              || mensagemPersonalizada
+              || '';
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada || copyContent,
@@ -927,7 +933,7 @@ const EnviarMensagem = () => {
                   copyText: copyContent,
                 } as any,
               ],
-              modeloData?.header || undefined,
+              undefined,
               modeloData?.footer || undefined,
             );
           } else if (temMidiaModelo) {
