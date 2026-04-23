@@ -290,7 +290,7 @@ const resolveFromMe = (webhook: any): boolean => {
 
 const mapCampaignSendStatusFromWebhook = (
   webhook: any,
-): "sent" | "delivered" | null => {
+): "sent" | "delivered" | "read" | null => {
   const webhookType = String(webhook?.type || "");
   const webhookStatus = String(webhook?.status || "").toUpperCase();
   const fromMe = resolveFromMe(webhook);
@@ -300,6 +300,9 @@ const mapCampaignSendStatusFromWebhook = (
     if (webhookStatus === "SENT") return "sent";
     if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") {
       return "delivered";
+    }
+    if (webhookStatus === "READ" || webhookStatus === "PLAYED") {
+      return "read";
     }
   }
   // For ReceivedCallback with fromMe: treat as delivery confirmation
