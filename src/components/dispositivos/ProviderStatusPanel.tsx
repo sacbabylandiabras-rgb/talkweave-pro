@@ -76,8 +76,8 @@ export const ProviderStatusPanel = () => {
                 </Badge>
               </div>
               <div className="flex gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> {stats[p].ok}</span>
-                <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-red-500" /> {stats[p].err}</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-primary" /> {stats[p].ok}</span>
+                <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> {stats[p].err}</span>
               </div>
             </div>
           ))}
