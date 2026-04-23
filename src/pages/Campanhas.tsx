@@ -1148,6 +1148,8 @@ const Campanhas = () => {
                         <TableHead>Contato</TableHead>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Lida</TableHead>
+                        {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
                         <TableHead>Data</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1173,6 +1175,26 @@ const Campanhas = () => {
                               <p className="text-xs text-destructive mt-1">{contact.errorMessage}</p>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {contact.readAt ? (
+                              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 flex items-center gap-1 w-fit">
+                                <CheckCircle className="w-3 h-3" /> Lida
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          {statsDialogHasUrlButton && (
+                            <TableCell>
+                              {contact.clickedAt ? (
+                                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
+                                  <CheckCircle className="w-3 h-3" /> Clicou
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          )}
                           <TableCell className="text-xs text-muted-foreground">
                             {contact.sentAt ? format(new Date(contact.sentAt), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
                           </TableCell>
