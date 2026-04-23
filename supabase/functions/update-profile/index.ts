@@ -74,6 +74,9 @@ Deno.serve(async (req) => {
       const attempts = type === 'name'
         ? [{ endpoint: '/profile/name', method: 'POST', payload: { name: value } }]
         : [
+            { endpoint: '/profile/image', method: 'POST', payload: { image: imagePayload } },
+            { endpoint: '/profile/image', method: 'POST', payload: { Image: imagePayload } },
+            { endpoint: '/profile/image', method: 'POST', payload: { value: imagePayload } },
             { endpoint: '/profile/picture', method: 'PUT', payload: { image: imagePayload } },
             { endpoint: '/profile/picture', method: 'POST', payload: { image: imagePayload } },
             { endpoint: '/profile/picture', method: 'PUT', payload: { value: imagePayload } },
