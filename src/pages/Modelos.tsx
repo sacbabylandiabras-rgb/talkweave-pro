@@ -483,7 +483,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [] });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -520,11 +520,12 @@ const Modelos = () => {
 
 
   const handleEditTemplate = (template: any) => {
+    const special = parseSpecialContent(template.content) || {};
     setEditFormData({
       name: template.name,
       category: template.category,
       type: template.type || "texto",
-      content: template.content,
+      content: special.description ?? template.content,
       header: template.header || "",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
@@ -533,6 +534,17 @@ const Modelos = () => {
       buttons: template.buttons || [],
       listItems: template.listItems || [],
       carouselCards: template.carouselCards || [],
+      pixKey: special.pixKey || "",
+      pixKeyType: special.pixKeyType || "cpf",
+      pixAmount: special.amount || "",
+      pixMerchantName: special.merchantName || "",
+      pixCity: special.city || "",
+      locLatitude: special.latitude || "",
+      locLongitude: special.longitude || "",
+      locAddress: special.address || "",
+      locTitle: special.title || "",
+      contactName: special.contactName || "",
+      contactPhone: special.contactPhone || "",
     });
     setEditingTemplate(template.id);
   };
@@ -615,7 +627,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -623,7 +635,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [] });
+    setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
   };
 
   const addButton = useCallback((isEdit = false) => {
