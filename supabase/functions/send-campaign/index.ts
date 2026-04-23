@@ -882,6 +882,7 @@ serve(async (req) => {
         const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
         const campaignViewOnce = campaign.target_audience?.viewOnce === true;
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
+        const specialTpl = parseSpecialTemplate(campaign.template.content);
 
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
@@ -889,6 +890,22 @@ serve(async (req) => {
 
         // === UAZAPI ROUTING (short-circuit) ===
         if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
+          if (specialTpl) {
+            const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl);
+            if (uazSpecial.ok) {
+              const awaitingGroupCallback = isGroupDestination(contact.phone);
+              campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+              if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+              results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = uazSpecial.error || 'UAZAPI special envio falhou';
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            }
+            await persistCampaignSend(campaignSend, reusableSendId);
+            if (i < currentBatch.length - 1) await sleep(delayMs);
+            continue;
+          }
           const uazResult = await dispatchUazapiCampaign(
             currentInstance,
             contact.phone,
@@ -919,7 +936,12 @@ serve(async (req) => {
         let zapiUrl: string = '';
         let requestBody: any = {};
 
-        if (templateType === 'carrossel' && hasCarouselCards) {
+        if (specialTpl) {
+          const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+          const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
+          zapiUrl = url;
+          requestBody = specialBody;
+        } else if (templateType === 'carrossel' && hasCarouselCards) {
           const carouselCards = campaign.template.carousel_cards.map((card: any) => {
             const cardData: any = { title: card.title || '', description: card.description || '' };
             if (card.image && card.image.trim() !== '') cardData.image = card.image;
