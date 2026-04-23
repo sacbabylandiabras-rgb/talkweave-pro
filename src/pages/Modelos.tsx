@@ -645,6 +645,15 @@ const Modelos = () => {
       return;
     }
 
+    const validListItems = Array.isArray(newTemplate.listItems)
+      ? newTemplate.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (newTemplate.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
+      return;
+    }
+
     try {
       // Extract variables from content
       const variableMatches = newTemplate.content.match(/{([^}]+)}/g);
@@ -836,6 +845,15 @@ const Modelos = () => {
     }
     if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
+      return;
+    }
+
+    const validListItems = Array.isArray(editFormData.listItems)
+      ? editFormData.listItems.filter(item => item.title.trim() !== "")
+      : [];
+
+    if (editFormData.type === "lista_opcao" && validListItems.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item na lista de opções", variant: "destructive" });
       return;
     }
 
