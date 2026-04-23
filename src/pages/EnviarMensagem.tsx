@@ -727,6 +727,7 @@ const EnviarMensagem = () => {
           const temMidia = !!arquivoMidia;
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
           const temBotoes = !specialTpl && !temCarrossel && modeloData?.buttons && modeloData.buttons.length > 0;
+          const temMidiaModelo = !specialTpl && !temCarrossel && !temBotoes && !!modeloData?.mediaUrl;
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -745,6 +746,25 @@ const EnviarMensagem = () => {
             });
           } else if (temCarrossel) {
             await sendCarousel(contato.telefone, modeloData!.carouselCards as any, mensagemPersonalizada);
+          } else if (temMidiaModelo) {
+            const mediaCaption = legenda || mensagemPersonalizada;
+            const templateType = modeloData?.type || 'imagem';
+
+            if (templateType === 'audio') {
+              await sendAudio(contato.telefone, modeloData!.mediaUrl!, mediaCaption);
+            } else if (templateType === 'video' || templateType === 'video_botoes') {
+              await sendVideo(contato.telefone, modeloData!.mediaUrl!, mediaCaption, viewOnce, isPtv);
+            } else if (templateType === 'arquivo' || templateType === 'documento') {
+              await sendDocument(
+                contato.telefone,
+                modeloData!.mediaUrl!,
+                modeloData?.fileName || 'arquivo',
+                modeloData?.fileType?.split('/').pop() || 'txt',
+                mediaCaption,
+              );
+            } else {
+              await sendImage(contato.telefone, modeloData!.mediaUrl!, mediaCaption);
+            }
           } else if (temMidia) {
             const base64File = await convertToBase64(arquivoMidia);
             const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
@@ -772,6 +792,8 @@ const EnviarMensagem = () => {
             // Already sent above via sendSpecialTemplate — skip remaining dispatch.
           } else if (temCarrossel) {
             // Already sent above via sendCarousel — skip remaining dispatch.
+          } else if (temMidiaModelo) {
+            // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
