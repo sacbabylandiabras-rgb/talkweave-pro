@@ -1112,7 +1112,7 @@ const Modelos = () => {
                   <Label htmlFor="template-type">Tipo de Template</Label>
                   <Select
                     value={newTemplate.type}
-                    onValueChange={(value) => setNewTemplate(prev => ({ ...prev, type: value }))}
+                    onValueChange={(value) => setNewTemplate(prev => sanitizeTemplateTypeChange(value, prev))}
                   >
                     <SelectTrigger id="template-type">
                       <SelectValue placeholder="Selecione o tipo" />
@@ -1740,7 +1740,7 @@ const Modelos = () => {
               <Label htmlFor="edit-template-type">Tipo de Template</Label>
               <Select
                 value={editFormData.type}
-                onValueChange={(value) => setEditFormData(prev => ({ ...prev, type: value }))}
+                onValueChange={(value) => setEditFormData(prev => sanitizeTemplateTypeChange(value, prev))}
               >
                 <SelectTrigger id="edit-template-type">
                   <SelectValue placeholder="Selecione o tipo" />
