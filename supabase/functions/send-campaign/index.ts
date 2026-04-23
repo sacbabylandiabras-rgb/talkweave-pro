@@ -807,9 +807,9 @@ serve(async (req) => {
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
 
-      // Resolve @lid identifiers to real phone numbers before sending.
-      // UAZAPI/WhatsApp returns LinkedIDs (e.g. "12345@lid") for some group participants.
-      // These cannot be used as send targets — they must be mapped to real phones via message_logs.
+      // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
+      // If resolution fails, we still send (contact is labeled as "Número desconhecido"
+      // until they reply, at which point webhook-zapi creates the lid→phone mapping).
       if (contact.phone && contact.phone.includes('@lid') && !isGroupDestination(contact.phone)) {
         const lidId = contact.phone;
         const { data: lidMapping } = await supabase
@@ -825,22 +825,8 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${lidMapping.phone}`);
           contact.phone = lidMapping.phone;
         } else {
-          console.log(`⚠️ Cannot resolve @lid ${lidId} — skipping contact (not on WhatsApp as direct target)`);
-          const skipRecord: CampaignSendRecord = {
-            campaign_id: campaignId,
-            phone: lidId,
-            contact_name: contact.name || null,
-            message_content: '',
-            status: 'failed',
-            error_message: 'Identificador @lid não pôde ser resolvido para um número real do WhatsApp. Este contato precisa enviar uma mensagem primeiro para que o número seja mapeado.',
-            user_id: credentials.userId,
-            instance_name: null,
-            sent_at: null,
-            delivered_at: null,
-          };
-          await persistCampaignSend(skipRecord, null);
-          results.push({ phone: lidId, success: false, error: skipRecord.error_message });
-          continue;
+          console.log(`📤 Sending to unresolved @lid ${lidId} — labeled as "Número desconhecido"`);
+          if (!contact.name) contact.name = 'Número desconhecido';
         }
       }
 
