@@ -296,6 +296,44 @@ serve(async (req) => {
           ...(optionList?.buttonLabel ? { buttonText: optionList.buttonLabel } : {}),
           choices,
         };
+      } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
+        // UAZAPI não tem carrossel nativo — envia cada card como mídia (image) com caption
+        console.log(`📤 UAZAPI carousel fallback → enviando ${carouselCards.length} cards sequencialmente`);
+        const results: any[] = [];
+        for (let idx = 0; idx < carouselCards.length; idx++) {
+          const card = carouselCards[idx];
+          const captionLines = [
+            card.title ? `*${card.title}*` : '',
+            card.description || '',
+          ].filter(Boolean);
+          if (Array.isArray(card.buttons) && card.buttons.length > 0) {
+            captionLines.push('');
+            card.buttons.forEach((b: any, i: number) => {
+              const lbl = b.text || b.label || `Botão ${i + 1}`;
+              const val = b.value || b.url || b.phone || '';
+              captionLines.push(val ? `${i + 1}. ${lbl}: ${val}` : `${i + 1}. ${lbl}`);
+            });
+          }
+          const cardCaption = captionLines.join('\n');
+          const cardEndpoint = card.image ? '/send/media' : '/send/text';
+          const cardBody: Record<string, unknown> = card.image
+            ? { number: targetNumber, type: 'image', file: card.image, text: cardCaption }
+            : { number: targetNumber, text: cardCaption };
+          const r = await fetch(`${apiUrl}${cardEndpoint}`, {
+            method: 'POST',
+            headers: uazHeaders,
+            body: JSON.stringify(cardBody),
+          });
+          const rt = await r.text();
+          let rd: any = {}; try { rd = JSON.parse(rt); } catch { rd = { message: rt }; }
+          results.push({ ok: r.ok, status: r.status, data: rd });
+          if (idx < carouselCards.length - 1) await new Promise((res) => setTimeout(res, 800));
+        }
+        const allOk = results.every((r) => r.ok);
+        return new Response(
+          JSON.stringify({ success: allOk, provider: 'uazapi', carousel: true, results }),
+          { status: allOk ? 200 : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       } else if (mediaUrl && mediaType) {
         endpoint = '/send/media';
         // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
