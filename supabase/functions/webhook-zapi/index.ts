@@ -73,6 +73,7 @@ interface PendingButtonState {
     text: string;
     handleAliases: string[];
     index: number;
+    menuIndex?: number;
   }>;
   captured?: {
     nome?: string;
