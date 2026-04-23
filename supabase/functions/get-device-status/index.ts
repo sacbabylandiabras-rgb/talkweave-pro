@@ -35,14 +35,21 @@ serve(async (req) => {
       if (userError || !user) throw new Error('Unauthorized');
 
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      const { data: instance, error: instError } = await adminClient
+      const { data: byTableId, error: byTableIdError } = await adminClient
         .from('zapi_instances')
         .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', specificInstanceId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (instError || !instance) throw new Error('Instance not found');
+      const instance = byTableId || (await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+        .eq('zapi_instance_id', specificInstanceId)
+        .eq('user_id', user.id)
+        .maybeSingle()).data;
+
+      if ((byTableIdError && !byTableId) || !instance) throw new Error('Instance not found');
 
       // UAZAPI provider routing
       if ((instance as any).api_provider === 'uazapi') {
@@ -89,11 +96,76 @@ serve(async (req) => {
 
     // Default credentials path
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    const authHeader = req.headers.get('authorization');
 
-    const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/status`;
+    if (!authHeader) throw new Error('No authorization header');
+
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized');
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: preferredInstance } = await adminClient
+      .from('zapi_instances')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    const fallbackInstance = preferredInstance || (await adminClient
+      .from('zapi_instances')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()).data;
+
+    const activeInstance = fallbackInstance || {
+      zapi_instance_id: credentials.instanceId,
+      zapi_token: credentials.token,
+      zapi_client_token: credentials.clientToken,
+      api_provider: null,
+      evolution_api_url: null,
+      evolution_api_key: null,
+    };
+
+    if ((activeInstance as any).api_provider === 'uazapi') {
+      const apiUrl = String((activeInstance as any).evolution_api_url || '').replace(/\/+$/, '');
+      const apiToken = String((activeInstance as any).evolution_api_key || '');
+      if (!apiUrl || !apiToken) {
+        return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const uazRes = await fetch(`${apiUrl}/instance/status`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', token: apiToken },
+      });
+      const uazRaw = await uazRes.text();
+      let uazData: any = {};
+      try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+
+      const status = String(uazData?.instance?.status || uazData?.status || '').toLowerCase();
+      const connected = uazData?.connected === true || uazData?.loggedIn === true || status === 'connected' || status === 'open';
+      const normalized = {
+        connected,
+        session: connected,
+        smartphoneConnected: connected,
+        status,
+        raw: uazData,
+      };
+
+      return new Response(JSON.stringify({ success: true, data: normalized }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const zapiUrl = `https://api.z-api.io/instances/${activeInstance.zapi_instance_id}/token/${activeInstance.zapi_token}/status`;
     const zapiResponse = await fetch(zapiUrl, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
+      headers: { 'Content-Type': 'application/json', 'Client-Token': activeInstance.zapi_client_token }
     });
     const zapiData = await zapiResponse.json();
 
