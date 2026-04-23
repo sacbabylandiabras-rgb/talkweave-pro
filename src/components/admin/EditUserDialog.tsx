@@ -137,7 +137,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
     const payload = {
       instance_name: newInstanceName || 'Nova Instância',
-      api_provider: 'uazapi',
+      api_provider: 'uazapi' as const,
       // Legacy Z-API columns are reused as identifier slots for UAZAPI (kept for backward compat)
       zapi_instance_id: newUazapiToken.trim().substring(0, 32),
       zapi_token: newUazapiToken.trim(),
