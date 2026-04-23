@@ -123,6 +123,122 @@ const EnviarMensagem = () => {
     }
   };
 
+  const sendResolvedContent = async (phone: string, nome?: string) => {
+    const modeloData = modeloSelecionado
+      ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
+      : null;
+
+    const mensagemPersonalizada = (modeloData?.content || mensagem)
+      .replace(/\{nome\}/g, nome || "")
+      .replace(/\{numero\}/g, phone);
+
+    const specialTpl = parseSpecialTemplate(modeloData?.content);
+    const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
+    const temBotoes = !specialTpl && !temCarrossel && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !!modeloData?.mediaUrl;
+    const temMidiaAvulsa = !modeloData && !!arquivoMidia;
+
+    if (specialTpl) {
+      await sendSpecialTemplate(phone, specialTpl.type, {
+        ...specialTpl,
+        description: mensagemPersonalizada || specialTpl.description,
+      });
+
+      return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
+    }
+
+    if (temCarrossel) {
+      await sendCarousel(phone, modeloData!.carouselCards as any, mensagemPersonalizada);
+      return `[carrossel] ${modeloData?.name || mensagemPersonalizada || 'Modelo enviado'}`;
+    }
+
+    if (temBotoes) {
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada,
+        modeloData!.buttons!.map((btn: any) => {
+          const buttonType = (btn.type || 'REPLY').toUpperCase();
+          const buttonData: any = {
+            id: btn.id || btn.text || Math.random().toString(),
+            type: buttonType,
+            label: btn.text || btn.label || 'Botão'
+          };
+
+          if (buttonType === "CALL" && (btn.phone || btn.value)) {
+            buttonData.phone = btn.phone || btn.value;
+          } else if (buttonType === "URL" && (btn.url || btn.value)) {
+            buttonData.url = btn.url || btn.value;
+          } else if (buttonType === "COPY" && (btn.copyText || btn.value)) {
+            buttonData.copyText = btn.copyText || btn.value;
+          }
+
+          return buttonData;
+        }),
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined
+      );
+
+      return mensagemPersonalizada || modeloData?.name || 'Modelo com botões enviado';
+    }
+
+    if (temMidiaModelo) {
+      const mediaCaption = legenda || mensagemPersonalizada;
+      const templateType = modeloData?.type || 'imagem';
+
+      if (templateType === 'audio') {
+        await sendAudio(phone, modeloData!.mediaUrl!, mediaCaption);
+      } else if (templateType === 'video' || templateType === 'video_botoes') {
+        await sendVideo(phone, modeloData!.mediaUrl!, mediaCaption, viewOnce, isPtv);
+      } else if (templateType === 'arquivo' || templateType === 'documento') {
+        await sendDocument(
+          phone,
+          modeloData!.mediaUrl!,
+          modeloData?.fileName || 'arquivo',
+          modeloData?.fileType?.split('/').pop() || 'txt',
+          mediaCaption,
+        );
+      } else {
+        await sendImage(phone, modeloData!.mediaUrl!, mediaCaption);
+      }
+
+      return mediaCaption || modeloData?.name || 'Modelo com mídia enviado';
+    }
+
+    if (temMidiaAvulsa) {
+      const base64File = await convertToBase64(arquivoMidia);
+      const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+      const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+      const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+
+      const isImage = imageExtensions.includes(fileExtension || '');
+      const isVideo = videoExtensions.includes(fileExtension || '');
+      const isAudio = audioExtensions.includes(fileExtension || '');
+
+      if (isImage) {
+        await sendImage(phone, base64File, legenda || mensagem);
+      } else if (isVideo) {
+        await sendVideo(phone, base64File, legenda || mensagem, viewOnce, isPtv);
+      } else if (isAudio) {
+        await sendAudio(phone, base64File, legenda || mensagem);
+      } else {
+        await sendDocument(
+          phone,
+          base64File,
+          arquivoMidia.name,
+          fileExtension || 'txt',
+          legenda || mensagem,
+        );
+      }
+
+      return legenda || mensagem;
+    }
+
+    await sendMessage(phone, mensagemPersonalizada);
+    return mensagemPersonalizada;
+  };
+
   const handleSendIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -132,15 +248,16 @@ const EnviarMensagem = () => {
       
       let sendStatus: 'sent' | 'failed' = 'sent';
       let errorMsg: string | undefined;
+      let trackedContent = validatedData.message;
       
       try {
-        await sendMessage(validatedData.phone, validatedData.message);
+        trackedContent = await sendResolvedContent(validatedData.phone);
       } catch (sendError) {
         sendStatus = 'failed';
         errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
         throw sendError;
       } finally {
-        await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
+        await trackIndividualSend(validatedData.phone, trackedContent, sendStatus, errorMsg);
       }
       
       // Limpar formulário após envio bem-sucedido
