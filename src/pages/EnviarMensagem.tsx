@@ -239,12 +239,16 @@ const EnviarMensagem = () => {
         : undefined;
       const copyContent = (typeof varsCopy === 'string' && varsCopy.trim())
         || (modeloData?.header && modeloData.header.trim())
-        || modeloData?.content
+        || (specialTpl ? '' : modeloData?.content)
         || mensagemPersonalizada
         || '';
+      const bodyMessage = (mensagem && mensagem.trim() ? mensagemPersonalizada : '')
+        || specialTpl?.description
+        || modeloData?.name
+        || 'Toque em copiar';
       await sendButtonActions(
         phone,
-        mensagemPersonalizada || copyContent,
+        bodyMessage,
         [
           {
             id: 'copy_btn',
@@ -927,12 +931,16 @@ const EnviarMensagem = () => {
               : undefined;
             const copyContent = (typeof varsCopy === 'string' && varsCopy.trim())
               || (modeloData?.header && modeloData.header.trim())
-              || modeloData?.content
+              || (specialTpl ? '' : modeloData?.content)
               || mensagemPersonalizada
               || '';
+            const bodyMessage = (mensagem && mensagem.trim() ? mensagemPersonalizada : '')
+              || specialTpl?.description
+              || modeloData?.name
+              || 'Toque em copiar';
             await sendButtonActions(
               contato.telefone,
-              mensagemPersonalizada || copyContent,
+              bodyMessage,
               [
                 {
                   id: 'copy_btn',
@@ -1858,6 +1866,21 @@ Formatos aceitos:
                     {modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado) ? (
                       (() => {
                         const modeloAtual = modelosDisponiveis.find(m => m.id === modeloSelecionado)!;
+                        const specialPreview = parseSpecialTemplate(modeloAtual.content);
+                        const isCopyPaste = String(modeloAtual.type || '').toLowerCase() === 'copia_cola'
+                          || (specialPreview && specialPreview.type === 'copia_cola');
+                        const copyTextPreview = (() => {
+                          const vars = (modeloAtual.variables && typeof modeloAtual.variables === 'object' && !Array.isArray(modeloAtual.variables))
+                            ? modeloAtual.variables as Record<string, any>
+                            : null;
+                          return (vars && typeof vars.copyText === 'string' && vars.copyText)
+                            || specialPreview?.copyText
+                            || modeloAtual.header
+                            || '';
+                        })();
+                        const bodyPreview = isCopyPaste
+                          ? (specialPreview?.description || modeloAtual.name || 'Toque em copiar para usar o conteúdo')
+                          : modeloAtual.content;
 
                         return (
                           <div className="mt-1 border rounded-lg bg-background p-4 space-y-3">
@@ -1868,6 +1891,24 @@ Formatos aceitos:
                                 footer={modeloAtual.footer}
                                 cards={modeloAtual.carouselCards}
                               />
+                            ) : isCopyPaste ? (
+                              <>
+                                <div className="whitespace-pre-wrap text-sm">{bodyPreview}</div>
+                                {copyTextPreview && (
+                                  <div className="rounded-md border border-border/50 bg-muted/40 p-2">
+                                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Texto para copiar</div>
+                                    <div className="text-xs font-mono whitespace-pre-wrap break-all">{copyTextPreview}</div>
+                                  </div>
+                                )}
+                                {modeloAtual.footer && (
+                                  <div className="text-xs text-muted-foreground border-t pt-2">{modeloAtual.footer}</div>
+                                )}
+                                <div className="pt-2 border-t">
+                                  <div className="w-full py-2 px-4 bg-accent border border-border rounded text-center text-sm font-medium text-primary">
+                                    📋 Copiar
+                                  </div>
+                                </div>
+                              </>
                             ) : (
                               <>
                                 {modeloAtual.header && (
