@@ -2304,7 +2304,44 @@ const Modelos = () => {
               style={{ backgroundColor: '#e5ddd5' }}
             >
               {previewTemplate && (
-                previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
+                previewTemplate.type === 'copia_cola' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'copia_cola') ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const vars = (previewTemplate.variables && typeof previewTemplate.variables === 'object' && !Array.isArray(previewTemplate.variables))
+                      ? previewTemplate.variables as Record<string, any>
+                      : {};
+                    const copyText = special.copyText || vars.copyText || previewTemplate.header || special.description || '';
+                    const bodyText = special.description || previewTemplate.name || 'Toque em copiar para usar o conteúdo';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                          <div className="px-3 py-2 space-y-2">
+                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{bodyText}</p>
+                            {copyText && (
+                              <div className="rounded-md bg-background/60 border border-border/40 px-2 py-1.5">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Texto para copiar</p>
+                                <p className="text-xs font-mono text-foreground whitespace-pre-wrap break-all leading-snug">{copyText}</p>
+                              </div>
+                            )}
+                            {previewTemplate.footer && (
+                              <p className="text-xs text-muted-foreground italic">{previewTemplate.footer}</p>
+                            )}
+                            <div className="flex items-center justify-end gap-1 pt-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <Check className="w-3 h-3 text-blue-500" />
+                              <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                            </div>
+                          </div>
+                          <div className="border-t border-border/30 text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-1">
+                            <Copy className="w-3 h-3" /> Copiar
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
                       <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm px-3 py-2">
