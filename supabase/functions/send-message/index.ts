@@ -148,6 +148,8 @@ serve(async (req) => {
       optionList,
       viewOnce,
       isPtv,
+      specialType,
+      specialPayload,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -157,7 +159,9 @@ serve(async (req) => {
       (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) ||
       (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0);
 
-    if (!phone || (!message && !mediaUrl && !hasInteractivePayload)) {
+    const hasSpecialPayload = !!specialType && !!specialPayload;
+
+    if (!phone || (!message && !mediaUrl && !hasInteractivePayload && !hasSpecialPayload)) {
       return new Response(
         JSON.stringify({ error: 'Phone and message, mediaUrl, or interactive payload are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -219,8 +223,36 @@ serve(async (req) => {
       let endpoint = '/send/text';
       let body: Record<string, unknown> = { number: targetNumber, text: message || '' };
 
+      // Special template types (PIX / Location / Contact) — UAZAPI dedicated endpoints
+      if (specialType === 'pix' && specialPayload) {
+        endpoint = '/send/text';
+        const pixLines = [
+          `💰 *Cobrança PIX*`,
+          specialPayload.merchantName ? `Recebedor: ${specialPayload.merchantName}` : '',
+          specialPayload.amount ? `Valor: R$ ${specialPayload.amount}` : '',
+          `Chave (${specialPayload.pixKeyType || 'pix'}): ${specialPayload.pixKey || ''}`,
+          specialPayload.description ? `\n${specialPayload.description}` : '',
+        ].filter(Boolean).join('\n');
+        body = { number: targetNumber, text: pixLines };
+      } else if (specialType === 'localizacao' && specialPayload) {
+        endpoint = '/send/location';
+        body = {
+          number: targetNumber,
+          latitude: Number(specialPayload.latitude) || 0,
+          longitude: Number(specialPayload.longitude) || 0,
+          name: specialPayload.title || '',
+          address: specialPayload.address || '',
+        };
+      } else if (specialType === 'contato' && specialPayload) {
+        endpoint = '/send/contact';
+        body = {
+          number: targetNumber,
+          fullName: specialPayload.contactName || '',
+          phoneNumber: String(specialPayload.contactPhone || '').replace(/\D/g, ''),
+        };
+      }
       // Interactive buttons (REPLY/URL/CALL) — UAZAPI uses /send/menu with type=button
-      if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+      else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
         const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
           const t = String(b?.type || 'REPLY').toUpperCase();
           const label = String(b?.label || `Botão ${idx + 1}`).trim();
@@ -477,7 +509,54 @@ serve(async (req) => {
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
 
-    if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+    if (specialType === 'pix' && specialPayload) {
+      // Z-API: /send-payment-pix sends PIX charge with brcode
+      const pixBody: Record<string, unknown> = {
+        phone: resolvedPhone,
+        pixKey: specialPayload.pixKey || '',
+        type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
+        merchantName: specialPayload.merchantName || '',
+      };
+      if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+      if (specialPayload.city) pixBody.city = specialPayload.city;
+      if (specialPayload.description) pixBody.description = specialPayload.description;
+
+      zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(pixBody),
+      });
+      logMessage = `💰 PIX ${specialPayload.merchantName || ''}`.trim();
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'pix');
+    } else if (specialType === 'localizacao' && specialPayload) {
+      zapiResponse = await fetch(`${baseUrl}/send-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          latitude: Number(specialPayload.latitude) || 0,
+          longitude: Number(specialPayload.longitude) || 0,
+          title: specialPayload.title || '',
+          address: specialPayload.address || '',
+        }),
+      });
+      logMessage = `📍 ${specialPayload.title || 'Localização'}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location');
+    } else if (specialType === 'contato' && specialPayload) {
+      const contactPhoneClean = String(specialPayload.contactPhone || '').replace(/\D/g, '');
+      zapiResponse = await fetch(`${baseUrl}/send-contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          contactName: specialPayload.contactName || '',
+          contactPhone: contactPhoneClean,
+          contactBusinessDescription: specialPayload.description || '',
+        }),
+      });
+      logMessage = `👤 ${specialPayload.contactName || 'Contato'}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'contact');
+    } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
 
       // Check if any button is an action type (URL/CALL) — these require /send-button-actions

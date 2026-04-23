@@ -17,6 +17,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+const parseSpecialTemplate = (content?: string | null) => {
+  if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
 const phoneSchema = z.string()
   .min(10, "Número deve ter pelo menos 10 dígitos")
   .refine((val) => {
@@ -65,7 +75,7 @@ const EnviarMensagem = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
@@ -589,12 +599,13 @@ const EnviarMensagem = () => {
             ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
             : null;
 
+          const specialTpl = parseSpecialTemplate(modeloData?.content);
           let mensagemPersonalizada = mensagem
             .replace(/\{nome\}/g, contato.nome)
             .replace(/\{numero\}/g, contato.telefone);
 
           const temMidia = !!arquivoMidia;
-          const temBotoes = modeloData?.buttons && modeloData.buttons.length > 0;
+          const temBotoes = !specialTpl && modeloData?.buttons && modeloData.buttons.length > 0;
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -606,7 +617,12 @@ const EnviarMensagem = () => {
             setZapiInstanceOverride(currentInstance);
           }
 
-          if (temMidia) {
+          if (specialTpl) {
+            await sendSpecialTemplate(contato.telefone, specialTpl.type, {
+              ...specialTpl,
+              description: mensagemPersonalizada || specialTpl.description,
+            });
+          } else if (temMidia) {
             const base64File = await convertToBase64(arquivoMidia);
             const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
             
@@ -629,7 +645,9 @@ const EnviarMensagem = () => {
             }
           }
           
-          if (temBotoes) {
+          if (specialTpl) {
+            // Already sent above via sendSpecialTemplate — skip remaining dispatch.
+          } else if (temBotoes) {
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada,
@@ -869,6 +887,15 @@ const EnviarMensagem = () => {
   const aplicarModelo = (modeloId: string) => {
     const modelo = modelosDisponiveis.find(m => m.id === modeloId);
     if (modelo) {
+      const special = parseSpecialTemplate(modelo.content);
+      if (special) {
+        setMensagem(special.description || "");
+        toast({
+          title: "Modelo especial selecionado",
+          description: `${modelo.name} (${special.type}) será enviado pelo formato nativo`,
+        });
+        return;
+      }
       setMensagem(modelo.content);
       toast({
         title: "Modelo aplicado!",

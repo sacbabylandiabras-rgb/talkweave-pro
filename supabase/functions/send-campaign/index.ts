@@ -186,6 +186,114 @@ const isZapiConfirmed = (payload: any) => {
 };
 const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
 
+const SPECIAL_TEMPLATE_PREFIX = '__SPECIAL_TEMPLATE__:';
+const parseSpecialTemplate = (content?: string | null) => {
+  if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
+// Dispatch PIX/location/contact via Z-API native endpoints
+const dispatchZapiSpecial = async (
+  baseUrl: string,
+  clientToken: string,
+  phone: string,
+  special: any,
+) => {
+  let url = '';
+  let body: Record<string, unknown> = {};
+  if (special.type === 'pix') {
+    url = `${baseUrl}/send-payment-pix`;
+    body = {
+      phone,
+      pixKey: special.pixKey || '',
+      type: String(special.pixKeyType || 'cpf').toUpperCase(),
+      merchantName: special.merchantName || '',
+      ...(special.amount ? { value: Number(String(special.amount).replace(',', '.')) || 0 } : {}),
+      ...(special.city ? { city: special.city } : {}),
+      ...(special.description ? { description: special.description } : {}),
+    };
+  } else if (special.type === 'localizacao') {
+    url = `${baseUrl}/send-location`;
+    body = {
+      phone,
+      latitude: Number(special.latitude) || 0,
+      longitude: Number(special.longitude) || 0,
+      title: special.title || '',
+      address: special.address || '',
+    };
+  } else if (special.type === 'contato') {
+    url = `${baseUrl}/send-contact`;
+    body = {
+      phone,
+      contactName: special.contactName || '',
+      contactPhone: String(special.contactPhone || '').replace(/\D/g, ''),
+      ...(special.description ? { contactBusinessDescription: special.description } : {}),
+    };
+  }
+  return { url, body };
+};
+
+// Dispatch PIX/location/contact via UAZAPI native endpoints
+const dispatchUazapiSpecial = async (
+  instance: ResolvedInstance,
+  phone: string,
+  special: any,
+) => {
+  const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
+  const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
+  const isGroup = isGroupDestination(phone);
+  const numericGroup = isGroup ? phone.replace(/[@\-].*$/, '').replace(/\D/g, '') : '';
+  const targetNumber = isGroup ? `${numericGroup}@g.us` : phone.replace(/^\+/, '').replace(/\D/g, '');
+
+  let endpoint = '';
+  let body: Record<string, unknown> = {};
+  if (special.type === 'pix') {
+    endpoint = '/send/text';
+    const pixLines = [
+      `💰 *Cobrança PIX*`,
+      special.merchantName ? `Recebedor: ${special.merchantName}` : '',
+      special.amount ? `Valor: R$ ${special.amount}` : '',
+      `Chave (${special.pixKeyType || 'pix'}): ${special.pixKey || ''}`,
+      special.description ? `\n${special.description}` : '',
+    ].filter(Boolean).join('\n');
+    body = { number: targetNumber, text: pixLines };
+  } else if (special.type === 'localizacao') {
+    endpoint = '/send/location';
+    body = {
+      number: targetNumber,
+      latitude: Number(special.latitude) || 0,
+      longitude: Number(special.longitude) || 0,
+      name: special.title || '',
+      address: special.address || '',
+    };
+  } else if (special.type === 'contato') {
+    endpoint = '/send/contact';
+    body = {
+      number: targetNumber,
+      fullName: special.contactName || '',
+      phoneNumber: String(special.contactPhone || '').replace(/\D/g, ''),
+    };
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const raw = await res.text();
+    let data: any = {};
+    try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+    if (!res.ok) {
+      return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}` };
+    }
+    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
+    return { ok: true, ack, error: null };
+  } catch (e) {
+    return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error' };
+  }
+};
+
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
 
 // === UAZAPI dispatch helper ===
@@ -774,6 +882,7 @@ serve(async (req) => {
         const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
         const campaignViewOnce = campaign.target_audience?.viewOnce === true;
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
+        const specialTpl = parseSpecialTemplate(campaign.template.content);
 
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
@@ -781,6 +890,22 @@ serve(async (req) => {
 
         // === UAZAPI ROUTING (short-circuit) ===
         if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
+          if (specialTpl) {
+            const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl);
+            if (uazSpecial.ok) {
+              const awaitingGroupCallback = isGroupDestination(contact.phone);
+              campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
+              if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+              results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = uazSpecial.error || 'UAZAPI special envio falhou';
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            }
+            await persistCampaignSend(campaignSend, reusableSendId);
+            if (i < currentBatch.length - 1) await sleep(delayMs);
+            continue;
+          }
           const uazResult = await dispatchUazapiCampaign(
             currentInstance,
             contact.phone,
@@ -811,7 +936,12 @@ serve(async (req) => {
         let zapiUrl: string = '';
         let requestBody: any = {};
 
-        if (templateType === 'carrossel' && hasCarouselCards) {
+        if (specialTpl) {
+          const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+          const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
+          zapiUrl = url;
+          requestBody = specialBody;
+        } else if (templateType === 'carrossel' && hasCarouselCards) {
           const carouselCards = campaign.template.carousel_cards.map((card: any) => {
             const cardData: any = { title: card.title || '', description: card.description || '' };
             if (card.image && card.image.trim() !== '') cardData.image = card.image;

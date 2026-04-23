@@ -185,6 +185,8 @@ export const useZapi = () => {
         phone?: string;
         url?: string;
       }>;
+      specialType?: 'pix' | 'localizacao' | 'contato';
+      specialPayload?: Record<string, any>;
     },
     fallbackMessage: string,
   ) => {
@@ -805,6 +807,44 @@ export const useZapi = () => {
     }
   };
 
+  const sendSpecialTemplate = async (
+    phone: string,
+    specialType: 'pix' | 'localizacao' | 'contato',
+    specialPayload: Record<string, any>,
+  ) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        { phone, specialType, specialPayload },
+        `Erro ao enviar ${specialType}`,
+      );
+
+      ensureZapiSendConfirmed(data, `❌ Falha no envio (${specialType}).`);
+
+      toast({
+        title:
+          specialType === 'pix'
+            ? 'Cobrança PIX enviada!'
+            : specialType === 'localizacao'
+              ? 'Localização enviada!'
+              : 'Contato enviado!',
+        description: 'A mensagem foi enviada com sucesso.',
+      });
+
+      return data;
+    } catch (error) {
+      console.error(`Erro ao enviar ${specialType}:`, error);
+      toast({
+        title: 'Erro ao enviar mensagem',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
@@ -814,6 +854,7 @@ export const useZapi = () => {
     sendVideo,
     sendAudio,
     sendDocument,
+    sendSpecialTemplate,
     getDeviceStatus,
     getQRCode,
     getPairingCode,
