@@ -773,11 +773,51 @@ const Dispositivos = () => {
   const { instances, loading, refetch } = useZapiInstances();
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newApiUrl, setNewApiUrl] = useState("");
+  const [newAdminToken, setNewAdminToken] = useState("");
+  const [newInstanceName, setNewInstanceName] = useState("");
+
+  const handleCreateInstance = async () => {
+    if (!newApiUrl.trim() || !newAdminToken.trim() || !newInstanceName.trim()) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('uazapi-create-instance', {
+        body: {
+          apiUrl: newApiUrl.trim(),
+          adminToken: newAdminToken.trim(),
+          instanceName: newInstanceName.trim(),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "✅ Instância criada", description: "Agora escaneie o QR Code para conectar." });
+      setCreateOpen(false);
+      setNewApiUrl("");
+      setNewAdminToken("");
+      setNewInstanceName("");
+      refetch();
+    } catch (err) {
+      const msg = await getInvokeErrorMessage(err, 'Erro ao criar instância');
+      toast({ title: "❌ Erro ao criar instância", description: msg, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Criar Instância
+          </Button>
           {instances.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
               <User className="w-4 h-4 mr-1" />
@@ -796,9 +836,13 @@ const Dispositivos = () => {
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
-            <p className="text-muted-foreground">
-              As instâncias são gerenciadas pelo administrador.
+            <p className="text-muted-foreground mb-4">
+              Crie sua primeira instância para começar a enviar mensagens.
             </p>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" />
+              Criar Instância
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -811,6 +855,65 @@ const Dispositivos = () => {
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+
+      {/* Create Instance Dialog */}
+      <Dialog open={createOpen} onOpenChange={(v) => !creating && setCreateOpen(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" /> Criar nova instância
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Nome da instância</Label>
+              <Input
+                placeholder="Ex: Vendas, Suporte..."
+                value={newInstanceName}
+                onChange={(e) => setNewInstanceName(e.target.value)}
+                disabled={creating}
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador único para esta conexão.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>URL do servidor</Label>
+              <Input
+                placeholder="https://seu-servidor.uazapi.com"
+                value={newApiUrl}
+                onChange={(e) => setNewApiUrl(e.target.value)}
+                disabled={creating}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Token de administrador</Label>
+              <Input
+                type="password"
+                placeholder="Token admin do servidor"
+                value={newAdminToken}
+                onChange={(e) => setNewAdminToken(e.target.value)}
+                disabled={creating}
+              />
+              <p className="text-xs text-muted-foreground">
+                Necessário apenas para criar a instância. Não será armazenado.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateInstance} disabled={creating}>
+                {creating ? (
+                  <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Criando...</>
+                ) : (
+                  <><Plus className="w-4 h-4 mr-1" /> Criar instância</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Planos */}
       <Card className="border-primary/20">
