@@ -41,6 +41,85 @@ interface ResolvedInstance {
   uazapiToken?: string;
 }
 
+type CampaignCredentials = {
+  instanceId: string;
+  token: string;
+  clientToken: string;
+  userId: string;
+  instanceName: string;
+  apiProvider?: string;
+  uazapiUrl?: string;
+  uazapiToken?: string;
+};
+
+const mapResolvedInstance = (instance: {
+  zapi_instance_id: string;
+  zapi_token: string | null;
+  zapi_client_token: string | null;
+  instance_name: string | null;
+  api_provider?: string | null;
+  evolution_api_url?: string | null;
+  evolution_api_key?: string | null;
+} | null): ResolvedInstance | null => {
+  if (!instance?.zapi_instance_id) return null;
+
+  const isUazapi = String(instance.api_provider || '').toLowerCase() === 'uazapi';
+  const hasZapiCreds = Boolean(instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token);
+  const hasUazapiCreds = Boolean(isUazapi && instance.evolution_api_url && instance.evolution_api_key);
+
+  if (!hasZapiCreds && !hasUazapiCreds) return null;
+
+  return {
+    zapiInstanceId: instance.zapi_instance_id,
+    zapiToken: instance.zapi_token || '',
+    zapiClientToken: instance.zapi_client_token || '',
+    instanceName: instance.instance_name || 'Instância',
+    apiProvider: isUazapi ? 'uazapi' : 'zapi',
+    uazapiUrl: instance.evolution_api_url || '',
+    uazapiToken: instance.evolution_api_key || '',
+  };
+};
+
+const resolvePreferredUserInstance = async (
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<ResolvedInstance | null> => {
+  const selectFields = 'zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
+
+  const { data: defaultInstance } = await supabase
+    .from('zapi_instances')
+    .select(selectFields)
+    .eq('user_id', userId)
+    .eq('is_default', true)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  const mappedDefault = mapResolvedInstance(defaultInstance);
+  if (mappedDefault) return mappedDefault;
+
+  const { data: activeInstance } = await supabase
+    .from('zapi_instances')
+    .select(selectFields)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return mapResolvedInstance(activeInstance);
+};
+
+const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): CampaignCredentials => ({
+  instanceId: instance.zapiInstanceId,
+  token: instance.zapiToken,
+  clientToken: instance.zapiClientToken,
+  userId,
+  instanceName: instance.instanceName,
+  apiProvider: instance.apiProvider || 'zapi',
+  uazapiUrl: instance.uazapiUrl || '',
+  uazapiToken: instance.uazapiToken || '',
+});
+
 const resolveContactInstance = async (
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -80,22 +159,7 @@ const resolveContactInstance = async (
     instance = byTableId;
   }
 
-  const isUazapi = String(instance?.api_provider || '').toLowerCase() === 'uazapi';
-  const hasZapiCreds = instance?.zapi_instance_id && instance?.zapi_token && instance?.zapi_client_token;
-  const hasUazapiCreds = isUazapi && instance?.evolution_api_url && instance?.evolution_api_key;
-  if (!instance?.zapi_instance_id || (!hasZapiCreds && !hasUazapiCreds)) {
-    return null;
-  }
-
-  return {
-    zapiInstanceId: instance.zapi_instance_id,
-    zapiToken: instance.zapi_token || '',
-    zapiClientToken: instance.zapi_client_token || '',
-    instanceName: instance.instance_name || 'Instância',
-    apiProvider: isUazapi ? 'uazapi' : 'zapi',
-    uazapiUrl: instance.evolution_api_url || '',
-    uazapiToken: instance.evolution_api_key || '',
-  };
+  return mapResolvedInstance(instance);
 };
 
 const resolveGroupInstanceFromInboundLogs = async (
@@ -612,36 +676,27 @@ serve(async (req) => {
     console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
 
     // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
-    let credentials: { instanceId: string; token: string; clientToken: string; userId: string; instanceName: string };
+    let credentials: CampaignCredentials;
     if (_isContinuation && _userId) {
       console.log(`🔑 Continuation mode: resolving credentials for user ${_userId} via service role`);
-      const { data: instance } = await supabase
-        .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
-        .eq('user_id', _userId)
-        .eq('is_default', true)
-        .maybeSingle();
-
-      const inst = instance || (await supabase
-        .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
-        .eq('user_id', _userId)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle()).data;
-
-      if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
-        throw new Error('Z-API credentials not found for continuation');
-      }
-      credentials = {
-        instanceId: inst.zapi_instance_id,
-        token: inst.zapi_token,
-        clientToken: inst.zapi_client_token,
-        userId: _userId,
-        instanceName: inst.instance_name || 'Instância',
-      };
+      const continuationInstance = await resolvePreferredUserInstance(supabase, _userId);
+      if (!continuationInstance) throw new Error('Instância ativa não encontrada para continuação');
+      credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
-      credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      const preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
+      credentials = preferredInstance
+        ? buildCampaignCredentials(baseCredentials.userId, preferredInstance)
+        : {
+            instanceId: baseCredentials.instanceId,
+            token: baseCredentials.token,
+            clientToken: baseCredentials.clientToken,
+            userId: baseCredentials.userId,
+            instanceName: baseCredentials.instanceName,
+            apiProvider: 'zapi',
+            uazapiUrl: '',
+            uazapiToken: '',
+          };
     }
 
     let zapiInstanceId = credentials.instanceId;
@@ -705,22 +760,18 @@ serve(async (req) => {
         });
       }
     } else if (requestedInstanceId) {
-      const { data: specificInstance } = await supabase
-        .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
-        .eq('id', requestedInstanceId)
-        .eq('user_id', credentials.userId)
-        .eq('is_active', true)
-        .maybeSingle();
+      const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
       if (specificInstance) {
-        zapiInstanceId = specificInstance.zapi_instance_id;
-        zapiToken = specificInstance.zapi_token;
-        zapiClientToken = specificInstance.zapi_client_token;
-        // Store UAZAPI fields on credentials for downstream use
-        (credentials as any).apiProvider = String((specificInstance as any).api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi';
-        (credentials as any).uazapiUrl = (specificInstance as any).evolution_api_url || '';
-        (credentials as any).uazapiToken = (specificInstance as any).evolution_api_key || '';
+        zapiInstanceId = specificInstance.zapiInstanceId;
+        zapiToken = specificInstance.zapiToken;
+        zapiClientToken = specificInstance.zapiClientToken;
+        credentials.apiProvider = specificInstance.apiProvider || 'zapi';
+        credentials.uazapiUrl = specificInstance.uazapiUrl || '';
+        credentials.uazapiToken = specificInstance.uazapiToken || '';
+        credentials.instanceName = specificInstance.instanceName;
+      } else {
+        console.warn(`⚠️ Requested instance ${requestedInstanceId} not found for user ${credentials.userId}; keeping preferred instance ${credentials.instanceName}`);
       }
     }
 
@@ -733,9 +784,9 @@ serve(async (req) => {
         zapiToken,
         zapiClientToken,
         instanceName: credentials.instanceName,
-        apiProvider: (credentials as any).apiProvider || 'zapi',
-        uazapiUrl: (credentials as any).uazapiUrl || '',
-        uazapiToken: (credentials as any).uazapiToken || '',
+        apiProvider: credentials.apiProvider || 'zapi',
+        uazapiUrl: credentials.uazapiUrl || '',
+        uazapiToken: credentials.uazapiToken || '',
       };
     };
 
