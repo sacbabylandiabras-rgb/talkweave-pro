@@ -136,6 +136,29 @@ serve(async (req) => {
     // Persist into zapi_instances using service role (bypass RLS for safety)
     const adminClient = createClient(supabaseUrl, supabaseService)
 
+    // Enforce per-user instance limit (max_instances on profile, default 1)
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('max_instances')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const maxInstances = Number((profile as any)?.max_instances ?? 1)
+
+    const { count: currentCount } = await adminClient
+      .from('zapi_instances')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if ((currentCount ?? 0) >= maxInstances) {
+      return new Response(
+        JSON.stringify({
+          error: `Limite atingido. Seu plano permite apenas ${maxInstances} instância(s). Contate o suporte para aumentar.`,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check duplicates
     const { data: existing } = await adminClient
       .from('zapi_instances')
@@ -151,13 +174,7 @@ serve(async (req) => {
       )
     }
 
-    // Count existing instances to decide is_default
-    const { count } = await adminClient
-      .from('zapi_instances')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-
-    const isFirst = !count || count === 0
+    const isFirst = !currentCount || currentCount === 0
 
     const { data: inserted, error: insertErr } = await adminClient
       .from('zapi_instances')

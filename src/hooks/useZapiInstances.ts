@@ -103,8 +103,15 @@ export const useAdminZapiInstances = (userId?: string) => {
     evolution_api_key?: string | null;
   }) => {
     try {
-      if (instances.length >= 20) {
-        toast({ title: "Limite atingido", description: "Máximo de 20 instâncias por usuário", variant: "destructive" });
+      // Fetch user's max_instances limit from profile
+      const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('max_instances')
+        .eq('id', uid)
+        .maybeSingle();
+      const limit = Number(profile?.max_instances ?? 1);
+      if (instances.length >= limit) {
+        toast({ title: "Limite atingido", description: `Máximo de ${limit} instância(s) permitido para este usuário.`, variant: "destructive" });
         return false;
       }
 
