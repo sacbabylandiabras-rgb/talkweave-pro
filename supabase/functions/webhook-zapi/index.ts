@@ -4527,6 +4527,11 @@ async function sendNodeContent(
         flowName: flowName || null,
         nodeId: targetNode.id,
         instanceId: zapiConfig?.zapi_instance_id || null,
+        buttons: buttons.map((btn, idx) => ({
+          text: String(btn?.text || "").trim(),
+          handleAliases: getButtonHandleAliases(idx, btn),
+          index: idx,
+        })),
         captured: options?.resumeCaptured || {},
       }),
       keyword_matched: `${FLOW_BUTTON_PREFIX}${userId}`,
