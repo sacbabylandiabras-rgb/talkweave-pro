@@ -23,7 +23,6 @@ import Contatos from "./pages/Contatos";
 import Modelos from "./pages/Modelos";
 import EnviarMensagem from "./pages/EnviarMensagem";
 import Relatorio from "./pages/Relatorio";
-import ConfiguracaoZAPI from "./pages/ConfiguracaoZAPI";
 import FluxoVisual from "./pages/FluxoVisual";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
@@ -126,7 +125,6 @@ const App = () => (
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
-                  <Route path="/configuracao-zapi" element={<ConfiguracaoZAPI />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
                   <Route path="/criar-grupos" element={<CriarGrupos />} />

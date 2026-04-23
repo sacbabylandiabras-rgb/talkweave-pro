@@ -42,7 +42,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
-  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('uazapi');
   const [newUazapiUrl, setNewUazapiUrl] = useState('');
   const [newUazapiToken, setNewUazapiToken] = useState('');
 
@@ -110,7 +110,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId('');
     setNewToken('');
     setNewClientToken('');
-    setNewProvider('zapi');
+    setNewProvider('uazapi');
     setNewUazapiUrl('');
     setNewUazapiToken('');
   };
@@ -122,7 +122,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId(instance.zapi_instance_id || '');
     setNewToken(instance.zapi_token || '');
     setNewClientToken(instance.zapi_client_token || '');
-    setNewProvider((instance.api_provider as 'zapi' | 'uazapi') || 'zapi');
+    setNewProvider('uazapi');
     setNewUazapiUrl((instance as any).evolution_api_url || '');
     setNewUazapiToken((instance as any).evolution_api_key || '');
   };
@@ -130,28 +130,20 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const handleAddInstance = async () => {
     if (!user) return;
 
-    if (newProvider === 'zapi') {
-      if (!newInstanceId || !newToken || !newClientToken) {
-        toast({ title: "Preencha todos os campos da instância Z-API", variant: "destructive" });
-        return;
-      }
-    } else {
-      if (!newUazapiUrl.trim() || !newUazapiToken.trim()) {
-        toast({ title: "Preencha URL e Token da UAZAPI", variant: "destructive" });
-        return;
-      }
+    if (!newUazapiUrl.trim() || !newUazapiToken.trim()) {
+      toast({ title: "Preencha URL e Token da UAZAPI", variant: "destructive" });
+      return;
     }
 
     const payload = {
       instance_name: newInstanceName || 'Nova Instância',
-      api_provider: newProvider,
-      // Z-API fields (kept for backward compat; for uazapi use token as identifier)
-      zapi_instance_id: newProvider === 'zapi' ? newInstanceId : newUazapiToken.trim().substring(0, 32),
-      zapi_token: newProvider === 'zapi' ? newToken : newUazapiToken.trim(),
-      zapi_client_token: newProvider === 'zapi' ? newClientToken : 'uazapi',
-      // UAZAPI fields stored in evolution_* columns
-      evolution_api_url: newProvider === 'uazapi' ? newUazapiUrl.trim() : null,
-      evolution_api_key: newProvider === 'uazapi' ? newUazapiToken.trim() : null,
+      api_provider: 'uazapi' as const,
+      // Legacy Z-API columns are reused as identifier slots for UAZAPI (kept for backward compat)
+      zapi_instance_id: newUazapiToken.trim().substring(0, 32),
+      zapi_token: newUazapiToken.trim(),
+      zapi_client_token: 'uazapi',
+      evolution_api_url: newUazapiUrl.trim(),
+      evolution_api_key: newUazapiToken.trim(),
     };
 
     const success = editingInstanceId
@@ -226,31 +218,15 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   </div>
                   <div className="space-y-2">
                     <Label>Provedor *</Label>
-                    <Select value={newProvider} onValueChange={(v) => setNewProvider(v as 'zapi' | 'uazapi')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="zapi">Z-API</SelectItem>
-                        <SelectItem value="uazapi">UAZAPI</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
+                      UAZAPI
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Z-API foi descontinuada. Apenas instâncias UAZAPI podem ser cadastradas.
+                    </p>
                   </div>
 
-                  {newProvider === 'zapi' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Instance ID *</Label>
-                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="Ex: 3C12345678" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token *</Label>
-                        <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token da instância" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Client Token *</Label>
-                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
-                      </div>
-                    </>
-                  ) : (
+                  {(
                     <>
                       <div className="space-y-2">
                         <Label>URL da API *</Label>
