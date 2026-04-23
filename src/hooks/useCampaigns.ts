@@ -33,6 +33,18 @@ export interface CampaignSend {
   created_at: string;
 }
 
+const normalizeCampaignPhone = (phone?: string | null) => {
+  if (!phone) return '';
+  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
+const getCampaignSendPriority = (status?: string | null) => {
+  if (status === 'delivered') return 3;
+  if (status === 'sent') return 2;
+  if (status === 'failed') return 1;
+  return 0;
+};
+
 export const useCampaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -428,7 +440,7 @@ export const useCampaigns = () => {
     try {
       const { data, error } = await supabase
         .from('campaign_sends')
-        .select('status')
+        .select('phone, status')
         .eq('campaign_id', campaignId);
 
       if (error) throw error;
@@ -436,18 +448,31 @@ export const useCampaigns = () => {
       // Get total contacts from campaign
       const campaign = campaigns.find(c => c.id === campaignId);
       const totalContacts = campaign?.target_audience?.contacts?.length || 0;
-      const pendingCount = data.filter(send => send.status === 'pending').length;
-      const finalizedCount = data.filter(send => send.status === 'sent' || send.status === 'delivered' || send.status === 'failed').length;
+      const latestByPhone = new Map<string, typeof data[number]>();
+      data.forEach((send) => {
+        const phoneKey = normalizeCampaignPhone(send.phone) || send.phone;
+        const existing = latestByPhone.get(phoneKey);
+        const nextPriority = getCampaignSendPriority(send.status);
+        const currentPriority = getCampaignSendPriority(existing?.status);
+
+        if (!existing || nextPriority >= currentPriority) {
+          latestByPhone.set(phoneKey, send);
+        }
+      });
+
+      const latestSends = Array.from(latestByPhone.values());
+      const pendingCount = latestSends.filter(send => send.status === 'pending').length;
+      const finalizedCount = latestSends.filter(send => send.status === 'sent' || send.status === 'delivered' || send.status === 'failed').length;
       const remaining = Math.max(0, totalContacts - finalizedCount);
 
       const stats = {
-        total: data.length,
+        total: latestSends.length,
         totalContacts,
         remaining,
         pending: pendingCount,
-        sent: data.filter(send => send.status === 'sent').length,
-        delivered: data.filter(send => send.status === 'delivered').length,
-        failed: data.filter(send => send.status === 'failed').length,
+        sent: latestSends.filter(send => send.status === 'sent').length,
+        delivered: latestSends.filter(send => send.status === 'delivered').length,
+        failed: latestSends.filter(send => send.status === 'failed').length,
       };
 
       return stats;
@@ -516,13 +541,26 @@ export const useCampaigns = () => {
 
       console.log('All sends in database:', allSends?.length);
 
+      const latestByPhone = new Map<string, { phone: string; status: string | null; contact_name?: string | null }>();
+
+      for (const send of (allSends || [])) {
+        const phoneKey = normalizeCampaignPhone(send.phone) || send.phone;
+        const existing = latestByPhone.get(phoneKey);
+        const nextPriority = getCampaignSendPriority(send.status);
+        const currentPriority = getCampaignSendPriority(existing?.status);
+
+        if (!existing || nextPriority >= currentPriority) {
+          latestByPhone.set(phoneKey, send);
+        }
+      }
+
       // Build sets of phones already successfully sent
       const successfulPhones = new Set<string>();
       const failedOrPendingPhones: Array<{ phone: string; name?: string }> = [];
 
-      for (const send of (allSends || [])) {
+      for (const [phoneKey, send] of latestByPhone.entries()) {
         if (send.status === 'sent' || send.status === 'delivered') {
-          successfulPhones.add(send.phone);
+          successfulPhones.add(phoneKey);
         } else if (send.status === 'failed' || send.status === 'pending') {
           failedOrPendingPhones.push({
             phone: send.phone,
@@ -544,15 +582,23 @@ export const useCampaigns = () => {
       console.log('Total target contacts:', targetContacts.length);
 
       // Find contacts that were never processed (not in campaign_sends at all)
-      const allProcessedPhones = new Set(
-        (allSends || []).map(s => s.phone)
-      );
+      const allProcessedPhones = new Set(Array.from(latestByPhone.keys()));
       const neverProcessedContacts = targetContacts.filter(
-        c => !allProcessedPhones.has(c.phone)
+        c => !allProcessedPhones.has(normalizeCampaignPhone(c.phone) || c.phone)
       );
 
-      // Combine: retry failed/pending + send never-processed
-      const remainingContacts = [...failedOrPendingPhones, ...neverProcessedContacts];
+      // Combine: retry failed/pending + send never-processed, sem reintroduzir contatos já enviados
+      const remainingContactsMap = new Map<string, { phone: string; name?: string }>();
+
+      [...failedOrPendingPhones, ...neverProcessedContacts].forEach((contact) => {
+        const phoneKey = normalizeCampaignPhone(contact.phone) || contact.phone;
+        if (!phoneKey || successfulPhones.has(phoneKey)) return;
+        if (!remainingContactsMap.has(phoneKey)) {
+          remainingContactsMap.set(phoneKey, contact);
+        }
+      });
+
+      const remainingContacts = Array.from(remainingContactsMap.values());
 
       console.log('Never processed:', neverProcessedContacts.length);
       console.log('Failed to retry:', failedOrPendingPhones.length);
