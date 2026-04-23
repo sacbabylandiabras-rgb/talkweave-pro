@@ -223,8 +223,36 @@ serve(async (req) => {
       let endpoint = '/send/text';
       let body: Record<string, unknown> = { number: targetNumber, text: message || '' };
 
+      // Special template types (PIX / Location / Contact) — UAZAPI dedicated endpoints
+      if (specialType === 'pix' && specialPayload) {
+        endpoint = '/send/text';
+        const pixLines = [
+          `💰 *Cobrança PIX*`,
+          specialPayload.merchantName ? `Recebedor: ${specialPayload.merchantName}` : '',
+          specialPayload.amount ? `Valor: R$ ${specialPayload.amount}` : '',
+          `Chave (${specialPayload.pixKeyType || 'pix'}): ${specialPayload.pixKey || ''}`,
+          specialPayload.description ? `\n${specialPayload.description}` : '',
+        ].filter(Boolean).join('\n');
+        body = { number: targetNumber, text: pixLines };
+      } else if (specialType === 'localizacao' && specialPayload) {
+        endpoint = '/send/location';
+        body = {
+          number: targetNumber,
+          latitude: Number(specialPayload.latitude) || 0,
+          longitude: Number(specialPayload.longitude) || 0,
+          name: specialPayload.title || '',
+          address: specialPayload.address || '',
+        };
+      } else if (specialType === 'contato' && specialPayload) {
+        endpoint = '/send/contact';
+        body = {
+          number: targetNumber,
+          fullName: specialPayload.contactName || '',
+          phoneNumber: String(specialPayload.contactPhone || '').replace(/\D/g, ''),
+        };
+      }
       // Interactive buttons (REPLY/URL/CALL) — UAZAPI uses /send/menu with type=button
-      if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+      else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
         const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
           const t = String(b?.type || 'REPLY').toUpperCase();
           const label = String(b?.label || `Botão ${idx + 1}`).trim();
