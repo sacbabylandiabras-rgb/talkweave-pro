@@ -314,11 +314,11 @@ const dispatchUazapiSpecial = async (
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    // Best-effort: only fail on definitive 4xx errors. 2xx = success even without ack.
-    if (!res.ok && res.status >= 400 && res.status < 500) {
+    const explicitError = data?.error || data?.erro || (data?.success === false ? data?.message : null) || null;
+    if (!res.ok || explicitError) {
       return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}` };
     }
-    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
+    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || null;
     return { ok: true, ack, error: null };
   } catch (e) {
     return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error' };
@@ -478,11 +478,11 @@ const dispatchUazapiCampaign = async (
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    // Best-effort: only fail on definitive 4xx errors. 2xx = success even without ack.
-    if (!res.ok && res.status >= 400 && res.status < 500) {
+    const explicitError = data?.error || data?.erro || (data?.success === false ? data?.message : null) || null;
+    if (!res.ok || explicitError) {
       return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
     }
-    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
+    const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || null;
     return { ok: true, ack, error: null, raw: data };
   } catch (e) {
     return { ok: false, ack: null, error: e instanceof Error ? e.message : 'UAZAPI dispatch error', raw: null };
@@ -863,30 +863,44 @@ serve(async (req) => {
     const results = [];
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+      let unresolvedLidError: string | null = null;
 
       // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
-      // If resolution fails, we strip the @lid suffix and send to the numeric ID directly
-      // so the provider attempts delivery to the unknown number anyway.
+      // Never send unresolved @lid identifiers as raw numeric strings because providers
+      // expect a real WhatsApp phone number and those synthetic values cause false positives.
       if (contact.phone && contact.phone.includes('@lid') && !isGroupDestination(contact.phone)) {
         const lidId = contact.phone;
         const { data: lidMapping } = await supabase
           .from('message_logs')
           .select('phone')
           .eq('user_id', credentials.userId)
-          .eq('keyword_matched', `lid_map:${lidId}`)
+          .eq('keyword_matched', '__lid_map__')
+          .eq('message_received', lidId)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
-        if (lidMapping?.phone && !lidMapping.phone.includes('@lid')) {
-          console.log(`✅ Resolved @lid for campaign: ${lidId} → ${lidMapping.phone}`);
-          contact.phone = lidMapping.phone;
+        let resolvedLidPhone = lidMapping?.phone || null;
+
+        if (!resolvedLidPhone) {
+          const { data: legacyLidMapping } = await supabase
+            .from('message_logs')
+            .select('phone')
+            .eq('user_id', credentials.userId)
+            .eq('keyword_matched', `lid_map:${lidId}`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          resolvedLidPhone = legacyLidMapping?.phone || null;
+        }
+
+        if (resolvedLidPhone && !resolvedLidPhone.includes('@lid')) {
+          console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
+          contact.phone = resolvedLidPhone;
         } else {
-          // Strip '@lid' suffix and send to the raw numeric identifier as a regular phone.
-          const numericId = lidId.replace(/@lid.*$/, '').replace(/\D/g, '');
-          console.log(`📤 Unresolved @lid ${lidId} — sending to numeric "${numericId}" as Número desconhecido`);
-          contact.phone = numericId || lidId;
-          if (!contact.name) contact.name = 'Número desconhecido';
+          unresolvedLidError = `Contato ${lidId} não foi resolvido para um número real do WhatsApp`;
+          console.log(`❌ ${unresolvedLidError}. Bloqueando envio para evitar falso positivo.`);
         }
       }
 
@@ -926,6 +940,23 @@ serve(async (req) => {
           .filter(s => s.status === 'failed' || s.status === 'pending')
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOrPending?.id || null;
+
+        if (unresolvedLidError) {
+          campaignSend = {
+            campaign_id: campaignId,
+            phone: contact.phone,
+            contact_name: contact.name,
+            message_content: isFlowCampaign ? `[Fluxo: ${flowId}]` : (campaign.template?.content || 'Mensagem não enviada'),
+            status: 'failed',
+            error_message: unresolvedLidError,
+            user_id: credentials.userId,
+            instance_name: currentInstance.instanceName,
+          };
+          results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+          await persistCampaignSend(campaignSend, reusableSendId);
+          if (i < currentBatch.length - 1) await sleep(delayMs);
+          continue;
+        }
 
         // Device connectivity is checked once at batch level (above), not per-contact
         // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
@@ -1032,10 +1063,9 @@ serve(async (req) => {
           if (specialTpl) {
             const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl);
             if (uazSpecial.ok) {
-              const awaitingGroupCallback = isGroupDestination(contact.phone);
-              campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
-              if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+              campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
+              console.log(`⏳ [UAZAPI] Accepted ${contact.phone} via ${currentInstance.instanceName}; waiting callback confirmation`);
             } else {
               campaignSend.status = 'failed';
               campaignSend.error_message = uazSpecial.error || 'UAZAPI special envio falhou';
@@ -1060,11 +1090,9 @@ serve(async (req) => {
           );
 
           if (uazResult.ok) {
-            const awaitingGroupCallback = isGroupDestination(contact.phone);
-            campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
-            if (!awaitingGroupCallback) campaignSend.sent_at = new Date().toISOString();
+            campaignSend.status = 'pending';
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
-            console.log(`✅ [UAZAPI] Sent to ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack})`);
+            console.log(`⏳ [UAZAPI] Accepted ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}); waiting callback confirmation`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
