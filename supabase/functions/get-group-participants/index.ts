@@ -325,6 +325,87 @@ const resolveCredentials = async (
   };
 };
 
+interface UazapiInstance {
+  apiUrl: string;
+  apiToken: string;
+  userId: string;
+}
+
+const resolveUazapiInstance = async (
+  req: Request,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  sourceInstanceId: string | null,
+): Promise<UazapiInstance | null> => {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) return null;
+
+  const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user } } = await userClient.auth.getUser();
+  if (!user) return null;
+
+  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+  let query = adminClient
+    .from("zapi_instances")
+    .select("evolution_api_url, evolution_api_key, api_provider, zapi_instance_id, is_default, is_active, created_at")
+    .eq("user_id", user.id)
+    .eq("api_provider", "uazapi")
+    .eq("is_active", true);
+
+  if (sourceInstanceId) {
+    query = query.eq("zapi_instance_id", sourceInstanceId);
+  }
+
+  const { data } = await query
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data?.evolution_api_url || !data?.evolution_api_key) return null;
+
+  return {
+    apiUrl: String(data.evolution_api_url).replace(/\/+$/, ""),
+    apiToken: String(data.evolution_api_key),
+    userId: user.id,
+  };
+};
+
+const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: string) => {
+  const candidates = uniqueStrings([
+    groupId,
+    groupId.includes("@g.us") ? groupId : `${groupId.replace(/-group$/i, "")}@g.us`,
+  ]);
+
+  let lastError: any = null;
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(`${apiUrl}/group/info`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token: apiToken },
+        body: JSON.stringify({ groupjid: candidate, getInviteLink: false }),
+      });
+      const text = await response.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+
+      if (!response.ok) {
+        lastError = new Error(`UAZAPI ${response.status}: ${text.slice(0, 300)}`);
+        continue;
+      }
+
+      return data;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error(`Unable to fetch UAZAPI group info for ${groupId}`);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
