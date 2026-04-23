@@ -22,7 +22,35 @@ const isZapiSendConfirmed = (payload: any) => {
 };
 
 const hasUazapiExplicitError = (payload: any) => {
-  return payload?.error || payload?.erro || payload?.details?.error || (payload?.success === false ? payload?.message : null) || null;
+  // Extrai a mensagem de erro mais legível possível.
+  // Importante: se o provedor retornar apenas `error: true` (booleano), traduzimos
+  // para uma mensagem clara em vez de gravar a string "true" no banco.
+  const candidates = [
+    payload?.error,
+    payload?.erro,
+    payload?.details?.error,
+    payload?.details?.message,
+    payload?.message,
+    payload?.reason,
+    payload?.response,
+    payload?.success === false ? payload?.message : null,
+  ];
+
+  for (const c of candidates) {
+    if (c == null) continue;
+    if (typeof c === 'string' && c.trim()) return c.trim();
+    if (typeof c === 'object') {
+      const nested = (c as any).message || (c as any).error || (c as any).reason;
+      if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    }
+  }
+
+  // Provedor sinalizou falha sem mensagem (ex.: { error: true } ou { success: false })
+  if (payload?.error === true || payload?.success === false) {
+    return 'Número não está no WhatsApp ou recusou a mensagem (@lid/desconhecido).';
+  }
+
+  return null;
 };
 
 const isUazapiSendConfirmed = (payload: any) => {
