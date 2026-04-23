@@ -226,31 +226,15 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   </div>
                   <div className="space-y-2">
                     <Label>Provedor *</Label>
-                    <Select value={newProvider} onValueChange={(v) => setNewProvider(v as 'zapi' | 'uazapi')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="zapi">Z-API</SelectItem>
-                        <SelectItem value="uazapi">UAZAPI</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
+                      UAZAPI
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Z-API foi descontinuada. Apenas instâncias UAZAPI podem ser cadastradas.
+                    </p>
                   </div>
 
-                  {newProvider === 'zapi' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Instance ID *</Label>
-                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="Ex: 3C12345678" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token *</Label>
-                        <Input value={newToken} onChange={(e) => setNewToken(e.target.value)} placeholder="Token da instância" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Client Token *</Label>
-                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" />
-                      </div>
-                    </>
-                  ) : (
+                  {(
                     <>
                       <div className="space-y-2">
                         <Label>URL da API *</Label>
