@@ -234,7 +234,11 @@ const EnviarMensagem = () => {
     }
 
     if (isCopyPasteTemplate) {
-      const copyContent = (modeloData?.header && modeloData.header.trim())
+      const varsCopy = (modeloData?.variables && typeof modeloData.variables === 'object' && !Array.isArray(modeloData.variables))
+        ? (modeloData.variables as Record<string, any>).copyText
+        : undefined;
+      const copyContent = (typeof varsCopy === 'string' && varsCopy.trim())
+        || (modeloData?.header && modeloData.header.trim())
         || modeloData?.content
         || mensagemPersonalizada
         || '';
@@ -250,7 +254,7 @@ const EnviarMensagem = () => {
           } as any,
         ],
         undefined,
-        modeloData?.footer || undefined,
+        undefined,
       );
       return mensagemPersonalizada || modeloData?.name || 'Mensagem copia e cola enviada';
     }
