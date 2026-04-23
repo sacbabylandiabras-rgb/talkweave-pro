@@ -69,6 +69,20 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string) =>
   type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola";
 
+const getDisplayContent = (template: any): string => {
+  const content = template?.content || "";
+  if (typeof content === 'string' && content.startsWith(SPECIAL_TEMPLATE_PREFIX)) {
+    const parsed = parseSpecialContent(content);
+    if (parsed) {
+      if (parsed.type === 'copia_cola') {
+        return parsed.description || parsed.copyText || template?.name || 'Mensagem com botão Copiar';
+      }
+      return parsed.description || template?.name || '';
+    }
+  }
+  return content;
+};
+
 // Editor compartilhado para PIX / Localização / Contato
 const SpecialFieldsEditor = ({
   type,
