@@ -287,16 +287,19 @@ serve(async (req) => {
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
         .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
 
-      const rawRotatePool = (allActiveInstances || []).map((instance) => ({
+      const rawRotatePool: ResolvedInstance[] = (allActiveInstances || []).map((instance: any) => ({
         zapiInstanceId: instance.zapi_instance_id,
-        zapiToken: instance.zapi_token,
-        zapiClientToken: instance.zapi_client_token,
+        zapiToken: instance.zapi_token || '',
+        zapiClientToken: instance.zapi_client_token || '',
         instanceName: instance.instance_name,
+        apiProvider: String(instance.api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi',
+        uazapiUrl: instance.evolution_api_url || '',
+        uazapiToken: instance.evolution_api_key || '',
       }));
 
       const rotateStatuses = await Promise.all(
@@ -337,7 +340,7 @@ serve(async (req) => {
     } else if (requestedInstanceId) {
       const { data: specificInstance } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -347,6 +350,10 @@ serve(async (req) => {
         zapiInstanceId = specificInstance.zapi_instance_id;
         zapiToken = specificInstance.zapi_token;
         zapiClientToken = specificInstance.zapi_client_token;
+        // Store UAZAPI fields on credentials for downstream use
+        (credentials as any).apiProvider = String((specificInstance as any).api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi';
+        (credentials as any).uazapiUrl = (specificInstance as any).evolution_api_url || '';
+        (credentials as any).uazapiToken = (specificInstance as any).evolution_api_key || '';
       }
     }
 
@@ -359,6 +366,9 @@ serve(async (req) => {
         zapiToken,
         zapiClientToken,
         instanceName: credentials.instanceName,
+        apiProvider: (credentials as any).apiProvider || 'zapi',
+        uazapiUrl: (credentials as any).uazapiUrl || '',
+        uazapiToken: (credentials as any).uazapiToken || '',
       };
     };
 
