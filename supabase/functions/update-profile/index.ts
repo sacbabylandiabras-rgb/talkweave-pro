@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         throw new Error(lastError);
       }
 
-      return new Response(JSON.stringify({ success: true, data }), {
+      return new Response(JSON.stringify({ success: true, data: successData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
