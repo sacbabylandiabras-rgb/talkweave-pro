@@ -89,6 +89,39 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
 
 const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
 
+const logProviderSend = async (
+  adminClient: any,
+  params: {
+    userId: string;
+    provider: 'uazapi' | 'zapi';
+    instanceId?: string | null;
+    phone?: string | null;
+    endpoint?: string | null;
+    status: 'success' | 'error';
+    httpStatus?: number | null;
+    errorMessage?: string | null;
+    durationMs?: number | null;
+    payloadSummary?: Record<string, unknown>;
+  }
+) => {
+  try {
+    await adminClient.from('provider_send_logs').insert({
+      user_id: params.userId,
+      provider: params.provider,
+      instance_id: params.instanceId || null,
+      phone: params.phone || null,
+      endpoint: params.endpoint || null,
+      status: params.status,
+      http_status: params.httpStatus ?? null,
+      error_message: params.errorMessage || null,
+      duration_ms: params.durationMs ?? null,
+      payload_summary: params.payloadSummary || {},
+    });
+  } catch (e) {
+    console.error('⚠️ Falha ao gravar provider_send_logs:', e);
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -218,6 +251,7 @@ serve(async (req) => {
       }
 
       console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${targetNumber}`);
+      const uazStartTs = Date.now();
       const uazRes = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: uazHeaders,
@@ -226,8 +260,21 @@ serve(async (req) => {
       const uazRaw = await uazRes.text();
       let uazData: any = {};
       try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+      const uazDuration = Date.now() - uazStartTs;
 
       if (!uazRes.ok) {
+        await logProviderSend(adminClient, {
+          userId: credentials.userId,
+          provider: 'uazapi',
+          instanceId,
+          phone: logPhone,
+          endpoint,
+          status: 'error',
+          httpStatus: uazRes.status,
+          errorMessage: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`,
+          durationMs: uazDuration,
+          payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
+        });
         return new Response(
           JSON.stringify({ error: uazData?.error || uazData?.message || `UAZAPI error ${uazRes.status}`, details: uazData }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -245,6 +292,18 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         user_id: credentials.userId,
         instance_id: instanceId,
+      });
+
+      await logProviderSend(adminClient, {
+        userId: credentials.userId,
+        provider: 'uazapi',
+        instanceId,
+        phone: logPhone,
+        endpoint,
+        status: 'success',
+        httpStatus: uazRes.status,
+        durationMs: uazDuration,
+        payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
       });
 
       return new Response(
@@ -562,12 +621,46 @@ serve(async (req) => {
       instance_id: instanceId,
     });
 
+    await logProviderSend(adminClient, {
+      userId: credentials.userId,
+      provider: 'zapi',
+      instanceId,
+      phone: resolvedPhone,
+      endpoint: zapiResponse?.url ? new URL(zapiResponse.url).pathname.split('/').pop() : 'send',
+      status: 'success',
+      httpStatus: zapiResponse?.status ?? null,
+      payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
+    });
+
     return new Response(
       JSON.stringify({ success: true, data: zapiData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supabaseUrl && supabaseServiceKey) {
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+        if (auth) {
+          const { data: { user } } = await adminClient.auth.getUser(auth);
+          if (user) {
+            const errMsg = error instanceof Response
+              ? `HTTP ${error.status}`
+              : (error instanceof Error ? error.message : 'Unknown error');
+            await logProviderSend(adminClient, {
+              userId: user.id,
+              provider: 'zapi',
+              status: 'error',
+              errorMessage: errMsg,
+            });
+          }
+        }
+      }
+    } catch (_) { /* swallow */ }
+
     if (error instanceof Response) {
       return error;
     }
