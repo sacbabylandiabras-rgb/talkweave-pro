@@ -4963,6 +4963,11 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     webhook?.event?.Message?.listResponseMessage?.singleSelectReply?.title,
   ];
 
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidateValues);
+  if (preferredDirectCandidate) {
+    values.add(preferredDirectCandidate);
+  }
+
   candidateValues.forEach(push);
 
   const paramsJsonCandidates = [
@@ -5422,6 +5427,9 @@ function extractMessageText(webhook: any): string {
     webhook?.data?.waitingMessage?.message,
     webhook?.data?.waitingMessage?.body,
   ];
+
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
+  if (preferredDirectCandidate) return preferredDirectCandidate;
 
   for (const value of candidates) {
     if (typeof value === "string" && value.trim()) return value.trim();
