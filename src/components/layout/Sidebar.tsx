@@ -95,7 +95,6 @@ const gatewayMenuItems = [
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
-  { id: "configuracao-zapi", label: "Configuração", icon: Settings, path: "/configuracao-zapi", adminOnly: true },
 ];
 
 const metaBottomItems = [

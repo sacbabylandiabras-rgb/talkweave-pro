@@ -71,7 +71,6 @@ export function DashboardLayout() {
       "/modelos": "modelos",
       "/enviar-mensagem": "enviar-mensagem",
       "/relatorio": "relatorio",
-      "/configuracao-zapi": "configuracao-zapi",
       "/fluxo-visual": "fluxo-visual",
       "/admin": "admin",
       "/gateway": "gateway",
