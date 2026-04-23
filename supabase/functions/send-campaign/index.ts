@@ -289,11 +289,12 @@ const dispatchUazapiSpecial = async (
   }
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await fetchUazapiWithRetry(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    if (!res.ok) {
+    // Best-effort: only fail on definitive 4xx errors. 2xx = success even without ack.
+    if (!res.ok && res.status >= 400 && res.status < 500) {
       return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}` };
     }
     const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
@@ -304,6 +305,33 @@ const dispatchUazapiSpecial = async (
 };
 
 const BATCH_SIZE = 50; // Process 50 contacts per invocation
+
+// Best-effort fetch: retries on network errors and HTTP 5xx (UAZAPI server hiccups).
+// Returns the final Response or throws on definitive network failure after all retries.
+const fetchUazapiWithRetry = async (
+  url: string,
+  init: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> => {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status >= 500 && attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
+        continue;
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('UAZAPI fetch failed after retries');
+};
 
 // === UAZAPI dispatch helper ===
 // Sends a campaign message via UAZAPI endpoints. Returns { ok, ack, error, raw }.
@@ -425,11 +453,12 @@ const dispatchUazapiCampaign = async (
   }
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await fetchUazapiWithRetry(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    if (!res.ok) {
+    // Best-effort: only fail on definitive 4xx errors. 2xx = success even without ack.
+    if (!res.ok && res.status >= 400 && res.status < 500) {
       return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
     }
     const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
