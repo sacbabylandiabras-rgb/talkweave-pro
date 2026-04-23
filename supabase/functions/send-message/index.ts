@@ -186,7 +186,24 @@ serve(async (req) => {
       let endpoint = '/send/text';
       let body: Record<string, unknown> = { number: targetNumber, text: message || '' };
 
-      if (mediaUrl && mediaType) {
+      // Interactive buttons (REPLY/URL/CALL) — UAZAPI uses /send/menu with type=button
+      if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+        const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
+          const t = String(b?.type || 'REPLY').toUpperCase();
+          const label = String(b?.label || `Botão ${idx + 1}`).trim();
+          if (t === 'URL' && b?.url) return `${label}|${b.url}`;
+          if (t === 'CALL' && b?.phone) return `${label}|${b.phone}`;
+          return label;
+        });
+        endpoint = '/send/menu';
+        body = {
+          number: targetNumber,
+          type: 'button',
+          text: message || 'Selecione uma opção:',
+          ...(footer ? { footerText: footer } : {}),
+          choices,
+        };
+      } else if (mediaUrl && mediaType) {
         endpoint = '/send/media';
         // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
         // instead of a regular audio attachment.
