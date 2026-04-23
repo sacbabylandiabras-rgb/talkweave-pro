@@ -210,6 +210,24 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
     }
 
+    if (temListaOpcoes) {
+      const validOptions = modeloData!.listItems!
+        .filter((it: any) => it && String(it.title || '').trim().length > 0)
+        .map((it: any) => ({ title: String(it.title), description: it.description ? String(it.description) : '' }));
+
+      if (validOptions.length === 0) {
+        throw new Error('A lista de opções precisa de pelo menos um item com título');
+      }
+
+      await sendOptionList(phone, mensagemPersonalizada || modeloData?.content || '', {
+        title: modeloData?.header || modeloData?.name || 'Opções',
+        buttonLabel: 'Ver opções',
+        options: validOptions,
+      });
+
+      return mensagemPersonalizada || modeloData?.name || 'Lista de opções enviada';
+    }
+
     if (temBotoes) {
       await sendButtonActions(
         phone,
