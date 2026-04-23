@@ -5053,7 +5053,10 @@ function findButtonEdgeMatch(
   normalizedMessage: string,
   rawMessage: string,
   webhook?: any,
-  options?: { nodeId?: string | null },
+  options?: {
+    nodeId?: string | null;
+    pendingState?: PendingButtonState | null;
+  },
 ):
   | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
   | null {
