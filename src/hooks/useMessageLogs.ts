@@ -647,8 +647,9 @@ export const useMessageLogs = (
       });
     channelRef2.current = ch2;
 
-    // Reduced from 15s to 5s as a safety net while diagnosing realtime delivery.
-    pollingRef.current = setInterval(fetchAll, 5000);
+    // Realtime is the primary source; polling is just a safety net.
+    // 30s avoids hammering the DB and prevents flicker from replication lag.
+    pollingRef.current = setInterval(fetchAll, 30000);
 
     return () => {
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
