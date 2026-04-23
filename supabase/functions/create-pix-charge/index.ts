@@ -205,7 +205,19 @@ serve(async (req) => {
 
     console.log('Active acquirer:', activeAcquirer)
 
-    const amountCents = Math.round(amount)
+    let amountCents = Math.round(amount)
+
+    if (checkout.product_id) {
+      const { data: product } = await supabase
+        .from('gateway_products')
+        .select('price')
+        .eq('id', checkout.product_id)
+        .maybeSingle()
+
+      if (product && typeof product.price === 'number') {
+        amountCents = product.price
+      }
+    }
 
     // Calculate platform fees: PIX = 6.99% + R$ 1.99 (199 centavos)
     const feePercent = 6.99
