@@ -219,6 +219,7 @@ const Campanhas = () => {
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
+    sending: statsDialogSends.filter(s => s.status === 'pending').length,
     pending: statsDialogSends.filter(s => s.status === 'pending').length,
     failed: statsDialogSends.filter(s => s.status === 'failed').length,
     total: statsDialogSends.length,
@@ -939,7 +940,7 @@ const Campanhas = () => {
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
               Estatísticas - {statsDialogCampaignName}
-              {statsDialogStats.pending > 0 && (
+              {statsDialogStats.sending > 0 && (
                 <Badge variant="secondary" className="animate-pulse ml-2">
                   <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                   Tempo real
@@ -958,8 +959,9 @@ const Campanhas = () => {
             const targetContacts: Array<{ phone: string; name?: string }> = 
               campaign?.target_audience?.contacts || [];
             const getSendPriority = (status?: string | null) => {
-              if (status === 'delivered') return 3;
-              if (status === 'sent') return 2;
+              if (status === 'delivered') return 4;
+              if (status === 'sent') return 3;
+              if (status === 'pending') return 2;
               if (status === 'failed') return 1;
               return 0;
             };
@@ -992,7 +994,7 @@ const Campanhas = () => {
             const fullContactList = targetContacts.map((contact, index) => {
               const phoneKey = resolvePhoneKey(contact.phone);
               const send = sendsByPhone.get(phoneKey);
-              let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
+              let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
 
@@ -1000,6 +1002,8 @@ const Campanhas = () => {
                 if (send.status === 'sent' || send.status === 'delivered') {
                   status = 'enviado';
                   sentAt = send.sent_at || null;
+                } else if (send.status === 'pending') {
+                  status = 'enviando';
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
                   errorMessage = send.error_message || null;
@@ -1024,8 +1028,9 @@ const Campanhas = () => {
               const existsInTarget = targetPhoneKeys.has(sendKey);
 
               if (!existsInTarget) {
-                let status: 'enviado' | 'pendente' | 'cancelado' = 'pendente';
+                let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
+                else if (send.status === 'pending') status = 'enviando';
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
@@ -1041,6 +1046,7 @@ const Campanhas = () => {
             });
 
             const sentCount = fullContactList.filter(c => c.status === 'enviado').length;
+            const sendingCount = fullContactList.filter(c => c.status === 'enviando').length;
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
@@ -1103,7 +1109,7 @@ const Campanhas = () => {
                 </div>
 
                 {/* Stats grid */}
-                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-6' : 'md:grid-cols-5'} gap-3`}>
+                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-7' : 'md:grid-cols-6'} gap-3`}>
                   <div className="p-3 bg-muted/50 rounded-lg text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-bold text-lg">{totalCount}</p>
@@ -1111,6 +1117,10 @@ const Campanhas = () => {
                   <div className="p-3 bg-green-500/10 rounded-lg text-center">
                     <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
                     <p className="font-bold text-lg text-green-600 dark:text-green-400">{sentCount}</p>
+                  </div>
+                  <div className="p-3 bg-primary/10 rounded-lg text-center">
+                    <p className="text-xs text-primary">Enviando</p>
+                    <p className="font-bold text-lg text-primary">{sendingCount}</p>
                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
@@ -1164,11 +1174,13 @@ const Campanhas = () => {
                           <TableCell>{contact.phone}</TableCell>
                           <TableCell>
                             <Badge 
-                              variant={contact.status === 'enviado' ? 'default' : contact.status === 'pendente' ? 'secondary' : 'destructive'}
-                              className="flex items-center gap-1 w-fit"
+                              variant={contact.status === 'enviado' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
+                              className={contact.status === 'enviando' ? 'flex items-center gap-1 w-fit bg-primary/10 text-primary border-primary/20' : 'flex items-center gap-1 w-fit'}
                             >
                               {contact.status === 'enviado' ? (
                                 <><CheckCircle className="w-3 h-3" /> Enviado</>
+                              ) : contact.status === 'enviando' ? (
+                                <><ClockIcon className="w-3 h-3" /> Enviando</>
                               ) : contact.status === 'pendente' ? (
                                 <><ClockIcon className="w-3 h-3" /> Pendente</>
                               ) : (
