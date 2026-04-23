@@ -36,6 +36,12 @@ const phoneSchema = z.string()
     return normalPhone || lidPhone;
   }, "Número inválido. Use 10-15 dígitos ou formato 123456789@lid");
 
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (/^\d+@lid$/i.test(trimmed)) return trimmed.toLowerCase();
+  return trimmed.replace(/\D/g, '');
+};
+
 const messageSchema = z.object({
   phone: phoneSchema,
   message: z.string()
@@ -1529,7 +1535,7 @@ const EnviarMensagem = () => {
                       placeholder="5511999999999"
                       className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
-                      onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
                     {errors.phone && (
                       <p className="text-sm text-destructive mt-1">{errors.phone}</p>
@@ -1611,7 +1617,7 @@ const EnviarMensagem = () => {
                       placeholder="5511999999999"
                       className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
-                      onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
                     {errors.phone && (
                       <p className="text-sm text-destructive mt-1">{errors.phone}</p>
@@ -1813,7 +1819,7 @@ const EnviarMensagem = () => {
                       placeholder="5511999999999"
                       className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
-                      onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
                     {errors.phone && (
                       <p className="text-sm text-destructive mt-1">{errors.phone}</p>
