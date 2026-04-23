@@ -461,13 +461,20 @@ const MediaModelSection = ({
                           </div>
                         )}
 
-                        {String(modeloAtual.type || '').toLowerCase() !== 'copia_cola' && String(modeloAtual.type || '').toLowerCase() !== 'copy_paste' && modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
+                        {(() => {
+                          const special = parseSpecial(modeloAtual.content);
+                          const isCopyPaste = special?.type === 'copia_cola'
+                            || String(modeloAtual.type || '').toLowerCase() === 'copia_cola'
+                            || String(modeloAtual.type || '').toLowerCase() === 'copy_paste';
+                          if (isCopyPaste || !modeloAtual.listItems || modeloAtual.listItems.length === 0) return null;
+                          return (
                           <div className="border-t border-border/30 px-3 py-2">
                             <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
                               📋 Ver opções ({modeloAtual.listItems.length})
                             </div>
                           </div>
-                        )}
+                          );
+                        })()}
                       </>
                     )}
                   </div>
