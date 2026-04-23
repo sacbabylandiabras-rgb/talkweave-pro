@@ -4316,7 +4316,10 @@ async function sendNodeContent(
     return btns
       .filter((b) => b.type === "reply" || b.type === "flow")
       .slice(0, 3)
-      .map((btn) => ({ label: (btn.text || "").trim() || "Botão" }));
+      .map((btn, idx) => ({
+        id: `button-${idx}`,
+        label: (btn.text || "").trim() || "Botão",
+      }));
   }
 
   function buildUazapiMenuChoices(btns: typeof allSendButtons) {
