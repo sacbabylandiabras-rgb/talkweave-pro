@@ -229,7 +229,10 @@ const resolveWebhookPhone = (webhook: any) => {
     return normalizeGroupCampaignPhone(rawPhone);
   }
 
-  if (rawPhone && !rawPhone.includes("@lid")) return rawPhone;
+  if (
+    rawPhone && !rawPhone.includes("@lid") &&
+    !isLikelyTechnicalIdentifier(rawPhone)
+  ) return rawPhone;
   if (senderPhone && !senderPhone.includes("@lid")) return senderPhone;
   if (participantPhone && !participantPhone.includes("@lid")) {
     return participantPhone;
@@ -3148,11 +3151,19 @@ serve(async (req) => {
       "Encaminhamento para gateway_integrations ignorado no webhook-zapi para evitar disparos indevidos",
     );
 
+    const phoneLookupCandidates = Array.from(new Set([
+      String(phone || "").trim(),
+      normalizePhoneCandidate(webhook?.senderPhone),
+      normalizePhoneCandidate(webhook?.participantPhone),
+      normalizePhoneCandidate(webhook?.chatPhone),
+      normalizePhoneCandidate(webhook?.author),
+    ].filter((value) => typeof value === "string" && value.trim().length > 0)));
+
     const { data: pendingCaptureLog } = await supabase
       .from("message_logs")
       .select("id, response_sent, instance_id")
       .eq("user_id", userId)
-      .eq("phone", phone)
+      .in("phone", phoneLookupCandidates)
       .eq("keyword_matched", `${FLOW_CAPTURE_PREFIX}${userId}`)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -3162,7 +3173,7 @@ serve(async (req) => {
       .from("message_logs")
       .select("id, response_sent, instance_id")
       .eq("user_id", userId)
-      .eq("phone", phone)
+      .in("phone", phoneLookupCandidates)
       .like("keyword_matched", `${FLOW_BUTTON_PREFIX}%`)
       .order("created_at", { ascending: false })
       .limit(1)
