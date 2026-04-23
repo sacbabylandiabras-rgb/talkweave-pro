@@ -551,7 +551,7 @@ serve(async (req) => {
           webhook?.text?.selectedRowId,
           webhook?.buttonReply?.selectedRowId,
         ].find((value) => typeof value === "string" && value.trim()) || "";
-        const buttonSelectionCandidates = [
+        const buttonSelectionCandidates = pickPreferredInteractiveText([
           eventPayload?.SelectedDisplayText,
           eventPayload?.SelectedButtonText,
           eventPayload?.selectedDisplayText,
@@ -604,7 +604,7 @@ serve(async (req) => {
           webhook?.message?.contextInfo?.quotedMessage?.templateMessage?.hydratedTemplate?.hydratedContentText,
           selectedButtonId,
           selectedRowId,
-        ].find((value) => typeof value === "string" && value.trim()) || "";
+        ]);
         const hasInteractiveSelection = Boolean(
           buttonSelectionCandidates || selectedButtonId || selectedRowId,
         );
