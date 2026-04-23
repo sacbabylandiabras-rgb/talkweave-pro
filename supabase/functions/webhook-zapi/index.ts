@@ -2428,19 +2428,19 @@ serve(async (req) => {
                 }
               }
 
-              if (Object.keys(updatePayload).length === 0) {
+              const hasUpdates = Object.keys(updatePayload).length > 0;
+              const campaignSendUpdateError = hasUpdates
+                ? (await supabase
+                    .from("campaign_sends")
+                    .update(updatePayload)
+                    .eq("id", campaignSend.id)).error
+                : null;
+
+              if (!hasUpdates) {
                 console.log(
                   `ℹ️ campaign_send ${campaignSend.id} já está em estado ${campaignSend.status}, nada a atualizar`,
                 );
-                continue;
-              }
-
-              const { error: campaignSendUpdateError } = await supabase
-                .from("campaign_sends")
-                .update(updatePayload)
-                .eq("id", campaignSend.id);
-
-              if (campaignSendUpdateError) {
+              } else if (campaignSendUpdateError) {
                 console.error(
                   "❌ Erro atualizando campaign_send via callback:",
                   campaignSendUpdateError,
