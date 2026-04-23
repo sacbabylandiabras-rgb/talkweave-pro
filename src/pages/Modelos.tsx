@@ -411,6 +411,25 @@ const ButtonEditor = memo(({
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useToast } from "@/hooks/use-toast";
 
+const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes";
+const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes";
+const isAudioTemplateType = (type?: string) => type === "audio";
+const isDocumentTemplateType = (type?: string) => type === "arquivo" || type === "documento";
+
+const getPreviewFileLabel = (template: any) => {
+  if (template?.fileName) return template.fileName;
+  if (!template?.mediaUrl) return "Arquivo anexado";
+
+  try {
+    const pathname = new URL(template.mediaUrl).pathname;
+    const lastSegment = pathname.split('/').filter(Boolean).pop();
+    return lastSegment || "Arquivo anexado";
+  } catch {
+    const segments = String(template.mediaUrl).split('/').filter(Boolean);
+    return segments.pop() || "Arquivo anexado";
+  }
+};
+
 const Modelos = () => {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
   const { toast } = useToast();
@@ -2220,8 +2239,46 @@ const Modelos = () => {
                 ) : (
                 <div className="flex justify-end">
                   <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
-                    {previewTemplate.mediaUrl && (
+                    {previewTemplate.mediaUrl && isImageTemplateType(previewTemplate.type) && (
                       <img src={previewTemplate.mediaUrl} alt="Mídia" className="w-full rounded-t-lg object-cover max-h-48" />
+                    )}
+                    {previewTemplate.mediaUrl && isVideoTemplateType(previewTemplate.type) && (
+                      <video
+                        src={previewTemplate.mediaUrl}
+                        className="w-full rounded-t-lg object-cover max-h-48 bg-black"
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
+                    )}
+                    {previewTemplate.mediaUrl && isAudioTemplateType(previewTemplate.type) && (
+                      <div className="px-3 pt-3">
+                        <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-3 space-y-2">
+                          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <Music className="w-4 h-4 text-primary" />
+                            <span>Áudio</span>
+                          </div>
+                          <audio
+                            src={previewTemplate.mediaUrl}
+                            controls
+                            preload="metadata"
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {previewTemplate.mediaUrl && isDocumentTemplateType(previewTemplate.type) && (
+                      <div className="px-3 pt-3">
+                        <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-3 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileType className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{getPreviewFileLabel(previewTemplate)}</p>
+                            <p className="text-xs text-muted-foreground">Arquivo anexado</p>
+                          </div>
+                        </div>
+                      </div>
                     )}
                     <div className="px-3 py-2 space-y-1">
                       {previewTemplate.header && (
