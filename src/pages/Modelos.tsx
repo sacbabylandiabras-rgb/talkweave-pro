@@ -212,6 +212,10 @@ const SpecialFieldsEditor = ({
   }
 
   if (type === "copia_cola") {
+    const currentVars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
+      ? data.variables as Record<string, any>
+      : {};
+    const copyText = currentVars.copyText ?? data.header ?? "";
     return (
       <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
         <div className="flex items-center gap-2 text-sm font-medium">
@@ -221,8 +225,11 @@ const SpecialFieldsEditor = ({
           <Label>Conteúdo que será copiado ao clicar no botão *</Label>
           <Textarea
             placeholder="Ex: PIX: contato@exemplo.com  |  Cupom: PROMO10  |  Link: https://..."
-            value={data.header || ""}
-            onChange={(e) => onChange({ header: e.target.value })}
+            value={copyText}
+            onChange={(e) => onChange({
+              variables: { ...currentVars, copyText: e.target.value },
+              header: "",
+            })}
             rows={3}
           />
           <p className="text-xs text-muted-foreground mt-1">
