@@ -213,7 +213,7 @@ const EnviarMensagem = () => {
     if (temListaOpcoes) {
       const validOptions = modeloData!.listItems!
         .filter((it: any) => it && String(it.title || '').trim().length > 0)
-        .map((it: any) => ({ title: String(it.title), description: it.description ? String(it.description) : '' }));
+        .map((it: any, idx: number) => ({ id: String(it.id ?? idx + 1), title: String(it.title), description: it.description ? String(it.description) : '' }));
 
       if (validOptions.length === 0) {
         throw new Error('A lista de opções precisa de pelo menos um item com título');
