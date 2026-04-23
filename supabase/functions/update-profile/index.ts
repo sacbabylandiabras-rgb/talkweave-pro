@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       console.log(`📱 Updating profile ${type} via UAZAPI: ${url}`);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'token': instanceToken,
