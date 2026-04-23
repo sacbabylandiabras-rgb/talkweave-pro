@@ -1119,6 +1119,8 @@ const EnviarMensagem = () => {
             // Already sent above (video + buttons) — skip remaining dispatch.
           } else if (imagemComBotoes) {
             // Already sent above (image + buttons) — skip remaining dispatch.
+          } else if (documentoComBotoes) {
+            // Already sent above (document + buttons) — skip remaining dispatch.
           } else if (temMidiaModelo) {
             // Already sent above via media template — skip remaining dispatch.
           } else if (temBotoes) {
