@@ -580,6 +580,8 @@ const EnviarMensagem = () => {
       let processados = 0;
       let erros = 0;
       let interrompidoExternamente = false;
+      let ultimoErro: string | null = null;
+      const errosDetalhados: string[] = [];
 
       for (let i = 0; i < contatosProcessados.length; i++) {
         // Verificar se o envio foi cancelado localmente
@@ -820,6 +822,13 @@ const EnviarMensagem = () => {
           sendStatus = 'failed';
           errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
           console.error(`Erro ao enviar para ${contato.nome}:`, error);
+          ultimoErro = errorMessage;
+          errosDetalhados.push(`${contato.nome}: ${errorMessage}`);
+          toast({
+            title: `Falha ao enviar para ${contato.nome}`,
+            description: errorMessage,
+            variant: "destructive",
+          });
         }
         
         // Determinar nome da instância usada neste envio
@@ -878,7 +887,7 @@ const EnviarMensagem = () => {
           title: "Envio em massa concluído!",
           description: hasPending
             ? `⏸️ ${processados} processados • ${remainingPending} pendentes — campanha pausada`
-            : `✅ ${processados} envios confirmados • ❌ ${erros} erros`,
+            : `✅ ${processados} envios confirmados • ❌ ${erros} erros${ultimoErro ? ` — Motivo: ${ultimoErro}` : ''}`,
           variant: processados > 0 ? "default" : "destructive"
         });
       }
