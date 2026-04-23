@@ -138,12 +138,13 @@ const EnviarMensagem = () => {
     const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
     const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
     const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
+    const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl) {
@@ -230,6 +231,25 @@ const EnviarMensagem = () => {
       });
 
       return mensagemPersonalizada || modeloData?.name || 'Lista de opções enviada';
+    }
+
+    if (isCopyPasteTemplate) {
+      const copyContent = modeloData?.content || mensagemPersonalizada || '';
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || copyContent,
+        [
+          {
+            id: 'copy_btn',
+            type: 'COPY',
+            label: 'Copiar',
+            copyText: copyContent,
+          } as any,
+        ],
+        modeloData?.header || undefined,
+        modeloData?.footer || undefined,
+      );
+      return mensagemPersonalizada || modeloData?.name || 'Mensagem copia e cola enviada';
     }
 
     if (temBotoes) {
@@ -807,12 +827,13 @@ const EnviarMensagem = () => {
           const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
           const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
           const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
+          const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
           const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
           const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
           const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !!modeloData?.buttons?.length;
-          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
+          const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
+          const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
             ? instances[i % instances.length]
             : selectedInstanceId
@@ -893,6 +914,22 @@ const EnviarMensagem = () => {
               buttonLabel: 'Ver opções',
               options: validOptions,
             });
+          } else if (isCopyPasteTemplate) {
+            const copyContent = modeloData?.content || mensagemPersonalizada || '';
+            await sendButtonActions(
+              contato.telefone,
+              mensagemPersonalizada || copyContent,
+              [
+                {
+                  id: 'copy_btn',
+                  type: 'COPY',
+                  label: 'Copiar',
+                  copyText: copyContent,
+                } as any,
+              ],
+              modeloData?.header || undefined,
+              modeloData?.footer || undefined,
+            );
           } else if (temMidiaModelo) {
             const mediaCaption = legenda || mensagemPersonalizada;
 
