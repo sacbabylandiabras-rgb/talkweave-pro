@@ -901,6 +901,7 @@ export const useZapi = () => {
     sendAudio,
     sendDocument,
     sendSpecialTemplate,
+    sendCarousel,
     getDeviceStatus,
     getQRCode,
     getPairingCode,
