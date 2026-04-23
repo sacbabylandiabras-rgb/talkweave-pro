@@ -5043,7 +5043,23 @@ async function processFlowNode(
     }`,
   );
 
-  for (const edge of outgoing) {
+  // FIX: For condition blocks, only follow ONE edge (the highest priority) to avoid
+  // duplicate sends. The button match upstream already routed to the correct branch;
+  // when continuing past a condition block, follow the default/fallback path only.
+  const edgesToFollow = currentNode?.type === "blocoCondicao"
+    ? (() => {
+        // Prefer a "default/bottom" fallback edge; otherwise take the first one.
+        const fallback = outgoing.find((e) => {
+          const h = String(e.sourceHandle || "").toLowerCase();
+          return h === "" || h === "default" || h === "bottom" ||
+            h === "source-bottom" || h === "b";
+        });
+        const chosen = fallback || outgoing[0];
+        return chosen ? [chosen] : [];
+      })()
+    : outgoing;
+
+  for (const edge of edgesToFollow) {
     const targetNode = nodes.find((n) => n.id === edge.target);
     if (!targetNode) continue;
 
