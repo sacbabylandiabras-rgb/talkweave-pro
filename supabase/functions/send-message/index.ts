@@ -89,6 +89,39 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
 
 const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
 
+const logProviderSend = async (
+  adminClient: any,
+  params: {
+    userId: string;
+    provider: 'uazapi' | 'zapi';
+    instanceId?: string | null;
+    phone?: string | null;
+    endpoint?: string | null;
+    status: 'success' | 'error';
+    httpStatus?: number | null;
+    errorMessage?: string | null;
+    durationMs?: number | null;
+    payloadSummary?: Record<string, unknown>;
+  }
+) => {
+  try {
+    await adminClient.from('provider_send_logs').insert({
+      user_id: params.userId,
+      provider: params.provider,
+      instance_id: params.instanceId || null,
+      phone: params.phone || null,
+      endpoint: params.endpoint || null,
+      status: params.status,
+      http_status: params.httpStatus ?? null,
+      error_message: params.errorMessage || null,
+      duration_ms: params.durationMs ?? null,
+      payload_summary: params.payloadSummary || {},
+    });
+  } catch (e) {
+    console.error('⚠️ Falha ao gravar provider_send_logs:', e);
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
