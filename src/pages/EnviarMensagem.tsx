@@ -415,7 +415,13 @@ const EnviarMensagem = () => {
     e.preventDefault();
     
     try {
-      const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
+      const modeloData = modeloSelecionado
+        ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
+        : null;
+      // Quando há modelo selecionado, o campo "mensagem" é opcional —
+      // o conteúdo virá do próprio modelo (texto, mídia, PIX, etc.)
+      const effectiveMessage = mensagem || modeloData?.content || modeloData?.name || 'modelo';
+      const validatedData = messageSchema.parse({ phone: numero, message: effectiveMessage });
       setErrors({});
       
       let sendStatus: 'sent' | 'failed' = 'sent';
