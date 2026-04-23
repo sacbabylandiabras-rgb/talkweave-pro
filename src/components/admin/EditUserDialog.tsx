@@ -42,7 +42,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
-  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('uazapi');
   const [newUazapiUrl, setNewUazapiUrl] = useState('');
   const [newUazapiToken, setNewUazapiToken] = useState('');
 
@@ -110,7 +110,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId('');
     setNewToken('');
     setNewClientToken('');
-    setNewProvider('zapi');
+    setNewProvider('uazapi');
     setNewUazapiUrl('');
     setNewUazapiToken('');
   };
@@ -122,7 +122,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceId(instance.zapi_instance_id || '');
     setNewToken(instance.zapi_token || '');
     setNewClientToken(instance.zapi_client_token || '');
-    setNewProvider((instance.api_provider as 'zapi' | 'uazapi') || 'zapi');
+    setNewProvider('uazapi');
     setNewUazapiUrl((instance as any).evolution_api_url || '');
     setNewUazapiToken((instance as any).evolution_api_key || '');
   };
