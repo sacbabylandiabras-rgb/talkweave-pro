@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video, FileAudio, Copy } from "lucide-react";
+import { Paperclip, FileText, Eye, Check, Phone, Wifi, Video, FileAudio, Copy, MapPin, User as UserIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
@@ -349,6 +349,75 @@ const MediaModelSection = ({
                               ))}
                             </div>
                           )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Prévia para Localização (template especial)
+                  if (__special && __special.type === 'localizacao') {
+                    const lat = Number(String(__special.latitude ?? '').replace(',', '.'));
+                    const lng = Number(String(__special.longitude ?? '').replace(',', '.'));
+                    const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+                    const mapUrl = hasCoords
+                      ? `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=400x200&markers=${lat},${lng},red-pushpin`
+                      : null;
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          {hasCoords && (
+                            <div className="block bg-muted relative">
+                              <img
+                                src={mapUrl!}
+                                alt="Mapa"
+                                className="w-full h-32 object-cover"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <MapPin className="w-8 h-8 text-red-600 drop-shadow-lg" />
+                              </div>
+                            </div>
+                          )}
+                          <div className="px-3 py-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-foreground" />
+                              <p className="text-sm font-semibold text-foreground">
+                                {__special.title || modeloAtual.name || 'Localização'}
+                              </p>
+                            </div>
+                            {__special.address && (
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{__special.address}</p>
+                            )}
+                            {hasCoords && (
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                {lat.toFixed(6)}, {lng.toFixed(6)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Prévia para Contato (template especial)
+                  if (__special && __special.type === 'contato') {
+                    const name = __special.contactName || modeloAtual.name || 'Contato';
+                    const phone = __special.contactPhone || '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[240px]">
+                          <div className="px-3 py-3 flex items-center gap-3 border-b border-border/30">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <UserIcon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+                              {phone && (
+                                <p className="text-xs text-muted-foreground truncate">{phone}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                            Adicionar contato
+                          </div>
                         </div>
                       </div>
                     );
