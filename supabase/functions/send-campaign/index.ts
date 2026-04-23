@@ -145,21 +145,27 @@ const resolveGroupInstanceFromInboundLogs = async (
 
   const { data: correctInstance } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
     .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
 
-  if (!correctInstance?.zapi_instance_id || !correctInstance?.zapi_token || !correctInstance?.zapi_client_token) {
+  const correctIsUaz = String((correctInstance as any)?.api_provider || '').toLowerCase() === 'uazapi';
+  const correctHasZapi = correctInstance?.zapi_instance_id && correctInstance?.zapi_token && correctInstance?.zapi_client_token;
+  const correctHasUaz = correctIsUaz && (correctInstance as any)?.evolution_api_url && (correctInstance as any)?.evolution_api_key;
+  if (!correctInstance?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
     return null;
   }
 
   return {
     zapiInstanceId: correctInstance.zapi_instance_id,
-    zapiToken: correctInstance.zapi_token,
-    zapiClientToken: correctInstance.zapi_client_token,
+    zapiToken: correctInstance.zapi_token || '',
+    zapiClientToken: correctInstance.zapi_client_token || '',
     instanceName: correctInstance.instance_name || 'Instância',
+    apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
+    uazapiUrl: (correctInstance as any).evolution_api_url || '',
+    uazapiToken: (correctInstance as any).evolution_api_key || '',
   };
 };
 
