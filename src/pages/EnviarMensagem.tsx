@@ -137,11 +137,13 @@ const EnviarMensagem = () => {
     const templateType = String(modeloData?.type || '').toLowerCase();
     const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
     const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
+    const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
+    const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
     const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && (!!modeloData?.mediaUrl || isAudioTemplate);
+    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !temListaOpcoes && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !temListaOpcoes && (!!modeloData?.mediaUrl || isAudioTemplate);
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl) {
