@@ -1140,6 +1140,26 @@ serve(async (req) => {
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
+
+            if (isWhatsAppRateLimitError(uazResult.raw, undefined)) {
+              await persistCampaignSend(campaignSend, reusableSendId);
+              await supabase
+                .from('campaigns')
+                .update({ status: 'paused', updated_at: new Date().toISOString() })
+                .eq('id', campaignId);
+
+              return new Response(JSON.stringify({
+                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
+                stopped: true,
+                paused: true,
+                reason: 'whatsapp_rate_limit',
+                processed: i + 1,
+                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
+              }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders },
+              });
+            }
           }
 
           await persistCampaignSend(campaignSend, reusableSendId);
