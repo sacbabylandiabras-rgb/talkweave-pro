@@ -148,6 +148,8 @@ serve(async (req) => {
       optionList,
       viewOnce,
       isPtv,
+      specialType,
+      specialPayload,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -157,7 +159,9 @@ serve(async (req) => {
       (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) ||
       (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0);
 
-    if (!phone || (!message && !mediaUrl && !hasInteractivePayload)) {
+    const hasSpecialPayload = !!specialType && !!specialPayload;
+
+    if (!phone || (!message && !mediaUrl && !hasInteractivePayload && !hasSpecialPayload)) {
       return new Response(
         JSON.stringify({ error: 'Phone and message, mediaUrl, or interactive payload are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
