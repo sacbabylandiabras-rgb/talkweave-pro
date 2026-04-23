@@ -1241,6 +1241,29 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
+            // 🚨 WhatsApp rate-limit (error 463 / temporary restriction):
+            // pause the campaign immediately so the remaining contacts stay
+            // pending and can be resumed later when the account recovers.
+            if (isWhatsAppRateLimitError(zapiResult, zapiResponse.status)) {
+              console.log(`🚨 WhatsApp rate-limit detectado (error 463 / temporary restriction). Pausando campanha ${campaignId} para preservar a conta.`);
+              await persistCampaignSend(campaignSend, reusableSendId);
+              await supabase
+                .from('campaigns')
+                .update({ status: 'paused', updated_at: new Date().toISOString() })
+                .eq('id', campaignId);
+              return new Response(JSON.stringify({
+                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
+                stopped: true,
+                paused: true,
+                reason: 'whatsapp_rate_limit',
+                processed: i + 1,
+                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
+              }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders },
+              });
+            }
+
             // Mid-batch disconnection detection: after a send failure, check if device went offline
             try {
               const midBatchInstance = currentInstance;
