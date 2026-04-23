@@ -407,12 +407,33 @@ const Modelos = () => {
   });
 
   const handleCreateTemplate = async () => {
-    if (!newTemplate.name || !newTemplate.category || !newTemplate.content) {
+    if (!newTemplate.name || !newTemplate.category) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha nome e categoria",
         variant: "destructive",
       });
+      return;
+    }
+    if (!isSpecialType(newTemplate.type) && !newTemplate.content) {
+      toast({
+        title: "Erro",
+        description: "Preencha o conteúdo do modelo",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Validações por tipo especial
+    if (newTemplate.type === "pix" && (!newTemplate.pixKey || !newTemplate.pixMerchantName)) {
+      toast({ title: "Erro", description: "Informe a chave PIX e o nome do recebedor", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "localizacao" && (!newTemplate.locLatitude || !newTemplate.locLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "contato" && (!newTemplate.contactName || !newTemplate.contactPhone)) {
+      toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
 
@@ -467,11 +488,15 @@ const Modelos = () => {
         }
       }
 
+      const finalContent = isSpecialType(newTemplate.type)
+        ? buildSpecialContent(newTemplate.type, newTemplate)
+        : newTemplate.content;
+
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
         type: newTemplate.type,
-        content: newTemplate.content,
+        content: finalContent,
         header: newTemplate.header,
         footer: newTemplate.footer,
         variables,
