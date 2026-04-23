@@ -453,11 +453,12 @@ const dispatchUazapiCampaign = async (
   }
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await fetchUazapiWithRetry(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
     const raw = await res.text();
     let data: any = {};
     try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    if (!res.ok) {
+    // Best-effort: only fail on definitive 4xx errors. 2xx = success even without ack.
+    if (!res.ok && res.status >= 400 && res.status < 500) {
       return { ok: false, ack: null, error: data?.error || data?.message || `UAZAPI HTTP ${res.status}`, raw: data };
     }
     const ack = data?.id || data?.messageId || data?.message?.id || data?.key?.id || `uaz-${Date.now()}`;
