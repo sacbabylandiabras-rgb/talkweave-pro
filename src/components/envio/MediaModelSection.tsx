@@ -11,6 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageTemplate } from "@/hooks/useMessageTemplates";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
 
+const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
+const parseSpecial = (content?: string | null): any | null => {
+  if (!content || typeof content !== 'string' || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
+  try {
+    return JSON.parse(content.slice(SPECIAL_TEMPLATE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
 interface MediaModelSectionProps {
   arquivoMidia: File | null;
   setArquivoMidia: (file: File | null) => void;
@@ -341,17 +351,47 @@ const MediaModelSection = ({
                         )}
 
                         <div className="px-3 py-2 space-y-1">
-                          {modeloAtual.header && (
-                            <p className="font-bold text-sm text-foreground">{modeloAtual.header}</p>
-                          )}
-
-                          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                            {modeloAtual.content}
-                          </p>
-
-                          {modeloAtual.footer && (
-                            <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
-                          )}
+                          {(() => {
+                            const special = parseSpecial(modeloAtual.content);
+                            const isCopyPaste = special?.type === 'copia_cola'
+                              || String(modeloAtual.type || '').toLowerCase() === 'copia_cola';
+                            if (isCopyPaste) {
+                              const copyText = special?.copyText
+                                || (modeloAtual as any)?.variables?.copyText
+                                || modeloAtual.header
+                                || '';
+                              const body = special?.description
+                                || (special ? '' : modeloAtual.content)
+                                || modeloAtual.name
+                                || '';
+                              return (
+                                <>
+                                  {body && (
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{body}</p>
+                                  )}
+                                  {copyText && (
+                                    <div className="mt-1 rounded-md bg-background/70 border border-border px-2 py-1">
+                                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Texto para copiar</p>
+                                      <p className="text-xs font-mono text-foreground whitespace-pre-wrap break-all leading-snug">{copyText}</p>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            }
+                            return (
+                              <>
+                                {modeloAtual.header && (
+                                  <p className="font-bold text-sm text-foreground">{modeloAtual.header}</p>
+                                )}
+                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                  {modeloAtual.content}
+                                </p>
+                                {modeloAtual.footer && (
+                                  <p className="text-xs text-muted-foreground italic">{modeloAtual.footer}</p>
+                                )}
+                              </>
+                            );
+                          })()}
 
                           {modeloAtual.variables && modeloAtual.variables.length > 0 && (
                             <p className="text-[10px] text-muted-foreground mt-1">
@@ -380,6 +420,20 @@ const MediaModelSection = ({
                             ))}
                           </div>
                         )}
+
+                        {(() => {
+                          const special = parseSpecial(modeloAtual.content);
+                          const isCopyPaste = special?.type === 'copia_cola'
+                            || String(modeloAtual.type || '').toLowerCase() === 'copia_cola';
+                          if (!isCopyPaste) return null;
+                          return (
+                            <div className="border-t border-border/30">
+                              <div className="text-center py-2 text-sm text-primary font-medium">
+                                📋 Copiar
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
                           <div className="border-t border-border/30 px-3 py-2">
