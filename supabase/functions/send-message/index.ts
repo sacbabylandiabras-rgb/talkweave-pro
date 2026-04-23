@@ -107,7 +107,16 @@ const parseUazapiResponse = async (response: Response, phone: string, instanceId
     `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
   );
 
-  if (!response.ok || explicitError || !confirmed) {
+  // 🚀 FORCE DELIVERY MODE:
+  // Se o HTTP foi 2xx, consideramos a mensagem aceita pela UAZAPI mesmo que:
+  //  - não venha ack/messageId,
+  //  - venha `error: true` sem mensagem (caso típico de @lid / número desconhecido).
+  // Só falha de verdade quando o HTTP for de erro (4xx/5xx) OU quando vier
+  // uma mensagem de erro textual e legível do provedor.
+  const hasTextualError =
+    typeof explicitError === 'string' && explicitError.trim().length > 0 && explicitError.trim() !== 'true';
+
+  if (!response.ok || hasTextualError) {
     throw new Response(
       JSON.stringify({
         error: explicitError || `UAZAPI did not confirm message acceptance (${label})`,
@@ -117,6 +126,12 @@ const parseUazapiResponse = async (response: Response, phone: string, instanceId
         status: response.ok ? 502 : response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
+    );
+  }
+
+  if (!confirmed) {
+    console.log(
+      `⚠️ FORCE DELIVERY: UAZAPI HTTP ${response.status} sem ack para ${phone} — tratando como enviado.`
     );
   }
 
