@@ -421,6 +421,20 @@ const MediaModelSection = ({
                           </div>
                         )}
 
+                        {(() => {
+                          const special = parseSpecial(modeloAtual.content);
+                          const isCopyPaste = special?.type === 'copia_cola'
+                            || String(modeloAtual.type || '').toLowerCase() === 'copia_cola';
+                          if (!isCopyPaste) return null;
+                          return (
+                            <div className="border-t border-border/30">
+                              <div className="text-center py-2 text-sm text-primary font-medium">
+                                📋 Copiar
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {modeloAtual.listItems && modeloAtual.listItems.length > 0 && (
                           <div className="border-t border-border/30 px-3 py-2">
                             <div className="bg-background/50 rounded p-2 text-center text-sm text-primary font-medium">
