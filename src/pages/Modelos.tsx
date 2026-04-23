@@ -2261,8 +2261,10 @@ const Modelos = () => {
                           <audio
                             src={previewTemplate.mediaUrl}
                             controls
+                            controlsList="nodownload"
                             preload="metadata"
                             className="w-full"
+                            style={{ colorScheme: 'light' }}
                           />
                         </div>
                       </div>
