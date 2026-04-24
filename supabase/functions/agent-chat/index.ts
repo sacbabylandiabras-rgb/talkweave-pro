@@ -227,6 +227,32 @@ async function uazapiSend(apiUrl: string, apiToken: string, endpoint: string, bo
   }
 }
 
+// ============ META HELPERS ============
+const META_API_VERSION = 'v21.0'
+async function getMetaCreds(supabase: any, userId: string): Promise<{ access_token: string; phone_number_id: string } | null> {
+  const { data } = await supabase
+    .from('meta_credentials')
+    .select('access_token, phone_number_id, connected')
+    .eq('user_id', userId)
+    .eq('connected', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!data?.access_token || !data?.phone_number_id) return null
+  return { access_token: data.access_token, phone_number_id: data.phone_number_id }
+}
+
+async function getInstagramToken(supabase: any, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('meta_credentials')
+    .select('access_token, connected')
+    .eq('user_id', userId)
+    .eq('connected', true)
+    .order('updated_at', { ascending: false })
+    .limit(5)
+  return (data || []).find((c: any) => c.access_token)?.access_token || null
+}
+
 // ============ TOOL EXECUTOR ============
 async function executeTool(
   toolName: string,
