@@ -475,12 +475,49 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
+  const normalizeProxyUrl = (raw: string): string => {
+    let s = raw.trim();
+    if (!s) return s;
+
+    // Already has a supported scheme
+    const schemeMatch = s.match(/^([a-zA-Z0-9+.-]+):\/\//);
+    if (schemeMatch) {
+      const scheme = schemeMatch[1].toLowerCase();
+      const supported = ['http', 'https', 'socks5', 'socks5h', 'socks4'];
+      if (!supported.includes(scheme)) {
+        throw new Error(`Esquema "${scheme}" não suportado. Use http://, https://, socks5:// ou socks5h://`);
+      }
+      return `${scheme}://${s.slice(schemeMatch[0].length)}`;
+    }
+
+    // No scheme → try IPFoxy-style "host:porta:user:senha"
+    const parts = s.split(':');
+    if (parts.length === 4) {
+      const [host, port, user, pass] = parts;
+      return `http://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}`;
+    }
+
+    // Fallback: assume http
+    return `http://${s}`;
+  };
+
   const handleSaveProxy = async () => {
-    const trimmed = proxyUrlInput.trim();
-    if (!trimmed) {
+    const rawInput = proxyUrlInput.trim();
+    if (!rawInput) {
       toast({
         title: 'URL obrigatória',
-        description: 'Informe a URL do proxy no formato http://usuario:senha@ip:porta',
+        description: 'Informe a URL do proxy (http://, https://, socks5:// ou socks5h://).',
+        variant: 'destructive',
+      });
+      return;
+    }
+    let trimmed: string;
+    try {
+      trimmed = normalizeProxyUrl(rawInput);
+    } catch (err) {
+      toast({
+        title: 'Formato inválido',
+        description: err instanceof Error ? err.message : 'URL de proxy inválida.',
         variant: 'destructive',
       });
       return;
@@ -490,7 +527,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       await callProxyFunction('set', trimmed);
       toast({
         title: '✅ Proxy configurado',
-        description: 'A conexão pode ser reiniciada automaticamente para aplicar a mudança.',
+        description: `Proxy aplicado: ${trimmed.replace(/:([^:@\/]+)@/, ':***@')}`,
       });
       const refreshed = await callProxyFunction('get').catch(() => null);
       if (refreshed) setProxyInfo(refreshed);
@@ -814,8 +851,15 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 Por padrão, a instância usa o <strong>proxy interno</strong>. Informe uma URL para usar um proxy próprio.
               </p>
               <p className="font-mono text-[11px]">
-                Formato: <code>http://usuario:senha@ip:porta</code>
+                Formatos aceitos:
               </p>
+              <ul className="font-mono text-[11px] list-disc pl-4 space-y-0.5">
+                <li><code>http://usuario:senha@ip:porta</code></li>
+                <li><code>https://usuario:senha@ip:porta</code></li>
+                <li><code>socks5://usuario:senha@ip:porta</code></li>
+                <li><code>socks5h://usuario:senha@ip:porta</code> (resolve DNS no proxy)</li>
+                <li>IPFoxy: <code>host:porta:usuario:senha</code> (convertido automaticamente para http)</li>
+              </ul>
             </div>
 
             <div className="space-y-2">
@@ -823,7 +867,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               <Input
                 id={`proxy-url-${instance.id}`}
                 type="text"
-                placeholder="http://usuario:senha@ip:porta"
+                placeholder="socks5://usuario:senha@ip:porta"
                 value={proxyUrlInput}
                 onChange={(e) => setProxyUrlInput(e.target.value)}
                 disabled={proxyLoading}
