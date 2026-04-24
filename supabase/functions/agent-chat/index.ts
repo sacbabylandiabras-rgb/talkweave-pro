@@ -462,6 +462,8 @@ async function executeTool(
         const normalized = (value: any) => String(value || '').toLowerCase()
         const termoTokens = termo.split(/\s+/).filter(Boolean)
 
+        const asksForCheapest = /\b(mais barato|barato|menor preço|menor preco|inicial|entrada|básico|basico|start)\b/i.test(termo)
+
         const scored = (checkouts || []).map((checkout: any) => {
           const product: any = productMap.get(String(checkout.product_id || ''))
           const hay = [
@@ -473,6 +475,9 @@ async function executeTool(
           ].map(normalized).join(' ')
 
           let score = 0
+          if (asksForCheapest && typeof product?.price === 'number') {
+            score += Math.max(0, 1000000 - product.price)
+          }
           if (hay.includes(termo)) score += 10
           for (const token of termoTokens) {
             if (hay.includes(token)) score += 2
@@ -692,34 +697,6 @@ serve(async (req) => {
         if (item.type === 'faq') systemPrompt += `\n\nPergunta: ${item.question}\nResposta: ${item.answer}`
         else if (item.type === 'document') systemPrompt += `\n\nDocumento "${item.title || 'Sem título'}":\n${item.content}`
       }
-    }
-
-    const provider = (agentConfig?.provider || 'lovable') as 'lovable' | 'anthropic'
-
-    // ============ PROVIDER: LOVABLE (sem tools, fluxo antigo) ============
-    if (provider !== 'anthropic') {
-      if (!LOVABLE_API_KEY) {
-        return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      const model = agentConfig?.model || 'google/gemini-3-flash-preview'
-      const aiMessages = [{ role: 'system', content: systemPrompt }, ...(messages || [])]
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: aiMessages, stream: false }),
-      })
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ error: 'Rate limit excedido.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        if (response.status === 402) return new Response(JSON.stringify({ error: 'Créditos insuficientes.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        const errText = await response.text()
-        console.error('AI Gateway error:', response.status, errText)
-        return new Response(JSON.stringify({ error: 'Erro no AI Gateway' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-      }
-      const data = await response.json()
-      const reply = data.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
-      return new Response(JSON.stringify({ reply }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // ============ PROVIDER: ANTHROPIC (com tool use loop) ============
