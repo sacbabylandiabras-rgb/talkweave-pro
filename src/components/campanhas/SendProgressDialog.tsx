@@ -245,8 +245,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   }, [open, campaignId, totalContacts]);
 
   const effectiveTotal = Math.max(stats.total, totalContacts);
-  const completedCount = stats.sent + stats.delivered;
-  const processedCount = stats.sending + completedCount;
+  const processedCount = stats.sending + stats.sent + stats.delivered;
   const progress = effectiveTotal > 0 ? ((processedCount + stats.failed) / effectiveTotal) * 100 : 0;
 
   return (
@@ -289,17 +288,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
                 <span>Enviadas</span>
               </div>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {completedCount}
-              </div>
-            </div>
-
-            <div className="space-y-1 p-3 bg-primary/10 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <Clock className="w-4 h-4" />
-                <span>Enviando</span>
-              </div>
-              <div className="text-2xl font-bold text-primary">
-                {stats.sending}
+                {processedCount}
               </div>
             </div>
 
