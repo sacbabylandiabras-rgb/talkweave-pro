@@ -676,7 +676,13 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
-          
+
+          {isUazapi && (
+            <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={openProxyDialog}>
+              <Globe className="w-3 h-3 mr-1" /> Proxy
+            </Button>
+          )}
+
           {!isConnected && (
             <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
               <Wifi className="w-3 h-3 mr-1" /> Conectar
