@@ -269,10 +269,16 @@ const Campanhas = () => {
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
   const statsDialogStats = {
-    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    // "Enviado" = confirmado pela API (tem sent_at) OU marcado como sent/delivered
+    sent: statsDialogSends.filter(s =>
+      s.status === 'sent' ||
+      s.status === 'delivered' ||
+      (s.status === 'pending' && !!s.sent_at)
+    ).length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
-    sending: statsDialogSends.filter(s => s.status === 'pending').length,
-    pending: statsDialogSends.filter(s => s.status === 'pending').length,
+    // "Enviando/Pendente" = ainda na fila, sem confirmação (sem sent_at)
+    sending: statsDialogSends.filter(s => s.status === 'pending' && !s.sent_at).length,
+    pending: statsDialogSends.filter(s => s.status === 'pending' && !s.sent_at).length,
     failed: statsDialogSends.filter(s => s.status === 'failed').length,
     total: statsDialogSends.length,
   };
