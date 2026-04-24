@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAgentConfig } from "@/hooks/useAgentConfig";
+import { useAgentTools } from "@/hooks/useAgentTools";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import {
   Globe,
   Link,
   Search,
+  Wrench,
 } from "lucide-react";
 
 interface ChatMessage {
@@ -70,6 +72,7 @@ const getEdgeFunctionErrorMessage = async (err: unknown) => {
 
 const AgenteIA = () => {
   const { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge } = useAgentConfig();
+  const { tools, toggle: toggleTool } = useAgentTools();
 
   // Config form state
   const [agentName, setAgentName] = useState("");
@@ -249,10 +252,14 @@ const AgenteIA = () => {
         {/* Left: Config + Knowledge */}
         <div className="xl:col-span-2 space-y-6">
           <Tabs defaultValue="config" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="config" className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 Configuração
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5" />
+                Ferramentas
               </TabsTrigger>
               <TabsTrigger value="faq" className="flex items-center gap-1.5">
                 <HelpCircle className="w-3.5 h-3.5" />
