@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { setZapiInstanceOverride } from "@/hooks/useZapi";
 
 /**
  * UI for the 3 UAZAPI-only special endpoints:
@@ -34,6 +35,26 @@ const UazapiSpecialSection = () => {
     activeIsUazapi ? (activeInstance as any).id : (uazapiInstances[0]?.id || ""),
   );
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!uazapiInstances.length) {
+      setZapiInstanceOverride(null);
+      return;
+    }
+
+    const selectedInstance = uazapiInstances.find((i: any) => i.id === instanceId)
+      || (activeIsUazapi ? activeInstance : null)
+      || uazapiInstances[0]
+      || null;
+
+    if (selectedInstance && selectedInstance.id !== instanceId) {
+      setInstanceId(selectedInstance.id);
+    }
+
+    setZapiInstanceOverride(selectedInstance as any);
+
+    return () => setZapiInstanceOverride(null);
+  }, [instanceId, uazapiInstances, activeInstance, activeIsUazapi]);
 
   // Status
   const [statusKind, setStatusKind] = useState<"text" | "image" | "video" | "audio">("text");
