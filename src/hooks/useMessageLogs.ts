@@ -240,6 +240,16 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id || null;
 }
 
+const sanitizePictureUrl = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const lower = str.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'false') return null;
+  if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null;
+  return str;
+};
+
 const extractProfilePictureUrl = (payload: any): string | null => {
   if (!payload) return null;
   if (Array.isArray(payload)) {
