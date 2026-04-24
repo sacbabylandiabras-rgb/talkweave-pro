@@ -41,6 +41,12 @@ interface FlowNode {
     nameFollowUp?: string;
     whatsappFollowUp?: string;
     emailFollowUp?: string;
+    buttons?: Array<{
+      text?: string;
+      type?: string;
+      value?: string;
+      id?: string | number | null;
+    }>;
   };
 }
 
