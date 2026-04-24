@@ -3916,24 +3916,42 @@ serve(async (req) => {
           const finalReply = [aiReply, ctaUrl].filter(Boolean).join("\n\n");
 
           if (finalReply) {
-            const zapiAiResponse = await fetch(
-              `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
-              {
+            const isUazapiProvider = String(zapiConfig?.api_provider || "").toLowerCase() === "uazapi";
+            const normalizedTargetNumber = phone.includes("-group")
+              ? `${String(phone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
+              : String(phone).replace(/^\+/, "").replace(/[@\-].*$/, "").replace(/\D/g, "");
+
+            const deliveryResponse = isUazapiProvider
+              ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/text`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Client-Token": String(zapiConfig.zapi_client_token || ""),
+                  token: String(zapiConfig?.evolution_api_key || ""),
                 },
-                body: JSON.stringify({ phone, message: finalReply }),
-              },
-            );
+                body: JSON.stringify({ number: normalizedTargetNumber, text: finalReply }),
+              })
+              : await fetch(
+                `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Client-Token": String(zapiConfig.zapi_client_token || ""),
+                  },
+                  body: JSON.stringify({ phone, message: finalReply }),
+                },
+              );
 
-            const zapiAiResult = await zapiAiResponse.text();
+            const deliveryResult = await deliveryResponse.text();
             console.log(
               "🤖 Resposta IA enviada:",
-              zapiAiResponse.status,
-              zapiAiResult.substring(0, 200),
+              deliveryResponse.status,
+              deliveryResult.substring(0, 200),
             );
+
+            if (!deliveryResponse.ok) {
+              throw new Error(`Falha ao enviar resposta do agente via ${isUazapiProvider ? "UAZAPI" : "Z-API"}: ${deliveryResult.substring(0, 200)}`);
+            }
 
             await finalizeMessageLog(supabase, lockId, {
               keywordMatched: "[Agente IA]",
