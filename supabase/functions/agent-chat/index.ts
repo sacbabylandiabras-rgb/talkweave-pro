@@ -462,6 +462,8 @@ async function executeTool(
         const normalized = (value: any) => String(value || '').toLowerCase()
         const termoTokens = termo.split(/\s+/).filter(Boolean)
 
+        const asksForCheapest = /\b(mais barato|barato|menor preço|menor preco|inicial|entrada|básico|basico|start)\b/i.test(termo)
+
         const scored = (checkouts || []).map((checkout: any) => {
           const product: any = productMap.get(String(checkout.product_id || ''))
           const hay = [
@@ -473,6 +475,9 @@ async function executeTool(
           ].map(normalized).join(' ')
 
           let score = 0
+          if (asksForCheapest && typeof product?.price === 'number') {
+            score += Math.max(0, 1000000 - product.price)
+          }
           if (hay.includes(termo)) score += 10
           for (const token of termoTokens) {
             if (hay.includes(token)) score += 2
@@ -694,32 +699,41 @@ serve(async (req) => {
       }
     }
 
-    const provider = (agentConfig?.provider || 'lovable') as 'lovable' | 'anthropic'
+    const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === 'user')
+    const lastUserText = String(lastUserMessage?.content || '').trim()
+    const hasPricingIntent = /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(lastUserText)
+    let prefetchedCta: { label: string; url: string } | null = null
 
-    // ============ PROVIDER: LOVABLE (sem tools, fluxo antigo) ============
-    if (provider !== 'anthropic') {
-      if (!LOVABLE_API_KEY) {
-        return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!skip_config && hasPricingIntent) {
+      try {
+        const prefetchedPlanRaw = await executeTool('gateway_buscar_plano_checkout', { termo: lastUserText }, {
+          supabase,
+          userId: effectiveUserId,
+          phone: phone || null,
+          testMode: !phone,
         })
+        const prefetchedPlan = JSON.parse(prefetchedPlanRaw)
+        const prefetchedUrl = String(prefetchedPlan?.cta?.url || prefetchedPlan?.checkout?.url || '').trim()
+        if (/^https?:\/\//i.test(prefetchedUrl)) {
+          prefetchedCta = {
+            label: String(prefetchedPlan?.cta?.label || 'Abrir checkout').trim() || 'Abrir checkout',
+            url: prefetchedUrl,
+          }
+
+          systemPrompt += '\n\n--- DADOS REAIS DE CHECKOUT ENCONTRADOS AGORA ---'
+          systemPrompt += `\nPlano: ${prefetchedPlan?.plano?.nome || prefetchedPlan?.checkout?.nome || 'Plano disponível'}`
+          if (prefetchedPlan?.plano?.preco_reais) {
+            systemPrompt += `\nPreço: R$ ${prefetchedPlan.plano.preco_reais}`
+          }
+          if (prefetchedPlan?.plano?.descricao) {
+            systemPrompt += `\nDescrição: ${prefetchedPlan.plano.descricao}`
+          }
+          systemPrompt += `\nCheckout real: ${prefetchedUrl}`
+          systemPrompt += '\nAo responder, apresente este plano como opção correta e conduza o cliente para fechar a compra.'
+        }
+      } catch (prefetchError) {
+        console.error('Erro ao pré-buscar checkout:', prefetchError)
       }
-      const model = agentConfig?.model || 'google/gemini-3-flash-preview'
-      const aiMessages = [{ role: 'system', content: systemPrompt }, ...(messages || [])]
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: aiMessages, stream: false }),
-      })
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ error: 'Rate limit excedido.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        if (response.status === 402) return new Response(JSON.stringify({ error: 'Créditos insuficientes.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        const errText = await response.text()
-        console.error('AI Gateway error:', response.status, errText)
-        return new Response(JSON.stringify({ error: 'Erro no AI Gateway' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-      }
-      const data = await response.json()
-      const reply = data.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
-      return new Response(JSON.stringify({ reply }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // ============ PROVIDER: ANTHROPIC (com tool use loop) ============
@@ -750,6 +764,10 @@ serve(async (req) => {
       enabledTools = (toolsCfg || [])
         .map((t: any) => TOOL_DEFS[t.tool_name])
         .filter(Boolean)
+
+      if (!enabledTools.find((tool: any) => tool?.name === 'gateway_buscar_plano_checkout')) {
+        enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout)
+      }
     }
 
     const testMode = !phone // chat de teste = sem destino real
@@ -829,11 +847,11 @@ serve(async (req) => {
     }
 
     const checkoutMatch = finalText.match(/https:\/\/[^\s)]+/)
-    const checkoutUrl = finalCta?.url || checkoutMatch?.[0] || null
+    const checkoutUrl = finalCta?.url || prefetchedCta?.url || checkoutMatch?.[0] || null
     const replyPayload: Record<string, unknown> = { reply: finalText || 'Sem resposta.' }
     if (checkoutUrl) {
       replyPayload.cta = {
-        label: finalCta?.label || 'Abrir checkout',
+        label: finalCta?.label || prefetchedCta?.label || 'Abrir checkout',
         url: checkoutUrl,
       }
     }
