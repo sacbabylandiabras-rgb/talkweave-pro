@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -29,7 +30,7 @@ interface FlowOption {
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups();
-  const { configs: welcomeConfigs, saveConfig } = useGroupWelcome();
+  const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
@@ -40,6 +41,8 @@ const ApanhadorGrupos = () => {
   const [editingTemplateId, setEditingTemplateId] = useState<Map<string, string>>(new Map());
   const [editingFlowId, setEditingFlowId] = useState<Map<string, string>>(new Map());
   const [editingInstanceId, setEditingInstanceId] = useState<Map<string, string>>(new Map());
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [bulkActivating, setBulkActivating] = useState(false);
 
   // Load templates and flows
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
@@ -69,6 +72,82 @@ const ApanhadorGrupos = () => {
     if (groupId.includes('@g.us')) return groupId.replace('@g.us', '-group');
     if (groupId.includes('-group')) return groupId;
     return groupId + '-group';
+  };
+
+  const toggleGroupSelection = (groupId: string) => {
+    setSelectedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    const allIds = filteredGroups.map(g => g.id);
+    const allSelected = allIds.every(id => selectedGroups.has(id));
+    if (allSelected) {
+      setSelectedGroups(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedGroups(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const bulkActivateWelcome = async (active: boolean) => {
+    if (selectedGroups.size === 0) {
+      toast.error('Selecione ao menos um grupo');
+      return;
+    }
+    setBulkActivating(true);
+    let success = 0;
+    let failed = 0;
+    try {
+      for (const groupId of selectedGroups) {
+        const grupo = groups.find(g => g.id === groupId);
+        if (!grupo) continue;
+        const welcomeGroupId = getGroupWelcomeId(grupo.id);
+        const existing = welcomeConfigs.find(c => c.group_id === welcomeGroupId);
+        try {
+          await saveConfig(
+            welcomeGroupId,
+            grupo.nome,
+            active,
+            {
+              message: existing?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!',
+              response_type: (existing?.response_type as any) ?? 'text',
+              template_id: existing?.template_id ?? null,
+              flow_id: existing?.flow_id ?? null,
+              instance_id: existing?.instance_id ?? null,
+            },
+            { silent: true, refetch: false }
+          );
+          success++;
+        } catch {
+          failed++;
+        }
+      }
+      if (success > 0) {
+        toast.success(
+          active
+            ? `Boas-vindas ativadas em ${success} grupo(s)${failed ? ` (${failed} falharam)` : ''}`
+            : `Boas-vindas desativadas em ${success} grupo(s)${failed ? ` (${failed} falharam)` : ''}`
+        );
+      } else if (failed > 0) {
+        toast.error(`Falha ao atualizar ${failed} grupo(s)`);
+      }
+      setSelectedGroups(new Set());
+      await refetchWelcome();
+    } finally {
+      setBulkActivating(false);
+    }
   };
 
   const extractParticipants = async (
@@ -224,6 +303,44 @@ const ApanhadorGrupos = () => {
         </CardContent>
       </Card>
 
+      {filteredGroups.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSelectAllVisible}
+              className="gap-2"
+            >
+              <CheckSquare className="w-4 h-4" />
+              {filteredGroups.every(g => selectedGroups.has(g.id)) ? 'Desmarcar todos' : 'Selecionar todos'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedGroups.size} grupo(s) selecionado(s)
+            </span>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => bulkActivateWelcome(true)}
+                disabled={bulkActivating || selectedGroups.size === 0}
+                className="gap-2"
+              >
+                {bulkActivating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                Ativar boas-vindas
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => bulkActivateWelcome(false)}
+                disabled={bulkActivating || selectedGroups.size === 0}
+              >
+                Desativar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -260,6 +377,11 @@ const ApanhadorGrupos = () => {
               <Card key={grupo.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
+                    <Checkbox
+                      checked={selectedGroups.has(grupo.id)}
+                      onCheckedChange={() => toggleGroupSelection(grupo.id)}
+                      aria-label={`Selecionar ${grupo.nome}`}
+                    />
                     <Avatar className="h-14 w-14">
                       <AvatarImage src={grupo.foto || undefined} alt={grupo.nome} />
                       <AvatarFallback className="bg-primary/10 text-primary text-lg">
