@@ -851,8 +851,15 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 Por padrão, a instância usa o <strong>proxy interno</strong>. Informe uma URL para usar um proxy próprio.
               </p>
               <p className="font-mono text-[11px]">
-                Formato: <code>http://usuario:senha@ip:porta</code>
+                Formatos aceitos:
               </p>
+              <ul className="font-mono text-[11px] list-disc pl-4 space-y-0.5">
+                <li><code>http://usuario:senha@ip:porta</code></li>
+                <li><code>https://usuario:senha@ip:porta</code></li>
+                <li><code>socks5://usuario:senha@ip:porta</code></li>
+                <li><code>socks5h://usuario:senha@ip:porta</code> (resolve DNS no proxy)</li>
+                <li>IPFoxy: <code>host:porta:usuario:senha</code> (convertido automaticamente para http)</li>
+              </ul>
             </div>
 
             <div className="space-y-2">
@@ -860,7 +867,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               <Input
                 id={`proxy-url-${instance.id}`}
                 type="text"
-                placeholder="http://usuario:senha@ip:porta"
+                placeholder="socks5://usuario:senha@ip:porta"
                 value={proxyUrlInput}
                 onChange={(e) => setProxyUrlInput(e.target.value)}
                 disabled={proxyLoading}
