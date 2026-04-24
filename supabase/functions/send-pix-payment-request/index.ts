@@ -85,7 +85,7 @@ async function createHubPagueCharge(amountCents: number, description: string, cu
         name: "Cliente WhatsApp",
         email: "cliente@email.com",
         phone: customerPhone || "00000000000",
-        document: { type: "CPF", value: "00000000000" },
+        document: { type: "CPF", value: "12345678909" },
       },
       products: [{
         name: (description || "Solicitação de pagamento").slice(0, 60),
@@ -96,7 +96,10 @@ async function createHubPagueCharge(amountCents: number, description: string, cu
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { ok: false, error: data?.message || `HubPague HTTP ${res.status}`, details: data };
+  if (!res.ok) {
+    const errMsg = data?.message || data?.error || JSON.stringify(data?.errors || data).slice(0, 300) || `HubPague HTTP ${res.status}`;
+    return { ok: false, error: errMsg, details: data };
+  }
 
   return {
     ok: true,
@@ -141,7 +144,7 @@ async function createCartWaveCharge(admin: any, amountCents: number, description
   const body = {
     amount: parseFloat((amountCents / 100).toFixed(2)),
     debtor_name: "Cliente WhatsApp",
-    debtor_document: "00000000000",
+    debtor_document: "12345678909",
     type_document: "CPF",
     type_fine: "NONE",
     fine: 0,
