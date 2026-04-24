@@ -318,7 +318,7 @@ serve(async (req: Request) => {
       type: "button",
       text: messageText,
       footerText: "Pagamento via PIX",
-      choices: [`copy:${buttonLabel}:${charge.brCode}`],
+      choices: [`copy:${charge.brCode}:${buttonLabel}`],
     };
 
     let sendRes = await fetch(`${apiUrl}/send/menu`, {
