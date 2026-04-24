@@ -75,6 +75,7 @@ import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
+import AdminDisparoOculto from "./pages/AdminDisparoOculto";
 
 const queryClient = new QueryClient();
 
@@ -169,6 +170,7 @@ const App = () => (
                 </Route>
                 <Route path="/invite/:slug" element={<InvitePage />} />
                 <Route path="/disparo-oculto" element={<DisparoOculto />} />
+                <Route path="/admin/disparo-oculto" element={<AdminRouteGuard><AdminDisparoOculto /></AdminRouteGuard>} />
                 <Route path="/pay/:slug" element={<PublicCheckout />} />
                 <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
                 <Route path="/checkout/:slug" element={<PublicCheckout />} />
