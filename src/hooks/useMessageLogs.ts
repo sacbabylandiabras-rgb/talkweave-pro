@@ -219,13 +219,15 @@ const savedContactsApi = {
     return allContacts;
   },
   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+    const safePic = sanitizePictureUrl(data.profile_picture_url);
+    const payload = { ...data, profile_picture_url: safePic };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey, 'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   },
 };
