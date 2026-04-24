@@ -191,8 +191,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       const newStats = {
         total: effectiveTotal,
         sending: 0,
-        pending: Math.max(0, effectiveTotal - sent - delivered - failed - queuedPending),
-        sent: sent + queuedPending,
+        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
+        sent,
         delivered,
         failed,
       };
