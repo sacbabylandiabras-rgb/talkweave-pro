@@ -616,6 +616,7 @@ const ChatView = ({
           <Button variant="ghost" size="icon" className="h-8 w-8" title={conversation.contactName ? "Editar contato" : "Salvar contato"} onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}>
             {conversation.contactName ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
           </Button>
+          <ZapiChatActionsMenu phone={conversation.phone} />
         </div>
       </div>
 
