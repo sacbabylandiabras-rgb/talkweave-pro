@@ -743,6 +743,97 @@ serve(async (req) => {
       });
       logMessage = `👤 ${specialPayload.contactName || 'Contato'}`;
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'contact');
+    } else if (specialType === 'copia_cola' && specialPayload) {
+      // Cópia e cola — Z-API /send-text com botão COPY (send-button-actions)
+      const copyText = String(specialPayload.copyText || specialPayload.text || message || '').trim();
+      const copyLabel = String(specialPayload.buttonLabel || 'Copiar').slice(0, 25);
+      const headerText = String(specialPayload.message || message || '').trim();
+      if (!copyText) {
+        return new Response(
+          JSON.stringify({ error: 'Texto para copiar é obrigatório (copia e cola)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: headerText || copyLabel,
+          ...(footer ? { footer } : {}),
+          buttonActions: [
+            { id: '1', type: 'COPY', label: copyLabel, copyCode: copyText },
+          ],
+        }),
+      });
+      logMessage = `📋 ${copyLabel}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'copy-paste');
+    } else if (specialType === 'uaz_status' && specialPayload) {
+      // Status / Stories — Z-API: /send-text-status, /send-image-status, /send-video-status
+      const statusKind = String(specialPayload.statusType || specialPayload.kind || 'text').toLowerCase();
+      let endpoint = '/send-text-status';
+      let payload: Record<string, unknown> = { message: specialPayload.text || message || '' };
+      if (statusKind === 'image' && specialPayload.image) {
+        endpoint = '/send-image-status';
+        payload = { image: specialPayload.image, caption: specialPayload.caption || specialPayload.text || message || '' };
+      } else if (statusKind === 'video' && specialPayload.video) {
+        endpoint = '/send-video-status';
+        payload = { video: specialPayload.video, caption: specialPayload.caption || specialPayload.text || message || '' };
+      }
+      console.log(`📤 Z-API ${endpoint} (status broadcast — ignora phone)`);
+      zapiResponse = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(payload),
+      });
+      logMessage = `📰 Status (${statusKind})`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, `status-${statusKind}`);
+    } else if (specialType === 'uaz_location_button' && specialPayload) {
+      // Botão com localização — Z-API não tem endpoint dedicado.
+      // Estratégia: enviar localização + mensagem com botão URL para Google Maps.
+      const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
+      const lng = Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0;
+      const title = String(specialPayload.title || 'Localização');
+      const address = String(specialPayload.address || '');
+      const buttonLabel = String(specialPayload.buttonLabel || 'Abrir no mapa').slice(0, 25);
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      // 1) localização
+      await fetch(`${baseUrl}/send-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({ phone: resolvedPhone, latitude: lat, longitude: lng, title, address }),
+      });
+      // 2) botão URL com link do mapa
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          message: message || title,
+          ...(footer ? { footer } : {}),
+          buttonActions: [{ id: '1', type: 'URL', label: buttonLabel, url: mapsUrl }],
+        }),
+      });
+      logMessage = `📍 ${title} (com botão)`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location-button');
+    } else if (specialType === 'uaz_request_payment' && specialPayload) {
+      // Solicitar pagamento — Z-API roteia para /send-payment-pix (mesmo motor PIX cobrança).
+      const pixBody: Record<string, unknown> = {
+        phone: resolvedPhone,
+        pixKey: specialPayload.pixKey || '',
+        type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
+        merchantName: specialPayload.merchantName || specialPayload.recipientName || '',
+      };
+      if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+      if (specialPayload.city) pixBody.city = specialPayload.city;
+      if (specialPayload.description) pixBody.description = specialPayload.description;
+      zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(pixBody),
+      });
+      logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
 

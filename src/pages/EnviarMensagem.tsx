@@ -29,9 +29,9 @@ const parseSpecialTemplate = (content?: string | null) => {
   }
 };
 
-const isStatusOnlySpecialTemplate = (type?: string | null) => type === 'uaz_status';
+const isStatusOnlySpecialTemplate = (_type?: string | null) => false;
 const getStatusOnlyTemplateError = () =>
-  'O tipo Status publica somente nos Stories da instância selecionada e não envia mensagem para o número informado.';
+  'O tipo Status publica nos Stories da instância selecionada (broadcast) e não envia mensagem para um número específico.';
 
 const phoneSchema = z.string()
   .min(10, "Número deve ter pelo menos 10 dígitos")
