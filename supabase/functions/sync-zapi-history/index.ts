@@ -12,6 +12,37 @@ const normalizeTimestamp = (value: unknown) => {
     : new Date().toISOString();
 };
 
+const sanitizeProfilePictureUrl = (value: unknown): string | null => {
+  const str = String(value || "").trim();
+  if (!str) return null;
+  const lower = str.toLowerCase();
+  if (["null", "undefined", "false"].includes(lower)) return null;
+  if (!/^https?:\/\//i.test(str) && !str.startsWith("data:")) return null;
+  return str;
+};
+
+const extractProfilePictureUrl = (source: any): string | null => sanitizeProfilePictureUrl(
+  source?.profileThumbnail ||
+  source?.imagePreview ||
+  source?.imgUrl ||
+  source?.profilePictureUrl ||
+  source?.profilePicUrl ||
+  source?.profilePicture ||
+  source?.picture ||
+  source?.imageUrl ||
+  source?.image ||
+  source?.photo ||
+  source?.groupPhoto ||
+  source?.chat?.imagePreview ||
+  source?.chat?.image ||
+  source?.chat?.imgUrl ||
+  source?.group?.image ||
+  source?.group?.picture ||
+  source?.data?.imagePreview ||
+  source?.data?.image ||
+  source?.data?.imgUrl
+);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -212,13 +243,14 @@ Deno.serve(async (req) => {
       if (!phone) continue;
 
       const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || chat?.contact || chat?.contact_name || chat?.contactName || "";
-      const profilePic = chat?.profileThumbnail || chat?.imagePreview || chat?.image || null;
+      const profilePic = extractProfilePictureUrl(chat);
       const isGroup = chat?.isGroup === true || chat?.wa_isGroup === true || phone.includes("-group") || phone.includes("@g.us");
 
       // Skip groups for contact saving
       if (isGroup) continue;
 
       const existing = existingMap.get(phone);
+      const existingPhoto = sanitizeProfilePictureUrl(existing?.profile_picture_url);
 
       // Only upsert if we have new info or contact doesn't exist yet
       if (!existing) {
@@ -235,10 +267,10 @@ Deno.serve(async (req) => {
           phone,
           name: chatName,
           user_id: userId,
-          profile_picture_url: existing.profile_picture_url || profilePic,
+          profile_picture_url: existingPhoto || profilePic,
         });
         importedContacts++;
-      } else if (!existing.profile_picture_url && profilePic) {
+      } else if (!existingPhoto && profilePic) {
         // Update photo if existing contact has no photo
         contactsToUpsert.push({
           phone,
@@ -322,8 +354,7 @@ Deno.serve(async (req) => {
         ).trim();
       };
       const extractPic = (g: any): string | null => {
-        return g?.imageUrl || g?.picture || g?.profilePicUrl || g?.image ||
-          g?.group?.imageUrl || g?.chat?.image || null;
+        return extractProfilePictureUrl(g);
       };
 
       // 1) /group/info com groupjid puro (com @g.us)
@@ -377,7 +408,7 @@ Deno.serve(async (req) => {
         || chat?.groupName
         || "";
 
-      let chatPic = chat?.imagePreview || chat?.profileThumbnail || chat?.image || null;
+      let chatPic = extractProfilePictureUrl(chat);
 
       // For UAZAPI groups, fetch /group/info whenever the current label is not a real group name
       const needsResolvedGroupName = isGroup && !isUsableImportedGroupName(chatName);
@@ -428,11 +459,12 @@ Deno.serve(async (req) => {
 
       // Always upsert group name so the chat list shows the friendly name (even for existing chats)
       if (isGroup && isUsableImportedGroupName(chatName)) {
+        const existing = existingMap.get(phone);
         groupContactsToUpsert.push({
           phone,
           name: chatName,
           user_id: userId,
-          profile_picture_url: chatPic,
+          profile_picture_url: chatPic || sanitizeProfilePictureUrl(existing?.profile_picture_url),
         });
       } else if (isGroup) {
         // Sem nome utilizável: tenta resolver nome do contato existente para preservá-lo

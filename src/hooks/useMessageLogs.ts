@@ -256,11 +256,16 @@ const extractProfilePictureUrl = (payload: any): string | null => {
   if (!payload) return null;
   if (Array.isArray(payload)) {
     const first = payload[0];
-    return sanitizePictureUrl(first?.link || first?.imgUrl || first?.profilePictureUrl);
+    return extractProfilePictureUrl(first);
   }
   return sanitizePictureUrl(
-    payload?.link || payload?.imgUrl || payload?.profilePictureUrl ||
-    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl
+    payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.profileThumbnail ||
+    payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture ||
+    payload?.imageUrl || payload?.image || payload?.photo || payload?.groupPhoto ||
+    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || payload?.data?.profileThumbnail ||
+    payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
+    payload?.chat?.imagePreview || payload?.chat?.image || payload?.chat?.imgUrl ||
+    payload?.group?.image || payload?.group?.picture
   );
 };
 
