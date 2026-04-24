@@ -641,11 +641,21 @@ serve(async (req) => {
     // Carregar ferramentas habilitadas (skip se análise sem config)
     let enabledTools: any[] = []
     if (!skip_config) {
-      const { data: toolsCfg } = await supabase
+      const { data: toolsCfg, error: toolsCfgError } = await supabase
         .from('agent_tools_config')
         .select('tool_name, enabled')
         .eq('user_id', effectiveUserId)
         .eq('enabled', true)
+      if (toolsCfgError) {
+        const toolsErrorMessage = String(toolsCfgError.message || '').toLowerCase()
+        const missingToolsTable = toolsErrorMessage.includes('agent_tools_config') && (
+          toolsErrorMessage.includes('could not find the table') ||
+          toolsErrorMessage.includes('does not exist')
+        )
+        if (!missingToolsTable) {
+          console.error('Erro ao carregar agent_tools_config:', toolsCfgError)
+        }
+      }
       enabledTools = (toolsCfg || [])
         .map((t: any) => TOOL_DEFS[t.tool_name])
         .filter(Boolean)
