@@ -60,8 +60,8 @@ serve(async (req: Request) => {
       const { data } = await admin
         .from("zapi_instances")
         .select("id, user_id, api_provider, evolution_api_url, evolution_api_key, instance_name")
-        .eq("id", instanceIdInput)
         .eq("user_id", user.id)
+        .or(`id.eq.${instanceIdInput},zapi_instance_id.eq.${instanceIdInput}`)
         .maybeSingle();
       inst = data;
     } else {
@@ -99,6 +99,35 @@ serve(async (req: Request) => {
 
     // Build final body: status doesn't take `number`; the others do.
     const finalBody: Record<string, any> = { ...payload };
+    if (kind === "status") {
+      if (finalBody.media && !finalBody.file) finalBody.file = finalBody.media;
+      if (finalBody.caption && !finalBody.text) finalBody.text = finalBody.caption;
+      if (finalBody.backgroundColor && !finalBody.background_color) {
+        const raw = String(finalBody.backgroundColor).trim();
+        const hexToUazBg = (value: string): number => {
+          const numeric = Number(value);
+          if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= 19) return Math.round(numeric);
+          const match = value.replace('#', '').match(/^([0-9a-f]{6})$/i);
+          if (!match) return 19;
+          const r = parseInt(match[1].slice(0, 2), 16);
+          const g = parseInt(match[1].slice(2, 4), 16);
+          const b = parseInt(match[1].slice(4, 6), 16);
+          if (r > 200 && g > 200 && b < 100) return 2;
+          if (g > 150 && r < 150 && b < 150) return 5;
+          if (b > 150 && r < 150) return 8;
+          if (r > 150 && b > 150 && g < 150) return 11;
+          if (r > 200 && b > 100 && g < 100) return 13;
+          if (r > 200 && g < 150 && b > 150) return 14;
+          if (r > 100 && g > 60 && b < 80) return 16;
+          return 19;
+        };
+        finalBody.background_color = hexToUazBg(raw);
+      }
+      if (finalBody.font !== undefined) finalBody.font = Number(finalBody.font || 1);
+      delete finalBody.media;
+      delete finalBody.caption;
+      delete finalBody.backgroundColor;
+    }
     if (kind !== "status") {
       finalBody.number = phone;
     }

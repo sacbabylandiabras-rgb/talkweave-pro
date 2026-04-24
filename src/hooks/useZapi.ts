@@ -891,8 +891,14 @@ export const useZapi = () => {
           };
         }
 
+        const selectedSpecialInstanceId = getSelectedInstanceId();
         const { data, error } = await supabase.functions.invoke('send-uazapi-special', {
-          body: { kind, phone, payload: apiPayload },
+          body: {
+            kind,
+            phone,
+            payload: apiPayload,
+            ...(selectedSpecialInstanceId ? { instanceId: selectedSpecialInstanceId } : {}),
+          },
         });
         if (error) throw new Error(error.message || `Erro ao enviar ${specialType}`);
         if (data && data.success === false) throw new Error(data.error || `Falha no envio (${specialType})`);
