@@ -2,13 +2,30 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts"
 
+const sanitizeUrl = (value: unknown): string | null => {
+  const str = String(value || '').trim()
+  if (!str) return null
+  const lower = str.toLowerCase()
+  if (['null', 'undefined', 'false'].includes(lower)) return null
+  if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null
+  return str
+}
+
 const extractUrl = (payload: any): string | null => {
   if (!payload) return null
   if (Array.isArray(payload)) {
     const first = payload[0]
-    return first?.link || first?.imgUrl || first?.profilePictureUrl || null
+    return extractUrl(first)
   }
-  return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null
+  return sanitizeUrl(
+    payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.profileThumbnail ||
+    payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture ||
+    payload?.imageUrl || payload?.image || payload?.photo || payload?.groupPhoto ||
+    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || payload?.data?.profileThumbnail ||
+    payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
+    payload?.chat?.imagePreview || payload?.chat?.image || payload?.chat?.imgUrl ||
+    payload?.group?.image || payload?.group?.picture
+  )
 }
 
 const isUsableGroupName = (value: unknown): value is string => {
