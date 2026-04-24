@@ -437,6 +437,15 @@ const UazapiSpecialSection = () => {
                   placeholder="Mensagem adicional para o cliente"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Texto do botão</Label>
+                <Input
+                  placeholder="Copiar código PIX"
+                  value={payButtonLabel}
+                  onChange={(e) => setPayButtonLabel(e.target.value)}
+                  maxLength={25}
+                />
+              </div>
               <Button onClick={handleSendPayment} disabled={loading || !hasUazapi} className="w-full">
                 <Send className="w-4 h-4 mr-2" />
                 {loading ? "Enviando..." : "Solicitar Pagamento"}
