@@ -44,6 +44,17 @@ interface ChatMessage {
   content: string;
 }
 
+interface KnowledgeItem {
+  id: string;
+  type: "faq" | "document";
+  question?: string;
+  answer?: string;
+  title?: string;
+  content?: string;
+  active: boolean;
+  created_at: string;
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const getEdgeFunctionErrorMessage = async (err: unknown) => {
