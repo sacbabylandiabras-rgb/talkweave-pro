@@ -129,6 +129,17 @@ const TOOL_DEFS: Record<string, any> = {
       },
     },
   },
+  gateway_buscar_plano_checkout: {
+    name: 'gateway_buscar_plano_checkout',
+    description: 'Busca um plano/produto específico do gateway e retorna seus dados junto com um link direto de checkout. Use quando o cliente quiser assinar, pagar um plano específico ou receber um botão/link de pagamento.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        termo: { type: 'string', description: 'Nome, apelido ou termo relacionado ao plano/produto procurado' },
+      },
+      required: ['termo'],
+    },
+  },
   // ============ INSTAGRAM ============
   instagram_responder_comentario: {
     name: 'instagram_responder_comentario',
@@ -422,6 +433,72 @@ async function executeTool(
         return JSON.stringify({ total: produtos.length, produtos })
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || 'Falha ao listar produtos' })
+      }
+    }
+    case 'gateway_buscar_plano_checkout': {
+      try {
+        const termo = String(input.termo || '').trim().toLowerCase()
+        if (!termo) return JSON.stringify({ error: 'Informe o plano desejado.' })
+
+        const { data: products } = await supabase
+          .from('gateway_products')
+          .select('id, name, description, price, type, status, sku, created_at')
+          .eq('user_id', userId)
+          .eq('status', true)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        const normalized = (value: any) => String(value || '').toLowerCase()
+        const scored = (products || []).map((p: any) => {
+          const hay = `${normalized(p.name)} ${normalized(p.description)} ${normalized(p.sku)}`
+          let score = 0
+          if (hay.includes(termo)) score += 10
+          const termoTokens = termo.split(/\s+/).filter(Boolean)
+          for (const token of termoTokens) {
+            if (hay.includes(token)) score += 2
+          }
+          return { ...p, score }
+        }).filter((p: any) => p.score > 0)
+
+        const best = scored.sort((a: any, b: any) => b.score - a.score)[0]
+        if (!best) return JSON.stringify({ error: 'Nenhum plano encontrado com esse termo.' })
+
+        const { data: checkout } = await supabase
+          .from('gateway_checkouts')
+          .select('id, name, slug, status, product_id')
+          .eq('user_id', userId)
+          .eq('status', true)
+          .eq('product_id', best.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const checkoutUrl = checkout?.slug
+          ? `https://pay.zaplynxpro.online/checkout/${checkout.slug}`
+          : null
+
+        return JSON.stringify({
+          found: true,
+          plano: {
+            id: best.id,
+            nome: best.name,
+            descricao: best.description,
+            preco_reais: (best.price / 100).toFixed(2),
+            tipo: best.type,
+          },
+          checkout: checkout ? {
+            id: checkout.id,
+            nome: checkout.name,
+            slug: checkout.slug,
+            url: checkoutUrl,
+          } : null,
+          cta: checkoutUrl ? {
+            label: `Pagar ${best.name}`,
+            url: checkoutUrl,
+          } : null,
+        })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao buscar plano e checkout' })
       }
     }
     // ============ INSTAGRAM ============
