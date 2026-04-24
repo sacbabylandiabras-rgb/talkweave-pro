@@ -1032,7 +1032,7 @@ serve(async (req) => {
           .eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
-        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter(c => c.phone === contact.phone).length;
+        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: { phone: string }) => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
           console.log(`⏭️ Skipping ${contact.phone} - already sent`);
