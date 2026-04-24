@@ -219,13 +219,15 @@ const savedContactsApi = {
     return allContacts;
   },
   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+    const safePic = sanitizePictureUrl(data.profile_picture_url);
+    const payload = { ...data, profile_picture_url: safePic };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey, 'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   },
 };
@@ -240,13 +242,26 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id || null;
 }
 
+const sanitizePictureUrl = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const lower = str.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'false') return null;
+  if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null;
+  return str;
+};
+
 const extractProfilePictureUrl = (payload: any): string | null => {
   if (!payload) return null;
   if (Array.isArray(payload)) {
     const first = payload[0];
-    return first?.link || first?.imgUrl || first?.profilePictureUrl || null;
+    return sanitizePictureUrl(first?.link || first?.imgUrl || first?.profilePictureUrl);
   }
-  return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null;
+  return sanitizePictureUrl(
+    payload?.link || payload?.imgUrl || payload?.profilePictureUrl ||
+    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl
+  );
 };
 
 const extractResolvedGroupName = (payload: any): string | null => {
@@ -934,7 +949,7 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
+          profilePictureUrl: sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
