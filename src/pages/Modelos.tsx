@@ -2070,6 +2070,9 @@ const Modelos = () => {
                   <SelectItem value="pix">PIX (cobrança)</SelectItem>
                   <SelectItem value="localizacao">localização</SelectItem>
                   <SelectItem value="contato">contato (vCard)</SelectItem>
+                  <SelectItem value="uaz_status">status / stories (UAZAPI)</SelectItem>
+                  <SelectItem value="uaz_location_button">botão com localização (UAZAPI)</SelectItem>
+                  <SelectItem value="uaz_request_payment">solicitar pagamento (UAZAPI)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
