@@ -699,6 +699,43 @@ serve(async (req) => {
       }
     }
 
+    const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === 'user')
+    const lastUserText = String(lastUserMessage?.content || '').trim()
+    const hasPricingIntent = /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(lastUserText)
+    let prefetchedCta: { label: string; url: string } | null = null
+
+    if (!skip_config && hasPricingIntent) {
+      try {
+        const prefetchedPlanRaw = await executeTool('gateway_buscar_plano_checkout', { termo: lastUserText }, {
+          supabase,
+          userId: effectiveUserId,
+          phone: phone || null,
+          testMode: !phone,
+        })
+        const prefetchedPlan = JSON.parse(prefetchedPlanRaw)
+        const prefetchedUrl = String(prefetchedPlan?.cta?.url || prefetchedPlan?.checkout?.url || '').trim()
+        if (/^https?:\/\//i.test(prefetchedUrl)) {
+          prefetchedCta = {
+            label: String(prefetchedPlan?.cta?.label || 'Abrir checkout').trim() || 'Abrir checkout',
+            url: prefetchedUrl,
+          }
+
+          systemPrompt += '\n\n--- DADOS REAIS DE CHECKOUT ENCONTRADOS AGORA ---'
+          systemPrompt += `\nPlano: ${prefetchedPlan?.plano?.nome || prefetchedPlan?.checkout?.nome || 'Plano disponível'}`
+          if (prefetchedPlan?.plano?.preco_reais) {
+            systemPrompt += `\nPreço: R$ ${prefetchedPlan.plano.preco_reais}`
+          }
+          if (prefetchedPlan?.plano?.descricao) {
+            systemPrompt += `\nDescrição: ${prefetchedPlan.plano.descricao}`
+          }
+          systemPrompt += `\nCheckout real: ${prefetchedUrl}`
+          systemPrompt += '\nAo responder, apresente este plano como opção correta e conduza o cliente para fechar a compra.'
+        }
+      } catch (prefetchError) {
+        console.error('Erro ao pré-buscar checkout:', prefetchError)
+      }
+    }
+
     // ============ PROVIDER: ANTHROPIC (com tool use loop) ============
     if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY não configurada.' }), {
@@ -727,6 +764,10 @@ serve(async (req) => {
       enabledTools = (toolsCfg || [])
         .map((t: any) => TOOL_DEFS[t.tool_name])
         .filter(Boolean)
+
+      if (!enabledTools.find((tool: any) => tool?.name === 'gateway_buscar_plano_checkout')) {
+        enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout)
+      }
     }
 
     const testMode = !phone // chat de teste = sem destino real
@@ -806,11 +847,11 @@ serve(async (req) => {
     }
 
     const checkoutMatch = finalText.match(/https:\/\/[^\s)]+/)
-    const checkoutUrl = finalCta?.url || checkoutMatch?.[0] || null
+    const checkoutUrl = finalCta?.url || prefetchedCta?.url || checkoutMatch?.[0] || null
     const replyPayload: Record<string, unknown> = { reply: finalText || 'Sem resposta.' }
     if (checkoutUrl) {
       replyPayload.cta = {
-        label: finalCta?.label || 'Abrir checkout',
+        label: finalCta?.label || prefetchedCta?.label || 'Abrir checkout',
         url: checkoutUrl,
       }
     }
