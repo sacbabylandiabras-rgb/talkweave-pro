@@ -311,6 +311,16 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
                 {stats.failed}
               </div>
             </div>
+
+            <div className="space-y-1 p-3 bg-primary/10 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-primary">
+                <Clock className="w-4 h-4" />
+                <span>Em andamento</span>
+              </div>
+              <div className="text-2xl font-bold text-primary">
+                {stats.sending}
+              </div>
+            </div>
           </div>
 
           {isComplete && stats.total > 0 && (
