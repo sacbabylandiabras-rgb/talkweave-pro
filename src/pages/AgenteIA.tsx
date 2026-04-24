@@ -165,7 +165,6 @@ const AgenteIA = () => {
       setAgentName(config.agent_name);
       setSystemPrompt(config.system_prompt);
       setIsActive(config.active);
-      setProvider(config.provider);
       setModel(config.model);
     }
   }, [loading, config]);
