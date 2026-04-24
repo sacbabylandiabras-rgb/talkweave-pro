@@ -834,11 +834,35 @@ export const useZapi = () => {
         let apiPayload: Record<string, any> = {};
         if (kind === 'status') {
           const t = specialPayload.statusType || 'text';
+          // UAZAPI background_color: integer 1-19 (19=cinza padrão)
+          // Mapeia hex → índice numérico mais próximo
+          const hexToUazBg = (hex: string): number => {
+            if (!hex || typeof hex !== 'string') return 19;
+            const m = hex.replace('#', '').match(/^([0-9a-f]{6})$/i);
+            if (!m) {
+              // Já é número?
+              const n = Number(hex);
+              if (!isNaN(n) && n >= 1 && n <= 19) return Math.round(n);
+              return 19;
+            }
+            const r = parseInt(m[1].slice(0, 2), 16);
+            const g = parseInt(m[1].slice(2, 4), 16);
+            const b = parseInt(m[1].slice(4, 6), 16);
+            // heurística simples
+            if (r > 200 && g > 200 && b < 100) return 2;       // amarelo
+            if (g > 150 && r < 150 && b < 150) return 5;       // verde
+            if (b > 150 && r < 150) return 8;                  // azul
+            if (r > 150 && b > 150 && g < 150) return 11;      // lilás
+            if (r > 200 && b > 100 && g < 100) return 13;      // magenta
+            if (r > 200 && g < 150 && b > 150) return 14;      // rosa
+            if (r > 100 && g > 60 && b < 80) return 16;        // marrom
+            return 19;                                         // cinza/preto/padrão
+          };
           if (t === 'text') {
             apiPayload = {
               type: 'text',
               text: specialPayload.text || specialPayload.description || '',
-              backgroundColor: specialPayload.backgroundColor || '#000000',
+              background_color: hexToUazBg(specialPayload.backgroundColor || '19'),
               font: Number(specialPayload.font || 1),
             };
           } else {
