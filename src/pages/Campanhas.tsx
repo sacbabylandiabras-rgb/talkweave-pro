@@ -1010,6 +1010,10 @@ const Campanhas = () => {
             const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
             const targetContacts: Array<{ phone: string; name?: string }> = 
               campaign?.target_audience?.contacts || [];
+            // Se a campanha foi cancelada, contatos ainda em 'pending' (na fila Z-API,
+            // nunca confirmados como entregues) devem ser considerados cancelados,
+            // pois não chegaram ao destinatário.
+            const campaignCancelled = campaign?.status === 'cancelled';
             const getSendPriority = (status?: string | null) => {
               if (status === 'delivered') return 4;
               if (status === 'sent') return 3;
@@ -1065,9 +1069,15 @@ const Campanhas = () => {
                   status = 'enviado';
                   sentAt = send.sent_at || null;
                 } else if (send.status === 'pending') {
-                  // Já aceito pela Z-API (na fila). Tratamos como enviado.
-                  status = 'enviado';
-                  sentAt = send.sent_at || null;
+                  if (campaignCancelled) {
+                    // Campanha cancelada antes da confirmação de entrega
+                    status = 'cancelado';
+                    errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
+                  } else {
+                    // Já aceito pela Z-API (na fila). Tratamos como enviado.
+                    status = 'enviado';
+                    sentAt = send.sent_at || null;
+                  }
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
                   errorMessage = send.error_message || null;
@@ -1094,7 +1104,7 @@ const Campanhas = () => {
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') status = 'enviado';
+                else if (send.status === 'pending') status = campaignCancelled ? 'cancelado' : 'enviado';
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
