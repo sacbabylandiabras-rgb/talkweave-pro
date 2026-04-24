@@ -1,6 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,12 +12,19 @@ import { Loader2, Send, Upload } from "lucide-react";
 
 type MediaType = "" | "image" | "video" | "audio" | "document";
 
+interface HiddenInst {
+  id: string;
+  name: string;
+  api_provider: string;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function DisparoOculto() {
   const { toast } = useToast();
-  const { instances, loading: loadingInstances } = useZapiInstances();
-  const [instanceId, setInstanceId] = useState<string>("");
+  const [instances, setInstances] = useState<HiddenInst[]>([]);
+  const [loadingInstances, setLoadingInstances] = useState(true);
+  const [hiddenInstanceId, setHiddenInstanceId] = useState<string>("");
   const [message, setMessage] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<MediaType>("");
@@ -35,11 +41,21 @@ export default function DisparoOculto() {
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, ok: 0, fail: 0 });
   const [bulkLog, setBulkLog] = useState<{ phone: string; ok: boolean; err?: string }[]>([]);
 
-  const activeInstanceId = useMemo(() => {
-    if (instanceId) return instanceId;
-    const def = instances.find((i) => i.is_default) || instances[0];
-    return def?.zapi_instance_id || "";
-  }, [instanceId, instances]);
+  useEffect(() => {
+    (async () => {
+      setLoadingInstances(true);
+      const { data, error } = await (supabase as any)
+        .from("hidden_dispatch_instances")
+        .select("id, name, api_provider")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setInstances(data as HiddenInst[]);
+        if (data.length > 0) setHiddenInstanceId(data[0].id);
+      }
+      setLoadingInstances(false);
+    })();
+  }, []);
 
   const parsePhones = (raw: string): string[] => {
     return raw
@@ -74,15 +90,15 @@ export default function DisparoOculto() {
 
   const sendOne = async (phone: string) => {
     const body: any = {
+      hiddenInstanceId,
       phone,
       message: message || undefined,
-      instanceId: activeInstanceId || undefined,
     };
     if (mediaUrl && mediaType) {
       body.mediaUrl = mediaUrl;
       body.mediaType = mediaType;
     }
-    const { data, error } = await supabase.functions.invoke("send-message", { body });
+    const { data, error } = await supabase.functions.invoke("send-hidden-dispatch", { body });
     if (error) throw new Error(error.message || "Falha no envio");
     if (data?.error) throw new Error(data.error);
     return data;
@@ -91,6 +107,7 @@ export default function DisparoOculto() {
   const handleSendSingle = async () => {
     const phone = singlePhone.replace(/\D/g, "");
     if (!phone) { toast({ title: "Informe o número", variant: "destructive" }); return; }
+    if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
     if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
     setSendingSingle(true);
     try {
@@ -106,6 +123,7 @@ export default function DisparoOculto() {
   const handleSendBulk = async () => {
     const phones = parsePhones(bulkPhones);
     if (phones.length === 0) { toast({ title: "Nenhum número válido", variant: "destructive" }); return; }
+    if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
     if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
     setBulkRunning(true);
     setBulkLog([]);
@@ -141,16 +159,23 @@ export default function DisparoOculto() {
           <CardContent className="space-y-4">
             <div>
               <Label>Instância</Label>
-              <Select value={activeInstanceId} onValueChange={setInstanceId} disabled={loadingInstances}>
-                <SelectTrigger><SelectValue placeholder={loadingInstances ? "Carregando..." : "Selecione"} /></SelectTrigger>
+              <Select value={hiddenInstanceId} onValueChange={setHiddenInstanceId} disabled={loadingInstances}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingInstances ? "Carregando..." : (instances.length === 0 ? "Nenhuma cadastrada" : "Selecione")} />
+                </SelectTrigger>
                 <SelectContent>
                   {instances.map((i) => (
-                    <SelectItem key={i.id} value={i.zapi_instance_id}>
-                      {i.instance_name} {i.is_default ? "★" : ""} ({i.api_provider})
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name} ({i.api_provider})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!loadingInstances && instances.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Nenhuma instância. Peça ao admin para cadastrar em <code>/admin/disparo-oculto</code>.
+                </p>
+              )}
             </div>
 
             <div>
@@ -205,7 +230,7 @@ export default function DisparoOculto() {
                   <Label>Número (com DDI)</Label>
                   <Input value={singlePhone} onChange={(e) => setSinglePhone(e.target.value)} placeholder="5511999999999" />
                 </div>
-                <Button onClick={handleSendSingle} disabled={sendingSingle || !activeInstanceId}>
+                <Button onClick={handleSendSingle} disabled={sendingSingle || !hiddenInstanceId}>
                   {sendingSingle ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                   Enviar
                 </Button>
@@ -224,7 +249,7 @@ export default function DisparoOculto() {
                   <Label>Delay (segundos)</Label>
                   <Input type="number" min={0} value={delaySeconds} onChange={(e) => setDelaySeconds(Number(e.target.value) || 0)} />
                 </div>
-                <Button onClick={handleSendBulk} disabled={bulkRunning || !activeInstanceId}>
+                <Button onClick={handleSendBulk} disabled={bulkRunning || !hiddenInstanceId}>
                   {bulkRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                   Disparar
                 </Button>
