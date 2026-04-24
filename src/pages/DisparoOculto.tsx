@@ -8,10 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Upload, QrCode, KeyRound } from "lucide-react";
+import { Loader2, Send, Upload, QrCode, KeyRound, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type MediaType = "" | "image" | "video" | "audio" | "document";
+
+type TemplateType = "text" | "media" | "text-buttons" | "image-buttons";
+
+interface BtnDef { label: string; type: "reply" | "url" | "phone"; value?: string }
 
 interface HiddenInst {
   id: string;
@@ -30,6 +34,9 @@ export default function DisparoOculto() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<MediaType>("");
   const [uploading, setUploading] = useState(false);
+  const [templateType, setTemplateType] = useState<TemplateType>("text");
+  const [footer, setFooter] = useState("");
+  const [buttons, setButtons] = useState<BtnDef[]>([{ label: "", type: "reply" }]);
 
   // single
   const [singlePhone, setSinglePhone] = useState("");
@@ -103,9 +110,25 @@ export default function DisparoOculto() {
       phone,
       message: message || undefined,
     };
-    if (mediaUrl && mediaType) {
+    const wantsImageBtn = templateType === "image-buttons";
+    const wantsTextBtn = templateType === "text-buttons";
+    const wantsMedia = templateType === "media";
+
+    if ((wantsMedia || wantsImageBtn) && mediaUrl) {
       body.mediaUrl = mediaUrl;
-      body.mediaType = mediaType;
+      body.mediaType = wantsImageBtn ? "image" : (mediaType || "image");
+    }
+    if (wantsTextBtn || wantsImageBtn) {
+      const valid = buttons
+        .filter((b) => b.label.trim())
+        .map((b) => ({
+          label: b.label.trim(),
+          ...(b.type === "url" ? { url: b.value?.trim() } : {}),
+          ...(b.type === "phone" ? { phone: b.value?.trim() } : {}),
+        }));
+      if (valid.length === 0) throw new Error("Adicione ao menos um botão com texto");
+      body.buttons = valid;
+      if (footer.trim()) body.footer = footer.trim();
     }
     const { data, error } = await supabase.functions.invoke("send-hidden-dispatch", { body });
     if (error) throw new Error(error.message || "Falha no envio");
@@ -117,7 +140,7 @@ export default function DisparoOculto() {
     const phone = singlePhone.replace(/\D/g, "");
     if (!phone) { toast({ title: "Informe o número", variant: "destructive" }); return; }
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
-    if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
+    if (!validateContent()) return;
     setSendingSingle(true);
     try {
       await sendOne(phone);
@@ -133,7 +156,7 @@ export default function DisparoOculto() {
     const phones = parsePhones(bulkPhones);
     if (phones.length === 0) { toast({ title: "Nenhum número válido", variant: "destructive" }); return; }
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
-    if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
+    if (!validateContent()) return;
     setBulkRunning(true);
     setBulkLog([]);
     setBulkProgress({ done: 0, total: phones.length, ok: 0, fail: 0 });
@@ -154,6 +177,30 @@ export default function DisparoOculto() {
     setBulkRunning(false);
     toast({ title: "Disparo concluído" });
   };
+
+  const validateContent = (): boolean => {
+    if (templateType === "text" && !message.trim()) {
+      toast({ title: "Informe a mensagem", variant: "destructive" }); return false;
+    }
+    if (templateType === "media" && !mediaUrl) {
+      toast({ title: "Informe a URL da mídia", variant: "destructive" }); return false;
+    }
+    if (templateType === "text-buttons") {
+      if (!message.trim()) { toast({ title: "Informe a mensagem", variant: "destructive" }); return false; }
+      if (!buttons.some((b) => b.label.trim())) { toast({ title: "Adicione ao menos um botão", variant: "destructive" }); return false; }
+    }
+    if (templateType === "image-buttons") {
+      if (!mediaUrl) { toast({ title: "Informe a URL da imagem", variant: "destructive" }); return false; }
+      if (!buttons.some((b) => b.label.trim())) { toast({ title: "Adicione ao menos um botão", variant: "destructive" }); return false; }
+    }
+    return true;
+  };
+
+  const updateBtn = (idx: number, patch: Partial<BtnDef>) => {
+    setButtons((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  };
+  const addBtn = () => setButtons((p) => (p.length >= 3 ? p : [...p, { label: "", type: "reply" }]));
+  const removeBtn = (idx: number) => setButtons((p) => p.filter((_, i) => i !== idx));
 
   const openConnect = () => {
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
@@ -242,15 +289,30 @@ export default function DisparoOculto() {
             </div>
 
             <div>
-              <Label>Mensagem</Label>
-              <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Texto da mensagem (opcional se enviar mídia)" />
+              <Label>Tipo de mensagem</Label>
+              <Select value={templateType} onValueChange={(v) => setTemplateType(v as TemplateType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="media">Mídia (imagem/vídeo/áudio/doc)</SelectItem>
+                  <SelectItem value="text-buttons">Texto com botões</SelectItem>
+                  <SelectItem value="image-buttons">Imagem + texto com botões</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            <div>
+              <Label>Mensagem {templateType === "image-buttons" && <span className="text-xs text-muted-foreground">(legenda)</span>}</Label>
+              <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Texto da mensagem" />
+            </div>
+
+            {(templateType === "media" || templateType === "image-buttons") && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
-                <Label>URL da mídia</Label>
+                <Label>{templateType === "image-buttons" ? "URL da imagem" : "URL da mídia"}</Label>
                 <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://..." />
               </div>
+              {templateType === "media" && (
               <div>
                 <Label>Tipo</Label>
                 <Select value={mediaType} onValueChange={(v) => setMediaType(v as MediaType)}>
@@ -263,8 +325,11 @@ export default function DisparoOculto() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
             </div>
+            )}
 
+            {(templateType === "media" || templateType === "image-buttons") && (
             <div>
               <input
                 id="file-upload"
@@ -277,6 +342,50 @@ export default function DisparoOculto() {
                 Upload de arquivo
               </Button>
             </div>
+            )}
+
+            {(templateType === "text-buttons" || templateType === "image-buttons") && (
+              <div className="space-y-3 border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <Label>Botões (até 3)</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={addBtn} disabled={buttons.length >= 3}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {buttons.map((b, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                    <Input
+                      className="col-span-4"
+                      placeholder="Texto do botão"
+                      value={b.label}
+                      onChange={(e) => updateBtn(idx, { label: e.target.value })}
+                    />
+                    <Select value={b.type} onValueChange={(v) => updateBtn(idx, { type: v as BtnDef["type"], value: "" })}>
+                      <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reply">Resposta</SelectItem>
+                        <SelectItem value="url">URL</SelectItem>
+                        <SelectItem value="phone">Ligar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="col-span-4"
+                      placeholder={b.type === "url" ? "https://..." : b.type === "phone" ? "5511999999999" : "(sem destino)"}
+                      disabled={b.type === "reply"}
+                      value={b.value || ""}
+                      onChange={(e) => updateBtn(idx, { value: e.target.value })}
+                    />
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeBtn(idx)} className="col-span-1">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div>
+                  <Label className="text-xs">Rodapé (opcional)</Label>
+                  <Input value={footer} onChange={(e) => setFooter(e.target.value)} placeholder="Texto pequeno abaixo dos botões" />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
