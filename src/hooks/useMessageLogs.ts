@@ -128,6 +128,40 @@ const extractButtonTextFromKeyword = (keyword?: string | null) => {
 
 const isTechnicalMessageReference = (content?: string | null) => /^\d{10,}:[A-Z0-9]{10,}$/i.test(String(content || '').trim());
 
+const normalizeSentMessageForComparison = (content?: string | null) => String(content || '')
+  .replace(/\[media:[^\]]+\]\s*/gi, '')
+  .replace(/\n\n\[Botões:\s*[\s\S]*$/i, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const isRedundantManualFlowEcho = (
+  log: Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>,
+  logs: Array<Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>>,
+) => {
+  if (log.keyword_matched !== '__manual_send__' || !log.response_sent) return false;
+
+  const manualContent = normalizeSentMessageForComparison(log.response_sent);
+  if (!manualContent) return false;
+
+  const logTs = toMillis(log.timestamp || log.created_at);
+
+  return logs.some((candidate) => {
+    if (candidate.id === log.id) return false;
+    if (candidate.phone !== log.phone) return false;
+    if (!candidate.keyword_matched?.startsWith('__flow_send__')) return false;
+    if (!candidate.response_sent) return false;
+
+    const flowContent = normalizeSentMessageForComparison(candidate.response_sent);
+    if (!flowContent) return false;
+
+    const samePayload = flowContent === manualContent || flowContent.startsWith(`${manualContent} `) || flowContent.startsWith(manualContent);
+    if (!samePayload) return false;
+
+    const candidateTs = toMillis(candidate.timestamp || candidate.created_at);
+    return Math.abs(candidateTs - logTs) <= 15 * 1000;
+  });
+};
+
 const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
   const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
   if (buttonText) return buttonText;
@@ -773,6 +807,7 @@ export const useMessageLogs = (
       if (log.response_sent && log.response_sent !== '__processing__') {
         if (isInternalFlowStateKeyword(log.keyword_matched)) return;
         if (isTechnicalMessageReference(log.response_sent)) return;
+        if (isRedundantManualFlowEcho(log, messageLogs)) return;
         // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
         // New flow engine writes detailed __flow_send__ logs, so summary rows are redundant only then.
         const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
