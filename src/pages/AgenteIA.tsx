@@ -31,13 +31,20 @@ import {
   Globe,
   Link,
   Search,
+  Upload,
   Wrench,
 } from "lucide-react";
+
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import mammoth from "mammoth";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const getEdgeFunctionErrorMessage = async (err: unknown) => {
   if (err instanceof FunctionsHttpError) {
@@ -88,6 +95,7 @@ const AgenteIA = () => {
   // Document form
   const [docTitle, setDocTitle] = useState("");
   const [docContent, setDocContent] = useState("");
+  const [uploadingDocument, setUploadingDocument] = useState(false);
 
   // URL import
   const [urlInput, setUrlInput] = useState("");
@@ -172,6 +180,71 @@ const AgenteIA = () => {
     analyzeContent("document", { title: docTitle, content: docContent });
     setDocTitle("");
     setDocContent("");
+  };
+
+  const extractTextFromFile = async (file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+
+    if (["txt", "md", "csv", "json", "xml", "html", "htm", "yaml", "yml", "log"].includes(ext)) {
+      return await file.text();
+    }
+
+    if (ext === "pdf") {
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const pages: string[] = [];
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+        const text = content.items
+          .map((item: any) => ("str" in item ? item.str : ""))
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (text) pages.push(text);
+      }
+
+      return pages.join("\n\n");
+    }
+
+    if (ext === "docx") {
+      const buffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+      return result.value;
+    }
+
+    throw new Error("Formato não suportado. Use TXT, MD, CSV, JSON, HTML, XML, PDF ou DOCX.");
+  };
+
+  const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || uploadingDocument) return;
+
+    setUploadingDocument(true);
+    try {
+      const extractedText = (await extractTextFromFile(file)).trim();
+
+      if (!extractedText) {
+        throw new Error("Não consegui extrair texto deste arquivo.");
+      }
+
+      const nextTitle = file.name.replace(/\.[^.]+$/, "");
+      setDocTitle(nextTitle);
+      setDocContent(extractedText);
+
+      await addDocument(nextTitle, extractedText);
+      analyzeContent("document", { title: nextTitle, content: extractedText });
+      setDocTitle("");
+      setDocContent("");
+      toast({ title: "Documento importado!", description: `${file.name} foi convertido em texto e salvo na base.` });
+    } catch (error: any) {
+      toast({ title: "Erro no upload", description: error.message || "Não foi possível importar o arquivo.", variant: "destructive" });
+    } finally {
+      setUploadingDocument(false);
+    }
   };
 
   const handleImportUrl = async () => {
@@ -507,6 +580,22 @@ const AgenteIA = () => {
 
                   {/* Manual Document */}
                   <div className="grid gap-3">
+                    <div className="flex items-center gap-3">
+                      <Button type="button" variant="outline" size="sm" className="relative overflow-hidden" disabled={uploadingDocument}>
+                        <input
+                          type="file"
+                          accept=".txt,.md,.csv,.json,.xml,.html,.htm,.yaml,.yml,.log,.pdf,.docx"
+                          className="absolute inset-0 cursor-pointer opacity-0"
+                          onChange={handleDocumentUpload}
+                          disabled={uploadingDocument}
+                        />
+                        {uploadingDocument ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                        Upload de Arquivo
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Suporta TXT, MD, CSV, JSON, HTML, XML, PDF e DOCX.
+                      </p>
+                    </div>
                     <Input
                       value={docTitle}
                       onChange={e => setDocTitle(e.target.value)}
