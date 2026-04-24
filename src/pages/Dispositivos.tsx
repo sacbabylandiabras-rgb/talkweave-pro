@@ -68,6 +68,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Proxy (uazapi apenas)
+  const [showProxyDialog, setShowProxyDialog] = useState(false);
+  const [proxyLoading, setProxyLoading] = useState(false);
+  const [proxyInfo, setProxyInfo] = useState<any>(null);
+  const [proxyUrlInput, setProxyUrlInput] = useState('');
+
   // Set instance override only for operations that still use the shared hook state
   const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setZapiInstanceOverride(instance);
