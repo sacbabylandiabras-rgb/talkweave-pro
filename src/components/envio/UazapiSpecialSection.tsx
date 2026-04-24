@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload } from "lucide-react";
+import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload, Bug, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -62,6 +62,18 @@ const UazapiSpecialSection = () => {
   const [statusFile, setStatusFile] = useState("");
   const [statusBg, setStatusBg] = useState("");
   const [uploadingStatus, setUploadingStatus] = useState(false);
+  const [diagnostic, setDiagnostic] = useState<null | {
+    kind: string;
+    success: boolean;
+    error?: string;
+    providerStatus?: number;
+    providerBody?: any;
+    providerRaw?: string;
+    requestUrl?: string;
+    requestBody?: any;
+    invokeError?: any;
+    timestamp: string;
+  }>(null);
 
   const handleUploadStatusFile = async (file: File) => {
     if (!file) return;
@@ -104,6 +116,7 @@ const UazapiSpecialSection = () => {
 
   const callEdge = async (kind: string, payload: Record<string, any>, phone?: string) => {
     setLoading(true);
+    setDiagnostic(null);
     try {
       const { data, error } = await supabase.functions.invoke("send-uazapi-special", {
         body: {
@@ -113,8 +126,40 @@ const UazapiSpecialSection = () => {
           payload,
         },
       });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Falha no envio");
+
+      const baseDiag = {
+        kind,
+        timestamp: new Date().toISOString(),
+        providerStatus: data?.providerStatus,
+        providerBody: data?.providerBody ?? data?.data,
+        providerRaw: data?.providerRaw,
+        requestUrl: data?.requestUrl,
+        requestBody: data?.requestBody ?? payload,
+      };
+
+      if (error) {
+        let parsed: any = null;
+        try { parsed = await (error as any)?.context?.json?.(); } catch { /* noop */ }
+        setDiagnostic({
+          ...baseDiag,
+          success: false,
+          error: parsed?.error || error?.message || "Falha na chamada da Edge Function",
+          providerStatus: parsed?.providerStatus ?? baseDiag.providerStatus,
+          providerBody: parsed?.providerBody ?? parsed?.data ?? baseDiag.providerBody,
+          providerRaw: parsed?.providerRaw ?? baseDiag.providerRaw,
+          requestBody: parsed?.requestBody ?? baseDiag.requestBody,
+          requestUrl: parsed?.requestUrl ?? baseDiag.requestUrl,
+          invokeError: { name: (error as any)?.name, message: error?.message },
+        });
+        throw new Error(parsed?.error || error?.message || "Falha no envio");
+      }
+
+      if (!data?.success) {
+        setDiagnostic({ ...baseDiag, success: false, error: data?.error || "Falha no envio" });
+        throw new Error(data?.error || "Falha no envio");
+      }
+
+      setDiagnostic({ ...baseDiag, success: true });
       toast({ title: "Enviado!", description: `${kind} enviado com sucesso.` });
     } catch (err: any) {
       toast({
