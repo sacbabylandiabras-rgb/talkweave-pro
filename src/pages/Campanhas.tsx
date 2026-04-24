@@ -1055,7 +1055,9 @@ const Campanhas = () => {
                   status = 'enviado';
                   sentAt = send.sent_at || null;
                 } else if (send.status === 'pending') {
-                  status = 'enviando';
+                  // Já aceito pela Z-API (na fila). Tratamos como enviado.
+                  status = 'enviado';
+                  sentAt = send.sent_at || null;
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
                   errorMessage = send.error_message || null;
@@ -1082,7 +1084,7 @@ const Campanhas = () => {
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') status = 'enviando';
+                else if (send.status === 'pending') status = 'enviado';
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
