@@ -1019,10 +1019,8 @@ const Campanhas = () => {
             const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
             const targetContacts: Array<{ phone: string; name?: string }> = 
               campaign?.target_audience?.contacts || [];
-            // Se a campanha foi cancelada, contatos ainda em 'pending' (na fila Z-API,
-            // nunca confirmados como entregues) devem ser considerados cancelados,
-            // pois não chegaram ao destinatário.
             const campaignCancelled = campaign?.status === 'cancelled';
+            const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
             const getSendPriority = (status?: string | null) => {
               if (status === 'delivered') return 4;
               if (status === 'sent') return 3;
@@ -1078,7 +1076,7 @@ const Campanhas = () => {
                   status = 'enviado';
                   sentAt = send.sent_at || null;
                 } else if (send.status === 'pending') {
-                  if (campaignCancelled) {
+                  if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
                   } else {
@@ -1112,7 +1110,7 @@ const Campanhas = () => {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
                 else if (send.status === 'pending') {
-                  status = campaignCancelled ? 'cancelado' : 'pendente';
+                  status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 }
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
