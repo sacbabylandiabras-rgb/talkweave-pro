@@ -968,11 +968,12 @@ const EnviarMensagem = () => {
           }
 
           if (specialTpl && specialTpl.type !== 'copia_cola') {
+            const specialAllowsExtraButtons = !['uaz_status', 'uaz_location_button', 'uaz_request_payment'].includes(specialTpl.type);
             await sendSpecialTemplate(contato.telefone, specialTpl.type, {
               ...specialTpl,
               description: mensagemPersonalizada || specialTpl.description,
             });
-            if (modeloData?.buttons?.length) {
+            if (specialAllowsExtraButtons && modeloData?.buttons?.length) {
               await sendButtonActions(
                 contato.telefone,
                 mensagemPersonalizada || specialTpl.description || modeloData?.name || 'Pagamento',
