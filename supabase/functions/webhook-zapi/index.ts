@@ -3077,10 +3077,17 @@ serve(async (req) => {
           : new Date().toISOString();
 
       // Build outgoing content with audio tag if applicable
-      let outgoingContent = messageRaw;
+      let outgoingContent = sanitizeTechnicalMessageReference(messageRaw);
       if (audioUrl) {
         const audioTag = `[media:audio:${audioUrl}]`;
-        outgoingContent = audioTag + (messageRaw ? `\n${messageRaw}` : "");
+        outgoingContent = audioTag + (outgoingContent ? `\n${outgoingContent}` : "");
+      }
+
+      if (!outgoingContent) {
+        return new Response("outgoing_technical_echo_ignored", {
+          status: 200,
+          headers: corsHeaders,
+        });
       }
 
       const { error: outgoingLogError } = await supabase
