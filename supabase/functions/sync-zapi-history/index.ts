@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
       if (!phone) continue;
 
       const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || chat?.contact || chat?.contact_name || chat?.contactName || "";
-      const profilePic = chat?.profileThumbnail || chat?.imagePreview || chat?.image || null;
+      const profilePic = extractProfilePictureUrl(chat);
       const isGroup = chat?.isGroup === true || chat?.wa_isGroup === true || phone.includes("-group") || phone.includes("@g.us");
 
       // Skip groups for contact saving
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
           phone,
           name: chatName,
           user_id: userId,
-          profile_picture_url: existing.profile_picture_url || profilePic,
+          profile_picture_url: sanitizeProfilePictureUrl(existing.profile_picture_url) || profilePic,
         });
         importedContacts++;
       } else if (!existing.profile_picture_url && profilePic) {
