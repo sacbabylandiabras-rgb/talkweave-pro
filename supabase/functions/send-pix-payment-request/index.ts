@@ -144,8 +144,8 @@ async function createCartWaveCharge(admin: any, amountCents: number, description
   const body = {
     amount: parseFloat((amountCents / 100).toFixed(2)),
     debtor_name: "Cliente WhatsApp",
-    debtor_document: "12345678909",
-    type_document: "CPF",
+    debtor_document: "65999342000102",
+    type_document: "CNPJ",
     type_fine: "NONE",
     fine: 0,
     source_account_branch_identifier: branch,
