@@ -140,7 +140,7 @@ serve(async (req) => {
           body: JSON.stringify({ number: isGroup ? `${numericId}@g.us` : numericId, preview: true })
         })
         const detailsData = await detailsRes.json().catch(() => null)
-        const link = detailsData?.imagePreview || detailsData?.image || detailsData?.profilePicUrl || null
+        const link = extractUrl(detailsData)
         const name = extractGroupName(detailsData)
         if (detailsRes.ok && (link || name)) {
           return new Response(
@@ -158,7 +158,7 @@ serve(async (req) => {
           const contactsData = await contactsRes.json().catch(() => null)
           const contacts = Array.isArray(contactsData) ? contactsData : []
           const match = contacts.find((c: any) => String(c?.jid || '').replace(/@.*/, '').replace(/\D/g, '') === numericId)
-          const link = match?.imagePreview || match?.image || match?.profilePicUrl || null
+          const link = extractUrl(match)
           if (contactsRes.ok && link) {
             return new Response(
               JSON.stringify({ success: true, data: { link, raw: match } }),
@@ -216,7 +216,7 @@ serve(async (req) => {
             return gId.includes(numericId)
           })
           console.log(`📷 Groups list match: id=${match?.phone} imgUrl=${match?.imgUrl} photo=${match?.photo}`)
-          const photoUrl = match?.imgUrl || match?.profilePicture || match?.image || match?.photo || null
+          const photoUrl = extractUrl(match)
           const name = extractGroupName(match)
           if (photoUrl || name) {
             return new Response(
@@ -236,7 +236,7 @@ serve(async (req) => {
         if (metaRes.ok) {
           const metaData = await metaRes.json()
           console.log(`📷 group-metadata keys: ${Object.keys(metaData || {}).join(',')}`)
-          const photoUrl = metaData?.imgUrl || metaData?.profilePicture || metaData?.image || metaData?.photo || metaData?.groupPhoto || null
+          const photoUrl = extractUrl(metaData)
           const name = extractGroupName(metaData)
           if (photoUrl || name) {
             return new Response(
