@@ -180,14 +180,16 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         const send = sendsByPhone.get(phoneKey);
         if (send?.status === 'delivered') delivered += 1;
         else if (send?.status === 'sent') sent += 1;
-        else if (send?.status === 'pending') sending += 1;
         else if (send?.status === 'failed') failed += 1;
+        // status 'pending' no DB = na fila Z-API, ainda não confirmado.
+        // Tratamos como "pendente" (não como "enviando") para refletir corretamente
+        // quando a instância desconecta e a fila precisa ser reprocessada.
       });
 
       const newStats = {
         total: effectiveTotal,
-        sending,
-        pending: Math.max(0, effectiveTotal - sending - sent - delivered - failed),
+        sending: 0,
+        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
         sent,
         delivered,
         failed,
