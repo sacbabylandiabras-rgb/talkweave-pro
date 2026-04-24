@@ -100,30 +100,38 @@ serve(async (req: Request) => {
     // Build final body: status doesn't take `number`; the others do.
     const finalBody: Record<string, any> = { ...payload };
     if (kind === "status") {
+      finalBody.type = String(finalBody.type || "text").trim().toLowerCase();
       if (finalBody.media && !finalBody.file) finalBody.file = finalBody.media;
       if (finalBody.caption && !finalBody.text) finalBody.text = finalBody.caption;
-      if (finalBody.backgroundColor && !finalBody.background_color) {
-        const raw = String(finalBody.backgroundColor).trim();
-        const hexToUazBg = (value: string): number => {
-          const numeric = Number(value);
-          if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= 19) return Math.round(numeric);
-          const match = value.replace('#', '').match(/^([0-9a-f]{6})$/i);
-          if (!match) return 19;
-          const r = parseInt(match[1].slice(0, 2), 16);
-          const g = parseInt(match[1].slice(2, 4), 16);
-          const b = parseInt(match[1].slice(4, 6), 16);
-          if (r > 200 && g > 200 && b < 100) return 2;
-          if (g > 150 && r < 150 && b < 150) return 5;
-          if (b > 150 && r < 150) return 8;
-          if (r > 150 && b > 150 && g < 150) return 11;
-          if (r > 200 && b > 100 && g < 100) return 13;
-          if (r > 200 && g < 150 && b > 150) return 14;
-          if (r > 100 && g > 60 && b < 80) return 16;
-          return 19;
-        };
-        finalBody.background_color = hexToUazBg(raw);
+      const hexToUazBg = (value: string): number => {
+        const numeric = Number(value);
+        if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= 19) return Math.round(numeric);
+        const match = value.replace('#', '').match(/^([0-9a-f]{6})$/i);
+        if (!match) return 19;
+        const r = parseInt(match[1].slice(0, 2), 16);
+        const g = parseInt(match[1].slice(2, 4), 16);
+        const b = parseInt(match[1].slice(4, 6), 16);
+        if (r > 200 && g > 200 && b < 100) return 2;
+        if (g > 150 && r < 150 && b < 150) return 5;
+        if (b > 150 && r < 150) return 8;
+        if (r > 150 && b > 150 && g < 150) return 11;
+        if (r > 200 && b > 100 && g < 100) return 13;
+        if (r > 200 && g < 150 && b > 150) return 14;
+        if (r > 100 && g > 60 && b < 80) return 16;
+        return 19;
+      };
+      if (finalBody.type === "text") {
+        finalBody.background_color = finalBody.background_color !== undefined
+          ? Number(finalBody.background_color)
+          : hexToUazBg(String(finalBody.backgroundColor || "19").trim());
+        finalBody.font = finalBody.font !== undefined ? Number(finalBody.font || 1) : 1;
+        finalBody.text = String(finalBody.text || "").trim();
+        if (!finalBody.text) {
+          return json({ success: false, error: "text is required for status type=text" }, 400);
+        }
+      } else if (!String(finalBody.file || "").trim()) {
+        return json({ success: false, error: "file is required for media status" }, 400);
       }
-      if (finalBody.font !== undefined) finalBody.font = Number(finalBody.font || 1);
       delete finalBody.media;
       delete finalBody.caption;
       delete finalBody.backgroundColor;
@@ -146,11 +154,31 @@ serve(async (req: Request) => {
     const respText = await res.text();
     let data: any = null;
     try { data = JSON.parse(respText); } catch { data = { raw: respText }; }
+    console.log(`📥 UAZAPI special ← HTTP ${res.status}`, respText.slice(0, 400));
 
     if (!res.ok) {
       const errMsg = data?.error || data?.message || `UAZAPI HTTP ${res.status}`;
       console.error(`❌ UAZAPI special failed [${kind}] HTTP ${res.status}:`, respText.slice(0, 400));
       return json({ success: false, error: errMsg, status: res.status, data }, res.status);
+    }
+
+    if (kind === "status") {
+      const normalizedStatus = String(data?.status || "").trim().toUpperCase();
+      const confirmed = Boolean(
+        data?.messageId || data?.zapiMessageId || data?.zaapId || data?.id || data?.key?.id ||
+        data?.message?.id || data?.success === true ||
+        ["PENDING", "QUEUED", "SENT", "SUCCESS"].includes(normalizedStatus)
+      );
+
+      if (!confirmed) {
+        console.error(`❌ UAZAPI status not confirmed [${kind}]:`, respText.slice(0, 400));
+        return json({
+          success: false,
+          error: data?.error || data?.message || "A UAZAPI não confirmou a publicação do status.",
+          status: res.status,
+          data,
+        }, 502);
+      }
     }
 
     return json({ success: true, kind, data });
