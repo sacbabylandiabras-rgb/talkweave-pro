@@ -1069,7 +1069,7 @@ const Campanhas = () => {
                 status,
                 sentAt,
                 errorMessage,
-                readAt: (send as any)?.read_at || (send as any)?.delivered_at || null,
+                readAt: (send as any)?.read_at || (send as any)?.delivered_at || (send?.status === 'delivered' ? (send.sent_at || send.created_at) : null),
                 clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
               };
             });
@@ -1091,7 +1091,7 @@ const Campanhas = () => {
                   status,
                   sentAt: send.sent_at || null,
                   errorMessage: send.error_message || null,
-                  readAt: (send as any)?.read_at || (send as any)?.delivered_at || null,
+                  readAt: (send as any)?.read_at || (send as any)?.delivered_at || (send.status === 'delivered' ? (send.sent_at || send.created_at) : null),
                   clickedAt: statsDialogClickMap.get(sendKey) || (send as any)?.clicked_at || null,
                 });
               }
