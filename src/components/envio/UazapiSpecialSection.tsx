@@ -101,6 +101,7 @@ const UazapiSpecialSection = () => {
   const [payAmount, setPayAmount] = useState("");
   const [payDescription, setPayDescription] = useState("");
   const [payNotes, setPayNotes] = useState("");
+  const [payButtonLabel, setPayButtonLabel] = useState("Copiar código PIX");
 
   const callEdge = async (kind: string, payload: Record<string, any>, phone?: string) => {
     setLoading(true);
@@ -206,6 +207,7 @@ const UazapiSpecialSection = () => {
           description: payDescription || undefined,
           notes: payNotes || undefined,
           instanceId: instanceId || undefined,
+          buttonLabel: payButtonLabel || undefined,
         },
       });
       if (error) {
