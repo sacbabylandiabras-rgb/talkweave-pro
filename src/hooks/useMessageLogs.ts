@@ -947,7 +947,7 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
+          profilePictureUrl: sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
