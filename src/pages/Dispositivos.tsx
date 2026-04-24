@@ -475,12 +475,49 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
+  const normalizeProxyUrl = (raw: string): string => {
+    let s = raw.trim();
+    if (!s) return s;
+
+    // Already has a supported scheme
+    const schemeMatch = s.match(/^([a-zA-Z0-9+.-]+):\/\//);
+    if (schemeMatch) {
+      const scheme = schemeMatch[1].toLowerCase();
+      const supported = ['http', 'https', 'socks5', 'socks5h', 'socks4'];
+      if (!supported.includes(scheme)) {
+        throw new Error(`Esquema "${scheme}" não suportado. Use http://, https://, socks5:// ou socks5h://`);
+      }
+      return `${scheme}://${s.slice(schemeMatch[0].length)}`;
+    }
+
+    // No scheme → try IPFoxy-style "host:porta:user:senha"
+    const parts = s.split(':');
+    if (parts.length === 4) {
+      const [host, port, user, pass] = parts;
+      return `http://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}`;
+    }
+
+    // Fallback: assume http
+    return `http://${s}`;
+  };
+
   const handleSaveProxy = async () => {
-    const trimmed = proxyUrlInput.trim();
-    if (!trimmed) {
+    const rawInput = proxyUrlInput.trim();
+    if (!rawInput) {
       toast({
         title: 'URL obrigatória',
-        description: 'Informe a URL do proxy no formato http://usuario:senha@ip:porta',
+        description: 'Informe a URL do proxy (http://, https://, socks5:// ou socks5h://).',
+        variant: 'destructive',
+      });
+      return;
+    }
+    let trimmed: string;
+    try {
+      trimmed = normalizeProxyUrl(rawInput);
+    } catch (err) {
+      toast({
+        title: 'Formato inválido',
+        description: err instanceof Error ? err.message : 'URL de proxy inválida.',
         variant: 'destructive',
       });
       return;
@@ -490,7 +527,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       await callProxyFunction('set', trimmed);
       toast({
         title: '✅ Proxy configurado',
-        description: 'A conexão pode ser reiniciada automaticamente para aplicar a mudança.',
+        description: `Proxy aplicado: ${trimmed.replace(/:([^:@\/]+)@/, ':***@')}`,
       });
       const refreshed = await callProxyFunction('get').catch(() => null);
       if (refreshed) setProxyInfo(refreshed);
