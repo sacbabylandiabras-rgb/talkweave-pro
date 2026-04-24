@@ -170,6 +170,16 @@ const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' |
   return rawContent;
 };
 
+const isGroupJoinLog = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
+  return log.keyword_matched === '__group_join__' && isGroupPhone(String(log.message_received || ''));
+};
+
+const resolveGroupJoinContent = (log: Pick<MessageLog, 'phone' | 'response_sent'>) => {
+  const joinedName = String(log.response_sent || '').trim();
+  const joinedPhone = String(log.phone || '').replace(/\D/g, '');
+  return `${joinedName || (joinedPhone ? `+${joinedPhone}` : 'Novo membro')} entrou na comunidade`;
+};
+
 const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
   const latestByPhone = new Map<string, CampaignSendMessage>();
 
@@ -812,6 +822,19 @@ export const useMessageLogs = (
 
     // From message_logs
     filteredLogs.forEach(log => {
+      if (isGroupJoinLog(log)) {
+        allMessages.push({
+          id: `log-group-join-${log.id}`,
+          phone: normalizeConversationPhone(String(log.message_received || '')),
+          type: 'received',
+          content: resolveGroupJoinContent(log),
+          timestamp: getInboundMessageTimestamp(log),
+          source: 'message_log',
+          keyword_matched: log.keyword_matched,
+        });
+        return;
+      }
+
       const inboundContent = resolveVisibleInboundContent(log);
       if (inboundContent) {
         allMessages.push({
