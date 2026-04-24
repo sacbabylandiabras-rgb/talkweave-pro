@@ -42,12 +42,6 @@ serve(async (req) => {
     if (userErr || !user) throw new Error("Unauthorized");
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: roleRow } = await admin
-      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     const body = await req.json().catch(() => ({}));
     const { hiddenInstanceId, mode, phoneNumber } = body || {};
