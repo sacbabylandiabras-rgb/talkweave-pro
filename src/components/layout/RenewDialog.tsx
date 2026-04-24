@@ -13,7 +13,7 @@ interface RenewDialogProps {
 const plans = [
   {
     name: "Start",
-    price: "R$ 67,90",
+    price: "R$ 100",
     period: "/mês",
     link: "https://pay.zaplynxpro.online/pay/plano-start-704549",
     features: [
@@ -25,7 +25,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "R$ 297",
+    price: "R$ 349",
     period: "/mês",
     link: "https://pay.zaplynxpro.online/pay/plano-pro-716484",
     features: [
@@ -39,7 +39,7 @@ const plans = [
   },
   {
     name: "Scale",
-    price: "R$ 597",
+    price: "R$ 897",
     period: "/mês",
     link: "https://pay.zaplynxpro.online/pay/plano-scale-731140",
     features: [
