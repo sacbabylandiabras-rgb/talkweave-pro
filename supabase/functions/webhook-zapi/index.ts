@@ -3452,6 +3452,7 @@ serve(async (req) => {
                 keywordMatched: `__flow_capture_resume__:${pendingFlow.id}`,
                 responseSent: `[Captura ${pendingState.field}]`,
               });
+              await setVisibleIncomingMessage(supabase, lockId, messageRaw);
               return new Response("flow_capture_resumed", {
                 status: 200,
                 headers: corsHeaders,
@@ -5001,6 +5002,7 @@ async function routeMatchedButtonFlow(
     keywordMatched: `[Botão: ${match.buttonText}]`,
     responseSent: `[Fluxo: ${match.flowName}]`,
   });
+  await setVisibleIncomingMessage(supabase, lockId, match.buttonText || messageRaw);
 
   return true;
 }
@@ -5216,6 +5218,23 @@ async function finalizeMessageLog(
     .update({
       keyword_matched: keywordMatched,
       response_sent: responseSent,
+      timestamp: new Date().toISOString(),
+    })
+    .eq("id", lockId);
+}
+
+async function setVisibleIncomingMessage(
+  supabase: any,
+  lockId: string,
+  visibleMessage: string,
+) {
+  const trimmed = String(visibleMessage || "").trim();
+  if (!trimmed) return;
+
+  await supabase
+    .from("message_logs")
+    .update({
+      message_received: trimmed,
       timestamp: new Date().toISOString(),
     })
     .eq("id", lockId);
