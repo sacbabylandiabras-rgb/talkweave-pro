@@ -44,6 +44,17 @@ interface ChatMessage {
   content: string;
 }
 
+interface KnowledgeItem {
+  id: string;
+  type: "faq" | "document";
+  question?: string;
+  answer?: string;
+  title?: string;
+  content?: string;
+  active: boolean;
+  created_at: string;
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const getEdgeFunctionErrorMessage = async (err: unknown) => {
@@ -112,6 +123,7 @@ const AgenteIA = () => {
   const [analysisContent, setAnalysisContent] = useState("");
   const [analysisTitle, setAnalysisTitle] = useState("");
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<KnowledgeItem | null>(null);
 
   const analyzeContent = async (type: "faq" | "document" | "url", data: { question?: string; answer?: string; title?: string; content?: string }) => {
     setAnalysisLoading(true);
@@ -614,13 +626,25 @@ const AgenteIA = () => {
                   </div>
 
                   <div className="space-y-2 mt-4">
-                    {knowledge.filter(k => k.type === "document").map(item => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/40 bg-muted/20">
+                      {knowledge.filter(k => k.type === "document").map(item => (
+                        <div
+                          key={item.id}
+                          className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:border-primary/40 transition-colors"
+                          onClick={() => setSelectedDocument(item)}
+                        >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-foreground">{item.title}</p>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.content}</p>
                         </div>
-                        <Button variant="ghost" size="icon" className="shrink-0 h-7 w-7" onClick={() => removeKnowledge(item.id)}>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           className="shrink-0 h-7 w-7"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             removeKnowledge(item.id);
+                           }}
+                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
                       </div>
@@ -755,6 +779,22 @@ const AgenteIA = () => {
                 <ReactMarkdown>{analysisContent}</ReactMarkdown>
               </div>
             )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedDocument} onOpenChange={(open) => !open && setSelectedDocument(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedDocument?.title || "Documento"}</DialogTitle>
+            <DialogDescription>
+              Leitura completa do conteúdo importado para a base de conhecimento.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-4" style={{ maxHeight: "65vh" }}>
+            <div className="whitespace-pre-wrap text-sm text-foreground leading-6">
+              {selectedDocument?.content}
+            </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
