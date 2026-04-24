@@ -431,36 +431,36 @@ const MediaModelSection = ({
                     const t = __special.statusType || 'text';
                     return (
                       <div className="flex justify-end">
-                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[220px]">
-                          <div className="px-3 py-2 flex items-center gap-2 border-b border-border/30">
-                            <span className="text-base">📸</span>
-                            <p className="text-sm font-semibold text-foreground">Status / Stories</p>
+                        <div className="max-w-[85%] min-w-[240px] overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                          <div className="border-b border-border/60 px-3 py-2">
+                            <p className="text-sm font-semibold text-foreground">Prévia de publicação no Status</p>
+                            <p className="text-[11px] text-muted-foreground">Esse tipo não aparece como balão na conversa.</p>
                           </div>
                           {t === 'text' ? (
                             <div
-                              className="px-3 py-6 text-center"
+                              className="px-4 py-8 text-center"
                               style={{ backgroundColor: __special.backgroundColor || '#000000' }}
                             >
-                              <p className="text-sm font-medium whitespace-pre-wrap" style={{ color: '#ffffff' }}>
+                              <p className="whitespace-pre-wrap text-sm font-medium" style={{ color: '#ffffff' }}>
                                 {__special.text || 'Sem texto'}
                               </p>
                             </div>
                           ) : (
-                            <div className="space-y-1">
+                            <div className="space-y-1 bg-muted/20">
                               {t === 'image' && __special.media && (
-                                <img src={__special.media} alt="status" className="w-full max-h-48 object-cover" />
+                                <img src={__special.media} alt="status" className="w-full max-h-56 object-cover" />
                               )}
                               {t === 'video' && __special.media && (
-                                <video src={__special.media} controls className="w-full max-h-48" />
+                                <video src={__special.media} controls className="w-full max-h-56" />
                               )}
                               {t === 'audio' && __special.media && (
-                                <div className="px-3 py-2"><audio src={__special.media} controls className="w-full" /></div>
+                                <div className="px-3 py-3"><audio src={__special.media} controls className="w-full" /></div>
                               )}
                               {!__special.media && (
-                                <div className="px-3 py-4 text-xs text-muted-foreground text-center">Mídia não enviada</div>
+                                <div className="px-3 py-4 text-center text-xs text-muted-foreground">Mídia não enviada</div>
                               )}
                               {__special.caption && (
-                                <p className="px-3 pb-2 text-xs text-foreground whitespace-pre-wrap">{__special.caption}</p>
+                                <p className="px-3 pb-3 text-xs text-foreground whitespace-pre-wrap">{__special.caption}</p>
                               )}
                             </div>
                           )}
