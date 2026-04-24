@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
@@ -67,6 +67,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const { disconnectDevice, loading } = useZapi();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Proxy (uazapi apenas)
+  const [showProxyDialog, setShowProxyDialog] = useState(false);
+  const [proxyLoading, setProxyLoading] = useState(false);
+  const [proxyInfo, setProxyInfo] = useState<any>(null);
+  const [proxyUrlInput, setProxyUrlInput] = useState('');
 
   // Set instance override only for operations that still use the shared hook state
   const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
@@ -423,6 +429,104 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const isUazapi = instance.api_provider === 'uazapi';
+
+  const callProxyFunction = async (action: 'get' | 'set' | 'delete', proxy_url?: string) => {
+    const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+    const apiToken = instance.evolution_api_key || '';
+    if (!apiUrl || !apiToken) {
+      throw new Error('Instância UAZAPI sem URL/token configurados.');
+    }
+    const { data, error } = await supabase.functions.invoke('uazapi-proxy', {
+      body: { apiUrl, apiToken, action, proxy_url },
+    });
+    if (error) {
+      const msg = await getInvokeErrorMessage(error, 'Erro ao comunicar com a UAZAPI');
+      throw new Error(msg);
+    }
+    if (data?.error) {
+      throw new Error(data?.error);
+    }
+    return data;
+  };
+
+  const openProxyDialog = async () => {
+    setShowProxyDialog(true);
+    setProxyLoading(true);
+    setProxyInfo(null);
+    try {
+      const data = await callProxyFunction('get');
+      setProxyInfo(data);
+      const current =
+        data?.proxy_url ||
+        data?.proxyUrl ||
+        data?.config?.proxy_url ||
+        data?.data?.proxy_url ||
+        '';
+      setProxyUrlInput(current || '');
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao carregar proxy',
+        description: err instanceof Error ? err.message : 'Falha ao buscar configuração.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleSaveProxy = async () => {
+    const trimmed = proxyUrlInput.trim();
+    if (!trimmed) {
+      toast({
+        title: 'URL obrigatória',
+        description: 'Informe a URL do proxy no formato http://usuario:senha@ip:porta',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setProxyLoading(true);
+    try {
+      await callProxyFunction('set', trimmed);
+      toast({
+        title: '✅ Proxy configurado',
+        description: 'A conexão pode ser reiniciada automaticamente para aplicar a mudança.',
+      });
+      const refreshed = await callProxyFunction('get').catch(() => null);
+      if (refreshed) setProxyInfo(refreshed);
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao salvar proxy',
+        description: err instanceof Error ? err.message : 'Falha ao configurar proxy.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleRemoveProxy = async () => {
+    setProxyLoading(true);
+    try {
+      await callProxyFunction('delete');
+      toast({
+        title: '✅ Proxy removido',
+        description: 'Voltando ao proxy interno padrão.',
+      });
+      setProxyUrlInput('');
+      const refreshed = await callProxyFunction('get').catch(() => null);
+      setProxyInfo(refreshed);
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao remover proxy',
+        description: err instanceof Error ? err.message : 'Falha ao remover proxy.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -572,7 +676,13 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
-          
+
+          {isUazapi && (
+            <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={openProxyDialog}>
+              <Globe className="w-3 h-3 mr-1" /> Proxy
+            </Button>
+          )}
+
           {!isConnected && (
             <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
               <Wifi className="w-3 h-3 mr-1" /> Conectar
@@ -686,6 +796,67 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               </div>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proxy Dialog (UAZAPI only) */}
+      <Dialog open={showProxyDialog} onOpenChange={setShowProxyDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" /> Configuração de Proxy
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 rounded-md p-3">
+              <p>
+                Por padrão, a instância usa o <strong>proxy interno</strong>. Informe uma URL para usar um proxy próprio.
+              </p>
+              <p className="font-mono text-[11px]">
+                Formato: <code>http://usuario:senha@ip:porta</code>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`proxy-url-${instance.id}`}>URL do Proxy</Label>
+              <Input
+                id={`proxy-url-${instance.id}`}
+                type="text"
+                placeholder="http://usuario:senha@ip:porta"
+                value={proxyUrlInput}
+                onChange={(e) => setProxyUrlInput(e.target.value)}
+                disabled={proxyLoading}
+              />
+            </div>
+
+            {proxyInfo && (
+              <details className="text-[11px]">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  🔧 Estado atual / último teste
+                </summary>
+                <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-40 text-[10px]">
+                  {JSON.stringify(proxyInfo, null, 2)}
+                </pre>
+              </details>
+            )}
+
+            <div className="flex flex-wrap gap-2 justify-end pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveProxy}
+                disabled={proxyLoading}
+              >
+                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                Remover (usar padrão)
+              </Button>
+              <Button size="sm" onClick={handleSaveProxy} disabled={proxyLoading}>
+                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                Salvar Proxy
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
