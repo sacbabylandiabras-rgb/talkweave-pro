@@ -441,21 +441,23 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <Bot className="w-4 h-4" />
                 Enviar Fluxo
               </h3>
-              <div className="flex items-center gap-2">
-                <Select value={selectedFlow} onValueChange={setSelectedFlow} disabled={loadingFlows}>
-                  <SelectTrigger className="h-9 text-sm flex-1">
-                    <SelectValue placeholder={loadingFlows ? "Carregando..." : "Selecione um fluxo"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {flows.map(f => (
-                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                    ))}
-                    {flows.length === 0 && !loadingFlows && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum fluxo ativo</div>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" disabled={!selectedFlow || sendingFlow} onClick={handleSendFlow} className="shrink-0">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1">
+                  <Select value={selectedFlow} onValueChange={setSelectedFlow} disabled={loadingFlows}>
+                    <SelectTrigger className="h-9 w-full text-sm">
+                      <SelectValue placeholder={loadingFlows ? "Carregando..." : "Selecione um fluxo"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {flows.map(f => (
+                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                      ))}
+                      {flows.length === 0 && !loadingFlows && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum fluxo ativo</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" disabled={!selectedFlow || sendingFlow} onClick={handleSendFlow} className="w-full shrink-0 sm:w-auto">
                   <Send className="w-4 h-4 mr-1" />
                   Enviar
                 </Button>
