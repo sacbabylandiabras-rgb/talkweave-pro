@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, MapPinned, CreditCard, Send, AlertTriangle } from "lucide-react";
+import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -40,6 +40,36 @@ const UazapiSpecialSection = () => {
   const [statusText, setStatusText] = useState("");
   const [statusFile, setStatusFile] = useState("");
   const [statusBg, setStatusBg] = useState("");
+  const [uploadingStatus, setUploadingStatus] = useState(false);
+
+  const handleUploadStatusFile = async (file: File) => {
+    if (!file) return;
+    setUploadingStatus(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Faça login novamente", variant: "destructive" });
+        return;
+      }
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${user.id}/uaz-status-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("template-media")
+        .upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("template-media").getPublicUrl(path);
+      setStatusFile(pub.publicUrl);
+      toast({ title: "Mídia enviada!", description: "URL preenchida automaticamente." });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao enviar mídia",
+        description: err?.message || "Falha desconhecida",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingStatus(false);
+    }
+  };
 
   // Location button
   const [locPhone, setLocPhone] = useState("");
@@ -195,11 +225,50 @@ const UazapiSpecialSection = () => {
               {statusKind !== "text" && (
                 <div className="space-y-2">
                   <Label>URL da mídia</Label>
-                  <Input
-                    placeholder="https://..."
-                    value={statusFile}
-                    onChange={(e) => setStatusFile(e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://... (cole o link ou faça upload)"
+                      value={statusFile}
+                      onChange={(e) => setStatusFile(e.target.value)}
+                    />
+                    <input
+                      type="file"
+                      id={`uaz-special-status-upload-${statusKind}`}
+                      className="hidden"
+                      accept={
+                        statusKind === "video"
+                          ? "video/*"
+                          : statusKind === "audio"
+                            ? "audio/*"
+                            : "image/*"
+                      }
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadStatusFile(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploadingStatus}
+                      onClick={() =>
+                        document
+                          .getElementById(`uaz-special-status-upload-${statusKind}`)
+                          ?.click()
+                      }
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      {uploadingStatus ? "Enviando..." : "Upload"}
+                    </Button>
+                  </div>
+                  {statusFile && statusKind === "image" && (
+                    <img
+                      src={statusFile}
+                      alt="preview"
+                      className="mt-2 max-h-40 rounded border"
+                    />
+                  )}
                 </div>
               )}
               <div className="space-y-2">
