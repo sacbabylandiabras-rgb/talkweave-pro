@@ -557,14 +557,19 @@ export const useCampaigns = () => {
 
       // Build sets of phones already finalized/accepted to avoid losing progress on reconnect
       const successfulPhones = new Set<string>();
-      const pendingPhones = new Set<string>();
       const failedPhones: Array<{ phone: string; name?: string }> = [];
+      const pendingRetryPhones: Array<{ phone: string; name?: string }> = [];
 
       for (const [phoneKey, send] of latestByPhone.entries()) {
         if (send.status === 'sent' || send.status === 'delivered') {
           successfulPhones.add(phoneKey);
         } else if (send.status === 'pending') {
-          pendingPhones.add(phoneKey);
+          // Pending = ficou na fila Z-API mas não foi confirmado como entregue.
+          // Ao pausar, a fila é limpa, então esses contatos precisam ser reenviados.
+          pendingRetryPhones.push({
+            phone: send.phone,
+            name: send.contact_name || undefined,
+          });
         } else if (send.status === 'failed') {
           failedPhones.push({
             phone: send.phone,
@@ -574,7 +579,7 @@ export const useCampaigns = () => {
       }
 
       console.log('Successfully sent phones:', successfulPhones.size);
-      console.log('Accepted pending phones preserved:', pendingPhones.size);
+      console.log('Pending phones to retry (queue was cleared on pause):', pendingRetryPhones.length);
       console.log('Failed phones to retry:', failedPhones.length);
 
       // Get all target contacts from campaign
@@ -595,9 +600,9 @@ export const useCampaigns = () => {
       // Combine: retry failed + send never-processed, sem reintroduzir contatos já enviados/aceitos
       const remainingContactsMap = new Map<string, { phone: string; name?: string }>();
 
-      [...failedPhones, ...neverProcessedContacts].forEach((contact) => {
+      [...failedPhones, ...pendingRetryPhones, ...neverProcessedContacts].forEach((contact) => {
         const phoneKey = normalizeCampaignPhone(contact.phone) || contact.phone;
-        if (!phoneKey || successfulPhones.has(phoneKey) || pendingPhones.has(phoneKey)) return;
+        if (!phoneKey || successfulPhones.has(phoneKey)) return;
         if (!remainingContactsMap.has(phoneKey)) {
           remainingContactsMap.set(phoneKey, contact);
         }
@@ -607,6 +612,7 @@ export const useCampaigns = () => {
 
       console.log('Never processed:', neverProcessedContacts.length);
       console.log('Failed to retry:', failedPhones.length);
+      console.log('Pending to retry:', pendingRetryPhones.length);
       console.log('Total remaining to send:', remainingContacts.length);
       console.log('=== END RESUME INFO ===');
 
