@@ -93,22 +93,34 @@ const isButtonHandle = (handle?: string | null) => {
     normalized.startsWith("btn_");
 };
 
-const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+const getExactButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
   const aliases = new Set<string>([
     `button-${idx}`,
     `button_${idx}`,
     `btn-${idx}`,
     `btn_${idx}`,
-    `button-${idx + 1}`,
-    `button_${idx + 1}`,
-    `btn-${idx + 1}`,
-    `btn_${idx + 1}`,
   ]);
 
   const rawId = String(button?.id || "").trim();
   if (rawId) aliases.add(rawId);
 
   return Array.from(aliases);
+};
+
+const getLegacyOneBasedButtonHandleAliases = (idx: number) => {
+  return [
+    `button-${idx + 1}`,
+    `button_${idx + 1}`,
+    `btn-${idx + 1}`,
+    `btn_${idx + 1}`,
+  ];
+};
+
+const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+  return Array.from(new Set([
+    ...getExactButtonHandleAliases(idx, button),
+    ...getLegacyOneBasedButtonHandleAliases(idx),
+  ]));
 };
 
 const normalizeParticipantIdentifier = (value: unknown) => {
