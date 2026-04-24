@@ -69,6 +69,7 @@ const Campanhas = () => {
   const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
   const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
+  const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   // Realtime sends for stats dialog
@@ -105,6 +106,7 @@ const Campanhas = () => {
   useEffect(() => {
     if (!statsDialogOpen) {
       setLidMap(new Map());
+      setStatsDialogClickMap(new Map());
       return;
     }
 
@@ -215,6 +217,56 @@ const Campanhas = () => {
     fetchTemplateButtons();
     return () => { active = false; };
   }, [statsDialogOpen, statsDialogCampaignId]);
+
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId || !statsDialogCampaignName) {
+      setStatsDialogClickMap(new Map());
+      return;
+    }
+
+    let active = true;
+
+    const fetchCampaignClicks = async () => {
+      const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
+      const campaignStartedAt = campaign?.created_at;
+
+      let query = supabase
+        .from('message_logs')
+        .select('phone, created_at, message_received, response_sent')
+        .eq('response_sent', `[Fluxo: ${statsDialogCampaignName}]`)
+        .ilike('message_received', '[URL Click]%')
+        .order('created_at', { ascending: false })
+        .limit(5000);
+
+      if (campaignStartedAt) {
+        query = query.gte('created_at', campaignStartedAt);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao carregar cliques reais da campanha:', error);
+        return;
+      }
+
+      if (!active) return;
+
+      const nextMap = new Map<string, string>();
+      (data || []).forEach((row: any) => {
+        const phoneKey = normalizePhoneKey(row.phone);
+        if (!phoneKey || nextMap.has(phoneKey)) return;
+        nextMap.set(phoneKey, row.created_at);
+      });
+
+      setStatsDialogClickMap(nextMap);
+    };
+
+    fetchCampaignClicks();
+
+    return () => {
+      active = false;
+    };
+  }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
   const statsDialogStats = {
     sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered' || s.status === 'pending').length,
@@ -1017,8 +1069,8 @@ const Campanhas = () => {
                 status,
                 sentAt,
                 errorMessage,
-                readAt: (send as any)?.read_at || null,
-                clickedAt: (send as any)?.clicked_at || null,
+                readAt: (send as any)?.read_at || (send as any)?.delivered_at || null,
+                clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
               };
             });
 
@@ -1039,8 +1091,8 @@ const Campanhas = () => {
                   status,
                   sentAt: send.sent_at || null,
                   errorMessage: send.error_message || null,
-                  readAt: (send as any)?.read_at || null,
-                  clickedAt: (send as any)?.clicked_at || null,
+                  readAt: (send as any)?.read_at || (send as any)?.delivered_at || null,
+                  clickedAt: statsDialogClickMap.get(sendKey) || (send as any)?.clicked_at || null,
                 });
               }
             });
