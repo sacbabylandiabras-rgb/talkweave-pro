@@ -1340,43 +1340,41 @@ serve(async (req) => {
                   }
 
                   console.log("📋 Template welcome sent to", joinedPhone);
-                }
-
-                // Build a readable log of what was sent
-                let logContent = tplMessage || "";
-                if (tpl.media_url) {
-                  const mediaTag = `[media:${
-                    tpl.type === "imagem" || tpl.type === "imagem_botoes"
-                      ? "image"
-                      : tpl.type === "video" || tpl.type === "video_botoes"
-                      ? "video"
-                      : tpl.type === "audio" || tpl.type === "áudio"
-                      ? "audio"
-                      : "document"
-                  }:${tpl.media_url}]`;
-                  logContent = logContent
-                    ? `${mediaTag}\n${logContent}`
-                    : mediaTag;
-                }
-                if (rawButtons && rawButtons.length > 0) {
-                  const btnLabels = rawButtons.map((b: any) =>
-                    b?.text || b?.label || ""
-                  ).filter(Boolean);
-                  if (btnLabels.length > 0) {
-                    logContent += `\n[Botões: ${btnLabels.join(" | ")}]`;
+                  // Build a readable log of what was sent
+                  let logContent = tplMessage || "";
+                  if (tpl.media_url) {
+                    const mediaTag = `[media:${
+                      tpl.type === "imagem" || tpl.type === "imagem_botoes"
+                        ? "image"
+                        : tpl.type === "video" || tpl.type === "video_botoes"
+                        ? "video"
+                        : tpl.type === "audio" || tpl.type === "áudio"
+                        ? "audio"
+                        : "document"
+                    }:${tpl.media_url}]`;
+                    logContent = logContent
+                      ? `${mediaTag}\n${logContent}`
+                      : mediaTag;
                   }
-                }
+                  if (rawButtons.length > 0) {
+                    const btnLabels = rawButtons.map((b: any) =>
+                      b?.text || b?.label || ""
+                    ).filter(Boolean);
+                    if (btnLabels.length > 0) {
+                      logContent += `\n[Botões: ${btnLabels.join(" | ")}]`;
+                    }
+                  }
 
-                await supabase.from("message_logs").insert({
-                  phone: joinedPhone,
-                  message_received: null,
-                  response_sent: logContent ||
-                    `Modelo: ${tpl.name || welcomeConfig.template_id}`,
-                  keyword_matched: "__group_welcome__",
-                  timestamp: new Date().toISOString(),
-                  user_id: instData.user_id,
-                  instance_id: instData.zapi_instance_id,
-                });
+                  await supabase.from("message_logs").insert({
+                    phone: joinedPhone,
+                    message_received: null,
+                    response_sent: logContent || `Modelo: ${welcomeConfig.template_id}`,
+                    keyword_matched: "__group_welcome__",
+                    timestamp: new Date().toISOString(),
+                    user_id: instData.user_id,
+                    instance_id: instData.zapi_instance_id,
+                  });
+                }
               } else {
                 // Default: plain text message
                 let finalMessage = welcomeConfig.message
@@ -3372,7 +3370,7 @@ serve(async (req) => {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    "Client-Token": zapiConfig.zapi_client_token,
+                    "Client-Token": String(zapiConfig.zapi_client_token || ""),
                   },
                   body: JSON.stringify({ phone, message }),
                 },
@@ -3837,7 +3835,7 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Client-Token": zapiConfig.zapi_client_token,
+            "Client-Token": String(zapiConfig.zapi_client_token || ""),
           },
           body: JSON.stringify({ phone, message: matchedResponse.response }),
         },
@@ -3958,7 +3956,7 @@ serve(async (req) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Client-Token": zapiConfig.zapi_client_token,
+                  "Client-Token": String(zapiConfig.zapi_client_token || ""),
                 },
                 body: JSON.stringify({ phone, message: aiReply }),
               },
@@ -5014,7 +5012,7 @@ async function routeMatchedButtonFlow(
     keywordMatched: `[Botão: ${match.buttonText}]`,
     responseSent: `[Fluxo: ${match.flowName}]`,
   });
-  await setVisibleIncomingMessage(supabase, lockId, match.buttonText || messageRaw);
+  await setVisibleIncomingMessage(supabase, lockId, match.buttonText || "[Botão]");
 
   return true;
 }

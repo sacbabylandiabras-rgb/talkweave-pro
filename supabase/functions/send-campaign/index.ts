@@ -81,7 +81,7 @@ const mapResolvedInstance = (instance: {
 };
 
 const resolvePreferredUserInstance = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
 ): Promise<ResolvedInstance | null> => {
   const selectFields = 'zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
@@ -121,7 +121,7 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
 });
 
 const resolveContactInstance = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   sourceInstanceId?: string | null,
 ): Promise<ResolvedInstance | null> => {
@@ -163,7 +163,7 @@ const resolveContactInstance = async (
 };
 
 const resolveGroupInstanceFromInboundLogs = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   phone: string,
 ): Promise<ResolvedInstance | null> => {
@@ -188,7 +188,7 @@ const resolveGroupInstanceFromInboundLogs = async (
     .order('timestamp', { ascending: false })
     .limit(1);
 
-  let resolvedGroupInstanceId = groupLogs?.[0]?.instance_id || null;
+  let resolvedGroupInstanceId = (groupLogs as Array<{ instance_id: string | null }> | null)?.[0]?.instance_id || null;
 
   if (!resolvedGroupInstanceId) {
     const { data: groupLogsFallback } = await supabase
@@ -201,7 +201,7 @@ const resolveGroupInstanceFromInboundLogs = async (
       .order('timestamp', { ascending: false })
       .limit(5);
 
-    const inboundLog = groupLogsFallback?.find((log) => log.keyword_matched !== '__manual_send__');
+    const inboundLog = (groupLogsFallback as Array<{ instance_id: string | null; keyword_matched: string | null }> | null)?.find((log) => log.keyword_matched !== '__manual_send__');
     resolvedGroupInstanceId = inboundLog?.instance_id || null;
   }
 
@@ -215,21 +215,30 @@ const resolveGroupInstanceFromInboundLogs = async (
     .eq('is_active', true)
     .maybeSingle();
 
-  const correctIsUaz = String((correctInstance as any)?.api_provider || '').toLowerCase() === 'uazapi';
-  const correctHasZapi = correctInstance?.zapi_instance_id && correctInstance?.zapi_token && correctInstance?.zapi_client_token;
-  const correctHasUaz = correctIsUaz && (correctInstance as any)?.evolution_api_url && (correctInstance as any)?.evolution_api_key;
-  if (!correctInstance?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
+  const correctInstanceRow = correctInstance as {
+    zapi_instance_id?: string | null;
+    zapi_token?: string | null;
+    zapi_client_token?: string | null;
+    instance_name?: string | null;
+    api_provider?: string | null;
+    evolution_api_url?: string | null;
+    evolution_api_key?: string | null;
+  } | null;
+  const correctIsUaz = String(correctInstanceRow?.api_provider || '').toLowerCase() === 'uazapi';
+  const correctHasZapi = Boolean(correctInstanceRow?.zapi_instance_id && correctInstanceRow?.zapi_token && correctInstanceRow?.zapi_client_token);
+  const correctHasUaz = Boolean(correctIsUaz && correctInstanceRow?.evolution_api_url && correctInstanceRow?.evolution_api_key);
+  if (!correctInstanceRow?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
     return null;
   }
 
   return {
-    zapiInstanceId: correctInstance.zapi_instance_id,
-    zapiToken: correctInstance.zapi_token || '',
-    zapiClientToken: correctInstance.zapi_client_token || '',
-    instanceName: correctInstance.instance_name || 'Instância',
+    zapiInstanceId: correctInstanceRow.zapi_instance_id,
+    zapiToken: correctInstanceRow.zapi_token || '',
+    zapiClientToken: correctInstanceRow.zapi_client_token || '',
+    instanceName: correctInstanceRow.instance_name || 'Instância',
     apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
-    uazapiUrl: (correctInstance as any).evolution_api_url || '',
-    uazapiToken: (correctInstance as any).evolution_api_key || '',
+    uazapiUrl: correctInstanceRow.evolution_api_url || '',
+    uazapiToken: correctInstanceRow.evolution_api_key || '',
   };
 };
 
@@ -955,6 +964,7 @@ serve(async (req) => {
 
     // Process current batch
     const results = [];
+    let rateLimitHitsInBatch = 0;
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
       let unresolvedLidError: string | null = null;
@@ -1022,7 +1032,7 @@ serve(async (req) => {
           .eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
-        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter(c => c.phone === contact.phone).length;
+        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: { phone: string }) => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
           console.log(`⏭️ Skipping ${contact.phone} - already sent`);
@@ -1200,6 +1210,12 @@ serve(async (req) => {
             console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
 
             if (isWhatsAppRateLimitError(uazResult.raw, undefined)) {
+              rateLimitHitsInBatch += 1;
+            } else {
+              rateLimitHitsInBatch = 0;
+            }
+
+            if (rateLimitHitsInBatch >= 2) {
               await persistCampaignSend(campaignSend, reusableSendId);
               await supabase
                 .from('campaigns')
@@ -1393,6 +1409,12 @@ serve(async (req) => {
             // pause the campaign immediately so the remaining contacts stay
             // pending and can be resumed later when the account recovers.
             if (isWhatsAppRateLimitError(zapiResult, zapiResponse.status)) {
+              rateLimitHitsInBatch += 1;
+            } else {
+              rateLimitHitsInBatch = 0;
+            }
+
+            if (rateLimitHitsInBatch >= 2) {
               console.log(`🚨 WhatsApp rate-limit detectado (error 463 / temporary restriction). Pausando campanha ${campaignId} para preservar a conta.`);
               await persistCampaignSend(campaignSend, reusableSendId);
               await supabase
