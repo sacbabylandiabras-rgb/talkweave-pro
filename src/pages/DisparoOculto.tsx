@@ -166,7 +166,7 @@ export default function DisparoOculto() {
                 <SelectContent>
                   {instances.map((i) => (
                     <SelectItem key={i.id} value={i.id}>
-                      {i.name} ({i.api_provider})
+                      {i.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
