@@ -5221,6 +5221,23 @@ async function finalizeMessageLog(
     .eq("id", lockId);
 }
 
+async function setVisibleIncomingMessage(
+  supabase: any,
+  lockId: string,
+  visibleMessage: string,
+) {
+  const trimmed = String(visibleMessage || "").trim();
+  if (!trimmed) return;
+
+  await supabase
+    .from("message_logs")
+    .update({
+      message_received: trimmed,
+      timestamp: new Date().toISOString(),
+    })
+    .eq("id", lockId);
+}
+
 async function makeMessageVisibleInInbox(supabase: any, lockId: string) {
   await supabase
     .from("message_logs")
