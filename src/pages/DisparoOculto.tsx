@@ -289,15 +289,30 @@ export default function DisparoOculto() {
             </div>
 
             <div>
-              <Label>Mensagem</Label>
-              <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Texto da mensagem (opcional se enviar mídia)" />
+              <Label>Tipo de mensagem</Label>
+              <Select value={templateType} onValueChange={(v) => setTemplateType(v as TemplateType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="media">Mídia (imagem/vídeo/áudio/doc)</SelectItem>
+                  <SelectItem value="text-buttons">Texto com botões</SelectItem>
+                  <SelectItem value="image-buttons">Imagem + texto com botões</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            <div>
+              <Label>Mensagem {templateType === "image-buttons" && <span className="text-xs text-muted-foreground">(legenda)</span>}</Label>
+              <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Texto da mensagem" />
+            </div>
+
+            {(templateType === "media" || templateType === "image-buttons") && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
-                <Label>URL da mídia</Label>
+                <Label>{templateType === "image-buttons" ? "URL da imagem" : "URL da mídia"}</Label>
                 <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://..." />
               </div>
+              {templateType === "media" && (
               <div>
                 <Label>Tipo</Label>
                 <Select value={mediaType} onValueChange={(v) => setMediaType(v as MediaType)}>
@@ -310,8 +325,11 @@ export default function DisparoOculto() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
             </div>
+            )}
 
+            {(templateType === "media" || templateType === "image-buttons") && (
             <div>
               <input
                 id="file-upload"
@@ -324,6 +342,50 @@ export default function DisparoOculto() {
                 Upload de arquivo
               </Button>
             </div>
+            )}
+
+            {(templateType === "text-buttons" || templateType === "image-buttons") && (
+              <div className="space-y-3 border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <Label>Botões (até 3)</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={addBtn} disabled={buttons.length >= 3}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {buttons.map((b, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                    <Input
+                      className="col-span-4"
+                      placeholder="Texto do botão"
+                      value={b.label}
+                      onChange={(e) => updateBtn(idx, { label: e.target.value })}
+                    />
+                    <Select value={b.type} onValueChange={(v) => updateBtn(idx, { type: v as BtnDef["type"], value: "" })}>
+                      <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reply">Resposta</SelectItem>
+                        <SelectItem value="url">URL</SelectItem>
+                        <SelectItem value="phone">Ligar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="col-span-4"
+                      placeholder={b.type === "url" ? "https://..." : b.type === "phone" ? "5511999999999" : "(sem destino)"}
+                      disabled={b.type === "reply"}
+                      value={b.value || ""}
+                      onChange={(e) => updateBtn(idx, { value: e.target.value })}
+                    />
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeBtn(idx)} className="col-span-1">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div>
+                  <Label className="text-xs">Rodapé (opcional)</Label>
+                  <Input value={footer} onChange={(e) => setFooter(e.target.value)} placeholder="Texto pequeno abaixo dos botões" />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
