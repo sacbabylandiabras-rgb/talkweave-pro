@@ -139,7 +139,7 @@ const UazapiSpecialSection = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {!hasUazapi && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
                 Você não tem nenhuma instância UAZAPI conectada. Adicione uma em{" "}

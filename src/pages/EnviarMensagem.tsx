@@ -1489,7 +1489,7 @@ const EnviarMensagem = () => {
       </Card>
 
       <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Texto
@@ -1505,6 +1505,10 @@ const EnviarMensagem = () => {
           <TabsTrigger value="massa" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Envio em Massa
+          </TabsTrigger>
+          <TabsTrigger value="especiais" className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Especiais UAZAPI
           </TabsTrigger>
         </TabsList>
 
