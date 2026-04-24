@@ -430,6 +430,87 @@ const UazapiSpecialSection = () => {
               </Button>
             </TabsContent>
           </Tabs>
+
+          {diagnostic && (
+            <div
+              className={`rounded-lg border p-3 text-xs space-y-2 ${
+                diagnostic.success
+                  ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-100"
+                  : "border-destructive/40 bg-destructive/5 text-destructive"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Bug className="w-4 h-4" />
+                  Diagnóstico UAZAPI ({diagnostic.kind})
+                  {diagnostic.providerStatus !== undefined && (
+                    <span className="font-mono text-[11px] opacity-80">
+                      HTTP {diagnostic.providerStatus}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="opacity-70 hover:opacity-100"
+                  onClick={() => setDiagnostic(null)}
+                  aria-label="Fechar diagnóstico"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {diagnostic.error && (
+                <div className="font-mono break-all">
+                  <span className="opacity-70">erro:</span> {diagnostic.error}
+                </div>
+              )}
+
+              {diagnostic.requestUrl && (
+                <div className="font-mono break-all">
+                  <span className="opacity-70">POST</span> {diagnostic.requestUrl}
+                </div>
+              )}
+
+              {diagnostic.requestBody && (
+                <details>
+                  <summary className="cursor-pointer opacity-80">
+                    Corpo enviado
+                  </summary>
+                  <pre className="mt-1 max-h-48 overflow-auto rounded bg-background/40 p-2 text-[11px] leading-snug">
+{JSON.stringify(diagnostic.requestBody, null, 2)}
+                  </pre>
+                </details>
+              )}
+
+              {(diagnostic.providerBody || diagnostic.providerRaw) && (
+                <details open>
+                  <summary className="cursor-pointer opacity-80">
+                    Resposta do provedor
+                  </summary>
+                  <pre className="mt-1 max-h-60 overflow-auto rounded bg-background/40 p-2 text-[11px] leading-snug">
+{diagnostic.providerBody
+  ? JSON.stringify(diagnostic.providerBody, null, 2)
+  : diagnostic.providerRaw}
+                  </pre>
+                </details>
+              )}
+
+              {diagnostic.invokeError && (
+                <details>
+                  <summary className="cursor-pointer opacity-80">
+                    Erro de invocação
+                  </summary>
+                  <pre className="mt-1 max-h-40 overflow-auto rounded bg-background/40 p-2 text-[11px] leading-snug">
+{JSON.stringify(diagnostic.invokeError, null, 2)}
+                  </pre>
+                </details>
+              )}
+
+              <div className="opacity-60 text-[10px]">
+                {new Date(diagnostic.timestamp).toLocaleString("pt-BR")}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
