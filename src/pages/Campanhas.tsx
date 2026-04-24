@@ -269,7 +269,7 @@ const Campanhas = () => {
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
   const statsDialogStats = {
-    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered' || s.status === 'pending').length,
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
     sending: statsDialogSends.filter(s => s.status === 'pending').length,
     pending: statsDialogSends.filter(s => s.status === 'pending').length,
@@ -1073,10 +1073,13 @@ const Campanhas = () => {
                     // Campanha cancelada antes da confirmação de entrega
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
-                  } else {
-                    // Já aceito pela Z-API (na fila). Tratamos como enviado.
+                  } else if (send.sent_at) {
+                    // Confirmado pela Z-API (tem sent_at, aguarda callback de entrega p/ grupo)
                     status = 'enviado';
-                    sentAt = send.sent_at || null;
+                    sentAt = send.sent_at;
+                  } else {
+                    // Ainda na fila / não confirmado pela Z-API
+                    status = 'pendente';
                   }
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
@@ -1104,7 +1107,9 @@ const Campanhas = () => {
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') status = campaignCancelled ? 'cancelado' : 'enviado';
+                else if (send.status === 'pending') {
+                  status = campaignCancelled ? 'cancelado' : (send.sent_at ? 'enviado' : 'pendente');
+                }
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
