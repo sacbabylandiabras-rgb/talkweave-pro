@@ -244,9 +244,12 @@ const extractProfilePictureUrl = (payload: any): string | null => {
   if (!payload) return null;
   if (Array.isArray(payload)) {
     const first = payload[0];
-    return first?.link || first?.imgUrl || first?.profilePictureUrl || null;
+    return sanitizePictureUrl(first?.link || first?.imgUrl || first?.profilePictureUrl);
   }
-  return payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || null;
+  return sanitizePictureUrl(
+    payload?.link || payload?.imgUrl || payload?.profilePictureUrl ||
+    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl
+  );
 };
 
 const extractResolvedGroupName = (payload: any): string | null => {
