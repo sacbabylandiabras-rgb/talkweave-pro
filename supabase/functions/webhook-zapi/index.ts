@@ -3889,67 +3889,33 @@ serve(async (req) => {
     });
 
     try {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
-        console.error("LOVABLE_API_KEY não configurada para agente IA");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error("SUPABASE_URL/SUPABASE_ANON_KEY não configuradas para agente IA");
       } else {
-        const { data: knowledge } = await supabase
-          .from("agent_knowledge")
-          .select("type, question, answer, content, title")
-          .eq("user_id", userId)
-          .eq("active", true);
-
-        let systemPrompt = latestAgentConfig.system_prompt ||
-          "Você é um assistente virtual prestativo.";
-        systemPrompt += "\n\n--- REGRAS ---";
-        systemPrompt += "\n- Responda sempre de forma educada e objetiva.";
-        systemPrompt += "\n- Use a base de conhecimento abaixo para responder.";
-        systemPrompt +=
-          "\n- Se não souber a resposta, diga que vai encaminhar para um atendente humano.";
-        systemPrompt += `\n- Nome do agente: ${
-          latestAgentConfig.agent_name || "Assistente"
-        }`;
-        systemPrompt +=
-          "\n- Responda de forma curta e direta, como em uma conversa de WhatsApp.";
-
-        if (knowledge && knowledge.length > 0) {
-          systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
-          for (const item of knowledge) {
-            if (item.type === "faq") {
-              systemPrompt +=
-                `\n\nPergunta: ${item.question}\nResposta: ${item.answer}`;
-            } else if (item.type === "document") {
-              systemPrompt += `\n\nDocumento "${
-                item.title || "Sem título"
-              }":\n${item.content}`;
-            }
-          }
-        }
-
-        const aiResponse = await fetch(
-          "https://ai.gateway.lovable.dev/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: messageRaw },
-              ],
-              stream: false,
-            }),
+        const agentResponse = await fetch(`${supabaseUrl}/functions/v1/agent-chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
-        );
+          body: JSON.stringify({
+            user_id: userId,
+            phone,
+            messages: [{ role: "user", content: messageRaw }],
+          }),
+        });
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const aiReply = aiData.choices?.[0]?.message?.content || "";
+        if (agentResponse.ok) {
+          const agentData = await agentResponse.json();
+          const aiReply = String(agentData?.reply || "").trim();
+          const ctaUrl = String(agentData?.cta?.url || "").trim();
+          const finalReply = [aiReply, ctaUrl].filter(Boolean).join("\n\n");
 
-          if (aiReply) {
+          if (finalReply) {
             const zapiAiResponse = await fetch(
               `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
               {
@@ -3958,7 +3924,7 @@ serve(async (req) => {
                   "Content-Type": "application/json",
                   "Client-Token": String(zapiConfig.zapi_client_token || ""),
                 },
-                body: JSON.stringify({ phone, message: aiReply }),
+                body: JSON.stringify({ phone, message: finalReply }),
               },
             );
 
@@ -3971,7 +3937,7 @@ serve(async (req) => {
 
             await finalizeMessageLog(supabase, lockId, {
               keywordMatched: "[Agente IA]",
-              responseSent: aiReply,
+              responseSent: finalReply,
             });
 
             return new Response("ai_agent_response_sent", {
@@ -3980,10 +3946,10 @@ serve(async (req) => {
             });
           }
         } else {
-          const errText = await aiResponse.text();
+          const errText = await agentResponse.text();
           console.error(
-            "Erro AI Gateway:",
-            aiResponse.status,
+            "Erro agent-chat:",
+            agentResponse.status,
             errText.substring(0, 300),
           );
         }
