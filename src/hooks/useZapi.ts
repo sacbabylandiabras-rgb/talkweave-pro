@@ -816,11 +816,75 @@ export const useZapi = () => {
 
   const sendSpecialTemplate = async (
     phone: string,
-    specialType: 'pix' | 'localizacao' | 'contato',
+    specialType: 'pix' | 'localizacao' | 'contato' | 'uaz_status' | 'uaz_location_button' | 'uaz_request_payment',
     specialPayload: Record<string, any>,
   ) => {
     setLoading(true);
     try {
+      // UAZAPI-only special endpoints → roteia para edge function dedicada
+      if (specialType === 'uaz_status' || specialType === 'uaz_location_button' || specialType === 'uaz_request_payment') {
+        const kindMap: Record<string, string> = {
+          uaz_status: 'status',
+          uaz_location_button: 'location-button',
+          uaz_request_payment: 'request-payment',
+        };
+        const kind = kindMap[specialType];
+
+        // Monta o payload no formato esperado pelo endpoint da UAZAPI
+        let apiPayload: Record<string, any> = {};
+        if (kind === 'status') {
+          const t = specialPayload.statusType || 'text';
+          if (t === 'text') {
+            apiPayload = {
+              type: 'text',
+              text: specialPayload.text || specialPayload.description || '',
+              backgroundColor: specialPayload.backgroundColor || '#000000',
+              font: Number(specialPayload.font || 1),
+            };
+          } else {
+            apiPayload = {
+              type: t,
+              file: specialPayload.media || '',
+              text: specialPayload.caption || '',
+            };
+          }
+        } else if (kind === 'location-button') {
+          apiPayload = {
+            latitude: Number(specialPayload.latitude || 0),
+            longitude: Number(specialPayload.longitude || 0),
+            name: specialPayload.name || '',
+            address: specialPayload.address || '',
+            text: specialPayload.text || specialPayload.description || '',
+            buttonText: specialPayload.buttonLabel || 'Ver no mapa',
+            buttonUrl: specialPayload.url || '',
+          };
+        } else if (kind === 'request-payment') {
+          apiPayload = {
+            amount: Number(specialPayload.amount || 0),
+            currency: specialPayload.currency || 'BRL',
+            note: specialPayload.note || specialPayload.description || '',
+            ...(specialPayload.expiry ? { expiry: Number(specialPayload.expiry) } : {}),
+          };
+        }
+
+        const { data, error } = await supabase.functions.invoke('send-uazapi-special', {
+          body: { kind, phone, payload: apiPayload },
+        });
+        if (error) throw new Error(error.message || `Erro ao enviar ${specialType}`);
+        if (data && data.success === false) throw new Error(data.error || `Falha no envio (${specialType})`);
+
+        toast({
+          title:
+            kind === 'status'
+              ? 'Status enviado!'
+              : kind === 'location-button'
+                ? 'Botão de localização enviado!'
+                : 'Solicitação de pagamento enviada!',
+          description: 'A mensagem foi enviada com sucesso.',
+        });
+        return data;
+      }
+
       const data = await invokeSendMessageEdge(
         { phone, specialType, specialPayload },
         `Erro ao enviar ${specialType}`,

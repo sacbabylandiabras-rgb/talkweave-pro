@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Defaults para os campos especiais (PIX/Localização/Contato)
+// Defaults para os campos especiais (PIX/Localização/Contato/UAZAPI)
 const SPECIAL_FIELD_DEFAULTS = {
   pixKey: "",
   pixKeyType: "cpf",
@@ -24,6 +24,26 @@ const SPECIAL_FIELD_DEFAULTS = {
   locTitle: "",
   contactName: "",
   contactPhone: "",
+  // UAZAPI: Status / Stories
+  uazStatusType: "text", // text | image | video | audio
+  uazStatusText: "",
+  uazStatusBgColor: "#000000",
+  uazStatusFont: "1",
+  uazStatusMedia: "",
+  uazStatusCaption: "",
+  // UAZAPI: Botão de Localização (rich button with map)
+  uazLocBtnLatitude: "",
+  uazLocBtnLongitude: "",
+  uazLocBtnName: "",
+  uazLocBtnAddress: "",
+  uazLocBtnText: "",
+  uazLocBtnUrl: "",
+  uazLocBtnLabel: "Ver no mapa",
+  // UAZAPI: Solicitação de Pagamento
+  uazPayAmount: "",
+  uazPayCurrency: "BRL",
+  uazPayNote: "",
+  uazPayExpiry: "",
 };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
@@ -53,6 +73,29 @@ const buildSpecialContent = (type: string, data: any): string => {
       : {};
     payload.copyText = vars.copyText || data.header || data.content || "";
     payload.description = data.content || "";
+  } else if (type === "uaz_status") {
+    payload.statusType = data.uazStatusType || "text";
+    payload.text = data.uazStatusText || data.content || "";
+    payload.backgroundColor = data.uazStatusBgColor || "#000000";
+    payload.font = data.uazStatusFont || "1";
+    payload.media = data.uazStatusMedia || "";
+    payload.caption = data.uazStatusCaption || "";
+    payload.description = data.content || "";
+  } else if (type === "uaz_location_button") {
+    payload.latitude = data.uazLocBtnLatitude || "";
+    payload.longitude = data.uazLocBtnLongitude || "";
+    payload.name = data.uazLocBtnName || "";
+    payload.address = data.uazLocBtnAddress || "";
+    payload.text = data.uazLocBtnText || data.content || "";
+    payload.url = data.uazLocBtnUrl || "";
+    payload.buttonLabel = data.uazLocBtnLabel || "Ver no mapa";
+    payload.description = data.content || "";
+  } else if (type === "uaz_request_payment") {
+    payload.amount = data.uazPayAmount || "";
+    payload.currency = data.uazPayCurrency || "BRL";
+    payload.note = data.uazPayNote || data.content || "";
+    payload.expiry = data.uazPayExpiry || "";
+    payload.description = data.content || "";
   }
   return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
 };
@@ -67,7 +110,8 @@ const parseSpecialContent = (content: string): any | null => {
 };
 
 const isSpecialType = (type?: string) =>
-  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola";
+  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
+  || type === "uaz_status" || type === "uaz_location_button" || type === "uaz_request_payment";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -260,6 +304,205 @@ const SpecialFieldsEditor = ({
     );
   }
 
+  if (type === "uaz_status") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          📸 Status / Stories (somente conexão UAZAPI)
+        </div>
+        <div>
+          <Label>Tipo do status *</Label>
+          <Select value={data.uazStatusType || "text"} onValueChange={(v) => onChange({ uazStatusType: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="image">Imagem</SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
+              <SelectItem value="audio">Áudio</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(data.uazStatusType || "text") === "text" ? (
+          <>
+            <div>
+              <Label>Texto do status *</Label>
+              <Textarea
+                placeholder="Mensagem que aparecerá no status"
+                value={data.uazStatusText || ""}
+                onChange={(e) => onChange({ uazStatusText: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Cor de fundo</Label>
+                <Input
+                  type="color"
+                  value={data.uazStatusBgColor || "#000000"}
+                  onChange={(e) => onChange({ uazStatusBgColor: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Fonte</Label>
+                <Select value={data.uazStatusFont || "1"} onValueChange={(v) => onChange({ uazStatusFont: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="1">Sans Serif</SelectItem>
+                    <SelectItem value="2">Serif</SelectItem>
+                    <SelectItem value="3">Norican Regular</SelectItem>
+                    <SelectItem value="4">Bryndan Write</SelectItem>
+                    <SelectItem value="5">Bebasneue Regular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <Label>URL da mídia *</Label>
+              <Input
+                placeholder="https://... (link público da imagem/vídeo/áudio)"
+                value={data.uazStatusMedia || ""}
+                onChange={(e) => onChange({ uazStatusMedia: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Legenda (opcional)</Label>
+              <Input
+                placeholder="Legenda que aparece sobre o status"
+                value={data.uazStatusCaption || ""}
+                onChange={(e) => onChange({ uazStatusCaption: e.target.value })}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (type === "uaz_location_button") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <MapPin className="w-4 h-4" /> Botão com Localização (somente UAZAPI)
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Latitude *</Label>
+            <Input
+              placeholder="-23.561"
+              value={data.uazLocBtnLatitude || ""}
+              onChange={(e) => onChange({ uazLocBtnLatitude: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Longitude *</Label>
+            <Input
+              placeholder="-46.656"
+              value={data.uazLocBtnLongitude || ""}
+              onChange={(e) => onChange({ uazLocBtnLongitude: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Nome do local</Label>
+          <Input
+            placeholder="Ex: Loja Centro"
+            value={data.uazLocBtnName || ""}
+            onChange={(e) => onChange({ uazLocBtnName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Endereço</Label>
+          <Input
+            placeholder="Av. Paulista, 1000"
+            value={data.uazLocBtnAddress || ""}
+            onChange={(e) => onChange({ uazLocBtnAddress: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Texto da mensagem</Label>
+          <Textarea
+            placeholder="Texto exibido junto com o botão"
+            value={data.uazLocBtnText || ""}
+            onChange={(e) => onChange({ uazLocBtnText: e.target.value })}
+            rows={2}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Texto do botão</Label>
+            <Input
+              placeholder="Ver no mapa"
+              value={data.uazLocBtnLabel || ""}
+              onChange={(e) => onChange({ uazLocBtnLabel: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>URL do botão (opcional)</Label>
+            <Input
+              placeholder="https://maps.google.com/..."
+              value={data.uazLocBtnUrl || ""}
+              onChange={(e) => onChange({ uazLocBtnUrl: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "uaz_request_payment") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <DollarSign className="w-4 h-4" /> Solicitar Pagamento (somente UAZAPI)
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Valor *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="100.00"
+              value={data.uazPayAmount || ""}
+              onChange={(e) => onChange({ uazPayAmount: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Moeda</Label>
+            <Select value={data.uazPayCurrency || "BRL"} onValueChange={(v) => onChange({ uazPayCurrency: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="BRL">BRL (R$)</SelectItem>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label>Mensagem / Nota</Label>
+          <Textarea
+            placeholder="Ex: Pagamento referente ao pedido #1234"
+            value={data.uazPayNote || ""}
+            onChange={(e) => onChange({ uazPayNote: e.target.value })}
+            rows={2}
+          />
+        </div>
+        <div>
+          <Label>Validade (em segundos, opcional)</Label>
+          <Input
+            type="number"
+            placeholder="86400 (24h)"
+            value={data.uazPayExpiry || ""}
+            onChange={(e) => onChange({ uazPayExpiry: e.target.value })}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return null;
 };
 
@@ -289,6 +532,12 @@ const getTemplateIcon = (type?: string) => {
       return <MapPin className="w-5 h-5 text-primary" />;
     case "contato":
       return <UserIcon className="w-5 h-5 text-primary" />;
+    case "uaz_status":
+      return <Image className="w-5 h-5 text-primary" />;
+    case "uaz_location_button":
+      return <MapPin className="w-5 h-5 text-primary" />;
+    case "uaz_request_payment":
+      return <DollarSign className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -311,6 +560,9 @@ const getTypeFriendlyName = (type?: string) => {
     pix: "PIX",
     localizacao: "Localização",
     contato: "Contato (vCard)",
+    uaz_status: "Status / Stories",
+    uaz_location_button: "Botão Localização",
+    uaz_request_payment: "Solicitar Pagamento",
   };
   return names[type || "texto"] || "Texto";
 };
@@ -520,6 +772,26 @@ const Modelos = () => {
     // Contato (vCard)
     contactName: "",
     contactPhone: "",
+    // UAZAPI - Status / Stories
+    uazStatusType: "text",
+    uazStatusText: "",
+    uazStatusBgColor: "#000000",
+    uazStatusFont: "1",
+    uazStatusMedia: "",
+    uazStatusCaption: "",
+    // UAZAPI - Botão de Localização
+    uazLocBtnLatitude: "",
+    uazLocBtnLongitude: "",
+    uazLocBtnName: "",
+    uazLocBtnAddress: "",
+    uazLocBtnText: "",
+    uazLocBtnUrl: "",
+    uazLocBtnLabel: "Ver no mapa",
+    // UAZAPI - Solicitar Pagamento
+    uazPayAmount: "",
+    uazPayCurrency: "BRL",
+    uazPayNote: "",
+    uazPayExpiry: "",
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -553,6 +825,26 @@ const Modelos = () => {
     contactName: "",
     contactPhone: "",
     variables: {} as Record<string, any>,
+    // UAZAPI - Status
+    uazStatusType: "text",
+    uazStatusText: "",
+    uazStatusBgColor: "#000000",
+    uazStatusFont: "1",
+    uazStatusMedia: "",
+    uazStatusCaption: "",
+    // UAZAPI - Botão Localização
+    uazLocBtnLatitude: "",
+    uazLocBtnLongitude: "",
+    uazLocBtnName: "",
+    uazLocBtnAddress: "",
+    uazLocBtnText: "",
+    uazLocBtnUrl: "",
+    uazLocBtnLabel: "Ver no mapa",
+    // UAZAPI - Solicitar Pagamento
+    uazPayAmount: "",
+    uazPayCurrency: "BRL",
+    uazPayNote: "",
+    uazPayExpiry: "",
   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -692,6 +984,25 @@ const Modelos = () => {
     }
     if (newTemplate.type === "contato" && (!newTemplate.contactName || !newTemplate.contactPhone)) {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "uaz_status") {
+      const t = newTemplate.uazStatusType || "text";
+      if (t === "text" && !newTemplate.uazStatusText) {
+        toast({ title: "Erro", description: "Informe o texto do status", variant: "destructive" });
+        return;
+      }
+      if (t !== "text" && !newTemplate.uazStatusMedia) {
+        toast({ title: "Erro", description: "Informe a URL da mídia do status", variant: "destructive" });
+        return;
+      }
+    }
+    if (newTemplate.type === "uaz_location_button" && (!newTemplate.uazLocBtnLatitude || !newTemplate.uazLocBtnLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude do botão de localização", variant: "destructive" });
+      return;
+    }
+    if (newTemplate.type === "uaz_request_payment" && !newTemplate.uazPayAmount) {
+      toast({ title: "Erro", description: "Informe o valor da solicitação de pagamento", variant: "destructive" });
       return;
     }
 
@@ -869,6 +1180,23 @@ const Modelos = () => {
       locTitle: special.title || "",
       contactName: special.contactName || "",
       contactPhone: special.contactPhone || "",
+      uazStatusType: special.statusType || "text",
+      uazStatusText: special.text || "",
+      uazStatusBgColor: special.backgroundColor || "#000000",
+      uazStatusFont: special.font || "1",
+      uazStatusMedia: special.media || "",
+      uazStatusCaption: special.caption || "",
+      uazLocBtnLatitude: special.latitude || "",
+      uazLocBtnLongitude: special.longitude || "",
+      uazLocBtnName: special.name || "",
+      uazLocBtnAddress: special.address || "",
+      uazLocBtnText: special.text || "",
+      uazLocBtnUrl: special.url || "",
+      uazLocBtnLabel: special.buttonLabel || "Ver no mapa",
+      uazPayAmount: special.amount || "",
+      uazPayCurrency: special.currency || "BRL",
+      uazPayNote: special.note || "",
+      uazPayExpiry: special.expiry || "",
     });
     setEditingTemplate(template.id);
   };
@@ -900,6 +1228,25 @@ const Modelos = () => {
     }
     if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "uaz_status") {
+      const t = editFormData.uazStatusType || "text";
+      if (t === "text" && !editFormData.uazStatusText) {
+        toast({ title: "Erro", description: "Informe o texto do status", variant: "destructive" });
+        return;
+      }
+      if (t !== "text" && !editFormData.uazStatusMedia) {
+        toast({ title: "Erro", description: "Informe a URL da mídia do status", variant: "destructive" });
+        return;
+      }
+    }
+    if (editFormData.type === "uaz_location_button" && (!editFormData.uazLocBtnLatitude || !editFormData.uazLocBtnLongitude)) {
+      toast({ title: "Erro", description: "Informe latitude e longitude do botão de localização", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "uaz_request_payment" && !editFormData.uazPayAmount) {
+      toast({ title: "Erro", description: "Informe o valor da solicitação de pagamento", variant: "destructive" });
       return;
     }
 
@@ -1187,6 +1534,9 @@ const Modelos = () => {
                       <SelectItem value="pix">PIX (cobrança)</SelectItem>
                       <SelectItem value="localizacao">localização</SelectItem>
                       <SelectItem value="contato">contato (vCard)</SelectItem>
+                      <SelectItem value="uaz_status">status / stories (UAZAPI)</SelectItem>
+                      <SelectItem value="uaz_location_button">botão com localização (UAZAPI)</SelectItem>
+                      <SelectItem value="uaz_request_payment">solicitar pagamento (UAZAPI)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1815,6 +2165,9 @@ const Modelos = () => {
                   <SelectItem value="pix">PIX (cobrança)</SelectItem>
                   <SelectItem value="localizacao">localização</SelectItem>
                   <SelectItem value="contato">contato (vCard)</SelectItem>
+                  <SelectItem value="uaz_status">status / stories (UAZAPI)</SelectItem>
+                  <SelectItem value="uaz_location_button">botão com localização (UAZAPI)</SelectItem>
+                  <SelectItem value="uaz_request_payment">solicitar pagamento (UAZAPI)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
