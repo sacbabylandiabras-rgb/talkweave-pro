@@ -559,6 +559,7 @@ export const useCampaigns = () => {
       const successfulPhones = new Set<string>();
       const failedPhones: Array<{ phone: string; name?: string }> = [];
       const pendingRetryPhones: Array<{ phone: string; name?: string }> = [];
+      const cancelledRetryPhones: Array<{ phone: string; name?: string }> = [];
 
       for (const [phoneKey, send] of latestByPhone.entries()) {
         if (send.status === 'sent' || send.status === 'delivered') {
@@ -575,12 +576,20 @@ export const useCampaigns = () => {
             phone: send.phone,
             name: send.contact_name || undefined,
           });
+        } else if (send.status === 'cancelled' || send.status === 'canceled' || send.status === 'error' || send.status === 'rejected') {
+          // Cancelados pelo provedor (ex.: erro 463 temporary restriction, queue clear, troca de número)
+          // devem ser reenviáveis ao retomar — especialmente útil quando o usuário troca de instância.
+          cancelledRetryPhones.push({
+            phone: send.phone,
+            name: send.contact_name || undefined,
+          });
         }
       }
 
       console.log('Successfully sent phones:', successfulPhones.size);
       console.log('Pending phones to retry (queue was cleared on pause):', pendingRetryPhones.length);
       console.log('Failed phones to retry:', failedPhones.length);
+      console.log('Cancelled phones to retry:', cancelledRetryPhones.length);
 
       // Get all target contacts from campaign
       const targetContacts: Array<{ phone: string; name?: string }> = 
@@ -600,7 +609,7 @@ export const useCampaigns = () => {
       // Combine: retry failed + send never-processed, sem reintroduzir contatos já enviados/aceitos
       const remainingContactsMap = new Map<string, { phone: string; name?: string }>();
 
-      [...failedPhones, ...pendingRetryPhones, ...neverProcessedContacts].forEach((contact) => {
+      [...failedPhones, ...pendingRetryPhones, ...cancelledRetryPhones, ...neverProcessedContacts].forEach((contact) => {
         const phoneKey = normalizeCampaignPhone(contact.phone) || contact.phone;
         if (!phoneKey || successfulPhones.has(phoneKey)) return;
         if (!remainingContactsMap.has(phoneKey)) {
@@ -613,6 +622,7 @@ export const useCampaigns = () => {
       console.log('Never processed:', neverProcessedContacts.length);
       console.log('Failed to retry:', failedPhones.length);
       console.log('Pending to retry:', pendingRetryPhones.length);
+      console.log('Cancelled to retry:', cancelledRetryPhones.length);
       console.log('Total remaining to send:', remainingContacts.length);
       console.log('=== END RESUME INFO ===');
 
@@ -631,8 +641,8 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
-      // Limpa registros antigos 'pending' (fila Z-API limpa ao pausar) para não
-      // duplicar entradas em campaign_sends ao reenviar.
+      // Limpa registros antigos 'pending' e 'cancelled'/'failed' (que serão reenviados)
+      // para não duplicar entradas em campaign_sends ao reenviar.
       if (pendingRetryPhones.length > 0) {
         const phonesToClean = pendingRetryPhones.map((c) => c.phone);
         const { error: cleanError } = await supabase
@@ -641,11 +651,18 @@ export const useCampaigns = () => {
           .eq('campaign_id', id)
           .eq('status', 'pending')
           .in('phone', phonesToClean);
-        if (cleanError) {
-          console.warn('⚠️ Falha ao limpar pendentes antigos:', cleanError.message);
-        } else {
-          console.log(`🧹 Limpou ${phonesToClean.length} registros pendentes antigos`);
-        }
+        if (cleanError) console.warn('⚠️ Falha ao limpar pendentes antigos:', cleanError.message);
+      }
+      if (cancelledRetryPhones.length > 0) {
+        const phonesToClean = cancelledRetryPhones.map((c) => c.phone);
+        const { error: cleanError } = await supabase
+          .from('campaign_sends')
+          .delete()
+          .eq('campaign_id', id)
+          .in('status', ['cancelled', 'canceled', 'error', 'rejected'])
+          .in('phone', phonesToClean);
+        if (cleanError) console.warn('⚠️ Falha ao limpar cancelados antigos:', cleanError.message);
+        else console.log(`🧹 Limpou ${phonesToClean.length} registros cancelados antigos para reenvio`);
       }
 
       // Update status to active and preserve original send mode
