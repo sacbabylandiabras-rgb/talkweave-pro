@@ -334,6 +334,23 @@ const getUazapiTargetNumber = (phone: string) => {
 
   return phone.replace(/^\+/, '').replace(/\D/g, '');
 };
+
+const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
+  const hasRateLimitPayload = isWhatsAppRateLimitError(payload, httpStatus);
+  if (!hasRateLimitPayload) return false;
+
+  const message = String(errorMessage || '').toLowerCase();
+  if (!message) return false;
+
+  return (
+    message.includes('temporary restriction') ||
+    message.includes('temporarily restricted') ||
+    message.includes('currently connected account is under a temporary restriction') ||
+    message.includes('sending volume or quality') ||
+    message.includes('rate limit') ||
+    message.includes('rate-limit')
+  );
+};
 const parseSpecialTemplate = (content?: string | null) => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
   try {
