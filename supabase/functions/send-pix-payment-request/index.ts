@@ -85,7 +85,7 @@ async function createHubPagueCharge(amountCents: number, description: string, cu
         name: "Cliente WhatsApp",
         email: "cliente@email.com",
         phone: customerPhone || "00000000000",
-        document: { type: "CPF", value: "12345678909" },
+        document: { type: "CNPJ", value: "65999342000102" },
       },
       products: [{
         name: (description || "Solicitação de pagamento").slice(0, 60),
