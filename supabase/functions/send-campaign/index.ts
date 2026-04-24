@@ -63,20 +63,18 @@ const mapResolvedInstance = (instance: {
 } | null): ResolvedInstance | null => {
   if (!instance?.zapi_instance_id) return null;
 
-  const isUazapi = String(instance.api_provider || '').toLowerCase() === 'uazapi';
+  // Force Z-API for all campaign dispatches (UAZAPI deprecated for campaigns)
   const hasZapiCreds = Boolean(instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token);
-  const hasUazapiCreds = Boolean(isUazapi && instance.evolution_api_url && instance.evolution_api_key);
-
-  if (!hasZapiCreds && !hasUazapiCreds) return null;
+  if (!hasZapiCreds) return null;
 
   return {
     zapiInstanceId: instance.zapi_instance_id,
     zapiToken: instance.zapi_token || '',
     zapiClientToken: instance.zapi_client_token || '',
     instanceName: instance.instance_name || 'Instância',
-    apiProvider: isUazapi ? 'uazapi' : 'zapi',
-    uazapiUrl: instance.evolution_api_url || '',
-    uazapiToken: instance.evolution_api_key || '',
+    apiProvider: 'zapi',
+    uazapiUrl: '',
+    uazapiToken: '',
   };
 };
 
@@ -224,10 +222,9 @@ const resolveGroupInstanceFromInboundLogs = async (
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null;
-  const correctIsUaz = String(correctInstanceRow?.api_provider || '').toLowerCase() === 'uazapi';
+  // Force Z-API for all campaign dispatches
   const correctHasZapi = Boolean(correctInstanceRow?.zapi_instance_id && correctInstanceRow?.zapi_token && correctInstanceRow?.zapi_client_token);
-  const correctHasUaz = Boolean(correctIsUaz && correctInstanceRow?.evolution_api_url && correctInstanceRow?.evolution_api_key);
-  if (!correctInstanceRow?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
+  if (!correctHasZapi) {
     return null;
   }
 
@@ -236,9 +233,9 @@ const resolveGroupInstanceFromInboundLogs = async (
     zapiToken: correctInstanceRow.zapi_token || '',
     zapiClientToken: correctInstanceRow.zapi_client_token || '',
     instanceName: correctInstanceRow.instance_name || 'Instância',
-    apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
-    uazapiUrl: correctInstanceRow.evolution_api_url || '',
-    uazapiToken: correctInstanceRow.evolution_api_key || '',
+    apiProvider: 'zapi',
+    uazapiUrl: '',
+    uazapiToken: '',
   };
 };
 
@@ -741,15 +738,17 @@ serve(async (req) => {
         .eq('is_active', true)
         .order('created_at', { ascending: true });
 
-      const rawRotatePool: ResolvedInstance[] = (allActiveInstances || []).map((instance: any) => ({
-        zapiInstanceId: instance.zapi_instance_id,
-        zapiToken: instance.zapi_token || '',
-        zapiClientToken: instance.zapi_client_token || '',
-        instanceName: instance.instance_name,
-        apiProvider: String(instance.api_provider || '').toLowerCase() === 'uazapi' ? 'uazapi' : 'zapi',
-        uazapiUrl: instance.evolution_api_url || '',
-        uazapiToken: instance.evolution_api_key || '',
-      }));
+      const rawRotatePool: ResolvedInstance[] = (allActiveInstances || [])
+        .filter((instance: any) => instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token)
+        .map((instance: any) => ({
+          zapiInstanceId: instance.zapi_instance_id,
+          zapiToken: instance.zapi_token || '',
+          zapiClientToken: instance.zapi_client_token || '',
+          instanceName: instance.instance_name,
+          apiProvider: 'zapi',
+          uazapiUrl: '',
+          uazapiToken: '',
+        }));
 
       const rotateStatuses = await Promise.all(
         rawRotatePool.map(async (instance) => ({
