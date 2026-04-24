@@ -955,6 +955,7 @@ serve(async (req) => {
 
     // Process current batch
     const results = [];
+    let rateLimitHitsInBatch = 0;
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
       let unresolvedLidError: string | null = null;
@@ -1200,6 +1201,12 @@ serve(async (req) => {
             console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
 
             if (isWhatsAppRateLimitError(uazResult.raw, undefined)) {
+              rateLimitHitsInBatch += 1;
+            } else {
+              rateLimitHitsInBatch = 0;
+            }
+
+            if (rateLimitHitsInBatch >= 2) {
               await persistCampaignSend(campaignSend, reusableSendId);
               await supabase
                 .from('campaigns')
@@ -1393,6 +1400,12 @@ serve(async (req) => {
             // pause the campaign immediately so the remaining contacts stay
             // pending and can be resumed later when the account recovers.
             if (isWhatsAppRateLimitError(zapiResult, zapiResponse.status)) {
+              rateLimitHitsInBatch += 1;
+            } else {
+              rateLimitHitsInBatch = 0;
+            }
+
+            if (rateLimitHitsInBatch >= 2) {
               console.log(`🚨 WhatsApp rate-limit detectado (error 463 / temporary restriction). Pausando campanha ${campaignId} para preservar a conta.`);
               await persistCampaignSend(campaignSend, reusableSendId);
               await supabase
