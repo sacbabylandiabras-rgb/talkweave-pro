@@ -250,6 +250,7 @@ Deno.serve(async (req) => {
       if (isGroup) continue;
 
       const existing = existingMap.get(phone);
+      const existingPhoto = sanitizeProfilePictureUrl(existing?.profile_picture_url);
 
       // Only upsert if we have new info or contact doesn't exist yet
       if (!existing) {
@@ -266,10 +267,10 @@ Deno.serve(async (req) => {
           phone,
           name: chatName,
           user_id: userId,
-          profile_picture_url: sanitizeProfilePictureUrl(existing.profile_picture_url) || profilePic,
+          profile_picture_url: existingPhoto || profilePic,
         });
         importedContacts++;
-      } else if (!existing.profile_picture_url && profilePic) {
+      } else if (!existingPhoto && profilePic) {
         // Update photo if existing contact has no photo
         contactsToUpsert.push({
           phone,
