@@ -1079,16 +1079,11 @@ const Campanhas = () => {
                   sentAt = send.sent_at || null;
                 } else if (send.status === 'pending') {
                   if (campaignCancelled) {
-                    // Campanha cancelada antes da confirmação de entrega
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
-                  } else if (send.sent_at) {
-                    // Confirmado pela Z-API (tem sent_at, aguarda callback de entrega p/ grupo)
-                    status = 'enviado';
-                    sentAt = send.sent_at;
                   } else {
-                    // Ainda na fila / não confirmado pela Z-API
                     status = 'pendente';
+                    sentAt = send.sent_at || null;
                   }
                 } else if (isCancelledSendStatus(send.status)) {
                   status = 'cancelado';
@@ -1117,7 +1112,7 @@ const Campanhas = () => {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
                 else if (send.status === 'pending') {
-                  status = campaignCancelled ? 'cancelado' : (send.sent_at ? 'enviado' : 'pendente');
+                  status = campaignCancelled ? 'cancelado' : 'pendente';
                 }
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
