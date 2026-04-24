@@ -3925,7 +3925,7 @@ serve(async (req) => {
             const hasCta = /^https?:\/\//i.test(ctaUrl);
             const deliveryResponse = hasCta
               ? isUazapiProvider
-                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/menu`, {
+                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/text`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -3933,9 +3933,7 @@ serve(async (req) => {
                     },
                     body: JSON.stringify({
                       number: normalizedTargetNumber,
-                      type: "button",
-                      text: finalReply || "Selecione uma opção:",
-                      choices: [ctaLabel],
+                      text: [finalReply, `${ctaLabel}: ${ctaUrl}`].filter(Boolean).join("\n\n"),
                     }),
                   })
                 : await fetch(
