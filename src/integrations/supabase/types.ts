@@ -83,6 +83,36 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_tools_config: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          tool_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          tool_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          tool_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auto_response_config: {
         Row: {
           active: boolean
