@@ -22,6 +22,11 @@ interface KnowledgeItem {
   created_at: string;
 }
 
+const isMissingAgentConfigColumnError = (error: unknown, column: string) => {
+  const message = error instanceof Error ? error.message : String((error as any)?.message || error || '');
+  return message.toLowerCase().includes(`could not find the '${column}' column`.toLowerCase());
+};
+
 export function useAgentConfig() {
   const [config, setConfig] = useState<AgentConfig>({
     agent_name: "Assistente",
@@ -90,17 +95,53 @@ export function useAgentConfig() {
       };
 
       if (config.id) {
-        const { error } = await (supabase as any)
+        let { error } = await (supabase as any)
           .from("agent_config")
           .update(payload)
           .eq("id", config.id);
+
+        if (error && (isMissingAgentConfigColumnError(error, 'model') || isMissingAgentConfigColumnError(error, 'provider'))) {
+          const fallbackPayload = {
+            user_id: session.user.id,
+            agent_name: payload.agent_name,
+            system_prompt: payload.system_prompt,
+            active: payload.active,
+          };
+
+          const fallback = await (supabase as any)
+            .from("agent_config")
+            .update(fallbackPayload)
+            .eq("id", config.id);
+
+          error = fallback.error;
+        }
+
         if (error) throw error;
       } else {
-        const { data, error } = await (supabase as any)
+        let { data, error } = await (supabase as any)
           .from("agent_config")
           .insert(payload)
           .select()
           .single();
+
+        if (error && (isMissingAgentConfigColumnError(error, 'model') || isMissingAgentConfigColumnError(error, 'provider'))) {
+          const fallbackPayload = {
+            user_id: session.user.id,
+            agent_name: payload.agent_name,
+            system_prompt: payload.system_prompt,
+            active: payload.active,
+          };
+
+          const fallback = await (supabase as any)
+            .from("agent_config")
+            .insert(fallbackPayload)
+            .select()
+            .single();
+
+          data = fallback.data;
+          error = fallback.error;
+        }
+
         if (error) throw error;
         setConfig(prev => ({ ...prev, id: data.id }));
       }
