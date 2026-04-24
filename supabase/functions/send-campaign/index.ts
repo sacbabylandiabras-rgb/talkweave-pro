@@ -215,21 +215,30 @@ const resolveGroupInstanceFromInboundLogs = async (
     .eq('is_active', true)
     .maybeSingle();
 
-  const correctIsUaz = String((correctInstance as any)?.api_provider || '').toLowerCase() === 'uazapi';
-  const correctHasZapi = correctInstance?.zapi_instance_id && correctInstance?.zapi_token && correctInstance?.zapi_client_token;
-  const correctHasUaz = correctIsUaz && (correctInstance as any)?.evolution_api_url && (correctInstance as any)?.evolution_api_key;
-  if (!correctInstance?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
+  const correctInstanceRow = correctInstance as {
+    zapi_instance_id?: string | null;
+    zapi_token?: string | null;
+    zapi_client_token?: string | null;
+    instance_name?: string | null;
+    api_provider?: string | null;
+    evolution_api_url?: string | null;
+    evolution_api_key?: string | null;
+  } | null;
+  const correctIsUaz = String(correctInstanceRow?.api_provider || '').toLowerCase() === 'uazapi';
+  const correctHasZapi = Boolean(correctInstanceRow?.zapi_instance_id && correctInstanceRow?.zapi_token && correctInstanceRow?.zapi_client_token);
+  const correctHasUaz = Boolean(correctIsUaz && correctInstanceRow?.evolution_api_url && correctInstanceRow?.evolution_api_key);
+  if (!correctInstanceRow?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
     return null;
   }
 
   return {
-    zapiInstanceId: correctInstance.zapi_instance_id,
-    zapiToken: correctInstance.zapi_token || '',
-    zapiClientToken: correctInstance.zapi_client_token || '',
-    instanceName: correctInstance.instance_name || 'Instância',
+    zapiInstanceId: correctInstanceRow.zapi_instance_id,
+    zapiToken: correctInstanceRow.zapi_token || '',
+    zapiClientToken: correctInstanceRow.zapi_client_token || '',
+    instanceName: correctInstanceRow.instance_name || 'Instância',
     apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
-    uazapiUrl: (correctInstance as any).evolution_api_url || '',
-    uazapiToken: (correctInstance as any).evolution_api_key || '',
+    uazapiUrl: correctInstanceRow.evolution_api_url || '',
+    uazapiToken: correctInstanceRow.evolution_api_key || '',
   };
 };
 
