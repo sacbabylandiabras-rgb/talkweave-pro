@@ -43,7 +43,16 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [uazapiToken, setUazapiToken] = useState('');
   const [uazapiSaving, setUazapiSaving] = useState(false);
 
-  const { instances, loading: instancesLoading, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
+  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
+
+  // Add instance form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addingInstance, setAddingInstance] = useState(false);
+  const [newInstanceName, setNewInstanceName] = useState('');
+  const [newInstanceId, setNewInstanceId] = useState('');
+  const [newInstanceToken, setNewInstanceToken] = useState('');
+  const [newClientToken, setNewClientToken] = useState('');
+  const [newIsDefault, setNewIsDefault] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -97,6 +106,36 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
+  const resetAddForm = () => {
+    setNewInstanceName('');
+    setNewInstanceId('');
+    setNewInstanceToken('');
+    setNewClientToken('');
+    setNewIsDefault(false);
+  };
+
+  const handleAddInstance = async () => {
+    if (!user) return;
+    if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+      toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância.", variant: "destructive" });
+      return;
+    }
+    setAddingInstance(true);
+    const ok = await addInstance(user.id, {
+      instance_name: newInstanceName.trim(),
+      zapi_instance_id: newInstanceId.trim(),
+      zapi_token: newInstanceToken.trim(),
+      zapi_client_token: newClientToken.trim(),
+      is_default: newIsDefault,
+      api_provider: 'zapi',
+    });
+    setAddingInstance(false);
+    if (ok) {
+      resetAddForm();
+      setShowAddForm(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -139,6 +178,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/{maxInstances})</h3>
+                <Button size="sm" variant="outline" onClick={() => setShowAddForm((v) => !v)}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showAddForm ? "Fechar" : "Adicionar Z-API"}
+                </Button>
             </div>
 
             <div className="space-y-2 mb-4">
@@ -158,6 +201,40 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
             {instances.length === 0 && (
               <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>
+            )}
+
+            {showAddForm && (
+              <Card className="mb-3 border-primary/40">
+                <CardContent className="pt-4 pb-4 space-y-3">
+                  <h4 className="font-medium text-sm">Nova instância Z-API</h4>
+                  <div className="space-y-2">
+                    <Label>Nome da instância</Label>
+                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instance ID</Label>
+                    <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instance Token</Label>
+                    <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Client Token (Account Security)</Label>
+                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />
+                    Definir como padrão
+                  </label>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(false); }}>Cancelar</Button>
+                    <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
+                      {addingInstance ? "Adicionando..." : "Adicionar instância"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             <div className="space-y-2">
