@@ -298,30 +298,51 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Instância UAZAPI sem URL/token configurados.", charge }, 500);
     }
 
-    // Build the WhatsApp message with brCode
+    // Build the WhatsApp message with brCode + interactive "copy" button
     const lines: string[] = [];
     lines.push(`💰 *Solicitação de pagamento*`);
     if (description) lines.push(`📝 ${description}`);
     lines.push(`💵 Valor: *${formatBRL(amountCents)}*`);
     lines.push("");
-    lines.push("Pague pelo PIX copia e cola abaixo:");
-    lines.push("");
-    lines.push(charge.brCode);
+    lines.push("Toque no botão abaixo para copiar o código PIX e pagar no app do seu banco:");
     if (notes) {
       lines.push("");
       lines.push(notes);
     }
     const messageText = lines.join("\n");
 
-    const sendRes = await fetch(`${apiUrl}/send/text`, {
+    // Try interactive button first (/send/menu with copy button)
+    const menuPayload = {
+      number: phone,
+      type: "button",
+      text: messageText,
+      footerText: "Pagamento via PIX",
+      choices: [`copy:Copiar código PIX:${charge.brCode}`],
+    };
+
+    let sendRes = await fetch(`${apiUrl}/send/menu`, {
       method: "POST",
       headers: { "Content-Type": "application/json", token: apiToken },
-      body: JSON.stringify({ number: phone, text: messageText }),
+      body: JSON.stringify(menuPayload),
     });
-    const sendText = await sendRes.text();
+    let sendText = await sendRes.text();
     let sendData: any = null;
     try { sendData = JSON.parse(sendText); } catch { sendData = { raw: sendText }; }
-    console.log(`📤 UAZAPI send/text → HTTP ${sendRes.status}`, sendText.slice(0, 300));
+    console.log(`📤 UAZAPI send/menu → HTTP ${sendRes.status}`, sendText.slice(0, 300));
+
+    // Fallback: send plain text + brCode if menu endpoint fails
+    if (!sendRes.ok) {
+      console.log("⚠️ /send/menu failed, falling back to /send/text");
+      const fallbackText = `${messageText}\n\n${charge.brCode}`;
+      sendRes = await fetch(`${apiUrl}/send/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token: apiToken },
+        body: JSON.stringify({ number: phone, text: fallbackText }),
+      });
+      sendText = await sendRes.text();
+      try { sendData = JSON.parse(sendText); } catch { sendData = { raw: sendText }; }
+      console.log(`📤 UAZAPI send/text (fallback) → HTTP ${sendRes.status}`, sendText.slice(0, 300));
+    }
 
     if (!sendRes.ok) {
       return json({
