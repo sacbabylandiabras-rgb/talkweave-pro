@@ -35,8 +35,8 @@ import {
   Wrench,
 } from "lucide-react";
 
-import * as pdfjsLib from "pdfjs-dist";
-import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorkerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import mammoth from "mammoth";
 
 interface ChatMessage {
@@ -191,7 +191,7 @@ const AgenteIA = () => {
 
     if (ext === "pdf") {
       const buffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
       const pages: string[] = [];
 
       for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
