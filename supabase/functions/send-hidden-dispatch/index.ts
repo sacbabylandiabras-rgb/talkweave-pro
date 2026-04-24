@@ -32,7 +32,7 @@ serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { hiddenInstanceId, phone, message, mediaUrl, mediaType } = await req.json();
+    const { hiddenInstanceId, phone, message, mediaUrl, mediaType, buttons, footer } = await req.json();
 
     if (!hiddenInstanceId || !phone) {
       return new Response(JSON.stringify({ error: "hiddenInstanceId e phone são obrigatórios" }), {
@@ -60,6 +60,9 @@ serve(async (req) => {
 
     const cleanPhone = String(phone).replace(/\D/g, "");
     const provider = String(inst.api_provider || "zapi").toLowerCase();
+    const btnList: Array<{ label: string; url?: string; phone?: string }> =
+      Array.isArray(buttons) ? buttons.filter((b: any) => b && b.label) : [];
+    const hasButtons = btnList.length > 0;
 
     let endpoint = "";
     let body: Record<string, unknown> = {};
@@ -75,7 +78,17 @@ serve(async (req) => {
       }
       headers.token = apiToken;
 
-      if (mediaUrl && mediaType) {
+      if (hasButtons) {
+        // UAZAPI - texto/imagem com botões
+        endpoint = `${apiUrl}/send/buttons`;
+        body = {
+          number: cleanPhone,
+          text: message || "",
+          footerText: footer || "",
+          ...(mediaUrl ? { image: mediaUrl } : {}),
+          choices: btnList.map((b) => b.label),
+        };
+      } else if (mediaUrl && mediaType) {
         endpoint = `${apiUrl}/send/media`;
         body = { number: cleanPhone, type: mediaType, file: mediaUrl, text: message || "" };
       } else {
@@ -95,7 +108,34 @@ serve(async (req) => {
       headers["Client-Token"] = cTkn;
 
       const base = `https://api.z-api.io/instances/${iid}/token/${tkn}`;
-      if (mediaUrl && mediaType === "image") {
+      if (hasButtons && mediaUrl && mediaType === "image") {
+        // Z-API - imagem com botões
+        endpoint = `${base}/send-button-actions`;
+        body = {
+          phone: cleanPhone,
+          message: message || "",
+          image: mediaUrl,
+          ...(footer ? { footer } : {}),
+          buttonActions: btnList.map((b, idx) => {
+            if (b.url) return { id: String(idx + 1), type: "URL", url: b.url, label: b.label };
+            if (b.phone) return { id: String(idx + 1), type: "CALL", phone: b.phone, label: b.label };
+            return { id: String(idx + 1), type: "REPLY", label: b.label };
+          }),
+        };
+      } else if (hasButtons) {
+        // Z-API - texto com botões
+        endpoint = `${base}/send-button-actions`;
+        body = {
+          phone: cleanPhone,
+          message: message || "",
+          ...(footer ? { footer } : {}),
+          buttonActions: btnList.map((b, idx) => {
+            if (b.url) return { id: String(idx + 1), type: "URL", url: b.url, label: b.label };
+            if (b.phone) return { id: String(idx + 1), type: "CALL", phone: b.phone, label: b.label };
+            return { id: String(idx + 1), type: "REPLY", label: b.label };
+          }),
+        };
+      } else if (mediaUrl && mediaType === "image") {
         endpoint = `${base}/send-image`;
         body = { phone: cleanPhone, image: mediaUrl, caption: message || "" };
       } else if (mediaUrl && mediaType === "video") {
