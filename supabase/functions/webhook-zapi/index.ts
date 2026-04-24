@@ -219,6 +219,11 @@ const isUazapiTechnicalReplyReference = (value: unknown) => {
   return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
 };
 
+const sanitizeTechnicalMessageReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return isUazapiTechnicalReplyReference(raw) ? "" : raw;
+};
+
 const pickPreferredInteractiveText = (candidates: unknown[]) => {
   const values = candidates
     .filter((value): value is string => typeof value === "string")
