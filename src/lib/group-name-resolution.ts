@@ -20,7 +20,8 @@ export interface SavedContactLike {
 }
 
 export const isGroupPhone = (phone: string): boolean => {
-  return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone);
+  const clean = String(phone || '').replace(/\D/g, '');
+  return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(clean);
 };
 
 export const isUsableGroupDisplayName = (value: string | null | undefined): boolean => {
