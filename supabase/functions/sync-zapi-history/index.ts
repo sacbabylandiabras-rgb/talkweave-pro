@@ -353,8 +353,7 @@ Deno.serve(async (req) => {
         ).trim();
       };
       const extractPic = (g: any): string | null => {
-        return g?.imageUrl || g?.picture || g?.profilePicUrl || g?.image ||
-          g?.group?.imageUrl || g?.chat?.image || null;
+        return extractProfilePictureUrl(g);
       };
 
       // 1) /group/info com groupjid puro (com @g.us)
@@ -408,7 +407,7 @@ Deno.serve(async (req) => {
         || chat?.groupName
         || "";
 
-      let chatPic = chat?.imagePreview || chat?.profileThumbnail || chat?.image || null;
+      let chatPic = extractProfilePictureUrl(chat);
 
       // For UAZAPI groups, fetch /group/info whenever the current label is not a real group name
       const needsResolvedGroupName = isGroup && !isUsableImportedGroupName(chatName);
@@ -459,11 +458,12 @@ Deno.serve(async (req) => {
 
       // Always upsert group name so the chat list shows the friendly name (even for existing chats)
       if (isGroup && isUsableImportedGroupName(chatName)) {
+        const existing = existingMap.get(phone);
         groupContactsToUpsert.push({
           phone,
           name: chatName,
           user_id: userId,
-          profile_picture_url: chatPic,
+          profile_picture_url: chatPic || sanitizeProfilePictureUrl(existing?.profile_picture_url),
         });
       } else if (isGroup) {
         // Sem nome utilizável: tenta resolver nome do contato existente para preservá-lo
