@@ -1073,10 +1073,13 @@ const Campanhas = () => {
                     // Campanha cancelada antes da confirmação de entrega
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
-                  } else {
-                    // Já aceito pela Z-API (na fila). Tratamos como enviado.
+                  } else if (send.sent_at) {
+                    // Confirmado pela Z-API (tem sent_at, aguarda callback de entrega p/ grupo)
                     status = 'enviado';
-                    sentAt = send.sent_at || null;
+                    sentAt = send.sent_at;
+                  } else {
+                    // Ainda na fila / não confirmado pela Z-API
+                    status = 'pendente';
                   }
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
