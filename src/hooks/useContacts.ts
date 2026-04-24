@@ -21,7 +21,7 @@ export interface ContactStats {
   blocked: number;
 }
 
-export const useContacts = () => {
+export const useContacts = (options?: { enabled?: boolean }) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState<ContactStats>({
     total: 0,
@@ -32,6 +32,7 @@ export const useContacts = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const fetchedPhotosRef = useRef(new Set<string>());
+  const enabled = options?.enabled ?? true;
 
   const fetchContacts = async () => {
     try {
@@ -195,15 +196,20 @@ export const useContacts = () => {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     fetchContacts();
-  }, []);
+  }, [enabled]);
 
   // Auto-fetch profile pictures after contacts load
   useEffect(() => {
-    if (!loading && contacts.length > 0) {
+    if (enabled && !loading && contacts.length > 0) {
       autoFetchProfilePictures(contacts);
     }
-  }, [loading]);
+  }, [enabled, loading]);
 
   return { contacts, stats, loading, refetch: fetchContacts };
 };
