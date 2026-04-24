@@ -29,6 +29,10 @@ const parseSpecialTemplate = (content?: string | null) => {
   }
 };
 
+const isStatusOnlySpecialTemplate = (type?: string | null) => type === 'uaz_status';
+const getStatusOnlyTemplateError = () =>
+  'O tipo Status publica somente nos Stories da instância selecionada e não envia mensagem para o número informado.';
+
 const phoneSchema = z.string()
   .min(10, "Número deve ter pelo menos 10 dígitos")
   .refine((val) => {
@@ -159,6 +163,10 @@ const EnviarMensagem = () => {
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl && specialTpl.type !== 'copia_cola') {
+      if (isStatusOnlySpecialTemplate(specialTpl.type)) {
+        throw new Error(getStatusOnlyTemplateError());
+      }
+
       const specialAllowsExtraButtons = !['uaz_status', 'uaz_location_button', 'uaz_request_payment'].includes(specialTpl.type);
       await sendSpecialTemplate(phone, specialTpl.type, {
         ...specialTpl,
@@ -968,6 +976,10 @@ const EnviarMensagem = () => {
           }
 
           if (specialTpl && specialTpl.type !== 'copia_cola') {
+            if (isStatusOnlySpecialTemplate(specialTpl.type)) {
+              throw new Error(getStatusOnlyTemplateError());
+            }
+
             const specialAllowsExtraButtons = !['uaz_status', 'uaz_location_button', 'uaz_request_payment'].includes(specialTpl.type);
             await sendSpecialTemplate(contato.telefone, specialTpl.type, {
               ...specialTpl,
