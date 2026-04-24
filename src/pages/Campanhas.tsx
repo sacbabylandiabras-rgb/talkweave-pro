@@ -1042,11 +1042,21 @@ const Campanhas = () => {
               targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
             );
 
+            type CampaignContactStatus = 'enviado' | 'enviando' | 'pendente' | 'cancelado';
             // Build full list: all target contacts with their latest persisted status
-            const fullContactList = targetContacts.map((contact, index) => {
+            const fullContactList: Array<{
+              id: string;
+              phone: string;
+              name: string;
+              status: CampaignContactStatus;
+              sentAt: string | null;
+              errorMessage: string | null;
+              readAt: string | null;
+              clickedAt: string | null;
+            }> = targetContacts.map((contact, index) => {
               const phoneKey = resolvePhoneKey(contact.phone);
               const send = sendsByPhone.get(phoneKey);
-              let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
+              let status: CampaignContactStatus = 'pendente';
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
 
