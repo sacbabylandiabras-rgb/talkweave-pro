@@ -7,6 +7,8 @@ interface AgentConfig {
   agent_name: string;
   system_prompt: string;
   active: boolean;
+  provider: "lovable" | "anthropic";
+  model: string;
 }
 
 interface KnowledgeItem {
@@ -25,6 +27,8 @@ export function useAgentConfig() {
     agent_name: "Assistente",
     system_prompt: "Você é um assistente virtual prestativo e educado. Responda as perguntas dos clientes de forma clara e objetiva.",
     active: false,
+    provider: "lovable",
+    model: "google/gemini-3-flash-preview",
   });
   const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +51,8 @@ export function useAgentConfig() {
           agent_name: data.agent_name || "Assistente",
           system_prompt: data.system_prompt || "",
           active: data.active,
+          provider: (data.provider as "lovable" | "anthropic") || "lovable",
+          model: data.model || ((data.provider === "anthropic") ? "claude-sonnet-4-5-20250929" : "google/gemini-3-flash-preview"),
         });
       }
 
@@ -79,6 +85,8 @@ export function useAgentConfig() {
         agent_name: newConfig.agent_name ?? config.agent_name,
         system_prompt: newConfig.system_prompt ?? config.system_prompt,
         active: newConfig.active ?? config.active,
+        provider: newConfig.provider ?? config.provider,
+        model: newConfig.model ?? config.model,
       };
 
       if (config.id) {

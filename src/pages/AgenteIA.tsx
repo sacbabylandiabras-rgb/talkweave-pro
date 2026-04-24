@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,8 @@ const AgenteIA = () => {
   const [agentName, setAgentName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [isActive, setIsActive] = useState(false);
+  const [provider, setProvider] = useState<"lovable" | "anthropic">("lovable");
+  const [model, setModel] = useState("google/gemini-3-flash-preview");
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -139,6 +142,8 @@ const AgenteIA = () => {
       setAgentName(config.agent_name);
       setSystemPrompt(config.system_prompt);
       setIsActive(config.active);
+      setProvider(config.provider);
+      setModel(config.model);
     }
   }, [loading, config]);
 
@@ -147,7 +152,7 @@ const AgenteIA = () => {
   }, [chatMessages]);
 
   const handleSaveConfig = () => {
-    saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive });
+    saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive, provider, model });
   };
 
   const handleAddFaq = async () => {
@@ -287,6 +292,56 @@ const AgenteIA = () => {
                       placeholder="Ex: Atendente Virtual"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Provedor de IA</Label>
+                      <Select
+                        value={provider}
+                        onValueChange={(v) => {
+                          const next = v as "lovable" | "anthropic";
+                          setProvider(next);
+                          setModel(next === "anthropic" ? "claude-sonnet-4-5-20250929" : "google/gemini-3-flash-preview");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lovable">Lovable AI (Gemini / GPT)</SelectItem>
+                          <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modelo</Label>
+                      <Select value={model} onValueChange={setModel}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {provider === "anthropic" ? (
+                            <>
+                              <SelectItem value="claude-opus-4-5-20251101">Claude Opus 4.5 (mais inteligente)</SelectItem>
+                              <SelectItem value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (recomendado)</SelectItem>
+                              <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (rápido e barato)</SelectItem>
+                              <SelectItem value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</SelectItem>
+                              <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="google/gemini-3-flash-preview">Gemini 3 Flash (padrão)</SelectItem>
+                              <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                              <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                              <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
+                              <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {provider === "anthropic" && (
+                    <p className="text-[11px] text-muted-foreground -mt-2">
+                      Usando sua chave da Anthropic (ANTHROPIC_API_KEY). Cobrança ocorre direto na sua conta Anthropic.
+                    </p>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Prompt do Sistema (Instruções)</Label>
