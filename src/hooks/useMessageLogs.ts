@@ -126,10 +126,14 @@ const extractButtonTextFromKeyword = (keyword?: string | null) => {
   return match?.[1]?.trim() || '';
 };
 
+const isTechnicalMessageReference = (content?: string | null) => /^\d{10,}:[A-Z0-9]{10,}$/i.test(String(content || '').trim());
+
 const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
   const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
   if (buttonText) return buttonText;
-  return String(log.message_received || '').trim();
+  const rawContent = String(log.message_received || '').trim();
+  if (isTechnicalMessageReference(rawContent)) return '';
+  return rawContent;
 };
 
 const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
@@ -768,6 +772,7 @@ export const useMessageLogs = (
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
         if (isInternalFlowStateKeyword(log.keyword_matched)) return;
+        if (isTechnicalMessageReference(log.response_sent)) return;
         // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
         // New flow engine writes detailed __flow_send__ logs, so summary rows are redundant only then.
         const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
