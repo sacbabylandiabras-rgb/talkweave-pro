@@ -7,7 +7,7 @@ interface AgentConfig {
   agent_name: string;
   system_prompt: string;
   active: boolean;
-  provider: "lovable" | "anthropic";
+  provider: "anthropic";
   model: string;
 }
 
@@ -32,8 +32,8 @@ export function useAgentConfig() {
     agent_name: "Assistente",
     system_prompt: "Você é um assistente virtual prestativo e educado. Responda as perguntas dos clientes de forma clara e objetiva.",
     active: false,
-    provider: "lovable",
-    model: "google/gemini-3-flash-preview",
+    provider: "anthropic",
+    model: "claude-sonnet-4-5-20250929",
   });
   const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +56,8 @@ export function useAgentConfig() {
           agent_name: data.agent_name || "Assistente",
           system_prompt: data.system_prompt || "",
           active: data.active,
-          provider: (data.provider as "lovable" | "anthropic") || "lovable",
-          model: data.model || ((data.provider === "anthropic") ? "claude-sonnet-4-5-20250929" : "google/gemini-3-flash-preview"),
+          provider: "anthropic",
+          model: data.model || "claude-sonnet-4-5-20250929",
         });
       }
 
