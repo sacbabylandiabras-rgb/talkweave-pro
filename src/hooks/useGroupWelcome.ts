@@ -48,7 +48,8 @@ export function useGroupWelcome() {
       template_id?: string | null;
       flow_id?: string | null;
       instance_id?: string | null;
-    }
+    },
+    options: { silent?: boolean; refetch?: boolean } = {}
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -80,11 +81,18 @@ export function useGroupWelcome() {
         if (error) throw error;
       }
 
-      await fetchConfigs();
-      toast.success(active ? 'Configuração de boas-vindas salva!' : 'Boas-vindas desativada!');
+      if (options.refetch !== false) {
+        await fetchConfigs();
+      }
+      if (!options.silent) {
+        toast.success(active ? 'Configuração de boas-vindas salva!' : 'Boas-vindas desativada!');
+      }
     } catch (err) {
       console.error('Error saving group welcome:', err);
-      toast.error('Erro ao salvar configuração');
+      if (!options.silent) {
+        toast.error('Erro ao salvar configuração');
+      }
+      throw err;
     }
   };
 
