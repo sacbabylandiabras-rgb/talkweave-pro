@@ -5887,37 +5887,32 @@ function findButtonEdgeMatch(
           );
 
         if (didMatch) {
-          // First try: specific button edge
           const buttonEdge = edges.find((e: any) =>
             e.source === node.id && exactButtonHandleAliases.includes(String(e.sourceHandle || ""))
           ) || edges.find((e: any) =>
             e.source === node.id && legacyButtonHandleAliases.includes(String(e.sourceHandle || ""))
           );
 
-          if (buttonEdge) {
-            return {
-              flow,
-              targetNodeId: buttonEdge.target,
-              buttonText: btnText,
-              flowName: flow.name,
-            };
+          if (!buttonEdge) {
+            console.log(
+              "⛔ Button reply matched text, but no specific button edge exists for this handle",
+              {
+                flowId: flow?.id,
+                nodeId: node?.id,
+                buttonText: btnText,
+                exactButtonHandleAliases,
+                legacyButtonHandleAliases,
+              },
+            );
+            continue;
           }
 
-          // Fallback: follow the default edge from this node (bottom handle)
-          const defaultEdge = edges.find((e: any) =>
-            e.source === node.id &&
-            (!e.sourceHandle || e.sourceHandle === "default" ||
-              e.sourceHandle === null)
-          );
-
-          if (defaultEdge) {
-            return {
-              flow,
-              targetNodeId: defaultEdge.target,
-              buttonText: btnText,
-              flowName: flow.name,
-            };
-          }
+          return {
+            flow,
+            targetNodeId: buttonEdge.target,
+            buttonText: btnText,
+            flowName: flow.name,
+          };
         }
       }
     }
