@@ -429,6 +429,104 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const isUazapi = instance.api_provider === 'uazapi';
+
+  const callProxyFunction = async (action: 'get' | 'set' | 'delete', proxy_url?: string) => {
+    const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+    const apiToken = instance.evolution_api_key || '';
+    if (!apiUrl || !apiToken) {
+      throw new Error('Instância UAZAPI sem URL/token configurados.');
+    }
+    const { data, error } = await supabase.functions.invoke('uazapi-proxy', {
+      body: { apiUrl, apiToken, action, proxy_url },
+    });
+    if (error) {
+      const msg = await getInvokeErrorMessage(error, 'Erro ao comunicar com a UAZAPI');
+      throw new Error(msg);
+    }
+    if (data?.error) {
+      throw new Error(data?.error);
+    }
+    return data;
+  };
+
+  const openProxyDialog = async () => {
+    setShowProxyDialog(true);
+    setProxyLoading(true);
+    setProxyInfo(null);
+    try {
+      const data = await callProxyFunction('get');
+      setProxyInfo(data);
+      const current =
+        data?.proxy_url ||
+        data?.proxyUrl ||
+        data?.config?.proxy_url ||
+        data?.data?.proxy_url ||
+        '';
+      setProxyUrlInput(current || '');
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao carregar proxy',
+        description: err instanceof Error ? err.message : 'Falha ao buscar configuração.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleSaveProxy = async () => {
+    const trimmed = proxyUrlInput.trim();
+    if (!trimmed) {
+      toast({
+        title: 'URL obrigatória',
+        description: 'Informe a URL do proxy no formato http://usuario:senha@ip:porta',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setProxyLoading(true);
+    try {
+      await callProxyFunction('set', trimmed);
+      toast({
+        title: '✅ Proxy configurado',
+        description: 'A conexão pode ser reiniciada automaticamente para aplicar a mudança.',
+      });
+      const refreshed = await callProxyFunction('get').catch(() => null);
+      if (refreshed) setProxyInfo(refreshed);
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao salvar proxy',
+        description: err instanceof Error ? err.message : 'Falha ao configurar proxy.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleRemoveProxy = async () => {
+    setProxyLoading(true);
+    try {
+      await callProxyFunction('delete');
+      toast({
+        title: '✅ Proxy removido',
+        description: 'Voltando ao proxy interno padrão.',
+      });
+      setProxyUrlInput('');
+      const refreshed = await callProxyFunction('get').catch(() => null);
+      setProxyInfo(refreshed);
+    } catch (err) {
+      toast({
+        title: '❌ Erro ao remover proxy',
+        description: err instanceof Error ? err.message : 'Falha ao remover proxy.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
