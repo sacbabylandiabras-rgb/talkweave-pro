@@ -126,11 +126,17 @@ const UazapiSpecialSection = () => {
 
       if (kind === "status") {
         const provider = data?.providerBody || data?.data || {};
-        const status = String(provider?.status || "").trim();
-        const detail = provider?.messageid || provider?.messageId || provider?.id || provider?.chatid;
+        const messageId =
+          provider?.messageid ||
+          provider?.messageId ||
+          provider?.id ||
+          provider?.Id?.id ||
+          provider?.Id;
         toast({
-          title: status ? `Status ${status}` : "Status enviado",
-          description: detail ? String(detail) : "Publicação aceita pelo provedor.",
+          title: "Status publicado!",
+          description: messageId
+            ? `Aguardando confirmação do WhatsApp · ID ${String(messageId).slice(0, 24)}`
+            : "A UAZAPI aceitou a publicação. Verifique seu WhatsApp em alguns segundos.",
         });
         return;
       }
