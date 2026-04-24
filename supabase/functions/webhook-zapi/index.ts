@@ -3923,9 +3923,14 @@ serve(async (req) => {
               : String(phone).replace(/^\+/, "").replace(/[@\-].*$/, "").replace(/\D/g, "");
 
             const hasCta = /^https?:\/\//i.test(ctaUrl);
+            const cleanReply = String(finalReply || "")
+              .replace(/https?:\/\/[^\s)]+/g, "")
+              .replace(/[ \t]+\n/g, "\n")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
             const deliveryResponse = hasCta
               ? isUazapiProvider
-                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/text`, {
+                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/menu`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -3933,7 +3938,9 @@ serve(async (req) => {
                     },
                     body: JSON.stringify({
                       number: normalizedTargetNumber,
-                      text: [finalReply, `${ctaLabel}: ${ctaUrl}`].filter(Boolean).join("\n\n"),
+                      type: "button",
+                      text: cleanReply || "Selecione uma opção:",
+                      choices: [`${ctaLabel || "Abrir checkout"}|url:${ctaUrl}`],
                     }),
                   })
                 : await fetch(
@@ -3946,7 +3953,7 @@ serve(async (req) => {
                       },
                       body: JSON.stringify({
                         phone,
-                        message: finalReply || "Selecione uma opção:",
+                        message: cleanReply || "Selecione uma opção:",
                         buttonActions: [{
                           id: "1",
                           type: "URL",
@@ -3963,7 +3970,7 @@ serve(async (req) => {
                       "Content-Type": "application/json",
                       token: String(zapiConfig?.evolution_api_key || ""),
                     },
-                    body: JSON.stringify({ number: normalizedTargetNumber, text: finalReply }),
+                    body: JSON.stringify({ number: normalizedTargetNumber, text: cleanReply }),
                   })
                 : await fetch(
                     `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
@@ -3990,7 +3997,7 @@ serve(async (req) => {
 
             await finalizeMessageLog(supabase, lockId, {
               keywordMatched: "[Agente IA]",
-              responseSent: [finalReply, hasCta ? `[botao:${ctaLabel}|${ctaUrl}]` : null].filter(Boolean).join("\n\n"),
+              responseSent: [cleanReply, hasCta ? `[botao:${ctaLabel}|${ctaUrl}]` : null].filter(Boolean).join("\n\n"),
             });
 
             return new Response("ai_agent_response_sent", {
