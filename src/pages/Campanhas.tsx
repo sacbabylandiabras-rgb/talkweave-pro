@@ -1042,11 +1042,21 @@ const Campanhas = () => {
               targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
             );
 
+            type CampaignContactStatus = 'enviado' | 'enviando' | 'pendente' | 'cancelado';
             // Build full list: all target contacts with their latest persisted status
-            const fullContactList = targetContacts.map((contact, index) => {
+            const fullContactList: Array<{
+              id: string;
+              phone: string;
+              name: string;
+              status: CampaignContactStatus;
+              sentAt: string | null;
+              errorMessage: string | null;
+              readAt: string | null;
+              clickedAt: string | null;
+            }> = targetContacts.map((contact, index) => {
               const phoneKey = resolvePhoneKey(contact.phone);
               const send = sendsByPhone.get(phoneKey);
-              let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
+              let status: CampaignContactStatus = 'pendente';
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
 
@@ -1055,7 +1065,9 @@ const Campanhas = () => {
                   status = 'enviado';
                   sentAt = send.sent_at || null;
                 } else if (send.status === 'pending') {
-                  status = 'enviando';
+                  // Já aceito pela Z-API (na fila). Tratamos como enviado.
+                  status = 'enviado';
+                  sentAt = send.sent_at || null;
                 } else if (send.status === 'failed') {
                   status = 'cancelado';
                   errorMessage = send.error_message || null;
@@ -1082,7 +1094,7 @@ const Campanhas = () => {
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') status = 'enviando';
+                else if (send.status === 'pending') status = 'enviado';
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
