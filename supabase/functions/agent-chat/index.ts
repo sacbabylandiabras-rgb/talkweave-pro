@@ -102,6 +102,96 @@ const TOOL_DEFS: Record<string, any> = {
       required: ['valor', 'descricao'],
     },
   },
+  // ============ GATEWAY (ZapLynxPay) ============
+  gateway_consultar_saldo: {
+    name: 'gateway_consultar_saldo',
+    description: 'Consulta o saldo atual do gateway de pagamento (ZapLynxPay) do usuário, somando vendas pagas e descontando saques.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  gateway_listar_vendas: {
+    name: 'gateway_listar_vendas',
+    description: 'Lista as últimas vendas/transações do gateway de pagamento. Pode filtrar por status (paid, pending, refused, refunded).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', description: 'Filtro opcional: paid, pending, refused, refunded' },
+        limite: { type: 'number', description: 'Quantidade máxima a retornar (padrão 10, máx 50)' },
+      },
+    },
+  },
+  gateway_listar_produtos: {
+    name: 'gateway_listar_produtos',
+    description: 'Lista os produtos cadastrados no gateway de pagamento, com preço e link de checkout.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limite: { type: 'number', description: 'Quantidade máxima (padrão 10)' },
+      },
+    },
+  },
+  // ============ INSTAGRAM ============
+  instagram_responder_comentario: {
+    name: 'instagram_responder_comentario',
+    description: 'Responde publicamente a um comentário no Instagram. Informe o ID do comentário e a mensagem de resposta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        comment_id: { type: 'string', description: 'ID do comentário do Instagram' },
+        mensagem: { type: 'string', description: 'Texto da resposta pública' },
+      },
+      required: ['comment_id', 'mensagem'],
+    },
+  },
+  instagram_enviar_dm: {
+    name: 'instagram_enviar_dm',
+    description: 'Envia uma mensagem direta (DM) no Instagram para um usuário, opcionalmente em resposta a um comentário (private reply).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        ig_user_id: { type: 'string', description: 'ID do destinatário no Instagram (use isto OU comment_id)' },
+        comment_id: { type: 'string', description: 'ID de um comentário para enviar private reply (use isto OU ig_user_id)' },
+        mensagem: { type: 'string', description: 'Texto da DM' },
+      },
+      required: ['mensagem'],
+    },
+  },
+  instagram_listar_comentarios: {
+    name: 'instagram_listar_comentarios',
+    description: 'Lista os comentários recebidos recentemente no Instagram (eventos capturados pelo webhook), com ID, autor e texto.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limite: { type: 'number', description: 'Quantidade máxima (padrão 10, máx 50)' },
+      },
+    },
+  },
+  // ============ META WHATSAPP CLOUD API ============
+  meta_enviar_texto: {
+    name: 'meta_enviar_texto',
+    description: 'Envia uma mensagem de texto pelo WhatsApp via API oficial da Meta (Cloud API). Use quando o usuário tem instância Meta configurada.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        para: { type: 'string', description: 'Número do destinatário com DDI (ex: 5511999999999)' },
+        mensagem: { type: 'string', description: 'Texto a enviar' },
+      },
+      required: ['para', 'mensagem'],
+    },
+  },
+  meta_enviar_template: {
+    name: 'meta_enviar_template',
+    description: 'Envia um template aprovado pelo WhatsApp via Meta Cloud API (necessário para iniciar conversas fora da janela de 24h).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        para: { type: 'string', description: 'Número do destinatário com DDI' },
+        nome_template: { type: 'string', description: 'Nome do template aprovado na Meta' },
+        idioma: { type: 'string', description: 'Código do idioma (ex: pt_BR). Padrão: pt_BR' },
+        variaveis: { type: 'array', items: { type: 'string' }, description: 'Variáveis do template, em ordem' },
+      },
+      required: ['para', 'nome_template'],
+    },
+  },
 }
 
 // ============ UAZAPI HELPERS ============
