@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send, Upload, QrCode, KeyRound, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Trash2, RefreshCw, Download } from "lucide-react";
 
 type MediaType = "" | "image" | "video" | "audio" | "document";
 
@@ -48,6 +49,22 @@ export default function DisparoOculto() {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, ok: 0, fail: 0 });
   const [bulkLog, setBulkLog] = useState<{ phone: string; ok: boolean; err?: string }[]>([]);
+
+  // history report
+  interface HistoryRow {
+    id: string;
+    phone: string;
+    status: string;
+    error_message: string | null;
+    instance_name: string | null;
+    template_type: string | null;
+    message_preview: string | null;
+    batch_id: string | null;
+    created_at: string;
+  }
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "success" | "failed">("all");
 
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -160,15 +177,36 @@ export default function DisparoOculto() {
     setBulkRunning(true);
     setBulkLog([]);
     setBulkProgress({ done: 0, total: phones.length, ok: 0, fail: 0 });
+    const batchId = crypto.randomUUID();
+    const { data: { user } } = await supabase.auth.getUser();
+    const instName = instances.find((i) => i.id === hiddenInstanceId)?.name || null;
+    const preview = (message || mediaUrl || "").slice(0, 200);
     for (let i = 0; i < phones.length; i++) {
       const phone = phones[i];
+      let ok = false;
+      let errMsg: string | null = null;
       try {
         await sendOne(phone);
+        ok = true;
         setBulkLog((l) => [...l, { phone, ok: true }]);
         setBulkProgress((p) => ({ ...p, done: p.done + 1, ok: p.ok + 1 }));
       } catch (e: any) {
+        errMsg = e.message;
         setBulkLog((l) => [...l, { phone, ok: false, err: e.message }]);
         setBulkProgress((p) => ({ ...p, done: p.done + 1, fail: p.fail + 1 }));
+      }
+      if (user) {
+        await (supabase as any).from("hidden_dispatch_logs").insert({
+          user_id: user.id,
+          hidden_instance_id: hiddenInstanceId,
+          instance_name: instName,
+          phone,
+          message_preview: preview,
+          template_type: templateType,
+          status: ok ? "success" : "failed",
+          error_message: errMsg,
+          batch_id: batchId,
+        });
       }
       if (i < phones.length - 1 && delaySeconds > 0) {
         await sleep(delaySeconds * 1000);
@@ -176,7 +214,50 @@ export default function DisparoOculto() {
     }
     setBulkRunning(false);
     toast({ title: "Disparo concluído" });
+    fetchHistory();
   };
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("hidden_dispatch_logs")
+      .select("id, phone, status, error_message, instance_name, template_type, message_preview, batch_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (!error && data) setHistory(data as HistoryRow[]);
+    setHistoryLoading(false);
+  };
+
+  const clearHistory = async () => {
+    if (!confirm("Apagar todo o histórico?")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await (supabase as any).from("hidden_dispatch_logs").delete().eq("user_id", user.id);
+    fetchHistory();
+  };
+
+  const exportCsv = () => {
+    const rows = filteredHistory();
+    const header = "data,instancia,telefone,status,tipo,erro,mensagem\n";
+    const csv = header + rows.map((r) => [
+      new Date(r.created_at).toISOString(),
+      JSON.stringify(r.instance_name || ""),
+      r.phone,
+      r.status,
+      r.template_type || "",
+      JSON.stringify(r.error_message || ""),
+      JSON.stringify(r.message_preview || ""),
+    ].join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `disparo-oculto-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredHistory = () => history.filter((r) => historyFilter === "all" ? true : (historyFilter === "success" ? r.status === "success" : r.status !== "success"));
+
+  useEffect(() => { fetchHistory(); }, []);
 
   const validateContent = (): boolean => {
     if (templateType === "text" && !message.trim()) {
