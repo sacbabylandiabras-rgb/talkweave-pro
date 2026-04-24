@@ -320,6 +320,7 @@ const isZapiConfirmed = (payload: any) => {
   return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result);
 };
 const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
+const isLidIdentifier = (phone?: string | null) => Boolean(phone && phone.includes('@lid') && !isGroupDestination(phone));
 
 const SPECIAL_TEMPLATE_PREFIX = '__SPECIAL_TEMPLATE__:';
 
@@ -972,7 +973,7 @@ serve(async (req) => {
       // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
       // Never send unresolved @lid identifiers as raw numeric strings because providers
       // expect a real WhatsApp phone number and those synthetic values cause false positives.
-      if (contact.phone && contact.phone.includes('@lid') && !isGroupDestination(contact.phone)) {
+      if (isLidIdentifier(contact.phone)) {
         const lidId = contact.phone;
         const { data: lidMapping } = await supabase
           .from('message_logs')
@@ -1003,7 +1004,8 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
           contact.phone = resolvedLidPhone;
         } else {
-          console.log(`⚠️ @lid não resolvido para ${lidId} — enviando mesmo assim (bloqueio desativado a pedido do usuário).`);
+          unresolvedLidError = `Contato ${lidId} ainda está como @lid e não possui número real mapeado para envio.`;
+          console.log(`⚠️ ${unresolvedLidError}`);
         }
       }
 
