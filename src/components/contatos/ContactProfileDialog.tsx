@@ -441,8 +441,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <Bot className="w-4 h-4" />
                 Enviar Fluxo
               </h3>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-2">
+                <div className="w-full">
                   <Select value={selectedFlow} onValueChange={setSelectedFlow} disabled={loadingFlows}>
                     <SelectTrigger className="h-9 w-full text-sm">
                       <SelectValue placeholder={loadingFlows ? "Carregando..." : "Selecione um fluxo"} />
@@ -457,7 +457,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                     </SelectContent>
                   </Select>
                 </div>
-                <Button size="sm" disabled={!selectedFlow || sendingFlow} onClick={handleSendFlow} className="w-full shrink-0 sm:w-auto">
+                <Button size="sm" disabled={!selectedFlow || sendingFlow} onClick={handleSendFlow} className="w-full">
                   <Send className="w-4 h-4 mr-1" />
                   Enviar
                 </Button>
