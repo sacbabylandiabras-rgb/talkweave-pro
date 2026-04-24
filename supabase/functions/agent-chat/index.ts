@@ -458,12 +458,12 @@ async function executeTool(
               .in('id', productIds)
           : { data: [] as any[] }
 
-        const productMap = new Map((products || []).map((p: any) => [p.id, p]))
+        const productMap = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]))
         const normalized = (value: any) => String(value || '').toLowerCase()
         const termoTokens = termo.split(/\s+/).filter(Boolean)
 
         const scored = (checkouts || []).map((checkout: any) => {
-          const product = productMap.get(checkout.product_id)
+          const product: any = productMap.get(String(checkout.product_id || ''))
           const hay = [
             checkout.name,
             checkout.slug,
