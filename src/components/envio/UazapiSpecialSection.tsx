@@ -124,6 +124,17 @@ const UazapiSpecialSection = () => {
         throw new Error(data?.error || "Falha no envio");
       }
 
+      if (kind === "status") {
+        const provider = data?.providerBody || data?.data || {};
+        const status = String(provider?.status || "").trim();
+        const detail = provider?.messageid || provider?.messageId || provider?.id || provider?.chatid;
+        toast({
+          title: status ? `Status ${status}` : "Status enviado",
+          description: detail ? String(detail) : "Publicação aceita pelo provedor.",
+        });
+        return;
+      }
+
       toast({ title: "Enviado!", description: `${kind} enviado com sucesso.` });
     } catch (err: any) {
       toast({
@@ -137,17 +148,21 @@ const UazapiSpecialSection = () => {
   };
 
   const handleSendStatus = () => {
-    if (statusKind === "text" && !statusText.trim()) {
+    const cleanedFile = statusFile.trim();
+    const cleanedText = statusText.trim();
+
+    if (statusKind === "text" && !cleanedText) {
       return toast({ title: "Texto obrigatório", variant: "destructive" });
     }
-    if (statusKind !== "text" && !statusFile.trim()) {
+    if (statusKind !== "text" && !cleanedFile) {
       return toast({ title: "URL da mídia obrigatória", variant: "destructive" });
     }
+
     callEdge("status", {
       type: statusKind,
-      text: statusText || undefined,
-      file: statusKind !== "text" ? statusFile : undefined,
-      backgroundColor: statusBg || undefined,
+      text: statusKind === "text" ? cleanedText : undefined,
+      file: statusKind !== "text" ? cleanedFile : undefined,
+      backgroundColor: statusKind === "text" ? statusBg || undefined : undefined,
     });
   };
 
