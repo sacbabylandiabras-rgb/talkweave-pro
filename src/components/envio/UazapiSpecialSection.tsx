@@ -101,6 +101,7 @@ const UazapiSpecialSection = () => {
   const [payAmount, setPayAmount] = useState("");
   const [payDescription, setPayDescription] = useState("");
   const [payNotes, setPayNotes] = useState("");
+  const [payButtonLabel, setPayButtonLabel] = useState("Copiar código PIX");
 
   const callEdge = async (kind: string, payload: Record<string, any>, phone?: string) => {
     setLoading(true);
@@ -206,6 +207,7 @@ const UazapiSpecialSection = () => {
           description: payDescription || undefined,
           notes: payNotes || undefined,
           instanceId: instanceId || undefined,
+          buttonLabel: payButtonLabel || undefined,
         },
       });
       if (error) {
@@ -433,6 +435,15 @@ const UazapiSpecialSection = () => {
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
                   placeholder="Mensagem adicional para o cliente"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Texto do botão</Label>
+                <Input
+                  placeholder="Copiar código PIX"
+                  value={payButtonLabel}
+                  onChange={(e) => setPayButtonLabel(e.target.value)}
+                  maxLength={25}
                 />
               </div>
               <Button onClick={handleSendPayment} disabled={loading || !hasUazapi} className="w-full">
