@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
+  isGroupPhone,
   resolveGroupConversationName,
   rememberGroupDisplayName,
   isUsableGroupDisplayName,
@@ -22,6 +23,14 @@ const buildSavedContacts = (entries: SavedContactLike[]) => {
   entries.forEach((c) => map.set(c.phone, c));
   return map;
 };
+
+describe("isGroupPhone", () => {
+  it("recognizes community ids even when they contain formatting suffixes", () => {
+    expect(isGroupPhone("120363405412051886")).toBe(true);
+    expect(isGroupPhone("120363405412051886-group")).toBe(true);
+    expect(isGroupPhone("120363405412051886@g.us")).toBe(true);
+  });
+});
 
 describe("isUsableGroupDisplayName", () => {
   it.each([
