@@ -104,7 +104,6 @@ const UazapiSpecialSection = () => {
 
   const callEdge = async (kind: string, payload: Record<string, any>, phone?: string) => {
     setLoading(true);
-    setDiagnostic(null);
     try {
       const { data, error } = await supabase.functions.invoke("send-uazapi-special", {
         body: {
@@ -115,39 +114,16 @@ const UazapiSpecialSection = () => {
         },
       });
 
-      const baseDiag = {
-        kind,
-        timestamp: new Date().toISOString(),
-        providerStatus: data?.providerStatus,
-        providerBody: data?.providerBody ?? data?.data,
-        providerRaw: data?.providerRaw,
-        requestUrl: data?.requestUrl,
-        requestBody: data?.requestBody ?? payload,
-      };
-
       if (error) {
         let parsed: any = null;
         try { parsed = await (error as any)?.context?.json?.(); } catch { /* noop */ }
-        setDiagnostic({
-          ...baseDiag,
-          success: false,
-          error: parsed?.error || error?.message || "Falha na chamada da Edge Function",
-          providerStatus: parsed?.providerStatus ?? baseDiag.providerStatus,
-          providerBody: parsed?.providerBody ?? parsed?.data ?? baseDiag.providerBody,
-          providerRaw: parsed?.providerRaw ?? baseDiag.providerRaw,
-          requestBody: parsed?.requestBody ?? baseDiag.requestBody,
-          requestUrl: parsed?.requestUrl ?? baseDiag.requestUrl,
-          invokeError: { name: (error as any)?.name, message: error?.message },
-        });
         throw new Error(parsed?.error || error?.message || "Falha no envio");
       }
 
       if (!data?.success) {
-        setDiagnostic({ ...baseDiag, success: false, error: data?.error || "Falha no envio" });
         throw new Error(data?.error || "Falha no envio");
       }
 
-      setDiagnostic({ ...baseDiag, success: true });
       toast({ title: "Enviado!", description: `${kind} enviado com sucesso.` });
     } catch (err: any) {
       toast({
