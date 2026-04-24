@@ -2580,12 +2580,33 @@ serve(async (req) => {
     const audioUrl = extractAudioUrl(webhook);
 
     if (!messageRaw) {
-      const buttonReplyFallback = extractButtonReplyCandidates(webhook)[0] || "";
+      const replyCandidates = extractButtonReplyCandidates(webhook);
+      const looksLikeJidOrPhone = (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return true;
+        // JIDs: 12345@g.us, 12345@s.whatsapp.net, 12345@c.us, 12345@lid
+        if (/@(g\.us|s\.whatsapp\.net|c\.us|lid|broadcast)$/i.test(trimmed)) return true;
+        // Group suffix used internally
+        if (/-group$/i.test(trimmed)) return true;
+        // Pure long numeric string (likely chatId / phone) — 8+ digits with no letters/spaces
+        if (/^\d{8,}$/.test(trimmed)) return true;
+        return false;
+      };
+      const buttonReplyFallback = replyCandidates.find(
+        (value) => typeof value === "string" && !looksLikeJidOrPhone(value),
+      ) || "";
       if (buttonReplyFallback) {
         messageRaw = buttonReplyFallback;
         console.log(
           "🔁 Using button reply fallback as incoming message:",
           messageRaw,
+        );
+      } else if (replyCandidates.length > 0) {
+        console.log(
+          "⚠️ Button reply candidates were all JIDs/phones, ignoring. Sample:",
+          replyCandidates.slice(0, 5),
+          "| RAW body sample:",
+          (rawBody || "").substring(0, 2000),
         );
       }
     }
