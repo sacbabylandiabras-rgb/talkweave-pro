@@ -4418,8 +4418,9 @@ async function sendNodeContent(
       return false;
     }
 
-    // === UAZAPI: novos tipos diretos (contact / location / presence / status) ===
-    if (isUazapiProvider && !nextCaptureStep) {
+    // === Tipos especiais (contact / location / presence / status / interactive / carousel / pix / payment) ===
+    // Suporta tanto UAZAPI quanto Z-API.
+    if (!nextCaptureStep) {
       const sendUaz = async (path: string, body: any, ctx: string) => {
         if (!uazapiUrl || !uazapiToken) {
           throw new Error("UAZAPI URL/Token não configurados");
@@ -4432,87 +4433,218 @@ async function sendNodeContent(
         return parseProviderResponse(res, ctx);
       };
 
+      const sendZapi = async (path: string, body: any, ctx: string) => {
+        const res = await fetch(`${baseUrl}${path}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+        return parseProviderResponse(res, ctx);
+      };
+
       if (contentType === "contact") {
-        await sendUaz(
-          "/send/contact",
-          {
-            number: normalizedTargetNumber,
-            fullName: targetNode.data.contactName || "",
-            phoneNumber: targetNode.data.contactPhone || "",
-            organization: targetNode.data.contactOrg || undefined,
-          },
-          `Bloco ${targetNode.id} (contact)`,
-        );
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/contact",
+            {
+              number: normalizedTargetNumber,
+              fullName: targetNode.data.contactName || "",
+              phoneNumber: targetNode.data.contactPhone || "",
+              organization: targetNode.data.contactOrg || undefined,
+            },
+            `Bloco ${targetNode.id} (contact)`,
+          );
+        } else {
+          await sendZapi(
+            "/send-contact",
+            {
+              phone,
+              contactName: targetNode.data.contactName || "",
+              contactPhone: String(targetNode.data.contactPhone || "").replace(/\D/g, ""),
+              contactBusinessDescription: targetNode.data.contactOrg || "",
+            },
+            `Bloco ${targetNode.id} (contact)`,
+          );
+        }
         return false;
       }
 
       if (contentType === "location") {
-        await sendUaz(
-          "/send/location",
-          {
-            number: normalizedTargetNumber,
-            latitude: Number(targetNode.data.locationLat || 0),
-            longitude: Number(targetNode.data.locationLng || 0),
-            name: targetNode.data.locationName || undefined,
-            address: targetNode.data.locationAddress || undefined,
-          },
-          `Bloco ${targetNode.id} (location)`,
-        );
+        const lat = Number(String(targetNode.data.locationLat || "0").replace(",", ".")) || 0;
+        const lng = Number(String(targetNode.data.locationLng || "0").replace(",", ".")) || 0;
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/location",
+            {
+              number: normalizedTargetNumber,
+              latitude: lat,
+              longitude: lng,
+              name: targetNode.data.locationName || undefined,
+              address: targetNode.data.locationAddress || undefined,
+            },
+            `Bloco ${targetNode.id} (location)`,
+          );
+        } else {
+          await sendZapi(
+            "/send-location",
+            {
+              phone,
+              latitude: lat,
+              longitude: lng,
+              title: targetNode.data.locationName || "",
+              address: targetNode.data.locationAddress || "",
+            },
+            `Bloco ${targetNode.id} (location)`,
+          );
+        }
         return false;
       }
 
       if (contentType === "presence") {
         const presenceType = String(targetNode.data.presenceType || "composing");
         const duration = Number(targetNode.data.presenceDuration || 0);
-        await sendUaz(
-          "/send/presence",
-          {
-            number: normalizedTargetNumber,
-            presence: presenceType,
-            ...(duration > 0 ? { duration } : {}),
-          },
-          `Bloco ${targetNode.id} (presence)`,
-        );
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/presence",
+            {
+              number: normalizedTargetNumber,
+              presence: presenceType,
+              ...(duration > 0 ? { duration } : {}),
+            },
+            `Bloco ${targetNode.id} (presence)`,
+          );
+        } else {
+          // Z-API: chat-state aceita "composing" / "recording" / "available" / "unavailable"
+          await sendZapi(
+            "/send-chat-state",
+            { phone, chatState: presenceType },
+            `Bloco ${targetNode.id} (presence)`,
+          );
+          if (duration > 0) {
+            await new Promise((r) => setTimeout(r, Math.min(duration, 30) * 1000));
+            await sendZapi(
+              "/send-chat-state",
+              { phone, chatState: "paused" },
+              `Bloco ${targetNode.id} (presence-stop)`,
+            );
+          }
+        }
         return false;
       }
 
       if (contentType === "status") {
         const kind = String(targetNode.data.statusKind || "text");
-        await sendUaz(
-          "/send/status",
-          {
-            type: kind,
-            text: content || undefined,
-            file: kind !== "text" ? mediaUrl : undefined,
-            backgroundColor: targetNode.data.statusBg || undefined,
-          },
-          `Bloco ${targetNode.id} (status)`,
-        );
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/status",
+            {
+              type: kind,
+              text: content || undefined,
+              file: kind !== "text" ? mediaUrl : undefined,
+              backgroundColor: targetNode.data.statusBg || undefined,
+            },
+            `Bloco ${targetNode.id} (status)`,
+          );
+        } else {
+          // Z-API: status broadcast — não usa "phone"
+          if (kind === "image" && mediaUrl) {
+            await sendZapi(
+              "/send-image-status",
+              { image: mediaUrl, caption: content || "" },
+              `Bloco ${targetNode.id} (status-image)`,
+            );
+          } else if (kind === "video" && mediaUrl) {
+            await sendZapi(
+              "/send-video-status",
+              { video: mediaUrl, caption: content || "" },
+              `Bloco ${targetNode.id} (status-video)`,
+            );
+          } else {
+            await sendZapi(
+              "/send-text-status",
+              { message: content || "" },
+              `Bloco ${targetNode.id} (status-text)`,
+            );
+          }
+        }
         return false;
       }
 
       if (contentType === "interactive") {
         const kind = String(targetNode.data.interactiveKind || "button");
-        const choices = (targetNode.data.buttons || []).slice(0, 10).map(
-          (b: any, i: number) => {
-            const label = (b.text || `Opção ${i + 1}`).trim();
-            if (b.type === "url" && b.value) return `${label}|url:${b.value}`;
-            if (b.type === "call" && b.value) return `${label}|call:${b.value}`;
-            return `${label}|button-${i}`;
-          },
-        );
-        await sendUaz(
-          "/send/menu",
-          {
-            number: normalizedTargetNumber,
-            type: kind,
-            text: content || "Selecione uma opção:",
-            footerText: targetNode.data.footer || undefined,
-            buttonText: targetNode.data.listButtonText || undefined,
-            choices,
-          },
-          `Bloco ${targetNode.id} (interactive:${kind})`,
-        );
+        if (isUazapiProvider) {
+          const choices = (targetNode.data.buttons || []).slice(0, 10).map(
+            (b: any, i: number) => {
+              const label = (b.text || `Opção ${i + 1}`).trim();
+              if (b.type === "url" && b.value) return `${label}|url:${b.value}`;
+              if (b.type === "call" && b.value) return `${label}|call:${b.value}`;
+              return `${label}|button-${i}`;
+            },
+          );
+          await sendUaz(
+            "/send/menu",
+            {
+              number: normalizedTargetNumber,
+              type: kind,
+              text: content || "Selecione uma opção:",
+              footerText: targetNode.data.footer || undefined,
+              buttonText: targetNode.data.listButtonText || undefined,
+              choices,
+            },
+            `Bloco ${targetNode.id} (interactive:${kind})`,
+          );
+        } else {
+          // Z-API: button-actions / option-list
+          const rawButtons = (targetNode.data.buttons || []) as any[];
+          if (kind === "list") {
+            const options = rawButtons.slice(0, 10).map((b: any, i: number) => ({
+              id: b.id || String(i + 1),
+              title: (b.text || `Opção ${i + 1}`).trim().slice(0, 24),
+              description: b.description || "",
+            }));
+            await sendZapi(
+              "/send-option-list",
+              {
+                phone,
+                message: content || "Selecione uma opção:",
+                optionList: {
+                  title: targetNode.data.listButtonText || "Opções",
+                  buttonLabel: targetNode.data.listButtonText || "Ver opções",
+                  options,
+                },
+              },
+              `Bloco ${targetNode.id} (interactive:list)`,
+            );
+          } else {
+            const buttonActions = rawButtons.slice(0, 3).map((b: any, i: number) => {
+              const t = String(b.type || "reply").toLowerCase();
+              const action: any = {
+                id: b.id || String(i + 1),
+                label: (b.text || `Opção ${i + 1}`).trim().slice(0, 25),
+              };
+              if (t === "url" && b.value) {
+                action.type = "URL";
+                action.url = b.value;
+              } else if (t === "call" && b.value) {
+                action.type = "CALL";
+                action.phone = b.value;
+              } else {
+                action.type = "REPLY";
+              }
+              return action;
+            });
+            await sendZapi(
+              "/send-button-actions",
+              {
+                phone,
+                message: content || "Selecione uma opção:",
+                ...(targetNode.data.footer ? { footer: targetNode.data.footer } : {}),
+                buttonActions,
+              },
+              `Bloco ${targetNode.id} (interactive:${kind})`,
+            );
+          }
+        }
         return true; // pausa aguardando resposta
       }
 
@@ -4523,23 +4655,65 @@ async function sendNodeContent(
         } catch {
           cards = [];
         }
-        await sendUaz(
-          "/send/media-carousel",
-          { number: normalizedTargetNumber, cards },
-          `Bloco ${targetNode.id} (media-carousel)`,
-        );
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/media-carousel",
+            { number: normalizedTargetNumber, cards },
+            `Bloco ${targetNode.id} (media-carousel)`,
+          );
+        } else {
+          const zapiCards = cards.map((c: any) => {
+            const card: any = {
+              title: c.title || "",
+              description: c.subtitle || c.description || "",
+            };
+            if (c.image) card.image = c.image;
+            if (Array.isArray(c.buttons) && c.buttons.length > 0) {
+              card.buttons = c.buttons.slice(0, 3).map((b: any, i: number) => {
+                const action: any = {
+                  id: b.id || String(i + 1),
+                  label: b.label || b.text || `Botão ${i + 1}`,
+                };
+                if (b.url) {
+                  action.type = "URL";
+                  action.url = b.url;
+                } else if (b.phone) {
+                  action.type = "CALL";
+                  action.phone = b.phone;
+                } else {
+                  action.type = "REPLY";
+                }
+                return action;
+              });
+            }
+            return card;
+          });
+          await sendZapi(
+            "/send-carousel",
+            { phone, message: content || "", carousel: zapiCards },
+            `Bloco ${targetNode.id} (media-carousel)`,
+          );
+        }
         return false;
       }
 
       if (contentType === "request-location") {
-        await sendUaz(
-          "/send/request-location",
-          {
-            number: normalizedTargetNumber,
-            text: content || "Por favor, compartilhe sua localização.",
-          },
-          `Bloco ${targetNode.id} (request-location)`,
-        );
+        if (isUazapiProvider) {
+          await sendUaz(
+            "/send/request-location",
+            {
+              number: normalizedTargetNumber,
+              text: content || "Por favor, compartilhe sua localização.",
+            },
+            `Bloco ${targetNode.id} (request-location)`,
+          );
+        } else {
+          // Z-API não tem endpoint nativo de "solicitar localização" — fallback para texto
+          await sendProviderText(
+            content || "📍 Por favor, compartilhe sua localização.",
+            `Bloco ${targetNode.id} (request-location)`,
+          );
+        }
         return false;
       }
 
@@ -4589,30 +4763,61 @@ async function sendNodeContent(
           }
         }
 
-        if (contentType === "pix") {
-          await sendUaz(
-            "/send/pix",
-            {
-              number: normalizedTargetNumber,
-              keyType: targetNode.data.pixKeyType || "random",
-              key: brCode || targetNode.data.pixKey || "",
-              receiver: targetNode.data.pixReceiver || null,
-              amount: amountReais,
-              description,
-            },
-            `Bloco ${targetNode.id} (pix)`,
-          );
+        if (isUazapiProvider) {
+          if (contentType === "pix") {
+            await sendUaz(
+              "/send/pix",
+              {
+                number: normalizedTargetNumber,
+                keyType: targetNode.data.pixKeyType || "random",
+                key: brCode || targetNode.data.pixKey || "",
+                receiver: targetNode.data.pixReceiver || null,
+                amount: amountReais,
+                description,
+              },
+              `Bloco ${targetNode.id} (pix)`,
+            );
+          } else {
+            await sendUaz(
+              "/send/request-payment",
+              {
+                number: normalizedTargetNumber,
+                amount: amountReais,
+                description,
+                receiver: targetNode.data.paymentReceiver || null,
+                brCode: brCode || undefined,
+              },
+              `Bloco ${targetNode.id} (request-payment)`,
+            );
+          }
         } else {
-          await sendUaz(
-            "/send/request-payment",
+          // Z-API: /send-payment-pix (cobrança PIX nativa)
+          const pixKey = brCode
+            || (contentType === "pix"
+              ? (targetNode.data.pixKey || "")
+              : (targetNode.data.paymentReceiver || ""));
+          const keyType = String(
+            contentType === "pix"
+              ? (targetNode.data.pixKeyType || "random")
+              : (targetNode.data.paymentKeyType || "random"),
+          ).toUpperCase();
+          const merchantName = String(
+            targetNode.data.pixMerchantName
+              || targetNode.data.paymentReceiver
+              || description
+              || "Pagamento",
+          ).slice(0, 25);
+          await sendZapi(
+            "/send-payment-pix",
             {
-              number: normalizedTargetNumber,
-              amount: amountReais,
-              description,
-              receiver: targetNode.data.paymentReceiver || null,
-              brCode: brCode || undefined,
+              phone,
+              pixKey,
+              type: keyType,
+              merchantName,
+              ...(amountReais > 0 ? { value: amountReais } : {}),
+              ...(description ? { description } : {}),
             },
-            `Bloco ${targetNode.id} (request-payment)`,
+            `Bloco ${targetNode.id} (${contentType})`,
           );
         }
 
