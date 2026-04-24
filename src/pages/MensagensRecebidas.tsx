@@ -52,9 +52,19 @@ const formatPhone = (phone?: string | null) => {
   return phone;
 };
 
+const looksLikePhoneOrId = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  // Pure digits / phone-like (with +, spaces, parens, dashes)
+  return /^[+\d()\-\s]+$/.test(trimmed) && /\d/.test(trimmed);
+};
+
 const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
-  if (name) return name;
-  if (phone && isGroupPhone(phone)) return 'Grupo';
+  const isGroup = phone ? isGroupPhone(phone) : false;
+  // For groups, ignore "names" that look like phone numbers / IDs (often the
+  // last sender's number or the group jid leaked through).
+  if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
+  if (isGroup) return 'Grupo';
   return formatPhone(phone);
 };
 
