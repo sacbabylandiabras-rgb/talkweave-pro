@@ -5012,7 +5012,7 @@ async function routeMatchedButtonFlow(
     keywordMatched: `[Botão: ${match.buttonText}]`,
     responseSent: `[Fluxo: ${match.flowName}]`,
   });
-  await setVisibleIncomingMessage(supabase, lockId, match.buttonText || messageRaw);
+  await setVisibleIncomingMessage(supabase, lockId, match.buttonText || "[Botão]");
 
   return true;
 }
