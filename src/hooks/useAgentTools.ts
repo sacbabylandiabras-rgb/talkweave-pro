@@ -27,6 +27,7 @@ export const ALL_TOOLS: Omit<AgentTool, "enabled">[] = [
   { category: "Gateway (ZapLynxPay)", name: "gateway_consultar_saldo", label: "Consultar saldo", description: "Consulta saldo disponível, total recebido e total de saques." },
   { category: "Gateway (ZapLynxPay)", name: "gateway_listar_vendas", label: "Listar vendas", description: "Lista últimas transações com filtro opcional por status." },
   { category: "Gateway (ZapLynxPay)", name: "gateway_listar_produtos", label: "Listar produtos", description: "Lista produtos ativos cadastrados no gateway." },
+  { category: "Gateway (ZapLynxPay)", name: "gateway_buscar_plano_checkout", label: "Buscar plano + checkout", description: "Encontra o plano ideal e retorna o checkout existente para pagamento." },
   { category: "Gateway (ZapLynxPay)", name: "gerar_pix", label: "Gerar cobrança PIX", description: "Cria cobrança PIX e envia o código copia-e-cola." },
   // Geral
   { category: "Geral", name: "buscar_faq", label: "Buscar na base de conhecimento", description: "Pesquisa FAQs e documentos cadastrados antes de responder." },
