@@ -303,6 +303,44 @@ const ApanhadorGrupos = () => {
         </CardContent>
       </Card>
 
+      {filteredGroups.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSelectAllVisible}
+              className="gap-2"
+            >
+              <CheckSquare className="w-4 h-4" />
+              {filteredGroups.every(g => selectedGroups.has(g.id)) ? 'Desmarcar todos' : 'Selecionar todos'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedGroups.size} grupo(s) selecionado(s)
+            </span>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => bulkActivateWelcome(true)}
+                disabled={bulkActivating || selectedGroups.size === 0}
+                className="gap-2"
+              >
+                {bulkActivating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                Ativar boas-vindas
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => bulkActivateWelcome(false)}
+                disabled={bulkActivating || selectedGroups.size === 0}
+              >
+                Desativar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
