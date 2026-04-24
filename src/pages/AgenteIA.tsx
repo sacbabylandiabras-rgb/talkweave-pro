@@ -72,7 +72,7 @@ const getEdgeFunctionErrorMessage = async (err: unknown) => {
 
 const AgenteIA = () => {
   const { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge } = useAgentConfig();
-  const { tools, toggle: toggleTool } = useAgentTools();
+  const { tools, unavailable: toolsUnavailable, toggle: toggleTool } = useAgentTools();
 
   // Config form state
   const [agentName, setAgentName] = useState("");
@@ -389,6 +389,11 @@ const AgenteIA = () => {
                       As ferramentas só funcionam com o provedor <strong>Claude (Anthropic)</strong>. Troque o provedor na aba "Configuração" para ativá-las.
                     </div>
                   )}
+                  {toolsUnavailable && (
+                    <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-xs text-destructive">
+                      As ferramentas estão temporariamente indisponíveis porque a tabela <code>agent_tools_config</code> ainda não está acessível neste ambiente. Depois de aplicar/sincronizar a migration, recarregue a página.
+                    </div>
+                  )}
                   {Array.from(new Set(tools.map((t) => t.category))).map((cat) => (
                     <div key={cat} className="space-y-2">
                       <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mt-2">{cat}</p>
@@ -402,7 +407,7 @@ const AgenteIA = () => {
                           <Switch
                             checked={t.enabled}
                             onCheckedChange={(v) => toggleTool(t.name, v)}
-                            disabled={provider !== "anthropic"}
+                            disabled={provider !== "anthropic" || toolsUnavailable}
                           />
                         </div>
                       ))}
