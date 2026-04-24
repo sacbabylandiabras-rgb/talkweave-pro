@@ -1209,7 +1209,7 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-            if (isWhatsAppRateLimitError(uazResult.raw, undefined)) {
+            if (isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined) && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
             } else {
               rateLimitHitsInBatch = 0;
@@ -1408,7 +1408,7 @@ serve(async (req) => {
             // 🚨 WhatsApp rate-limit (error 463 / temporary restriction):
             // pause the campaign immediately so the remaining contacts stay
             // pending and can be resumed later when the account recovers.
-            if (isWhatsAppRateLimitError(zapiResult, zapiResponse.status)) {
+            if (isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
             } else {
               rateLimitHitsInBatch = 0;
