@@ -24,7 +24,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const { toast } = useToast();
   const { createCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
-  const { contacts } = useContacts();
+  const { contacts } = useContacts({ enabled: open });
 
   const [formData, setFormData] = useState({
     name: "",
