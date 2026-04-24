@@ -872,6 +872,51 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_dispatch_instances: {
+        Row: {
+          api_provider: string
+          created_at: string
+          created_by: string | null
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          zapi_client_token: string
+          zapi_instance_id: string
+          zapi_token: string
+        }
+        Insert: {
+          api_provider?: string
+          created_at?: string
+          created_by?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          zapi_client_token?: string
+          zapi_instance_id?: string
+          zapi_token?: string
+        }
+        Update: {
+          api_provider?: string
+          created_at?: string
+          created_by?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          zapi_client_token?: string
+          zapi_instance_id?: string
+          zapi_token?: string
+        }
+        Relationships: []
+      }
       instagram_automations: {
         Row: {
           active: boolean
