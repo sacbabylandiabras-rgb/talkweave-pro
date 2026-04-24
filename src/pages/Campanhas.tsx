@@ -269,7 +269,7 @@ const Campanhas = () => {
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
   const statsDialogStats = {
-    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered' || s.status === 'pending').length,
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
     sending: statsDialogSends.filter(s => s.status === 'pending').length,
     pending: statsDialogSends.filter(s => s.status === 'pending').length,
