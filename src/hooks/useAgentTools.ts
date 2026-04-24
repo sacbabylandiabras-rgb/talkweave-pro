@@ -37,17 +37,37 @@ export function useAgentTools() {
   const [tools, setTools] = useState<AgentTool[]>(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
   const [loading, setLoading] = useState(true);
 
+  const isMissingAgentToolsTableError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String((error as any)?.message || error || "");
+    return message.toLowerCase().includes("agent_tools_config") && (
+      message.toLowerCase().includes("could not find the table") ||
+      message.toLowerCase().includes("does not exist")
+    );
+  };
+
   const load = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("agent_tools_config")
         .select("tool_name, enabled")
         .eq("user_id", session.user.id);
+
+      if (error) {
+        if (isMissingAgentToolsTableError(error)) {
+          setTools(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
+          return;
+        }
+        throw error;
+      }
+
       const map = new Map<string, boolean>();
       (data || []).forEach((r: any) => map.set(r.tool_name, !!r.enabled));
       setTools(ALL_TOOLS.map(t => ({ ...t, enabled: map.get(t.name) ?? false })));
+    } catch (error) {
+      console.error("Erro ao carregar ferramentas do agente:", error);
+      setTools(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
     } finally {
       setLoading(false);
     }
@@ -66,7 +86,11 @@ export function useAgentTools() {
         { onConflict: "user_id,tool_name" }
       );
     if (error) {
+      if (isMissingAgentToolsTableError(error)) {
+        toast({ title: "Ferramentas indisponíveis", description: "A configuração ainda não foi criada no banco de dados.", variant: "destructive" });
+      } else {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+      }
       setTools(prev => prev.map(t => t.name === name ? { ...t, enabled: !enabled } : t));
     } else {
       toast({ title: enabled ? "Ferramenta ativada" : "Ferramenta desativada" });
