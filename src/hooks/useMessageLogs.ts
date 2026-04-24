@@ -170,14 +170,15 @@ const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' |
   return rawContent;
 };
 
-const isGroupJoinLog = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
-  return log.keyword_matched === '__group_join__' && isGroupPhone(String(log.message_received || ''));
+const isGroupMembershipLog = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
+  return (log.keyword_matched === '__group_join__' || log.keyword_matched === '__group_leave__') && isGroupPhone(String(log.message_received || ''));
 };
 
-const resolveGroupJoinContent = (log: Pick<MessageLog, 'phone' | 'response_sent'>) => {
+const resolveGroupMembershipContent = (log: Pick<MessageLog, 'phone' | 'response_sent' | 'keyword_matched'>) => {
   const joinedName = String(log.response_sent || '').trim();
   const joinedPhone = String(log.phone || '').replace(/\D/g, '');
-  return `${joinedName || (joinedPhone ? `+${joinedPhone}` : 'Novo membro')} entrou na comunidade`;
+  const action = log.keyword_matched === '__group_leave__' ? 'saiu da comunidade' : 'entrou na comunidade';
+  return `${joinedName || (joinedPhone ? `+${joinedPhone}` : 'Membro')} ${action}`;
 };
 
 const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
@@ -822,12 +823,12 @@ export const useMessageLogs = (
 
     // From message_logs
     filteredLogs.forEach(log => {
-      if (isGroupJoinLog(log)) {
+      if (isGroupMembershipLog(log)) {
         allMessages.push({
-          id: `log-group-join-${log.id}`,
+          id: `log-group-membership-${log.id}`,
           phone: normalizeConversationPhone(String(log.message_received || '')),
           type: 'received',
-          content: resolveGroupJoinContent(log),
+          content: resolveGroupMembershipContent(log),
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
