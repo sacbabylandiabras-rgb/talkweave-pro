@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send, Upload, QrCode, KeyRound, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Trash2, RefreshCw, Download } from "lucide-react";
 
 type MediaType = "" | "image" | "video" | "audio" | "document";
 
@@ -48,6 +49,22 @@ export default function DisparoOculto() {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, ok: 0, fail: 0 });
   const [bulkLog, setBulkLog] = useState<{ phone: string; ok: boolean; err?: string }[]>([]);
+
+  // history report
+  interface HistoryRow {
+    id: string;
+    phone: string;
+    status: string;
+    error_message: string | null;
+    instance_name: string | null;
+    template_type: string | null;
+    message_preview: string | null;
+    batch_id: string | null;
+    created_at: string;
+  }
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "success" | "failed">("all");
 
   // connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -160,15 +177,36 @@ export default function DisparoOculto() {
     setBulkRunning(true);
     setBulkLog([]);
     setBulkProgress({ done: 0, total: phones.length, ok: 0, fail: 0 });
+    const batchId = crypto.randomUUID();
+    const { data: { user } } = await supabase.auth.getUser();
+    const instName = instances.find((i) => i.id === hiddenInstanceId)?.name || null;
+    const preview = (message || mediaUrl || "").slice(0, 200);
     for (let i = 0; i < phones.length; i++) {
       const phone = phones[i];
+      let ok = false;
+      let errMsg: string | null = null;
       try {
         await sendOne(phone);
+        ok = true;
         setBulkLog((l) => [...l, { phone, ok: true }]);
         setBulkProgress((p) => ({ ...p, done: p.done + 1, ok: p.ok + 1 }));
       } catch (e: any) {
+        errMsg = e.message;
         setBulkLog((l) => [...l, { phone, ok: false, err: e.message }]);
         setBulkProgress((p) => ({ ...p, done: p.done + 1, fail: p.fail + 1 }));
+      }
+      if (user) {
+        await (supabase as any).from("hidden_dispatch_logs").insert({
+          user_id: user.id,
+          hidden_instance_id: hiddenInstanceId,
+          instance_name: instName,
+          phone,
+          message_preview: preview,
+          template_type: templateType,
+          status: ok ? "success" : "failed",
+          error_message: errMsg,
+          batch_id: batchId,
+        });
       }
       if (i < phones.length - 1 && delaySeconds > 0) {
         await sleep(delaySeconds * 1000);
@@ -176,7 +214,50 @@ export default function DisparoOculto() {
     }
     setBulkRunning(false);
     toast({ title: "Disparo concluído" });
+    fetchHistory();
   };
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("hidden_dispatch_logs")
+      .select("id, phone, status, error_message, instance_name, template_type, message_preview, batch_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (!error && data) setHistory(data as HistoryRow[]);
+    setHistoryLoading(false);
+  };
+
+  const clearHistory = async () => {
+    if (!confirm("Apagar todo o histórico?")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await (supabase as any).from("hidden_dispatch_logs").delete().eq("user_id", user.id);
+    fetchHistory();
+  };
+
+  const exportCsv = () => {
+    const rows = filteredHistory();
+    const header = "data,instancia,telefone,status,tipo,erro,mensagem\n";
+    const csv = header + rows.map((r) => [
+      new Date(r.created_at).toISOString(),
+      JSON.stringify(r.instance_name || ""),
+      r.phone,
+      r.status,
+      r.template_type || "",
+      JSON.stringify(r.error_message || ""),
+      JSON.stringify(r.message_preview || ""),
+    ].join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `disparo-oculto-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredHistory = () => history.filter((r) => historyFilter === "all" ? true : (historyFilter === "success" ? r.status === "success" : r.status !== "success"));
+
+  useEffect(() => { fetchHistory(); }, []);
 
   const validateContent = (): boolean => {
     if (templateType === "text" && !message.trim()) {
@@ -444,6 +525,97 @@ export default function DisparoOculto() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Relatório de envios</CardTitle>
+            <div className="flex items-center gap-2">
+              <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as any)}>
+                <SelectTrigger className="w-36 h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="success">Sucesso</SelectItem>
+                  <SelectItem value="failed">Falhas</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={fetchHistory} disabled={historyLoading}>
+                <RefreshCw className={`w-4 h-4 ${historyLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button size="sm" variant="outline" onClick={exportCsv} disabled={history.length === 0}>
+                <Download className="w-4 h-4 mr-1" /> CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={clearHistory} disabled={history.length === 0}>
+                <Trash2 className="w-4 h-4 mr-1 text-destructive" /> Limpar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const total = history.length;
+              const ok = history.filter((r) => r.status === "success").length;
+              const fail = total - ok;
+              return (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Total</div>
+                    <div className="text-2xl font-bold">{total}</div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Sucesso</div>
+                    <div className="text-2xl font-bold text-green-600">{ok}</div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Falhas</div>
+                    <div className="text-2xl font-bold text-red-600">{fail}</div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {historyLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : filteredHistory().length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum envio registrado.</p>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-96 overflow-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr className="text-left">
+                        <th className="p-2">Data</th>
+                        <th className="p-2">Instância</th>
+                        <th className="p-2">Telefone</th>
+                        <th className="p-2">Tipo</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Detalhe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory().map((r) => (
+                        <tr key={r.id} className="border-t">
+                          <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</td>
+                          <td className="p-2">{r.instance_name || "—"}</td>
+                          <td className="p-2 font-mono">{r.phone}</td>
+                          <td className="p-2">{r.template_type || "—"}</td>
+                          <td className="p-2">
+                            {r.status === "success" ? (
+                              <span className="text-green-600">✅ Enviado</span>
+                            ) : (
+                              <span className="text-red-600">❌ Falhou</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-muted-foreground max-w-xs truncate" title={r.error_message || r.message_preview || ""}>
+                            {r.error_message || r.message_preview || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
