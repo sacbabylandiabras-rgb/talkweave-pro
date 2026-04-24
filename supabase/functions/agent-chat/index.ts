@@ -670,6 +670,9 @@ serve(async (req) => {
     systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
     systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
     systemPrompt += '\n- Se não souber a resposta, use a ferramenta transferir_humano.'
+    systemPrompt += '\n- Se o cliente perguntar sobre plano, preço, assinatura ou quiser pagar, use a ferramenta gateway_buscar_plano_checkout antes de responder.'
+    systemPrompt += '\n- Quando existir checkout disponível, responda mencionando o plano e inclua o link de pagamento de forma clara.'
+    systemPrompt += '\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.'
     systemPrompt += `\n- Nome do agente: ${effectiveAgentName}`
 
     if (knowledge && knowledge.length > 0) {
@@ -803,7 +806,14 @@ serve(async (req) => {
       convMessages.push({ role: 'user', content: toolResults })
     }
 
-    return new Response(JSON.stringify({ reply: finalText || 'Sem resposta.' }), {
+    const checkoutMatch = finalText.match(/https:\/\/[^\s)]+/)
+    const checkoutUrl = checkoutMatch?.[0] || null
+    const replyPayload: Record<string, unknown> = { reply: finalText || 'Sem resposta.' }
+    if (checkoutUrl) {
+      replyPayload.cta = { label: 'Abrir checkout', url: checkoutUrl }
+    }
+
+    return new Response(JSON.stringify(replyPayload), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
