@@ -866,9 +866,27 @@ const MensagensRecebidas = () => {
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
-  // Strict: only show data from instances confirmed online. While checking, pass [] (hide everything) to avoid flashing legacy chats.
-  const knownInstanceIds = useMemo(() => connectedInstanceIds ?? [], [connectedInstanceIds]);
-  const knownInstanceNames = useMemo(() => connectedInstanceNames ?? [], [connectedInstanceNames]);
+  // Show data from connected instances. If none are online yet (e.g., new instance still pending QR scan),
+  // fall back to all registered instances so the user keeps seeing the historic conversations
+  // instead of an empty list.
+  const allInstanceIds = useMemo(
+    () => instances.map((i: any) => i.zapi_instance_id).filter(Boolean) as string[],
+    [instances],
+  );
+  const allInstanceNames = useMemo(
+    () => instances.map((i: any) => i.instance_name).filter(Boolean) as string[],
+    [instances],
+  );
+  const knownInstanceIds = useMemo(() => {
+    if (connectedInstanceIds === null) return undefined; // still checking → show everything
+    if (connectedInstanceIds.length > 0) return connectedInstanceIds;
+    return allInstanceIds.length > 0 ? allInstanceIds : undefined;
+  }, [connectedInstanceIds, allInstanceIds]);
+  const knownInstanceNames = useMemo(() => {
+    if (connectedInstanceNames === null) return undefined;
+    if (connectedInstanceNames.length > 0) return connectedInstanceNames;
+    return allInstanceNames.length > 0 ? allInstanceNames : undefined;
+  }, [connectedInstanceNames, allInstanceNames]);
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Map UI instance id to zapi_instance_id for filtering
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
