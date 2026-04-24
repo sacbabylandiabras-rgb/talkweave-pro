@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Defaults para os campos especiais (PIX/Localização/Contato)
+// Defaults para os campos especiais (PIX/Localização/Contato/UAZAPI)
 const SPECIAL_FIELD_DEFAULTS = {
   pixKey: "",
   pixKeyType: "cpf",
@@ -24,6 +24,26 @@ const SPECIAL_FIELD_DEFAULTS = {
   locTitle: "",
   contactName: "",
   contactPhone: "",
+  // UAZAPI: Status / Stories
+  uazStatusType: "text", // text | image | video | audio
+  uazStatusText: "",
+  uazStatusBgColor: "#000000",
+  uazStatusFont: "1",
+  uazStatusMedia: "",
+  uazStatusCaption: "",
+  // UAZAPI: Botão de Localização (rich button with map)
+  uazLocBtnLatitude: "",
+  uazLocBtnLongitude: "",
+  uazLocBtnName: "",
+  uazLocBtnAddress: "",
+  uazLocBtnText: "",
+  uazLocBtnUrl: "",
+  uazLocBtnLabel: "Ver no mapa",
+  // UAZAPI: Solicitação de Pagamento
+  uazPayAmount: "",
+  uazPayCurrency: "BRL",
+  uazPayNote: "",
+  uazPayExpiry: "",
 };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
@@ -53,6 +73,29 @@ const buildSpecialContent = (type: string, data: any): string => {
       : {};
     payload.copyText = vars.copyText || data.header || data.content || "";
     payload.description = data.content || "";
+  } else if (type === "uaz_status") {
+    payload.statusType = data.uazStatusType || "text";
+    payload.text = data.uazStatusText || data.content || "";
+    payload.backgroundColor = data.uazStatusBgColor || "#000000";
+    payload.font = data.uazStatusFont || "1";
+    payload.media = data.uazStatusMedia || "";
+    payload.caption = data.uazStatusCaption || "";
+    payload.description = data.content || "";
+  } else if (type === "uaz_location_button") {
+    payload.latitude = data.uazLocBtnLatitude || "";
+    payload.longitude = data.uazLocBtnLongitude || "";
+    payload.name = data.uazLocBtnName || "";
+    payload.address = data.uazLocBtnAddress || "";
+    payload.text = data.uazLocBtnText || data.content || "";
+    payload.url = data.uazLocBtnUrl || "";
+    payload.buttonLabel = data.uazLocBtnLabel || "Ver no mapa";
+    payload.description = data.content || "";
+  } else if (type === "uaz_request_payment") {
+    payload.amount = data.uazPayAmount || "";
+    payload.currency = data.uazPayCurrency || "BRL";
+    payload.note = data.uazPayNote || data.content || "";
+    payload.expiry = data.uazPayExpiry || "";
+    payload.description = data.content || "";
   }
   return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
 };
@@ -67,7 +110,8 @@ const parseSpecialContent = (content: string): any | null => {
 };
 
 const isSpecialType = (type?: string) =>
-  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola";
+  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
+  || type === "uaz_status" || type === "uaz_location_button" || type === "uaz_request_payment";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
