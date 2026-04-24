@@ -36,13 +36,20 @@ export const ALL_TOOLS: Omit<AgentTool, "enabled">[] = [
 export function useAgentTools() {
   const [tools, setTools] = useState<AgentTool[]>(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   const isMissingAgentToolsTableError = (error: unknown) => {
     const message = error instanceof Error ? error.message : String((error as any)?.message || error || "");
-    return message.toLowerCase().includes("agent_tools_config") && (
-      message.toLowerCase().includes("could not find the table") ||
-      message.toLowerCase().includes("does not exist")
-    );
+    const normalizedMessage = message.toLowerCase();
+    const code = String((error as any)?.code || "").toLowerCase();
+    return (
+      normalizedMessage.includes("agent_tools_config") && (
+        normalizedMessage.includes("could not find the table") ||
+        normalizedMessage.includes("does not exist") ||
+        normalizedMessage.includes("relation") ||
+        normalizedMessage.includes("schema cache")
+      )
+    ) || code === "42p01" || code === "pgrst205";
   };
 
   const load = useCallback(async () => {
@@ -56,17 +63,20 @@ export function useAgentTools() {
 
       if (error) {
         if (isMissingAgentToolsTableError(error)) {
+          setUnavailable(true);
           setTools(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
           return;
         }
         throw error;
       }
 
+      setUnavailable(false);
       const map = new Map<string, boolean>();
       (data || []).forEach((r: any) => map.set(r.tool_name, !!r.enabled));
       setTools(ALL_TOOLS.map(t => ({ ...t, enabled: map.get(t.name) ?? false })));
     } catch (error) {
       console.error("Erro ao carregar ferramentas do agente:", error);
+      setUnavailable(false);
       setTools(ALL_TOOLS.map(t => ({ ...t, enabled: false })));
     } finally {
       setLoading(false);
@@ -76,6 +86,10 @@ export function useAgentTools() {
   useEffect(() => { load(); }, [load]);
 
   const toggle = async (name: string, enabled: boolean) => {
+    if (unavailable) {
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     setTools(prev => prev.map(t => t.name === name ? { ...t, enabled } : t));
@@ -87,9 +101,9 @@ export function useAgentTools() {
       );
     if (error) {
       if (isMissingAgentToolsTableError(error)) {
-        toast({ title: "Ferramentas indisponíveis", description: "A configuração ainda não foi criada no banco de dados.", variant: "destructive" });
+        setUnavailable(true);
       } else {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
       }
       setTools(prev => prev.map(t => t.name === name ? { ...t, enabled: !enabled } : t));
     } else {
@@ -97,5 +111,5 @@ export function useAgentTools() {
     }
   };
 
-  return { tools, loading, toggle };
+  return { tools, loading, unavailable, toggle };
 }
