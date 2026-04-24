@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, QrCode, KeyRound } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface HiddenInstance {
   id: string;
@@ -41,6 +43,13 @@ export default function AdminDisparoOculto() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(empty);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectInstance, setConnectInstance] = useState<HiddenInstance | null>(null);
+  const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
@@ -94,6 +103,55 @@ export default function AdminDisparoOculto() {
     const { error } = await (supabase as any).from("hidden_dispatch_instances").delete().eq("id", id);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else fetchItems();
+  };
+
+  const openConnect = (it: HiddenInstance) => {
+    setConnectInstance(it);
+    setConnectMode("qr");
+    setQrImage(null);
+    setPairingCode(null);
+    setPairingPhone("");
+    setConnectOpen(true);
+  };
+
+  const fetchQr = async (instance: HiddenInstance) => {
+    setConnectLoading(true);
+    setQrImage(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("hidden-dispatch-connect", {
+        body: { hiddenInstanceId: instance.id, mode: "qr" },
+      });
+      if (error) throw error;
+      const qr = (data as any)?.data?.qrCode;
+      if (!qr) {
+        toast({ title: "Sem QR", description: (data as any)?.data?.connected ? "Já conectada" : "Resposta vazia" });
+      } else {
+        setQrImage(qr.startsWith("data:") ? qr : `data:image/png;base64,${qr}`);
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  const fetchPairing = async (instance: HiddenInstance) => {
+    if (!pairingPhone.trim()) { toast({ title: "Informe o número", variant: "destructive" }); return; }
+    setConnectLoading(true);
+    setPairingCode(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("hidden-dispatch-connect", {
+        body: { hiddenInstanceId: instance.id, mode: "pairing", phoneNumber: pairingPhone.replace(/\D/g, "") },
+      });
+      if (error) throw error;
+      const code = (data as any)?.data?.pairingCode;
+      if (!code) toast({ title: "Sem código", description: "Resposta vazia", variant: "destructive" });
+      else setPairingCode(code);
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setConnectLoading(false);
+    }
   };
 
   if (roleLoading) return <div className="p-6">Carregando...</div>;
@@ -188,6 +246,9 @@ export default function AdminDisparoOculto() {
                         <Switch checked={it.is_active} onCheckedChange={(v) => toggleActive(it.id, v)} />
                         <span className="text-xs">{it.is_active ? "Ativa" : "Inativa"}</span>
                       </div>
+                      <Button variant="outline" size="sm" onClick={() => openConnect(it)}>
+                        <QrCode className="w-4 h-4 mr-1" /> Conectar
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => remove(it.id)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
@@ -199,6 +260,62 @@ export default function AdminDisparoOculto() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conectar — {connectInstance?.name}</DialogTitle>
+          </DialogHeader>
+          {connectInstance && (
+            <Tabs value={connectMode} onValueChange={(v) => setConnectMode(v as any)}>
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="qr"><QrCode className="w-4 h-4 mr-1" /> QR Code</TabsTrigger>
+                <TabsTrigger value="pairing"><KeyRound className="w-4 h-4 mr-1" /> Código</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="qr" className="space-y-3 pt-3">
+                <Button onClick={() => fetchQr(connectInstance)} disabled={connectLoading} className="w-full">
+                  {connectLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
+                  Gerar QR Code
+                </Button>
+                {qrImage && (
+                  <div className="flex justify-center bg-white p-4 rounded-lg">
+                    <img src={qrImage} alt="QR" className="w-64 h-64" />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-center">
+                  Abra WhatsApp → Aparelhos conectados → Conectar aparelho
+                </p>
+              </TabsContent>
+
+              <TabsContent value="pairing" className="space-y-3 pt-3">
+                <div>
+                  <Label>Número (com DDI)</Label>
+                  <Input
+                    value={pairingPhone}
+                    onChange={(e) => setPairingPhone(e.target.value)}
+                    placeholder="5511999999999"
+                  />
+                </div>
+                <Button onClick={() => fetchPairing(connectInstance)} disabled={connectLoading} className="w-full">
+                  {connectLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+                  Gerar código
+                </Button>
+                {pairingCode && (
+                  <div className="text-center space-y-2">
+                    <div className="text-3xl font-mono font-bold tracking-widest bg-muted py-4 rounded-lg">
+                      {pairingCode}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      WhatsApp → Aparelhos conectados → Conectar com número de telefone
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
