@@ -130,11 +130,10 @@ const UazapiSpecialSection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5" />
-            Recursos Especiais UAZAPI
+            Recursos Especiais
           </CardTitle>
           <CardDescription>
-            Status (Stories), Botão de Localização e Solicitação de Pagamento. Disponível apenas
-            para instâncias UAZAPI.
+            Status (Stories), Botão de Localização e Solicitação de Pagamento.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -142,7 +141,7 @@ const UazapiSpecialSection = () => {
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
-                Você não tem nenhuma instância UAZAPI conectada. Adicione uma em{" "}
+                Você não tem nenhuma instância compatível conectada. Adicione uma em{" "}
                 <strong>Dispositivos</strong> para usar estes recursos.
               </span>
             </div>
@@ -150,7 +149,7 @@ const UazapiSpecialSection = () => {
 
           {hasUazapi && (
             <div className="space-y-2">
-              <Label>Instância UAZAPI</Label>
+              <Label>Instância</Label>
               <Select value={instanceId} onValueChange={setInstanceId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Escolha uma instância" />
