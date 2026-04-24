@@ -761,6 +761,7 @@ serve(async (req) => {
       .map((m: any) => ({ role: m.role, content: m.content }))
 
     let finalText = ''
+    let finalCta: { label: string; url: string } | null = null
     let iterations = 0
     const MAX_ITER = 6
 
@@ -812,16 +813,29 @@ serve(async (req) => {
         const result = await executeTool(tu.name, tu.input || {}, {
           supabase, userId: effectiveUserId, phone: phone || null, testMode,
         })
+        try {
+          const parsed = JSON.parse(result)
+          const ctaUrl = String(parsed?.cta?.url || parsed?.checkout?.url || '').trim()
+          if (/^https?:\/\//i.test(ctaUrl)) {
+            finalCta = {
+              label: String(parsed?.cta?.label || `Abrir checkout`).trim() || 'Abrir checkout',
+              url: ctaUrl,
+            }
+          }
+        } catch {}
         toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: result })
       }
       convMessages.push({ role: 'user', content: toolResults })
     }
 
     const checkoutMatch = finalText.match(/https:\/\/[^\s)]+/)
-    const checkoutUrl = checkoutMatch?.[0] || null
+    const checkoutUrl = finalCta?.url || checkoutMatch?.[0] || null
     const replyPayload: Record<string, unknown> = { reply: finalText || 'Sem resposta.' }
     if (checkoutUrl) {
-      replyPayload.cta = { label: 'Abrir checkout', url: checkoutUrl }
+      replyPayload.cta = {
+        label: finalCta?.label || 'Abrir checkout',
+        url: checkoutUrl,
+      }
     }
 
     return new Response(JSON.stringify(replyPayload), {
