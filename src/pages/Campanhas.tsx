@@ -1107,7 +1107,9 @@ const Campanhas = () => {
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
                 if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') status = campaignCancelled ? 'cancelado' : 'enviado';
+                else if (send.status === 'pending') {
+                  status = campaignCancelled ? 'cancelado' : (send.sent_at ? 'enviado' : 'pendente');
+                }
                 else if (send.status === 'failed') status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
