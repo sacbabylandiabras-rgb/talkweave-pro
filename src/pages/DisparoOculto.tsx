@@ -8,10 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Upload, QrCode, KeyRound } from "lucide-react";
+import { Loader2, Send, Upload, QrCode, KeyRound, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type MediaType = "" | "image" | "video" | "audio" | "document";
+
+type TemplateType = "text" | "media" | "text-buttons" | "image-buttons";
+
+interface BtnDef { label: string; type: "reply" | "url" | "phone"; value?: string }
 
 interface HiddenInst {
   id: string;
@@ -30,6 +34,9 @@ export default function DisparoOculto() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<MediaType>("");
   const [uploading, setUploading] = useState(false);
+  const [templateType, setTemplateType] = useState<TemplateType>("text");
+  const [footer, setFooter] = useState("");
+  const [buttons, setButtons] = useState<BtnDef[]>([{ label: "", type: "reply" }]);
 
   // single
   const [singlePhone, setSinglePhone] = useState("");
@@ -103,9 +110,25 @@ export default function DisparoOculto() {
       phone,
       message: message || undefined,
     };
-    if (mediaUrl && mediaType) {
+    const wantsImageBtn = templateType === "image-buttons";
+    const wantsTextBtn = templateType === "text-buttons";
+    const wantsMedia = templateType === "media";
+
+    if ((wantsMedia || wantsImageBtn) && mediaUrl) {
       body.mediaUrl = mediaUrl;
-      body.mediaType = mediaType;
+      body.mediaType = wantsImageBtn ? "image" : (mediaType || "image");
+    }
+    if (wantsTextBtn || wantsImageBtn) {
+      const valid = buttons
+        .filter((b) => b.label.trim())
+        .map((b) => ({
+          label: b.label.trim(),
+          ...(b.type === "url" ? { url: b.value?.trim() } : {}),
+          ...(b.type === "phone" ? { phone: b.value?.trim() } : {}),
+        }));
+      if (valid.length === 0) throw new Error("Adicione ao menos um botão com texto");
+      body.buttons = valid;
+      if (footer.trim()) body.footer = footer.trim();
     }
     const { data, error } = await supabase.functions.invoke("send-hidden-dispatch", { body });
     if (error) throw new Error(error.message || "Falha no envio");
@@ -117,7 +140,7 @@ export default function DisparoOculto() {
     const phone = singlePhone.replace(/\D/g, "");
     if (!phone) { toast({ title: "Informe o número", variant: "destructive" }); return; }
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
-    if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
+    if (!validateContent()) return;
     setSendingSingle(true);
     try {
       await sendOne(phone);
@@ -133,7 +156,7 @@ export default function DisparoOculto() {
     const phones = parsePhones(bulkPhones);
     if (phones.length === 0) { toast({ title: "Nenhum número válido", variant: "destructive" }); return; }
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
-    if (!message && !mediaUrl) { toast({ title: "Informe mensagem ou mídia", variant: "destructive" }); return; }
+    if (!validateContent()) return;
     setBulkRunning(true);
     setBulkLog([]);
     setBulkProgress({ done: 0, total: phones.length, ok: 0, fail: 0 });
@@ -154,6 +177,30 @@ export default function DisparoOculto() {
     setBulkRunning(false);
     toast({ title: "Disparo concluído" });
   };
+
+  const validateContent = (): boolean => {
+    if (templateType === "text" && !message.trim()) {
+      toast({ title: "Informe a mensagem", variant: "destructive" }); return false;
+    }
+    if (templateType === "media" && !mediaUrl) {
+      toast({ title: "Informe a URL da mídia", variant: "destructive" }); return false;
+    }
+    if (templateType === "text-buttons") {
+      if (!message.trim()) { toast({ title: "Informe a mensagem", variant: "destructive" }); return false; }
+      if (!buttons.some((b) => b.label.trim())) { toast({ title: "Adicione ao menos um botão", variant: "destructive" }); return false; }
+    }
+    if (templateType === "image-buttons") {
+      if (!mediaUrl) { toast({ title: "Informe a URL da imagem", variant: "destructive" }); return false; }
+      if (!buttons.some((b) => b.label.trim())) { toast({ title: "Adicione ao menos um botão", variant: "destructive" }); return false; }
+    }
+    return true;
+  };
+
+  const updateBtn = (idx: number, patch: Partial<BtnDef>) => {
+    setButtons((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  };
+  const addBtn = () => setButtons((p) => (p.length >= 3 ? p : [...p, { label: "", type: "reply" }]));
+  const removeBtn = (idx: number) => setButtons((p) => p.filter((_, i) => i !== idx));
 
   const openConnect = () => {
     if (!hiddenInstanceId) { toast({ title: "Selecione uma instância", variant: "destructive" }); return; }
