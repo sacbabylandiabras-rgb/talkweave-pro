@@ -12,6 +12,37 @@ const normalizeTimestamp = (value: unknown) => {
     : new Date().toISOString();
 };
 
+const sanitizeProfilePictureUrl = (value: unknown): string | null => {
+  const str = String(value || "").trim();
+  if (!str) return null;
+  const lower = str.toLowerCase();
+  if (["null", "undefined", "false"].includes(lower)) return null;
+  if (!/^https?:\/\//i.test(str) && !str.startsWith("data:")) return null;
+  return str;
+};
+
+const extractProfilePictureUrl = (source: any): string | null => sanitizeProfilePictureUrl(
+  source?.profileThumbnail ||
+  source?.imagePreview ||
+  source?.imgUrl ||
+  source?.profilePictureUrl ||
+  source?.profilePicUrl ||
+  source?.profilePicture ||
+  source?.picture ||
+  source?.imageUrl ||
+  source?.image ||
+  source?.photo ||
+  source?.groupPhoto ||
+  source?.chat?.imagePreview ||
+  source?.chat?.image ||
+  source?.chat?.imgUrl ||
+  source?.group?.image ||
+  source?.group?.picture ||
+  source?.data?.imagePreview ||
+  source?.data?.image ||
+  source?.data?.imgUrl
+);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
