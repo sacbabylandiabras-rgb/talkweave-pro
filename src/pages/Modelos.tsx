@@ -304,6 +304,205 @@ const SpecialFieldsEditor = ({
     );
   }
 
+  if (type === "uaz_status") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          📸 Status / Stories (somente conexão UAZAPI)
+        </div>
+        <div>
+          <Label>Tipo do status *</Label>
+          <Select value={data.uazStatusType || "text"} onValueChange={(v) => onChange({ uazStatusType: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="image">Imagem</SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
+              <SelectItem value="audio">Áudio</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(data.uazStatusType || "text") === "text" ? (
+          <>
+            <div>
+              <Label>Texto do status *</Label>
+              <Textarea
+                placeholder="Mensagem que aparecerá no status"
+                value={data.uazStatusText || ""}
+                onChange={(e) => onChange({ uazStatusText: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Cor de fundo</Label>
+                <Input
+                  type="color"
+                  value={data.uazStatusBgColor || "#000000"}
+                  onChange={(e) => onChange({ uazStatusBgColor: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Fonte</Label>
+                <Select value={data.uazStatusFont || "1"} onValueChange={(v) => onChange({ uazStatusFont: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="1">Sans Serif</SelectItem>
+                    <SelectItem value="2">Serif</SelectItem>
+                    <SelectItem value="3">Norican Regular</SelectItem>
+                    <SelectItem value="4">Bryndan Write</SelectItem>
+                    <SelectItem value="5">Bebasneue Regular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <Label>URL da mídia *</Label>
+              <Input
+                placeholder="https://... (link público da imagem/vídeo/áudio)"
+                value={data.uazStatusMedia || ""}
+                onChange={(e) => onChange({ uazStatusMedia: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Legenda (opcional)</Label>
+              <Input
+                placeholder="Legenda que aparece sobre o status"
+                value={data.uazStatusCaption || ""}
+                onChange={(e) => onChange({ uazStatusCaption: e.target.value })}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (type === "uaz_location_button") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <MapPin className="w-4 h-4" /> Botão com Localização (somente UAZAPI)
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Latitude *</Label>
+            <Input
+              placeholder="-23.561"
+              value={data.uazLocBtnLatitude || ""}
+              onChange={(e) => onChange({ uazLocBtnLatitude: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Longitude *</Label>
+            <Input
+              placeholder="-46.656"
+              value={data.uazLocBtnLongitude || ""}
+              onChange={(e) => onChange({ uazLocBtnLongitude: e.target.value })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Nome do local</Label>
+          <Input
+            placeholder="Ex: Loja Centro"
+            value={data.uazLocBtnName || ""}
+            onChange={(e) => onChange({ uazLocBtnName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Endereço</Label>
+          <Input
+            placeholder="Av. Paulista, 1000"
+            value={data.uazLocBtnAddress || ""}
+            onChange={(e) => onChange({ uazLocBtnAddress: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Texto da mensagem</Label>
+          <Textarea
+            placeholder="Texto exibido junto com o botão"
+            value={data.uazLocBtnText || ""}
+            onChange={(e) => onChange({ uazLocBtnText: e.target.value })}
+            rows={2}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Texto do botão</Label>
+            <Input
+              placeholder="Ver no mapa"
+              value={data.uazLocBtnLabel || ""}
+              onChange={(e) => onChange({ uazLocBtnLabel: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>URL do botão (opcional)</Label>
+            <Input
+              placeholder="https://maps.google.com/..."
+              value={data.uazLocBtnUrl || ""}
+              onChange={(e) => onChange({ uazLocBtnUrl: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "uaz_request_payment") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <DollarSign className="w-4 h-4" /> Solicitar Pagamento (somente UAZAPI)
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Valor *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="100.00"
+              value={data.uazPayAmount || ""}
+              onChange={(e) => onChange({ uazPayAmount: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Moeda</Label>
+            <Select value={data.uazPayCurrency || "BRL"} onValueChange={(v) => onChange({ uazPayCurrency: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="BRL">BRL (R$)</SelectItem>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label>Mensagem / Nota</Label>
+          <Textarea
+            placeholder="Ex: Pagamento referente ao pedido #1234"
+            value={data.uazPayNote || ""}
+            onChange={(e) => onChange({ uazPayNote: e.target.value })}
+            rows={2}
+          />
+        </div>
+        <div>
+          <Label>Validade (em segundos, opcional)</Label>
+          <Input
+            type="number"
+            placeholder="86400 (24h)"
+            value={data.uazPayExpiry || ""}
+            onChange={(e) => onChange({ uazPayExpiry: e.target.value })}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return null;
 };
 
