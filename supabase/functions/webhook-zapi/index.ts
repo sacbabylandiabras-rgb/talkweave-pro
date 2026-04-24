@@ -5128,7 +5128,7 @@ async function sendNodeContent(
     );
   });
 
-  if (hasButtonEdges && supabase && userId) {
+  if (hasButtons && supabase && userId) {
     await supabase.from("message_logs").insert({
       phone,
       message_received: null,
@@ -5152,9 +5152,9 @@ async function sendNodeContent(
     });
   }
 
-  if (hasButtonEdges || hasCaptureEdges) {
+  if (hasButtons || hasCaptureEdges) {
     console.log(
-      `Bloco ${targetNode.id} tem saídas de botão/captura — aguardando resposta do usuário`,
+      `Bloco ${targetNode.id} tem botões/captura — aguardando resposta do usuário`,
     );
     return true;
   }
