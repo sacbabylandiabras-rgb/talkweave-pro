@@ -772,6 +772,26 @@ const Modelos = () => {
     // Contato (vCard)
     contactName: "",
     contactPhone: "",
+    // UAZAPI - Status / Stories
+    uazStatusType: "text",
+    uazStatusText: "",
+    uazStatusBgColor: "#000000",
+    uazStatusFont: "1",
+    uazStatusMedia: "",
+    uazStatusCaption: "",
+    // UAZAPI - Botão de Localização
+    uazLocBtnLatitude: "",
+    uazLocBtnLongitude: "",
+    uazLocBtnName: "",
+    uazLocBtnAddress: "",
+    uazLocBtnText: "",
+    uazLocBtnUrl: "",
+    uazLocBtnLabel: "Ver no mapa",
+    // UAZAPI - Solicitar Pagamento
+    uazPayAmount: "",
+    uazPayCurrency: "BRL",
+    uazPayNote: "",
+    uazPayExpiry: "",
   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
