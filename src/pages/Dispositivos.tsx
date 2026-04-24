@@ -1129,10 +1129,6 @@ const Dispositivos = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Criar Instância
-          </Button>
           {instances.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
               <User className="w-4 h-4 mr-1" />
