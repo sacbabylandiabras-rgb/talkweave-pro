@@ -42,6 +42,10 @@ import mammoth from "mammoth";
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  cta?: {
+    label: string;
+    url: string;
+  } | null;
 }
 
 interface KnowledgeItem {
@@ -303,7 +307,7 @@ const AgenteIA = () => {
       if (error) throw error;
 
       const reply = data?.reply || "Sem resposta";
-      setChatMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: reply, cta: data?.cta ?? null }]);
     } catch (err: any) {
       toast({ title: "Erro no chat", description: err.message, variant: "destructive" });
       setChatMessages(prev => [...prev, { role: "assistant", content: "Erro ao processar a mensagem." }]);
@@ -696,7 +700,22 @@ const AgenteIA = () => {
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-muted text-foreground rounded-bl-md"
                       }`}>
-                        {msg.content}
+                        {msg.role === "assistant" ? (
+                          <div className="space-y-3">
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-inherit">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                            {msg.cta?.url && (
+                              <Button asChild size="sm" className="w-full">
+                                <a href={msg.cta.url} target="_blank" rel="noreferrer">
+                                  {msg.cta.label || "Abrir checkout"}
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
                     </div>
                   ))}
