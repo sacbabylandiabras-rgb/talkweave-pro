@@ -81,7 +81,7 @@ const mapResolvedInstance = (instance: {
 };
 
 const resolvePreferredUserInstance = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
 ): Promise<ResolvedInstance | null> => {
   const selectFields = 'zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
@@ -121,7 +121,7 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
 });
 
 const resolveContactInstance = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   sourceInstanceId?: string | null,
 ): Promise<ResolvedInstance | null> => {
@@ -163,7 +163,7 @@ const resolveContactInstance = async (
 };
 
 const resolveGroupInstanceFromInboundLogs = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   phone: string,
 ): Promise<ResolvedInstance | null> => {
@@ -188,7 +188,7 @@ const resolveGroupInstanceFromInboundLogs = async (
     .order('timestamp', { ascending: false })
     .limit(1);
 
-  let resolvedGroupInstanceId = groupLogs?.[0]?.instance_id || null;
+  let resolvedGroupInstanceId = (groupLogs as Array<{ instance_id: string | null }> | null)?.[0]?.instance_id || null;
 
   if (!resolvedGroupInstanceId) {
     const { data: groupLogsFallback } = await supabase
@@ -201,7 +201,7 @@ const resolveGroupInstanceFromInboundLogs = async (
       .order('timestamp', { ascending: false })
       .limit(5);
 
-    const inboundLog = groupLogsFallback?.find((log) => log.keyword_matched !== '__manual_send__');
+    const inboundLog = (groupLogsFallback as Array<{ instance_id: string | null; keyword_matched: string | null }> | null)?.find((log) => log.keyword_matched !== '__manual_send__');
     resolvedGroupInstanceId = inboundLog?.instance_id || null;
   }
 
