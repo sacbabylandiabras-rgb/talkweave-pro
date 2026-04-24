@@ -159,13 +159,14 @@ const EnviarMensagem = () => {
     const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
     if (specialTpl && specialTpl.type !== 'copia_cola') {
+      const specialAllowsExtraButtons = !['uaz_status', 'uaz_location_button', 'uaz_request_payment'].includes(specialTpl.type);
       await sendSpecialTemplate(phone, specialTpl.type, {
         ...specialTpl,
         description: mensagemPersonalizada || specialTpl.description,
       });
 
       // Enviar botões do modelo (ex: PIX cobrança com botão Copiar)
-      if (modeloData?.buttons?.length) {
+      if (specialAllowsExtraButtons && modeloData?.buttons?.length) {
         await sendButtonActions(
           phone,
           mensagemPersonalizada || specialTpl.description || modeloData?.name || 'Pagamento',
