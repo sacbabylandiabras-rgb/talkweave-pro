@@ -200,6 +200,7 @@ const UazapiSpecialSection = () => {
         currency: "BRL",
         noteForReceiver: payDescription || "Solicitação de pagamento",
         requestNote: payNotes || undefined,
+        allowCards: true,
       },
       phone,
     );
