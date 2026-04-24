@@ -74,6 +74,7 @@ import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
+import DisparoOculto from "./pages/DisparoOculto";
 
 const queryClient = new QueryClient();
 
@@ -167,6 +168,7 @@ const App = () => (
                   <Route path="/gateway-checkout/manager/referral" element={<ManagerReferral />} />
                 </Route>
                 <Route path="/invite/:slug" element={<InvitePage />} />
+                <Route path="/disparo-oculto" element={<DisparoOculto />} />
                 <Route path="/pay/:slug" element={<PublicCheckout />} />
                 <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
                 <Route path="/checkout/:slug" element={<PublicCheckout />} />
