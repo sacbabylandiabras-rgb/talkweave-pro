@@ -156,10 +156,18 @@ serve(async (req: Request) => {
     try { data = JSON.parse(respText); } catch { data = { raw: respText }; }
     console.log(`📥 UAZAPI special ← HTTP ${res.status}`, respText.slice(0, 400));
 
+    const providerInfo = {
+      providerStatus: res.status,
+      providerBody: data,
+      providerRaw: respText.slice(0, 4000),
+      requestUrl: `${apiUrl}${endpoint}`,
+      requestBody: finalBody,
+    };
+
     if (!res.ok) {
       const errMsg = data?.error || data?.message || `UAZAPI HTTP ${res.status}`;
       console.error(`❌ UAZAPI special failed [${kind}] HTTP ${res.status}:`, respText.slice(0, 400));
-      return json({ success: false, error: errMsg, status: res.status, data }, res.status);
+      return json({ success: false, error: errMsg, ...providerInfo }, res.status);
     }
 
     if (kind === "status") {
@@ -175,13 +183,12 @@ serve(async (req: Request) => {
         return json({
           success: false,
           error: data?.error || data?.message || "A UAZAPI não confirmou a publicação do status.",
-          status: res.status,
-          data,
+          ...providerInfo,
         }, 502);
       }
     }
 
-    return json({ success: true, kind, data });
+    return json({ success: true, kind, data, ...providerInfo });
   } catch (err: any) {
     console.error("send-uazapi-special error:", err);
     return json({ success: false, error: err?.message || "Unknown error" }, 500);
