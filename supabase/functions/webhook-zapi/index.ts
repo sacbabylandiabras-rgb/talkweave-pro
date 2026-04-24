@@ -3956,7 +3956,7 @@ serve(async (req) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Client-Token": zapiConfig.zapi_client_token,
+                  "Client-Token": String(zapiConfig.zapi_client_token || ""),
                 },
                 body: JSON.stringify({ phone, message: aiReply }),
               },
