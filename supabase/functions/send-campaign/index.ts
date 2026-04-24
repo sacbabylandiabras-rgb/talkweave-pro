@@ -1560,25 +1560,17 @@ serve(async (req) => {
         }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
 
-      if (pendingCount > 0) {
-        console.log(`⏳ Campaign ${campaignId}: ${pendingCount} send(s) still pending callback. Keeping campaign active.`);
-        return new Response(JSON.stringify({
-          success: true,
-          message: 'Awaiting pending callbacks before completion',
-          campaignId,
-          processed: currentBatch.length,
-          remaining: 0,
-          pending: pendingCount,
-          results,
-        }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-      }
+      // Consider 'pending' sends as accepted by the provider (queued).
+      // They may never receive a delivery callback (e.g. groups, disconnects),
+      // so we should not block completion waiting for them.
+      const acceptedSends = actualSuccesses + pendingCount;
 
-      if (totalProcessed === 0 || actualSuccesses === 0) {
+      if (totalProcessed === 0 || acceptedSends === 0) {
         // No sends created or ALL sends failed — mark as paused, not completed
-        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualSuccesses} successful. Pausing instead of completing.`);
+        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualSuccesses} successful, ${pendingCount} pending. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
       } else {
-        console.log(`✅ Campaign ${campaignId}: ${actualSuccesses}/${totalProcessed} successful out of ${effectiveTarget} target. Marking as completed.`);
+        console.log(`✅ Campaign ${campaignId}: ${actualSuccesses} sent + ${pendingCount} pending / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`);
         const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
           await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
