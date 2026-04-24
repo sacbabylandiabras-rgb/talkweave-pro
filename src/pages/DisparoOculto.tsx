@@ -525,6 +525,97 @@ export default function DisparoOculto() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Relatório de envios</CardTitle>
+            <div className="flex items-center gap-2">
+              <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as any)}>
+                <SelectTrigger className="w-36 h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="success">Sucesso</SelectItem>
+                  <SelectItem value="failed">Falhas</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={fetchHistory} disabled={historyLoading}>
+                <RefreshCw className={`w-4 h-4 ${historyLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button size="sm" variant="outline" onClick={exportCsv} disabled={history.length === 0}>
+                <Download className="w-4 h-4 mr-1" /> CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={clearHistory} disabled={history.length === 0}>
+                <Trash2 className="w-4 h-4 mr-1 text-destructive" /> Limpar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const total = history.length;
+              const ok = history.filter((r) => r.status === "success").length;
+              const fail = total - ok;
+              return (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Total</div>
+                    <div className="text-2xl font-bold">{total}</div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Sucesso</div>
+                    <div className="text-2xl font-bold text-green-600">{ok}</div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground">Falhas</div>
+                    <div className="text-2xl font-bold text-red-600">{fail}</div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {historyLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : filteredHistory().length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum envio registrado.</p>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-96 overflow-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr className="text-left">
+                        <th className="p-2">Data</th>
+                        <th className="p-2">Instância</th>
+                        <th className="p-2">Telefone</th>
+                        <th className="p-2">Tipo</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Detalhe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory().map((r) => (
+                        <tr key={r.id} className="border-t">
+                          <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</td>
+                          <td className="p-2">{r.instance_name || "—"}</td>
+                          <td className="p-2 font-mono">{r.phone}</td>
+                          <td className="p-2">{r.template_type || "—"}</td>
+                          <td className="p-2">
+                            {r.status === "success" ? (
+                              <span className="text-green-600">✅ Enviado</span>
+                            ) : (
+                              <span className="text-red-600">❌ Falhou</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-muted-foreground max-w-xs truncate" title={r.error_message || r.message_preview || ""}>
+                            {r.error_message || r.message_preview || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
