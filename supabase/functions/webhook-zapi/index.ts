@@ -656,6 +656,11 @@ serve(async (req) => {
           type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
           status: messageUpdateStatus ? messageUpdateStatus.toUpperCase() : undefined,
           hasInteractiveSelection,
+          rawPayload: {
+            eventPayload,
+            message: m,
+            webhook,
+          },
           text: text || selectedButtonId || selectedRowId
             ? {
               message: text || selectedButtonId || selectedRowId,
@@ -5250,6 +5255,65 @@ function extractButtonReplyCandidates(webhook: any): string[] {
     if (trimmed) values.add(trimmed);
   };
 
+  const scanNestedInteractiveValues = (value: unknown, depth = 0) => {
+    if (depth > 5 || value == null) return;
+
+    if (typeof value === "string") {
+      push(value);
+
+      const trimmed = value.trim();
+      if (
+        trimmed &&
+        ((trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+          (trimmed.startsWith("[") && trimmed.endsWith("]")))
+      ) {
+        try {
+          scanNestedInteractiveValues(JSON.parse(trimmed), depth + 1);
+        } catch {
+          // ignore malformed JSON strings embedded in webhook payloads
+        }
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => scanNestedInteractiveValues(entry, depth + 1));
+      return;
+    }
+
+    if (typeof value !== "object") return;
+
+    const record = value as Record<string, unknown>;
+    const preferredKeys = [
+      "title",
+      "text",
+      "label",
+      "description",
+      "message",
+      "body",
+      "conversation",
+      "contentText",
+      "selectedDisplayText",
+      "selectedButtonText",
+      "selectedButtonId",
+      "selectedId",
+      "selectedRowId",
+      "buttonId",
+      "id",
+      "displayText",
+      "display_text",
+      "buttonParamsJSON",
+      "paramsJson",
+      "value",
+    ];
+
+    for (const key of preferredKeys) {
+      if (key in record) scanNestedInteractiveValues(record[key], depth + 1);
+    }
+
+    Object.values(record).forEach((entry) => scanNestedInteractiveValues(entry, depth + 1));
+  };
+
   const candidateValues = [
     webhook?.text?.title,
     webhook?.text?.description,
@@ -5359,6 +5423,21 @@ function extractButtonReplyCandidates(webhook: any): string[] {
       // ignore malformed nativeFlow params
     }
   }
+
+  [
+    webhook?.rawPayload,
+    webhook?.event,
+    webhook?.message,
+    webhook?.data,
+    webhook?.data?.message,
+    webhook?.data?.event,
+    webhook?.interactiveResponseMessage,
+    webhook?.message?.interactiveResponseMessage,
+    webhook?.message?.interactiveResponseMessage?.nativeFlowResponseMessage,
+    webhook?.buttonsResponseMessage,
+    webhook?.buttonResponseMessage,
+    webhook?.listResponseMessage,
+  ].forEach((entry) => scanNestedInteractiveValues(entry));
 
   return Array.from(values);
 }
