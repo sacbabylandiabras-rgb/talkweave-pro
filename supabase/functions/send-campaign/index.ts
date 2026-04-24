@@ -222,10 +222,9 @@ const resolveGroupInstanceFromInboundLogs = async (
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null;
-  const correctIsUaz = String(correctInstanceRow?.api_provider || '').toLowerCase() === 'uazapi';
+  // Force Z-API for all campaign dispatches
   const correctHasZapi = Boolean(correctInstanceRow?.zapi_instance_id && correctInstanceRow?.zapi_token && correctInstanceRow?.zapi_client_token);
-  const correctHasUaz = Boolean(correctIsUaz && correctInstanceRow?.evolution_api_url && correctInstanceRow?.evolution_api_key);
-  if (!correctInstanceRow?.zapi_instance_id || (!correctHasZapi && !correctHasUaz)) {
+  if (!correctHasZapi) {
     return null;
   }
 
@@ -234,9 +233,9 @@ const resolveGroupInstanceFromInboundLogs = async (
     zapiToken: correctInstanceRow.zapi_token || '',
     zapiClientToken: correctInstanceRow.zapi_client_token || '',
     instanceName: correctInstanceRow.instance_name || 'Instância',
-    apiProvider: correctIsUaz ? 'uazapi' : 'zapi',
-    uazapiUrl: correctInstanceRow.evolution_api_url || '',
-    uazapiToken: correctInstanceRow.evolution_api_key || '',
+    apiProvider: 'zapi',
+    uazapiUrl: '',
+    uazapiToken: '',
   };
 };
 
