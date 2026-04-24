@@ -175,22 +175,24 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       let sent = 0;
       let delivered = 0;
       let failed = 0;
+      let queuedPending = 0;
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
         if (send?.status === 'delivered') delivered += 1;
         else if (send?.status === 'sent') sent += 1;
         else if (send?.status === 'failed') failed += 1;
-        // status 'pending' no DB = na fila Z-API, ainda não confirmado.
-        // Tratamos como "pendente" (não como "enviando") para refletir corretamente
-        // quando a instância desconecta e a fila precisa ser reprocessada.
+        else if (send?.status === 'pending') queuedPending += 1;
+        // status 'pending' = na fila Z-API, já aceito pelo provedor mas sem
+        // callback de entrega. Conta como processado para fins de conclusão,
+        // mas aparece como "pendente" na UI até confirmação.
       });
 
       const newStats = {
         total: effectiveTotal,
         sending: 0,
-        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
-        sent,
+        pending: Math.max(0, effectiveTotal - sent - delivered - failed - queuedPending),
+        sent: sent + queuedPending,
         delivered,
         failed,
       };
@@ -201,6 +203,22 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       } else if (campaignData?.status === 'active') {
         setIsComplete(false);
         setIsPaused(false);
+        // Auto-complete: se todos os contatos alvo já foram processados
+        // (enviados, entregues, aceitos na fila ou falhados), marca como completo.
+        if (
+          effectiveTotal > 0 &&
+          (sent + delivered + failed + queuedPending) >= effectiveTotal
+        ) {
+          setIsComplete(true);
+          try {
+            await supabase
+              .from('campaigns')
+              .update({ status: 'completed', updated_at: new Date().toISOString() })
+              .eq('id', campaignId);
+          } catch (err) {
+            console.warn('Falha ao marcar campanha como completa:', err);
+          }
+        }
       } else if (campaignData?.status === 'paused') {
         setIsComplete(false);
         setIsPaused(true);
