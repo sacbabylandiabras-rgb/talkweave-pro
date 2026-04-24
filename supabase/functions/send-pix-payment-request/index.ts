@@ -212,7 +212,10 @@ serve(async (req: Request) => {
     const description = String(body?.description || "").trim();
     const notes = String(body?.notes || "").trim();
     const instanceId = body?.instanceId ? String(body.instanceId) : null;
-    const buttonLabel = String(body?.buttonLabel || "Copiar código PIX").trim().slice(0, 25) || "Copiar código PIX";
+    const buttonLabel = String(body?.buttonLabel || "Copiar código PIX")
+      .replace(/[|\n\r]+/g, " ")
+      .trim()
+      .slice(0, 25) || "Copiar código PIX";
 
     if (!phone || phone.length < 10) return json({ success: false, error: "Número inválido" }, 400);
     if (!amountReais || amountReais <= 0) return json({ success: false, error: "Valor inválido" }, 400);
@@ -318,7 +321,7 @@ serve(async (req: Request) => {
       type: "button",
       text: messageText,
       footerText: "Pagamento via PIX",
-      choices: [`copy:${charge.brCode}:${buttonLabel}`],
+      choices: [`${buttonLabel}|copy:${charge.brCode}`],
     };
 
     let sendRes = await fetch(`${apiUrl}/send/menu`, {
