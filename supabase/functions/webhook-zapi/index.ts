@@ -93,22 +93,34 @@ const isButtonHandle = (handle?: string | null) => {
     normalized.startsWith("btn_");
 };
 
-const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+const getExactButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
   const aliases = new Set<string>([
     `button-${idx}`,
     `button_${idx}`,
     `btn-${idx}`,
     `btn_${idx}`,
-    `button-${idx + 1}`,
-    `button_${idx + 1}`,
-    `btn-${idx + 1}`,
-    `btn_${idx + 1}`,
   ]);
 
   const rawId = String(button?.id || "").trim();
   if (rawId) aliases.add(rawId);
 
   return Array.from(aliases);
+};
+
+const getLegacyOneBasedButtonHandleAliases = (idx: number) => {
+  return [
+    `button-${idx + 1}`,
+    `button_${idx + 1}`,
+    `btn-${idx + 1}`,
+    `btn_${idx + 1}`,
+  ];
+};
+
+const getButtonHandleAliases = (idx: number, button?: { id?: string | number | null }) => {
+  return Array.from(new Set([
+    ...getExactButtonHandleAliases(idx, button),
+    ...getLegacyOneBasedButtonHandleAliases(idx),
+  ]));
 };
 
 const normalizeParticipantIdentifier = (value: unknown) => {
@@ -5846,7 +5858,12 @@ function findButtonEdgeMatch(
         const normalizedBtn = normalizeForMatch(btnText);
         if (!normalizedBtn) continue;
 
-        const buttonHandleAliases = getButtonHandleAliases(idx, btn);
+        const exactButtonHandleAliases = getExactButtonHandleAliases(idx, btn);
+        const legacyButtonHandleAliases = getLegacyOneBasedButtonHandleAliases(idx);
+        const buttonHandleAliases = [
+          ...exactButtonHandleAliases,
+          ...legacyButtonHandleAliases,
+        ];
         const buttonIndexValues = [
           String(idx + 1),
           `btn-${idx + 1}`,
@@ -5861,7 +5878,7 @@ function findButtonEdgeMatch(
         const didMatch = normalizedRaw === normalizedBtn ||
           normalizedMessage === normalizedBtn ||
           normalizedCandidates.has(normalizedBtn) ||
-          buttonHandleAliases.some((alias) => explicitHandleCandidates.has(alias)) ||
+          exactButtonHandleAliases.some((alias) => explicitHandleCandidates.has(alias)) ||
           derivedIndexCandidates.has(idxNormalized) ||
           normalizedRaw === idxNormalized ||
           normalizedMessage === idxNormalized ||
@@ -5872,7 +5889,9 @@ function findButtonEdgeMatch(
         if (didMatch) {
           // First try: specific button edge
           const buttonEdge = edges.find((e: any) =>
-            e.source === node.id && buttonHandleAliases.includes(String(e.sourceHandle || ""))
+            e.source === node.id && exactButtonHandleAliases.includes(String(e.sourceHandle || ""))
+          ) || edges.find((e: any) =>
+            e.source === node.id && legacyButtonHandleAliases.includes(String(e.sourceHandle || ""))
           );
 
           if (buttonEdge) {
