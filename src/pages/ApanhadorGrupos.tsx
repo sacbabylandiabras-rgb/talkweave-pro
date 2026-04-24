@@ -377,6 +377,11 @@ const ApanhadorGrupos = () => {
               <Card key={grupo.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
+                    <Checkbox
+                      checked={selectedGroups.has(grupo.id)}
+                      onCheckedChange={() => toggleGroupSelection(grupo.id)}
+                      aria-label={`Selecionar ${grupo.nome}`}
+                    />
                     <Avatar className="h-14 w-14">
                       <AvatarImage src={grupo.foto || undefined} alt={grupo.nome} />
                       <AvatarFallback className="bg-primary/10 text-primary text-lg">
