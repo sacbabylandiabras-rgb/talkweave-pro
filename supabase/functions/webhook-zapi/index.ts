@@ -5286,6 +5286,25 @@ async function processFlowNode(
   },
 ) {
   const currentNode = nodes.find((n) => n.id === nodeId);
+  const currentNodeButtons = Array.isArray(currentNode?.data?.buttons)
+    ? currentNode.data.buttons
+    : [];
+  const currentNodeHasCapture = Boolean(
+    currentNode?.data?.collectName ||
+      currentNode?.data?.collectWhatsapp ||
+      currentNode?.data?.collectEmail ||
+      edges.some((e) =>
+        e.source === nodeId && String(e.sourceHandle || "").startsWith("collect-")
+      ),
+  );
+
+  if (currentNode?.type === "blocoConteudo" && (currentNodeButtons.length > 0 || currentNodeHasCapture)) {
+    console.log(
+      `processFlowNode(${nodeId}): bloco de interação/captura não deve avançar automaticamente`,
+    );
+    return;
+  }
+
   const sortEdgesByFlowPriority = (list: FlowEdge[]) => {
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     return [...list].sort((a, b) => {
