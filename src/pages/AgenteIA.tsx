@@ -31,13 +31,20 @@ import {
   Globe,
   Link,
   Search,
+  Upload,
   Wrench,
 } from "lucide-react";
+
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import mammoth from "mammoth";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const getEdgeFunctionErrorMessage = async (err: unknown) => {
   if (err instanceof FunctionsHttpError) {
