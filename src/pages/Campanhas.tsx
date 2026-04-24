@@ -1069,6 +1069,7 @@ const Campanhas = () => {
                 status,
                 sentAt,
                 errorMessage,
+                readAt: (send as any)?.read_at || (send as any)?.delivered_at || (send?.status === 'delivered' ? (send.sent_at || send.created_at) : null),
                 clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
               };
             });
