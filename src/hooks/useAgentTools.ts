@@ -6,17 +6,31 @@ export interface AgentTool {
   name: string;
   label: string;
   description: string;
+  category: string;
   enabled: boolean;
 }
 
 export const ALL_TOOLS: Omit<AgentTool, "enabled">[] = [
-  { name: "enviar_botoes", label: "Enviar botões", description: "Permite o agente enviar botões de resposta rápida (até 3) via WhatsApp." },
-  { name: "enviar_lista", label: "Enviar lista", description: "Envia menu em formato de lista (até 10 opções)." },
-  { name: "enviar_imagem", label: "Enviar imagem", description: "Envia imagem com legenda a partir de uma URL." },
-  { name: "enviar_link", label: "Enviar link", description: "Envia mensagem de texto contendo um link/URL." },
-  { name: "transferir_humano", label: "Transferir para humano", description: "Marca a conversa para atendimento humano e pausa o agente nela." },
-  { name: "buscar_faq", label: "Buscar na base de conhecimento", description: "Pesquisa FAQs e documentos cadastrados antes de responder." },
-  { name: "gerar_pix", label: "Gerar cobrança PIX", description: "Cria uma cobrança PIX no gateway e envia o código copia-e-cola." },
+  // WhatsApp UAZAPI
+  { category: "WhatsApp (UAZAPI)", name: "enviar_botoes", label: "Enviar botões", description: "Envia botões de resposta rápida (até 3) via WhatsApp." },
+  { category: "WhatsApp (UAZAPI)", name: "enviar_lista", label: "Enviar lista", description: "Envia menu em formato de lista (até 10 opções)." },
+  { category: "WhatsApp (UAZAPI)", name: "enviar_imagem", label: "Enviar imagem", description: "Envia imagem com legenda a partir de uma URL." },
+  { category: "WhatsApp (UAZAPI)", name: "enviar_link", label: "Enviar link", description: "Envia mensagem de texto com link/URL." },
+  // WhatsApp Meta Cloud API
+  { category: "WhatsApp (Meta Cloud API)", name: "meta_enviar_texto", label: "Meta — Enviar texto", description: "Envia mensagem de texto via API oficial Meta (Cloud API)." },
+  { category: "WhatsApp (Meta Cloud API)", name: "meta_enviar_template", label: "Meta — Enviar template", description: "Envia template aprovado pela Meta (necessário fora da janela 24h)." },
+  // Instagram
+  { category: "Instagram", name: "instagram_listar_comentarios", label: "Listar comentários", description: "Lista comentários recebidos recentemente no Instagram." },
+  { category: "Instagram", name: "instagram_responder_comentario", label: "Responder comentário", description: "Responde publicamente a um comentário no Instagram." },
+  { category: "Instagram", name: "instagram_enviar_dm", label: "Enviar DM", description: "Envia mensagem direta no Instagram (suporta private reply de comentário)." },
+  // Gateway
+  { category: "Gateway (ZapLynxPay)", name: "gateway_consultar_saldo", label: "Consultar saldo", description: "Consulta saldo disponível, total recebido e total de saques." },
+  { category: "Gateway (ZapLynxPay)", name: "gateway_listar_vendas", label: "Listar vendas", description: "Lista últimas transações com filtro opcional por status." },
+  { category: "Gateway (ZapLynxPay)", name: "gateway_listar_produtos", label: "Listar produtos", description: "Lista produtos ativos cadastrados no gateway." },
+  { category: "Gateway (ZapLynxPay)", name: "gerar_pix", label: "Gerar cobrança PIX", description: "Cria cobrança PIX e envia o código copia-e-cola." },
+  // Geral
+  { category: "Geral", name: "buscar_faq", label: "Buscar na base de conhecimento", description: "Pesquisa FAQs e documentos cadastrados antes de responder." },
+  { category: "Geral", name: "transferir_humano", label: "Transferir para humano", description: "Marca a conversa para atendimento humano e pausa o agente nela." },
 ];
 
 export function useAgentTools() {
