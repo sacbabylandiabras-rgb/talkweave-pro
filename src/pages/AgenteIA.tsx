@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,8 @@ const AgenteIA = () => {
   const [agentName, setAgentName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [isActive, setIsActive] = useState(false);
+  const [provider, setProvider] = useState<"lovable" | "anthropic">("lovable");
+  const [model, setModel] = useState("google/gemini-3-flash-preview");
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -139,6 +142,8 @@ const AgenteIA = () => {
       setAgentName(config.agent_name);
       setSystemPrompt(config.system_prompt);
       setIsActive(config.active);
+      setProvider(config.provider);
+      setModel(config.model);
     }
   }, [loading, config]);
 
@@ -147,7 +152,7 @@ const AgenteIA = () => {
   }, [chatMessages]);
 
   const handleSaveConfig = () => {
-    saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive });
+    saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive, provider, model });
   };
 
   const handleAddFaq = async () => {
