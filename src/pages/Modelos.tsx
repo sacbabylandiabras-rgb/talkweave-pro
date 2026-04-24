@@ -361,11 +361,56 @@ const SpecialFieldsEditor = ({
           <>
             <div>
               <Label>URL da mídia *</Label>
-              <Input
-                placeholder="https://... (link público da imagem/vídeo/áudio)"
-                value={data.uazStatusMedia || ""}
-                onChange={(e) => onChange({ uazStatusMedia: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://... (cole o link ou faça upload)"
+                  value={data.uazStatusMedia || ""}
+                  onChange={(e) => onChange({ uazStatusMedia: e.target.value })}
+                />
+                <input
+                  type="file"
+                  id={`uaz-status-upload-${data.uazStatusType || "image"}`}
+                  className="hidden"
+                  accept={
+                    (data.uazStatusType === "video") ? "video/*"
+                    : (data.uazStatusType === "audio") ? "audio/*"
+                    : "image/*"
+                  }
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) { (await import("sonner")).toast.error("Faça login novamente"); return; }
+                      const ext = file.name.split(".").pop() || "bin";
+                      const path = `${user.id}/uaz-status-${Date.now()}.${ext}`;
+                      onChange({ uazStatusMedia: "__uploading__" });
+                      const { error: upErr } = await supabase.storage.from("template-media").upload(path, file, { upsert: true });
+                      if (upErr) throw upErr;
+                      const { data: pub } = supabase.storage.from("template-media").getPublicUrl(path);
+                      onChange({ uazStatusMedia: pub.publicUrl });
+                      (await import("sonner")).toast.success("Mídia enviada!");
+                    } catch (err: any) {
+                      onChange({ uazStatusMedia: "" });
+                      (await import("sonner")).toast.error("Erro ao enviar: " + (err?.message || "desconhecido"));
+                    } finally {
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById(`uaz-status-upload-${data.uazStatusType || "image"}`)?.click()}
+                  disabled={data.uazStatusMedia === "__uploading__"}
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  {data.uazStatusMedia === "__uploading__" ? "Enviando..." : "Upload"}
+                </Button>
+              </div>
+              {data.uazStatusMedia && data.uazStatusMedia !== "__uploading__" && (data.uazStatusType || "image") === "image" && (
+                <img src={data.uazStatusMedia} alt="preview" className="mt-2 max-h-32 rounded border" />
+              )}
             </div>
             <div>
               <Label>Legenda (opcional)</Label>
