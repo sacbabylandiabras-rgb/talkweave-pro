@@ -440,62 +440,73 @@ async function executeTool(
         const termo = String(input.termo || '').trim().toLowerCase()
         if (!termo) return JSON.stringify({ error: 'Informe o plano desejado.' })
 
-        const { data: products } = await supabase
-          .from('gateway_products')
-          .select('id, name, description, price, type, status, sku, created_at')
+        const { data: checkouts } = await supabase
+          .from('gateway_checkouts')
+          .select('id, name, slug, status, product_id')
           .eq('user_id', userId)
           .eq('status', true)
           .order('created_at', { ascending: false })
           .limit(50)
 
+        const productIds = Array.from(new Set((checkouts || []).map((c: any) => c.product_id).filter(Boolean)))
+        const { data: products } = productIds.length > 0
+          ? await supabase
+              .from('gateway_products')
+              .select('id, name, description, price, type, status, sku')
+              .eq('user_id', userId)
+              .eq('status', true)
+              .in('id', productIds)
+          : { data: [] as any[] }
+
+        const productMap = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]))
         const normalized = (value: any) => String(value || '').toLowerCase()
-        const scored = (products || []).map((p: any) => {
-          const hay = `${normalized(p.name)} ${normalized(p.description)} ${normalized(p.sku)}`
+        const termoTokens = termo.split(/\s+/).filter(Boolean)
+
+        const scored = (checkouts || []).map((checkout: any) => {
+          const product: any = productMap.get(String(checkout.product_id || ''))
+          const hay = [
+            checkout.name,
+            checkout.slug,
+            product?.name,
+            product?.description,
+            product?.sku,
+          ].map(normalized).join(' ')
+
           let score = 0
           if (hay.includes(termo)) score += 10
-          const termoTokens = termo.split(/\s+/).filter(Boolean)
           for (const token of termoTokens) {
             if (hay.includes(token)) score += 2
           }
-          return { ...p, score }
-        }).filter((p: any) => p.score > 0)
+
+          return { checkout, product, score }
+        }).filter((entry: any) => entry.score > 0 && entry.checkout?.slug)
 
         const best = scored.sort((a: any, b: any) => b.score - a.score)[0]
-        if (!best) return JSON.stringify({ error: 'Nenhum plano encontrado com esse termo.' })
+        if (!best?.checkout?.slug || !best?.product) {
+          return JSON.stringify({ error: 'Nenhum checkout ativo encontrado para esse plano.' })
+        }
 
-        const { data: checkout } = await supabase
-          .from('gateway_checkouts')
-          .select('id, name, slug, status, product_id')
-          .eq('user_id', userId)
-          .eq('status', true)
-          .eq('product_id', best.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        const checkoutUrl = checkout?.slug
-          ? `https://pay.zaplynxpro.online/checkout/${checkout.slug}`
-          : null
+        const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${best.checkout.slug}`
 
         return JSON.stringify({
           found: true,
           plano: {
-            id: best.id,
-            nome: best.name,
-            descricao: best.description,
-            preco_reais: (best.price / 100).toFixed(2),
-            tipo: best.type,
+            id: best.product.id,
+            nome: best.product.name,
+            descricao: best.product.description,
+            preco_reais: (best.product.price / 100).toFixed(2),
+            tipo: best.product.type,
           },
-          checkout: checkout ? {
-            id: checkout.id,
-            nome: checkout.name,
-            slug: checkout.slug,
+          checkout: {
+            id: best.checkout.id,
+            nome: best.checkout.name,
+            slug: best.checkout.slug,
             url: checkoutUrl,
-          } : null,
-          cta: checkoutUrl ? {
-            label: `Pagar ${best.name}`,
+          },
+          cta: {
+            label: `Pagar ${best.product.name}`,
             url: checkoutUrl,
-          } : null,
+          },
         })
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || 'Falha ao buscar plano e checkout' })

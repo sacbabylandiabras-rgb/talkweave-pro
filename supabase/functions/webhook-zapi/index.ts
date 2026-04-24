@@ -3912,35 +3912,72 @@ serve(async (req) => {
         if (agentResponse.ok) {
           const agentData = await agentResponse.json();
           const aiReply = String(agentData?.reply || "").trim();
+          const ctaLabel = String(agentData?.cta?.label || "Abrir checkout").trim();
           const ctaUrl = String(agentData?.cta?.url || "").trim();
-          const finalReply = [aiReply, ctaUrl].filter(Boolean).join("\n\n");
+          const finalReply = aiReply;
 
-          if (finalReply) {
+          if (finalReply || ctaUrl) {
             const isUazapiProvider = String(zapiConfig?.api_provider || "").toLowerCase() === "uazapi";
             const normalizedTargetNumber = phone.includes("-group")
               ? `${String(phone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
               : String(phone).replace(/^\+/, "").replace(/[@\-].*$/, "").replace(/\D/g, "");
 
-            const deliveryResponse = isUazapiProvider
-              ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/text`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  token: String(zapiConfig?.evolution_api_key || ""),
-                },
-                body: JSON.stringify({ number: normalizedTargetNumber, text: finalReply }),
-              })
-              : await fetch(
-                `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Client-Token": String(zapiConfig.zapi_client_token || ""),
-                  },
-                  body: JSON.stringify({ phone, message: finalReply }),
-                },
-              );
+            const hasCta = /^https?:\/\//i.test(ctaUrl);
+            const deliveryResponse = hasCta
+              ? isUazapiProvider
+                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/menu`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      token: String(zapiConfig?.evolution_api_key || ""),
+                    },
+                    body: JSON.stringify({
+                      number: normalizedTargetNumber,
+                      type: "button",
+                      text: finalReply || "Selecione uma opção:",
+                      choices: [ctaLabel],
+                    }),
+                  })
+                : await fetch(
+                    `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-button-actions`,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Client-Token": String(zapiConfig.zapi_client_token || ""),
+                      },
+                      body: JSON.stringify({
+                        phone,
+                        message: finalReply || "Selecione uma opção:",
+                        buttonActions: [{
+                          id: "1",
+                          type: "URL",
+                          label: ctaLabel || "Abrir checkout",
+                          url: ctaUrl,
+                        }],
+                      }),
+                    },
+                  )
+              : isUazapiProvider
+                ? await fetch(`${String(zapiConfig?.evolution_api_url || "").replace(/\/+$/, "")}/send/text`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      token: String(zapiConfig?.evolution_api_key || ""),
+                    },
+                    body: JSON.stringify({ number: normalizedTargetNumber, text: finalReply }),
+                  })
+                : await fetch(
+                    `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/send-text`,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Client-Token": String(zapiConfig.zapi_client_token || ""),
+                      },
+                      body: JSON.stringify({ phone, message: finalReply }),
+                    },
+                  );
 
             const deliveryResult = await deliveryResponse.text();
             console.log(
@@ -3955,7 +3992,7 @@ serve(async (req) => {
 
             await finalizeMessageLog(supabase, lockId, {
               keywordMatched: "[Agente IA]",
-              responseSent: finalReply,
+              responseSent: [finalReply, hasCta ? `[botao:${ctaLabel}|${ctaUrl}]` : null].filter(Boolean).join("\n\n"),
             });
 
             return new Response("ai_agent_response_sent", {
