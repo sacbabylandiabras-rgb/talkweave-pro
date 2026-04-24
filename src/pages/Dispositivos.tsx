@@ -799,6 +799,67 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         </DialogContent>
       </Dialog>
 
+      {/* Proxy Dialog (UAZAPI only) */}
+      <Dialog open={showProxyDialog} onOpenChange={setShowProxyDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" /> Configuração de Proxy
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 rounded-md p-3">
+              <p>
+                Por padrão, a instância usa o <strong>proxy interno</strong>. Informe uma URL para usar um proxy próprio.
+              </p>
+              <p className="font-mono text-[11px]">
+                Formato: <code>http://usuario:senha@ip:porta</code>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`proxy-url-${instance.id}`}>URL do Proxy</Label>
+              <Input
+                id={`proxy-url-${instance.id}`}
+                type="text"
+                placeholder="http://usuario:senha@ip:porta"
+                value={proxyUrlInput}
+                onChange={(e) => setProxyUrlInput(e.target.value)}
+                disabled={proxyLoading}
+              />
+            </div>
+
+            {proxyInfo && (
+              <details className="text-[11px]">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  🔧 Estado atual / último teste
+                </summary>
+                <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-40 text-[10px]">
+                  {JSON.stringify(proxyInfo, null, 2)}
+                </pre>
+              </details>
+            )}
+
+            <div className="flex flex-wrap gap-2 justify-end pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveProxy}
+                disabled={proxyLoading}
+              >
+                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                Remover (usar padrão)
+              </Button>
+              <Button size="sm" onClick={handleSaveProxy} disabled={proxyLoading}>
+                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                Salvar Proxy
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
