@@ -631,6 +631,23 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
+      // Limpa registros antigos 'pending' (fila Z-API limpa ao pausar) para não
+      // duplicar entradas em campaign_sends ao reenviar.
+      if (pendingRetryPhones.length > 0) {
+        const phonesToClean = pendingRetryPhones.map((c) => c.phone);
+        const { error: cleanError } = await supabase
+          .from('campaign_sends')
+          .delete()
+          .eq('campaign_id', id)
+          .eq('status', 'pending')
+          .in('phone', phonesToClean);
+        if (cleanError) {
+          console.warn('⚠️ Falha ao limpar pendentes antigos:', cleanError.message);
+        } else {
+          console.log(`🧹 Limpou ${phonesToClean.length} registros pendentes antigos`);
+        }
+      }
+
       // Update status to active and preserve original send mode
       await updateCampaign(id, {
         status: 'active',
