@@ -113,6 +113,25 @@ const isHistoryPlaceholderMessage = (message: Pick<UnifiedMessage, 'source' | 'k
   isHistoryPlaceholderText(message.content)
 );
 
+const isInternalFlowStateKeyword = (keyword?: string | null) => {
+  const value = String(keyword || '').trim();
+  return value.startsWith('__flow_button__:') ||
+    value.startsWith('__flow_capture__:') ||
+    value.startsWith('__button_claimed__:') ||
+    value.startsWith('__flow_capture_resume__:');
+};
+
+const extractButtonTextFromKeyword = (keyword?: string | null) => {
+  const match = String(keyword || '').match(/^\[Botão:\s*(.+?)\]$/i);
+  return match?.[1]?.trim() || '';
+};
+
+const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
+  const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
+  if (buttonText) return buttonText;
+  return String(log.message_received || '').trim();
+};
+
 const getLatestSuccessfulCampaignSends = (sends: CampaignSendMessage[]) => {
   const latestByPhone = new Map<string, CampaignSendMessage>();
 
@@ -307,7 +326,8 @@ export const useMessageLogs = (
     // Filter out processing locks and LID mapping entries
     allData = allData.filter(m => 
       m.keyword_matched !== '__processing__' && 
-      m.keyword_matched !== '__lid_map__'
+      m.keyword_matched !== '__lid_map__' &&
+      !isInternalFlowStateKeyword(m.keyword_matched)
     );
     const lidEvidence = new Set<string>();
     allData.forEach((row) => {
@@ -599,15 +619,19 @@ export const useMessageLogs = (
       .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const newMsg = payload.new as MessageLog;
-          if (newMsg.keyword_matched === '__processing__' || newMsg.keyword_matched === '__lid_map__') return;
+          if (newMsg.keyword_matched === '__processing__' || newMsg.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(newMsg.keyword_matched)) return;
           setMessageLogs(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
         } else if (payload.eventType === 'UPDATE') {
           const updated = payload.new as MessageLog;
-          if (updated.keyword_matched === '__processing__' || updated.keyword_matched === '__lid_map__') return;
-          setMessageLogs(prev => prev.map(m => m.id === updated.id ? updated : m));
+          if (updated.keyword_matched === '__processing__' || updated.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(updated.keyword_matched)) return;
+          setMessageLogs(prev => {
+            const exists = prev.some(m => m.id === updated.id);
+            if (exists) return prev.map(m => m.id === updated.id ? updated : m);
+            return [...prev, updated];
+          });
         } else if (payload.eventType === 'DELETE') {
           setMessageLogs(prev => prev.filter(m => m.id !== (payload.old as any).id));
         }
@@ -730,18 +754,20 @@ export const useMessageLogs = (
 
     // From message_logs
     filteredLogs.forEach(log => {
-      if (log.message_received) {
+      const inboundContent = resolveVisibleInboundContent(log);
+      if (inboundContent) {
         allMessages.push({
           id: `log-recv-${log.id}`,
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
-          content: log.message_received,
+          content: inboundContent,
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
+        if (isInternalFlowStateKeyword(log.keyword_matched)) return;
         // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
         // New flow engine writes detailed __flow_send__ logs, so summary rows are redundant only then.
         const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
