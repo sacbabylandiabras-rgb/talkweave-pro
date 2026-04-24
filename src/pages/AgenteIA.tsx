@@ -389,18 +389,23 @@ const AgenteIA = () => {
                       As ferramentas só funcionam com o provedor <strong>Claude (Anthropic)</strong>. Troque o provedor na aba "Configuração" para ativá-las.
                     </div>
                   )}
-                  {tools.map((t) => (
-                    <div key={t.name} className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/40 bg-muted/20">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{t.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-                        <code className="text-[10px] text-muted-foreground/70 mt-1 block">{t.name}</code>
-                      </div>
-                      <Switch
-                        checked={t.enabled}
-                        onCheckedChange={(v) => toggleTool(t.name, v)}
-                        disabled={provider !== "anthropic"}
-                      />
+                  {Array.from(new Set(tools.map((t) => t.category))).map((cat) => (
+                    <div key={cat} className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mt-2">{cat}</p>
+                      {tools.filter((t) => t.category === cat).map((t) => (
+                        <div key={t.name} className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/40 bg-muted/20">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{t.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                            <code className="text-[10px] text-muted-foreground/70 mt-1 block">{t.name}</code>
+                          </div>
+                          <Switch
+                            checked={t.enabled}
+                            onCheckedChange={(v) => toggleTool(t.name, v)}
+                            disabled={provider !== "anthropic"}
+                          />
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </CardContent>
