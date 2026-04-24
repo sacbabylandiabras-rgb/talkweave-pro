@@ -193,17 +193,42 @@ const UazapiSpecialSection = () => {
     if (!amount || amount <= 0) {
       return toast({ title: "Valor inválido", variant: "destructive" });
     }
-    callEdge(
-      "request-payment",
-      {
-        amount,
-        currency: "BRL",
-        noteForReceiver: payDescription || "Solicitação de pagamento",
-        requestNote: payNotes || undefined,
-        allowCards: true,
-      },
-      phone,
-    );
+    sendPixPaymentRequest(phone, amount);
+  };
+
+  const sendPixPaymentRequest = async (phone: string, amount: number) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-pix-payment-request", {
+        body: {
+          phone,
+          amount,
+          description: payDescription || undefined,
+          notes: payNotes || undefined,
+          instanceId: instanceId || undefined,
+        },
+      });
+      if (error) {
+        let parsed: any = null;
+        try { parsed = await (error as any)?.context?.json?.(); } catch { /* noop */ }
+        throw new Error(parsed?.error || error?.message || "Falha ao gerar cobrança");
+      }
+      if (!data?.success) {
+        throw new Error(data?.error || "Falha ao gerar cobrança");
+      }
+      toast({
+        title: "Cobrança enviada!",
+        description: `PIX gerado via ${String(data.acquirer || "adquirente").toUpperCase()} e enviado pelo WhatsApp.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao gerar cobrança",
+        description: err?.message || "Falha desconhecida",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
