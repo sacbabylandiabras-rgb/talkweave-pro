@@ -426,6 +426,123 @@ const MediaModelSection = ({
                       </div>
                     );
                   }
+                  // Prévia para Status / Stories (UAZAPI)
+                  if (__special && __special.type === 'uaz_status') {
+                    const t = __special.statusType || 'text';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[220px]">
+                          <div className="px-3 py-2 flex items-center gap-2 border-b border-border/30">
+                            <span className="text-base">📸</span>
+                            <p className="text-sm font-semibold text-foreground">Status / Stories</p>
+                          </div>
+                          {t === 'text' ? (
+                            <div
+                              className="px-3 py-6 text-center"
+                              style={{ backgroundColor: __special.backgroundColor || '#000000' }}
+                            >
+                              <p className="text-sm font-medium whitespace-pre-wrap" style={{ color: '#ffffff' }}>
+                                {__special.text || 'Sem texto'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              {t === 'image' && __special.media && (
+                                <img src={__special.media} alt="status" className="w-full max-h-48 object-cover" />
+                              )}
+                              {t === 'video' && __special.media && (
+                                <video src={__special.media} controls className="w-full max-h-48" />
+                              )}
+                              {t === 'audio' && __special.media && (
+                                <div className="px-3 py-2"><audio src={__special.media} controls className="w-full" /></div>
+                              )}
+                              {!__special.media && (
+                                <div className="px-3 py-4 text-xs text-muted-foreground text-center">Mídia não enviada</div>
+                              )}
+                              {__special.caption && (
+                                <p className="px-3 pb-2 text-xs text-foreground whitespace-pre-wrap">{__special.caption}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Prévia para Botão de Localização (UAZAPI)
+                  if (__special && __special.type === 'uaz_location_button') {
+                    const lat = Number(String(__special.latitude ?? '').replace(',', '.'));
+                    const lng = Number(String(__special.longitude ?? '').replace(',', '.'));
+                    const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+                    const delta = 0.005;
+                    const bbox = hasCoords ? `${lng - delta},${lat - delta},${lng + delta},${lat + delta}` : null;
+                    const mapUrl = hasCoords ? `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}` : null;
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          {hasCoords && (
+                            <div className="block bg-muted relative">
+                              <iframe src={mapUrl!} title="Mapa" className="w-full h-36 border-0 pointer-events-none" loading="lazy" />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <MapPin className="w-8 h-8 text-red-600 drop-shadow-lg" />
+                              </div>
+                            </div>
+                          )}
+                          <div className="px-3 py-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-foreground" />
+                              <p className="text-sm font-semibold text-foreground">{__special.name || 'Localização'}</p>
+                            </div>
+                            {__special.address && (
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{__special.address}</p>
+                            )}
+                            {__special.text && (
+                              <p className="text-xs text-foreground whitespace-pre-wrap">{__special.text}</p>
+                            )}
+                          </div>
+                          {(__special.label || __special.url) && (
+                            <div className="border-t border-border/30 text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                              {__special.label || 'Abrir'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Prévia para Solicitar Pagamento (UAZAPI)
+                  if (__special && __special.type === 'uaz_request_payment') {
+                    const amount = __special.amount
+                      ? `${__special.currency || 'BRL'} ${Number(String(__special.amount).replace(',', '.')).toFixed(2).replace('.', ',')}`
+                      : '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                          <div className="px-3 py-2 space-y-2">
+                            <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                              <span className="text-base">💳</span>
+                              <p className="text-sm font-semibold text-foreground">Solicitação de Pagamento</p>
+                            </div>
+                            {amount && <p className="text-lg font-bold text-foreground">{amount}</p>}
+                            {__special.note && (
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{__special.note}</p>
+                            )}
+                            {__special.expiry && (
+                              <p className="text-[11px] text-muted-foreground">⏱ Expira em: {__special.expiry}</p>
+                            )}
+                            <div className="flex items-center justify-end gap-1 pt-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <Check className="w-3 h-3 text-blue-500" />
+                              <Check className="w-3 h-3 text-blue-500 -ml-2" />
+                            </div>
+                          </div>
+                          <div className="border-t border-border/30 text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                            Pagar
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                 <div className="flex justify-end">
                   <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
