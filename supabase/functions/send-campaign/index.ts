@@ -968,7 +968,6 @@ serve(async (req) => {
     let rateLimitHitsInBatch = 0;
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-      let unresolvedLidError: string | null = null;
 
       // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
       // Never send unresolved @lid identifiers as raw numeric strings because providers
@@ -1004,8 +1003,7 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
           contact.phone = resolvedLidPhone;
         } else {
-          unresolvedLidError = `Contato ${lidId} ainda está como @lid e não possui número real mapeado para envio.`;
-          console.log(`⚠️ ${unresolvedLidError}`);
+          console.log(`⚠️ @lid não resolvido para ${lidId} — enviando como @lid.`);
         }
       }
 
@@ -1052,23 +1050,6 @@ serve(async (req) => {
           .filter(s => s.status === 'failed')
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
-
-        if (unresolvedLidError) {
-          campaignSend = {
-            campaign_id: campaignId,
-            phone: contact.phone,
-            contact_name: contact.name,
-            message_content: isFlowCampaign ? `[Fluxo: ${flowId}]` : (campaign.template?.content || 'Mensagem não enviada'),
-            status: 'failed',
-            error_message: unresolvedLidError,
-            user_id: credentials.userId,
-            instance_name: currentInstance.instanceName,
-          };
-          results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-          await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
-        }
 
         // Device connectivity is checked once at batch level (above), not per-contact
         // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
