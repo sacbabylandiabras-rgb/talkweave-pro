@@ -1110,7 +1110,6 @@ const Campanhas = () => {
             });
 
             const sentCount = fullContactList.filter(c => c.status === 'enviado').length;
-            const sendingCount = fullContactList.filter(c => c.status === 'enviando').length;
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
@@ -1173,7 +1172,7 @@ const Campanhas = () => {
                 </div>
 
                 {/* Stats grid */}
-                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-7' : 'md:grid-cols-6'} gap-3`}>
+                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-6' : 'md:grid-cols-5'} gap-3`}>
                   <div className="p-3 bg-muted/50 rounded-lg text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-bold text-lg">{totalCount}</p>
@@ -1181,10 +1180,6 @@ const Campanhas = () => {
                   <div className="p-3 bg-green-500/10 rounded-lg text-center">
                     <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
                     <p className="font-bold text-lg text-green-600 dark:text-green-400">{sentCount}</p>
-                  </div>
-                  <div className="p-3 bg-primary/10 rounded-lg text-center">
-                    <p className="text-xs text-primary">Enviando</p>
-                    <p className="font-bold text-lg text-primary">{sendingCount}</p>
                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
@@ -1239,12 +1234,10 @@ const Campanhas = () => {
                           <TableCell>
                             <Badge 
                               variant={contact.status === 'enviado' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
-                              className={contact.status === 'enviando' ? 'flex items-center gap-1 w-fit bg-primary/10 text-primary border-primary/20' : 'flex items-center gap-1 w-fit'}
+                              className="flex items-center gap-1 w-fit"
                             >
                               {contact.status === 'enviado' ? (
                                 <><CheckCircle className="w-3 h-3" /> Enviado</>
-                              ) : contact.status === 'enviando' ? (
-                                <><ClockIcon className="w-3 h-3" /> Enviando</>
                               ) : contact.status === 'pendente' ? (
                                 <><ClockIcon className="w-3 h-3" /> Pendente</>
                               ) : (
