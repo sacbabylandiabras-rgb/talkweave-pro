@@ -359,6 +359,183 @@ async function executeTool(
         return JSON.stringify({ error: e?.message || 'Falha ao gerar PIX' })
       }
     }
+    // ============ GATEWAY ============
+    case 'gateway_consultar_saldo': {
+      try {
+        const { data: txs } = await supabase
+          .from('gateway_transactions')
+          .select('net, status')
+          .eq('user_id', userId)
+          .eq('status', 'paid')
+        const { data: wds } = await supabase
+          .from('gateway_withdrawals')
+          .select('amount, status')
+          .eq('user_id', userId)
+          .in('status', ['pending', 'approved', 'processing', 'completed'])
+        const totalRecebido = (txs || []).reduce((s: number, t: any) => s + (t.net || 0), 0)
+        const totalSaques = (wds || []).reduce((s: number, w: any) => s + (w.amount || 0), 0)
+        const saldo = totalRecebido - totalSaques
+        return JSON.stringify({
+          saldo_disponivel_reais: (saldo / 100).toFixed(2),
+          total_recebido_reais: (totalRecebido / 100).toFixed(2),
+          total_saques_reais: (totalSaques / 100).toFixed(2),
+        })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao consultar saldo' })
+      }
+    }
+    case 'gateway_listar_vendas': {
+      try {
+        const limite = Math.min(Number(input.limite) || 10, 50)
+        let q = supabase
+          .from('gateway_transactions')
+          .select('id, customer_name, customer_email, amount, net, status, payment_method, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limite)
+        if (input.status) q = q.eq('status', String(input.status))
+        const { data } = await q
+        const vendas = (data || []).map((t: any) => ({
+          ...t,
+          valor_reais: (t.amount / 100).toFixed(2),
+          liquido_reais: (t.net / 100).toFixed(2),
+        }))
+        return JSON.stringify({ total: vendas.length, vendas })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao listar vendas' })
+      }
+    }
+    case 'gateway_listar_produtos': {
+      try {
+        const limite = Math.min(Number(input.limite) || 10, 50)
+        const { data } = await supabase
+          .from('gateway_products')
+          .select('id, name, description, price, type, status, sku')
+          .eq('user_id', userId)
+          .eq('status', true)
+          .order('created_at', { ascending: false })
+          .limit(limite)
+        const produtos = (data || []).map((p: any) => ({
+          ...p,
+          preco_reais: (p.price / 100).toFixed(2),
+        }))
+        return JSON.stringify({ total: produtos.length, produtos })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao listar produtos' })
+      }
+    }
+    // ============ INSTAGRAM ============
+    case 'instagram_responder_comentario': {
+      const token = await getInstagramToken(supabase, userId)
+      if (!token) return JSON.stringify({ error: 'Nenhuma credencial Meta/Instagram conectada.' })
+      if (testMode) return JSON.stringify({ simulated: true, info: 'Resposta a comentário simulada (modo teste).', input })
+      try {
+        const r = await fetch(`https://graph.instagram.com/${META_API_VERSION}/${input.comment_id}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: input.mensagem, access_token: token }),
+        })
+        const text = await r.text()
+        if (!r.ok) return JSON.stringify({ error: `HTTP ${r.status}: ${text.substring(0, 200)}` })
+        return JSON.stringify({ ok: true, response: text.substring(0, 300) })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao responder comentário' })
+      }
+    }
+    case 'instagram_enviar_dm': {
+      const token = await getInstagramToken(supabase, userId)
+      if (!token) return JSON.stringify({ error: 'Nenhuma credencial Meta/Instagram conectada.' })
+      if (!input.ig_user_id && !input.comment_id) return JSON.stringify({ error: 'Informe ig_user_id ou comment_id.' })
+      if (testMode) return JSON.stringify({ simulated: true, info: 'DM Instagram simulada (modo teste).', input })
+      try {
+        const recipient = input.comment_id ? { comment_id: input.comment_id } : { id: input.ig_user_id }
+        const r = await fetch(`https://graph.instagram.com/${META_API_VERSION}/me/messages?access_token=${encodeURIComponent(token)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient, message: { text: input.mensagem } }),
+        })
+        const text = await r.text()
+        if (!r.ok) return JSON.stringify({ error: `HTTP ${r.status}: ${text.substring(0, 200)}` })
+        return JSON.stringify({ ok: true, response: text.substring(0, 300) })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao enviar DM' })
+      }
+    }
+    case 'instagram_listar_comentarios': {
+      try {
+        const limite = Math.min(Number(input.limite) || 10, 50)
+        const { data } = await supabase
+          .from('instagram_events')
+          .select('id, username, comment_text, media_id, created_at, payload')
+          .eq('user_id', userId)
+          .eq('event_type', 'comment')
+          .order('created_at', { ascending: false })
+          .limit(limite)
+        const comentarios = (data || []).map((c: any) => ({
+          comment_id: c.payload?.id || c.id,
+          autor: c.username,
+          texto: c.comment_text,
+          media_id: c.media_id,
+          quando: c.created_at,
+        }))
+        return JSON.stringify({ total: comentarios.length, comentarios })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao listar comentários' })
+      }
+    }
+    // ============ META WHATSAPP CLOUD API ============
+    case 'meta_enviar_texto': {
+      const creds = await getMetaCreds(supabase, userId)
+      if (!creds) return JSON.stringify({ error: 'Nenhuma credencial Meta/WhatsApp Cloud conectada.' })
+      if (testMode) return JSON.stringify({ simulated: true, info: 'Envio Meta WhatsApp simulado (modo teste).', input })
+      try {
+        const r = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${creds.phone_number_id}/messages`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: String(input.para).replace(/\D/g, ''),
+            type: 'text',
+            text: { body: input.mensagem },
+          }),
+        })
+        const text = await r.text()
+        if (!r.ok) return JSON.stringify({ error: `HTTP ${r.status}: ${text.substring(0, 200)}` })
+        return JSON.stringify({ ok: true, response: text.substring(0, 300) })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha no envio Meta' })
+      }
+    }
+    case 'meta_enviar_template': {
+      const creds = await getMetaCreds(supabase, userId)
+      if (!creds) return JSON.stringify({ error: 'Nenhuma credencial Meta/WhatsApp Cloud conectada.' })
+      if (testMode) return JSON.stringify({ simulated: true, info: 'Envio template Meta simulado (modo teste).', input })
+      try {
+        const components = (input.variaveis && input.variaveis.length > 0) ? [{
+          type: 'body',
+          parameters: input.variaveis.map((v: any) => ({ type: 'text', text: String(v) })),
+        }] : []
+        const r = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${creds.phone_number_id}/messages`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: String(input.para).replace(/\D/g, ''),
+            type: 'template',
+            template: {
+              name: input.nome_template,
+              language: { code: input.idioma || 'pt_BR' },
+              components,
+            },
+          }),
+        })
+        const text = await r.text()
+        if (!r.ok) return JSON.stringify({ error: `HTTP ${r.status}: ${text.substring(0, 200)}` })
+        return JSON.stringify({ ok: true, response: text.substring(0, 300) })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha no envio template Meta' })
+      }
+    }
     default:
       return JSON.stringify({ error: `Ferramenta desconhecida: ${toolName}` })
   }
