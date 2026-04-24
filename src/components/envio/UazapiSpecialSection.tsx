@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload, Bug, X } from "lucide-react";
+import { Camera, MapPinned, CreditCard, Send, AlertTriangle, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -62,18 +62,6 @@ const UazapiSpecialSection = () => {
   const [statusFile, setStatusFile] = useState("");
   const [statusBg, setStatusBg] = useState("");
   const [uploadingStatus, setUploadingStatus] = useState(false);
-  const [diagnostic, setDiagnostic] = useState<null | {
-    kind: string;
-    success: boolean;
-    error?: string;
-    providerStatus?: number;
-    providerBody?: any;
-    providerRaw?: string;
-    requestUrl?: string;
-    requestBody?: any;
-    invokeError?: any;
-    timestamp: string;
-  }>(null);
 
   const handleUploadStatusFile = async (file: File) => {
     if (!file) return;
