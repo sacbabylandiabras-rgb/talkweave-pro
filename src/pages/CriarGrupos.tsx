@@ -731,6 +731,51 @@ function GerenciarGrupoTab() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Mention all dialog */}
+      <Dialog open={mentionAllOpen} onOpenChange={setMentionAllOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marcar Todos no Grupo</DialogTitle>
+            <DialogDescription>
+              Digite a mensagem que será enviada marcando todos os participantes.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={mentionAllMessage}
+            onChange={(e) => setMentionAllMessage(e.target.value)}
+            rows={4}
+            placeholder="Digite a mensagem..."
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setMentionAllOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!mentionAllMessage.trim() || actionLoading === "mention-group"}
+              onClick={async () => {
+                if (!selectedGroup || !mentionAllMessage.trim()) return;
+                setMentionAllOpen(false);
+                setActionLoading("mention-group");
+                try {
+                  const credentials = getInstanceCredentials(selectedGroup);
+                  const { data, error } = await supabase.functions.invoke("manage-groups", {
+                    body: { action: "mention-group", groupId: selectedGroup.id, message: mentionAllMessage.trim(), ...credentials },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error("Erro: " + data.error); return; }
+                  toast.success("Mensagem enviada marcando todos!");
+                } catch (err: any) {
+                  toast.error("Erro: " + (err.message || "Falha ao marcar todos"));
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+            >
+              {actionLoading === "mention-group" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <AtSign className="w-4 h-4 mr-1" />}
+              Enviar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Pending approvals dialog */}
       <Dialog open={pendingOpen} onOpenChange={setPendingOpen}>
         <DialogContent className="max-w-md">
