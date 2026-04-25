@@ -1581,6 +1581,20 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
+            if (specialTpl?.type === 'uaz_location_button') {
+              await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
+              const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
+              if (!buttonResult.ok) {
+                campaignSend.status = 'failed';
+                campaignSend.error_message = buttonResult.error || 'Falha ao enviar botão da localização';
+                results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+                console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
+                await persistCampaignSend(campaignSend, reusableSendId);
+                if (i < currentBatch.length - 1) await sleep(delayMs);
+                continue;
+              }
+            }
+
             const awaitingGroupCallback = isGroupDestination(contact.phone);
             campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
             if (!awaitingGroupCallback) {
