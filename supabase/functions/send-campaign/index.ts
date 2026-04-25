@@ -345,6 +345,24 @@ const getZapiTargetPhone = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
+const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
+  const cleanUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  if (!supabaseUrl || !opts.campaignId || !opts.userId) return cleanUrl;
+
+  const params = new URLSearchParams({
+    url: cleanUrl,
+    cid: opts.campaignId,
+    uid: opts.userId,
+    ph: opts.phone.replace(/\D/g, ''),
+    btn: opts.label,
+    flow: opts.campaignName || 'Campanha',
+    src: 'campaign',
+  });
+
+  return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+};
+
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
   const hasRateLimitPayload = isWhatsAppRateLimitError(payload, httpStatus);
   if (!hasRateLimitPayload) return false;
