@@ -82,15 +82,32 @@ serve(async (req: Request) => {
         try {
           const provider = String(inst.api_provider || "zapi").toLowerCase();
           if (provider !== "zapi") continue;
-          const url = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}/me`;
-          const r = await fetch(url, {
-            headers: { "Client-Token": String(inst.zapi_client_token || "") },
-          });
-          if (!r.ok) continue;
-          const j = await r.json().catch(() => ({}));
-          const phone = String(j?.phone || j?.connected || j?.id || "").replace(/\D/g, "");
-          if (phone.length >= 8) resolvedFromInstances.push(phone);
-        } catch (_) { /* ignore */ }
+          const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
+          const headers = { "Client-Token": String(inst.zapi_client_token || "") };
+          // Tenta vários endpoints da Z-API que retornam o telefone conectado
+          const endpoints = ["/device", "/me", "/profile", "/status"];
+          let phone = "";
+          for (const ep of endpoints) {
+            try {
+              const r = await fetch(`${base}${ep}`, { headers });
+              if (!r.ok) continue;
+              const j: any = await r.json().catch(() => ({}));
+              const cand =
+                j?.phone || j?.connectedPhone || j?.connected_phone ||
+                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone;
+              const digits = String(cand || "").replace(/\D/g, "");
+              if (digits.length >= 8) { phone = digits; break; }
+            } catch (_) { /* try next */ }
+          }
+          if (phone) {
+            resolvedFromInstances.push(phone);
+            console.log(`✓ ${inst.instance_name}: ${phone}`);
+          } else {
+            console.log(`✗ ${inst.instance_name}: telefone não resolvido`);
+          }
+        } catch (e) {
+          console.log(`erro ao resolver ${inst.instance_name}:`, (e as any)?.message);
+        }
       }
     }
 
