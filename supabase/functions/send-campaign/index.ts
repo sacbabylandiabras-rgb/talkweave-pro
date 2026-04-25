@@ -367,15 +367,21 @@ const dispatchZapiSpecial = async (
   let url = '';
   let body: Record<string, unknown> = {};
   if (special.type === 'pix') {
-    url = `${baseUrl}/send-payment-pix`;
+    url = `${baseUrl}/send-button-pix`;
+    const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
+    const typeMap: Record<string, string> = {
+      TELEFONE: 'PHONE',
+      CELULAR: 'PHONE',
+      'E-MAIL': 'EMAIL',
+      ALEATORIA: 'EVP',
+      'ALEATÓRIA': 'EVP',
+      RANDOM: 'EVP',
+    };
     body = {
       phone,
-      pixKey: special.pixKey || '',
-      type: String(special.pixKeyType || 'cpf').toUpperCase(),
-      merchantName: special.merchantName || '',
-      ...(special.amount ? { value: Number(String(special.amount).replace(',', '.')) || 0 } : {}),
-      ...(special.city ? { city: special.city } : {}),
-      ...(special.description ? { description: special.description } : {}),
+      pixKey: String(special.pixKey || '').trim(),
+      type: typeMap[rawType] || rawType,
+      ...(special.merchantName ? { merchantName: special.merchantName } : {}),
     };
   } else if (special.type === 'localizacao') {
     url = `${baseUrl}/send-location`;
