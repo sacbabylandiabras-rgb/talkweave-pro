@@ -956,6 +956,24 @@ serve(async (req) => {
                 groupId: normalizedGroupId,
               }),
             );
+
+            // Diagnóstico: mesmo sem resolver telefone, verificar se há config para esse grupo
+            const { data: diagConfig } = await supabase
+              .from("group_welcome_config")
+              .select("id, active, response_type")
+              .eq("user_id", instData.user_id)
+              .eq("group_id", normalizedGroupId)
+              .maybeSingle();
+            if (diagConfig) {
+              console.log(
+                `🔎 [welcome-diag] Config existe para ${normalizedGroupId} (active=${diagConfig.active}, type=${diagConfig.response_type}) mas o telefone do novo membro não foi resolvido. Webhook completo:`,
+                JSON.stringify(webhook).substring(0, 1500),
+              );
+            } else {
+              console.log(
+                `🔎 [welcome-diag] Sem config de boas-vindas para grupo ${normalizedGroupId} (user ${instData.user_id})`,
+              );
+            }
           }
 
           if (canHandleParticipant) {
@@ -975,6 +993,13 @@ serve(async (req) => {
                 "type:",
                 welcomeConfig.response_type,
               );
+            } else {
+              console.log(
+                `🔎 [welcome-diag] Telefone resolvido (${joinedPhone}) mas SEM config ativa para grupo ${normalizedGroupId} (user ${instData.user_id})`,
+              );
+            }
+
+            if (welcomeConfig) {
 
               // === DEDUPLICATION: Prevent duplicate welcome messages from multiple instances ===
               const dedupeWindow = new Date(Date.now() - 60 * 1000)
