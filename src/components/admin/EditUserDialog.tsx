@@ -197,7 +197,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/{maxInstances})</h3>
                 <Button size="sm" variant="outline" onClick={() => setShowAddForm((v) => !v)}>
                   <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm ? "Fechar" : "Adicionar Z-API"}
+                  {showAddForm ? "Fechar" : "Adicionar Instância"}
                 </Button>
             </div>
 
@@ -223,23 +223,48 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             {showAddForm && (
               <Card className="mb-3 border-primary/40">
                 <CardContent className="pt-4 pb-4 space-y-3">
-                  <h4 className="font-medium text-sm">Nova instância Z-API</h4>
+                  <h4 className="font-medium text-sm">Nova instância</h4>
+                  <div className="space-y-2">
+                    <Label>Provedor</Label>
+                    <Select value={newProvider} onValueChange={(v) => setNewProvider(v as 'zapi' | 'uazapi')}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="zapi">Z-API</SelectItem>
+                        <SelectItem value="uazapi">uazapi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label>Nome da instância</Label>
                     <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Instance ID</Label>
-                    <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instance Token</Label>
-                    <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Client Token (Account Security)</Label>
-                    <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                  </div>
+                  {newProvider === 'zapi' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Instance ID</Label>
+                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Instance Token</Label>
+                        <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Client Token (Account Security)</Label>
+                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>URL da uazapi</Label>
+                        <Input value={newUazapiUrl} onChange={(e) => setNewUazapiUrl(e.target.value)} placeholder="https://seudominio.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Token da uazapi</Label>
+                        <Input value={newUazapiToken} onChange={(e) => setNewUazapiToken(e.target.value)} placeholder="Token da instância uazapi" type="password" />
+                      </div>
+                    </>
+                  )}
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />
                     Definir como padrão
