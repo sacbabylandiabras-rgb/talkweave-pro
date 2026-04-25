@@ -670,6 +670,10 @@ export default function AdminAquecimento() {
                 {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
                 Carregar pacote (800)
               </Button>
+              <Button variant="default" size="sm" onClick={loadConversationPack} disabled={importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                Pacote conversa recíproca (1000)
+              </Button>
               {messages.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearAllMsgs} className="text-destructive">
                   <Trash2 className="w-4 h-4 mr-1" /> Limpar tudo
@@ -717,7 +721,16 @@ export default function AdminAquecimento() {
                   key={m.id}
                   className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/20"
                 >
-                  <span className="text-sm truncate flex-1">{m.content}</span>
+                  {m.content.includes("||") ? (
+                    <div className="flex-1 min-w-0 text-sm">
+                      <span className="text-muted-foreground">📤 </span>
+                      <span className="truncate">{m.content.split("||")[0]}</span>
+                      <span className="text-primary"> ↩ </span>
+                      <span className="truncate text-muted-foreground">{m.content.split("||")[1]}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm truncate flex-1">{m.content}</span>
+                  )}
                   <Switch checked={m.active} onCheckedChange={(v) => toggleMsg(m.id, v)} />
                   <Button
                     variant="ghost"
