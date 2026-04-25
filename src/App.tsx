@@ -133,6 +133,7 @@ const App = () => (
                   <Route path="/criar-grupos" element={<CriarGrupos />} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
+                  <Route path="/aquecimento" element={<AquecimentoNumero />} />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
                   <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
