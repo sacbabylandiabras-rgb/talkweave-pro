@@ -541,6 +541,18 @@ Deno.serve(async (req) => {
             .replace("@c.us", "")
             .replace(/\D/g, "");
 
+          const hasRealPhone = cleanPhone.length >= 8 && !normalizedId.includes("@lid");
+
+          if (!isCommunity && hasRealPhone) {
+            resolvedParticipants.push({
+              phone: cleanPhone,
+              isAdmin: Boolean(p.isAdmin || p.admin),
+              isSuperAdmin: Boolean(p.isSuperAdmin || p.superAdmin),
+              name: p.name || p.short || p.notify || p.pushName || "",
+            });
+            continue;
+          }
+
           const isLid = normalizedId.includes("@lid") || Boolean(lidCandidate) || isCommunity;
 
           if (isLid) {
@@ -555,7 +567,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          if (cleanPhone.length >= 8) {
+          if (hasRealPhone) {
             resolvedParticipants.push({
               phone: cleanPhone,
               isAdmin: Boolean(p.isAdmin || p.admin),
