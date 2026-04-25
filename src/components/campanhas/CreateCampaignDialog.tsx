@@ -169,10 +169,14 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          const parsedContacts = results.data.map((row: any) => ({
-            phone: row.telefone || row.phone || row.numero || row.Telefone || row.Phone || row.Numero || "",
-            name: row.nome || row.name || row.Name || row.Nome || "Cliente",
-          })).filter(c => c.phone);
+          const parsedContacts = results.data.map((row: any) => {
+            const raw = String(row.telefone || row.phone || row.numero || row.Telefone || row.Phone || row.Numero || "").trim();
+            const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+            return {
+              phone,
+              name: row.nome || row.name || row.Name || row.Nome || "Cliente",
+            };
+          }).filter(c => c.phone);
 
           setImportedContacts(parsedContacts);
           toast({
