@@ -359,6 +359,9 @@ export default function AquecimentoNumero() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{config.messages.length} / 800</Badge>
+              <Button variant="outline" size="sm" onClick={loadDefaultPack}>
+                <Plus className="w-4 h-4 mr-1" /> Carregar pacote (800)
+              </Button>
               {config.messages.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearMessages} className="text-destructive">
                   <Trash2 className="w-4 h-4 mr-1" /> Limpar
