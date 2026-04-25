@@ -417,6 +417,23 @@ const dispatchZapiSpecial = async (
         ...(special.font !== undefined && special.font !== null ? { font: Number(special.font) || 1 } : {}),
       };
     }
+  } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
+    // Mensagem com botão "Copiar Código" (WhatsApp OTP COPY_CODE)
+    const code = String(special.copyText || special.code || '').trim();
+    const message = String(special.description || special.text || ' ').trim() || ' ';
+    url = `${baseUrl}/send-button-actions`;
+    body = {
+      phone,
+      message,
+      buttonActions: [
+        {
+          id: '1',
+          type: 'URL',
+          label: 'Copiar código',
+          url: `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`,
+        },
+      ],
+    };
   }
   return { url, body };
 };
@@ -459,6 +476,12 @@ const dispatchUazapiSpecial = async (
       fullName: special.contactName || '',
       phoneNumber: String(special.contactPhone || '').replace(/\D/g, ''),
     };
+  } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
+    endpoint = '/send/text';
+    const code = String(special.copyText || special.code || '').trim();
+    const desc = String(special.description || special.text || '').trim();
+    const txt = [desc, code ? `\n\`\`\`${code}\`\`\`` : ''].filter(Boolean).join('\n').trim() || code;
+    body = { number: targetNumber, text: txt };
   }
 
   try {
