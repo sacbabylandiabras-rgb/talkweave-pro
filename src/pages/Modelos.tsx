@@ -2232,7 +2232,7 @@ const Modelos = () => {
             />
 
             {/* Campos específicos por tipo - Edição */}
-            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-3">
                 <div>
                   <Label>Upload de Arquivo</Label>
@@ -2243,7 +2243,7 @@ const Modelos = () => {
                         accept={
                           editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
                             ? "image/*"
-                            : editFormData.type === "audio"
+                            : editFormData.type === "audio" || editFormData.type === "audio_botoes"
                             ? "audio/*"
                             : "video/*"
                         }
