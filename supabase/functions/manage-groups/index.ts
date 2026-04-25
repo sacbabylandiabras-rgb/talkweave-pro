@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
         const { groupId } = body;
         if (!groupId) throw new Error("groupId is required");
         const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/redefine-invitation-link/${cleanId}`, { method: "GET", headers });
+        const response = await fetch(`${baseUrl}/redefine-invitation-link/${cleanId}`, { method: "PUT", headers });
         const data = await response.json().catch(() => ({}));
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
