@@ -33,6 +33,7 @@ export default function AquecimentoNumero() {
     dailyLimit: 50,
   });
   const [saving, setSaving] = useState(false);
+  const [cycleRunning, setCycleRunning] = useState(false);
 
   useEffect(() => {
     try {
@@ -67,30 +68,62 @@ export default function AquecimentoNumero() {
     }
   };
 
+  const runWarmupCycle = async () => {
+    const { data, error } = await supabase.functions.invoke("run-warmup", {
+      body: {
+        instanceIds: config.instanceIds,
+        minDelay: config.minDelay,
+        maxDelay: config.maxDelay,
+        dailyLimit: config.dailyLimit,
+        mode: "tick",
+        batchSize: 1,
+      },
+    });
+    if (error) throw error;
+    if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao executar ciclo");
+    return data as any;
+  };
+
+  useEffect(() => {
+    if (!config.active || !config.instanceIds.length) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleNext = () => {
+      const min = Math.max(5, config.minDelay);
+      const max = Math.max(min, config.maxDelay);
+      const delayMs = (min + Math.random() * (max - min)) * 1000;
+      timer = setTimeout(run, delayMs);
+    };
+
+    const run = async () => {
+      if (cancelled) return;
+      setCycleRunning(true);
+      try {
+        await runWarmupCycle();
+      } catch (err: any) {
+        toast.error(err?.message || "Erro no ciclo de aquecimento");
+      } finally {
+        setCycleRunning(false);
+        if (!cancelled) scheduleNext();
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [config.active, config.instanceIds, config.minDelay, config.maxDelay, config.dailyLimit]);
+
   const toggleActive = async () => {
     if (!config.active) {
       if (!config.instanceIds.length) {
         toast.error("Selecione ao menos uma instância para aquecer");
         return;
       }
-      try {
-        const { data, error } = await supabase.functions.invoke("run-warmup", {
-          body: {
-            instanceIds: config.instanceIds,
-            minDelay: config.minDelay,
-            maxDelay: config.maxDelay,
-            dailyLimit: config.dailyLimit,
-          },
-        });
-        if (error) throw error;
-        if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao iniciar");
-        toast.success(
-          `Aquecimento iniciado: ${(data as any)?.donors || 0} doadora(s) → ${(data as any)?.targets || 0} alvo(s)`,
-        );
-      } catch (err: any) {
-        toast.error(err?.message || "Erro ao iniciar aquecimento");
-        return;
-      }
+      toast.success("Aquecimento iniciado em ciclos contínuos");
     } else {
       toast.success("Aquecimento pausado");
     }

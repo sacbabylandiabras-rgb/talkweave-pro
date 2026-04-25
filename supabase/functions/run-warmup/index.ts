@@ -50,6 +50,11 @@ serve(async (req: Request) => {
     const minDelay = Math.max(2, Number(body?.minDelay) || 10);
     const maxDelay = Math.max(minDelay, Number(body?.maxDelay) || 30);
     const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
+    const isTickMode = body?.mode === "tick" || body?.batchSize !== undefined;
+    const sendsPerDonor = Math.max(
+      1,
+      Math.min(dailyLimit, Math.min(20, Number(body?.batchSize) || dailyLimit)),
+    );
 
     // Se o cliente não enviou mensagens, usa o pool global de admin (warmup_messages ativas)
     if (!messages.length) {
@@ -192,8 +197,8 @@ serve(async (req: Request) => {
     let totalReplies = 0;
     const errors: string[] = [];
 
-    // Para cada doadora UAZAPI, dispara até `dailyLimit` mensagens, alternando alvos e textos
-    // EdgeRuntime tem limite de tempo, então enviamos em background com EdgeRuntime.waitUntil
+    // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
+    // Lotes pequenos evitam timeout da Edge Function; a tela ativa agenda os próximos ciclos.
     const work = async () => {
       for (const donor of donors) {
         const apiUrl = String(donor.evolution_api_url || "").replace(/\/+$/, "");
@@ -231,7 +236,7 @@ serve(async (req: Request) => {
           console.log(`⚠️ doadora ${donor.instance_name}: telefone NÃO resolvido — sem réplicas recíprocas`);
         }
 
-        for (let i = 0; i < dailyLimit; i++) {
+        for (let i = 0; i < sendsPerDonor; i++) {
           // Round-robin: garante distribuição equilibrada entre todos os alvos
           const target = cleanedTargets[i % cleanedTargets.length];
           const raw = pickRandom(messages);
@@ -248,7 +253,7 @@ serve(async (req: Request) => {
             });
             if (res.ok) {
               totalSent++;
-              console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit}): "${question.slice(0,40)}"`);
+              console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
               // RÉPLICA RECÍPROCA: a instância alvo (Z-API) envia o "answer" de volta à doadora.
               // Simula leitura humana com delay de 8-20s antes de responder.
@@ -297,17 +302,21 @@ serve(async (req: Request) => {
             errors.push(`${donor.instance_name} → ${target}: ${e?.message || "erro"}`);
           }
 
-          // Delay aleatório entre min e max
-          const delayMs = (minDelay + Math.random() * (maxDelay - minDelay)) * 1000;
-          await new Promise((r) => setTimeout(r, delayMs));
+          // Delay aleatório entre mensagens somente quando há mais de uma no mesmo lote.
+          if (i < sendsPerDonor - 1) {
+            const delayMs = (minDelay + Math.random() * (maxDelay - minDelay)) * 1000;
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
         }
       }
       console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
       if (errors.length) console.log("Erros:", errors.slice(0, 20));
     };
 
+    if (isTickMode) {
+      await work();
     // @ts-ignore - EdgeRuntime fornecido pelo Supabase
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+    } else if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       // @ts-ignore
       EdgeRuntime.waitUntil(work());
     } else {
@@ -317,11 +326,14 @@ serve(async (req: Request) => {
 
     return json({
       success: true,
-      message: "Aquecimento iniciado em segundo plano",
+      message: isTickMode ? "Ciclo de aquecimento executado" : "Aquecimento iniciado em segundo plano",
       donors: donors.length,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
-      plannedSends: donors.length * dailyLimit,
+      plannedSends: donors.length * sendsPerDonor,
+      sent: totalSent,
+      replies: totalReplies,
+      failed: totalFailed,
     });
   } catch (e: any) {
     console.error("run-warmup error", e);
