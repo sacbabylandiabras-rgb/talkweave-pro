@@ -193,7 +193,18 @@ Deno.serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
+    let providerFilter: string | null = null;
+    try {
+      if (req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        if (body && typeof body.provider === "string") {
+          providerFilter = body.provider;
+        }
+      }
+    } catch (_) { /* ignore */ }
+
     console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
+    if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
 
     const { data: activeInstances } = await adminClient
       .from("zapi_instances")
@@ -249,11 +260,19 @@ Deno.serve(async (req) => {
       console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
     }
 
-    console.log(`📦 Active instances: ${instances.length}`);
+    // Apply provider filter if requested
+    let filteredInstances = instances;
+    if (providerFilter === "uazapi") {
+      filteredInstances = instances.filter((inst) => inst.api_provider === "uazapi");
+    } else if (providerFilter === "zapi") {
+      filteredInstances = instances.filter((inst) => (inst.api_provider || "zapi") === "zapi");
+    }
+
+    console.log(`📦 Active instances (after filter): ${filteredInstances.length} / ${instances.length}`);
 
     const groupsById = new Map<string, any>();
 
-    for (const instance of instances) {
+    for (const instance of filteredInstances) {
       try {
         const rawGroups = instance.api_provider === 'uazapi'
           ? await fetchGroupsViaUazapi(instance)
