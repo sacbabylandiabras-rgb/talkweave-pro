@@ -272,11 +272,12 @@ const ApanhadorGrupos = () => {
     groupId: string,
     fallbackParticipants: any[] = [],
     sourceInstanceId?: string | null,
+    isCommunity = false,
   ) => {
     setExtracting(groupId);
     try {
       const { data, error } = await supabase.functions.invoke('get-group-participants', {
-        body: { groupId, fallbackParticipants, sourceInstanceId },
+        body: { groupId, fallbackParticipants, sourceInstanceId, isCommunity },
       });
       if (error) throw error;
       const phones = (data.participants || [])
@@ -749,7 +750,7 @@ const ApanhadorGrupos = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => extractParticipants(grupo.id, grupo.participantes || [], grupo.sourceInstanceId)}
+                          onClick={() => extractParticipants(grupo.id, grupo.participantes || [], grupo.sourceInstanceId, Boolean(grupo.isCommunity))}
                           disabled={extracting === grupo.id}
                         >
                           {extracting === grupo.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
