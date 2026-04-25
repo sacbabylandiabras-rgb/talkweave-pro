@@ -106,7 +106,6 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
     if (!String(groupId).includes('@g.us')) return null;
 
-    let detail: any = null;
     const fallbackName =
       group?.subject ||
       group?.name ||
@@ -119,23 +118,23 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       group?.wa_contactName ||
       group?.pushName ||
       '';
-    if (!isUsableGroupName(fallbackName)) {
-      try {
-        const infoResponse = await fetch(`${apiUrl}/group/info`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            token: apiToken,
-          },
-          body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
-        });
-        detail = await infoResponse.json().catch(() => null);
-        if (!infoResponse.ok) {
-          console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
-        }
-      } catch (error) {
-        console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
+
+    let detail: any = null;
+    try {
+      const infoResponse = await fetch(`${apiUrl}/group/info`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          token: apiToken,
+        },
+        body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
+      });
+      detail = await infoResponse.json().catch(() => null);
+      if (!infoResponse.ok) {
+        console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
       }
+    } catch (error) {
+      console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
     }
 
     const resolvedName =
@@ -172,8 +171,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       phone: groupId,
       name: resolvedName,
       memberCount:
-        detail?.participants?.length ||
-        detail?.group?.participants?.length ||
+        extractParticipantsFromGroup({ ...group, ...detail }).length ||
         detail?.ParticipantCount ||
         (Array.isArray(detail?.Participants) ? detail.Participants.length : 0) ||
         group?.ParticipantCount ||
