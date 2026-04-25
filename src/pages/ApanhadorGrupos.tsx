@@ -30,7 +30,7 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const { groups, loading, refetch } = useWhatsAppGroups();
+  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
   const [extracting, setExtracting] = useState<string | null>(null);
