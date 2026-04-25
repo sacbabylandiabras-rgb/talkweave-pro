@@ -728,14 +728,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => setShowDetails(!showDetails)}>
             {showDetails ? 'Ocultar' : 'Detalhes'}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-[11px] px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setShowDelete(true)}
-          >
-            <Trash2 className="w-3 h-3 mr-1" /> Apagar
-          </Button>
         </div>
 
         {/* Expandable details */}
