@@ -38,6 +38,19 @@ const normalizeLidValue = (value: string | null | undefined) => {
   return digits ? `${digits}@lid` : raw;
 };
 
+const normalizeRealPhoneValue = (value: any) => {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  const raw = String(value || "").trim();
+  if (!raw || raw.includes("@lid") || raw.includes("@g.us")) return "";
+  const withoutDomain = raw
+    .replace(/@s\.whatsapp\.net$/i, "")
+    .replace(/@c\.us$/i, "")
+    .replace(/@broadcast$/i, "")
+    .split(":")[0];
+  const digits = withoutDomain.replace(/\D/g, "");
+  return digits.length >= 8 ? digits : "";
+};
+
 const uniqueStrings = (values: Array<string | null | undefined>) => {
   return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
 };
@@ -447,7 +460,7 @@ const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: s
       const response = await fetch(`${apiUrl}/group/info`, {
         method: "POST",
         headers: { "Content-Type": "application/json", token: apiToken },
-        body: JSON.stringify({ groupjid: candidate, getInviteLink: false }),
+        body: JSON.stringify({ groupjid: candidate, getInviteLink: false, force: true }),
       });
       const text = await response.text();
       let data: any = {};
@@ -490,9 +503,7 @@ Deno.serve(async (req) => {
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
         const fallbackRealPhoneCount = fallbackList.filter((p) => {
-          const raw = String(p?.phone || p?.phoneNumber || p?.number || p?.user || p?.id || p?.participant || "").trim();
-          const digits = raw.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
-          return digits.length >= 8 && !raw.includes("@lid");
+          return Boolean(normalizeRealPhoneValue(p?.PhoneNumber || p?.phoneNumber || p?.phone_number || p?.number || p?.Number || p?.phone || p?.Phone || p?.user || p?.User || p?.JID || p?.jid || p?.id || p?.participant));
         }).length;
         const rawParticipants = !isCommunity && fallbackRealPhoneCount > 0 ? fallbackList : (apiParticipants.length > 0 ? apiParticipants : fallbackList);
 
@@ -508,45 +519,36 @@ Deno.serve(async (req) => {
             p.lid || p.LID || p.lidJid || p.alt || p.altJid || ""
           ).trim();
           const phoneCandidates = [
+            p.PhoneNumber,
             p.phoneNumber,
             p.phone_number,
             p.number,
-            p.user,
+            p.Number,
+            p.phone,
+            p.Phone,
             p.contactNumber,
             p.contact?.phone,
             p.contact?.number,
-            p.realJid,
             p.realPhone,
+            p.realJid,
+            p.PN,
+            p.pn,
+            p.participantPn,
+            p.ParticipantPN,
             p.JID,
             p.jid,
             p.id,
             p.participant,
-            p.phone,
+            p.user,
+            p.User,
           ];
 
-          let normalizedId = "";
-          for (const cand of phoneCandidates) {
-            const value = String(cand || "").trim();
-            if (!value) continue;
-            if (value.includes("@lid")) continue;
-            normalizedId = value;
-            break;
-          }
+          const cleanPhone = phoneCandidates.map(normalizeRealPhoneValue).find(Boolean) || "";
+          const hasRealPhone = cleanPhone.length >= 8;
 
-          // If everything we found was @lid, fall back to it
-          if (!normalizedId) {
-            for (const cand of phoneCandidates) {
-              const value = String(cand || "").trim();
-              if (value) { normalizedId = value; break; }
-            }
-          }
-
-          const cleanPhone = normalizedId
-            .replace("@s.whatsapp.net", "")
-            .replace("@c.us", "")
-            .replace(/\D/g, "");
-
-          const hasRealPhone = cleanPhone.length >= 8 && !normalizedId.includes("@lid");
+          const normalizedId = String(
+            p.LID || p.lid || p.lidJid || p.JID || p.jid || p.id || p.participant || p.phone || "",
+          ).trim();
 
           if (!isCommunity && hasRealPhone) {
             resolvedParticipants.push({
@@ -562,6 +564,7 @@ Deno.serve(async (req) => {
 
           if (isLid) {
             const lidId = normalizeLidValue(lidCandidate || normalizedId);
+            if (!lidId) continue;
             lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
               phone: lidId,
@@ -638,14 +641,15 @@ Deno.serve(async (req) => {
 
             for (const participant of unresolvedLidParticipants) {
               const resolvedPhone = lidToPhone.get(participant.phone) || mappingByLid.get(participant.phone);
-              resolvedParticipants.push({
-                ...participant,
-                phone: resolvedPhone ?? participant.phone,
-              });
+              if (resolvedPhone) {
+                resolvedParticipants.push({ ...participant, phone: resolvedPhone });
+              } else if (isCommunity) {
+                resolvedParticipants.push(participant);
+              }
             }
           } catch (dbError) {
             console.error("❌ LID mapping error:", dbError);
-            resolvedParticipants.push(...unresolvedLidParticipants);
+            if (isCommunity) resolvedParticipants.push(...unresolvedLidParticipants);
           }
         }
 
