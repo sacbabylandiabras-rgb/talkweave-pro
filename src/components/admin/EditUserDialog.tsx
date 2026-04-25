@@ -53,6 +53,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceToken, setNewInstanceToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
+  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+  const [newUazapiUrl, setNewUazapiUrl] = useState('');
+  const [newUazapiToken, setNewUazapiToken] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -112,22 +115,36 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceToken('');
     setNewClientToken('');
     setNewIsDefault(false);
+    setNewProvider('zapi');
+    setNewUazapiUrl('');
+    setNewUazapiToken('');
   };
 
   const handleAddInstance = async () => {
     if (!user) return;
-    if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-      toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância.", variant: "destructive" });
-      return;
+    if (newProvider === 'zapi') {
+      if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+        toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!newInstanceName.trim() || !newUazapiUrl.trim() || !newUazapiToken.trim()) {
+        toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e token da uazapi.", variant: "destructive" });
+        return;
+      }
     }
     setAddingInstance(true);
     const ok = await addInstance(user.id, {
       instance_name: newInstanceName.trim(),
-      zapi_instance_id: newInstanceId.trim(),
-      zapi_token: newInstanceToken.trim(),
-      zapi_client_token: newClientToken.trim(),
+      zapi_instance_id: newProvider === 'uazapi'
+        ? (newUazapiToken.trim().slice(0, 32) || `uazapi-${Date.now()}`)
+        : newInstanceId.trim(),
+      zapi_token: newProvider === 'uazapi' ? newUazapiToken.trim() : newInstanceToken.trim(),
+      zapi_client_token: newProvider === 'uazapi' ? newUazapiToken.trim() : newClientToken.trim(),
       is_default: newIsDefault,
-      api_provider: 'zapi',
+      api_provider: newProvider,
+      evolution_api_url: newProvider === 'uazapi' ? newUazapiUrl.trim().replace(/\/+$/, '') : null,
+      evolution_api_key: newProvider === 'uazapi' ? newUazapiToken.trim() : null,
     });
     setAddingInstance(false);
     if (ok) {
