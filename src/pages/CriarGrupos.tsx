@@ -549,6 +549,37 @@ function GerenciarGrupoTab() {
                       {actionLoading === "get-invite-link" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
                       Copiar Link
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actionLoading === "redefine-invitation-link"}
+                      onClick={async () => {
+                        if (!confirm("Renovar o link irá invalidar o link atual. Continuar?")) return;
+                        setActionLoading("redefine-invitation-link");
+                        try {
+                          const credentials = getInstanceCredentials(selectedGroup);
+                          const { data, error } = await supabase.functions.invoke("manage-groups", {
+                            body: { action: "redefine-invitation-link", groupId: selectedGroup.id, ...credentials },
+                          });
+                          if (error) throw error;
+                          if (data?.error) { toast.error("Erro: " + data.error); return; }
+                          const link = data?.inviteLink || data?.invitationLink || data?.link || "";
+                          if (link) {
+                            await navigator.clipboard.writeText(link);
+                            toast.success("Link renovado e copiado!");
+                          } else {
+                            toast.success("Link renovado!");
+                          }
+                        } catch (err: any) {
+                          toast.error("Erro: " + (err.message || "Falha ao renovar link"));
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                    >
+                      {actionLoading === "redefine-invitation-link" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+                      Renovar Link
+                    </Button>
                   </div>
                 </div>
 
@@ -565,6 +596,100 @@ function GerenciarGrupoTab() {
                     <Button variant="outline" size="sm" disabled={!!actionLoading} onClick={() => handleGroupAction("admin-only-messages", { value: false })}>
                       <ShieldOff className="w-4 h-4 mr-1" />
                       Todos podem enviar
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" />
+                    Participantes
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actionLoading === "load-pending"}
+                      onClick={async () => {
+                        setActionLoading("load-pending");
+                        try {
+                          const credentials = getInstanceCredentials(selectedGroup);
+                          const { data, error } = await supabase.functions.invoke("manage-groups", {
+                            body: { action: "metadata-group", groupId: selectedGroup.id, ...credentials },
+                          });
+                          if (error) throw error;
+                          const pend = (data?.pendingParticipants || data?.pending || data?.participantsPending || []) as any[];
+                          const list = pend.map((p: any) => ({
+                            phone: String(p?.phone || p?.id || p?.jid || "").replace(/\D/g, ""),
+                            name: p?.name || p?.pushname || "",
+                          })).filter((p) => p.phone);
+                          setPendingList(list);
+                          setPendingOpen(true);
+                          if (list.length === 0) toast.info("Nenhum participante pendente");
+                        } catch (err: any) {
+                          toast.error("Erro: " + (err.message || "Falha ao carregar pendentes"));
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                    >
+                      {actionLoading === "load-pending" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <UserCheck className="w-4 h-4 mr-1" />}
+                      Aprovações Pendentes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actionLoading === "mention-group"}
+                      onClick={async () => {
+                        const message = prompt("Mensagem para marcar todos:", "📢 Atenção a todos!");
+                        if (!message) return;
+                        setActionLoading("mention-group");
+                        try {
+                          const credentials = getInstanceCredentials(selectedGroup);
+                          const { data, error } = await supabase.functions.invoke("manage-groups", {
+                            body: { action: "mention-group", groupId: selectedGroup.id, message, ...credentials },
+                          });
+                          if (error) throw error;
+                          if (data?.error) { toast.error("Erro: " + data.error); return; }
+                          toast.success("Mensagem enviada marcando todos!");
+                        } catch (err: any) {
+                          toast.error("Erro: " + (err.message || "Falha ao marcar todos"));
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                    >
+                      {actionLoading === "mention-group" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <AtSign className="w-4 h-4 mr-1" />}
+                      Marcar Todos
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actionLoading === "load-settings"}
+                      onClick={async () => {
+                        setActionLoading("load-settings");
+                        try {
+                          const credentials = getInstanceCredentials(selectedGroup);
+                          const { data, error } = await supabase.functions.invoke("manage-groups", {
+                            body: { action: "metadata-group", groupId: selectedGroup.id, ...credentials },
+                          });
+                          if (error) throw error;
+                          setGroupSettings({
+                            adminOnlyMessage: Boolean(data?.adminOnlyMessage),
+                            adminOnlySettings: Boolean(data?.adminOnlySettings),
+                            requireAdminApproval: Boolean(data?.requireAdminApproval),
+                            adminOnlyAddMember: Boolean(data?.adminOnlyAddMember),
+                          });
+                          setSettingsOpen(true);
+                        } catch (err: any) {
+                          toast.error("Erro: " + (err.message || "Falha ao carregar configurações"));
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                    >
+                      {actionLoading === "load-settings" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Settings className="w-4 h-4 mr-1" />}
+                      Configurações
                     </Button>
                   </div>
                 </div>
