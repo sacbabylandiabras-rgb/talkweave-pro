@@ -631,6 +631,85 @@ export default function AdminAquecimento() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
+              <CardDescription>
+                Pool global usado pelas instâncias doadoras (até 800)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary">{activeMsgCount} ativas / {messages.length} total</Badge>
+              <Button variant="outline" size="sm" onClick={loadDefaultPack} disabled={importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                Carregar pacote (800)
+              </Button>
+              {messages.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearAllMsgs} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-1" /> Limpar tudo
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newMsg}
+              onChange={(e) => setNewMsg(e.target.value)}
+              placeholder="Nova mensagem..."
+              onKeyDown={(e) => e.key === "Enter" && addMsg()}
+            />
+            <Button onClick={addMsg} size="sm">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Importar várias (uma por linha)</Label>
+            <Textarea
+              value={bulkMsg}
+              onChange={(e) => setBulkMsg(e.target.value)}
+              rows={4}
+              placeholder="Oi! Tudo bem?&#10;Bom dia!&#10;Como vai?"
+            />
+            <Button onClick={importBulkMsgs} size="sm" variant="outline" disabled={importing}>
+              {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+              Importar
+            </Button>
+          </div>
+
+          {loadingMsgs ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma mensagem cadastrada</p>
+          ) : (
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/20"
+                >
+                  <span className="text-sm truncate flex-1">{m.content}</span>
+                  <Switch checked={m.active} onCheckedChange={(v) => toggleMsg(m.id, v)} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => removeMsg(m.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
