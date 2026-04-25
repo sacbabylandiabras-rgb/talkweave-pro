@@ -155,6 +155,20 @@ serve(async (req: Request) => {
 
     const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
+    // Pool de respostas automáticas curtas e naturais — usadas quando a mensagem
+    // do template não tem o separador "||" (ou seja, não há resposta pré-definida).
+    // O alvo (instância em aquecimento) responderá rapidamente à doadora simulando
+    // uma conversa humana.
+    const autoReplies = [
+      "oi, tudo bem?", "opa, e aí?", "tudo certo por aí?", "boa! 🙂",
+      "kkk verdade", "show", "entendi", "perfeito", "valeu!",
+      "concordo", "também acho", "interessante", "que legal",
+      "verdade", "rsrs", "boa", "👍", "massa", "top!",
+      "tranquilo", "demais", "aham", "claro", "com certeza",
+      "boa pergunta", "pois é", "sim, sim", "eita", "uhum",
+      "ah que bom", "que bom saber", "👏", "🙏",
+    ];
+
     // Helper: dado um telefone, retorna a TargetInstance correspondente (se existir)
     const findTargetInstance = (phone: string): TargetInstance | undefined =>
       targetInstances.find((t) => t.phone === phone);
@@ -286,7 +300,9 @@ serve(async (req: Request) => {
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
               // RÉPLICA RECÍPROCA (em BACKGROUND para não bloquear o ciclo principal)
-              if (answer) {
+              // Se não houver "answer" no template, usa uma resposta automática rápida do pool.
+              const replyText = answer || pickRandom(autoReplies);
+              if (replyText) {
                 const tInst = findTargetInstance(target);
                 if (!donorPhone) {
                   console.log(`  ⚠ sem réplica: telefone da doadora ${donor.instance_name} não resolvido`);
@@ -295,8 +311,10 @@ serve(async (req: Request) => {
                 } else {
                   const tInstSafe = tInst;
                   const donorPhoneSafe = donorPhone;
+                  const answerSafe = replyText;
                   const replyTask = (async () => {
-                    const replyDelay = (8 + Math.random() * 12) * 1000;
+                    // Resposta RÁPIDA: 1-3s (simula digitação curta humana)
+                    const replyDelay = (1 + Math.random() * 2) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
                     try {
                       const zapiUrl = `https://api.z-api.io/instances/${tInstSafe.instanceId}/token/${tInstSafe.token}/send-text`;
@@ -306,11 +324,11 @@ serve(async (req: Request) => {
                           "Content-Type": "application/json",
                           "Client-Token": tInstSafe.clientToken,
                         },
-                        body: JSON.stringify({ phone: donorPhoneSafe, message: answer }),
+                        body: JSON.stringify({ phone: donorPhoneSafe, message: answerSafe }),
                       });
                       if (rr.ok) {
                         totalReplies++;
-                        console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answer.slice(0,40)}"`);
+                        console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
                       } else {
                         const t = await rr.text().catch(() => "");
                         console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
@@ -344,7 +362,7 @@ serve(async (req: Request) => {
       if (pendingReplies.length > 0) {
         await Promise.race([
           Promise.allSettled(pendingReplies),
-          new Promise((r) => setTimeout(r, 30_000)),
+          new Promise((r) => setTimeout(r, 10_000)),
         ]);
       }
       console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
