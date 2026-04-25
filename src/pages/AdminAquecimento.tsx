@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone, Server } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,15 @@ const parseBulk = (raw: string) =>
     .map(normalize)
     .filter((p) => p.length >= 8);
 
+interface UazInstance {
+  id: string;
+  instance_name: string;
+  zapi_instance_id: string;
+  zapi_token: string;
+  evolution_api_url: string;
+  created_at: string;
+}
+
 export default function AdminAquecimento() {
   const [donors, setDonors] = useState<DonorNumber[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +59,102 @@ export default function AdminAquecimento() {
   const [instOpen, setInstOpen] = useState(false);
   const [instName, setInstName] = useState("");
   const [creatingInst, setCreatingInst] = useState(false);
+
+  const [instances, setInstances] = useState<UazInstance[]>([]);
+  const [loadingInst, setLoadingInst] = useState(true);
+
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectInst, setConnectInst] = useState<UazInstance | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [connStatus, setConnStatus] = useState<string>("disconnected");
+  const [qrLoading, setQrLoading] = useState(false);
+
+  const loadInstances = async () => {
+    setLoadingInst(true);
+    const { data, error } = await supabase
+      .from("zapi_instances")
+      .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,created_at,api_provider")
+      .eq("api_provider", "uazapi")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setInstances((data as any) || []);
+    }
+    setLoadingInst(false);
+  };
+
+  useEffect(() => {
+    loadInstances();
+  }, []);
+
+  const fetchQr = async (inst: UazInstance) => {
+    setQrLoading(true);
+    setQrCode(null);
+    setPairingCode(null);
+    try {
+      const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+      });
+      if ((statusData as any)?.connected) {
+        setConnStatus("connected");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("uazapi-connect", {
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+      });
+      if (error) throw error;
+      setConnStatus((data as any)?.connectionStatus || "connecting");
+      setQrCode((data as any)?.qrCode || null);
+      setPairingCode((data as any)?.pairingCode || null);
+      if ((data as any)?.connected) setConnStatus("connected");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao conectar instância");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const openConnect = async (inst: UazInstance) => {
+    setConnectInst(inst);
+    setConnectOpen(true);
+    setConnStatus("disconnected");
+    await fetchQr(inst);
+  };
+
+  // Polling do status enquanto o dialog está aberto
+  useEffect(() => {
+    if (!connectOpen || !connectInst) return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase.functions.invoke("uazapi-status", {
+        body: { apiUrl: connectInst.evolution_api_url, apiToken: connectInst.zapi_token },
+      });
+      if ((data as any)?.connected) {
+        setConnStatus("connected");
+        setQrCode(null);
+        setPairingCode(null);
+        toast.success("Instância conectada!");
+      } else if ((data as any)?.qrCode && (data as any).qrCode !== qrCode) {
+        setQrCode((data as any).qrCode);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [connectOpen, connectInst, qrCode]);
+
+  const removeInstance = async (inst: UazInstance) => {
+    if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
+    try {
+      await supabase.functions.invoke("uazapi-create-instance", {
+        body: { action: "delete", instanceToken: inst.zapi_token },
+      });
+      await supabase.from("zapi_instances").delete().eq("id", inst.id);
+      toast.success("Instância removida");
+      loadInstances();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover");
+    }
+  };
 
   const createInstance = async () => {
     const name = instName.trim();
@@ -73,6 +178,7 @@ export default function AdminAquecimento() {
     toast.success("Instância UAZAPI criada");
     setInstName("");
     setInstOpen(false);
+    loadInstances();
   };
 
   const load = async () => {
