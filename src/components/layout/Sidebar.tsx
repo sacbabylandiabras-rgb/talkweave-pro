@@ -26,7 +26,8 @@ import {
   Activity,
   Wallet,
   Receipt,
-  Instagram
+  Instagram,
+  Flame
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ const zapiMenuItems = [
   { id: "criar-grupos", label: "Meus Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
+  { id: "aquecimento", label: "Aquecimento de Número", icon: Flame, path: "/aquecimento" },
 ];
 
 const instagramMenuItems = [
