@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Flame, Play, Pause, Plus, Trash2, Loader2, Activity, Clock, MessageSquare } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WarmupConfig {
   active: boolean;
@@ -113,21 +114,45 @@ export default function AquecimentoNumero() {
     }
   };
 
-  const toggleActive = () => {
+  const toggleActive = async () => {
     if (!config.active) {
-      if (!config.instanceIds.length) {
-        toast.error("Selecione ao menos uma instância");
-        return;
-      }
       if (!config.messages.length) {
         toast.error("Adicione ao menos uma mensagem");
         return;
       }
+      const targets = (contactsText || "")
+        .split(/[\n,;\s]+/)
+        .map((c) => c.replace(/\D/g, ""))
+        .filter((c) => c.length >= 8);
+      if (!targets.length) {
+        toast.error("Adicione pelo menos um número alvo em 'Contatos extras'");
+        return;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("run-warmup", {
+          body: {
+            targetPhones: targets,
+            messages: config.messages,
+            minDelay: config.minDelay,
+            maxDelay: config.maxDelay,
+            dailyLimit: config.dailyLimit,
+          },
+        });
+        if (error) throw error;
+        if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao iniciar");
+        toast.success(
+          `Aquecimento iniciado: ${(data as any)?.donors || 0} doadora(s) → ${(data as any)?.targets || 0} alvo(s)`,
+        );
+      } catch (err: any) {
+        toast.error(err?.message || "Erro ao iniciar aquecimento");
+        return;
+      }
+    } else {
+      toast.success("Aquecimento pausado");
     }
     const updated = { ...config, active: !config.active };
     setConfig(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    toast.success(updated.active ? "Aquecimento iniciado" : "Aquecimento pausado");
   };
 
   return (
