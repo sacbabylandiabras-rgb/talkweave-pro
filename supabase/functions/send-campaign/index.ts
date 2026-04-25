@@ -418,21 +418,14 @@ const dispatchZapiSpecial = async (
       };
     }
   } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
-    // Mensagem com botão "Copiar Código" (WhatsApp OTP COPY_CODE)
+    // Botão "Copiar Código" nativo do WhatsApp via endpoint Z-API /send-button-otp
     const code = String(special.copyText || special.code || '').trim();
-    const message = String(special.description || special.text || ' ').trim() || ' ';
-    url = `${baseUrl}/send-button-actions`;
+    const message = String(special.description || special.text || '').trim() || ' ';
+    url = `${baseUrl}/send-button-otp`;
     body = {
       phone,
       message,
-      buttonActions: [
-        {
-          id: '1',
-          type: 'URL',
-          label: 'Copiar código',
-          url: `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`,
-        },
-      ],
+      code,
     };
   }
   return { url, body };
