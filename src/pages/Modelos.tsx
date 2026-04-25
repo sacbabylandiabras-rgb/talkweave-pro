@@ -560,6 +560,8 @@ const getTemplateIcon = (type?: string) => {
       return <Image className="w-5 h-5 text-primary" />;
     case "audio":
       return <Music className="w-5 h-5 text-primary" />;
+    case "audio_botoes":
+      return <Music className="w-5 h-5 text-primary" />;
     case "video":
     case "video_botoes":
       return <Video className="w-5 h-5 text-primary" />;
