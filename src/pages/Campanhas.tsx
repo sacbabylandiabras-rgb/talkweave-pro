@@ -57,6 +57,8 @@ const Campanhas = () => {
   const [totalContactsCount, setTotalContactsCount] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
@@ -494,11 +496,62 @@ const Campanhas = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Campanhas</h1>
-        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-          <Plus className="w-4 h-4 mr-1" />
-          Nova
-        </Button>
+        <div className="flex items-center gap-2">
+          {campaigns.length > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setDeleteAllDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Apagar todas
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Nova
+          </Button>
+        </div>
       </div>
+
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar todas as campanhas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Todas as {campaigns.length} campanhas e seus envios serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAll}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingAll}
+              onClick={async (e) => {
+                e.preventDefault();
+                setDeletingAll(true);
+                try {
+                  for (const c of campaigns) {
+                    await deleteCampaign(c.id);
+                  }
+                  toast({ title: "Campanhas apagadas", description: "Todas as campanhas foram removidas." });
+                  setDeleteAllDialogOpen(false);
+                  refetchCampaigns();
+                } catch (err) {
+                  toast({
+                    title: "Erro ao apagar",
+                    description: err instanceof Error ? err.message : "Tente novamente.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setDeletingAll(false);
+                }
+              }}
+            >
+              {deletingAll ? "Apagando..." : "Apagar todas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CreateCampaignDialog 
         open={showCreateDialog} 
