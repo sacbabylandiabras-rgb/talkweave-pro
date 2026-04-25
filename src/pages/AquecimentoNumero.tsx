@@ -141,7 +141,7 @@ export default function AquecimentoNumero() {
             Aquecimento de Número
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Selecione as instâncias para receber mensagens das doadoras configuradas em /admin/aquecimento
+            Selecione as instâncias para receber mensagens das doadoras
           </p>
         </div>
         <div className="flex items-center gap-2">
