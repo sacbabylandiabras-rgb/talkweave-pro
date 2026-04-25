@@ -43,7 +43,7 @@ serve(async (req: Request) => {
     const messages: string[] = Array.isArray(body?.messages) ? body.messages.filter((m: any) => typeof m === "string" && m.trim()) : [];
     const minDelay = Math.max(2, Number(body?.minDelay) || 10);
     const maxDelay = Math.max(minDelay, Number(body?.maxDelay) || 30);
-    const dailyLimit = Math.max(1, Math.min(500, Number(body?.dailyLimit) || 50));
+    const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
 
     if (!messages.length) return json({ success: false, error: "Nenhuma mensagem configurada" }, 400);
 
