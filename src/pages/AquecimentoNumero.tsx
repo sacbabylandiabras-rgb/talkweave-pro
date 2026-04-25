@@ -35,7 +35,12 @@ const defaultMessages = [
 ];
 
 export default function AquecimentoNumero() {
-  const { instances } = useZapiInstances();
+  const { instances: allInstances } = useZapiInstances();
+  // Apenas instâncias Z-API do próprio usuário (exclui doadoras UAZAPI cadastradas pelo admin)
+  const instances = useMemo(
+    () => allInstances.filter((i) => (i.api_provider || 'zapi') === 'zapi'),
+    [allInstances],
+  );
   const [config, setConfig] = useState<WarmupConfig>({
     active: false,
     instanceIds: [],
