@@ -8,6 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -58,6 +68,9 @@ function GerenciarGrupoTab() {
   const [pendingOpen, setPendingOpen] = useState(false);
   const [pendingList, setPendingList] = useState<Array<{ phone: string; name?: string }>>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [renewLinkConfirmOpen, setRenewLinkConfirmOpen] = useState(false);
+  const [mentionAllOpen, setMentionAllOpen] = useState(false);
+  const [mentionAllMessage, setMentionAllMessage] = useState("📢 Atenção a todos!");
   const [groupSettings, setGroupSettings] = useState({
     adminOnlyMessage: false,
     adminOnlySettings: false,
@@ -553,29 +566,7 @@ function GerenciarGrupoTab() {
                       variant="outline"
                       size="sm"
                       disabled={actionLoading === "redefine-invitation-link"}
-                      onClick={async () => {
-                        if (!confirm("Renovar o link irá invalidar o link atual. Continuar?")) return;
-                        setActionLoading("redefine-invitation-link");
-                        try {
-                          const credentials = getInstanceCredentials(selectedGroup);
-                          const { data, error } = await supabase.functions.invoke("manage-groups", {
-                            body: { action: "redefine-invitation-link", groupId: selectedGroup.id, ...credentials },
-                          });
-                          if (error) throw error;
-                          if (data?.error) { toast.error("Erro: " + data.error); return; }
-                          const link = data?.inviteLink || data?.invitationLink || data?.link || "";
-                          if (link) {
-                            await navigator.clipboard.writeText(link);
-                            toast.success("Link renovado e copiado!");
-                          } else {
-                            toast.success("Link renovado!");
-                          }
-                        } catch (err: any) {
-                          toast.error("Erro: " + (err.message || "Falha ao renovar link"));
-                        } finally {
-                          setActionLoading(null);
-                        }
-                      }}
+                      onClick={() => setRenewLinkConfirmOpen(true)}
                     >
                       {actionLoading === "redefine-invitation-link" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
                       Renovar Link
@@ -640,24 +631,7 @@ function GerenciarGrupoTab() {
                       variant="outline"
                       size="sm"
                       disabled={actionLoading === "mention-group"}
-                      onClick={async () => {
-                        const message = prompt("Mensagem para marcar todos:", "📢 Atenção a todos!");
-                        if (!message) return;
-                        setActionLoading("mention-group");
-                        try {
-                          const credentials = getInstanceCredentials(selectedGroup);
-                          const { data, error } = await supabase.functions.invoke("manage-groups", {
-                            body: { action: "mention-group", groupId: selectedGroup.id, message, ...credentials },
-                          });
-                          if (error) throw error;
-                          if (data?.error) { toast.error("Erro: " + data.error); return; }
-                          toast.success("Mensagem enviada marcando todos!");
-                        } catch (err: any) {
-                          toast.error("Erro: " + (err.message || "Falha ao marcar todos"));
-                        } finally {
-                          setActionLoading(null);
-                        }
-                      }}
+                      onClick={() => setMentionAllOpen(true)}
                     >
                       {actionLoading === "mention-group" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <AtSign className="w-4 h-4 mr-1" />}
                       Marcar Todos
@@ -712,6 +686,95 @@ function GerenciarGrupoTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Renew invite link confirmation */}
+      <AlertDialog open={renewLinkConfirmOpen} onOpenChange={setRenewLinkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Renovar link de convite?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O link atual será invalidado imediatamente. Quem tiver o link antigo não conseguirá mais entrar no grupo.
+              Um novo link será gerado e copiado automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!selectedGroup) return;
+                setRenewLinkConfirmOpen(false);
+                setActionLoading("redefine-invitation-link");
+                try {
+                  const credentials = getInstanceCredentials(selectedGroup);
+                  const { data, error } = await supabase.functions.invoke("manage-groups", {
+                    body: { action: "redefine-invitation-link", groupId: selectedGroup.id, ...credentials },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error("Erro: " + data.error); return; }
+                  const link = data?.inviteLink || data?.invitationLink || data?.link || "";
+                  if (link) {
+                    await navigator.clipboard.writeText(link);
+                    toast.success("Link renovado e copiado!");
+                  } else {
+                    toast.success("Link renovado!");
+                  }
+                } catch (err: any) {
+                  toast.error("Erro: " + (err.message || "Falha ao renovar link"));
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+            >
+              Sim, renovar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Mention all dialog */}
+      <Dialog open={mentionAllOpen} onOpenChange={setMentionAllOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marcar Todos no Grupo</DialogTitle>
+            <DialogDescription>
+              Digite a mensagem que será enviada marcando todos os participantes.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={mentionAllMessage}
+            onChange={(e) => setMentionAllMessage(e.target.value)}
+            rows={4}
+            placeholder="Digite a mensagem..."
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setMentionAllOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!mentionAllMessage.trim() || actionLoading === "mention-group"}
+              onClick={async () => {
+                if (!selectedGroup || !mentionAllMessage.trim()) return;
+                setMentionAllOpen(false);
+                setActionLoading("mention-group");
+                try {
+                  const credentials = getInstanceCredentials(selectedGroup);
+                  const { data, error } = await supabase.functions.invoke("manage-groups", {
+                    body: { action: "mention-group", groupId: selectedGroup.id, message: mentionAllMessage.trim(), ...credentials },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error("Erro: " + data.error); return; }
+                  toast.success("Mensagem enviada marcando todos!");
+                } catch (err: any) {
+                  toast.error("Erro: " + (err.message || "Falha ao marcar todos"));
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+            >
+              {actionLoading === "mention-group" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <AtSign className="w-4 h-4 mr-1" />}
+              Enviar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Pending approvals dialog */}
       <Dialog open={pendingOpen} onOpenChange={setPendingOpen}>
