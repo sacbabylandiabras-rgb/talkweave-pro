@@ -285,20 +285,9 @@ Deno.serve(async (req) => {
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
-          const participants = group.participants || group.Participants || group.group?.participants || group.groupMetadata?.participants || group.data?.participants || [];
-          // Heurística ampla: flags explícitas + detecção via participantes só com @lid
-          const explicitCommunity = !!(
-            group.isCommunity ||
-            group.isCommunityAnnounce ||
-            group.isGroupAnnouncement ||
-            group.isParentGroup ||
-            group.parentGroup ||
-            group.community ||
-            group.communityId ||
-            group.parentGroupId ||
-            group.linkedParent ||
-            group.isCommunitySubGroup
-          );
+          const participants = extractParticipantsFromGroup(group);
+          // Uazapi pode devolver as flags de comunidade em qualquer nível do payload.
+          const explicitCommunity = hasCommunityMetadata(group);
           let lidOnlyCommunity = false;
           if (!explicitCommunity && Array.isArray(participants) && participants.length >= 3) {
             const lidCount = participants.filter((p: any) => {
