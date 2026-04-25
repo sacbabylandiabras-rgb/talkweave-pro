@@ -299,16 +299,30 @@ Deno.serve(async (req) => {
         const target = groupPhone || groupId;
         if (!target || !message) throw new Error("groupId and message are required");
         const cleanId = target.includes("-group") ? target : target.replace("@g.us", "-group");
+
+        // Buscar metadata do grupo para extrair os participantes reais
+        let mentioned: string[] = [];
+        try {
+          const metaResp = await fetch(`${baseUrl}/group-metadata/${cleanId}`, { method: "GET", headers });
+          const metaData = await metaResp.json().catch(() => ({}));
+          const participants = metaData?.participants || metaData?.groupMetadata?.participants || [];
+          mentioned = participants
+            .map((p: any) => String(p?.phone || p?.id || "").replace(/\D/g, ""))
+            .filter((n: string) => n && n.length >= 10);
+        } catch (e) {
+          console.error("Erro buscando participantes para mention-group:", e);
+        }
+
         const response = await fetch(`${baseUrl}/send-text`, {
           method: "POST", headers,
           body: JSON.stringify({
             phone: cleanId,
             message,
-            mentioned: ["all"],
+            mentioned: mentioned.length > 0 ? mentioned : undefined,
           }),
         });
         const data = await response.json();
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ ...data, mentionedCount: mentioned.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       case "leave-group": {
