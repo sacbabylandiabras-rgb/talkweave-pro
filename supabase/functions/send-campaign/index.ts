@@ -1448,9 +1448,13 @@ serve(async (req) => {
                   button.type = 'REPLY';
                 } else {
                   button.type = 'URL';
-                  let url = btn.url || btn.value || 'https://z-api.io';
-                  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-                  button.url = url;
+                  button.url = buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
+                    campaignId,
+                    userId: credentials.userId,
+                    phone: contact.phone,
+                    label: button.label || 'Abrir',
+                    campaignName: campaign?.name,
+                  });
                 }
                 return button;
               });
