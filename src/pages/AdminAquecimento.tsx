@@ -23,6 +23,7 @@ const donorTable = () => (supabase as any).from("warmup_donor_numbers");
 const messageTable = () => (supabase as any).from("warmup_messages");
 import { toast } from "sonner";
 import { warmupMessagePack } from "@/lib/warmup-messages";
+import { warmupConversationPack } from "@/lib/warmup-conversations";
 
 interface DonorNumber {
   id: string;
@@ -333,6 +334,28 @@ export default function AdminAquecimento() {
     }
     setImporting(false);
     toast.success(`Pacote padrão importado (${total} mensagens)`);
+    loadMessages();
+  };
+
+  const loadConversationPack = async () => {
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    // Codifica cada par como "PERGUNTA||RESPOSTA" — o motor reconhece o separador e
+    // faz a instância alvo responder reciprocamente à doadora.
+    const rows = warmupConversationPack.map((p) => ({
+      content: `${p.q}||${p.a}`,
+      created_by: u.user?.id || null,
+    }));
+    const chunkSize = 200;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const { error } = await messageTable().upsert(chunk, { onConflict: "content", ignoreDuplicates: true });
+      if (error) { toast.error(error.message); setImporting(false); return; }
+      total += chunk.length;
+    }
+    setImporting(false);
+    toast.success(`Pacote conversacional importado (${total} pares = ${total * 2} mensagens recíprocas)`);
     loadMessages();
   };
 
@@ -647,6 +670,10 @@ export default function AdminAquecimento() {
                 {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
                 Carregar pacote (800)
               </Button>
+              <Button variant="default" size="sm" onClick={loadConversationPack} disabled={importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                Pacote conversa recíproca (1000)
+              </Button>
               {messages.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearAllMsgs} className="text-destructive">
                   <Trash2 className="w-4 h-4 mr-1" /> Limpar tudo
@@ -694,7 +721,16 @@ export default function AdminAquecimento() {
                   key={m.id}
                   className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/20"
                 >
-                  <span className="text-sm truncate flex-1">{m.content}</span>
+                  {m.content.includes("||") ? (
+                    <div className="flex-1 min-w-0 text-sm">
+                      <span className="text-muted-foreground">📤 </span>
+                      <span className="truncate">{m.content.split("||")[0]}</span>
+                      <span className="text-primary"> ↩ </span>
+                      <span className="truncate text-muted-foreground">{m.content.split("||")[1]}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm truncate flex-1">{m.content}</span>
+                  )}
                   <Switch checked={m.active} onCheckedChange={(v) => toggleMsg(m.id, v)} />
                   <Button
                     variant="ghost"
