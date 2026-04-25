@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1083,7 +1083,12 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 
 
 const Dispositivos = () => {
-  const { instances, loading, refetch } = useZapiInstances();
+  const { instances: allInstances, loading, refetch } = useZapiInstances();
+  // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
+  const instances = useMemo(
+    () => allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi'),
+    [allInstances],
+  );
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
