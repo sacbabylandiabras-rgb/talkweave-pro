@@ -80,6 +80,8 @@ export default function AdminAquecimento() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>("disconnected");
   const [qrLoading, setQrLoading] = useState(false);
+  const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
+  const [pairingPhone, setPairingPhone] = useState("");
 
   const loadInstances = async () => {
     setLoadingInst(true);
@@ -100,7 +102,7 @@ export default function AdminAquecimento() {
     loadInstances();
   }, []);
 
-  const fetchQr = async (inst: UazInstance) => {
+  const fetchQr = async (inst: UazInstance, phone?: string) => {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
@@ -113,7 +115,7 @@ export default function AdminAquecimento() {
         return;
       }
       const { data, error } = await supabase.functions.invoke("uazapi-connect", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
       });
       if (error) throw error;
       setConnStatus((data as any)?.connectionStatus || "connecting");
@@ -131,6 +133,8 @@ export default function AdminAquecimento() {
     setConnectInst(inst);
     setConnectOpen(true);
     setConnStatus("disconnected");
+    setConnectMode("qr");
+    setPairingPhone("");
     await fetchQr(inst);
   };
 
