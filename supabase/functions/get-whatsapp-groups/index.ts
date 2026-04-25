@@ -124,14 +124,23 @@ const normalizePhoneFromJid = (jid: string | null | undefined): string => {
   return String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
 };
 
-const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string): boolean => {
-  if (!ownerPhone) return false;
+const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerLid?: string): boolean => {
+  if (!ownerPhone && !ownerLid) return false;
   const participants = extractParticipantsFromGroup({ ...group, ...detail });
   if (!Array.isArray(participants) || participants.length === 0) return false;
   for (const p of participants) {
     const id = String(p?.id || p?.phone || p?.jid || p?.JID || p?.participant || '');
+    // Match por LID quando o participante vier como @lid
+    if (ownerLid && id.includes(ownerLid)) {
+      const adminFlagLid =
+        p?.isAdmin === true || p?.IsAdmin === true ||
+        p?.isSuperAdmin === true || p?.IsSuperAdmin === true ||
+        p?.admin === 'admin' || p?.admin === 'superadmin' ||
+        p?.role === 'admin' || p?.role === 'superadmin';
+      if (adminFlagLid) return true;
+    }
     const phone = normalizePhoneFromJid(id);
-    if (!phone) continue;
+    if (!phone || !ownerPhone) continue;
     if (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) {
       const adminFlag =
         p?.isAdmin === true ||
@@ -148,8 +157,9 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string): boole
   // Fallback: owner field of the group
   const ownerField = String(detail?.Owner || detail?.owner || group?.Owner || group?.owner || '');
   if (ownerField) {
+    if (ownerLid && ownerField.includes(ownerLid)) return true;
     const ownerFieldPhone = normalizePhoneFromJid(ownerField);
-    if (ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
+    if (ownerPhone && ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
       return true;
     }
   }
