@@ -238,21 +238,7 @@ const resolveGroupInstanceFromInboundLogs = async (
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null;
-  // Force Z-API for all campaign dispatches
-  const correctHasZapi = Boolean(correctInstanceRow?.zapi_instance_id && correctInstanceRow?.zapi_token && correctInstanceRow?.zapi_client_token);
-  if (!correctHasZapi) {
-    return null;
-  }
-
-  return {
-    zapiInstanceId: correctInstanceRow.zapi_instance_id,
-    zapiToken: correctInstanceRow.zapi_token || '',
-    zapiClientToken: correctInstanceRow.zapi_client_token || '',
-    instanceName: correctInstanceRow.instance_name || 'Instância',
-    apiProvider: 'zapi',
-    uazapiUrl: '',
-    uazapiToken: '',
-  };
+  return mapResolvedInstance(correctInstanceRow as any);
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
