@@ -40,9 +40,20 @@ serve(async (req) => {
       const nowIso = new Date().toISOString();
       try {
         if (sendId) {
+          const { data: currentSend } = await supabase
+            .from('campaign_sends')
+            .select('click_count')
+            .eq('id', sendId)
+            .maybeSingle();
+
+          const updatePayload: Record<string, unknown> = { clicked_at: nowIso };
+          if (typeof (currentSend as any)?.click_count === 'number') {
+            updatePayload.click_count = ((currentSend as any).click_count || 0) + 1;
+          }
+
           await supabase
             .from('campaign_sends')
-            .update({ clicked_at: nowIso })
+            .update(updatePayload)
             .eq('id', sendId)
             .is('clicked_at', null);
           console.log(`✅ campaign_send click marked by id=${sendId}`);
@@ -59,9 +70,13 @@ serve(async (req) => {
             String(r.phone).replace(/\D/g, '') === cleanPhone
           );
           if (match) {
+            const updatePayload: Record<string, unknown> = { clicked_at: nowIso };
+            if (typeof (match as any)?.click_count === 'number') {
+              updatePayload.click_count = ((match as any).click_count || 0) + 1;
+            }
             await supabase
               .from('campaign_sends')
-              .update({ clicked_at: nowIso })
+              .update(updatePayload)
               .eq('id', match.id);
             console.log(`✅ campaign_send click marked by phone match id=${match.id}`);
           }
