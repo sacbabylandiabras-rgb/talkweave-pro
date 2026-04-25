@@ -280,6 +280,93 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   return detailedGroups.filter(Boolean);
 };
 
+const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> => {
+  const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+  try {
+    const res = await fetch(`${baseUrl}/me`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token },
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) return '';
+    return normalizePhoneFromJid(
+      data?.phone || data?.phoneNumber || data?.wid?.user || data?.me?.user || data?.me?.id || data?.id || data?.user || '',
+    );
+  } catch (error) {
+    console.error(`⚠️ Z-API /me failed for ${instance.instance_name}:`, error);
+    return '';
+  }
+};
+
+const normalizeZapiGroupId = (value: unknown): string => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.includes('-group')) return raw;
+  if (raw.includes('@g.us')) return raw.replace(/@g\.us$/i, '-group');
+  const digits = raw.replace(/\D/g, '');
+  return digits.length >= 12 ? `${digits}-group` : raw;
+};
+
+const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
+  if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
+
+  const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+  const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
+  const ownerPhone = await fetchOwnerPhoneViaZapi(instance);
+  console.log(`👤 Z-API owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
+
+  const response = await fetch(`${baseUrl}/groups`, { method: 'GET', headers });
+  const payload = await response.json().catch(() => []);
+  if (!response.ok) {
+    console.error(`❌ Z-API groups error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
+    return [];
+  }
+
+  const rawGroups = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.groups)
+      ? payload.groups
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+  const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+    const groupId = normalizeZapiGroupId(group?.phone || group?.id || group?.jid || group?.groupId || group?.remoteJid || '');
+    if (!groupId.includes('-group')) return null;
+
+    let detail: any = null;
+    try {
+      const metaRes = await fetch(`${baseUrl}/group-metadata/${groupId}`, { method: 'GET', headers });
+      detail = await metaRes.json().catch(() => null);
+      if (!metaRes.ok) {
+        console.error(`⚠️ Z-API group-metadata HTTP ${metaRes.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
+      }
+    } catch (error) {
+      console.error(`❌ Z-API group-metadata failed for ${groupId}:`, error);
+    }
+
+    const participants = extractParticipantsFromGroup({ ...group, ...detail });
+    const explicitAdmin = Boolean(group?.isAdmin || group?.isSuperAdmin || detail?.isAdmin || detail?.isSuperAdmin);
+    const resolvedName =
+      detail?.subject || detail?.name || detail?.Name || group?.subject || group?.name || group?.Name || group?.groupName || group?.title || 'Grupo sem nome';
+
+    return {
+      ...group,
+      ...detail,
+      id: groupId,
+      phone: groupId,
+      name: resolvedName,
+      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone) || participants.length === 0,
+      memberCount: participants.length || detail?.participantCount || detail?.ParticipantCount || group?.participantCount || group?.ParticipantCount || group?.memberCount || group?.size || 0,
+      profilePicture: detail?.profileThumbnail || detail?.groupPhoto || detail?.imgUrl || detail?.imageUrl || group?.imgUrl || group?.profilePicture || group?.image || group?.photo || null,
+      __sourceInstanceName: instance.instance_name || null,
+      __sourceInstanceId: instance.zapi_instance_id,
+    };
+  }));
+
+  return detailedGroups.filter(Boolean);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
