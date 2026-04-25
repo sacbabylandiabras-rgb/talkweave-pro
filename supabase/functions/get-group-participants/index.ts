@@ -489,7 +489,12 @@ Deno.serve(async (req) => {
         const apiParticipants = extractParticipantArray(groupInfo);
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
-        const rawParticipants = apiParticipants.length > 0 ? apiParticipants : fallbackList;
+        const fallbackRealPhoneCount = fallbackList.filter((p) => {
+          const raw = String(p?.phone || p?.phoneNumber || p?.number || p?.user || p?.id || p?.participant || "").trim();
+          const digits = raw.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+          return digits.length >= 8 && !raw.includes("@lid");
+        }).length;
+        const rawParticipants = !isCommunity && fallbackRealPhoneCount > 0 ? fallbackList : (apiParticipants.length > 0 ? apiParticipants : fallbackList);
 
         const resolvedParticipants: Participant[] = [];
         const unresolvedLidParticipants: Participant[] = [];
