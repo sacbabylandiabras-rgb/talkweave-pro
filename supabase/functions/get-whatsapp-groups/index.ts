@@ -75,10 +75,77 @@ const extractParticipantsFromGroup = (group: any) => {
   return candidates.find((candidate) => Array.isArray(candidate)) || [];
 };
 
+const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string): Promise<string | null> => {
+  try {
+    const res = await fetch(`${apiUrl}/instance`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', token: apiToken },
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) return null;
+    const candidates = [
+      data?.instance?.owner,
+      data?.instance?.jid,
+      data?.instance?.wid,
+      data?.instance?.me?.id,
+      data?.connected?.jid,
+      data?.owner,
+      data?.jid,
+      data?.wid,
+      data?.me?.id,
+    ];
+    const found = candidates.find((v) => typeof v === 'string' && v.includes('@'));
+    return found ? String(found) : null;
+  } catch {
+    return null;
+  }
+};
+
+const normalizePhoneFromJid = (jid: string | null | undefined): string => {
+  if (!jid) return '';
+  return String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
+};
+
+const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string): boolean => {
+  if (!ownerPhone) return false;
+  const participants = extractParticipantsFromGroup({ ...group, ...detail });
+  if (!Array.isArray(participants) || participants.length === 0) return false;
+  for (const p of participants) {
+    const id = String(p?.id || p?.phone || p?.jid || p?.JID || p?.participant || '');
+    const phone = normalizePhoneFromJid(id);
+    if (!phone) continue;
+    if (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) {
+      const adminFlag =
+        p?.isAdmin === true ||
+        p?.IsAdmin === true ||
+        p?.isSuperAdmin === true ||
+        p?.IsSuperAdmin === true ||
+        p?.admin === 'admin' ||
+        p?.admin === 'superadmin' ||
+        p?.role === 'admin' ||
+        p?.role === 'superadmin';
+      if (adminFlag) return true;
+    }
+  }
+  // Fallback: owner field of the group
+  const ownerField = String(detail?.Owner || detail?.owner || group?.Owner || group?.owner || '');
+  if (ownerField) {
+    const ownerFieldPhone = normalizePhoneFromJid(ownerField);
+    if (ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
   const apiToken = instance.evolution_api_key || '';
   if (!apiUrl || !apiToken) return [];
+
+  const ownerJid = await fetchOwnerJidViaUazapi(apiUrl, apiToken);
+  const ownerPhone = normalizePhoneFromJid(ownerJid);
+  console.log(`👤 UAZAPI owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
 
   const response = await fetch(`${apiUrl}/group/list`, {
     method: 'GET',
@@ -170,6 +237,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
+      isAdmin: isOwnerAdminInGroup(detail, group, ownerPhone),
       memberCount:
         extractParticipantsFromGroup({ ...group, ...detail }).length ||
         detail?.ParticipantCount ||
