@@ -8,6 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Flame, Loader2, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// Tabela criada via migration; o tipo gerado ainda não a conhece, então usamos cast.
+const donorTable = () => (supabase as any).from("warmup_donor_numbers");
 import { toast } from "sonner";
 
 interface DonorNumber {
@@ -38,8 +41,7 @@ export default function AdminAquecimento() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("warmup_donor_numbers")
+    const { data, error } = await donorTable()
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
@@ -62,7 +64,7 @@ export default function AdminAquecimento() {
     }
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("warmup_donor_numbers").insert({
+    const { error } = await donorTable().insert({
       phone: p,
       label: label.trim() || null,
       notes: notes.trim() || null,
@@ -92,8 +94,7 @@ export default function AdminAquecimento() {
       phone: p,
       created_by: userData.user?.id || null,
     }));
-    const { error } = await supabase
-      .from("warmup_donor_numbers")
+    const { error } = await donorTable()
       .upsert(rows, { onConflict: "phone", ignoreDuplicates: true });
     setSaving(false);
     if (error) {
@@ -106,8 +107,7 @@ export default function AdminAquecimento() {
   };
 
   const toggleActive = async (id: string, next: boolean) => {
-    const { error } = await supabase
-      .from("warmup_donor_numbers")
+    const { error } = await donorTable()
       .update({ active: next })
       .eq("id", id);
     if (error) {
@@ -118,7 +118,7 @@ export default function AdminAquecimento() {
   };
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("warmup_donor_numbers").delete().eq("id", id);
+    const { error } = await donorTable().delete().eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
