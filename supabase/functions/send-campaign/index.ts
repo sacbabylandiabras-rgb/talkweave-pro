@@ -394,6 +394,29 @@ const dispatchZapiSpecial = async (
       contactPhone: String(special.contactPhone || '').replace(/\D/g, ''),
       ...(special.description ? { contactBusinessDescription: special.description } : {}),
     };
+  } else if (special.type === 'uaz_status' || special.type === 'status') {
+    // WhatsApp Status (Stories) via Z-API
+    const statusType = String(special.statusType || 'text').toLowerCase();
+    if (statusType === 'image') {
+      url = `${baseUrl}/send-status-image`;
+      body = {
+        image: special.media || special.image || '',
+        ...(special.text ? { caption: special.text } : {}),
+      };
+    } else if (statusType === 'video') {
+      url = `${baseUrl}/send-status-video`;
+      body = {
+        video: special.media || special.video || '',
+        ...(special.text ? { caption: special.text } : {}),
+      };
+    } else {
+      url = `${baseUrl}/send-status-text`;
+      body = {
+        message: special.text || special.message || '',
+        ...(special.backgroundColor ? { backgroundColor: special.backgroundColor } : {}),
+        ...(special.font !== undefined && special.font !== null ? { font: Number(special.font) || 1 } : {}),
+      };
+    }
   }
   return { url, body };
 };
