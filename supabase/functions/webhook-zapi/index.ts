@@ -2420,10 +2420,13 @@ serve(async (req) => {
           };
 
           let hasReadAtColumn = true;
-          let { data: campaignSendRows, error: campaignSendLookupError } =
-            await buildCampaignSendQuery(
-              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
-            );
+          let campaignSendRows: any[] | null = null;
+          let campaignSendLookupError: any = null;
+          const initialCampaignSendLookup = await buildCampaignSendQuery(
+            "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
+          );
+          campaignSendRows = initialCampaignSendLookup.data as any[] | null;
+          campaignSendLookupError = initialCampaignSendLookup.error;
 
           if (
             campaignSendLookupError?.code === "42703" &&
@@ -2433,7 +2436,7 @@ serve(async (req) => {
             const retry = await buildCampaignSendQuery(
               "id, campaign_id, status, phone, sent_at, delivered_at, instance_name",
             );
-            campaignSendRows = retry.data;
+            campaignSendRows = retry.data as any[] | null;
             campaignSendLookupError = retry.error;
           }
 
