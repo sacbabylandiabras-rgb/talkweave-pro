@@ -118,8 +118,32 @@ serve(async (req) => {
 
     console.log(`Connecting instance: POST ${url}${phone ? ' (pairing mode)' : ' (QR mode)'}`)
 
+    const normalizedPhone = typeof phone === 'string' ? phone.replace(/\D/g, '') : ''
+
+    if (phone && (normalizedPhone.length < 10 || normalizedPhone.length > 15)) {
+      return new Response(JSON.stringify({ error: 'Telefone inválido. Use DDI + DDD + número.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (normalizedPhone) {
+      for (const endpoint of [`${baseUrl}/instance/disconnect`, `${baseUrl}/instance/logout`]) {
+        try {
+          const resetResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: apiToken },
+          })
+          console.log(`Reset before pairing: ${endpoint} → ${resetResponse.status}`)
+          if (resetResponse.ok) break
+        } catch (resetError) {
+          console.warn('Reset before pairing failed:', resetError)
+        }
+      }
+    }
+
     const body: Record<string, string> = {}
-    if (phone) body.phone = phone
+    if (normalizedPhone) body.phone = normalizedPhone
 
     const response = await fetch(url, {
       method: 'POST',
