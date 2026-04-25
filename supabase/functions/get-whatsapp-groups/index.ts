@@ -12,53 +12,6 @@ interface ZapiInstance {
   evolution_api_key?: string | null;
 }
 
-const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
-  const allGroups: any[] = [];
-  let page = 1;
-  const pageSize = 100;
-  let hasMore = true;
-
-  while (hasMore) {
-    const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/groups?page=${page}&pageSize=${pageSize}`;
-    const response = await fetch(zapiUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Client-Token": instance.zapi_client_token,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Z-API error for ${instance.instance_name}: ${response.status} - ${errorText}`);
-      console.error(`❌ URL used: ${zapiUrl}`);
-      break;
-    }
-
-    const data = await response.json();
-    const groups = Array.isArray(data) ? data : [];
-    console.log(`📄 Z-API ${instance.instance_name} | Page ${page}: ${groups.length} groups`);
-    if (groups.length > 0 && page === 1) {
-      console.log(`🔬 Z-API sample group keys: ${Object.keys(groups[0]).join(',')}`);
-      console.log(`🔬 Z-API sample group: ${JSON.stringify(groups[0]).slice(0, 800)}`);
-    }
-
-    for (const group of groups) {
-      allGroups.push({
-        ...group,
-        __sourceInstanceName: instance.instance_name || null,
-        __sourceInstanceId: instance.zapi_instance_id,
-      });
-    }
-
-    hasMore = groups.length === pageSize;
-    page++;
-    if (page > 20) break;
-  }
-
-  return allGroups;
-};
-
 const isUsableGroupName = (value: unknown) => {
   const normalized = String(value || '').trim();
   if (!normalized) return false;
