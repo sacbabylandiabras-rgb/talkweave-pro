@@ -7,6 +7,11 @@ import { corsHeaders } from "../_shared/cors.ts";
  * - Doadoras = todas instâncias UAZAPI ativas (cadastradas em /admin/aquecimento)
  * - Alvos = números informados pelo usuário em /aquecimento + telefones das instâncias Z-API selecionadas (resolvidos via UAZAPI status)
  *
+ * Mensagens podem ser pares conversacionais codificados como "PERGUNTA||RESPOSTA".
+ * Quando o motor detecta o separador "||", a doadora envia a PERGUNTA ao alvo e,
+ * em seguida, a instância alvo (Z-API selecionada pelo usuário) envia a RESPOSTA
+ * de volta à doadora — simulando uma conversa recíproca real.
+ *
  * Body: {
  *   targetPhones: string[],
  *   messages: string[],
@@ -70,6 +75,9 @@ serve(async (req: Request) => {
     }
 
     // Resolver telefones das instâncias Z-API selecionadas pelo usuário
+    // Guardamos também as credenciais para que a instância alvo possa RESPONDER de volta
+    type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string };
+    const targetInstances: TargetInstance[] = [];
     const resolvedFromInstances: string[] = [];
     if (instanceIds.length > 0) {
       const { data: userInstances } = await admin
@@ -101,6 +109,13 @@ serve(async (req: Request) => {
           }
           if (phone) {
             resolvedFromInstances.push(phone);
+            targetInstances.push({
+              phone,
+              instanceId: String(inst.zapi_instance_id),
+              token: String(inst.zapi_token),
+              clientToken: String(inst.zapi_client_token || ""),
+              name: String(inst.instance_name || ""),
+            });
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
             console.log(`✗ ${inst.instance_name}: telefone não resolvido`);
@@ -126,8 +141,13 @@ serve(async (req: Request) => {
 
     const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
+    // Helper: dado um telefone, retorna a TargetInstance correspondente (se existir)
+    const findTargetInstance = (phone: string): TargetInstance | undefined =>
+      targetInstances.find((t) => t.phone === phone);
+
     let totalSent = 0;
     let totalFailed = 0;
+    let totalReplies = 0;
     const errors: string[] = [];
 
     // Para cada doadora UAZAPI, dispara até `dailyLimit` mensagens, alternando alvos e textos
@@ -141,19 +161,68 @@ serve(async (req: Request) => {
           continue;
         }
 
+        // Tenta resolver o telefone da própria doadora UAZAPI para que a resposta da
+        // instância alvo seja direcionada de volta a ela.
+        let donorPhone = "";
+        try {
+          const r = await fetch(`${apiUrl}/status`, { headers: { token: apiToken } });
+          if (r.ok) {
+            const j: any = await r.json().catch(() => ({}));
+            const cand = j?.instance?.owner || j?.owner || j?.phone || j?.id || j?.wid;
+            const digits = String(cand || "").replace(/\D/g, "");
+            if (digits.length >= 8) donorPhone = digits;
+          }
+        } catch (_) { /* ignore */ }
+
         for (let i = 0; i < dailyLimit; i++) {
           // Round-robin: garante distribuição equilibrada entre todos os alvos
           const target = cleanedTargets[i % cleanedTargets.length];
-          const text = pickRandom(messages);
+          const raw = pickRandom(messages);
+          // Detecta par conversacional: "PERGUNTA||RESPOSTA"
+          const sepIdx = raw.indexOf("||");
+          const question = sepIdx >= 0 ? raw.slice(0, sepIdx).trim() : raw;
+          const answer = sepIdx >= 0 ? raw.slice(sepIdx + 2).trim() : "";
+
           try {
             const res = await fetch(`${apiUrl}/send/text`, {
               method: "POST",
               headers: { "Content-Type": "application/json", token: apiToken },
-              body: JSON.stringify({ number: target, text }),
+              body: JSON.stringify({ number: target, text: question }),
             });
             if (res.ok) {
               totalSent++;
-              console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit})`);
+              console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit}): "${question.slice(0,40)}"`);
+
+              // Se houver resposta recíproca configurada e o alvo for uma instância Z-API selecionada,
+              // aguarda alguns segundos e dispara a RESPOSTA de volta à doadora.
+              if (answer && donorPhone) {
+                const tInst = findTargetInstance(target);
+                if (tInst) {
+                  // Pequeno delay simulando "tempo de leitura" (3-8s)
+                  const replyDelay = (3 + Math.random() * 5) * 1000;
+                  await new Promise((r) => setTimeout(r, replyDelay));
+                  try {
+                    const zapiUrl = `https://api.z-api.io/instances/${tInst.instanceId}/token/${tInst.token}/send-text`;
+                    const rr = await fetch(zapiUrl, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Client-Token": tInst.clientToken,
+                      },
+                      body: JSON.stringify({ phone: donorPhone, message: answer }),
+                    });
+                    if (rr.ok) {
+                      totalReplies++;
+                      console.log(`  ↩ ${tInst.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
+                    } else {
+                      const t = await rr.text().catch(() => "");
+                      errors.push(`reply ${tInst.name} → ${donorPhone}: HTTP ${rr.status} ${t.slice(0,120)}`);
+                    }
+                  } catch (e: any) {
+                    errors.push(`reply ${tInst.name} → ${donorPhone}: ${e?.message || "erro"}`);
+                  }
+                }
+              }
             } else {
               totalFailed++;
               const t = await res.text().catch(() => "");
@@ -169,7 +238,7 @@ serve(async (req: Request) => {
           await new Promise((r) => setTimeout(r, delayMs));
         }
       }
-      console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalFailed} falhas`);
+      console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
       if (errors.length) console.log("Erros:", errors.slice(0, 20));
     };
 
