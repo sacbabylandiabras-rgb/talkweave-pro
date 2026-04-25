@@ -362,7 +362,7 @@ serve(async (req: Request) => {
       if (pendingReplies.length > 0) {
         await Promise.race([
           Promise.allSettled(pendingReplies),
-          new Promise((r) => setTimeout(r, 30_000)),
+          new Promise((r) => setTimeout(r, 10_000)),
         ]);
       }
       console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
