@@ -313,8 +313,10 @@ serve(async (req: Request) => {
       if (errors.length) console.log("Erros:", errors.slice(0, 20));
     };
 
+    if (isTickMode) {
+      await work();
     // @ts-ignore - EdgeRuntime fornecido pelo Supabase
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+    } else if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       // @ts-ignore
       EdgeRuntime.waitUntil(work());
     } else {
