@@ -98,7 +98,7 @@ serve(async (req: Request) => {
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
-          const endpoints = ["/device", "/me", "/profile", "/status"];
+          const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
           let phone = "";
           for (const ep of endpoints) {
             try {
@@ -107,10 +107,19 @@ serve(async (req: Request) => {
               const j: any = await r.json().catch(() => ({}));
               const cand =
                 j?.phone || j?.connectedPhone || j?.connected_phone ||
-                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone;
+                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone ||
+                j?.smartphoneConnected;
               const digits = String(cand || "").replace(/\D/g, "");
               if (digits.length >= 8) { phone = digits; break; }
             } catch (_) { /* try next */ }
+          }
+          // Fallback: se o instance_name for um telefone (DDI+DDD+número), usa-o
+          if (!phone) {
+            const nameDigits = String(inst.instance_name || "").replace(/\D/g, "");
+            if (nameDigits.length >= 10) {
+              phone = nameDigits;
+              console.log(`↪ ${inst.instance_name}: telefone resolvido via instance_name: ${phone}`);
+            }
           }
           if (phone) {
             resolvedFromInstances.push(phone);
@@ -123,7 +132,7 @@ serve(async (req: Request) => {
             });
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
-            console.log(`✗ ${inst.instance_name}: telefone não resolvido`);
+            console.log(`✗ ${inst.instance_name} (${inst.zapi_instance_id}): telefone NÃO resolvido — alvo será ignorado neste ciclo`);
           }
         } catch (e) {
           console.log(`erro ao resolver ${inst.instance_name}:`, (e as any)?.message);
@@ -216,12 +225,16 @@ serve(async (req: Request) => {
     // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
     // Lotes pequenos evitam timeout da Edge Function; a tela ativa agenda os próximos ciclos.
     const work = async () => {
-      for (const donor of donors) {
+      // Réplicas pendentes — disparadas em background para não bloquear o ciclo
+      const pendingReplies: Promise<void>[] = [];
+
+      // Processa todas as doadoras EM PARALELO para evitar timeout da Edge Function
+      await Promise.all(donors.map(async (donor) => {
         const apiUrl = String(donor.evolution_api_url || "").replace(/\/+$/, "");
         const apiToken = String(donor.evolution_api_key || donor.zapi_token || "");
         if (!apiUrl || !apiToken) {
           errors.push(`${donor.instance_name}: credenciais ausentes`);
-          continue;
+          return;
         }
 
         // Tenta resolver o telefone da própria doadora UAZAPI para que a resposta da
@@ -272,8 +285,7 @@ serve(async (req: Request) => {
               sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
-              // RÉPLICA RECÍPROCA: a instância alvo (Z-API) envia o "answer" de volta à doadora.
-              // Simula leitura humana com delay de 8-20s antes de responder.
+              // RÉPLICA RECÍPROCA (em BACKGROUND para não bloquear o ciclo principal)
               if (answer) {
                 const tInst = findTargetInstance(target);
                 if (!donorPhone) {
@@ -281,32 +293,33 @@ serve(async (req: Request) => {
                 } else if (!tInst) {
                   console.log(`  ⚠ sem réplica: alvo ${target} não é instância Z-API selecionada (apenas número avulso)`);
                 } else {
-                  // Tempo de "leitura/digitação" antes de o alvo responder
-                  const replyDelay = (8 + Math.random() * 12) * 1000;
-                  console.log(`  ⏳ ${tInst.name} vai responder em ${Math.round(replyDelay/1000)}s`);
-                  await new Promise((r) => setTimeout(r, replyDelay));
-                  try {
-                    const zapiUrl = `https://api.z-api.io/instances/${tInst.instanceId}/token/${tInst.token}/send-text`;
-                    const rr = await fetch(zapiUrl, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        "Client-Token": tInst.clientToken,
-                      },
-                      body: JSON.stringify({ phone: donorPhone, message: answer }),
-                    });
-                    if (rr.ok) {
-                      totalReplies++;
-                      console.log(`  ↩ ${tInst.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
-                    } else {
-                      const t = await rr.text().catch(() => "");
-                      console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
-                      errors.push(`reply ${tInst.name} → ${donorPhone}: HTTP ${rr.status} ${t.slice(0,120)}`);
+                  const tInstSafe = tInst;
+                  const donorPhoneSafe = donorPhone;
+                  const replyTask = (async () => {
+                    const replyDelay = (8 + Math.random() * 12) * 1000;
+                    await new Promise((r) => setTimeout(r, replyDelay));
+                    try {
+                      const zapiUrl = `https://api.z-api.io/instances/${tInstSafe.instanceId}/token/${tInstSafe.token}/send-text`;
+                      const rr = await fetch(zapiUrl, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Client-Token": tInstSafe.clientToken,
+                        },
+                        body: JSON.stringify({ phone: donorPhoneSafe, message: answer }),
+                      });
+                      if (rr.ok) {
+                        totalReplies++;
+                        console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answer.slice(0,40)}"`);
+                      } else {
+                        const t = await rr.text().catch(() => "");
+                        console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
+                      }
+                    } catch (e: any) {
+                      console.log(`  ✗ réplica erro: ${e?.message}`);
                     }
-                  } catch (e: any) {
-                    console.log(`  ✗ réplica erro: ${e?.message}`);
-                    errors.push(`reply ${tInst.name} → ${donorPhone}: ${e?.message || "erro"}`);
-                  }
+                  })();
+                  pendingReplies.push(replyTask);
                 }
               }
             } else {
@@ -325,6 +338,14 @@ serve(async (req: Request) => {
             await new Promise((r) => setTimeout(r, delayMs));
           }
         }
+      }));
+
+      // Aguarda réplicas em background com timeout de 30s para não travar o ciclo
+      if (pendingReplies.length > 0) {
+        await Promise.race([
+          Promise.allSettled(pendingReplies),
+          new Promise((r) => setTimeout(r, 30_000)),
+        ]);
       }
       console.log(`✅ Aquecimento concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
       if (errors.length) console.log("Erros:", errors.slice(0, 20));
