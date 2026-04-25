@@ -453,6 +453,54 @@ const dispatchZapiSpecial = async (
   return { url, body };
 };
 
+const sendZapiLocationButtonFollowUp = async (
+  baseUrl: string,
+  clientToken: string,
+  phone: string,
+  special: any,
+) => {
+  const latitude = parseCoordinate(special.latitude);
+  const longitude = parseCoordinate(special.longitude);
+  const buttonUrl = String(special.url || (latitude && longitude ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : '')).trim();
+  if (!buttonUrl) {
+    return { ok: false, ack: null, error: 'Template de localização com botão sem URL do mapa', raw: null };
+  }
+
+  const normalizedUrl = /^https?:\/\//i.test(buttonUrl) ? buttonUrl : `https://${buttonUrl}`;
+  const message = String(
+    special.text ||
+    special.description ||
+    [special.name || special.title, special.address].filter(Boolean).join('\n') ||
+    'Abrir localização no mapa'
+  ).trim();
+  const buttonLabel = String(special.buttonLabel || 'Ver no mapa').trim() || 'Ver no mapa';
+  const body = {
+    phone,
+    message,
+    buttonActions: [{ type: 'URL', label: buttonLabel, url: normalizedUrl }],
+  };
+
+  const res = await fetch(`${baseUrl}/send-button-actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+    body: JSON.stringify(body),
+  });
+  let data: any = {};
+  try {
+    const responseText = await res.text();
+    if (responseText && responseText.trim()) data = JSON.parse(responseText);
+  } catch {}
+
+  const explicitError = getZapiExplicitError(data);
+  const confirmed = isZapiConfirmed(data);
+  console.log(`📍 Z-API location button follow-up for ${phone}: status=${res.status}, confirmed=${confirmed}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
+  if (!res.ok || explicitError || !confirmed) {
+    return { ok: false, ack: null, error: explicitError || (!confirmed ? 'Z-API não confirmou o botão da localização' : `HTTP ${res.status}`), raw: data };
+  }
+
+  return { ok: true, ack: getZapiAckId(data), error: null, raw: data };
+};
+
 // Dispatch PIX/location/contact via UAZAPI native endpoints
 const dispatchUazapiSpecial = async (
   instance: ResolvedInstance,
@@ -1304,9 +1352,9 @@ serve(async (req) => {
 
         let zapiUrl: string = '';
         let requestBody: any = {};
+        const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
         if (specialTpl) {
-          const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
           const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
           zapiUrl = url;
           requestBody = specialBody;
@@ -1533,6 +1581,20 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
+            if (specialTpl?.type === 'uaz_location_button') {
+              await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
+              const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
+              if (!buttonResult.ok) {
+                campaignSend.status = 'failed';
+                campaignSend.error_message = buttonResult.error || 'Falha ao enviar botão da localização';
+                results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+                console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
+                await persistCampaignSend(campaignSend, reusableSendId);
+                if (i < currentBatch.length - 1) await sleep(delayMs);
+                continue;
+              }
+            }
+
             const awaitingGroupCallback = isGroupDestination(contact.phone);
             campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
             if (!awaitingGroupCallback) {
