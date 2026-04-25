@@ -145,6 +145,48 @@ serve(async (req: Request) => {
     const findTargetInstance = (phone: string): TargetInstance | undefined =>
       targetInstances.find((t) => t.phone === phone);
 
+    /**
+     * Aguarda (polling) a resposta REAL do número alvo na caixa de mensagens da
+     * doadora UAZAPI. Retorna true se detectar uma mensagem recebida do `target`
+     * após `sinceTs` (epoch ms) dentro do `timeoutMs`. Caso contrário retorna false.
+     */
+    const waitForReply = async (
+      apiUrl: string,
+      apiToken: string,
+      target: string,
+      sinceTs: number,
+      timeoutMs = 90_000,
+      pollIntervalMs = 4_000,
+    ): Promise<boolean> => {
+      const deadline = Date.now() + timeoutMs;
+      const targetDigits = target.replace(/\D/g, "");
+      while (Date.now() < deadline) {
+        try {
+          // UAZAPI: busca mensagens recentes do chat com o alvo
+          const r = await fetch(`${apiUrl}/message/find`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: apiToken },
+            body: JSON.stringify({ chatid: `${targetDigits}@s.whatsapp.net`, limit: 5 }),
+          });
+          if (r.ok) {
+            const j: any = await r.json().catch(() => ({}));
+            const arr: any[] = Array.isArray(j) ? j : (j?.messages || j?.data || []);
+            for (const m of arr) {
+              const fromMe = m?.fromMe ?? m?.fromme ?? m?.key?.fromMe;
+              const ts = Number(m?.messageTimestamp || m?.timestamp || m?.t || 0);
+              const tsMs = ts > 1e12 ? ts : ts * 1000;
+              const sender = String(m?.sender || m?.from || m?.chatid || "").replace(/\D/g, "");
+              if (!fromMe && tsMs >= sinceTs - 2000 && (sender.includes(targetDigits) || !sender)) {
+                return true;
+              }
+            }
+          }
+        } catch (_) { /* tenta de novo */ }
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+      }
+      return false;
+    };
+
     let totalSent = 0;
     let totalFailed = 0;
     let totalReplies = 0;
@@ -191,16 +233,25 @@ serve(async (req: Request) => {
             });
             if (res.ok) {
               totalSent++;
+              const sentAt = Date.now();
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit}): "${question.slice(0,40)}"`);
 
               // Se houver resposta recíproca configurada e o alvo for uma instância Z-API selecionada,
-              // aguarda alguns segundos e dispara a RESPOSTA de volta à doadora.
+              // AGUARDA a resposta REAL do alvo (polling na inbox da doadora) antes de
+              // disparar a próxima mensagem. Quando o alvo responder, a instância alvo
+              // (Z-API) envia o "answer" de volta à doadora simulando continuidade da conversa.
               if (answer && donorPhone) {
                 const tInst = findTargetInstance(target);
                 if (tInst) {
-                  // Pequeno delay simulando "tempo de leitura" (3-8s)
-                  const replyDelay = (3 + Math.random() * 5) * 1000;
-                  await new Promise((r) => setTimeout(r, replyDelay));
+                  // Espera a resposta real do alvo (até 90s)
+                  const replied = await waitForReply(apiUrl, apiToken, target, sentAt, 90_000, 4_000);
+                  if (!replied) {
+                    console.log(`  ⏱ ${donor.instance_name} ↛ sem resposta do alvo ${target} em 90s, seguindo`);
+                  } else {
+                    console.log(`  ✓ resposta detectada do alvo ${target}, enviando réplica`);
+                  }
+                  // Pequeno "tempo de leitura" antes de a alvo replicar de volta (1-3s)
+                  await new Promise((r) => setTimeout(r, 1000 + Math.random() * 2000));
                   try {
                     const zapiUrl = `https://api.z-api.io/instances/${tInst.instanceId}/token/${tInst.token}/send-text`;
                     const rr = await fetch(zapiUrl, {
