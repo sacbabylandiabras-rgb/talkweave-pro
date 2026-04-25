@@ -281,6 +281,83 @@ export default function AdminAquecimento() {
 
   const activeCount = donors.filter((d) => d.active).length;
 
+  const loadMessages = async () => {
+    setLoadingMsgs(true);
+    const { data, error } = await messageTable()
+      .select("id,content,active")
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    else setMessages((data as any) || []);
+    setLoadingMsgs(false);
+  };
+
+  useEffect(() => { loadMessages(); }, []);
+
+  const addMsg = async () => {
+    const c = newMsg.trim();
+    if (!c) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await messageTable().insert({ content: c, created_by: u.user?.id || null });
+    if (error) { toast.error(error.message); return; }
+    setNewMsg("");
+    toast.success("Mensagem adicionada");
+    loadMessages();
+  };
+
+  const importBulkMsgs = async () => {
+    const lines = bulkMsg.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    if (!lines.length) { toast.error("Cole pelo menos uma mensagem"); return; }
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    const rows = lines.slice(0, 800).map((content) => ({ content, created_by: u.user?.id || null }));
+    const { error } = await messageTable().upsert(rows, { onConflict: "content", ignoreDuplicates: true });
+    setImporting(false);
+    if (error) { toast.error(error.message); return; }
+    setBulkMsg("");
+    toast.success(`${rows.length} mensagem(ns) processada(s)`);
+    loadMessages();
+  };
+
+  const loadDefaultPack = async () => {
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    const rows = warmupMessagePack.map((content) => ({ content, created_by: u.user?.id || null }));
+    // Insere em chunks para evitar payload grande demais
+    const chunkSize = 200;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const { error } = await messageTable().upsert(chunk, { onConflict: "content", ignoreDuplicates: true });
+      if (error) { toast.error(error.message); setImporting(false); return; }
+      total += chunk.length;
+    }
+    setImporting(false);
+    toast.success(`Pacote padrão importado (${total} mensagens)`);
+    loadMessages();
+  };
+
+  const toggleMsg = async (id: string, next: boolean) => {
+    const { error } = await messageTable().update({ active: next }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, active: next } : m)));
+  };
+
+  const removeMsg = async (id: string) => {
+    const { error } = await messageTable().delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const clearAllMsgs = async () => {
+    if (!confirm("Remover TODAS as mensagens do pool?")) return;
+    const { error } = await messageTable().delete().not("id", "is", null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pool zerado");
+    loadMessages();
+  };
+
+  const activeMsgCount = messages.filter((m) => m.active).length;
+
   return (
     <div className="space-y-6">
       <div>
