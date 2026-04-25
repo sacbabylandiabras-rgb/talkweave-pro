@@ -333,10 +333,22 @@ export default function AquecimentoNumero() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
-          <CardDescription>
-            Mensagens enviadas aleatoriamente para variar o conteúdo
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
+              <CardDescription>
+                Mensagens enviadas aleatoriamente para variar o conteúdo (até 800)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{config.messages.length} / 800</Badge>
+              {config.messages.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearMessages} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-1" /> Limpar
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
@@ -348,6 +360,18 @@ export default function AquecimentoNumero() {
             />
             <Button onClick={addMessage} size="sm">
               <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Importar várias (uma por linha)</Label>
+            <Textarea
+              value={bulkMessages}
+              onChange={(e) => setBulkMessages(e.target.value)}
+              placeholder="Oi! Tudo bem?&#10;Bom dia!&#10;Como vai?"
+              rows={4}
+            />
+            <Button onClick={addBulkMessages} size="sm" variant="outline">
+              <Plus className="w-4 h-4 mr-1" /> Importar mensagens
             </Button>
           </div>
           <div className="space-y-1 max-h-64 overflow-y-auto">
