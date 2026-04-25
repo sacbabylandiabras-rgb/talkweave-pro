@@ -69,6 +69,8 @@ function GerenciarGrupoTab() {
   const [pendingList, setPendingList] = useState<Array<{ phone: string; name?: string }>>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renewLinkConfirmOpen, setRenewLinkConfirmOpen] = useState(false);
+  const [mentionAllOpen, setMentionAllOpen] = useState(false);
+  const [mentionAllMessage, setMentionAllMessage] = useState("📢 Atenção a todos!");
   const [groupSettings, setGroupSettings] = useState({
     adminOnlyMessage: false,
     adminOnlySettings: false,
