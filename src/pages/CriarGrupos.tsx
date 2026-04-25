@@ -389,7 +389,7 @@ function GerenciarGrupoTab() {
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5" />
-                Instância de disparo
+                Instância
               </label>
               <div className="flex flex-wrap gap-2">
                 <Button
