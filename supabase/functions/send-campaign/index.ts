@@ -357,6 +357,15 @@ const parseSpecialTemplate = (content?: string | null) => {
   }
 };
 
+const parseCoordinate = (value: unknown): string | null => {
+  const raw = String(value ?? '').trim();
+  const match = raw.match(/-?\d+(?:[\.,]\d+)?/);
+  if (!match) return null;
+  const normalized = match[0].replace(',', '.');
+  const coordinate = Number(normalized);
+  return Number.isFinite(coordinate) ? String(coordinate) : null;
+};
+
 // Dispatch PIX/location/contact via Z-API native endpoints
 const dispatchZapiSpecial = async (
   baseUrl: string,
@@ -385,12 +394,19 @@ const dispatchZapiSpecial = async (
     };
   } else if (special.type === 'localizacao') {
     url = `${baseUrl}/send-location`;
+    const latitude = parseCoordinate(special.latitude);
+    const longitude = parseCoordinate(special.longitude);
+    if (!latitude || !longitude) {
+      throw new Error('Template de localização com latitude/longitude inválidos');
+    }
+    const title = String(special.title || special.name || special.address || 'Localização').trim();
+    const address = String(special.address || special.description || title).trim();
     body = {
       phone,
-      latitude: Number(special.latitude) || 0,
-      longitude: Number(special.longitude) || 0,
-      title: special.title || '',
-      address: special.address || '',
+      title,
+      address,
+      latitude,
+      longitude,
     };
   } else if (special.type === 'contato') {
     url = `${baseUrl}/send-contact`;
