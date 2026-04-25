@@ -46,58 +46,103 @@ const ApanhadorGrupos = () => {
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [bulkActivating, setBulkActivating] = useState(false);
 
-  // Conectar instância uazapi (perfil)
+  // Conectar instância uazapi via QR Code
   const [connectOpen, setConnectOpen] = useState(false);
-  const [savingUazapi, setSavingUazapi] = useState(false);
-  const [uazUrl1, setUazUrl1] = useState("");
-  const [uazToken1, setUazToken1] = useState("");
-  const [uazUrl2, setUazUrl2] = useState("");
-  const [uazToken2, setUazToken2] = useState("");
+  const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
+  const [activeAccountIdx, setActiveAccountIdx] = useState(0);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [connStatus, setConnStatus] = useState<string>('disconnected');
 
-  const loadUazapiProfile = async () => {
+  const loadUazapiAccounts = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return [];
     const { data } = await supabase
       .from('profiles')
       .select('uazapi_url, uazapi_token')
       .eq('id', user.id)
       .maybeSingle();
-    const urls = (data?.uazapi_url || '').split('|');
-    const tokens = (data?.uazapi_token || '').split('|');
-    setUazUrl1(urls[0] || '');
-    setUazToken1(tokens[0] || '');
-    setUazUrl2(urls[1] || '');
-    setUazToken2(tokens[1] || '');
+    const urls = (data?.uazapi_url || '').split('|').filter(Boolean);
+    const tokens = (data?.uazapi_token || '').split('|').filter(Boolean);
+    const accounts = urls.map((url, i) => ({
+      label: `Instância #${i + 1}`,
+      url: url.trim(),
+      token: (tokens[i] || '').trim(),
+    })).filter(a => a.url && a.token);
+    setUazapiAccounts(accounts);
+    return accounts;
+  };
+
+  const fetchQrFor = async (account: { url: string; token: string }) => {
+    setQrLoading(true);
+    setQrCode(null);
+    setPairingCode(null);
+    try {
+      // Verifica status primeiro
+      const { data: statusData } = await supabase.functions.invoke('uazapi-status', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (statusData?.connected) {
+        setConnStatus('connected');
+        setQrLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('uazapi-connect', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (error) throw error;
+      setConnStatus(data?.connectionStatus || 'connecting');
+      setQrCode(data?.qrCode || null);
+      setPairingCode(data?.pairingCode || null);
+      if (data?.connected) setConnStatus('connected');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar QR Code');
+    } finally {
+      setQrLoading(false);
+    }
   };
 
   const openConnectDialog = async () => {
-    await loadUazapiProfile();
     setConnectOpen(true);
+    setActiveAccountIdx(0);
+    setQrCode(null);
+    setPairingCode(null);
+    setConnStatus('disconnected');
+    const accounts = await loadUazapiAccounts();
+    if (accounts.length > 0) {
+      await fetchQrFor(accounts[0]);
+    }
   };
 
-  const saveUazapiInstances = async () => {
-    if (!uazUrl1.trim() || !uazToken1.trim()) {
-      toast.error('Preencha URL e Token da Instância #1');
-      return;
-    }
-    setSavingUazapi(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-      const combinedUrl = [uazUrl1.trim(), uazUrl2.trim()].filter(Boolean).join('|');
-      const combinedToken = [uazToken1.trim(), uazToken2.trim()].filter(Boolean).join('|');
-      const { error } = await supabase
-        .from('profiles')
-        .update({ uazapi_url: combinedUrl, uazapi_token: combinedToken })
-        .eq('id', user.id);
-      if (error) throw error;
-      toast.success('Instâncias uazapi salvas com sucesso!');
-      setConnectOpen(false);
-      refetch();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar instâncias');
-    } finally {
-      setSavingUazapi(false);
+  // Polling: refresh status while dialog is open and not connected
+  useEffect(() => {
+    if (!connectOpen) return;
+    if (uazapiAccounts.length === 0) return;
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase.functions.invoke('uazapi-status', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (data?.connected) {
+        setConnStatus('connected');
+        setQrCode(null);
+        setPairingCode(null);
+        toast.success(`${account ? `Instância #${activeAccountIdx + 1}` : 'Instância'} conectada!`);
+        refetch();
+      } else if (data?.qrCode && data.qrCode !== qrCode) {
+        setQrCode(data.qrCode);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [connectOpen, uazapiAccounts, activeAccountIdx, qrCode, refetch]);
+
+  const switchAccount = async (idx: number) => {
+    setActiveAccountIdx(idx);
+    setConnStatus('disconnected');
+    if (uazapiAccounts[idx]) {
+      await fetchQrFor(uazapiAccounts[idx]);
     }
   };
 
@@ -295,69 +340,98 @@ const ApanhadorGrupos = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plug className="w-5 h-5" /> Conectar Instâncias uazapi
+              <Plug className="w-5 h-5" /> Conectar Instância
             </DialogTitle>
             <DialogDescription>
-              Configure até 2 instâncias uazapi para usar no Apanhador de Grupos.
+              Escaneie o QR Code com seu WhatsApp para conectar.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            <div className="border border-border rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="default">Instância #1</Badge>
-                <span className="text-xs text-muted-foreground">Obrigatória</span>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">URL da uazapi</Label>
-                <Input
-                  placeholder="https://sua-instancia.uazapi.com"
-                  value={uazUrl1}
-                  onChange={(e) => setUazUrl1(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Token</Label>
-                <Input
-                  placeholder="Token da instância"
-                  value={uazToken1}
-                  onChange={(e) => setUazToken1(e.target.value)}
-                />
-              </div>
+          {uazapiAccounts.length === 0 ? (
+            <div className="py-8 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Nenhuma instância uazapi cadastrada na sua conta.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Solicite ao administrador para configurar suas credenciais uazapi.
+              </p>
             </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              {uazapiAccounts.length > 1 && (
+                <div className="flex gap-2">
+                  {uazapiAccounts.map((acc, idx) => (
+                    <Button
+                      key={idx}
+                      size="sm"
+                      variant={idx === activeAccountIdx ? 'default' : 'outline'}
+                      onClick={() => switchAccount(idx)}
+                      className="flex-1"
+                    >
+                      {acc.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
 
-            <div className="border border-border rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Instância #2</Badge>
-                <span className="text-xs text-muted-foreground">Opcional</span>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">URL da uazapi</Label>
-                <Input
-                  placeholder="https://sua-instancia2.uazapi.com"
-                  value={uazUrl2}
-                  onChange={(e) => setUazUrl2(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Token</Label>
-                <Input
-                  placeholder="Token da instância"
-                  value={uazToken2}
-                  onChange={(e) => setUazToken2(e.target.value)}
-                />
+              <div className="border border-border rounded-lg p-6 flex flex-col items-center justify-center min-h-[320px] bg-muted/20">
+                {qrLoading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+                  </div>
+                ) : connStatus === 'connected' ? (
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Check className="w-8 h-8 text-green-500" />
+                    </div>
+                    <p className="font-medium text-foreground">Instância conectada!</p>
+                    <p className="text-xs text-muted-foreground">Pronta para usar no Apanhador de Grupos.</p>
+                  </div>
+                ) : qrCode ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <img
+                      src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
+                      alt="QR Code"
+                      className="w-64 h-64 bg-white p-2 rounded-lg"
+                    />
+                    {pairingCode && (
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-1">ou use o código de pareamento:</p>
+                        <p className="font-mono text-lg font-semibold tracking-wider text-foreground">
+                          {pairingCode}
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground text-center max-w-xs">
+                      Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <p className="text-sm text-muted-foreground">QR Code indisponível.</p>
+                    <Button size="sm" variant="outline" onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}>
+                      <RefreshCw className="w-4 h-4 mr-1" /> Tentar novamente
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConnectOpen(false)} disabled={savingUazapi}>
-              Cancelar
-            </Button>
-            <Button onClick={saveUazapiInstances} disabled={savingUazapi} className="gap-2">
-              {savingUazapi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              Salvar
-            </Button>
+            {uazapiAccounts.length > 0 && connStatus !== 'connected' && (
+              <Button
+                variant="outline"
+                onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}
+                disabled={qrLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${qrLoading ? 'animate-spin' : ''}`} />
+                Atualizar QR
+              </Button>
+            )}
+            <Button onClick={() => setConnectOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
