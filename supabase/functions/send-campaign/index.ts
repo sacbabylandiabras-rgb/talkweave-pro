@@ -881,16 +881,8 @@ serve(async (req) => {
         .order('created_at', { ascending: true });
 
       const rawRotatePool: ResolvedInstance[] = (allActiveInstances || [])
-        .filter((instance: any) => instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token)
-        .map((instance: any) => ({
-          zapiInstanceId: instance.zapi_instance_id,
-          zapiToken: instance.zapi_token || '',
-          zapiClientToken: instance.zapi_client_token || '',
-          instanceName: instance.instance_name,
-          apiProvider: 'zapi',
-          uazapiUrl: '',
-          uazapiToken: '',
-        }));
+        .map((instance: any) => mapResolvedInstance(instance))
+        .filter(Boolean) as ResolvedInstance[];
 
       const rotateStatuses = await Promise.all(
         rawRotatePool.map(async (instance) => ({
