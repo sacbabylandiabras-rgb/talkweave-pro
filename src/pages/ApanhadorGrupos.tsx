@@ -875,7 +875,7 @@ const ApanhadorGrupos = () => {
                           </div>
                         )}
 
-                        {instances.length >= 1 && (
+                        {uazapiInstances.length >= 1 && (
                           <div>
                             <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
                               <Smartphone className="h-3.5 w-3.5" />
@@ -890,7 +890,7 @@ const ApanhadorGrupos = () => {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="auto">🔄 Automática (mesma do grupo)</SelectItem>
-                                {instances.map(inst => (
+                                {uazapiInstances.map(inst => (
                                   <SelectItem key={inst.id} value={inst.id}>
                                     {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
                                   </SelectItem>
