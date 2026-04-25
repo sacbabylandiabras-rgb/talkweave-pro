@@ -142,7 +142,8 @@ serve(async (req: Request) => {
         }
 
         for (let i = 0; i < dailyLimit; i++) {
-          const target = pickRandom(cleanedTargets);
+          // Round-robin: garante distribuição equilibrada entre todos os alvos
+          const target = cleanedTargets[i % cleanedTargets.length];
           const text = pickRandom(messages);
           try {
             const res = await fetch(`${apiUrl}/send/text`, {
@@ -152,6 +153,7 @@ serve(async (req: Request) => {
             });
             if (res.ok) {
               totalSent++;
+              console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit})`);
             } else {
               totalFailed++;
               const t = await res.text().catch(() => "");
