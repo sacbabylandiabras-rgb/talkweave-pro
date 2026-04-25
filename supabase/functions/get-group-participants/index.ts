@@ -559,6 +559,41 @@ Deno.serve(async (req) => {
 
         if (lidParticipants.length > 0) {
           try {
+            // 1) Try to actively resolve LIDs via uazapi /chat/find (returns real numbers)
+            const lidToPhone = new Map<string, string>();
+            try {
+              const findRes = await fetch(`${uazapi.apiUrl}/chat/find`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", token: uazapi.apiToken },
+                body: JSON.stringify({ numbers: lidParticipants }),
+              });
+              const findText = await findRes.text();
+              let findData: any = {};
+              try { findData = JSON.parse(findText); } catch { findData = {}; }
+              const list = Array.isArray(findData)
+                ? findData
+                : Array.isArray(findData?.chats)
+                  ? findData.chats
+                  : Array.isArray(findData?.data)
+                    ? findData.data
+                    : [];
+              for (const item of list) {
+                const lidKey = String(
+                  item?.lid || item?.LID || item?.query || item?.input || item?.jid_lid || ""
+                ).trim();
+                const realPhone = String(
+                  item?.phoneNumber || item?.number || item?.phone || item?.wa_chatid || item?.id || ""
+                ).replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+                if (lidKey && realPhone && realPhone.length >= 8) {
+                  lidToPhone.set(lidKey, realPhone);
+                }
+              }
+              console.log(`🔁 UAZAPI /chat/find resolved ${lidToPhone.size}/${lidParticipants.length} LIDs`);
+            } catch (findErr) {
+              console.error("⚠️ UAZAPI /chat/find failed:", findErr);
+            }
+
+            // 2) Fallback to local mapping table
             const { data: lidMappings } = await adminClient
               .from("message_logs")
               .select("phone, message_received")
@@ -577,7 +612,7 @@ Deno.serve(async (req) => {
             );
 
             for (const participant of unresolvedLidParticipants) {
-              const resolvedPhone = mappingByLid.get(participant.phone);
+              const resolvedPhone = lidToPhone.get(participant.phone) || mappingByLid.get(participant.phone);
               resolvedParticipants.push({
                 ...participant,
                 phone: resolvedPhone ?? participant.phone,
