@@ -453,6 +453,54 @@ const dispatchZapiSpecial = async (
   return { url, body };
 };
 
+const sendZapiLocationButtonFollowUp = async (
+  baseUrl: string,
+  clientToken: string,
+  phone: string,
+  special: any,
+) => {
+  const latitude = parseCoordinate(special.latitude);
+  const longitude = parseCoordinate(special.longitude);
+  const buttonUrl = String(special.url || (latitude && longitude ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : '')).trim();
+  if (!buttonUrl) {
+    return { ok: false, ack: null, error: 'Template de localização com botão sem URL do mapa', raw: null };
+  }
+
+  const normalizedUrl = /^https?:\/\//i.test(buttonUrl) ? buttonUrl : `https://${buttonUrl}`;
+  const message = String(
+    special.text ||
+    special.description ||
+    [special.name || special.title, special.address].filter(Boolean).join('\n') ||
+    'Abrir localização no mapa'
+  ).trim();
+  const buttonLabel = String(special.buttonLabel || 'Ver no mapa').trim() || 'Ver no mapa';
+  const body = {
+    phone,
+    message,
+    buttonActions: [{ type: 'URL', label: buttonLabel, url: normalizedUrl }],
+  };
+
+  const res = await fetch(`${baseUrl}/send-button-actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+    body: JSON.stringify(body),
+  });
+  let data: any = {};
+  try {
+    const responseText = await res.text();
+    if (responseText && responseText.trim()) data = JSON.parse(responseText);
+  } catch {}
+
+  const explicitError = getZapiExplicitError(data);
+  const confirmed = isZapiConfirmed(data);
+  console.log(`📍 Z-API location button follow-up for ${phone}: status=${res.status}, confirmed=${confirmed}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
+  if (!res.ok || explicitError || !confirmed) {
+    return { ok: false, ack: null, error: explicitError || (!confirmed ? 'Z-API não confirmou o botão da localização' : `HTTP ${res.status}`), raw: data };
+  }
+
+  return { ok: true, ack: getZapiAckId(data), error: null, raw: data };
+};
+
 // Dispatch PIX/location/contact via UAZAPI native endpoints
 const dispatchUazapiSpecial = async (
   instance: ResolvedInstance,
