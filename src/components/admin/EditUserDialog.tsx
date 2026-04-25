@@ -339,14 +339,32 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <h3 className="font-semibold">Extração de Comunidades</h3>
             </div>
             <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>URL da API</Label>
-                <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.com" type="url" />
-              </div>
-              <div className="space-y-2">
-                <Label>Token da Instância</Label>
-                <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token da instância" type="password" />
-              </div>
+              <Card className="border-primary/30">
+                <CardContent className="pt-3 pb-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Instância uazapi #1</p>
+                  <div className="space-y-2">
+                    <Label>URL da API</Label>
+                    <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.com" type="url" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Token da Instância</Label>
+                    <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token da instância" type="password" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/30">
+                <CardContent className="pt-3 pb-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Instância uazapi #2 (opcional)</p>
+                  <div className="space-y-2">
+                    <Label>URL da API</Label>
+                    <Input value={uazapiUrl2} onChange={(e) => setUazapiUrl2(e.target.value)} placeholder="https://seudominio2.com" type="url" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Token da Instância</Label>
+                    <Input value={uazapiToken2} onChange={(e) => setUazapiToken2(e.target.value)} placeholder="Token da segunda instância" type="password" />
+                  </div>
+                </CardContent>
+              </Card>
               <Button size="sm" onClick={handleSaveUazapi} disabled={uazapiSaving}>
                 {uazapiSaving ? "Salvando..." : "Salvar Credenciais"}
               </Button>
