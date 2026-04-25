@@ -76,29 +76,47 @@ const extractParticipantsFromGroup = (group: any) => {
 };
 
 const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string): Promise<string | null> => {
-  try {
-    const res = await fetch(`${apiUrl}/instance`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', token: apiToken },
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data) return null;
-    const candidates = [
-      data?.instance?.owner,
-      data?.instance?.jid,
-      data?.instance?.wid,
-      data?.instance?.me?.id,
-      data?.connected?.jid,
-      data?.owner,
-      data?.jid,
-      data?.wid,
-      data?.me?.id,
-    ];
-    const found = candidates.find((v) => typeof v === 'string' && v.includes('@'));
-    return found ? String(found) : null;
-  } catch {
-    return null;
+  const endpoints = ['/instance/me', '/instance/status', '/instance', '/status'];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(`${apiUrl}${ep}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', token: apiToken },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) continue;
+      const candidates = [
+        data?.instance?.owner,
+        data?.instance?.jid,
+        data?.instance?.wid,
+        data?.instance?.me?.id,
+        data?.instance?.profile?.id,
+        data?.instance?.profile?.wid,
+        data?.instance?.profile?.phone,
+        data?.instance?.phone,
+        data?.instance?.number,
+        data?.connected?.jid,
+        data?.owner,
+        data?.jid,
+        data?.wid,
+        data?.me?.id,
+        data?.profile?.id,
+        data?.profile?.wid,
+        data?.profile?.phone,
+        data?.phone,
+        data?.number,
+      ];
+      const foundJid = candidates.find((v) => typeof v === 'string' && v.includes('@'));
+      if (foundJid) return String(foundJid);
+      const foundPhone = candidates.find((v) => typeof v === 'string' && v.replace(/\D/g, '').length >= 8);
+      if (foundPhone) return String(foundPhone);
+      // Log for debugging when nothing matches
+      console.log(`🔎 UAZAPI ${ep} response keys:`, Object.keys(data || {}));
+    } catch (e) {
+      console.log(`⚠️ UAZAPI ${ep} fetch failed:`, String(e));
+    }
   }
+  return null;
 };
 
 const normalizePhoneFromJid = (jid: string | null | undefined): string => {
