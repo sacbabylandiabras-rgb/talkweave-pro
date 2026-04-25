@@ -282,20 +282,39 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
 
 const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> => {
   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-  try {
-    const res = await fetch(`${baseUrl}/me`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token },
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data) return '';
-    return normalizePhoneFromJid(
-      data?.phone || data?.phoneNumber || data?.wid?.user || data?.me?.user || data?.me?.id || data?.id || data?.user || '',
-    );
-  } catch (error) {
-    console.error(`⚠️ Z-API /me failed for ${instance.instance_name}:`, error);
-    return '';
+  // Endpoint correto da Z-API é /device — retorna { phone, lid, name, ... }.
+  // /me não existe ou devolve formato inconsistente, gerando owner phone corrompido.
+  const endpoints = ['/device', '/me'];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token },
+      });
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => null);
+      if (!data) continue;
+      const candidates = [
+        data?.phone,
+        data?.phoneNumber,
+        data?.wid?.user,
+        data?.me?.user,
+        data?.me?.id,
+        data?.id,
+        data?.user,
+      ];
+      for (const c of candidates) {
+        const normalized = normalizePhoneFromJid(typeof c === 'string' ? c : '');
+        // Telefones reais têm entre 10 e 15 dígitos. Evita strings agregadas.
+        if (normalized && normalized.length >= 10 && normalized.length <= 15) {
+          return normalized;
+        }
+      }
+    } catch (error) {
+      console.error(`⚠️ Z-API ${ep} failed for ${instance.instance_name}:`, error);
+    }
   }
+  return '';
 };
 
 const normalizeZapiGroupId = (value: unknown): string => {
