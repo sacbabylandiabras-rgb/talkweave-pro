@@ -11,6 +11,7 @@ import { Flame, Play, Pause, Plus, Trash2, Loader2, Activity, Clock, MessageSqua
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { warmupMessagePack } from "@/lib/warmup-messages";
 
 interface WarmupConfig {
   active: boolean;
@@ -126,6 +127,22 @@ export default function AquecimentoNumero() {
   const clearMessages = () => {
     if (!confirm("Remover todas as mensagens do pool?")) return;
     setConfig((prev) => ({ ...prev, messages: [] }));
+  };
+
+  const loadDefaultPack = () => {
+    setConfig((prev) => {
+      const existing = new Set(prev.messages);
+      const merged: string[] = [...prev.messages];
+      for (const m of warmupMessagePack) {
+        if (merged.length >= 800) break;
+        if (!existing.has(m)) {
+          merged.push(m);
+          existing.add(m);
+        }
+      }
+      toast.success(`Pacote carregado: ${merged.length} mensagens no pool`);
+      return { ...prev, messages: merged };
+    });
   };
 
   const removeMessage = (idx: number) => {
