@@ -52,6 +52,7 @@ export default function AquecimentoNumero() {
     contacts: [],
   });
   const [newMessage, setNewMessage] = useState("");
+  const [bulkMessages, setBulkMessages] = useState("");
   const [contactsText, setContactsText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -88,8 +89,43 @@ export default function AquecimentoNumero() {
 
   const addMessage = () => {
     if (!newMessage.trim()) return;
+    if (config.messages.length >= 800) {
+      toast.error("Limite de 800 mensagens atingido");
+      return;
+    }
     setConfig((prev) => ({ ...prev, messages: [...prev.messages, newMessage.trim()] }));
     setNewMessage("");
+  };
+
+  const addBulkMessages = () => {
+    const lines = bulkMessages
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (!lines.length) {
+      toast.error("Cole pelo menos uma mensagem");
+      return;
+    }
+    setConfig((prev) => {
+      const remaining = 800 - prev.messages.length;
+      if (remaining <= 0) {
+        toast.error("Limite de 800 mensagens atingido");
+        return prev;
+      }
+      const toAdd = lines.slice(0, remaining);
+      if (lines.length > remaining) {
+        toast.message(`Adicionadas ${toAdd.length} (limite de 800). ${lines.length - remaining} ignoradas.`);
+      } else {
+        toast.success(`${toAdd.length} mensagem(ns) adicionadas`);
+      }
+      return { ...prev, messages: [...prev.messages, ...toAdd] };
+    });
+    setBulkMessages("");
+  };
+
+  const clearMessages = () => {
+    if (!confirm("Remover todas as mensagens do pool?")) return;
+    setConfig((prev) => ({ ...prev, messages: [] }));
   };
 
   const removeMessage = (idx: number) => {
@@ -287,7 +323,7 @@ export default function AquecimentoNumero() {
             <Slider
               value={[config.dailyLimit]}
               min={10}
-              max={500}
+              max={800}
               step={10}
               onValueChange={([v]) => setConfig((p) => ({ ...p, dailyLimit: v }))}
             />
@@ -297,10 +333,22 @@ export default function AquecimentoNumero() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
-          <CardDescription>
-            Mensagens enviadas aleatoriamente para variar o conteúdo
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
+              <CardDescription>
+                Mensagens enviadas aleatoriamente para variar o conteúdo (até 800)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{config.messages.length} / 800</Badge>
+              {config.messages.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearMessages} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-1" /> Limpar
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
@@ -312,6 +360,18 @@ export default function AquecimentoNumero() {
             />
             <Button onClick={addMessage} size="sm">
               <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Importar várias (uma por linha)</Label>
+            <Textarea
+              value={bulkMessages}
+              onChange={(e) => setBulkMessages(e.target.value)}
+              placeholder="Oi! Tudo bem?&#10;Bom dia!&#10;Como vai?"
+              rows={4}
+            />
+            <Button onClick={addBulkMessages} size="sm" variant="outline">
+              <Plus className="w-4 h-4 mr-1" /> Importar mensagens
             </Button>
           </div>
           <div className="space-y-1 max-h-64 overflow-y-auto">
