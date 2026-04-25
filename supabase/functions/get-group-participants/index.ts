@@ -477,7 +477,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { groupId, fallbackParticipants = [], sourceInstanceId = null } = await req.json();
+    const { groupId, fallbackParticipants = [], sourceInstanceId = null, isCommunity = false } = await req.json();
     if (!groupId) throw new Error("groupId is required");
 
     // Try UAZAPI first when the source instance (or any active instance) uses uazapi
@@ -541,10 +541,10 @@ Deno.serve(async (req) => {
             .replace("@c.us", "")
             .replace(/\D/g, "");
 
-          const isLid = normalizedId.includes("@lid") || (lidCandidate && cleanPhone.length < 8);
+          const isLid = normalizedId.includes("@lid") || Boolean(lidCandidate) || isCommunity;
 
-          if (isLid && cleanPhone.length < 8) {
-            const lidId = normalizedId.includes("@lid") ? normalizedId : lidCandidate;
+          if (isLid) {
+            const lidId = normalizeLidValue(lidCandidate || normalizedId);
             lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
               phone: lidId,
@@ -643,7 +643,7 @@ Deno.serve(async (req) => {
           groupInfo?.subject || groupInfo?.name || groupInfo?.Name || groupInfo?.Topic ||
           groupInfo?.group?.subject || groupInfo?.groupMetadata?.subject || "";
 
-        console.log(`✅ UAZAPI participants resolved: ${uniqueParticipants.length} (LIDs: ${lidParticipants.length})`);
+        console.log(`✅ UAZAPI participants resolved: ${uniqueParticipants.length} (community mode: ${isCommunity}, LIDs: ${lidParticipants.length})`);
 
         return new Response(
           JSON.stringify({
