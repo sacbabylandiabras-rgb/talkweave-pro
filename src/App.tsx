@@ -29,6 +29,7 @@ import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
+import AquecimentoNumero from "./pages/AquecimentoNumero";
 import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
 import TemplatesAprovados from "./pages/TemplatesAprovados";
@@ -132,6 +133,7 @@ const App = () => (
                   <Route path="/criar-grupos" element={<CriarGrupos />} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
+                  <Route path="/aquecimento" element={<AquecimentoNumero />} />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
                   <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
