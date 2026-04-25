@@ -1150,10 +1150,6 @@ const Dispositivos = () => {
             <p className="text-muted-foreground mb-4">
               Crie sua primeira instância para começar a enviar mensagens.
             </p>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" />
-              Criar Instância
-            </Button>
           </CardContent>
         </Card>
       )}
