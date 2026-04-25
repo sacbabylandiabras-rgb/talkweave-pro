@@ -2259,7 +2259,7 @@ function ParticipantesTab() {
                 }}
                 className="h-8"
               >
-                {g.nome} ({getMemberCount(g.id, g.membros) || "—"})
+                {g.nome}
               </Button>
             ))}
           </div>
