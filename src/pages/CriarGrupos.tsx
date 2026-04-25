@@ -702,6 +702,50 @@ function GerenciarGrupoTab() {
         </CardContent>
       </Card>
 
+      {/* Renew invite link confirmation */}
+      <AlertDialog open={renewLinkConfirmOpen} onOpenChange={setRenewLinkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Renovar link de convite?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O link atual será invalidado imediatamente. Quem tiver o link antigo não conseguirá mais entrar no grupo.
+              Um novo link será gerado e copiado automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!selectedGroup) return;
+                setRenewLinkConfirmOpen(false);
+                setActionLoading("redefine-invitation-link");
+                try {
+                  const credentials = getInstanceCredentials(selectedGroup);
+                  const { data, error } = await supabase.functions.invoke("manage-groups", {
+                    body: { action: "redefine-invitation-link", groupId: selectedGroup.id, ...credentials },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error("Erro: " + data.error); return; }
+                  const link = data?.inviteLink || data?.invitationLink || data?.link || "";
+                  if (link) {
+                    await navigator.clipboard.writeText(link);
+                    toast.success("Link renovado e copiado!");
+                  } else {
+                    toast.success("Link renovado!");
+                  }
+                } catch (err: any) {
+                  toast.error("Erro: " + (err.message || "Falha ao renovar link"));
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+            >
+              Sim, renovar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Pending approvals dialog */}
       <Dialog open={pendingOpen} onOpenChange={setPendingOpen}>
         <DialogContent className="max-w-md">
