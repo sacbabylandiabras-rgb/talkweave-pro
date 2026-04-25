@@ -20,7 +20,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Tabela criada via migration; o tipo gerado ainda não a conhece, então usamos cast.
 const donorTable = () => (supabase as any).from("warmup_donor_numbers");
+const messageTable = () => (supabase as any).from("warmup_messages");
 import { toast } from "sonner";
+import { warmupMessagePack } from "@/lib/warmup-messages";
 
 interface DonorNumber {
   id: string;
@@ -56,6 +58,14 @@ export default function AdminAquecimento() {
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [bulk, setBulk] = useState("");
+
+  // Mensagens compartilhadas
+  const [messages, setMessages] = useState<Array<{ id: string; content: string; active: boolean }>>([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(true);
+  const [newMsg, setNewMsg] = useState("");
+  const [bulkMsg, setBulkMsg] = useState("");
+  const [importing, setImporting] = useState(false);
+
   const [instOpen, setInstOpen] = useState(false);
   const [instName, setInstName] = useState("");
   const [creatingInst, setCreatingInst] = useState(false);
@@ -270,6 +280,83 @@ export default function AdminAquecimento() {
   };
 
   const activeCount = donors.filter((d) => d.active).length;
+
+  const loadMessages = async () => {
+    setLoadingMsgs(true);
+    const { data, error } = await messageTable()
+      .select("id,content,active")
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    else setMessages((data as any) || []);
+    setLoadingMsgs(false);
+  };
+
+  useEffect(() => { loadMessages(); }, []);
+
+  const addMsg = async () => {
+    const c = newMsg.trim();
+    if (!c) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await messageTable().insert({ content: c, created_by: u.user?.id || null });
+    if (error) { toast.error(error.message); return; }
+    setNewMsg("");
+    toast.success("Mensagem adicionada");
+    loadMessages();
+  };
+
+  const importBulkMsgs = async () => {
+    const lines = bulkMsg.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    if (!lines.length) { toast.error("Cole pelo menos uma mensagem"); return; }
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    const rows = lines.slice(0, 800).map((content) => ({ content, created_by: u.user?.id || null }));
+    const { error } = await messageTable().upsert(rows, { onConflict: "content", ignoreDuplicates: true });
+    setImporting(false);
+    if (error) { toast.error(error.message); return; }
+    setBulkMsg("");
+    toast.success(`${rows.length} mensagem(ns) processada(s)`);
+    loadMessages();
+  };
+
+  const loadDefaultPack = async () => {
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    const rows = warmupMessagePack.map((content) => ({ content, created_by: u.user?.id || null }));
+    // Insere em chunks para evitar payload grande demais
+    const chunkSize = 200;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const { error } = await messageTable().upsert(chunk, { onConflict: "content", ignoreDuplicates: true });
+      if (error) { toast.error(error.message); setImporting(false); return; }
+      total += chunk.length;
+    }
+    setImporting(false);
+    toast.success(`Pacote padrão importado (${total} mensagens)`);
+    loadMessages();
+  };
+
+  const toggleMsg = async (id: string, next: boolean) => {
+    const { error } = await messageTable().update({ active: next }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, active: next } : m)));
+  };
+
+  const removeMsg = async (id: string) => {
+    const { error } = await messageTable().delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const clearAllMsgs = async () => {
+    if (!confirm("Remover TODAS as mensagens do pool?")) return;
+    const { error } = await messageTable().delete().not("id", "is", null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pool zerado");
+    loadMessages();
+  };
+
+  const activeMsgCount = messages.filter((m) => m.active).length;
 
   return (
     <div className="space-y-6">
@@ -538,6 +625,85 @@ export default function AdminAquecimento() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-lg">Mensagens do aquecimento</CardTitle>
+              <CardDescription>
+                Pool global usado pelas instâncias doadoras (até 800)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary">{activeMsgCount} ativas / {messages.length} total</Badge>
+              <Button variant="outline" size="sm" onClick={loadDefaultPack} disabled={importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                Carregar pacote (800)
+              </Button>
+              {messages.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearAllMsgs} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-1" /> Limpar tudo
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newMsg}
+              onChange={(e) => setNewMsg(e.target.value)}
+              placeholder="Nova mensagem..."
+              onKeyDown={(e) => e.key === "Enter" && addMsg()}
+            />
+            <Button onClick={addMsg} size="sm">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Importar várias (uma por linha)</Label>
+            <Textarea
+              value={bulkMsg}
+              onChange={(e) => setBulkMsg(e.target.value)}
+              rows={4}
+              placeholder="Oi! Tudo bem?&#10;Bom dia!&#10;Como vai?"
+            />
+            <Button onClick={importBulkMsgs} size="sm" variant="outline" disabled={importing}>
+              {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+              Importar
+            </Button>
+          </div>
+
+          {loadingMsgs ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma mensagem cadastrada</p>
+          ) : (
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/20"
+                >
+                  <span className="text-sm truncate flex-1">{m.content}</span>
+                  <Switch checked={m.active} onCheckedChange={(v) => toggleMsg(m.id, v)} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => removeMsg(m.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               ))}
             </div>

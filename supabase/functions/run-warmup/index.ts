@@ -40,12 +40,22 @@ serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const targetPhones: string[] = Array.isArray(body?.targetPhones) ? body.targetPhones : [];
-    const messages: string[] = Array.isArray(body?.messages) ? body.messages.filter((m: any) => typeof m === "string" && m.trim()) : [];
+    let messages: string[] = Array.isArray(body?.messages) ? body.messages.filter((m: any) => typeof m === "string" && m.trim()) : [];
     const minDelay = Math.max(2, Number(body?.minDelay) || 10);
     const maxDelay = Math.max(minDelay, Number(body?.maxDelay) || 30);
     const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
 
-    if (!messages.length) return json({ success: false, error: "Nenhuma mensagem configurada" }, 400);
+    // Se o cliente não enviou mensagens, usa o pool global de admin (warmup_messages ativas)
+    if (!messages.length) {
+      const { data: poolMsgs } = await admin
+        .from("warmup_messages")
+        .select("content")
+        .eq("active", true);
+      messages = (poolMsgs || []).map((r: any) => String(r.content || "")).filter((s: string) => s.trim().length > 0);
+    }
+    if (!messages.length) {
+      return json({ success: false, error: "Nenhuma mensagem disponível (configure em /admin/aquecimento)" }, 400);
+    }
 
     // 1) Buscar todas instâncias UAZAPI ativas (doadoras) — independem do user
     const { data: donors, error: donorsErr } = await admin
