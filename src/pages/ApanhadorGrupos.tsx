@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare } from "lucide-react";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -29,6 +30,7 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
+  const navigate = useNavigate();
   const { groups, loading, refetch } = useWhatsAppGroups();
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
@@ -220,9 +222,18 @@ const ApanhadorGrupos = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Apanhador de Grupos</h1>
-        <p className="text-muted-foreground">Visualize seus grupos do WhatsApp e extraia números dos participantes</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Apanhador de Grupos</h1>
+          <p className="text-muted-foreground">Visualize seus grupos do WhatsApp e extraia números dos participantes</p>
+        </div>
+        <Button
+          onClick={() => navigate('/dispositivos')}
+          className="gap-2 bg-primary hover:bg-primary/90"
+        >
+          <Plug className="w-4 h-4" />
+          Conectar Instância
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
