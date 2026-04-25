@@ -6,7 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
 // Tabela criada via migration; o tipo gerado ainda não a conhece, então usamos cast.
@@ -38,6 +47,33 @@ export default function AdminAquecimento() {
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [bulk, setBulk] = useState("");
+  const [instOpen, setInstOpen] = useState(false);
+  const [instName, setInstName] = useState("");
+  const [creatingInst, setCreatingInst] = useState(false);
+
+  const createInstance = async () => {
+    const name = instName.trim();
+    if (!name) {
+      toast.error("Informe um nome para a instância");
+      return;
+    }
+    setCreatingInst(true);
+    const { data, error } = await supabase.functions.invoke("uazapi-create-instance", {
+      body: { instanceName: name, systemName: "zaplynx" },
+    });
+    setCreatingInst(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if ((data as any)?.error) {
+      toast.error((data as any).error);
+      return;
+    }
+    toast.success("Instância UAZAPI criada");
+    setInstName("");
+    setInstOpen(false);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -139,6 +175,46 @@ export default function AdminAquecimento() {
         <p className="text-sm text-muted-foreground mt-1">
           Números doadores que enviam mensagens para os números ativos no aquecimento. Apenas administradores enxergam esta página.
         </p>
+      </div>
+
+      <div className="flex justify-end">
+        <Dialog open={instOpen} onOpenChange={setInstOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Server className="w-4 h-4 mr-1" />
+              Criar instância UAZAPI
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova instância UAZAPI</DialogTitle>
+              <DialogDescription>
+                Provisiona uma nova instância no servidor UAZAPI vinculada à sua conta.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label className="text-xs">Nome da instância</Label>
+              <Input
+                value={instName}
+                onChange={(e) => setInstName(e.target.value)}
+                placeholder="aquecimento-01"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setInstOpen(false)}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={createInstance} disabled={creatingInst}>
+                {creatingInst ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-1" />
+                )}
+                Criar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid md:grid-cols-3 gap-3">
