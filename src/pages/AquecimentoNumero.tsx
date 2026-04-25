@@ -52,6 +52,7 @@ export default function AquecimentoNumero() {
     contacts: [],
   });
   const [newMessage, setNewMessage] = useState("");
+  const [bulkMessages, setBulkMessages] = useState("");
   const [contactsText, setContactsText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -88,8 +89,43 @@ export default function AquecimentoNumero() {
 
   const addMessage = () => {
     if (!newMessage.trim()) return;
+    if (config.messages.length >= 800) {
+      toast.error("Limite de 800 mensagens atingido");
+      return;
+    }
     setConfig((prev) => ({ ...prev, messages: [...prev.messages, newMessage.trim()] }));
     setNewMessage("");
+  };
+
+  const addBulkMessages = () => {
+    const lines = bulkMessages
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (!lines.length) {
+      toast.error("Cole pelo menos uma mensagem");
+      return;
+    }
+    setConfig((prev) => {
+      const remaining = 800 - prev.messages.length;
+      if (remaining <= 0) {
+        toast.error("Limite de 800 mensagens atingido");
+        return prev;
+      }
+      const toAdd = lines.slice(0, remaining);
+      if (lines.length > remaining) {
+        toast.message(`Adicionadas ${toAdd.length} (limite de 800). ${lines.length - remaining} ignoradas.`);
+      } else {
+        toast.success(`${toAdd.length} mensagem(ns) adicionadas`);
+      }
+      return { ...prev, messages: [...prev.messages, ...toAdd] };
+    });
+    setBulkMessages("");
+  };
+
+  const clearMessages = () => {
+    if (!confirm("Remover todas as mensagens do pool?")) return;
+    setConfig((prev) => ({ ...prev, messages: [] }));
   };
 
   const removeMessage = (idx: number) => {
