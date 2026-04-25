@@ -712,6 +712,166 @@ function GerenciarGrupoTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pending approvals dialog */}
+      <Dialog open={pendingOpen} onOpenChange={setPendingOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aprovações Pendentes</DialogTitle>
+            <DialogDescription>
+              {pendingList.length} participante(s) aguardando aprovação
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {pendingList.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum participante pendente
+              </p>
+            )}
+            {pendingList.map((p) => (
+              <div key={p.phone} className="flex items-center justify-between gap-2 p-2 border rounded-md">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{p.name || p.phone}</p>
+                  {p.name && <p className="text-xs text-muted-foreground truncate">{p.phone}</p>}
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2"
+                    disabled={!!actionLoading}
+                    onClick={async () => {
+                      if (!selectedGroup) return;
+                      setActionLoading("approve-" + p.phone);
+                      try {
+                        const credentials = getInstanceCredentials(selectedGroup);
+                        const { data, error } = await supabase.functions.invoke("manage-groups", {
+                          body: { action: "approve-participant", groupId: selectedGroup.id, phones: [p.phone], ...credentials },
+                        });
+                        if (error) throw error;
+                        if (data?.error) { toast.error("Erro: " + data.error); return; }
+                        toast.success("Aprovado!");
+                        setPendingList((prev) => prev.filter((x) => x.phone !== p.phone));
+                      } catch (err: any) {
+                        toast.error("Erro: " + (err.message || ""));
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
+                  >
+                    {actionLoading === "approve-" + p.phone ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-destructive hover:text-destructive"
+                    disabled={!!actionLoading}
+                    onClick={async () => {
+                      if (!selectedGroup) return;
+                      setActionLoading("reject-" + p.phone);
+                      try {
+                        const credentials = getInstanceCredentials(selectedGroup);
+                        const { data, error } = await supabase.functions.invoke("manage-groups", {
+                          body: { action: "reject-participant", groupId: selectedGroup.id, phones: [p.phone], ...credentials },
+                        });
+                        if (error) throw error;
+                        if (data?.error) { toast.error("Erro: " + data.error); return; }
+                        toast.success("Rejeitado");
+                        setPendingList((prev) => prev.filter((x) => x.phone !== p.phone));
+                      } catch (err: any) {
+                        toast.error("Erro: " + (err.message || ""));
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
+                  >
+                    {actionLoading === "reject-" + p.phone ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group settings dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurações do Grupo</DialogTitle>
+            <DialogDescription>Controle permissões e moderação</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Somente admins enviam mensagens</p>
+                <p className="text-xs text-muted-foreground">Apenas administradores podem postar no grupo</p>
+              </div>
+              <Switch
+                checked={groupSettings.adminOnlyMessage}
+                onCheckedChange={(v) => setGroupSettings((s) => ({ ...s, adminOnlyMessage: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Somente admins editam o grupo</p>
+                <p className="text-xs text-muted-foreground">Apenas admins alteram nome, foto e descrição</p>
+              </div>
+              <Switch
+                checked={groupSettings.adminOnlySettings}
+                onCheckedChange={(v) => setGroupSettings((s) => ({ ...s, adminOnlySettings: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Somente admins adicionam membros</p>
+                <p className="text-xs text-muted-foreground">Bloqueia que membros comuns adicionem outros</p>
+              </div>
+              <Switch
+                checked={groupSettings.adminOnlyAddMember}
+                onCheckedChange={(v) => setGroupSettings((s) => ({ ...s, adminOnlyAddMember: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Aprovar novos membros</p>
+                <p className="text-xs text-muted-foreground">Novos participantes precisam de aprovação de admin</p>
+              </div>
+              <Switch
+                checked={groupSettings.requireAdminApproval}
+                onCheckedChange={(v) => setGroupSettings((s) => ({ ...s, requireAdminApproval: v }))}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
+              <Button
+                disabled={actionLoading === "update-group-settings"}
+                onClick={async () => {
+                  if (!selectedGroup) return;
+                  setActionLoading("update-group-settings");
+                  try {
+                    const credentials = getInstanceCredentials(selectedGroup);
+                    const { data, error } = await supabase.functions.invoke("manage-groups", {
+                      body: { action: "update-group-settings", groupId: selectedGroup.id, ...credentials, ...groupSettings },
+                    });
+                    if (error) throw error;
+                    if (data?.error) { toast.error("Erro: " + data.error); return; }
+                    toast.success("Configurações salvas!");
+                    setSettingsOpen(false);
+                  } catch (err: any) {
+                    toast.error("Erro: " + (err.message || ""));
+                  } finally {
+                    setActionLoading(null);
+                  }
+                }}
+              >
+                {actionLoading === "update-group-settings" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Check className="w-4 h-4 mr-1" />}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
