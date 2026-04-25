@@ -62,14 +62,21 @@ const normalizeStatusPayload = (payload: any) => {
     payload?.pairingCode,
     payload?.paircode,
     payload?.code,
+    payload?.instance?.pairingCode,
+    payload?.instance?.paircode,
+    payload?.instance?.code,
     payload?.data?.pairingCode,
     payload?.data?.paircode,
     payload?.data?.code,
+    payload?.data?.instance?.pairingCode,
+    payload?.data?.instance?.paircode,
+    payload?.data?.instance?.code,
     payload?.response?.pairingCode,
     payload?.response?.paircode,
     payload?.response?.code,
-    instance?.pairingCode,
-    instance?.paircode,
+    payload?.response?.instance?.pairingCode,
+    payload?.response?.instance?.paircode,
+    payload?.response?.instance?.code,
   )
 
   const rawState = pickFirstString(

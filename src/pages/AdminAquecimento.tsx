@@ -82,6 +82,7 @@ export default function AdminAquecimento() {
   const [qrLoading, setQrLoading] = useState(false);
   const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
   const [pairingPhone, setPairingPhone] = useState("");
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const loadInstances = async () => {
     setLoadingInst(true);
@@ -106,6 +107,7 @@ export default function AdminAquecimento() {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
+    setConnectError(null);
     try {
       const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
         body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
@@ -118,11 +120,13 @@ export default function AdminAquecimento() {
         body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
       });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
       setConnStatus((data as any)?.connectionStatus || "connecting");
       setQrCode((data as any)?.qrCode || null);
       setPairingCode((data as any)?.pairingCode || null);
       if ((data as any)?.connected) setConnStatus("connected");
     } catch (err: any) {
+      setConnectError(err.message || "Erro ao conectar instância");
       toast.error(err.message || "Erro ao conectar instância");
     } finally {
       setQrLoading(false);
@@ -135,6 +139,7 @@ export default function AdminAquecimento() {
     setConnStatus("disconnected");
     setConnectMode("qr");
     setPairingPhone("");
+    setConnectError(null);
     await fetchQr(inst);
   };
 
@@ -150,12 +155,14 @@ export default function AdminAquecimento() {
         setQrCode(null);
         setPairingCode(null);
         toast.success("Instância conectada!");
+      } else if ((data as any)?.pairingCode && (data as any).pairingCode !== pairingCode) {
+        setPairingCode((data as any).pairingCode);
       } else if ((data as any)?.qrCode && (data as any).qrCode !== qrCode) {
         setQrCode((data as any).qrCode);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [connectOpen, connectInst, qrCode]);
+  }, [connectOpen, connectInst, qrCode, pairingCode]);
 
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
@@ -561,6 +568,13 @@ export default function AdminAquecimento() {
               <div className="flex flex-col items-center gap-2">
                 <p className="text-sm text-muted-foreground">Seu código:</p>
                 <p className="text-3xl font-mono font-bold tracking-widest">{pairingCode}</p>
+              </div>
+            ) : connectError ? (
+              <div className="flex flex-col items-center gap-2 text-center max-w-sm">
+                <p className="text-sm text-destructive">{connectError}</p>
+                <p className="text-xs text-muted-foreground">
+                  Tente novamente em instância desconectada ou recrie a instância se ela ficou presa no QR Code.
+                </p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
