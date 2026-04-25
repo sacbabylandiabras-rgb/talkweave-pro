@@ -1335,7 +1335,6 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
 
-        } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
           // Z-API não suporta áudio + botões em uma única chamada.
           // Enviamos áudio primeiro e depois os botões com a mensagem.
@@ -1363,7 +1362,7 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           requestBody = { phone: contact.phone, message: fullMessage || ' ', buttonActions: formattedButtons };
 
-        } else if (templateType === 'imagem_botoes_LEGACY_SENTINEL_NEVER_MATCH' && hasMedia && hasButtons) {
+        } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
           const formattedButtons = campaign.template.buttons.map((btn: any) => {
             const btnType = (btn.type || 'url').toUpperCase();
             const buttonData: any = { label: btn.text || btn.label };
