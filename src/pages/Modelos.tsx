@@ -1573,6 +1573,7 @@ const Modelos = () => {
                       <SelectItem value="audio">audio</SelectItem>
                       <SelectItem value="video">video</SelectItem>
                       <SelectItem value="video_botoes">vídeo com botões</SelectItem>
+                      <SelectItem value="audio_botoes">áudio com botões</SelectItem>
                       <SelectItem value="lista_opcao">lista de opção</SelectItem>
                       <SelectItem value="copia_cola">copia e cola</SelectItem>
                       <SelectItem value="arquivo">arquivo</SelectItem>
