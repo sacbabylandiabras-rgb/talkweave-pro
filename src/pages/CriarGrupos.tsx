@@ -1561,7 +1561,7 @@ function LinksRotativosTab() {
                     </SelectTrigger>
                     <SelectContent>
                       {groups
-                        .filter((g) => !link.groups?.some((lg) => lg.group_id === g.id))
+                        .filter((g) => g.isAdmin && !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
                             {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
