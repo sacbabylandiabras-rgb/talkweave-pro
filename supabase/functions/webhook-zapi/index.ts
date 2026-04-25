@@ -2405,25 +2405,37 @@ serve(async (req) => {
             ].filter(Boolean)),
           );
 
-          let campaignSendQuery = supabase
-            .from("campaign_sends")
-            .select(
+          const buildCampaignSendQuery = (selectFields: string) => {
+            let query = supabase
+              .from("campaign_sends")
+              .select(selectFields)
+              .eq("user_id", userId)
+              .in("phone", candidatePhones);
+
+            if (instanceName) {
+              query = query.eq("instance_name", instanceName);
+            }
+
+            return query.order("created_at", { ascending: false }).limit(5);
+          };
+
+          let hasReadAtColumn = true;
+          let { data: campaignSendRows, error: campaignSendLookupError } =
+            await buildCampaignSendQuery(
               "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
-            )
-            .eq("user_id", userId)
-            .in("phone", candidatePhones);
-
-          if (instanceName) {
-            campaignSendQuery = campaignSendQuery.eq(
-              "instance_name",
-              instanceName,
             );
-          }
 
-          const { data: campaignSendRows, error: campaignSendLookupError } =
-            await campaignSendQuery
-              .order("created_at", { ascending: false })
-              .limit(5);
+          if (
+            campaignSendLookupError?.code === "42703" &&
+            String(campaignSendLookupError.message || "").includes("read_at")
+          ) {
+            hasReadAtColumn = false;
+            const retry = await buildCampaignSendQuery(
+              "id, campaign_id, status, phone, sent_at, delivered_at, instance_name",
+            );
+            campaignSendRows = retry.data;
+            campaignSendLookupError = retry.error;
+          }
 
           if (campaignSendLookupError) {
             console.error(
@@ -2446,7 +2458,7 @@ serve(async (req) => {
               let nextStatus = campaignSend.status as string;
 
               if (campaignSendStatus === "read") {
-                if (!(campaignSend as any).read_at) {
+                if (hasReadAtColumn && !(campaignSend as any).read_at) {
                   updatePayload.read_at = nowIso;
                 }
                 if (!campaignSend.delivered_at) {
