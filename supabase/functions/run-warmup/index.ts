@@ -155,6 +155,20 @@ serve(async (req: Request) => {
 
     const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
+    // Pool de respostas automáticas curtas e naturais — usadas quando a mensagem
+    // do template não tem o separador "||" (ou seja, não há resposta pré-definida).
+    // O alvo (instância em aquecimento) responderá rapidamente à doadora simulando
+    // uma conversa humana.
+    const autoReplies = [
+      "oi, tudo bem?", "opa, e aí?", "tudo certo por aí?", "boa! 🙂",
+      "kkk verdade", "show", "entendi", "perfeito", "valeu!",
+      "concordo", "também acho", "interessante", "que legal",
+      "verdade", "rsrs", "boa", "👍", "massa", "top!",
+      "tranquilo", "demais", "aham", "claro", "com certeza",
+      "boa pergunta", "pois é", "sim, sim", "eita", "uhum",
+      "ah que bom", "que bom saber", "👏", "🙏",
+    ];
+
     // Helper: dado um telefone, retorna a TargetInstance correspondente (se existir)
     const findTargetInstance = (phone: string): TargetInstance | undefined =>
       targetInstances.find((t) => t.phone === phone);
