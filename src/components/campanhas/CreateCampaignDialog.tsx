@@ -88,7 +88,12 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
           .split('\n')
           .map(line => line.trim())
           .filter(line => line)
-          .map(phone => ({ phone, name: "Cliente" }));
+          .map(raw => {
+            // Preserva identificadores @lid (canal WhatsApp Business). Para números normais, mantém apenas dígitos.
+            const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+            return { phone, name: "Cliente" };
+          })
+          .filter(c => c.phone);
       } else if (formData.contact_selection === "import") {
         targetContacts = importedContacts;
       }
