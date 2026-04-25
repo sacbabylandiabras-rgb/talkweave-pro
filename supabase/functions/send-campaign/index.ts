@@ -332,6 +332,19 @@ const getUazapiTargetNumber = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '');
 };
 
+// For Z-API the phone field must contain only digits. When we have an @lid
+// identifier we strip the suffix and send the raw numeric LID — Z-API will
+// treat it as an unknown number and either deliver or return an error, but
+// at least it won't be silently cancelled by our pre-validation.
+const getZapiTargetPhone = (phone: string) => {
+  if (!phone) return phone;
+  if (isGroupDestination(phone)) return phone;
+  if (phone.includes('@lid')) {
+    return phone.split('@')[0].replace(/\D/g, '');
+  }
+  return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
+};
+
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
   const hasRateLimitPayload = isWhatsAppRateLimitError(payload, httpStatus);
   if (!hasRateLimitPayload) return false;
@@ -1353,6 +1366,17 @@ serve(async (req) => {
         let zapiUrl: string = '';
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+
+        // Z-API só aceita dígitos no campo phone. Se o destinatário for um
+        // identificador @lid (sem número real resolvido), removemos o sufixo
+        // e tentamos enviar como número desconhecido em vez de cancelar.
+        if (isLidIdentifier(contact.phone)) {
+          const stripped = getZapiTargetPhone(contact.phone);
+          if (stripped && stripped !== contact.phone) {
+            console.log(`📞 [Z-API] Enviando @lid como número desconhecido: ${contact.phone} → ${stripped}`);
+            contact.phone = stripped;
+          }
+        }
 
         if (specialTpl) {
           const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
