@@ -300,7 +300,9 @@ serve(async (req: Request) => {
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
               // RÉPLICA RECÍPROCA (em BACKGROUND para não bloquear o ciclo principal)
-              if (answer) {
+              // Se não houver "answer" no template, usa uma resposta automática rápida do pool.
+              const replyText = answer || pickRandom(autoReplies);
+              if (replyText) {
                 const tInst = findTargetInstance(target);
                 if (!donorPhone) {
                   console.log(`  ⚠ sem réplica: telefone da doadora ${donor.instance_name} não resolvido`);
@@ -309,8 +311,10 @@ serve(async (req: Request) => {
                 } else {
                   const tInstSafe = tInst;
                   const donorPhoneSafe = donorPhone;
+                  const answerSafe = replyText;
                   const replyTask = (async () => {
-                    const replyDelay = (8 + Math.random() * 12) * 1000;
+                    // Resposta RÁPIDA: 1-3s (simula digitação curta humana)
+                    const replyDelay = (1 + Math.random() * 2) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
                     try {
                       const zapiUrl = `https://api.z-api.io/instances/${tInstSafe.instanceId}/token/${tInstSafe.token}/send-text`;
@@ -320,11 +324,11 @@ serve(async (req: Request) => {
                           "Content-Type": "application/json",
                           "Client-Token": tInstSafe.clientToken,
                         },
-                        body: JSON.stringify({ phone: donorPhoneSafe, message: answer }),
+                        body: JSON.stringify({ phone: donorPhoneSafe, message: answerSafe }),
                       });
                       if (rr.ok) {
                         totalReplies++;
-                        console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answer.slice(0,40)}"`);
+                        console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
                       } else {
                         const t = await rr.text().catch(() => "");
                         console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
