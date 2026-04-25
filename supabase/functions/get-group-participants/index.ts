@@ -30,6 +30,14 @@ const normalizeCommunityId = (value: string | null | undefined) => {
     .replace(/-group$/i, "");
 };
 
+const normalizeLidValue = (value: string | null | undefined) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("@lid")) return raw;
+  const digits = raw.replace(/\D/g, "");
+  return digits ? `${digits}@lid` : raw;
+};
+
 const uniqueStrings = (values: Array<string | null | undefined>) => {
   return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
 };
