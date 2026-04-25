@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw,
+  Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw, Repeat,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3, Workflow, Smartphone
 } from "lucide-react";
@@ -1457,7 +1457,7 @@ function LinksRotativosTab() {
       ) : links.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            <Link2 className="w-10 h-10 mx-auto mb-3 opacity-50" />
+            <Repeat className="w-10 h-10 mx-auto mb-3 opacity-50" />
             <p>Nenhum link rotativo criado ainda</p>
           </CardContent>
         </Card>
