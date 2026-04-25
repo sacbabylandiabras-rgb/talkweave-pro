@@ -1588,7 +1588,7 @@ const Modelos = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
+                    ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
                   </p>
                 </div>
 
@@ -2219,7 +2219,7 @@ const Modelos = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
+                ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
               </p>
             </div>
 
