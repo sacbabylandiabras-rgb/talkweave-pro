@@ -1402,6 +1402,31 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document`;
           requestBody = { phone: contact.phone, document: campaign.template.media_url, fileName: campaign.template.file_name || 'documento', extension: campaign.template.file_type?.split('/').pop() || 'pdf', caption: fullMessage };
 
+        } else if (templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção') {
+          const rawItems = Array.isArray(campaign.template.list_items)
+            ? campaign.template.list_items
+            : (Array.isArray((campaign.template as any).listItems) ? (campaign.template as any).listItems : []);
+          const cleanItems = rawItems
+            .filter((it: any) => it && String(it.title || '').trim() !== '')
+            .slice(0, 10)
+            .map((it: any, idx: number) => ({
+              title: String(it.title).trim(),
+              description: String(it.description || '').trim(),
+              rowId: String(it.id || `opt_${idx + 1}`),
+            }));
+          if (cleanItems.length === 0) throw new Error('Template tipo "lista" requer pelo menos um item');
+
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-option-list`;
+          requestBody = {
+            phone: contact.phone,
+            message: fullMessage || ' ',
+            optionList: {
+              title: campaign.template.header || '',
+              buttonLabel: 'Ver opções',
+              options: cleanItems,
+            },
+          };
+
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const formattedButtons = campaign.template.buttons.map((btn: any) => {
