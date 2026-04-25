@@ -520,8 +520,10 @@ const ExtrairComunidade = () => {
           .eq("id", session.user.id)
           .single();
         const profile = data as any;
-        if (profile?.uazapi_url) setApiUrl(profile.uazapi_url);
-        if (profile?.uazapi_token) setApiToken(profile.uazapi_token);
+        const firstUrl = String(profile?.uazapi_url || '').split('|')[0]?.trim();
+        const firstToken = String(profile?.uazapi_token || '').split('|')[0]?.trim();
+        if (firstUrl) setApiUrl(firstUrl);
+        if (firstToken) setApiToken(firstToken);
 
         // Auto-provision an isolated UAZAPI extractor instance for new users
         if (!profile?.uazapi_url || !profile?.uazapi_token) {
