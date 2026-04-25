@@ -106,7 +106,8 @@ function GerenciarGrupoTab() {
   const [creating, setCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const adminGroups = useMemo(() => groups.filter((g) => g.isAdmin), [groups]);
+  const selectedGroup = adminGroups.find((g) => g.id === selectedGroupId);
 
   const getInstanceCredentials = (group: any) => {
     // Priority: manual override > group's sourceInstanceId > fallback
@@ -373,14 +374,19 @@ function GerenciarGrupoTab() {
           <div className="flex items-center gap-2">
             <Select value={selectedGroupId} onValueChange={(id) => {
               setSelectedGroupId(id);
-              const g = groups.find((gr) => gr.id === id);
+              const g = adminGroups.find((gr) => gr.id === id);
               if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
             }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
-                {groups.map((g) => (
+                {adminGroups.length === 0 && (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                    Nenhum grupo onde você é administrador
+                  </div>
+                )}
+                {adminGroups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
                     {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                   </SelectItem>
@@ -1555,7 +1561,7 @@ function LinksRotativosTab() {
                     </SelectTrigger>
                     <SelectContent>
                       {groups
-                        .filter((g) => !link.groups?.some((lg) => lg.group_id === g.id))
+                        .filter((g) => g.isAdmin && !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
                             {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
@@ -1801,7 +1807,8 @@ function ParticipantesTab() {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const adminGroups = useMemo(() => groups.filter((g) => g.isAdmin), [groups]);
+  const selectedGroup = adminGroups.find((g) => g.id === selectedGroupId);
 
   const fetchParticipants = async (group: any) => {
     setLoadingParticipants(true);
@@ -1886,7 +1893,7 @@ function ParticipantesTab() {
           <div className="flex items-center gap-2">
             <Select value={selectedGroupId} onValueChange={(id) => {
               setSelectedGroupId(id);
-              const g = groups.find((gr) => gr.id === id);
+              const g = adminGroups.find((gr) => gr.id === id);
               if (g) {
                 fetchMemberCount(id, g.sourceInstanceId, g.participantes);
                 fetchParticipants(g);
@@ -1896,7 +1903,12 @@ function ParticipantesTab() {
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
-                {groups.map((g) => (
+                {adminGroups.length === 0 && (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                    Nenhum grupo onde você é administrador
+                  </div>
+                )}
+                {adminGroups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
                     {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
                   </SelectItem>
