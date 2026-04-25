@@ -569,6 +569,13 @@ export default function AdminAquecimento() {
                 <p className="text-sm text-muted-foreground">Seu código:</p>
                 <p className="text-3xl font-mono font-bold tracking-widest">{pairingCode}</p>
               </div>
+            ) : connectError ? (
+              <div className="flex flex-col items-center gap-2 text-center max-w-sm">
+                <p className="text-sm text-destructive">{connectError}</p>
+                <p className="text-xs text-muted-foreground">
+                  Tente novamente em instância desconectada ou recrie a instância se ela ficou presa no QR Code.
+                </p>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">
                 {connectMode === "qr" ? "Aguardando QR Code..." : "Informe o telefone para gerar o código"}
