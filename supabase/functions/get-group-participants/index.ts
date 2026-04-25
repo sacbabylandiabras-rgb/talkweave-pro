@@ -38,6 +38,19 @@ const normalizeLidValue = (value: string | null | undefined) => {
   return digits ? `${digits}@lid` : raw;
 };
 
+const normalizeRealPhoneValue = (value: any) => {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  const raw = String(value || "").trim();
+  if (!raw || raw.includes("@lid") || raw.includes("@g.us")) return "";
+  const withoutDomain = raw
+    .replace(/@s\.whatsapp\.net$/i, "")
+    .replace(/@c\.us$/i, "")
+    .replace(/@broadcast$/i, "")
+    .split(":")[0];
+  const digits = withoutDomain.replace(/\D/g, "");
+  return digits.length >= 8 ? digits : "";
+};
+
 const uniqueStrings = (values: Array<string | null | undefined>) => {
   return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
 };
@@ -447,7 +460,7 @@ const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: s
       const response = await fetch(`${apiUrl}/group/info`, {
         method: "POST",
         headers: { "Content-Type": "application/json", token: apiToken },
-        body: JSON.stringify({ groupjid: candidate, getInviteLink: false }),
+        body: JSON.stringify({ groupjid: candidate, getInviteLink: false, force: true }),
       });
       const text = await response.text();
       let data: any = {};
@@ -490,9 +503,7 @@ Deno.serve(async (req) => {
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
         const fallbackRealPhoneCount = fallbackList.filter((p) => {
-          const raw = String(p?.phone || p?.phoneNumber || p?.number || p?.user || p?.id || p?.participant || "").trim();
-          const digits = raw.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
-          return digits.length >= 8 && !raw.includes("@lid");
+          return Boolean(normalizeRealPhoneValue(p?.PhoneNumber || p?.phoneNumber || p?.phone_number || p?.number || p?.Number || p?.phone || p?.Phone || p?.user || p?.User || p?.JID || p?.jid || p?.id || p?.participant));
         }).length;
         const rawParticipants = !isCommunity && fallbackRealPhoneCount > 0 ? fallbackList : (apiParticipants.length > 0 ? apiParticipants : fallbackList);
 
