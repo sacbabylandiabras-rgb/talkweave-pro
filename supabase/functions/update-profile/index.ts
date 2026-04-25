@@ -134,27 +134,86 @@ Deno.serve(async (req) => {
     const finalToken = token || credentials.token;
     const finalClientToken = clientToken || credentials.clientToken;
 
-    const endpoint = type === 'name' ? 'profile-name' : 'profile-picture';
-    const zapiUrl = `https://api.z-api.io/instances/${finalInstanceId}/token/${finalToken}/${endpoint}`;
-    console.log(`📱 Updating profile ${type} via Z-API: ${zapiUrl}`);
+    const baseZapi = `https://api.z-api.io/instances/${finalInstanceId}/token/${finalToken}`;
+    const zapiHeaders = {
+      'Content-Type': 'application/json',
+      'Client-Token': finalClientToken,
+    };
 
-    const response = await fetch(zapiUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': finalClientToken,
-      },
-      body: JSON.stringify({ value }),
-    });
-    const data = await response.json();
-    console.log(`✅ Z-API response ${response.status}`, data);
-    if (!response.ok) {
-      const errorMsg = data.message || data.error || `Z-API error: ${response.status}`;
-      throw new Error(errorMsg);
+    // Pre-flight: verificar se a instância está conectada
+    try {
+      const statusResp = await fetch(`${baseZapi}/status`, { headers: zapiHeaders });
+      const statusData = await statusResp.json().catch(() => ({}));
+      console.log(`🔎 Z-API status:`, statusData);
+      if (statusResp.ok && statusData?.connected === false) {
+        throw new Error('Instância Z-API desconectada. Conecte o WhatsApp antes de atualizar o perfil.');
+      }
+    } catch (preErr) {
+      // Se foi a checagem de conectado, propaga; se foi falha de rede no /status, segue tentando
+      if (preErr instanceof Error && preErr.message.includes('desconectada')) throw preErr;
+      console.warn('⚠️ Falha ao checar status Z-API (seguindo mesmo assim):', preErr);
     }
-    return new Response(JSON.stringify({ success: true, data }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+
+    if (type === 'name') {
+      const url = `${baseZapi}/profile-name`;
+      console.log(`📱 Updating profile name via Z-API: ${url}`);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: zapiHeaders,
+        body: JSON.stringify({ value: String(value) }),
+      });
+      const data = await response.json().catch(() => ({}));
+      console.log(`✅ Z-API name response ${response.status}`, data);
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `Z-API error: ${response.status}`);
+      }
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // type === 'picture' — tenta URL primeiro, se falhar baixa e envia em base64
+    const url = `${baseZapi}/profile-picture`;
+    const rawValue = String(value).trim();
+    const isUrl = /^https?:\/\//i.test(rawValue);
+
+    const attempts: string[] = [];
+    if (isUrl) {
+      attempts.push(rawValue);
+      try {
+        const b64 = await resolveImagePayload(rawValue);
+        attempts.push(b64);
+        attempts.push(`data:image/jpeg;base64,${b64}`);
+      } catch (e) {
+        console.warn('⚠️ Não foi possível baixar imagem para fallback base64:', e);
+      }
+    } else {
+      const b64 = await resolveImagePayload(rawValue);
+      attempts.push(b64);
+      attempts.push(`data:image/jpeg;base64,${b64}`);
+    }
+
+    let lastError = 'Erro desconhecido ao atualizar foto via Z-API';
+    let successData: unknown = null;
+    for (const attempt of attempts) {
+      console.log(`📱 Updating profile picture via Z-API (${attempt.length > 100 ? 'base64' : 'url'}): ${url}`);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: zapiHeaders,
+        body: JSON.stringify({ value: attempt }),
+      });
+      const data = await response.json().catch(() => ({}));
+      console.log(`✅ Z-API picture response ${response.status}`, data);
+      if (response.ok && !data?.error) {
+        successData = data;
+        return new Response(JSON.stringify({ success: true, data }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      lastError = data?.message || data?.error || `Z-API error: ${response.status}`;
+    }
+
+    throw new Error(lastError);
   } catch (error) {
     console.error('❌ Error updating profile:', error);
     return new Response(
