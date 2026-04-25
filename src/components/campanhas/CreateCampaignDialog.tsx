@@ -88,7 +88,12 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
           .split('\n')
           .map(line => line.trim())
           .filter(line => line)
-          .map(phone => ({ phone, name: "Cliente" }));
+          .map(raw => {
+            // Preserva identificadores @lid (canal WhatsApp Business). Para números normais, mantém apenas dígitos.
+            const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+            return { phone, name: "Cliente" };
+          })
+          .filter(c => c.phone);
       } else if (formData.contact_selection === "import") {
         targetContacts = importedContacts;
       }
@@ -164,10 +169,14 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          const parsedContacts = results.data.map((row: any) => ({
-            phone: row.telefone || row.phone || row.numero || row.Telefone || row.Phone || row.Numero || "",
-            name: row.nome || row.name || row.Name || row.Nome || "Cliente",
-          })).filter(c => c.phone);
+          const parsedContacts = results.data.map((row: any) => {
+            const raw = String(row.telefone || row.phone || row.numero || row.Telefone || row.Phone || row.Numero || "").trim();
+            const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+            return {
+              phone,
+              name: row.nome || row.name || row.Name || row.Nome || "Cliente",
+            };
+          }).filter(c => c.phone);
 
           setImportedContacts(parsedContacts);
           toast({
@@ -494,11 +503,11 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                   id="specific_contacts"
                   value={formData.specific_contacts}
                   onChange={(e) => setFormData(prev => ({ ...prev, specific_contacts: e.target.value }))}
-                  placeholder="Digite os números (um por linha)&#10;5511999999999&#10;5511888888888"
+                  placeholder="Digite os números (um por linha)&#10;5511999999999&#10;123456789@lid"
                   rows={5}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Digite um número por linha no formato: 5511999999999
+                  Um número por linha. Aceita formato normal (5511999999999) ou identificador @lid (123456789@lid). Envio via Z-API.
                 </p>
               </div>
             )}
