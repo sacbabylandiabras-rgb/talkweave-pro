@@ -1875,6 +1875,37 @@ function ParticipantesTab() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
+            <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+        {adminGroups.length === 0 ? (
+          <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
+            Nenhum grupo onde você é administrador
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {adminGroups.map((g) => (
+              <Button
+                key={g.id}
+                variant={selectedGroupId === g.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSelectedGroupId(g.id);
+                  fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
+                  fetchParticipants(g);
+                }}
+                className="h-8"
+              >
+                {g.nome} ({getMemberCount(g.id, g.membros) || "—"})
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -1884,38 +1915,6 @@ function ParticipantesTab() {
           <CardDescription>Adicione, remova ou promova membros dos seus grupos</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
-                <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
-            {adminGroups.length === 0 ? (
-              <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
-                Nenhum grupo onde você é administrador
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {adminGroups.map((g) => (
-                  <Button
-                    key={g.id}
-                    variant={selectedGroupId === g.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setSelectedGroupId(g.id);
-                      fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
-                      fetchParticipants(g);
-                    }}
-                    className="h-8"
-                  >
-                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"})
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {selectedGroup && (
             <>
               {/* Add participant */}
