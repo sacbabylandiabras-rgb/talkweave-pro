@@ -1352,9 +1352,9 @@ serve(async (req) => {
 
         let zapiUrl: string = '';
         let requestBody: any = {};
+        const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
         if (specialTpl) {
-          const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
           const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
           zapiUrl = url;
           requestBody = specialBody;
