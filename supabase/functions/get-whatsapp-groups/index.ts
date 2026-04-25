@@ -20,6 +20,61 @@ const isUsableGroupName = (value: unknown) => {
   return true;
 };
 
+const hasTruthyValue = (value: any): boolean => {
+  if (value === true) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return Boolean(normalized) && !['false', '0', 'null', 'undefined', 'no', 'não', 'nao'].includes(normalized);
+  }
+  if (typeof value === 'number') return value > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === 'object') return Object.keys(value).length > 0;
+  return false;
+};
+
+const hasCommunityMetadata = (value: any, seen = new WeakSet<object>()): boolean => {
+  if (!value || typeof value !== 'object') return false;
+  if (seen.has(value)) return false;
+  seen.add(value);
+
+  for (const [key, entry] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase();
+    const isCommunityKey =
+      normalizedKey.includes('community') ||
+      normalizedKey.includes('parentgroup') ||
+      normalizedKey.includes('linkedparent') ||
+      normalizedKey.includes('parentjid') ||
+      normalizedKey.includes('defaultsubgroup');
+
+    if (isCommunityKey && hasTruthyValue(entry)) return true;
+    if (entry && typeof entry === 'object' && hasCommunityMetadata(entry, seen)) return true;
+  }
+
+  return false;
+};
+
+const extractParticipantsFromGroup = (group: any) => {
+  const candidates = [
+    group?.participants,
+    group?.Participants,
+    group?.participantes,
+    group?.members,
+    group?.Members,
+    group?.groupParticipants,
+    group?.communityParticipants,
+    group?.group?.participants,
+    group?.group?.Participants,
+    group?.groupMetadata?.participants,
+    group?.data?.participants,
+    group?.data?.Participants,
+    group?.data?.members,
+    group?.info?.participants,
+    group?.result?.participants,
+  ];
+
+  return candidates.find((candidate) => Array.isArray(candidate)) || [];
+};
+
 const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
   const apiToken = instance.evolution_api_key || '';
