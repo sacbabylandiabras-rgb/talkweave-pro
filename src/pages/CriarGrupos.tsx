@@ -564,29 +564,7 @@ function GerenciarGrupoTab() {
                       variant="outline"
                       size="sm"
                       disabled={actionLoading === "redefine-invitation-link"}
-                      onClick={async () => {
-                        if (!confirm("Renovar o link irá invalidar o link atual. Continuar?")) return;
-                        setActionLoading("redefine-invitation-link");
-                        try {
-                          const credentials = getInstanceCredentials(selectedGroup);
-                          const { data, error } = await supabase.functions.invoke("manage-groups", {
-                            body: { action: "redefine-invitation-link", groupId: selectedGroup.id, ...credentials },
-                          });
-                          if (error) throw error;
-                          if (data?.error) { toast.error("Erro: " + data.error); return; }
-                          const link = data?.inviteLink || data?.invitationLink || data?.link || "";
-                          if (link) {
-                            await navigator.clipboard.writeText(link);
-                            toast.success("Link renovado e copiado!");
-                          } else {
-                            toast.success("Link renovado!");
-                          }
-                        } catch (err: any) {
-                          toast.error("Erro: " + (err.message || "Falha ao renovar link"));
-                        } finally {
-                          setActionLoading(null);
-                        }
-                      }}
+                      onClick={() => setRenewLinkConfirmOpen(true)}
                     >
                       {actionLoading === "redefine-invitation-link" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
                       Renovar Link
