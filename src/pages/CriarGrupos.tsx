@@ -33,6 +33,7 @@ import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
+import ComunidadesTab from "@/components/grupos/ComunidadesTab";
 
 const CriarGrupos = () => {
   return (
@@ -46,6 +47,7 @@ const CriarGrupos = () => {
         <GerenciarGrupoTab />
         <LinksRotativosTab />
         <ParticipantesTab />
+        <ComunidadesTab />
       </div>
     </div>
   );
