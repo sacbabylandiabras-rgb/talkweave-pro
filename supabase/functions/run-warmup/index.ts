@@ -206,15 +206,30 @@ serve(async (req: Request) => {
         // Tenta resolver o telefone da própria doadora UAZAPI para que a resposta da
         // instância alvo seja direcionada de volta a ela.
         let donorPhone = "";
-        try {
-          const r = await fetch(`${apiUrl}/status`, { headers: { token: apiToken } });
-          if (r.ok) {
+        // Tenta múltiplos endpoints da UAZAPI para descobrir o número conectado
+        const donorEndpoints = ["/status", "/instance/me", "/instance/info", "/instance/status"];
+        for (const ep of donorEndpoints) {
+          if (donorPhone) break;
+          try {
+            const r = await fetch(`${apiUrl}${ep}`, { headers: { token: apiToken } });
+            if (!r.ok) continue;
             const j: any = await r.json().catch(() => ({}));
-            const cand = j?.instance?.owner || j?.owner || j?.phone || j?.id || j?.wid;
-            const digits = String(cand || "").replace(/\D/g, "");
-            if (digits.length >= 8) donorPhone = digits;
-          }
-        } catch (_) { /* ignore */ }
+            const candidates = [
+              j?.instance?.owner, j?.instance?.wid, j?.instance?.phone,
+              j?.owner, j?.phone, j?.id, j?.wid,
+              j?.me?.user, j?.me?.id, j?.user?.id, j?.user?.phone,
+              j?.connected_phone, j?.connectedPhone, j?.number,
+            ];
+            for (const c of candidates) {
+              const digits = String(c || "").replace(/\D/g, "");
+              if (digits.length >= 8) { donorPhone = digits; break; }
+            }
+            if (donorPhone) console.log(`📞 doadora ${donor.instance_name} resolvida em ${ep}: ${donorPhone}`);
+          } catch (_) { /* try next */ }
+        }
+        if (!donorPhone) {
+          console.log(`⚠️ doadora ${donor.instance_name}: telefone NÃO resolvido — sem réplicas recíprocas`);
+        }
 
         for (let i = 0; i < dailyLimit; i++) {
           // Round-robin: garante distribuição equilibrada entre todos os alvos
@@ -233,25 +248,21 @@ serve(async (req: Request) => {
             });
             if (res.ok) {
               totalSent++;
-              const sentAt = Date.now();
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${dailyLimit}): "${question.slice(0,40)}"`);
 
-              // Se houver resposta recíproca configurada e o alvo for uma instância Z-API selecionada,
-              // AGUARDA a resposta REAL do alvo (polling na inbox da doadora) antes de
-              // disparar a próxima mensagem. Quando o alvo responder, a instância alvo
-              // (Z-API) envia o "answer" de volta à doadora simulando continuidade da conversa.
-              if (answer && donorPhone) {
+              // RÉPLICA RECÍPROCA: a instância alvo (Z-API) envia o "answer" de volta à doadora.
+              // Simula leitura humana com delay de 8-20s antes de responder.
+              if (answer) {
                 const tInst = findTargetInstance(target);
-                if (tInst) {
-                  // Espera a resposta real do alvo (até 90s)
-                  const replied = await waitForReply(apiUrl, apiToken, target, sentAt, 90_000, 4_000);
-                  if (!replied) {
-                    console.log(`  ⏱ ${donor.instance_name} ↛ sem resposta do alvo ${target} em 90s, seguindo`);
-                  } else {
-                    console.log(`  ✓ resposta detectada do alvo ${target}, enviando réplica`);
-                  }
-                  // Pequeno "tempo de leitura" antes de a alvo replicar de volta (1-3s)
-                  await new Promise((r) => setTimeout(r, 1000 + Math.random() * 2000));
+                if (!donorPhone) {
+                  console.log(`  ⚠ sem réplica: telefone da doadora ${donor.instance_name} não resolvido`);
+                } else if (!tInst) {
+                  console.log(`  ⚠ sem réplica: alvo ${target} não é instância Z-API selecionada (apenas número avulso)`);
+                } else {
+                  // Tempo de "leitura/digitação" antes de o alvo responder
+                  const replyDelay = (8 + Math.random() * 12) * 1000;
+                  console.log(`  ⏳ ${tInst.name} vai responder em ${Math.round(replyDelay/1000)}s`);
+                  await new Promise((r) => setTimeout(r, replyDelay));
                   try {
                     const zapiUrl = `https://api.z-api.io/instances/${tInst.instanceId}/token/${tInst.token}/send-text`;
                     const rr = await fetch(zapiUrl, {
@@ -267,9 +278,11 @@ serve(async (req: Request) => {
                       console.log(`  ↩ ${tInst.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
                     } else {
                       const t = await rr.text().catch(() => "");
+                      console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
                       errors.push(`reply ${tInst.name} → ${donorPhone}: HTTP ${rr.status} ${t.slice(0,120)}`);
                     }
                   } catch (e: any) {
+                    console.log(`  ✗ réplica erro: ${e?.message}`);
                     errors.push(`reply ${tInst.name} → ${donorPhone}: ${e?.message || "erro"}`);
                   }
                 }
