@@ -40,6 +40,7 @@ serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const targetPhones: string[] = Array.isArray(body?.targetPhones) ? body.targetPhones : [];
+    const instanceIds: string[] = Array.isArray(body?.instanceIds) ? body.instanceIds : [];
     let messages: string[] = Array.isArray(body?.messages) ? body.messages.filter((m: any) => typeof m === "string" && m.trim()) : [];
     const minDelay = Math.max(2, Number(body?.minDelay) || 10);
     const maxDelay = Math.max(minDelay, Number(body?.maxDelay) || 30);
@@ -68,17 +69,42 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Nenhuma instância UAZAPI doadora cadastrada em /admin/aquecimento" }, 400);
     }
 
-    // Normalizar números alvo
+    // Resolver telefones das instâncias Z-API selecionadas pelo usuário
+    const resolvedFromInstances: string[] = [];
+    if (instanceIds.length > 0) {
+      const { data: userInstances } = await admin
+        .from("zapi_instances")
+        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider")
+        .in("id", instanceIds)
+        .eq("user_id", user.id);
+
+      for (const inst of userInstances || []) {
+        try {
+          const provider = String(inst.api_provider || "zapi").toLowerCase();
+          if (provider !== "zapi") continue;
+          const url = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}/me`;
+          const r = await fetch(url, {
+            headers: { "Client-Token": String(inst.zapi_client_token || "") },
+          });
+          if (!r.ok) continue;
+          const j = await r.json().catch(() => ({}));
+          const phone = String(j?.phone || j?.connected || j?.id || "").replace(/\D/g, "");
+          if (phone.length >= 8) resolvedFromInstances.push(phone);
+        } catch (_) { /* ignore */ }
+      }
+    }
+
+    // Normalizar números alvo (mescla manuais + telefones das instâncias)
     const cleanedTargets = Array.from(
       new Set(
-        targetPhones
+        [...targetPhones, ...resolvedFromInstances]
           .map((p) => String(p || "").replace(/\D/g, ""))
           .filter((p) => p.length >= 8),
       ),
     );
 
     if (cleanedTargets.length === 0) {
-      return json({ success: false, error: "Nenhum número alvo informado em /aquecimento" }, 400);
+      return json({ success: false, error: "Selecione ao menos uma instância (ou informe contatos extras)" }, 400);
     }
 
     const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
