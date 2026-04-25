@@ -849,7 +849,7 @@ Deno.serve(async (req) => {
 
     if (lidParticipants.length > 0) {
       try {
-        const { data: lidMappings } = await adminClient
+        const { data: lidMappings } = isCommunity ? { data: [] } : await adminClient
           .from("message_logs")
           .select("phone, message_received")
           .eq("user_id", credentials.userId)
