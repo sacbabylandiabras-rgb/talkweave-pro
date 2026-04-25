@@ -1336,6 +1336,34 @@ serve(async (req) => {
           requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
+        } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
+          // Z-API não suporta áudio + botões em uma única chamada.
+          // Enviamos áudio primeiro e depois os botões com a mensagem.
+          const audioUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
+          const audioResponse = await fetch(audioUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+            body: JSON.stringify({ phone: contact.phone, audio: campaign.template.media_url, waveform: true }),
+          });
+          if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
+
+          await sleep(Math.max(delayMs / 2, 1000));
+
+          const formattedButtons = campaign.template.buttons.map((btn: any) => {
+            const btnType = (btn.type || 'url').toUpperCase();
+            const buttonData: any = { label: btn.text || btn.label };
+            if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
+            else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
+            else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
+            else { buttonData.type = 'URL'; buttonData.url = btn.url || btn.value || 'https://z-api.io'; }
+            if (btn.id) buttonData.id = btn.id;
+            return buttonData;
+          });
+
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          requestBody = { phone: contact.phone, message: fullMessage || ' ', buttonActions: formattedButtons };
+
+        } else if (templateType === 'imagem_botoes_LEGACY_SENTINEL_NEVER_MATCH' && hasMedia && hasButtons) {
           const formattedButtons = campaign.template.buttons.map((btn: any) => {
             const btnType = (btn.type || 'url').toUpperCase();
             const buttonData: any = { label: btn.text || btn.label };
