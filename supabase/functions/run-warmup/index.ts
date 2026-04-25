@@ -98,7 +98,7 @@ serve(async (req: Request) => {
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
-          const endpoints = ["/device", "/me", "/profile", "/status"];
+          const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
           let phone = "";
           for (const ep of endpoints) {
             try {
@@ -107,10 +107,19 @@ serve(async (req: Request) => {
               const j: any = await r.json().catch(() => ({}));
               const cand =
                 j?.phone || j?.connectedPhone || j?.connected_phone ||
-                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone;
+                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone ||
+                j?.smartphoneConnected;
               const digits = String(cand || "").replace(/\D/g, "");
               if (digits.length >= 8) { phone = digits; break; }
             } catch (_) { /* try next */ }
+          }
+          // Fallback: se o instance_name for um telefone (DDI+DDD+número), usa-o
+          if (!phone) {
+            const nameDigits = String(inst.instance_name || "").replace(/\D/g, "");
+            if (nameDigits.length >= 10) {
+              phone = nameDigits;
+              console.log(`↪ ${inst.instance_name}: telefone resolvido via instance_name: ${phone}`);
+            }
           }
           if (phone) {
             resolvedFromInstances.push(phone);
@@ -123,7 +132,7 @@ serve(async (req: Request) => {
             });
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
-            console.log(`✗ ${inst.instance_name}: telefone não resolvido`);
+            console.log(`✗ ${inst.instance_name} (${inst.zapi_instance_id}): telefone NÃO resolvido — alvo será ignorado neste ciclo`);
           }
         } catch (e) {
           console.log(`erro ao resolver ${inst.instance_name}:`, (e as any)?.message);
