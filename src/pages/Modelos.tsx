@@ -762,7 +762,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes";
 const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes";
-const isAudioTemplateType = (type?: string) => type === "audio";
+const isAudioTemplateType = (type?: string) => type === "audio" || type === "audio_botoes";
 const isDocumentTemplateType = (type?: string) => type === "arquivo" || type === "documento";
 
 const getPreviewFileLabel = (template: any) => {
