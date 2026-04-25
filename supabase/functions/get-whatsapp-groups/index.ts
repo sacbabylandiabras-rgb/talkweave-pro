@@ -290,7 +290,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   return detailedGroups.filter(Boolean);
 };
 
-const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> => {
+const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: string; lid: string }> => {
   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
   // Endpoint correto da Z-API é /device — retorna { phone, lid, name, ... }.
   // /me não existe ou devolve formato inconsistente, gerando owner phone corrompido.
@@ -304,6 +304,7 @@ const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> =
       if (!res.ok) continue;
       const data = await res.json().catch(() => null);
       if (!data) continue;
+      const lidRaw = String(data?.lid || '').split('@')[0].replace(/\D/g, '');
       const candidates = [
         data?.phone,
         data?.phoneNumber,
@@ -317,14 +318,15 @@ const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> =
         const normalized = normalizePhoneFromJid(typeof c === 'string' ? c : '');
         // Telefones reais têm entre 10 e 15 dígitos. Evita strings agregadas.
         if (normalized && normalized.length >= 10 && normalized.length <= 15) {
-          return normalized;
+          return { phone: normalized, lid: lidRaw };
         }
       }
+      if (lidRaw) return { phone: '', lid: lidRaw };
     } catch (error) {
       console.error(`⚠️ Z-API ${ep} failed for ${instance.instance_name}:`, error);
     }
   }
-  return '';
+  return { phone: '', lid: '' };
 };
 
 const normalizeZapiGroupId = (value: unknown): string => {
