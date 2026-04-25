@@ -20,6 +20,61 @@ const isUsableGroupName = (value: unknown) => {
   return true;
 };
 
+const hasTruthyValue = (value: any): boolean => {
+  if (value === true) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return Boolean(normalized) && !['false', '0', 'null', 'undefined', 'no', 'não', 'nao'].includes(normalized);
+  }
+  if (typeof value === 'number') return value > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === 'object') return Object.keys(value).length > 0;
+  return false;
+};
+
+const hasCommunityMetadata = (value: any, seen = new WeakSet<object>()): boolean => {
+  if (!value || typeof value !== 'object') return false;
+  if (seen.has(value)) return false;
+  seen.add(value);
+
+  for (const [key, entry] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase();
+    const isCommunityKey =
+      normalizedKey.includes('community') ||
+      normalizedKey.includes('parentgroup') ||
+      normalizedKey.includes('linkedparent') ||
+      normalizedKey.includes('parentjid') ||
+      normalizedKey.includes('defaultsubgroup');
+
+    if (isCommunityKey && hasTruthyValue(entry)) return true;
+    if (entry && typeof entry === 'object' && hasCommunityMetadata(entry, seen)) return true;
+  }
+
+  return false;
+};
+
+const extractParticipantsFromGroup = (group: any) => {
+  const candidates = [
+    group?.participants,
+    group?.Participants,
+    group?.participantes,
+    group?.members,
+    group?.Members,
+    group?.groupParticipants,
+    group?.communityParticipants,
+    group?.group?.participants,
+    group?.group?.Participants,
+    group?.groupMetadata?.participants,
+    group?.data?.participants,
+    group?.data?.Participants,
+    group?.data?.members,
+    group?.info?.participants,
+    group?.result?.participants,
+  ];
+
+  return candidates.find((candidate) => Array.isArray(candidate)) || [];
+};
+
 const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
   const apiToken = instance.evolution_api_key || '';
@@ -51,7 +106,6 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
     if (!String(groupId).includes('@g.us')) return null;
 
-    let detail: any = null;
     const fallbackName =
       group?.subject ||
       group?.name ||
@@ -64,23 +118,23 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       group?.wa_contactName ||
       group?.pushName ||
       '';
-    if (!isUsableGroupName(fallbackName)) {
-      try {
-        const infoResponse = await fetch(`${apiUrl}/group/info`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            token: apiToken,
-          },
-          body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
-        });
-        detail = await infoResponse.json().catch(() => null);
-        if (!infoResponse.ok) {
-          console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
-        }
-      } catch (error) {
-        console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
+
+    let detail: any = null;
+    try {
+      const infoResponse = await fetch(`${apiUrl}/group/info`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          token: apiToken,
+        },
+        body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
+      });
+      detail = await infoResponse.json().catch(() => null);
+      if (!infoResponse.ok) {
+        console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
       }
+    } catch (error) {
+      console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
     }
 
     const resolvedName =
@@ -117,8 +171,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       phone: groupId,
       name: resolvedName,
       memberCount:
-        detail?.participants?.length ||
-        detail?.group?.participants?.length ||
+        extractParticipantsFromGroup({ ...group, ...detail }).length ||
         detail?.ParticipantCount ||
         (Array.isArray(detail?.Participants) ? detail.Participants.length : 0) ||
         group?.ParticipantCount ||
@@ -232,20 +285,9 @@ Deno.serve(async (req) => {
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
-          const participants = group.participants || group.Participants || group.group?.participants || group.groupMetadata?.participants || group.data?.participants || [];
-          // Heurística ampla: flags explícitas + detecção via participantes só com @lid
-          const explicitCommunity = !!(
-            group.isCommunity ||
-            group.isCommunityAnnounce ||
-            group.isGroupAnnouncement ||
-            group.isParentGroup ||
-            group.parentGroup ||
-            group.community ||
-            group.communityId ||
-            group.parentGroupId ||
-            group.linkedParent ||
-            group.isCommunitySubGroup
-          );
+          const participants = extractParticipantsFromGroup(group);
+          // Uazapi pode devolver as flags de comunidade em qualquer nível do payload.
+          const explicitCommunity = hasCommunityMetadata(group);
           let lidOnlyCommunity = false;
           if (!explicitCommunity && Array.isArray(participants) && participants.length >= 3) {
             const lidCount = participants.filter((p: any) => {

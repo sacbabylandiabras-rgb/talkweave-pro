@@ -695,7 +695,7 @@ const ApanhadorGrupos = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-foreground text-base truncate">{grupo.nome}</h3>
                         {grupo.isAdmin && <Badge variant="default" className="text-xs">Admin</Badge>}
-                        {grupo.isCommunity && <Badge variant="outline" className="text-xs border-blue-500 text-blue-500">Comunidade</Badge>}
+                        {grupo.isCommunity && <Badge variant="outline" className="text-xs border-primary text-primary">Comunidade</Badge>}
                         {isWelcomeActive && (
                           <Badge variant="secondary" className="text-xs gap-1">
                             {currentType === 'template' ? <FileText className="h-3 w-3" /> :
