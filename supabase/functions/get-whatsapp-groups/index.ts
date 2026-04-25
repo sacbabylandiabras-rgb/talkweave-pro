@@ -389,7 +389,7 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
-      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone) || participants.length === 0,
+      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone, ownerLid) || participants.length === 0,
       memberCount: participants.length || detail?.participantCount || detail?.ParticipantCount || group?.participantCount || group?.ParticipantCount || group?.memberCount || group?.size || 0,
       profilePicture: detail?.profileThumbnail || detail?.groupPhoto || detail?.imgUrl || detail?.imageUrl || group?.imgUrl || group?.profilePicture || group?.image || group?.photo || null,
       __sourceInstanceName: instance.instance_name || null,
