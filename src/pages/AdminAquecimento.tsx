@@ -139,6 +139,7 @@ export default function AdminAquecimento() {
     setConnStatus("disconnected");
     setConnectMode("qr");
     setPairingPhone("");
+    setConnectError(null);
     await fetchQr(inst);
   };
 
@@ -154,12 +155,14 @@ export default function AdminAquecimento() {
         setQrCode(null);
         setPairingCode(null);
         toast.success("Instância conectada!");
+      } else if ((data as any)?.pairingCode && (data as any).pairingCode !== pairingCode) {
+        setPairingCode((data as any).pairingCode);
       } else if ((data as any)?.qrCode && (data as any).qrCode !== qrCode) {
         setQrCode((data as any).qrCode);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [connectOpen, connectInst, qrCode]);
+  }, [connectOpen, connectInst, qrCode, pairingCode]);
 
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
