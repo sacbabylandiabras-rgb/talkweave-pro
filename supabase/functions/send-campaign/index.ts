@@ -345,6 +345,24 @@ const getZapiTargetPhone = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
+const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
+  const cleanUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  if (!supabaseUrl || !opts.campaignId || !opts.userId) return cleanUrl;
+
+  const params = new URLSearchParams({
+    url: cleanUrl,
+    cid: opts.campaignId,
+    uid: opts.userId,
+    ph: opts.phone.replace(/\D/g, ''),
+    btn: opts.label,
+    flow: opts.campaignName || 'Campanha',
+    src: 'campaign',
+  });
+
+  return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+};
+
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
   const hasRateLimitPayload = isWhatsAppRateLimitError(payload, httpStatus);
   if (!hasRateLimitPayload) return false;
@@ -1285,6 +1303,26 @@ serve(async (req) => {
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
         const specialTpl = parseSpecialTemplate(campaign.template.content);
 
+        const formatZapiButtons = (buttons: any[]) => buttons.map((btn: any) => {
+          const btnType = (btn.type || 'url').toUpperCase();
+          const buttonData: any = { label: btn.text || btn.label };
+          if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
+          else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
+          else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
+          else {
+            buttonData.type = 'URL';
+            buttonData.url = buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
+              campaignId,
+              userId: credentials.userId,
+              phone: contact.phone,
+              label: buttonData.label || 'Abrir',
+              campaignName: campaign?.name,
+            });
+          }
+          if (btn.id) buttonData.id = btn.id;
+          return buttonData;
+        });
+
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
@@ -1410,9 +1448,13 @@ serve(async (req) => {
                   button.type = 'REPLY';
                 } else {
                   button.type = 'URL';
-                  let url = btn.url || btn.value || 'https://z-api.io';
-                  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-                  button.url = url;
+                  button.url = buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
+                    campaignId,
+                    userId: credentials.userId,
+                    phone: contact.phone,
+                    label: button.label || 'Abrir',
+                    campaignName: campaign?.name,
+                  });
                 }
                 return button;
               });
@@ -1457,16 +1499,7 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = campaign.template.buttons.map((btn: any) => {
-            const btnType = (btn.type || 'url').toUpperCase();
-            const buttonData: any = { label: btn.text || btn.label };
-            if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-            else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-            else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
-            else { buttonData.type = 'URL'; buttonData.url = btn.url || btn.value || 'https://z-api.io'; }
-            if (btn.id) buttonData.id = btn.id;
-            return buttonData;
-          });
+          const formattedButtons = formatZapiButtons(campaign.template.buttons);
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
@@ -1484,31 +1517,13 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = campaign.template.buttons.map((btn: any) => {
-            const btnType = (btn.type || 'url').toUpperCase();
-            const buttonData: any = { label: btn.text || btn.label };
-            if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-            else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-            else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
-            else { buttonData.type = 'URL'; buttonData.url = btn.url || btn.value || 'https://z-api.io'; }
-            if (btn.id) buttonData.id = btn.id;
-            return buttonData;
-          });
+          const formattedButtons = formatZapiButtons(campaign.template.buttons);
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           requestBody = { phone: contact.phone, message: fullMessage || ' ', buttonActions: formattedButtons };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          const formattedButtons = campaign.template.buttons.map((btn: any) => {
-            const btnType = (btn.type || 'url').toUpperCase();
-            const buttonData: any = { label: btn.text || btn.label };
-            if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-            else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-            else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
-            else { buttonData.type = 'URL'; buttonData.url = btn.url || btn.value || 'https://z-api.io'; }
-            if (btn.id) buttonData.id = btn.id;
-            return buttonData;
-          });
+          const formattedButtons = formatZapiButtons(campaign.template.buttons);
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           requestBody = { phone: contact.phone, message: fullMessage, image: campaign.template.media_url, buttonActions: formattedButtons };
@@ -1579,16 +1594,7 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const formattedButtons = campaign.template.buttons.map((btn: any) => {
-            const btnType = (btn.type || 'url').toUpperCase();
-            const buttonData: any = { label: btn.text || btn.label };
-            if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-            else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-            else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
-            else { buttonData.type = 'URL'; buttonData.url = btn.url || btn.value || 'https://z-api.io'; }
-            if (btn.id) buttonData.id = btn.id;
-            return buttonData;
-          });
+          const formattedButtons = formatZapiButtons(campaign.template.buttons);
           requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
 
         } else {
