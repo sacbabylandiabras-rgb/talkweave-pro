@@ -8,6 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -58,6 +68,7 @@ function GerenciarGrupoTab() {
   const [pendingOpen, setPendingOpen] = useState(false);
   const [pendingList, setPendingList] = useState<Array<{ phone: string; name?: string }>>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [renewLinkConfirmOpen, setRenewLinkConfirmOpen] = useState(false);
   const [groupSettings, setGroupSettings] = useState({
     adminOnlyMessage: false,
     adminOnlySettings: false,
