@@ -53,6 +53,8 @@ const ApanhadorGrupos = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>('disconnected');
+  const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
+  const [pairingPhone, setPairingPhone] = useState('');
 
   const loadUazapiAccounts = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,7 +75,7 @@ const ApanhadorGrupos = () => {
     return accounts;
   };
 
-  const fetchQrFor = async (account: { url: string; token: string }) => {
+  const fetchQrFor = async (account: { url: string; token: string }, phone?: string) => {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
@@ -88,7 +90,7 @@ const ApanhadorGrupos = () => {
         return;
       }
       const { data, error } = await supabase.functions.invoke('uazapi-connect', {
-        body: { apiUrl: account.url, apiToken: account.token },
+        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined },
       });
       if (error) throw error;
       setConnStatus(data?.connectionStatus || 'connecting');
@@ -96,10 +98,21 @@ const ApanhadorGrupos = () => {
       setPairingCode(data?.pairingCode || null);
       if (data?.connected) setConnStatus('connected');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao gerar QR Code');
+      toast.error(err.message || 'Erro ao conectar instância');
     } finally {
       setQrLoading(false);
     }
+  };
+
+  const requestPairingCode = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    const phone = pairingPhone.replace(/\D/g, '');
+    if (phone.length < 10) {
+      toast.error('Informe o número completo com DDI e DDD (ex: 5511999999999)');
+      return;
+    }
+    await fetchQrFor(account, phone);
   };
 
   const openConnectDialog = async () => {
@@ -108,6 +121,8 @@ const ApanhadorGrupos = () => {
     setQrCode(null);
     setPairingCode(null);
     setConnStatus('disconnected');
+    setConnectMode('qr');
+    setPairingPhone('');
     const accounts = await loadUazapiAccounts();
     if (accounts.length > 0) {
       await fetchQrFor(accounts[0]);
