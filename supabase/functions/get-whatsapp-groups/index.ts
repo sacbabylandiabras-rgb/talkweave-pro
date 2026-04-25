@@ -284,16 +284,17 @@ Deno.serve(async (req) => {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
           const isCommunity = !!(group.isCommunity || group.isCommunityAnnounce || group.isGroupAnnouncement);
+          const participants = group.participants || group.Participants || group.group?.participants || group.groupMetadata?.participants || group.data?.participants || [];
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
               nome: group.name || group.contact || group.subject || group.title || group.groupName || "Grupo sem nome",
               descricao: group.description || group.desc || "",
-              membros: group.participants?.length || group.memberCount || group.size || 0,
+              membros: participants.length || group.memberCount || group.size || 0,
               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
               ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
               isAdmin: group.isAdmin || false,
-              participantes: group.participants || [],
+              participantes: participants,
               archived: group.archived || false,
               pinned: group.pinned || false,
               sourceInstanceName: group.__sourceInstanceName || null,
