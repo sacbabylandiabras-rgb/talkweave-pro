@@ -762,7 +762,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes";
 const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes";
-const isAudioTemplateType = (type?: string) => type === "audio";
+const isAudioTemplateType = (type?: string) => type === "audio" || type === "audio_botoes";
 const isDocumentTemplateType = (type?: string) => type === "arquivo" || type === "documento";
 
 const getPreviewFileLabel = (template: any) => {
@@ -1600,7 +1600,7 @@ const Modelos = () => {
                 />
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-3">
                     <div>
                       <Label>Upload de Arquivo</Label>
@@ -1611,7 +1611,7 @@ const Modelos = () => {
                             accept={
                               newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
                                 ? "image/*"
-                                : newTemplate.type === "audio"
+                                : newTemplate.type === "audio" || newTemplate.type === "audio_botoes"
                                 ? "audio/*"
                                 : "video/*"
                             }
@@ -2232,7 +2232,7 @@ const Modelos = () => {
             />
 
             {/* Campos específicos por tipo - Edição */}
-            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-3">
                 <div>
                   <Label>Upload de Arquivo</Label>
@@ -2243,7 +2243,7 @@ const Modelos = () => {
                         accept={
                           editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
                             ? "image/*"
-                            : editFormData.type === "audio"
+                            : editFormData.type === "audio" || editFormData.type === "audio_botoes"
                             ? "audio/*"
                             : "video/*"
                         }
