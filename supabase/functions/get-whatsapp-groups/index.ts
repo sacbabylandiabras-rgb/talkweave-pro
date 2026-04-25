@@ -267,23 +267,15 @@ Deno.serve(async (req) => {
       console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
     }
 
-    // Apply provider filter if requested
-    let filteredInstances = instances;
-    if (providerFilter === "uazapi") {
-      filteredInstances = instances.filter((inst) => inst.api_provider === "uazapi");
-    } else if (providerFilter === "zapi") {
-      filteredInstances = instances.filter((inst) => (inst.api_provider || "zapi") === "zapi");
-    }
-
-    console.log(`📦 Active instances (after filter): ${filteredInstances.length} / ${instances.length}`);
+    // Apanhador de Grupos: usa SOMENTE Uazapi. Z-API é ignorada.
+    const filteredInstances = instances.filter((inst) => inst.api_provider === "uazapi");
+    console.log(`📦 Uazapi instances: ${filteredInstances.length} / ${instances.length} (Z-API ignorada)`);
 
     const groupsById = new Map<string, any>();
 
     for (const instance of filteredInstances) {
       try {
-        const rawGroups = instance.api_provider === 'uazapi'
-          ? await fetchGroupsViaUazapi(instance)
-          : await fetchGroupsViaZapi(instance);
+        const rawGroups = await fetchGroupsViaUazapi(instance);
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
