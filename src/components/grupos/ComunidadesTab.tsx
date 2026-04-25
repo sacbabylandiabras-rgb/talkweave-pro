@@ -184,7 +184,7 @@ export default function ComunidadesTab() {
               Comunidades
             </CardTitle>
             <CardDescription>
-              Gerencie comunidades do WhatsApp via Z-API
+              Gerencie comunidades do WhatsApp
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
