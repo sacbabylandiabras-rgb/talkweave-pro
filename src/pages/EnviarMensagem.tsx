@@ -1480,6 +1480,7 @@ const EnviarMensagem = () => {
       <Card>
         <CardContent className="pt-4">
           <InstanceSelector
+            providerFilter="zapi"
             onInstanceChange={(id) => {
               if (id === ROTATE_ALL) {
                 setInstanceSelectionMode('rotate');
