@@ -1415,8 +1415,22 @@ serve(async (req) => {
 
         } else if (templateType === 'documento' || templateType === 'arquivo') {
           if (!hasMedia) throw new Error(`Template tipo "${templateType}" requer um arquivo`);
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document`;
-          requestBody = { phone: contact.phone, document: campaign.template.media_url, fileName: campaign.template.file_name || 'documento', extension: campaign.template.file_type?.split('/').pop() || 'pdf', caption: fullMessage };
+          // Determinar extensão a partir do file_type (mime) ou da própria URL
+          const mimeExt = campaign.template.file_type?.split('/').pop()?.toLowerCase();
+          const urlExt = String(campaign.template.media_url || '')
+            .split('?')[0]
+            .split('#')[0]
+            .split('.')
+            .pop()
+            ?.toLowerCase();
+          const extension = (mimeExt && mimeExt !== 'octet-stream' ? mimeExt : urlExt) || 'pdf';
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document/${extension}`;
+          requestBody = {
+            phone: contact.phone,
+            document: campaign.template.media_url,
+            fileName: campaign.template.file_name || `documento.${extension}`,
+            caption: fullMessage,
+          };
 
         } else if (templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção') {
           const rawItems = Array.isArray(campaign.template.list_items)
