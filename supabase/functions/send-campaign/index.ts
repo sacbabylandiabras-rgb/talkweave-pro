@@ -1367,6 +1367,17 @@ serve(async (req) => {
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
+        // Z-API só aceita dígitos no campo phone. Se o destinatário for um
+        // identificador @lid (sem número real resolvido), removemos o sufixo
+        // e tentamos enviar como número desconhecido em vez de cancelar.
+        if (isLidIdentifier(contact.phone)) {
+          const stripped = getZapiTargetPhone(contact.phone);
+          if (stripped && stripped !== contact.phone) {
+            console.log(`📞 [Z-API] Enviando @lid como número desconhecido: ${contact.phone} → ${stripped}`);
+            contact.phone = stripped;
+          }
+        }
+
         if (specialTpl) {
           const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
           zapiUrl = url;
