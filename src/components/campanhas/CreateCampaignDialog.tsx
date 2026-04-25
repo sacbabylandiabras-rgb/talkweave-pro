@@ -499,11 +499,11 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                   id="specific_contacts"
                   value={formData.specific_contacts}
                   onChange={(e) => setFormData(prev => ({ ...prev, specific_contacts: e.target.value }))}
-                  placeholder="Digite os números (um por linha)&#10;5511999999999&#10;5511888888888"
+                  placeholder="Digite os números (um por linha)&#10;5511999999999&#10;123456789@lid"
                   rows={5}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Digite um número por linha no formato: 5511999999999
+                  Um número por linha. Aceita formato normal (5511999999999) ou identificador @lid (123456789@lid). Envio via Z-API.
                 </p>
               </div>
             )}
