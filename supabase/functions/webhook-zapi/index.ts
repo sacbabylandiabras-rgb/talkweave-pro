@@ -3186,6 +3186,43 @@ serve(async (req) => {
       );
     }
 
+    // ============================================================
+    // WARMUP SHORT-CIRCUIT
+    // Se a mensagem recebida vem de um número que pertence a uma
+    // instância UAZAPI doadora (cadastrada em /admin/aquecimento),
+    // significa que é uma conversa de AQUECIMENTO. Nesse caso, NÃO
+    // dispare auto-resposta nem agente de IA — a réplica correta já
+    // é enviada pelo motor `run-warmup` usando o pool de mensagens.
+    // ============================================================
+    try {
+      const senderDigits = String(phone || "").replace(/\D/g, "");
+      if (senderDigits && senderDigits.length >= 8 && !isGroupMessage) {
+        const { data: donorInstances } = await supabase
+          .from("zapi_instances")
+          .select("evolution_api_url, evolution_api_key, zapi_token")
+          .ilike("api_provider", "uazapi")
+          .eq("is_active", true);
+        for (const di of donorInstances || []) {
+          const apiUrl = String(di.evolution_api_url || "").replace(/\/+$/, "");
+          const apiToken = String(di.evolution_api_key || di.zapi_token || "");
+          if (!apiUrl || !apiToken) continue;
+          try {
+            const sr = await fetch(`${apiUrl}/status`, { headers: { token: apiToken } });
+            if (!sr.ok) continue;
+            const sj: any = await sr.json().catch(() => ({}));
+            const cand = sj?.instance?.owner || sj?.owner || sj?.phone || sj?.id || sj?.wid;
+            const donorDigits = String(cand || "").replace(/\D/g, "");
+            if (donorDigits.length >= 8 && (donorDigits === senderDigits || donorDigits.endsWith(senderDigits) || senderDigits.endsWith(donorDigits))) {
+              console.log(`🔥 Warmup conversation detected (sender=${senderDigits} matches donor=${donorDigits}). Bypassing auto-response & AI agent.`);
+              return new Response("warmup_bypass", { status: 200, headers: corsHeaders });
+            }
+          } catch (_) { /* try next donor */ }
+        }
+      }
+    } catch (e) {
+      console.log("warmup-bypass check failed (continuing normally):", (e as any)?.message);
+    }
+
     // Verifica se o sistema está ativo (filtra pelo user_id correto)
     const { data: config } = await supabase
       .from("auto_response_config")
