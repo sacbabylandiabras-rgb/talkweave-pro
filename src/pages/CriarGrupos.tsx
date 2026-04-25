@@ -397,7 +397,7 @@ function GerenciarGrupoTab() {
                   className="h-8"
                   onClick={() => setOverrideInstanceId("")}
                 >
-                  🔄 Automática (do grupo)
+                  Todos
                 </Button>
                 {instances.map((inst) => (
                   <Button
