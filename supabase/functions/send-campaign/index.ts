@@ -1116,42 +1116,11 @@ serve(async (req) => {
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
 
-      // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
-      // Never send unresolved @lid identifiers as raw numeric strings because providers
-      // expect a real WhatsApp phone number and those synthetic values cause false positives.
+      // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
+      // Não resolvemos para o número real porque o usuário quer que o
+      // provedor receba o destino exatamente como informado.
       if (isLidIdentifier(contact.phone)) {
-        const lidId = contact.phone;
-        const { data: lidMapping } = await supabase
-          .from('message_logs')
-          .select('phone')
-          .eq('user_id', credentials.userId)
-          .eq('keyword_matched', '__lid_map__')
-          .eq('message_received', lidId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let resolvedLidPhone = lidMapping?.phone || null;
-
-        if (!resolvedLidPhone) {
-          const { data: legacyLidMapping } = await supabase
-            .from('message_logs')
-            .select('phone')
-            .eq('user_id', credentials.userId)
-            .eq('keyword_matched', `lid_map:${lidId}`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          resolvedLidPhone = legacyLidMapping?.phone || null;
-        }
-
-        if (resolvedLidPhone && !resolvedLidPhone.includes('@lid')) {
-          console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
-          contact.phone = resolvedLidPhone;
-        } else {
-          console.log(`➡️ @lid não resolvido para ${lidId} — enviando mesmo assim (provedor aceita @lid).`);
-        }
+        console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
       }
 
       const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
