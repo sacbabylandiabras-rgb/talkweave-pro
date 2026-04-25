@@ -323,6 +323,105 @@ export default function AdminAquecimento() {
         </Dialog>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Instâncias UAZAPI criadas</CardTitle>
+          <CardDescription>Conecte cada instância escaneando o QR Code</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingInst ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : instances.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhuma instância UAZAPI criada
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {instances.map((inst) => (
+                <div
+                  key={inst.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-md border bg-muted/20"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Server className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{inst.instance_name}</p>
+                      <p className="text-[11px] text-muted-foreground font-mono truncate">
+                        {inst.zapi_instance_id}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openConnect(inst)}>
+                      <QrCode className="w-4 h-4 mr-1" />
+                      Conectar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => removeInstance(inst)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conectar {connectInst?.instance_name}</DialogTitle>
+            <DialogDescription>
+              Abra o WhatsApp → Aparelhos conectados → Conectar aparelho e escaneie o QR Code
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-4 min-h-[280px]">
+            {connStatus === "connected" ? (
+              <div className="flex flex-col items-center gap-2 text-primary">
+                <CheckCircle2 className="w-12 h-12" />
+                <p className="font-medium">Conectado!</p>
+              </div>
+            ) : qrLoading ? (
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            ) : qrCode ? (
+              <img
+                src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
+                alt="QR Code"
+                className="w-64 h-64"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
+            )}
+            {pairingCode && (
+              <p className="mt-3 text-sm">
+                Código de pareamento: <span className="font-mono font-bold">{pairingCode}</span>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => connectInst && fetchQr(connectInst)}
+              disabled={qrLoading}
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Atualizar
+            </Button>
+            <Button size="sm" onClick={() => setConnectOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
