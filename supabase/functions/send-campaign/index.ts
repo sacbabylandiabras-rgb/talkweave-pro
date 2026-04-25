@@ -1289,28 +1289,45 @@ serve(async (req) => {
           zapiUrl = url;
           requestBody = specialBody;
         } else if (templateType === 'carrossel' && hasCarouselCards) {
-          const carouselCards = campaign.template.carousel_cards.map((card: any) => {
-            const cardData: any = { title: card.title || '', description: card.description || '' };
-            if (card.image && card.image.trim() !== '') cardData.image = card.image;
+          const carouselItems = campaign.template.carousel_cards.map((card: any, idx: number) => {
+            const text = [card.title, card.description].filter((s: any) => s && String(s).trim() !== '').join('\n\n') || (card.text || '');
+            const item: any = { text };
+            if (card.image && String(card.image).trim() !== '') item.image = card.image;
             if (card.buttons && Array.isArray(card.buttons) && card.buttons.length > 0) {
-              cardData.buttonActions = card.buttons.map((btn: any) => {
-                const btnType = (btn.type || 'url').toUpperCase();
-                const buttonData: any = { label: btn.text || btn.label };
-                if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-                else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-                else { buttonData.type = 'URL'; let url = btn.url || btn.value || 'https://z-api.io'; if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url; buttonData.url = url; }
-                if (btn.id) buttonData.id = btn.id;
-                return buttonData;
+              item.buttons = card.buttons.map((btn: any, bIdx: number) => {
+                const btnType = String(btn.type || 'url').toUpperCase();
+                const button: any = {
+                  id: String(btn.id || `${idx}-${bIdx}`),
+                  label: btn.text || btn.label || 'Abrir',
+                };
+                if (btnType === 'CALL') {
+                  button.type = 'CALL';
+                  button.phone = btn.phone || btn.value || '';
+                } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+                  button.type = 'REPLY';
+                } else {
+                  button.type = 'URL';
+                  let url = btn.url || btn.value || 'https://z-api.io';
+                  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+                  button.url = url;
+                }
+                return button;
               });
             }
-            return cardData;
+            return item;
           });
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-carousel`;
-          requestBody = { phone: contact.phone, cards: carouselCards };
+          requestBody = {
+            phone: contact.phone,
+            message: fullMessage || ' ',
+            carousel: carouselItems,
+          };
 
+          console.log('[send-campaign] Enviando carrossel Z-API:', JSON.stringify(requestBody));
           const carouselResponse = await fetch(zapiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify(requestBody) });
           const carouselText = await carouselResponse.text();
+          console.log('[send-campaign] Resposta carrossel Z-API:', carouselResponse.status, carouselText);
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
           const awaitingGroupCallback = isGroupDestination(contact.phone);
