@@ -560,6 +560,8 @@ const getTemplateIcon = (type?: string) => {
       return <Image className="w-5 h-5 text-primary" />;
     case "audio":
       return <Music className="w-5 h-5 text-primary" />;
+    case "audio_botoes":
+      return <Music className="w-5 h-5 text-primary" />;
     case "video":
     case "video_botoes":
       return <Video className="w-5 h-5 text-primary" />;
@@ -596,6 +598,7 @@ const getTypeFriendlyName = (type?: string) => {
     audio: "Áudio",
     video: "Vídeo",
     video_botoes: "Vídeo c/ Botões",
+    audio_botoes: "Áudio c/ Botões",
     lista_opcao: "Lista",
     copia_cola: "Copiar/Colar",
     arquivo: "Arquivo",
@@ -1585,7 +1588,7 @@ const Modelos = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
+                    ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
                   </p>
                 </div>
 
@@ -2216,7 +2219,7 @@ const Modelos = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
+                ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
               </p>
             </div>
 
