@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
 import { Flame, Play, Pause, Loader2, Activity } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
@@ -18,6 +19,21 @@ interface WarmupConfig {
 
 const STORAGE_KEY = "zaplynx-warmup-config";
 const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
+const WARMUP_PROGRESS_KEY = "zaplynx-warmup-progress";
+const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const readProgress = (): Record<string, number> => {
+  try {
+    const raw = localStorage.getItem(WARMUP_PROGRESS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed[todayKey()] || {};
+  } catch {
+    return {};
+  }
+};
 
 export default function AquecimentoNumero() {
   const { instances: allInstances } = useZapiInstances();
@@ -33,6 +49,21 @@ export default function AquecimentoNumero() {
     dailyLimit: 50,
   });
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState<Record<string, number>>(readProgress);
+
+  useEffect(() => {
+    const sync = () => setProgress(readProgress());
+    window.addEventListener(WARMUP_PROGRESS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    const interval = setInterval(sync, 5000);
+    return () => {
+      window.removeEventListener(WARMUP_PROGRESS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+      clearInterval(interval);
+    };
+  }, []);
 
   const persistConfig = (nextConfig: WarmupConfig) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
@@ -209,6 +240,41 @@ export default function AquecimentoNumero() {
           Salvar configuração
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Progresso de hoje</CardTitle>
+          <CardDescription>
+            Mensagens recebidas por instância no dia atual (limite: {config.dailyLimit})
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {config.instanceIds.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Selecione instâncias acima para acompanhar o progresso.
+            </p>
+          ) : (
+            config.instanceIds.map((id) => {
+              const inst = instances.find((i) => i.id === id);
+              const sent = progress[id] || 0;
+              const pct = Math.min(100, Math.round((sent / Math.max(1, config.dailyLimit)) * 100));
+              return (
+                <div key={id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">
+                      {inst?.instance_name || id}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {sent} / {config.dailyLimit} ({pct}%)
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
