@@ -350,6 +350,26 @@ const resolveUazapiInstance = async (
 
   // 1) Try the exact source instance first (so each group hits its own uazapi)
   if (sourceInstanceId) {
+    // 1a) Virtual instances coming from profile-level uazapi credentials (profile-uazapi-1 / profile-uazapi-2)
+    const profileMatch = String(sourceInstanceId).match(/^profile-uazapi-(\d+)$/i);
+    if (profileMatch) {
+      const idx = Math.max(1, parseInt(profileMatch[1], 10)) - 1;
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("uazapi_url, uazapi_token")
+        .eq("id", user.id)
+        .maybeSingle();
+      const urls = String((profile as any)?.uazapi_url || '').split('|').map((v: string) => v.trim()).filter(Boolean);
+      const tokens = String((profile as any)?.uazapi_token || '').split('|').map((v: string) => v.trim()).filter(Boolean);
+      if (urls[idx] && tokens[idx]) {
+        return {
+          apiUrl: urls[idx].replace(/\/+$/, ""),
+          apiToken: tokens[idx],
+          userId: user.id,
+        };
+      }
+    }
+
     const { data: exact } = await adminClient
       .from("zapi_instances")
       .select("evolution_api_url, evolution_api_key, api_provider")
@@ -381,7 +401,24 @@ const resolveUazapiInstance = async (
     .limit(1)
     .maybeSingle();
 
-  if (!data?.evolution_api_url || !data?.evolution_api_key) return null;
+  if (!data?.evolution_api_url || !data?.evolution_api_key) {
+    // 3) Final fallback: profile-level uazapi credentials (first one)
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("uazapi_url, uazapi_token")
+      .eq("id", user.id)
+      .maybeSingle();
+    const firstUrl = String((profile as any)?.uazapi_url || '').split('|')[0]?.trim();
+    const firstToken = String((profile as any)?.uazapi_token || '').split('|')[0]?.trim();
+    if (firstUrl && firstToken) {
+      return {
+        apiUrl: firstUrl.replace(/\/+$/, ""),
+        apiToken: firstToken,
+        userId: user.id,
+      };
+    }
+    return null;
+  }
 
   return {
     apiUrl: String(data.evolution_api_url).replace(/\/+$/, ""),
