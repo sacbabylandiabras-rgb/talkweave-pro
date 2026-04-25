@@ -124,14 +124,23 @@ const normalizePhoneFromJid = (jid: string | null | undefined): string => {
   return String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
 };
 
-const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string): boolean => {
-  if (!ownerPhone) return false;
+const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerLid?: string): boolean => {
+  if (!ownerPhone && !ownerLid) return false;
   const participants = extractParticipantsFromGroup({ ...group, ...detail });
   if (!Array.isArray(participants) || participants.length === 0) return false;
   for (const p of participants) {
     const id = String(p?.id || p?.phone || p?.jid || p?.JID || p?.participant || '');
+    // Match por LID quando o participante vier como @lid
+    if (ownerLid && id.includes(ownerLid)) {
+      const adminFlagLid =
+        p?.isAdmin === true || p?.IsAdmin === true ||
+        p?.isSuperAdmin === true || p?.IsSuperAdmin === true ||
+        p?.admin === 'admin' || p?.admin === 'superadmin' ||
+        p?.role === 'admin' || p?.role === 'superadmin';
+      if (adminFlagLid) return true;
+    }
     const phone = normalizePhoneFromJid(id);
-    if (!phone) continue;
+    if (!phone || !ownerPhone) continue;
     if (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) {
       const adminFlag =
         p?.isAdmin === true ||
@@ -148,8 +157,9 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string): boole
   // Fallback: owner field of the group
   const ownerField = String(detail?.Owner || detail?.owner || group?.Owner || group?.owner || '');
   if (ownerField) {
+    if (ownerLid && ownerField.includes(ownerLid)) return true;
     const ownerFieldPhone = normalizePhoneFromJid(ownerField);
-    if (ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
+    if (ownerPhone && ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
       return true;
     }
   }
@@ -280,22 +290,43 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   return detailedGroups.filter(Boolean);
 };
 
-const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<string> => {
+const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: string; lid: string }> => {
   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-  try {
-    const res = await fetch(`${baseUrl}/me`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token },
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data) return '';
-    return normalizePhoneFromJid(
-      data?.phone || data?.phoneNumber || data?.wid?.user || data?.me?.user || data?.me?.id || data?.id || data?.user || '',
-    );
-  } catch (error) {
-    console.error(`⚠️ Z-API /me failed for ${instance.instance_name}:`, error);
-    return '';
+  // Endpoint correto da Z-API é /device — retorna { phone, lid, name, ... }.
+  // /me não existe ou devolve formato inconsistente, gerando owner phone corrompido.
+  const endpoints = ['/device', '/me'];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token },
+      });
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => null);
+      if (!data) continue;
+      const lidRaw = String(data?.lid || '').split('@')[0].replace(/\D/g, '');
+      const candidates = [
+        data?.phone,
+        data?.phoneNumber,
+        data?.wid?.user,
+        data?.me?.user,
+        data?.me?.id,
+        data?.id,
+        data?.user,
+      ];
+      for (const c of candidates) {
+        const normalized = normalizePhoneFromJid(typeof c === 'string' ? c : '');
+        // Telefones reais têm entre 10 e 15 dígitos. Evita strings agregadas.
+        if (normalized && normalized.length >= 10 && normalized.length <= 15) {
+          return { phone: normalized, lid: lidRaw };
+        }
+      }
+      if (lidRaw) return { phone: '', lid: lidRaw };
+    } catch (error) {
+      console.error(`⚠️ Z-API ${ep} failed for ${instance.instance_name}:`, error);
+    }
   }
+  return { phone: '', lid: '' };
 };
 
 const normalizeZapiGroupId = (value: unknown): string => {
@@ -312,8 +343,10 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
 
   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
   const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
-  const ownerPhone = await fetchOwnerPhoneViaZapi(instance);
-  console.log(`👤 Z-API owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
+  const owner = await fetchOwnerPhoneViaZapi(instance);
+  const ownerPhone = owner.phone;
+  const ownerLid = owner.lid;
+  console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerPhone || '(unknown)'} lid=${ownerLid || '(unknown)'}`);
 
   const response = await fetch(`${baseUrl}/groups`, { method: 'GET', headers });
   const payload = await response.json().catch(() => []);
@@ -356,7 +389,7 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
-      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone) || participants.length === 0,
+      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone, ownerLid) || participants.length === 0,
       memberCount: participants.length || detail?.participantCount || detail?.ParticipantCount || group?.participantCount || group?.ParticipantCount || group?.memberCount || group?.size || 0,
       profilePicture: detail?.profileThumbnail || detail?.groupPhoto || detail?.imgUrl || detail?.imageUrl || group?.imgUrl || group?.profilePicture || group?.image || group?.photo || null,
       __sourceInstanceName: instance.instance_name || null,
