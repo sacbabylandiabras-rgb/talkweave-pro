@@ -177,14 +177,15 @@ export default function AquecimentoNumero() {
         .split(/[\n,;\s]+/)
         .map((c) => c.replace(/\D/g, ""))
         .filter((c) => c.length >= 8);
-      if (!targets.length) {
-        toast.error("Adicione pelo menos um número alvo em 'Contatos extras'");
+      if (!config.instanceIds.length && !targets.length) {
+        toast.error("Selecione ao menos uma instância para aquecer (ou adicione contatos extras)");
         return;
       }
       try {
         const { data, error } = await supabase.functions.invoke("run-warmup", {
           body: {
             targetPhones: targets,
+            instanceIds: config.instanceIds,
             messages: config.messages,
             minDelay: config.minDelay,
             maxDelay: config.maxDelay,
