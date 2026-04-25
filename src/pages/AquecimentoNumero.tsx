@@ -323,7 +323,7 @@ export default function AquecimentoNumero() {
             <Slider
               value={[config.dailyLimit]}
               min={10}
-              max={500}
+              max={800}
               step={10}
               onValueChange={([v]) => setConfig((p) => ({ ...p, dailyLimit: v }))}
             />
