@@ -1159,7 +1159,20 @@ serve(async (req) => {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
           contact.phone = resolvedLidPhone;
         } else {
-          console.log(`⚠️ @lid não resolvido para ${lidId} — enviando como @lid.`);
+          console.log(`⛔ @lid não resolvido para ${lidId} — marcando como falha (mensagem não chegaria no WhatsApp).`);
+          const failRecord: CampaignSendRecord = {
+            campaign_id: campaignId,
+            phone: lidId,
+            contact_name: contact.name,
+            message_content: '[Não enviado: identificador @lid sem número real]',
+            status: 'failed',
+            error_message: 'Número não está no WhatsApp ou recusou a mensagem (@lid/desconhecido).',
+            user_id: credentials.userId,
+            instance_name: '',
+          };
+          await supabase.from('campaign_sends').insert(failRecord);
+          results.push({ phone: lidId, success: false, error: 'unresolved_lid' });
+          continue;
         }
       }
 
