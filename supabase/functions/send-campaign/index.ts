@@ -392,7 +392,7 @@ const dispatchZapiSpecial = async (
       type: typeMap[rawType] || rawType,
       ...(special.merchantName ? { merchantName: special.merchantName } : {}),
     };
-  } else if (special.type === 'localizacao') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
     url = `${baseUrl}/send-location`;
     const latitude = parseCoordinate(special.latitude);
     const longitude = parseCoordinate(special.longitude);
@@ -475,7 +475,7 @@ const dispatchUazapiSpecial = async (
       special.description ? `\n${special.description}` : '',
     ].filter(Boolean).join('\n');
     body = { number: targetNumber, text: pixLines };
-  } else if (special.type === 'localizacao') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
     endpoint = '/send/location';
     body = {
       number: targetNumber,
