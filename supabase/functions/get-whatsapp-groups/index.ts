@@ -38,6 +38,10 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
     const data = await response.json();
     const groups = Array.isArray(data) ? data : [];
     console.log(`📄 Z-API ${instance.instance_name} | Page ${page}: ${groups.length} groups`);
+    if (groups.length > 0 && page === 1) {
+      console.log(`🔬 Z-API sample group keys: ${Object.keys(groups[0]).join(',')}`);
+      console.log(`🔬 Z-API sample group: ${JSON.stringify(groups[0]).slice(0, 800)}`);
+    }
 
     for (const group of groups) {
       allGroups.push({
