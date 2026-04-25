@@ -196,6 +196,22 @@ serve(async (req: Request) => {
     let totalFailed = 0;
     let totalReplies = 0;
     const errors: string[] = [];
+    // Contagem de envios por telefone alvo (para barras de progresso por instância)
+    const sentByTarget: Record<string, number> = {};
+    // Mapeamento phone → instanceId (UUID da zapi_instances) p/ a UI casar contadores
+    const targetInstanceMap: Record<string, string> = {};
+    if (instanceIds.length > 0) {
+      const { data: userInstances2 } = await admin
+        .from("zapi_instances")
+        .select("id, zapi_instance_id")
+        .in("id", instanceIds)
+        .eq("user_id", user.id);
+      // Associa phone ↔ id quando já resolvemos acima via targetInstances
+      for (const ti of targetInstances) {
+        const match = (userInstances2 || []).find((u: any) => String(u.zapi_instance_id) === ti.instanceId);
+        if (match) targetInstanceMap[ti.phone] = String(match.id);
+      }
+    }
 
     // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
     // Lotes pequenos evitam timeout da Edge Function; a tela ativa agenda os próximos ciclos.
@@ -253,6 +269,7 @@ serve(async (req: Request) => {
             });
             if (res.ok) {
               totalSent++;
+              sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
               // RÉPLICA RECÍPROCA: a instância alvo (Z-API) envia o "answer" de volta à doadora.
@@ -334,6 +351,8 @@ serve(async (req: Request) => {
       sent: totalSent,
       replies: totalReplies,
       failed: totalFailed,
+      sentByTarget,
+      targetInstanceMap,
     });
   } catch (e: any) {
     console.error("run-warmup error", e);
