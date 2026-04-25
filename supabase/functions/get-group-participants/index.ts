@@ -812,9 +812,22 @@ Deno.serve(async (req) => {
       const cleanPhone = normalizedId.replace("@c.us", "").replace(/\D/g, "");
 
       if (normalizedId.includes("@lid")) {
-        lidParticipants.push(normalizedId);
+        const lidId = normalizeLidValue(normalizedId);
+        lidParticipants.push(lidId);
         unresolvedLidParticipants.push({
-          phone: normalizedId,
+          phone: lidId,
+          isAdmin: Boolean(p.isAdmin),
+          isSuperAdmin: Boolean(p.isSuperAdmin),
+          name: p.name || p.short || p.notify || "",
+        });
+        continue;
+      }
+
+      if (isCommunity && cleanPhone.length >= 8) {
+        const lidId = normalizeLidValue(cleanPhone);
+        lidParticipants.push(lidId);
+        unresolvedLidParticipants.push({
+          phone: lidId,
           isAdmin: Boolean(p.isAdmin),
           isSuperAdmin: Boolean(p.isSuperAdmin),
           name: p.name || p.short || p.notify || "",
