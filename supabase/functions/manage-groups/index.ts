@@ -295,12 +295,14 @@ Deno.serve(async (req) => {
       }
 
       case "mention-group": {
-        const { phone: groupPhone, message } = body;
-        if (!groupPhone || !message) throw new Error("phone and message are required");
+        const { phone: groupPhone, groupId, message } = body;
+        const target = groupPhone || groupId;
+        if (!target || !message) throw new Error("groupId and message are required");
+        const cleanId = target.includes("-group") ? target : target.replace("@g.us", "-group");
         const response = await fetch(`${baseUrl}/send-text`, {
           method: "POST", headers,
           body: JSON.stringify({
-            phone: groupPhone.includes("-group") ? groupPhone : groupPhone.replace("@g.us", "-group"),
+            phone: cleanId,
             message,
             mentioned: ["all"],
           }),
