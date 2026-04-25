@@ -334,16 +334,13 @@ const getUazapiTargetNumber = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '');
 };
 
-// For Z-API the phone field must contain only digits. When we have an @lid
-// identifier we strip the suffix and send the raw numeric LID — Z-API will
-// treat it as an unknown number and either deliver or return an error, but
-// at least it won't be silently cancelled by our pre-validation.
+// For Z-API the phone field must contain only digits for números normais.
+// Para identificadores @lid, preservamos o sufixo completo (ex: 12345@lid)
+// porque o usuário quer que o provedor receba o destino tal como está.
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
   if (isGroupDestination(phone)) return phone;
-  if (phone.includes('@lid')) {
-    return phone.split('@')[0].replace(/\D/g, '');
-  }
+  if (phone.includes('@lid')) return phone;
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
@@ -1119,42 +1116,11 @@ serve(async (req) => {
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
 
-      // Try to resolve @lid identifiers to real phone numbers via message_logs mapping.
-      // Never send unresolved @lid identifiers as raw numeric strings because providers
-      // expect a real WhatsApp phone number and those synthetic values cause false positives.
+      // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
+      // Não resolvemos para o número real porque o usuário quer que o
+      // provedor receba o destino exatamente como informado.
       if (isLidIdentifier(contact.phone)) {
-        const lidId = contact.phone;
-        const { data: lidMapping } = await supabase
-          .from('message_logs')
-          .select('phone')
-          .eq('user_id', credentials.userId)
-          .eq('keyword_matched', '__lid_map__')
-          .eq('message_received', lidId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let resolvedLidPhone = lidMapping?.phone || null;
-
-        if (!resolvedLidPhone) {
-          const { data: legacyLidMapping } = await supabase
-            .from('message_logs')
-            .select('phone')
-            .eq('user_id', credentials.userId)
-            .eq('keyword_matched', `lid_map:${lidId}`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          resolvedLidPhone = legacyLidMapping?.phone || null;
-        }
-
-        if (resolvedLidPhone && !resolvedLidPhone.includes('@lid')) {
-          console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
-          contact.phone = resolvedLidPhone;
-        } else {
-          console.log(`➡️ @lid não resolvido para ${lidId} — enviando mesmo assim (provedor aceita @lid).`);
-        }
+        console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
       }
 
       const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
@@ -1399,15 +1365,10 @@ serve(async (req) => {
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
-        // Z-API só aceita dígitos no campo phone. Se o destinatário for um
-        // identificador @lid (sem número real resolvido), removemos o sufixo
-        // e tentamos enviar como número desconhecido em vez de cancelar.
+        // Para @lid preservamos o identificador completo (ex: 12345@lid) —
+        // a Z-API receberá o destino tal como informado pelo cliente.
         if (isLidIdentifier(contact.phone)) {
-          const stripped = getZapiTargetPhone(contact.phone);
-          if (stripped && stripped !== contact.phone) {
-            console.log(`📞 [Z-API] Enviando @lid como número desconhecido: ${contact.phone} → ${stripped}`);
-            contact.phone = stripped;
-          }
+          console.log(`📞 [Z-API] Enviando @lid completo: ${contact.phone}`);
         } else if (!isGroupDestination(contact.phone)) {
           // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
           // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
