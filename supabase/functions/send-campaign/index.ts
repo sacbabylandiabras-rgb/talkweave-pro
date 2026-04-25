@@ -1376,6 +1376,15 @@ serve(async (req) => {
             console.log(`📞 [Z-API] Enviando @lid como número desconhecido: ${contact.phone} → ${stripped}`);
             contact.phone = stripped;
           }
+        } else if (!isGroupDestination(contact.phone)) {
+          // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
+          // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
+          // a mensagem nunca é entregue ao WhatsApp.
+          const normalized = getZapiTargetPhone(contact.phone);
+          if (normalized && normalized !== contact.phone) {
+            console.log(`📞 [Z-API] Normalizando telefone: ${contact.phone} → ${normalized}`);
+            contact.phone = normalized;
+          }
         }
 
         if (specialTpl) {
