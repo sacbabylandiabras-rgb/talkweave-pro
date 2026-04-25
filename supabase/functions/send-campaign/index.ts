@@ -334,16 +334,13 @@ const getUazapiTargetNumber = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '');
 };
 
-// For Z-API the phone field must contain only digits. When we have an @lid
-// identifier we strip the suffix and send the raw numeric LID — Z-API will
-// treat it as an unknown number and either deliver or return an error, but
-// at least it won't be silently cancelled by our pre-validation.
+// For Z-API the phone field must contain only digits for números normais.
+// Para identificadores @lid, preservamos o sufixo completo (ex: 12345@lid)
+// porque o usuário quer que o provedor receba o destino tal como está.
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
   if (isGroupDestination(phone)) return phone;
-  if (phone.includes('@lid')) {
-    return phone.split('@')[0].replace(/\D/g, '');
-  }
+  if (phone.includes('@lid')) return phone;
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
@@ -1399,15 +1396,10 @@ serve(async (req) => {
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
-        // Z-API só aceita dígitos no campo phone. Se o destinatário for um
-        // identificador @lid (sem número real resolvido), removemos o sufixo
-        // e tentamos enviar como número desconhecido em vez de cancelar.
+        // Para @lid preservamos o identificador completo (ex: 12345@lid) —
+        // a Z-API receberá o destino tal como informado pelo cliente.
         if (isLidIdentifier(contact.phone)) {
-          const stripped = getZapiTargetPhone(contact.phone);
-          if (stripped && stripped !== contact.phone) {
-            console.log(`📞 [Z-API] Enviando @lid como número desconhecido: ${contact.phone} → ${stripped}`);
-            contact.phone = stripped;
-          }
+          console.log(`📞 [Z-API] Enviando @lid completo: ${contact.phone}`);
         } else if (!isGroupDestination(contact.phone)) {
           // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
           // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
