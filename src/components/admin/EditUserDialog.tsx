@@ -41,6 +41,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   // Uazapi credentials
   const [uazapiUrl, setUazapiUrl] = useState('');
   const [uazapiToken, setUazapiToken] = useState('');
+  const [uazapiUrl2, setUazapiUrl2] = useState('');
+  const [uazapiToken2, setUazapiToken2] = useState('');
   const [uazapiSaving, setUazapiSaving] = useState(false);
 
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
@@ -64,8 +66,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       // Load uazapi credentials
       if (user.id) {
         supabase.from("profiles").select("uazapi_url, uazapi_token, max_instances" as any).eq("id", user.id).single().then(({ data }) => {
-          setUazapiUrl((data as any)?.uazapi_url || '');
-          setUazapiToken((data as any)?.uazapi_token || '');
+          const rawUrl = String((data as any)?.uazapi_url || '');
+          const rawToken = String((data as any)?.uazapi_token || '');
+          const [u1 = '', u2 = ''] = rawUrl.split('|');
+          const [t1 = '', t2 = ''] = rawToken.split('|');
+          setUazapiUrl(u1);
+          setUazapiToken(t1);
+          setUazapiUrl2(u2);
+          setUazapiToken2(t2);
           setMaxInstances(Number((data as any)?.max_instances ?? 1));
         });
       }
@@ -96,9 +104,15 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     if (!user) return;
     setUazapiSaving(true);
     try {
+      const url1 = uazapiUrl.trim();
+      const tok1 = uazapiToken.trim();
+      const url2 = uazapiUrl2.trim();
+      const tok2 = uazapiToken2.trim();
+      const combinedUrl = [url1, url2].filter(Boolean).join('|');
+      const combinedToken = [tok1, tok2].filter(Boolean).join('|');
       const { error } = await supabase.from("profiles").update({
-        uazapi_url: uazapiUrl.trim() || null,
-        uazapi_token: uazapiToken.trim() || null,
+        uazapi_url: combinedUrl || null,
+        uazapi_token: combinedToken || null,
       } as any).eq("id", user.id);
       if (error) throw error;
       toast({ title: "Credenciais salvas", description: "O usuário poderá extrair membros de comunidades." });
