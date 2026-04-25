@@ -354,31 +354,35 @@ function GerenciarGrupoTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={(id) => {
-              setSelectedGroupId(id);
-              const g = adminGroups.find((gr) => gr.id === id);
-              if (g) fetchMemberCount(id, g.sourceInstanceId, g.participantes);
-            }}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione um grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                {adminGroups.length === 0 && (
-                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                    Nenhum grupo onde você é administrador
-                  </div>
-                )}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={refetch} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+            {adminGroups.length === 0 ? (
+              <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
+                Nenhum grupo onde você é administrador
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
                 {adminGroups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
-                  </SelectItem>
+                  <Button
+                    key={g.id}
+                    variant={selectedGroupId === g.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectedGroupId(g.id);
+                      fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
+                    }}
+                    className="h-8"
+                  >
+                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"})
+                  </Button>
                 ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
+              </div>
+            )}
           </div>
 
           {instances.length > 1 && (
@@ -1873,34 +1877,36 @@ function ParticipantesTab() {
           <CardDescription>Adicione, remova ou promova membros dos seus grupos</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={(id) => {
-              setSelectedGroupId(id);
-              const g = adminGroups.find((gr) => gr.id === id);
-              if (g) {
-                fetchMemberCount(id, g.sourceInstanceId, g.participantes);
-                fetchParticipants(g);
-              }
-            }}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione um grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                {adminGroups.length === 0 && (
-                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                    Nenhum grupo onde você é administrador
-                  </div>
-                )}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
+                <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+            {adminGroups.length === 0 ? (
+              <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
+                Nenhum grupo onde você é administrador
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
                 {adminGroups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"} membros)
-                  </SelectItem>
+                  <Button
+                    key={g.id}
+                    variant={selectedGroupId === g.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectedGroupId(g.id);
+                      fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
+                      fetchParticipants(g);
+                    }}
+                    className="h-8"
+                  >
+                    {g.nome} ({getMemberCount(g.id, g.membros) || "—"})
+                  </Button>
                 ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
-              <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
-            </Button>
+              </div>
+            )}
           </div>
 
           {selectedGroup && (
