@@ -598,6 +598,7 @@ const getTypeFriendlyName = (type?: string) => {
     audio: "Áudio",
     video: "Vídeo",
     video_botoes: "Vídeo c/ Botões",
+    audio_botoes: "Áudio c/ Botões",
     lista_opcao: "Lista",
     copia_cola: "Copiar/Colar",
     arquivo: "Arquivo",
