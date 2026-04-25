@@ -533,10 +533,36 @@ Deno.serve(async (req) => {
             .replace("@c.us", "")
             .replace(/\D/g, "");
 
-          const isLid = normalizedId.includes("@lid") || (lidCandidate && cleanPhone.length < 8);
+          // Detect LIDs even when uazapi returns them without the @lid suffix.
+          // Real phone numbers (E.164) have at most 15 digits, but valid country
+          // codes mean Brazilian numbers are 12-13 digits, US 11, etc. Anything
+          // 14+ digits without a known country prefix is a disguised LID.
+          const hasLidSuffix = normalizedId.includes("@lid");
+          const isDisguisedLid =
+            !hasLidSuffix &&
+            cleanPhone.length >= 14 &&
+            !cleanPhone.startsWith("1") && // US/Canada (11)
+            !cleanPhone.startsWith("55") && // BR (12-13)
+            !cleanPhone.startsWith("44") && // UK
+            !cleanPhone.startsWith("351") && // PT
+            !cleanPhone.startsWith("34") && // ES
+            !cleanPhone.startsWith("39") && // IT
+            !cleanPhone.startsWith("33") && // FR
+            !cleanPhone.startsWith("49") && // DE
+            !cleanPhone.startsWith("52") && // MX
+            !cleanPhone.startsWith("54") && // AR
+            !cleanPhone.startsWith("56") && // CL
+            !cleanPhone.startsWith("57") && // CO
+            !cleanPhone.startsWith("58") && // VE
+            !cleanPhone.startsWith("351");
+          const isLid = hasLidSuffix || isDisguisedLid || (lidCandidate && cleanPhone.length < 8);
 
-          if (isLid && cleanPhone.length < 8) {
-            const lidId = normalizedId.includes("@lid") ? normalizedId : lidCandidate;
+          if (isLid) {
+            const lidId = hasLidSuffix
+              ? normalizedId
+              : isDisguisedLid
+                ? `${cleanPhone}@lid`
+                : (lidCandidate || normalizedId);
             lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
               phone: lidId,
