@@ -283,8 +283,30 @@ Deno.serve(async (req) => {
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
-          const isCommunity = !!(group.isCommunity || group.isCommunityAnnounce || group.isGroupAnnouncement);
           const participants = group.participants || group.Participants || group.group?.participants || group.groupMetadata?.participants || group.data?.participants || [];
+          // Heurística ampla: flags explícitas + detecção via participantes só com @lid
+          const explicitCommunity = !!(
+            group.isCommunity ||
+            group.isCommunityAnnounce ||
+            group.isGroupAnnouncement ||
+            group.isParentGroup ||
+            group.parentGroup ||
+            group.community ||
+            group.communityId ||
+            group.parentGroupId ||
+            group.linkedParent ||
+            group.isCommunitySubGroup
+          );
+          let lidOnlyCommunity = false;
+          if (!explicitCommunity && Array.isArray(participants) && participants.length >= 3) {
+            const lidCount = participants.filter((p: any) => {
+              const id = String(p?.id || p?.phone || p?.jid || p || "");
+              return id.includes("@lid");
+            }).length;
+            // Se 80%+ dos participantes vêm como @lid, tratamos como comunidade
+            lidOnlyCommunity = lidCount / participants.length >= 0.8;
+          }
+          const isCommunity = explicitCommunity || lidOnlyCommunity;
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
