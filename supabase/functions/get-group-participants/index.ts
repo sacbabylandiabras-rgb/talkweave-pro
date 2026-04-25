@@ -30,6 +30,14 @@ const normalizeCommunityId = (value: string | null | undefined) => {
     .replace(/-group$/i, "");
 };
 
+const normalizeLidValue = (value: string | null | undefined) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("@lid")) return raw;
+  const digits = raw.replace(/\D/g, "");
+  return digits ? `${digits}@lid` : raw;
+};
+
 const uniqueStrings = (values: Array<string | null | undefined>) => {
   return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
 };
@@ -469,7 +477,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { groupId, fallbackParticipants = [], sourceInstanceId = null } = await req.json();
+    const { groupId, fallbackParticipants = [], sourceInstanceId = null, isCommunity = false } = await req.json();
     if (!groupId) throw new Error("groupId is required");
 
     // Try UAZAPI first when the source instance (or any active instance) uses uazapi
@@ -533,10 +541,10 @@ Deno.serve(async (req) => {
             .replace("@c.us", "")
             .replace(/\D/g, "");
 
-          const isLid = normalizedId.includes("@lid") || (lidCandidate && cleanPhone.length < 8);
+          const isLid = normalizedId.includes("@lid") || Boolean(lidCandidate) || isCommunity;
 
-          if (isLid && cleanPhone.length < 8) {
-            const lidId = normalizedId.includes("@lid") ? normalizedId : lidCandidate;
+          if (isLid) {
+            const lidId = normalizeLidValue(lidCandidate || normalizedId);
             lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
               phone: lidId,
@@ -561,7 +569,7 @@ Deno.serve(async (req) => {
           try {
             // 1) Try to actively resolve LIDs via uazapi /chat/find (returns real numbers)
             const lidToPhone = new Map<string, string>();
-            try {
+            if (!isCommunity) try {
               const findRes = await fetch(`${uazapi.apiUrl}/chat/find`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", token: uazapi.apiToken },
@@ -594,7 +602,7 @@ Deno.serve(async (req) => {
             }
 
             // 2) Fallback to local mapping table
-            const { data: lidMappings } = await adminClient
+            const { data: lidMappings } = isCommunity ? { data: [] } : await adminClient
               .from("message_logs")
               .select("phone, message_received")
               .eq("user_id", uazapi.userId)
@@ -635,7 +643,7 @@ Deno.serve(async (req) => {
           groupInfo?.subject || groupInfo?.name || groupInfo?.Name || groupInfo?.Topic ||
           groupInfo?.group?.subject || groupInfo?.groupMetadata?.subject || "";
 
-        console.log(`✅ UAZAPI participants resolved: ${uniqueParticipants.length} (LIDs: ${lidParticipants.length})`);
+        console.log(`✅ UAZAPI participants resolved: ${uniqueParticipants.length} (community mode: ${isCommunity}, LIDs: ${lidParticipants.length})`);
 
         return new Response(
           JSON.stringify({
@@ -804,9 +812,22 @@ Deno.serve(async (req) => {
       const cleanPhone = normalizedId.replace("@c.us", "").replace(/\D/g, "");
 
       if (normalizedId.includes("@lid")) {
-        lidParticipants.push(normalizedId);
+        const lidId = normalizeLidValue(normalizedId);
+        lidParticipants.push(lidId);
         unresolvedLidParticipants.push({
-          phone: normalizedId,
+          phone: lidId,
+          isAdmin: Boolean(p.isAdmin),
+          isSuperAdmin: Boolean(p.isSuperAdmin),
+          name: p.name || p.short || p.notify || "",
+        });
+        continue;
+      }
+
+      if (isCommunity && cleanPhone.length >= 8) {
+        const lidId = normalizeLidValue(cleanPhone);
+        lidParticipants.push(lidId);
+        unresolvedLidParticipants.push({
+          phone: lidId,
           isAdmin: Boolean(p.isAdmin),
           isSuperAdmin: Boolean(p.isSuperAdmin),
           name: p.name || p.short || p.notify || "",
@@ -828,7 +849,7 @@ Deno.serve(async (req) => {
 
     if (lidParticipants.length > 0) {
       try {
-        const { data: lidMappings } = await adminClient
+        const { data: lidMappings } = isCommunity ? { data: [] } : await adminClient
           .from("message_logs")
           .select("phone, message_received")
           .eq("user_id", credentials.userId)
