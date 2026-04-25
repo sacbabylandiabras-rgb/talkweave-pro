@@ -16,6 +16,35 @@ interface WarmupConfig {
 
 const WARMUP_STORAGE_KEY = "zaplynx-warmup-config";
 const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
+const WARMUP_PROGRESS_KEY = "zaplynx-warmup-progress";
+const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const recordWarmupProgress = (
+  sentByTarget: Record<string, number>,
+  targetInstanceMap: Record<string, string>,
+) => {
+  try {
+    const raw = localStorage.getItem(WARMUP_PROGRESS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const day = todayKey();
+    const dayData: Record<string, number> = parsed[day] || {};
+    let changed = false;
+    for (const [phone, count] of Object.entries(sentByTarget || {})) {
+      const instanceId = targetInstanceMap?.[phone];
+      if (!instanceId || !count) continue;
+      dayData[instanceId] = (dayData[instanceId] || 0) + Number(count);
+      changed = true;
+    }
+    if (!changed) return;
+    const next = { [day]: dayData };
+    localStorage.setItem(WARMUP_PROGRESS_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(WARMUP_PROGRESS_EVENT));
+  } catch {
+    /* ignore */
+  }
+};
 
 const readWarmupConfig = (): WarmupConfig => {
   const fallback: WarmupConfig = {
@@ -118,6 +147,11 @@ export function DashboardLayout() {
         if (error) throw error;
         if ((data as any)?.success === false) {
           throw new Error((data as any)?.error || "Erro ao executar ciclo");
+        }
+        const sentByTarget = (data as any)?.sentByTarget;
+        const targetInstanceMap = (data as any)?.targetInstanceMap;
+        if (sentByTarget && targetInstanceMap) {
+          recordWarmupProgress(sentByTarget, targetInstanceMap);
         }
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
