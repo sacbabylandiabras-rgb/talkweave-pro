@@ -215,6 +215,40 @@ Deno.serve(async (req) => {
             },
           ];
 
+    // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
+    try {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("uazapi_url, uazapi_token")
+        .eq("id", credentials.userId)
+        .maybeSingle();
+      const urls = String((profile as any)?.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
+      const tokens = String((profile as any)?.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
+      const pairCount = Math.min(urls.length, tokens.length);
+      for (let i = 0; i < pairCount; i++) {
+        const url = urls[i];
+        const token = tokens[i];
+        // Avoid duplicating if same uazapi already exists in zapi_instances
+        const exists = instances.some(
+          (inst) => inst.api_provider === 'uazapi'
+            && (inst.evolution_api_url || '').replace(/\/+$/, '') === url.replace(/\/+$/, '')
+            && (inst.evolution_api_key || '') === token
+        );
+        if (exists) continue;
+        instances.push({
+          zapi_instance_id: `profile-uazapi-${i + 1}`,
+          zapi_token: token,
+          zapi_client_token: token,
+          instance_name: `uazapi #${i + 1} (perfil)`,
+          api_provider: 'uazapi',
+          evolution_api_url: url,
+          evolution_api_key: token,
+        });
+      }
+    } catch (profileError) {
+      console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
+    }
+
     console.log(`📦 Active instances: ${instances.length}`);
 
     const groupsById = new Map<string, any>();
