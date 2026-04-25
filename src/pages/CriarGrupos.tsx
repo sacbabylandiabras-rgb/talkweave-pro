@@ -631,24 +631,7 @@ function GerenciarGrupoTab() {
                       variant="outline"
                       size="sm"
                       disabled={actionLoading === "mention-group"}
-                      onClick={async () => {
-                        const message = prompt("Mensagem para marcar todos:", "📢 Atenção a todos!");
-                        if (!message) return;
-                        setActionLoading("mention-group");
-                        try {
-                          const credentials = getInstanceCredentials(selectedGroup);
-                          const { data, error } = await supabase.functions.invoke("manage-groups", {
-                            body: { action: "mention-group", groupId: selectedGroup.id, message, ...credentials },
-                          });
-                          if (error) throw error;
-                          if (data?.error) { toast.error("Erro: " + data.error); return; }
-                          toast.success("Mensagem enviada marcando todos!");
-                        } catch (err: any) {
-                          toast.error("Erro: " + (err.message || "Falha ao marcar todos"));
-                        } finally {
-                          setActionLoading(null);
-                        }
-                      }}
+                      onClick={() => setMentionAllOpen(true)}
                     >
                       {actionLoading === "mention-group" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <AtSign className="w-4 h-4 mr-1" />}
                       Marcar Todos
