@@ -519,45 +519,36 @@ Deno.serve(async (req) => {
             p.lid || p.LID || p.lidJid || p.alt || p.altJid || ""
           ).trim();
           const phoneCandidates = [
+            p.PhoneNumber,
             p.phoneNumber,
             p.phone_number,
             p.number,
-            p.user,
+            p.Number,
+            p.phone,
+            p.Phone,
             p.contactNumber,
             p.contact?.phone,
             p.contact?.number,
-            p.realJid,
             p.realPhone,
+            p.realJid,
+            p.PN,
+            p.pn,
+            p.participantPn,
+            p.ParticipantPN,
             p.JID,
             p.jid,
             p.id,
             p.participant,
-            p.phone,
+            p.user,
+            p.User,
           ];
 
-          let normalizedId = "";
-          for (const cand of phoneCandidates) {
-            const value = String(cand || "").trim();
-            if (!value) continue;
-            if (value.includes("@lid")) continue;
-            normalizedId = value;
-            break;
-          }
+          const cleanPhone = phoneCandidates.map(normalizeRealPhoneValue).find(Boolean) || "";
+          const hasRealPhone = cleanPhone.length >= 8;
 
-          // If everything we found was @lid, fall back to it
-          if (!normalizedId) {
-            for (const cand of phoneCandidates) {
-              const value = String(cand || "").trim();
-              if (value) { normalizedId = value; break; }
-            }
-          }
-
-          const cleanPhone = normalizedId
-            .replace("@s.whatsapp.net", "")
-            .replace("@c.us", "")
-            .replace(/\D/g, "");
-
-          const hasRealPhone = cleanPhone.length >= 8 && !normalizedId.includes("@lid");
+          const normalizedId = String(
+            p.LID || p.lid || p.lidJid || p.JID || p.jid || p.id || p.participant || p.phone || "",
+          ).trim();
 
           if (!isCommunity && hasRealPhone) {
             resolvedParticipants.push({
@@ -573,6 +564,7 @@ Deno.serve(async (req) => {
 
           if (isLid) {
             const lidId = normalizeLidValue(lidCandidate || normalizedId);
+            if (!lidId) continue;
             lidParticipants.push(lidId);
             unresolvedLidParticipants.push({
               phone: lidId,
