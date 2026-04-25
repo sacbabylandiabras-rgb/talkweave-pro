@@ -1186,10 +1186,10 @@ serve(async (req) => {
             campaign_id: campaignId,
             user_id: credentials.userId,
             phone: lidId,
-            contact_name: contact.name || null,
+            contact_name: contact.name || undefined,
+            message_content: '',
             status: 'failed',
             error_message: 'Número @lid sem telefone real mapeado. Aguarde uma mensagem deste contato para resolver o LID.',
-            sent_at: null,
           };
           await persistCampaignSend(failedSend, null);
           results.push({ phone: lidId, success: false, error: failedSend.error_message });
