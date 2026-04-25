@@ -476,6 +476,12 @@ const dispatchUazapiSpecial = async (
       fullName: special.contactName || '',
       phoneNumber: String(special.contactPhone || '').replace(/\D/g, ''),
     };
+  } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
+    endpoint = '/send/text';
+    const code = String(special.copyText || special.code || '').trim();
+    const desc = String(special.description || special.text || '').trim();
+    const txt = [desc, code ? `\n\`\`\`${code}\`\`\`` : ''].filter(Boolean).join('\n').trim() || code;
+    body = { number: targetNumber, text: txt };
   }
 
   try {
