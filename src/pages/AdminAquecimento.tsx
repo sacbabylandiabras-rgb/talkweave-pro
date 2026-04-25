@@ -23,6 +23,7 @@ const donorTable = () => (supabase as any).from("warmup_donor_numbers");
 const messageTable = () => (supabase as any).from("warmup_messages");
 import { toast } from "sonner";
 import { warmupMessagePack } from "@/lib/warmup-messages";
+import { warmupConversationPack } from "@/lib/warmup-conversations";
 
 interface DonorNumber {
   id: string;
@@ -333,6 +334,28 @@ export default function AdminAquecimento() {
     }
     setImporting(false);
     toast.success(`Pacote padrão importado (${total} mensagens)`);
+    loadMessages();
+  };
+
+  const loadConversationPack = async () => {
+    setImporting(true);
+    const { data: u } = await supabase.auth.getUser();
+    // Codifica cada par como "PERGUNTA||RESPOSTA" — o motor reconhece o separador e
+    // faz a instância alvo responder reciprocamente à doadora.
+    const rows = warmupConversationPack.map((p) => ({
+      content: `${p.q}||${p.a}`,
+      created_by: u.user?.id || null,
+    }));
+    const chunkSize = 200;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const { error } = await messageTable().upsert(chunk, { onConflict: "content", ignoreDuplicates: true });
+      if (error) { toast.error(error.message); setImporting(false); return; }
+      total += chunk.length;
+    }
+    setImporting(false);
+    toast.success(`Pacote conversacional importado (${total} pares = ${total * 2} mensagens recíprocas)`);
     loadMessages();
   };
 
