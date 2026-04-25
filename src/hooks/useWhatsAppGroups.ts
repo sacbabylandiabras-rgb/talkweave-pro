@@ -16,14 +16,16 @@ export interface WhatsAppGroup {
   isCommunity?: boolean;
 }
 
-export function useWhatsAppGroups() {
+export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi' }) {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchGroups = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
+      const { data, error } = await supabase.functions.invoke('get-whatsapp-groups', {
+        body: options?.provider ? { provider: options.provider } : {},
+      });
 
       if (error) throw error;
 
@@ -40,7 +42,7 @@ export function useWhatsAppGroups() {
 
   useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [options?.provider]);
 
   return { groups, loading, refetch: fetchGroups };
 }
