@@ -63,7 +63,23 @@ const mapResolvedInstance = (instance: {
 } | null): ResolvedInstance | null => {
   if (!instance?.zapi_instance_id) return null;
 
-  // Force Z-API for all campaign dispatches (UAZAPI deprecated for campaigns)
+  const provider = instance.api_provider || 'zapi';
+
+  if (provider === 'uazapi') {
+    const hasUazapiCreds = Boolean(instance.evolution_api_url && (instance.evolution_api_key || instance.zapi_token));
+    if (!hasUazapiCreds) return null;
+
+    return {
+      zapiInstanceId: instance.zapi_instance_id,
+      zapiToken: instance.zapi_token || instance.evolution_api_key || '',
+      zapiClientToken: instance.zapi_client_token || instance.zapi_token || instance.evolution_api_key || '',
+      instanceName: instance.instance_name || 'Instância',
+      apiProvider: 'uazapi',
+      uazapiUrl: instance.evolution_api_url || '',
+      uazapiToken: instance.evolution_api_key || instance.zapi_token || '',
+    };
+  }
+
   const hasZapiCreds = Boolean(instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token);
   if (!hasZapiCreds) return null;
 
