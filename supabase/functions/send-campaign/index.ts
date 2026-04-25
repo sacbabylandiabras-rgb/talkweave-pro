@@ -1137,11 +1137,64 @@ serve(async (req) => {
           resolvedLidPhone = legacyLidMapping?.phone || null;
         }
 
+        // Fallback 1: procurar em qualquer message_log onde o LID apareceu como
+        // remetente (message_received) e o phone real foi capturado em outra coluna.
+        if (!resolvedLidPhone) {
+          const lidDigits = lidId.split('@')[0].replace(/\D/g, '');
+          if (lidDigits) {
+            const { data: anyLog } = await supabase
+              .from('message_logs')
+              .select('phone, message_received')
+              .eq('user_id', credentials.userId)
+              .ilike('message_received', `%${lidDigits}%`)
+              .not('phone', 'ilike', '%@lid%')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (anyLog?.phone && !anyLog.phone.includes('@lid')) {
+              resolvedLidPhone = anyLog.phone;
+            }
+          }
+        }
+
+        // Fallback 2: tabela whatsapp_contacts (caso exista mapeamento salvo)
+        if (!resolvedLidPhone) {
+          try {
+            const { data: contactRow } = await supabase
+              .from('whatsapp_contacts')
+              .select('phone')
+              .eq('user_id', credentials.userId)
+              .or(`lid.eq.${lidId},lid_id.eq.${lidId}`)
+              .limit(1)
+              .maybeSingle();
+            if (contactRow?.phone && !contactRow.phone.includes('@lid')) {
+              resolvedLidPhone = contactRow.phone;
+            }
+          } catch (_) {
+            // tabela/colunas podem não existir — ignorar
+          }
+        }
+
         if (resolvedLidPhone && !resolvedLidPhone.includes('@lid')) {
           console.log(`✅ Resolved @lid for campaign: ${lidId} → ${resolvedLidPhone}`);
           contact.phone = resolvedLidPhone;
         } else {
-          console.log(`⚠️ @lid não resolvido para ${lidId} — enviando como @lid.`);
+          // Não há como entregar uma mensagem para um @lid sem o telefone real.
+          // Marcar como falha explícita em vez de fingir envio bem-sucedido.
+          console.log(`❌ @lid não resolvido para ${lidId} — marcando como falha (sem telefone real).`);
+          const failedSend: CampaignSendRecord = {
+            campaign_id: campaignId,
+            user_id: credentials.userId,
+            phone: lidId,
+            contact_name: contact.name || undefined,
+            message_content: '',
+            status: 'failed',
+            error_message: 'Número @lid sem telefone real mapeado. Aguarde uma mensagem deste contato para resolver o LID.',
+          };
+          await persistCampaignSend(failedSend, null);
+          results.push({ phone: lidId, success: false, error: failedSend.error_message });
+          if (i < currentBatch.length - 1) await sleep(delayMs);
+          continue;
         }
       }
 
