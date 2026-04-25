@@ -1600,7 +1600,7 @@ const Modelos = () => {
                 />
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-3">
                     <div>
                       <Label>Upload de Arquivo</Label>
@@ -1611,7 +1611,7 @@ const Modelos = () => {
                             accept={
                               newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
                                 ? "image/*"
-                                : newTemplate.type === "audio"
+                                : newTemplate.type === "audio" || newTemplate.type === "audio_botoes"
                                 ? "audio/*"
                                 : "video/*"
                             }
