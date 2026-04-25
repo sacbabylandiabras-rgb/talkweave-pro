@@ -1196,7 +1196,6 @@ serve(async (req) => {
           if (i < currentBatch.length - 1) await sleep(delayMs);
           continue;
         }
-        }
       }
 
       const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
