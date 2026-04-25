@@ -68,9 +68,12 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const apiToken = instance.evolution_api_key || '';
   if (!apiUrl || !apiToken) return [];
 
-  const response = await fetch(`${apiUrl}/group/list?token=${encodeURIComponent(apiToken)}`, {
+  const response = await fetch(`${apiUrl}/group/list`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'token': apiToken,
+    },
   });
 
   const payload = await response.json().catch(() => ({}));
