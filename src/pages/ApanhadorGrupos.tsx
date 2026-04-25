@@ -53,6 +53,8 @@ const ApanhadorGrupos = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>('disconnected');
+  const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
+  const [pairingPhone, setPairingPhone] = useState('');
 
   const loadUazapiAccounts = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,7 +75,7 @@ const ApanhadorGrupos = () => {
     return accounts;
   };
 
-  const fetchQrFor = async (account: { url: string; token: string }) => {
+  const fetchQrFor = async (account: { url: string; token: string }, phone?: string) => {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
@@ -88,7 +90,7 @@ const ApanhadorGrupos = () => {
         return;
       }
       const { data, error } = await supabase.functions.invoke('uazapi-connect', {
-        body: { apiUrl: account.url, apiToken: account.token },
+        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined },
       });
       if (error) throw error;
       setConnStatus(data?.connectionStatus || 'connecting');
@@ -96,10 +98,21 @@ const ApanhadorGrupos = () => {
       setPairingCode(data?.pairingCode || null);
       if (data?.connected) setConnStatus('connected');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao gerar QR Code');
+      toast.error(err.message || 'Erro ao conectar instância');
     } finally {
       setQrLoading(false);
     }
+  };
+
+  const requestPairingCode = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    const phone = pairingPhone.replace(/\D/g, '');
+    if (phone.length < 10) {
+      toast.error('Informe o número completo com DDI e DDD (ex: 5511999999999)');
+      return;
+    }
+    await fetchQrFor(account, phone);
   };
 
   const openConnectDialog = async () => {
@@ -108,6 +121,8 @@ const ApanhadorGrupos = () => {
     setQrCode(null);
     setPairingCode(null);
     setConnStatus('disconnected');
+    setConnectMode('qr');
+    setPairingPhone('');
     const accounts = await loadUazapiAccounts();
     if (accounts.length > 0) {
       await fetchQrFor(accounts[0]);
@@ -342,7 +357,7 @@ const ApanhadorGrupos = () => {
               <Plug className="w-5 h-5" /> Conectar Instância
             </DialogTitle>
             <DialogDescription>
-              Escaneie o QR Code com seu WhatsApp para conectar.
+              Escaneie o QR Code ou use o código de pareamento para conectar.
             </DialogDescription>
           </DialogHeader>
 
@@ -373,11 +388,41 @@ const ApanhadorGrupos = () => {
                 </div>
               )}
 
+              {connStatus !== 'connected' && (
+                <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                  <Button
+                    size="sm"
+                    variant={connectMode === 'qr' ? 'default' : 'ghost'}
+                    onClick={() => {
+                      setConnectMode('qr');
+                      fetchQrFor(uazapiAccounts[activeAccountIdx]);
+                    }}
+                    className="flex-1"
+                  >
+                    QR Code
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={connectMode === 'pairing' ? 'default' : 'ghost'}
+                    onClick={() => {
+                      setConnectMode('pairing');
+                      setQrCode(null);
+                      setPairingCode(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Código de Pareamento
+                  </Button>
+                </div>
+              )}
+
               <div className="border border-border rounded-lg p-6 flex flex-col items-center justify-center min-h-[320px] bg-muted/20">
                 {qrLoading ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+                    <p className="text-sm text-muted-foreground">
+                      {connectMode === 'pairing' ? 'Gerando código...' : 'Gerando QR Code...'}
+                    </p>
                   </div>
                 ) : connStatus === 'connected' ? (
                   <div className="flex flex-col items-center gap-3 text-center">
@@ -387,6 +432,48 @@ const ApanhadorGrupos = () => {
                     <p className="font-medium text-foreground">Instância conectada!</p>
                     <p className="text-xs text-muted-foreground">Pronta para usar no Apanhador de Grupos.</p>
                   </div>
+                ) : connectMode === 'pairing' ? (
+                  pairingCode ? (
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <p className="text-xs text-muted-foreground">Seu código de pareamento:</p>
+                      <div className="px-6 py-4 bg-background border-2 border-primary/40 rounded-lg">
+                        <p className="font-mono text-3xl font-bold tracking-[0.3em] text-foreground">
+                          {pairingCode}
+                        </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground max-w-xs space-y-1">
+                        <p>1. Abra o WhatsApp no celular</p>
+                        <p>2. Vá em <strong>Aparelhos conectados</strong></p>
+                        <p>3. Toque em <strong>Conectar com número</strong></p>
+                        <p>4. Digite o código acima</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                          Número de WhatsApp (com DDI e DDD)
+                        </label>
+                        <Input
+                          type="tel"
+                          placeholder="5511999999999"
+                          value={pairingPhone}
+                          onChange={(e) => setPairingPhone(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Apenas números. Ex: 55 (Brasil) + 11 (DDR) + número
+                        </p>
+                      </div>
+                      <Button
+                        onClick={requestPairingCode}
+                        disabled={qrLoading || pairingPhone.length < 10}
+                        className="w-full gap-2"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        Gerar Código
+                      </Button>
+                    </div>
+                  )
                 ) : qrCode ? (
                   <div className="flex flex-col items-center gap-3">
                     <img
@@ -394,14 +481,6 @@ const ApanhadorGrupos = () => {
                       alt="QR Code"
                       className="w-64 h-64 bg-white p-2 rounded-lg"
                     />
-                    {pairingCode && (
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">ou use o código de pareamento:</p>
-                        <p className="font-mono text-lg font-semibold tracking-wider text-foreground">
-                          {pairingCode}
-                        </p>
-                      </div>
-                    )}
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
                       Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
                     </p>
@@ -422,12 +501,22 @@ const ApanhadorGrupos = () => {
             {uazapiAccounts.length > 0 && connStatus !== 'connected' && (
               <Button
                 variant="outline"
-                onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}
+                onClick={() => {
+                  if (connectMode === 'pairing') {
+                    if (pairingCode) {
+                      setPairingCode(null);
+                    } else {
+                      requestPairingCode();
+                    }
+                  } else {
+                    fetchQrFor(uazapiAccounts[activeAccountIdx]);
+                  }
+                }}
                 disabled={qrLoading}
                 className="gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${qrLoading ? 'animate-spin' : ''}`} />
-                Atualizar QR
+                {connectMode === 'pairing' ? (pairingCode ? 'Novo código' : 'Gerar código') : 'Atualizar QR'}
               </Button>
             )}
             <Button onClick={() => setConnectOpen(false)}>Fechar</Button>
