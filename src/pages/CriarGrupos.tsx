@@ -1,7 +1,6 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +24,6 @@ import { toast } from "sonner";
 import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
 
 const CriarGrupos = () => {
-  const [activeTab, setActiveTab] = useState("gerenciar");
-
   return (
     <div className="space-y-6">
       <div>
@@ -34,25 +31,11 @@ const CriarGrupos = () => {
         <p className="text-muted-foreground text-sm mt-1">Crie grupos, gerencie participantes e links rotativos</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="gerenciar">Gerenciar</TabsTrigger>
-          <TabsTrigger value="links">Links Rotativos</TabsTrigger>
-          <TabsTrigger value="participantes">Participantes</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="gerenciar" className="mt-4">
-          <GerenciarGrupoTab />
-        </TabsContent>
-
-        <TabsContent value="links" className="mt-4">
-          <LinksRotativosTab />
-        </TabsContent>
-
-        <TabsContent value="participantes" className="mt-4">
-          <ParticipantesTab />
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-6">
+        <GerenciarGrupoTab />
+        <LinksRotativosTab />
+        <ParticipantesTab />
+      </div>
     </div>
   );
 };
