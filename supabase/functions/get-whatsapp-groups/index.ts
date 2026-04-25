@@ -343,8 +343,10 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
 
   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
   const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
-  const ownerPhone = await fetchOwnerPhoneViaZapi(instance);
-  console.log(`👤 Z-API owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
+  const owner = await fetchOwnerPhoneViaZapi(instance);
+  const ownerPhone = owner.phone;
+  const ownerLid = owner.lid;
+  console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerPhone || '(unknown)'} lid=${ownerLid || '(unknown)'}`);
 
   const response = await fetch(`${baseUrl}/groups`, { method: 'GET', headers });
   const payload = await response.json().catch(() => []);
