@@ -1303,6 +1303,26 @@ serve(async (req) => {
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
         const specialTpl = parseSpecialTemplate(campaign.template.content);
 
+        const formatZapiButtons = (buttons: any[]) => buttons.map((btn: any) => {
+          const btnType = (btn.type || 'url').toUpperCase();
+          const buttonData: any = { label: btn.text || btn.label };
+          if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
+          else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
+          else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
+          else {
+            buttonData.type = 'URL';
+            buttonData.url = buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
+              campaignId,
+              userId: credentials.userId,
+              phone: contact.phone,
+              label: buttonData.label || 'Abrir',
+              campaignName: campaign?.name,
+            });
+          }
+          if (btn.id) buttonData.id = btn.id;
+          return buttonData;
+        });
+
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
