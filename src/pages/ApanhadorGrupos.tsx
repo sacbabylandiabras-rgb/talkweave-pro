@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
@@ -30,7 +31,6 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const navigate = useNavigate();
   const { groups, loading, refetch } = useWhatsAppGroups();
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
@@ -45,6 +45,61 @@ const ApanhadorGrupos = () => {
   const [editingInstanceId, setEditingInstanceId] = useState<Map<string, string>>(new Map());
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [bulkActivating, setBulkActivating] = useState(false);
+
+  // Conectar instância uazapi (perfil)
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [savingUazapi, setSavingUazapi] = useState(false);
+  const [uazUrl1, setUazUrl1] = useState("");
+  const [uazToken1, setUazToken1] = useState("");
+  const [uazUrl2, setUazUrl2] = useState("");
+  const [uazToken2, setUazToken2] = useState("");
+
+  const loadUazapiProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('uazapi_url, uazapi_token')
+      .eq('id', user.id)
+      .maybeSingle();
+    const urls = (data?.uazapi_url || '').split('|');
+    const tokens = (data?.uazapi_token || '').split('|');
+    setUazUrl1(urls[0] || '');
+    setUazToken1(tokens[0] || '');
+    setUazUrl2(urls[1] || '');
+    setUazToken2(tokens[1] || '');
+  };
+
+  const openConnectDialog = async () => {
+    await loadUazapiProfile();
+    setConnectOpen(true);
+  };
+
+  const saveUazapiInstances = async () => {
+    if (!uazUrl1.trim() || !uazToken1.trim()) {
+      toast.error('Preencha URL e Token da Instância #1');
+      return;
+    }
+    setSavingUazapi(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      const combinedUrl = [uazUrl1.trim(), uazUrl2.trim()].filter(Boolean).join('|');
+      const combinedToken = [uazToken1.trim(), uazToken2.trim()].filter(Boolean).join('|');
+      const { error } = await supabase
+        .from('profiles')
+        .update({ uazapi_url: combinedUrl, uazapi_token: combinedToken })
+        .eq('id', user.id);
+      if (error) throw error;
+      toast.success('Instâncias uazapi salvas com sucesso!');
+      setConnectOpen(false);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar instâncias');
+    } finally {
+      setSavingUazapi(false);
+    }
+  };
 
   // Load templates and flows
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
@@ -228,13 +283,84 @@ const ApanhadorGrupos = () => {
           <p className="text-muted-foreground">Visualize seus grupos do WhatsApp e extraia números dos participantes</p>
         </div>
         <Button
-          onClick={() => navigate('/dispositivos')}
+          onClick={openConnectDialog}
           className="gap-2 bg-primary hover:bg-primary/90"
         >
           <Plug className="w-4 h-4" />
           Conectar Instância
         </Button>
       </div>
+
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plug className="w-5 h-5" /> Conectar Instâncias uazapi
+            </DialogTitle>
+            <DialogDescription>
+              Configure até 2 instâncias uazapi para usar no Apanhador de Grupos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="default">Instância #1</Badge>
+                <span className="text-xs text-muted-foreground">Obrigatória</span>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">URL da uazapi</Label>
+                <Input
+                  placeholder="https://sua-instancia.uazapi.com"
+                  value={uazUrl1}
+                  onChange={(e) => setUazUrl1(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Token</Label>
+                <Input
+                  placeholder="Token da instância"
+                  value={uazToken1}
+                  onChange={(e) => setUazToken1(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Instância #2</Badge>
+                <span className="text-xs text-muted-foreground">Opcional</span>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">URL da uazapi</Label>
+                <Input
+                  placeholder="https://sua-instancia2.uazapi.com"
+                  value={uazUrl2}
+                  onChange={(e) => setUazUrl2(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Token</Label>
+                <Input
+                  placeholder="Token da instância"
+                  value={uazToken2}
+                  onChange={(e) => setUazToken2(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConnectOpen(false)} disabled={savingUazapi}>
+              Cancelar
+            </Button>
+            <Button onClick={saveUazapiInstances} disabled={savingUazapi} className="gap-2">
+              {savingUazapi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
