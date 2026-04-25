@@ -569,7 +569,7 @@ Deno.serve(async (req) => {
           try {
             // 1) Try to actively resolve LIDs via uazapi /chat/find (returns real numbers)
             const lidToPhone = new Map<string, string>();
-            try {
+            if (!isCommunity) try {
               const findRes = await fetch(`${uazapi.apiUrl}/chat/find`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", token: uazapi.apiToken },
@@ -602,7 +602,7 @@ Deno.serve(async (req) => {
             }
 
             // 2) Fallback to local mapping table
-            const { data: lidMappings } = await adminClient
+            const { data: lidMappings } = isCommunity ? { data: [] } : await adminClient
               .from("message_logs")
               .select("phone, message_received")
               .eq("user_id", uazapi.userId)
