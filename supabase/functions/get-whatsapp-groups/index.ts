@@ -12,53 +12,6 @@ interface ZapiInstance {
   evolution_api_key?: string | null;
 }
 
-const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
-  const allGroups: any[] = [];
-  let page = 1;
-  const pageSize = 100;
-  let hasMore = true;
-
-  while (hasMore) {
-    const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/groups?page=${page}&pageSize=${pageSize}`;
-    const response = await fetch(zapiUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Client-Token": instance.zapi_client_token,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Z-API error for ${instance.instance_name}: ${response.status} - ${errorText}`);
-      console.error(`❌ URL used: ${zapiUrl}`);
-      break;
-    }
-
-    const data = await response.json();
-    const groups = Array.isArray(data) ? data : [];
-    console.log(`📄 Z-API ${instance.instance_name} | Page ${page}: ${groups.length} groups`);
-    if (groups.length > 0 && page === 1) {
-      console.log(`🔬 Z-API sample group keys: ${Object.keys(groups[0]).join(',')}`);
-      console.log(`🔬 Z-API sample group: ${JSON.stringify(groups[0]).slice(0, 800)}`);
-    }
-
-    for (const group of groups) {
-      allGroups.push({
-        ...group,
-        __sourceInstanceName: instance.instance_name || null,
-        __sourceInstanceId: instance.zapi_instance_id,
-      });
-    }
-
-    hasMore = groups.length === pageSize;
-    page++;
-    if (page > 20) break;
-  }
-
-  return allGroups;
-};
-
 const isUsableGroupName = (value: unknown) => {
   const normalized = String(value || '').trim();
   if (!normalized) return false;
@@ -267,23 +220,15 @@ Deno.serve(async (req) => {
       console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
     }
 
-    // Apply provider filter if requested
-    let filteredInstances = instances;
-    if (providerFilter === "uazapi") {
-      filteredInstances = instances.filter((inst) => inst.api_provider === "uazapi");
-    } else if (providerFilter === "zapi") {
-      filteredInstances = instances.filter((inst) => (inst.api_provider || "zapi") === "zapi");
-    }
-
-    console.log(`📦 Active instances (after filter): ${filteredInstances.length} / ${instances.length}`);
+    // Apanhador de Grupos: usa SOMENTE Uazapi. Z-API é ignorada.
+    const filteredInstances = instances.filter((inst) => inst.api_provider === "uazapi");
+    console.log(`📦 Uazapi instances: ${filteredInstances.length} / ${instances.length} (Z-API ignorada)`);
 
     const groupsById = new Map<string, any>();
 
     for (const instance of filteredInstances) {
       try {
-        const rawGroups = instance.api_provider === 'uazapi'
-          ? await fetchGroupsViaUazapi(instance)
-          : await fetchGroupsViaZapi(instance);
+        const rawGroups = await fetchGroupsViaUazapi(instance);
         for (const group of rawGroups) {
           const groupId = group.phone || group.id;
           if (!groupId) continue;
