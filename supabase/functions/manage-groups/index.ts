@@ -226,6 +226,181 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Aliases para alinhar com a documentação Z-API
+      case "add-admin": {
+        const { groupId, phones, phone } = body;
+        const list = Array.isArray(phones) ? phones : phone ? [phone] : [];
+        if (!groupId || list.length === 0) throw new Error("groupId and phones are required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/add-admin`, {
+          method: "POST", headers,
+          body: JSON.stringify({ groupId: cleanId, phones: list }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "remove-admin": {
+        const { groupId, phones, phone } = body;
+        const list = Array.isArray(phones) ? phones : phone ? [phone] : [];
+        if (!groupId || list.length === 0) throw new Error("groupId and phones are required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/remove-admin`, {
+          method: "POST", headers,
+          body: JSON.stringify({ groupId: cleanId, phones: list }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "approve-participant": {
+        const { groupId, phones, phone } = body;
+        const list = Array.isArray(phones) ? phones : phone ? [phone] : [];
+        if (!groupId || list.length === 0) throw new Error("groupId and phones are required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/approve-participant`, {
+          method: "POST", headers,
+          body: JSON.stringify({ groupId: cleanId, phones: list }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "reject-participant": {
+        const { groupId, phones, phone } = body;
+        const list = Array.isArray(phones) ? phones : phone ? [phone] : [];
+        if (!groupId || list.length === 0) throw new Error("groupId and phones are required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/reject-participant`, {
+          method: "POST", headers,
+          body: JSON.stringify({ groupId: cleanId, phones: list }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "mention-participant": {
+        const { phone: groupPhone, message, mentioned } = body;
+        if (!groupPhone || !message) throw new Error("phone and message are required");
+        const response = await fetch(`${baseUrl}/send-text`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            phone: groupPhone.includes("-group") ? groupPhone : groupPhone.replace("@g.us", "-group"),
+            message,
+            mentioned: Array.isArray(mentioned) ? mentioned : [],
+          }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "mention-group": {
+        const { phone: groupPhone, message } = body;
+        if (!groupPhone || !message) throw new Error("phone and message are required");
+        const response = await fetch(`${baseUrl}/send-text`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            phone: groupPhone.includes("-group") ? groupPhone : groupPhone.replace("@g.us", "-group"),
+            message,
+            mentioned: ["all"],
+          }),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "leave-group": {
+        const { groupId } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/leave-group/${cleanId}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "metadata-group":
+      case "group-metadata": {
+        const { groupId } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/group-metadata/${cleanId}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "light-group-metadata": {
+        const { groupId } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/light-group-metadata/${cleanId}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "group-invitation-metadata": {
+        const { url, code } = body;
+        const inviteCode = code || (url ? String(url).split("/").pop() : "");
+        if (!inviteCode) throw new Error("url or code is required");
+        const response = await fetch(`${baseUrl}/group-invitation-metadata/${inviteCode}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "update-group-settings": {
+        const { groupId, ...rest } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const allowed = [
+          "adminOnlyMessage",
+          "adminOnlySettings",
+          "requireAdminApproval",
+          "adminOnlyAddMember",
+        ];
+        const payload: Record<string, unknown> = { phone: cleanId };
+        for (const key of allowed) {
+          if (typeof rest[key] === "boolean") payload[key] = rest[key];
+        }
+        const response = await fetch(`${baseUrl}/update-group-settings`, {
+          method: "POST", headers, body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "redefine-invitation-link": {
+        const { groupId } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/redefine-invitation-link/${cleanId}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "get-invitation-link":
+      case "get-invite-link-v2": {
+        const { groupId } = body;
+        if (!groupId) throw new Error("groupId is required");
+        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+        const response = await fetch(`${baseUrl}/group-invitation-link/${cleanId}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "accept-group-invite": {
+        const { url, code } = body;
+        const inviteCode = code || (url ? String(url).split("/").pop() : "");
+        if (!inviteCode) throw new Error("url or code is required");
+        const response = await fetch(`${baseUrl}/accept-group-invite/${inviteCode}`, { method: "GET", headers });
+        const data = await response.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "get-groups": {
+        const response = await fetch(`${baseUrl}/groups`, { method: "GET", headers });
+        const data = await response.json().catch(() => ([]));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
