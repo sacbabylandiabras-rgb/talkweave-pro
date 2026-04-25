@@ -80,6 +80,8 @@ export default function AdminAquecimento() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>("disconnected");
   const [qrLoading, setQrLoading] = useState(false);
+  const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
+  const [pairingPhone, setPairingPhone] = useState("");
 
   const loadInstances = async () => {
     setLoadingInst(true);
@@ -100,7 +102,7 @@ export default function AdminAquecimento() {
     loadInstances();
   }, []);
 
-  const fetchQr = async (inst: UazInstance) => {
+  const fetchQr = async (inst: UazInstance, phone?: string) => {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
@@ -113,7 +115,7 @@ export default function AdminAquecimento() {
         return;
       }
       const { data, error } = await supabase.functions.invoke("uazapi-connect", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
       });
       if (error) throw error;
       setConnStatus((data as any)?.connectionStatus || "connecting");
@@ -131,6 +133,8 @@ export default function AdminAquecimento() {
     setConnectInst(inst);
     setConnectOpen(true);
     setConnStatus("disconnected");
+    setConnectMode("qr");
+    setPairingPhone("");
     await fetchQr(inst);
   };
 
@@ -489,9 +493,56 @@ export default function AdminAquecimento() {
           <DialogHeader>
             <DialogTitle>Conectar {connectInst?.instance_name}</DialogTitle>
             <DialogDescription>
-              Abra o WhatsApp → Aparelhos conectados → Conectar aparelho e escaneie o QR Code
+              Abra o WhatsApp → Aparelhos conectados → Conectar aparelho
             </DialogDescription>
           </DialogHeader>
+          {connStatus !== "connected" && (
+            <div className="flex gap-2 justify-center">
+              <Button
+                size="sm"
+                variant={connectMode === "qr" ? "default" : "outline"}
+                onClick={() => {
+                  setConnectMode("qr");
+                  setPairingCode(null);
+                  if (connectInst) fetchQr(connectInst);
+                }}
+              >
+                QR Code
+              </Button>
+              <Button
+                size="sm"
+                variant={connectMode === "pairing" ? "default" : "outline"}
+                onClick={() => {
+                  setConnectMode("pairing");
+                  setQrCode(null);
+                }}
+              >
+                Código de pareamento
+              </Button>
+            </div>
+          )}
+          {connectMode === "pairing" && connStatus !== "connected" && (
+            <div className="flex flex-col gap-2 px-1">
+              <Label className="text-xs">Telefone (DDI+DDD+Número)</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="5511999999999"
+                  value={pairingPhone}
+                  onChange={(e) => setPairingPhone(e.target.value.replace(/\D/g, ""))}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => connectInst && fetchQr(connectInst, pairingPhone)}
+                  disabled={qrLoading || pairingPhone.length < 10}
+                >
+                  Gerar código
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Digite o número e abra WhatsApp → Aparelhos conectados → Conectar com número de telefone
+              </p>
+            </div>
+          )}
           <div className="flex flex-col items-center justify-center py-4 min-h-[280px]">
             {connStatus === "connected" ? (
               <div className="flex flex-col items-center gap-2 text-primary">
@@ -500,16 +551,23 @@ export default function AdminAquecimento() {
               </div>
             ) : qrLoading ? (
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            ) : qrCode ? (
+            ) : connectMode === "qr" && qrCode ? (
               <img
                 src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
                 alt="QR Code"
                 className="w-64 h-64"
               />
+            ) : connectMode === "pairing" && pairingCode ? (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm text-muted-foreground">Seu código:</p>
+                <p className="text-3xl font-mono font-bold tracking-widest">{pairingCode}</p>
+              </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
+              <p className="text-sm text-muted-foreground">
+                {connectMode === "qr" ? "Aguardando QR Code..." : "Informe o telefone para gerar o código"}
+              </p>
             )}
-            {pairingCode && (
+            {connectMode === "qr" && pairingCode && (
               <p className="mt-3 text-sm">
                 Código de pareamento: <span className="font-mono font-bold">{pairingCode}</span>
               </p>
@@ -519,7 +577,7 @@ export default function AdminAquecimento() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => connectInst && fetchQr(connectInst)}
+              onClick={() => connectInst && fetchQr(connectInst, connectMode === "pairing" ? pairingPhone : undefined)}
               disabled={qrLoading}
             >
               <RefreshCw className="w-4 h-4 mr-1" />
