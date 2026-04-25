@@ -20,7 +20,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Tabela criada via migration; o tipo gerado ainda não a conhece, então usamos cast.
 const donorTable = () => (supabase as any).from("warmup_donor_numbers");
+const messageTable = () => (supabase as any).from("warmup_messages");
 import { toast } from "sonner";
+import { warmupMessagePack } from "@/lib/warmup-messages";
 
 interface DonorNumber {
   id: string;
@@ -56,6 +58,14 @@ export default function AdminAquecimento() {
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [bulk, setBulk] = useState("");
+
+  // Mensagens compartilhadas
+  const [messages, setMessages] = useState<Array<{ id: string; content: string; active: boolean }>>([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(true);
+  const [newMsg, setNewMsg] = useState("");
+  const [bulkMsg, setBulkMsg] = useState("");
+  const [importing, setImporting] = useState(false);
+
   const [instOpen, setInstOpen] = useState(false);
   const [instName, setInstName] = useState("");
   const [creatingInst, setCreatingInst] = useState(false);
