@@ -348,18 +348,34 @@ const resolveUazapiInstance = async (
 
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  let query = adminClient
-    .from("zapi_instances")
-    .select("evolution_api_url, evolution_api_key, api_provider, zapi_instance_id, is_default, is_active, created_at")
-    .eq("user_id", user.id)
-    .eq("api_provider", "uazapi")
-    .eq("is_active", true);
-
+  // 1) Try the exact source instance first (so each group hits its own uazapi)
   if (sourceInstanceId) {
-    query = query.eq("zapi_instance_id", sourceInstanceId);
+    const { data: exact } = await adminClient
+      .from("zapi_instances")
+      .select("evolution_api_url, evolution_api_key, api_provider")
+      .eq("user_id", user.id)
+      .eq("api_provider", "uazapi")
+      .eq("is_active", true)
+      .eq("zapi_instance_id", sourceInstanceId)
+      .limit(1)
+      .maybeSingle();
+
+    if (exact?.evolution_api_url && exact?.evolution_api_key) {
+      return {
+        apiUrl: String(exact.evolution_api_url).replace(/\/+$/, ""),
+        apiToken: String(exact.evolution_api_key),
+        userId: user.id,
+      };
+    }
   }
 
-  const { data } = await query
+  // 2) Fallback: any active uazapi instance for this user (default first)
+  const { data } = await adminClient
+    .from("zapi_instances")
+    .select("evolution_api_url, evolution_api_key")
+    .eq("user_id", user.id)
+    .eq("api_provider", "uazapi")
+    .eq("is_active", true)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true })
     .limit(1)
