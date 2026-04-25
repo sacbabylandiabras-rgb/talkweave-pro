@@ -54,6 +54,16 @@ function GerenciarGrupoTab() {
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState("");
+  // Advanced management state
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const [pendingList, setPendingList] = useState<Array<{ phone: string; name?: string }>>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [groupSettings, setGroupSettings] = useState({
+    adminOnlyMessage: false,
+    adminOnlySettings: false,
+    requireAdminApproval: false,
+    adminOnlyAddMember: false,
+  });
   const [savedGroupData, setSavedGroupData] = useState<Record<string, { description?: string; photo?: string }>>(() => {
     if (typeof window === "undefined") return {};
     try {
