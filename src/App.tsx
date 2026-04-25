@@ -30,6 +30,7 @@ import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
 import AquecimentoNumero from "./pages/AquecimentoNumero";
+import AdminAquecimento from "./pages/AdminAquecimento";
 import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
 import TemplatesAprovados from "./pages/TemplatesAprovados";
@@ -134,6 +135,14 @@ const App = () => (
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
                   <Route path="/aquecimento" element={<AquecimentoNumero />} />
+                  <Route
+                    path="/admin/aquecimento"
+                    element={
+                      <AdminRouteGuard>
+                        <AdminAquecimento />
+                      </AdminRouteGuard>
+                    }
+                  />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
                   <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
