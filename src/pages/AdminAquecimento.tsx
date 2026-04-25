@@ -82,6 +82,7 @@ export default function AdminAquecimento() {
   const [qrLoading, setQrLoading] = useState(false);
   const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
   const [pairingPhone, setPairingPhone] = useState("");
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const loadInstances = async () => {
     setLoadingInst(true);
@@ -106,6 +107,7 @@ export default function AdminAquecimento() {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
+    setConnectError(null);
     try {
       const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
         body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
@@ -118,11 +120,13 @@ export default function AdminAquecimento() {
         body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
       });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
       setConnStatus((data as any)?.connectionStatus || "connecting");
       setQrCode((data as any)?.qrCode || null);
       setPairingCode((data as any)?.pairingCode || null);
       if ((data as any)?.connected) setConnStatus("connected");
     } catch (err: any) {
+      setConnectError(err.message || "Erro ao conectar instância");
       toast.error(err.message || "Erro ao conectar instância");
     } finally {
       setQrLoading(false);
