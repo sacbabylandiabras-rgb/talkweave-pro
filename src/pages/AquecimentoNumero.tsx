@@ -7,7 +7,6 @@ import { Slider } from "@/components/ui/slider";
 import { Flame, Play, Pause, Loader2, Activity } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface WarmupConfig {
   active: boolean;
@@ -18,6 +17,7 @@ interface WarmupConfig {
 }
 
 const STORAGE_KEY = "zaplynx-warmup-config";
+const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
 
 export default function AquecimentoNumero() {
   const { instances: allInstances } = useZapiInstances();
@@ -33,7 +33,11 @@ export default function AquecimentoNumero() {
     dailyLimit: 50,
   });
   const [saving, setSaving] = useState(false);
-  const [cycleRunning, setCycleRunning] = useState(false);
+
+  const persistConfig = (nextConfig: WarmupConfig) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
+    window.dispatchEvent(new Event(WARMUP_CONFIG_EVENT));
+  };
 
   useEffect(() => {
     try {
@@ -59,7 +63,7 @@ export default function AquecimentoNumero() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      persistConfig(config);
       toast.success("Configuração de aquecimento salva");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
@@ -67,55 +71,6 @@ export default function AquecimentoNumero() {
       setSaving(false);
     }
   };
-
-  const runWarmupCycle = async () => {
-    const { data, error } = await supabase.functions.invoke("run-warmup", {
-      body: {
-        instanceIds: config.instanceIds,
-        minDelay: config.minDelay,
-        maxDelay: config.maxDelay,
-        dailyLimit: config.dailyLimit,
-        mode: "tick",
-        batchSize: 1,
-      },
-    });
-    if (error) throw error;
-    if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao executar ciclo");
-    return data as any;
-  };
-
-  useEffect(() => {
-    if (!config.active || !config.instanceIds.length) return;
-
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const scheduleNext = () => {
-      const min = Math.max(5, config.minDelay);
-      const max = Math.max(min, config.maxDelay);
-      const delayMs = (min + Math.random() * (max - min)) * 1000;
-      timer = setTimeout(run, delayMs);
-    };
-
-    const run = async () => {
-      if (cancelled) return;
-      setCycleRunning(true);
-      try {
-        await runWarmupCycle();
-      } catch (err: any) {
-        toast.error(err?.message || "Erro no ciclo de aquecimento");
-      } finally {
-        setCycleRunning(false);
-        if (!cancelled) scheduleNext();
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
-  }, [config.active, config.instanceIds, config.minDelay, config.maxDelay, config.dailyLimit]);
 
   const toggleActive = async () => {
     if (!config.active) {
@@ -129,7 +84,7 @@ export default function AquecimentoNumero() {
     }
     const updated = { ...config, active: !config.active };
     setConfig(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    persistConfig(updated);
   };
 
   return (

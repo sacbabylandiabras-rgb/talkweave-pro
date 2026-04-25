@@ -4,13 +4,42 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
+interface WarmupConfig {
+  active: boolean;
+  instanceIds: string[];
+  minDelay: number;
+  maxDelay: number;
+  dailyLimit: number;
+}
+
+const WARMUP_STORAGE_KEY = "zaplynx-warmup-config";
+const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
+
+const readWarmupConfig = (): WarmupConfig => {
+  const fallback: WarmupConfig = {
+    active: false,
+    instanceIds: [],
+    minDelay: 30,
+    maxDelay: 120,
+    dailyLimit: 50,
+  };
+
+  try {
+    const saved = localStorage.getItem(WARMUP_STORAGE_KEY);
+    return saved ? { ...fallback, ...JSON.parse(saved) } : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 export function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>();
+  const [warmupConfig, setWarmupConfig] = useState<WarmupConfig>(readWarmupConfig);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -51,6 +80,64 @@ export function DashboardLayout() {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    const syncWarmupConfig = () => setWarmupConfig(readWarmupConfig());
+
+    window.addEventListener("storage", syncWarmupConfig);
+    window.addEventListener("focus", syncWarmupConfig);
+    window.addEventListener(WARMUP_CONFIG_EVENT, syncWarmupConfig);
+
+    return () => {
+      window.removeEventListener("storage", syncWarmupConfig);
+      window.removeEventListener("focus", syncWarmupConfig);
+      window.removeEventListener(WARMUP_CONFIG_EVENT, syncWarmupConfig);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading || !warmupConfig.active || !warmupConfig.instanceIds.length) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const run = async () => {
+      if (cancelled) return;
+      try {
+        const { data, error } = await supabase.functions.invoke("run-warmup", {
+          body: {
+            instanceIds: warmupConfig.instanceIds,
+            minDelay: warmupConfig.minDelay,
+            maxDelay: warmupConfig.maxDelay,
+            dailyLimit: warmupConfig.dailyLimit,
+            mode: "tick",
+            batchSize: 1,
+          },
+        });
+
+        if (error) throw error;
+        if ((data as any)?.success === false) {
+          throw new Error((data as any)?.error || "Erro ao executar ciclo");
+        }
+      } catch (err: any) {
+        toast.error(err?.message || "Erro no ciclo de aquecimento");
+      } finally {
+        if (!cancelled) {
+          const min = Math.max(5, warmupConfig.minDelay);
+          const max = Math.max(min, warmupConfig.maxDelay);
+          const delayMs = (min + Math.random() * (max - min)) * 1000;
+          timer = setTimeout(run, delayMs);
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading, warmupConfig.active, warmupConfig.instanceIds, warmupConfig.minDelay, warmupConfig.maxDelay, warmupConfig.dailyLimit]);
 
   if (loading) {
     return (
