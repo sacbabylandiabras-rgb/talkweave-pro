@@ -51,6 +51,7 @@ serve(async (req: Request) => {
     const maxDelay = Math.max(minDelay, Number(body?.maxDelay) || 30);
     const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
     const isTickMode = body?.mode === "tick" || body?.batchSize !== undefined;
+    const targetOffset = Math.max(0, Number(body?.targetOffset) || 0);
     const sendsPerDonor = Math.max(
       1,
       Math.min(dailyLimit, Math.min(20, Number(body?.batchSize) || dailyLimit)),
@@ -243,7 +244,7 @@ serve(async (req: Request) => {
       const pendingReplies: Promise<void>[] = [];
 
       // Processa todas as doadoras EM PARALELO para evitar timeout da Edge Function
-      await Promise.all(donors.map(async (donor) => {
+      await Promise.all(donors.map(async (donor, donorIndex) => {
         const apiUrl = String(donor.evolution_api_url || "").replace(/\/+$/, "");
         const apiToken = String(donor.evolution_api_key || donor.zapi_token || "");
         if (!apiUrl || !apiToken) {
@@ -281,7 +282,9 @@ serve(async (req: Request) => {
 
         for (let i = 0; i < sendsPerDonor; i++) {
           // Round-robin: garante distribuição equilibrada entre todos os alvos
-          const target = cleanedTargets[i % cleanedTargets.length];
+          // Em modo tick com batchSize 1, o cliente envia targetOffset crescente para
+          // não ficar sempre no primeiro número da lista.
+          const target = cleanedTargets[(targetOffset + donorIndex + i) % cleanedTargets.length];
           const raw = pickRandom(messages);
           // Detecta par conversacional: "PERGUNTA||RESPOSTA"
           const sepIdx = raw.indexOf("||");
