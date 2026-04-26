@@ -251,16 +251,33 @@ serve(async (req) => {
       }
 
       // 1) Authenticate
-      const authRes = await fetch(CARTWAVE_AUTH_URL, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'ZapLynxPay/1.0',
-        },
-        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
-      })
-      const authData = await authRes.json().catch(() => ({}))
+      let authRes: Response
+      let authData: any = {}
+      try {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), 8000)
+        authRes = await fetch(CARTWAVE_AUTH_URL, {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'ZapLynxPay/1.0',
+          },
+          body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+          signal: ctrl.signal,
+        })
+        clearTimeout(t)
+        authData = await authRes.json().catch(() => ({}))
+      } catch (e: any) {
+        console.error('CartWave auth network error:', e?.message || e)
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `CartWave indisponível (timeout/conexão): ${e?.message || 'erro de rede'}. Aprovação manual necessária.`,
+        }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'CartWave indisponível no momento. Saque ficou pendente para aprovação manual.' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       const accessToken = authData?.access || authData?.access_token || authData?.token
         || authData?.data?.access || authData?.data?.access_token || authData?.data?.token
 
