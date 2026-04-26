@@ -82,7 +82,7 @@ serve(async (req: Request) => {
 
     // Resolver telefones das instâncias Z-API selecionadas pelo usuário
     // Guardamos também as credenciais para que a instância alvo possa RESPONDER de volta
-    type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string };
+    type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string; dbId: string };
     const targetInstances: TargetInstance[] = [];
     const resolvedFromInstances: string[] = [];
     if (instanceIds.length > 0) {
@@ -235,17 +235,8 @@ serve(async (req: Request) => {
     const sentByTarget: Record<string, number> = {};
     // Mapeamento phone → instanceId (UUID da zapi_instances) p/ a UI casar contadores
     const targetInstanceMap: Record<string, string> = {};
-    if (instanceIds.length > 0) {
-      const { data: userInstances2 } = await admin
-        .from("zapi_instances")
-        .select("id, zapi_instance_id")
-        .in("id", instanceIds)
-        .eq("user_id", user.id);
-      // Associa phone ↔ id quando já resolvemos acima via targetInstances
-      for (const ti of targetInstances) {
-        const match = (userInstances2 || []).find((u: any) => String(u.zapi_instance_id) === ti.instanceId);
-        if (match) targetInstanceMap[ti.phone] = String(match.id);
-      }
+    for (const ti of targetInstances) {
+      if (ti.dbId) targetInstanceMap[ti.phone] = ti.dbId;
     }
 
     // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
