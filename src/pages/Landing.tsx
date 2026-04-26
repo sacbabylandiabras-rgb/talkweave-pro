@@ -332,7 +332,7 @@ function HeroSection() {
     function update() {
       if (phase === "eating") {
         const t = objs[currentTarget];
-        if (!t) { phase = "done"; return; }
+        if (!t) { phase = "exiting"; return; }
         const dx = t.x - pacX, dy = t.y - pacY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         pacAngle = Math.atan2(dy, dx);
@@ -347,12 +347,12 @@ function HeroSection() {
         mouthOpen += 0.05 * mouthDir;
         if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
       } else {
-        doneTimer++;
-        mouthOpen = Math.max(0.05, mouthOpen - 0.01);
-        pacX = Math.min(W() * 0.82, pacX + 0.6);
+        pacX += 2.5;
         pacAngle = 0;
-        // Loop contínuo: reinicia assim que sai do canvas, sem pausa
-        if (pacX >= W() * 0.82) {
+        mouthOpen += 0.05 * mouthDir;
+        if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
+        // Loop contínuo: atravessa até sair da tela e reaparece do outro lado
+        if (pacX > W() + 40) {
           initPositions();
         }
       }
