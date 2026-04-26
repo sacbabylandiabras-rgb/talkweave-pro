@@ -86,35 +86,39 @@ serve(async (req: Request) => {
     const targetInstances: TargetInstance[] = [];
     const resolvedFromInstances: string[] = [];
     if (instanceIds.length > 0) {
-      const { data: userInstances } = await admin
+      const { data: userInstances, error: userInstancesErr } = await admin
         .from("zapi_instances")
-        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, connected_phone")
+        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider")
         .in("id", instanceIds)
         .eq("user_id", user.id);
+      if (userInstancesErr) {
+        return json({ success: false, error: userInstancesErr.message }, 500);
+      }
 
       for (const inst of userInstances || []) {
         try {
           const provider = String(inst.api_provider || "zapi").toLowerCase();
           if (provider !== "zapi") continue;
-          // 1) Tenta cache persistido primeiro (resolução prévia)
-          let phone = String(inst.connected_phone || "").replace(/\D/g, "");
-          if (phone.length < 8) phone = "";
+          let phone = "";
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
-          const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
+          const endpoints = ["/me", "/device", "/profile", "/status", "/phone-code"];
           for (const ep of endpoints) {
             if (phone) break;
             try {
               const r = await fetch(`${base}${ep}`, { headers });
               if (!r.ok) continue;
               const j: any = await r.json().catch(() => ({}));
-              const cand =
-                j?.phone || j?.connectedPhone || j?.connected_phone ||
-                j?.id || j?.wid || j?.user || j?.me?.user || j?.device?.phone ||
-                j?.smartphoneConnected;
-              const digits = String(cand || "").replace(/\D/g, "");
-              if (digits.length >= 8) { phone = digits; break; }
+              const candidates = [
+                j?.phone, j?.phoneNumber, j?.connectedPhone, j?.connected_phone,
+                j?.id, j?.wid, j?.wid?.user, j?.user, j?.user?.id, j?.user?.phone,
+                j?.me?.id, j?.me?.user, j?.me?.phone, j?.device?.phone, j?.device?.number,
+              ];
+              for (const cand of candidates) {
+                const digits = String(cand || "").replace(/\D/g, "");
+                if (digits.length >= 8) { phone = digits; break; }
+              }
             } catch (_) { /* try next */ }
           }
           // Fallback: se o instance_name for um telefone (DDI+DDD+número), usa-o
@@ -126,13 +130,6 @@ serve(async (req: Request) => {
             }
           }
           if (phone) {
-            // Persiste no cache se for novo/diferente para próximos ciclos
-            if (String(inst.connected_phone || "").replace(/\D/g, "") !== phone) {
-              await admin
-                .from("zapi_instances")
-                .update({ connected_phone: phone })
-                .eq("id", inst.id);
-            }
             resolvedFromInstances.push(phone);
             targetInstances.push({
               phone,
