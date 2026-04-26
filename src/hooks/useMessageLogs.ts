@@ -40,6 +40,7 @@ export interface UnifiedMessage {
   timestamp: string;
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
+  campaign_id?: string | null;
 }
 
 export interface SavedContact {
