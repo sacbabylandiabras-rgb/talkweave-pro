@@ -199,6 +199,23 @@ serve(async (req: Request) => {
     const findTargetInstance = (phone: string): TargetInstance | undefined =>
       targetInstances.find((t) => t.phone === phone);
 
+    const isNewChatCapping = (text: string) =>
+      /new_chat_message_capping|message_capping|new chat|capping/i.test(text || "");
+
+    const sendZapiText = async (inst: TargetInstance, phone: string, message: string) => {
+      const zapiUrl = `https://api.z-api.io/instances/${inst.instanceId}/token/${inst.token}/send-text`;
+      const response = await fetch(zapiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Client-Token": inst.clientToken,
+        },
+        body: JSON.stringify({ phone, message }),
+      });
+      const body = await response.text().catch(() => "");
+      return { ok: response.ok, status: response.status, body };
+    };
+
     /**
      * Aguarda (polling) a resposta REAL do número alvo na caixa de mensagens da
      * doadora UAZAPI. Retorna true se detectar uma mensagem recebida do `target`
@@ -318,10 +335,23 @@ serve(async (req: Request) => {
               sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
+              const targetInstForOpen = findTargetInstance(target);
+              if (targetInstForOpen && donorPhone && answer) {
+                const opener = await sendZapiText(targetInstForOpen, donorPhone, answer);
+                if (opener.ok) {
+                  totalReplies++;
+                  console.log(`  ↩ ${targetInstForOpen.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
+                } else if (isNewChatCapping(opener.body)) {
+                  console.log(`  ⚠ ${targetInstForOpen.name}: Z-API bloqueou nova conversa (${opener.status}); enviando primeiro da doadora para liberar resposta`);
+                } else {
+                  console.log(`  ✗ envio forçado falhou: HTTP ${opener.status} ${opener.body.slice(0,200)}`);
+                }
+              }
+
               // RÉPLICA RECÍPROCA (em BACKGROUND para não bloquear o ciclo principal)
               // Se não houver "answer" no template, usa uma resposta automática rápida do pool.
               const replyText = answer || pickRandom(autoReplies);
-              if (replyText) {
+              if (replyText && !answer) {
                 const tInst = findTargetInstance(target);
                 if (!donorPhone) {
                   console.log(`  ⚠ sem réplica: telefone da doadora ${donor.instance_name} não resolvido`);
@@ -332,25 +362,16 @@ serve(async (req: Request) => {
                   const donorPhoneSafe = donorPhone;
                   const answerSafe = replyText;
                   const replyTask = (async () => {
-                    // Resposta RÁPIDA: 1-3s (simula digitação curta humana)
-                    const replyDelay = (1 + Math.random() * 2) * 1000;
+                    // Resposta FORÇADA e rápida: 0.5-1.5s para reduzir atraso do aquecimento.
+                    const replyDelay = (0.5 + Math.random()) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
                     try {
-                      const zapiUrl = `https://api.z-api.io/instances/${tInstSafe.instanceId}/token/${tInstSafe.token}/send-text`;
-                      const rr = await fetch(zapiUrl, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          "Client-Token": tInstSafe.clientToken,
-                        },
-                        body: JSON.stringify({ phone: donorPhoneSafe, message: answerSafe }),
-                      });
+                      const rr = await sendZapiText(tInstSafe, donorPhoneSafe, answerSafe);
                       if (rr.ok) {
                         totalReplies++;
                         console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
                       } else {
-                        const t = await rr.text().catch(() => "");
-                        console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
+                        console.log(`  ✗ réplica bloqueada pela Z-API: HTTP ${rr.status} ${rr.body.slice(0,200)}`);
                       }
                     } catch (e: any) {
                       console.log(`  ✗ réplica erro: ${e?.message}`);
