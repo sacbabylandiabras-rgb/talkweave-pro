@@ -354,35 +354,9 @@ function HeroSection() {
           if (tagline) tagline.style.opacity = "1";
           if (sub) sub.style.opacity = "1";
         }
-        if (doneTimer === 55 && sr) {
-          sr.classList.add("lp-fly-in");
-          let si = 0;
-          if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
-          const advanceSlide = () => {
-            si = (si + 1) % 3;
-            showScreen(si);
-            const delay = si === 2 ? 5500 : 3200;
-            slideIntervalRef.current = setTimeout(advanceSlide, delay);
-          };
-          slideIntervalRef.current = setTimeout(advanceSlide, 3200);
-        }
-        if (doneTimer === 440) {
-          if (sr) {
-            sr.style.transition = "opacity 0.5s ease, transform 0.8s cubic-bezier(.8,0,.85,1)";
-            sr.style.transform = "translate(-50%, -50%) translateX(-120%)";
-            sr.style.opacity = "0";
-            setTimeout(() => {
-              sr.classList.remove("lp-fly-in");
-              sr.style.transition = "";
-              sr.style.transform = "";
-              sr.style.opacity = "";
-              if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
-              showScreen(0);
-              setTimeout(() => initPositions(), 200);
-            }, 800);
-          } else {
-            setTimeout(() => initPositions(), 800);
-          }
+        // Loop infinito do Pac-Man: depois de comer todos, reinicia
+        if (doneTimer === 180) {
+          setTimeout(() => initPositions(), 400);
         }
       }
     }
