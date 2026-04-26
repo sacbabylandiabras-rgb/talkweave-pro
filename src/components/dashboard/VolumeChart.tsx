@@ -179,31 +179,31 @@ export function VolumeChart() {
   const formatYAxis = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toString());
 
   const series = [
-    { key: "enviadas", label: "Enviadas", color: "rgb(var(--warning))", gradientId: "gEnviadas" },
-    { key: "entregues", label: "Entregues", color: "rgb(var(--accent))", gradientId: "gEntregues" },
-    { key: "erros", label: "Erros", color: "rgb(var(--destructive))", gradientId: "gErros" },
+    { key: "enviadas", label: "Enviadas", color: "#a78bfa", gradientId: "gEnviadas" },
+    { key: "entregues", label: "Entregues", color: "#f472b6", gradientId: "gEntregues" },
+    { key: "erros", label: "Erros", color: "#f87171", gradientId: "gErros" },
   ] as const;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[340px] rounded-2xl border border-primary/15 bg-card">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <div className="flex items-center justify-center h-[340px] glass-chart">
+        <Loader2 className="w-6 h-6 animate-spin text-[#a78bfa]" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-primary/15 bg-card p-5 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/35 transition-all duration-300">
+    <div className="glass-chart p-5 transition-all duration-300">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded bg-accent/10">
-            <TrendingUp className="w-4 h-4 text-accent" />
+          <div className="p-1.5 rounded-lg bg-[rgba(167,139,250,0.16)]">
+            <TrendingUp className="w-4 h-4 text-[#a78bfa]" />
           </div>
           <div>
-            <span className="text-sm font-semibold text-foreground">Volume de mensagens</span>
+            <span className="font-bebas text-[18px] text-white tracking-wider">VOLUME DE MENSAGENS</span>
             {chartData.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">Nenhum envio registrado ainda</p>
+              <p className="font-nunito text-[11px] text-white/30">Nenhum envio registrado ainda</p>
             )}
           </div>
         </div>
@@ -265,23 +265,25 @@ export function VolumeChart() {
               <stop offset="95%" stopColor="rgb(var(--destructive))" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" opacity={0.3} vertical={false} />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-          <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: "rgb(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)", fontFamily: "Nunito" }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)", fontFamily: "Nunito" }} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgb(var(--card))",
-              border: "1px solid rgb(var(--border))",
+              backgroundColor: "rgba(26,16,64,0.92)",
+              border: "1px solid rgba(255,255,255,0.10)",
               borderRadius: "10px",
               fontSize: "12px",
+              color: "#ffffff",
+              backdropFilter: "blur(14px)",
               padding: "10px 14px",
-              boxShadow: "0 4px 16px rgb(var(--foreground) / 0.08)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
             }}
-            labelStyle={{ fontWeight: 600, marginBottom: 4, fontSize: 11 }}
+            labelStyle={{ fontWeight: 600, marginBottom: 4, fontSize: 11, color: "#ffffff" }}
           />
           {series.map((s) =>
             visible[s.key] ? (
-              <Area key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2} fill={`url(#${s.gradientId})`} animationDuration={1200} animationEasing="ease-in-out" dot={false} activeDot={{ r: 4, strokeWidth: 2, fill: "rgb(var(--card))" }} />
+              <Area key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={s.key === "enviadas" ? 2.5 : 1.8} strokeDasharray={s.key === "entregues" ? "4 3" : undefined} fill={`url(#${s.gradientId})`} animationDuration={1200} animationEasing="ease-in-out" dot={false} activeDot={{ r: 4, strokeWidth: 2, fill: "#1a1040" }} />
             ) : null
           )}
         </AreaChart>
