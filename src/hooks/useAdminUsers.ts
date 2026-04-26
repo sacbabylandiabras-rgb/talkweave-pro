@@ -44,7 +44,7 @@ export const useAdminUsers = () => {
       if (rolesError) throw rolesError;
 
       // Combine profiles with roles
-      const usersWithRoles: UserProfile[] = (profiles || []).map((profile) => ({
+      const usersWithRoles: UserProfile[] = (profiles as any[] || []).map((profile: any) => ({
         id: profile.id,
         email: profile.email || "",
         full_name: profile.full_name || "",
