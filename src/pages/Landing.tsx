@@ -246,6 +246,9 @@ function HeroSection() {
       if (slideIntervalRef.current) clearTimeout(slideIntervalRef.current);
     }
     initPositions();
+    // Tagline sempre visível — loop é contínuo
+    if (tagline) tagline.style.opacity = "1";
+    if (sub) sub.style.opacity = "1";
 
     function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
       ctx.save();
@@ -350,13 +353,9 @@ function HeroSection() {
         mouthOpen = Math.max(0.05, mouthOpen - 0.01);
         pacX = Math.min(W() * 0.82, pacX + 0.6);
         pacAngle = 0;
-        if (doneTimer === 30) {
-          if (tagline) tagline.style.opacity = "1";
-          if (sub) sub.style.opacity = "1";
-        }
-        // Loop infinito do Pac-Man: depois de comer todos, reinicia
-        if (doneTimer === 180) {
-          setTimeout(() => initPositions(), 400);
+        // Loop contínuo: reinicia assim que sai do canvas, sem pausa
+        if (pacX >= W() * 0.82) {
+          initPositions();
         }
       }
     }
