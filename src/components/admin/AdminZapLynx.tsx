@@ -139,7 +139,12 @@ const AdminZapLynx = () => {
     const pending = users.filter(u => u.subscription_status === 'pending').length;
     const withZapi = users.filter(u => u.zapi_instance_id).length;
     const expired = users.filter(u => u.subscription_status === 'expired').length;
-    return { total, active, pending, withZapi, expired };
+    const cancelled = users.filter(u => u.subscription_status === 'cancelled').length;
+    const PLAN_VALUE = 97; // R$ por assinatura
+    const valorGerado = active * PLAN_VALUE;
+    const planosPagosRS = active * PLAN_VALUE;
+    const reembolsosRS = cancelled * PLAN_VALUE;
+    return { total, active, pending, withZapi, expired, cancelled, valorGerado, planosPagosRS, reembolsosRS };
   }, [users]);
 
   const getSubscriptionBadge = (status: string) => {
@@ -188,6 +193,42 @@ const AdminZapLynx = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.total}</div><p className="text-xs text-muted-foreground">Cadastrados no sistema</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Gerado</CardTitle>
+            <DollarSign className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">
+              {stats.valorGerado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+            <p className="text-xs text-muted-foreground">Total acumulado (assinaturas ativas)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Planos Pagos (R$)</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.planosPagosRS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+            <p className="text-xs text-muted-foreground">{stats.active} assinatura(s) ativa(s)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reembolsos</CardTitle>
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats.reembolsosRS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+            <p className="text-xs text-muted-foreground">{stats.cancelled} cancelamento(s)</p>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
