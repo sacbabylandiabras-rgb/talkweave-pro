@@ -1188,6 +1188,7 @@ export type Database = {
           is_active: boolean
           max_instances: number
           pix_acquirer: string | null
+          plan_id: string | null
           subscription_expires_at: string | null
           subscription_status: string | null
           uazapi_token: string | null
@@ -1210,6 +1211,7 @@ export type Database = {
           is_active?: boolean
           max_instances?: number
           pix_acquirer?: string | null
+          plan_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
           uazapi_token?: string | null
@@ -1232,6 +1234,7 @@ export type Database = {
           is_active?: boolean
           max_instances?: number
           pix_acquirer?: string | null
+          plan_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
           uazapi_token?: string | null
@@ -1242,7 +1245,15 @@ export type Database = {
           zapi_instance_id?: string | null
           zapi_token?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       redirect_link_clicks: {
         Row: {
@@ -1461,6 +1472,36 @@ export type Database = {
           profile_picture_url?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string
         }
         Relationships: []
       }
