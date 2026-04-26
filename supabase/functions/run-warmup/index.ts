@@ -335,10 +335,23 @@ serve(async (req: Request) => {
               sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
 
+              const targetInstForOpen = findTargetInstance(target);
+              if (targetInstForOpen && donorPhone && answer) {
+                const opener = await sendZapiText(targetInstForOpen, donorPhone, answer);
+                if (opener.ok) {
+                  totalReplies++;
+                  console.log(`  ↩ ${targetInstForOpen.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
+                } else if (isNewChatCapping(opener.body)) {
+                  console.log(`  ⚠ ${targetInstForOpen.name}: Z-API bloqueou nova conversa (${opener.status}); enviando primeiro da doadora para liberar resposta`);
+                } else {
+                  console.log(`  ✗ envio forçado falhou: HTTP ${opener.status} ${opener.body.slice(0,200)}`);
+                }
+              }
+
               // RÉPLICA RECÍPROCA (em BACKGROUND para não bloquear o ciclo principal)
               // Se não houver "answer" no template, usa uma resposta automática rápida do pool.
               const replyText = answer || pickRandom(autoReplies);
-              if (replyText) {
+              if (replyText && !answer) {
                 const tInst = findTargetInstance(target);
                 if (!donorPhone) {
                   console.log(`  ⚠ sem réplica: telefone da doadora ${donor.instance_name} não resolvido`);
