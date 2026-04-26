@@ -82,13 +82,13 @@ serve(async (req: Request) => {
 
     // Resolver telefones das instâncias Z-API selecionadas pelo usuário
     // Guardamos também as credenciais para que a instância alvo possa RESPONDER de volta
-    type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string };
+    type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string; dbId: string };
     const targetInstances: TargetInstance[] = [];
     const resolvedFromInstances: string[] = [];
     if (instanceIds.length > 0) {
       const { data: userInstances } = await admin
         .from("zapi_instances")
-        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider")
+        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, connected_phone")
         .in("id", instanceIds)
         .eq("user_id", user.id);
 
@@ -96,12 +96,15 @@ serve(async (req: Request) => {
         try {
           const provider = String(inst.api_provider || "zapi").toLowerCase();
           if (provider !== "zapi") continue;
+          // 1) Tenta cache persistido primeiro (resolução prévia)
+          let phone = String(inst.connected_phone || "").replace(/\D/g, "");
+          if (phone.length < 8) phone = "";
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
           const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
-          let phone = "";
           for (const ep of endpoints) {
+            if (phone) break;
             try {
               const r = await fetch(`${base}${ep}`, { headers });
               if (!r.ok) continue;
@@ -123,6 +126,13 @@ serve(async (req: Request) => {
             }
           }
           if (phone) {
+            // Persiste no cache se for novo/diferente para próximos ciclos
+            if (String(inst.connected_phone || "").replace(/\D/g, "") !== phone) {
+              await admin
+                .from("zapi_instances")
+                .update({ connected_phone: phone })
+                .eq("id", inst.id);
+            }
             resolvedFromInstances.push(phone);
             targetInstances.push({
               phone,
@@ -130,6 +140,7 @@ serve(async (req: Request) => {
               token: String(inst.zapi_token),
               clientToken: String(inst.zapi_client_token || ""),
               name: String(inst.instance_name || ""),
+              dbId: String(inst.id),
             });
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
@@ -224,17 +235,8 @@ serve(async (req: Request) => {
     const sentByTarget: Record<string, number> = {};
     // Mapeamento phone → instanceId (UUID da zapi_instances) p/ a UI casar contadores
     const targetInstanceMap: Record<string, string> = {};
-    if (instanceIds.length > 0) {
-      const { data: userInstances2 } = await admin
-        .from("zapi_instances")
-        .select("id, zapi_instance_id")
-        .in("id", instanceIds)
-        .eq("user_id", user.id);
-      // Associa phone ↔ id quando já resolvemos acima via targetInstances
-      for (const ti of targetInstances) {
-        const match = (userInstances2 || []).find((u: any) => String(u.zapi_instance_id) === ti.instanceId);
-        if (match) targetInstanceMap[ti.phone] = String(match.id);
-      }
+    for (const ti of targetInstances) {
+      if (ti.dbId) targetInstanceMap[ti.phone] = ti.dbId;
     }
 
     // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
